@@ -9,6 +9,15 @@
 
 KBHandleCharacter::;a = character in ASCII
   ; jp DrawCharacter
+
+  ld hl, str_buffer
+  ld [hli], a
+  xor a
+  ld [hld], a
+  ld bc, 1
+  ld de, 0
+  ld a, DRAW_FLAGS_BKG
+  call DrawText
   ret
 
 KBHandleArrowKey::;a = DPad key

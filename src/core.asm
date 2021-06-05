@@ -209,7 +209,9 @@ UpdateTime::
   ret
  
 UpdateInput::;https://gbdev.io/pandocs/#joypad-input
+  push af
   push bc
+  push de
   push hl
 
   ;copy button_state to last_button_state
@@ -239,8 +241,12 @@ ENDR
   ld hl, button_state
   ld [hl], a
 
+  TRAMPOLINE ProcessKeyCodes
+
   pop hl
+  pop de
   pop bc
+  pop af
   ret
 
 DrawStateMap::;a = draw flags

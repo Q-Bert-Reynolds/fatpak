@@ -925,7 +925,7 @@ MoveOptionsArrow:
 UIShowOptions::
   PUSH_VAR _y
   DISPLAY_OFF
-  
+  TRAMPOLINE DetectKeyboard
   call LoadOptions
   
   CLEAR_BKG_AREA 0,0,20,18," "
@@ -1481,7 +1481,6 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
     WAITPAD_UP
   .moveArrowLoop;   while (1) {
       call UpdateInput;k = joypad();
-      TRAMPOLINE ProcessKeyCodes
       ld a, [_x]
       ld b, a
       ld d, a
@@ -1722,6 +1721,7 @@ UIShowListMenu::; a = draw flags, bc = xy, de = wh, text = [str_buffer], title =
   push bc ;xy
   push de ;wh
   call DrawUIBox
+  TRAMPOLINE DetectKeyboard
   pop de ;wh
   pop bc ;xy
   pop af ;draw flags
@@ -1909,7 +1909,7 @@ UIShowNumberPicker::; a = draw flags, bc = xy, de = wh, hl = max/start nums, ret
   push bc;xy
   push af;draw flags
   call DrawUIBox
-
+  TRAMPOLINE DetectKeyboard
   ld a, "x"
   ld [name_buffer], a
   pop af;draw flags
