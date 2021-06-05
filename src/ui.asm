@@ -1321,6 +1321,7 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
   xor a
   ld [rWY], a; move_win(7,0);
 
+  TRAMPOLINE DetectKeyboard
   
   pop hl;title
   push hl
@@ -1480,6 +1481,7 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
     WAITPAD_UP
   .moveArrowLoop;   while (1) {
       call UpdateInput;k = joypad();
+      TRAMPOLINE ProcessKeyCodes
       ld a, [_x]
       ld b, a
       ld d, a

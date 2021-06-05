@@ -120,7 +120,7 @@ SerialInterrupt::
   push bc
   push de
   push hl
-  call PS2KeyboardInterrupt
+  TRAMPOLINE PS2KeyboardInterrupt
   pop hl 
   pop de
   pop bc

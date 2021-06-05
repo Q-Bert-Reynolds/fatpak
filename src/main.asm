@@ -1,4 +1,4 @@
-TESTS_ENABLED    EQU 1
+TESTS_ENABLED    EQU 0
 INTRO_ENABLED    EQU 1
 TITLE_ENABLED    EQU 1
 NEW_GAME_ENABLED EQU 1
@@ -9,14 +9,13 @@ INCLUDE "src/beisbol.inc"
 
 RUN_TESTS: MACRO
 
-  ; DISPLAY_ON
-  ; ld a, SIM_BANK
-  ; call SetBank
-  ; TEST_SIM 250, -15, 10
-  call KeyboardDemo
-  ; ld a, WORLD_BANK
-  ; call SetBank
-  ; call TestMap
+  DISPLAY_ON
+  ld a, SIM_BANK
+  call SetBank
+  TEST_SIM 250, -15, 10
+  ld a, WORLD_BANK
+  call SetBank
+  call TestMap
 ENDM
 
 TEST_SIM: MACRO ;\1 = speed, \2 = deg left/right, \3 = deg up/down
