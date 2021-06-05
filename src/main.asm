@@ -1,4 +1,4 @@
-TESTS_ENABLED    EQU 0
+TESTS_ENABLED    EQU 1
 INTRO_ENABLED    EQU 1
 TITLE_ENABLED    EQU 1
 NEW_GAME_ENABLED EQU 1
@@ -6,16 +6,18 @@ WORLD_ENABLED    EQU 1
 PLAY_ENABLED     EQU 1
 
 INCLUDE "src/beisbol.inc"
+INCLUDE "src/keyboard/kb_demo.asm"
 
 RUN_TESTS: MACRO
 
-  DISPLAY_ON
-  ld a, SIM_BANK
-  call SetBank
-  TEST_SIM 250, -15, 10
-  ld a, WORLD_BANK
-  call SetBank
-  call TestMap
+  call KeyboardDemo
+  ; DISPLAY_ON
+  ; ld a, SIM_BANK
+  ; call SetBank
+  ; TEST_SIM 250, -15, 10
+  ; ld a, WORLD_BANK
+  ; call SetBank
+  ; call TestMap
 ENDM
 
 TEST_SIM: MACRO ;\1 = speed, \2 = deg left/right, \3 = deg up/down

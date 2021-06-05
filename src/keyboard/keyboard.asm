@@ -68,12 +68,16 @@ DetectKeyboard::
   call gbdk_Delay
   ld a, [kb_error]
   cp a, PS2_ERROR_TIMEOUT | PS2_ERROR_PARITY_BIT | PS2_ERROR_FINISH_BIT
-  ret nz;if magic error code not received, PS2 connected
+  jr nz, .usePS2Clock;if magic error code not received, PS2 connected
   ld a, KB_MODE_IGKB
   ld [kb_mode], a
   ret
+.usePS2Clock
+  ld a, SCF_TRANSFER_START | SCF_CLOCK_EXTERNAL
+  ld [rSC], a;ask for bits using keyboard clock 
+  ret
 
-ProcessKeyCodes::
+ProcessKeyCodes:
   ld a, [kb_mode]
 .processPS2
   cp a, KB_MODE_PS2

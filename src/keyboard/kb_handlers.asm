@@ -8,7 +8,7 @@
 ;KBHandleEscape
 
 KBHandleCharacter::;a = character in ASCII
-  ; jp DrawCharacter
+  jp DrawCharacter
 
   ld hl, str_buffer
   ld [hli], a
@@ -32,7 +32,7 @@ KBHandleTab::
 .loop
     push bc
     ld a, " "
-    ; call DrawCharacter
+    call DrawCharacter
     pop bc
     dec c
     jr nz, .loop
@@ -53,12 +53,12 @@ KBHandleEnter::
 
 KBHandleBackspace::
   ld a, -1
-  ; jp RemoveCharacter
+  jp RemoveCharacter
   ret
 
 KBHandleDelete::
   ld a, 1
-  ; jp RemoveCharacter
+  jp RemoveCharacter
   ret
 
 KBHandleFunctionKey::;a = function key

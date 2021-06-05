@@ -2,9 +2,9 @@
 ;PS/2 keyboard clock is ~100 μs between clock pulses
 
 PS2KeyboardInterrupt::
-  ld a, [kb_mode]
-  cp a, KB_MODE_PS2
-  ret nz;if not in PS/2 mode, exit early
+  ; ld a, [kb_mode]
+  ; cp a, KB_MODE_PS2
+  ; ret nz;if not in PS/2 mode, exit early
 
   ld a, [rSB]
   ld b, a;store first 8 bits of scan code (S0123456)
