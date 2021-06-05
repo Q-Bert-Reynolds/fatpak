@@ -1,3 +1,4 @@
+SECTION "Colors", ROM0
 ;DMG
 DMG_PAL_BDLW EQU %11100100 ;normal
 DMG_PAL_BDLL EQU %11100101 ;good for testing palettes
