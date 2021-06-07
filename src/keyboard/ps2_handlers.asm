@@ -43,7 +43,7 @@ PS2HandleKeycode::;a = scan code
   jp nc, PS2HandleError
   cp a, $69;lowest index in jump table
   jp c, PS2HandleError
-  ld hl, PS2ExtendedJumpTable-$69;nice
+  ld hl, PS2ExtendedJumpTable-$69*2
 .lookupAddress
   add hl, bc
   add hl, bc;addresses are 2 bytes, add index twice
@@ -240,6 +240,8 @@ PS2HandleArrowKey:;scan code in a
   ld a, PS2_KEY_DOWN_ARROW
   cp a, b
   jr z, .downPressed
+  ; ld a, PS2_KEY_RIGHT_ARROW
+  ; cp a, b
 .rightPressed
   ld a, PADF_RIGHT
   jp KBHandleArrowKey

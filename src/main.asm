@@ -1,4 +1,4 @@
-TESTS_ENABLED    EQU 1
+TESTS_ENABLED    EQU 0
 INTRO_ENABLED    EQU 1
 TITLE_ENABLED    EQU 1
 NEW_GAME_ENABLED EQU 1
@@ -6,11 +6,11 @@ WORLD_ENABLED    EQU 1
 PLAY_ENABLED     EQU 1
 
 INCLUDE "src/beisbol.inc"
-INCLUDE "src/keyboard/kb_demo.asm"
+; INCLUDE "src/keyboard/kb_demo.asm"
 
 RUN_TESTS: MACRO
 
-  call KeyboardDemo
+  ; call KeyboardDemo
   ; DISPLAY_ON
   ; ld a, SIM_BANK
   ; call SetBank

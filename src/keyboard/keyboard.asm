@@ -49,12 +49,14 @@ kb_modifiers:: DB ;FSCAUPNL - (F)unction, (S)hift, (C)trl, (A)lt, S(U)per, Ca(P)
 kb_flags:: DB;xxxxxxER - (E)xtended key flag, (R)elease key flag
 kb_mode:: DB
 
-SECTION "Keyboard Code", ROMX
+SECTION "Keyboard Code Bank 0", ROM0
+INCLUDE "src/keyboard/ps2_interrupt.asm"
+
+SECTION "Keyboard Code Bank X", ROMX
 INCLUDE "src/keyboard/kb_jump_table.asm"
 INCLUDE "src/keyboard/kb_handlers.asm"
 INCLUDE "src/keyboard/ps2_ascii_keymaps.asm"
 INCLUDE "src/keyboard/ps2_handlers.asm"
-INCLUDE "src/keyboard/ps2_interrupt.asm"
 INCLUDE "src/keyboard/igkb_handlers.asm"
 
 DetectKeyboard::
@@ -77,7 +79,7 @@ DetectKeyboard::
   ld [rSC], a;ask for bits using keyboard clock 
   ret
 
-ProcessKeyCodes:
+ProcessKeyCodes::
   ld a, [kb_mode]
 .processPS2
   cp a, KB_MODE_PS2
