@@ -101,11 +101,11 @@ Main::
 .setupGameBoyColor
   ld a, [sys_info]
   and a, SYS_INFO_GBC
-  jr z, .setup
+  jr z, .setupDisplay
   call gbdk_CPUFast; GBC always in fast mode
   CGB_COMPATIBILITY
 
-.setup
+.setupDisplay
   di
   ld sp, $ffff
   DISPLAY_OFF
@@ -118,15 +118,17 @@ Main::
   
   SETUP_DMA_TRANSFER
 
-.clearRAM;don't clear breakpoint or sys_info
+.initializeRAM
   ld hl, _RAM
-  ld bc, _breakpoint-_RAM
+  ld bc, _breakpoint-_RAM;don't clear breakpoint or sys_info
   xor a
   call mem_Set
   ld hl, sys_info+1
   ld bc, (_RAM+$2000)-sys_info
   xor a
   call mem_Set
+  ld a, KB_MODE_BUTTONS
+  ld [kb_mode], a
 
 .setupAudio
   ld hl, rAUDENA
@@ -142,16 +144,17 @@ Main::
   ld a, LCDCF_OFF | LCDCF_WIN9C00 | LCDCF_BG8800 | LCDCF_OBJ8 | LCDCF_OBJON | LCDCF_BGON
   ld [rLCDC], a
 
-.setupInterrupts
-  ld a, IEF_VBLANK | IEF_SERIAL
-  ld [rIE], a
-  ei
-
 .setupSuperGameBoy
   ld a, SGB_BANK
   call SetBank
   call sgb_Init
   SET_DEFAULT_PALETTE
+
+.setupInterrupts
+  ld a, IEF_VBLANK | IEF_SERIAL
+  ld [rIE], a
+  ei
+  TRAMPOLINE DetectKeyboard
 
 .seed ;load temp data
   ld a, TEMP_BANK

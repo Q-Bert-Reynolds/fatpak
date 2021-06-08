@@ -131,12 +131,12 @@ RemoveCharacter::
 ToggleKBMode::
   xor a
   ld [rSC], a;stop transfer
-  ld a, [kb_mode]
+  ld a, [kb_type]
   and a, %0000001
   inc a
-  ld [kb_mode], a
+  ld [kb_type], a
 .checkPS2
-  cp a, KB_MODE_PS2
+  cp a, KB_TYPE_PS2
   ret nz
   ld a, SCF_TRANSFER_START | SCF_CLOCK_EXTERNAL
   ld [rSC], a ;ask for more bits using keyboard clock   
