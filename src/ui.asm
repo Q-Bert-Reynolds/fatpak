@@ -81,7 +81,7 @@ FlashNextArrow:: ;a = draw flags, de = xy
   WAITPAD_UP
   ld l, 20
 .loop1 ;for (a = 20; a > 0; --a) {
-    UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS .exitFlashNextArrow, (PADF_A | PADF_B)
+    UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS .exitFlashNextArrow, (PADF_A | PADF_B | PADF_START)
     ld de, 10
     call gbdk_Delay
     dec l
@@ -99,7 +99,7 @@ FlashNextArrow:: ;a = draw flags, de = xy
 
   ld l, 20
 .loop2
-    UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS .exitFlashNextArrow, (PADF_A | PADF_B)
+    UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS .exitFlashNextArrow, (PADF_A | PADF_B | PADF_START)
     ld de, 10
     call gbdk_Delay
     dec l
@@ -1322,6 +1322,8 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
   ld [rWY], a; move_win(7,0);
 
   TRAMPOLINE DetectKeyboard
+  ld a, KB_MODE_TYPING
+  ld [kb_mode], a
   
   pop hl;title
   push hl
@@ -1661,6 +1663,9 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
   PLAY_SFX SelectSound
   pop af;str
   pop af;a = max_len
+
+  ld a, KB_MODE_BUTTONS
+  ld [kb_mode], a
 
   POP_VAR _y
   POP_VAR _x
