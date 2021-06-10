@@ -18,9 +18,8 @@ KBHandleCharacter::;a = character in ASCII
   ret nz
 
 .findCharXY;ASCII in b
-  ld a, [_c]
-  push af;store _c
-  xor a
+  PUSH_VAR _c
+  ld a, 1
   ld [_c], a;assume lowercase
   ld c, 0
   ld hl, UILowerCase
@@ -32,7 +31,7 @@ KBHandleCharacter::;a = character in ASCII
     ld a, 43
     cp a, c
     jr nc, .lowerLoop
-  ld a, 1
+  xor a
   ld [_c], a;upper case
   ld c, 0
   ld hl, UIUpperCase
@@ -44,8 +43,7 @@ KBHandleCharacter::;a = character in ASCII
     ld a, 25
     cp a, c
     jr nc, .upperLoop
-  pop af
-  ld [_c], a;restore _c
+  POP_VAR _c
   ret
 
 .charFound
@@ -57,6 +55,7 @@ KBHandleCharacter::;a = character in ASCII
   ld [_x], a
   ld a, l
   ld [_y], a
+  TRAMPOLINE DrawTextEntryBox
   ld a, [button_state]
   or a, PADF_A
   ld [button_state], a
@@ -81,18 +80,6 @@ KBHandleTab::
   ret
 
 KBHandleEnter::
-  ld a, [kb_mode]
-  cp a, KB_MODE_BUTTONS
-  jp z, .handleButton
-  cp a, KB_MODE_TYPING
-  ret z
-.handleTyping
-  ld a, 8
-  ld [_x], a
-  ld a, 4
-  ld [_y], a
-  ;move cursor, press a
-.handleButton
   ld a, [button_state]
   or a, PADF_START
   ld [button_state], a

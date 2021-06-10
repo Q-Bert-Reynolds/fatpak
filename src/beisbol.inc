@@ -5,12 +5,12 @@ INCLUDE "src/hardware.inc"
 INCLUDE "src/memory1.asm"
 INCLUDE "src/strings.asm"
 INCLUDE "src/gbdk.asm"
-INCLUDE "src/keyboard/keyboard.asm"
 INCLUDE "src/math.asm"
 
 INCLUDE "src/charmap.asm"
 INCLUDE "src/constants.asm"
 INCLUDE "src/macros.asm"
+INCLUDE "src/keyboard/keyboard.asm"
 
 INCLUDE "src/color.asm"
 INCLUDE "src/sgb.asm"
