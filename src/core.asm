@@ -249,6 +249,30 @@ ENDR
   pop af
   ret
 
+InitializeGameData::
+  ;NOTE: starting xy determines grid alignment!!! should be even
+  ld a, 8
+  ld [map_x], a
+  ld a, 12
+  ld [map_y], a
+  ld a, PADF_UP
+  ld [last_map_button_state], a
+  ld a, MAP_HOUSES
+  call SetCurrentMap
+  ld a, MAP_HOUSES_CHUNK_CALVINS_ROOM
+  ld [map_chunk], a
+
+  xor a
+  ld [seconds], a
+  ld [minutes], a
+  ld [hours], a
+  ld [hours+1], a
+  
+  ld hl, game_event_flags
+  ld bc, game_event_flags_end-game_event_flags
+  call mem_Set
+  ret
+
 DrawStateMap::;a = draw flags
   ld b, a;draw flags
   ld a, [loaded_bank]
