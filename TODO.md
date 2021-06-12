@@ -1,6 +1,5 @@
 Priority
 
-- finish the PS/2 and USB keyboard detour
 - separate palettes and stamps from object data
 - load/interact characters and items from map data
   - handle sprite collisions
@@ -22,6 +21,8 @@ Bugs
 - if holding more than one directional button, can't hop ledge
 - palettes broken when exiting lineup or roledex
 - color of version name incorrect after returning from new game/continue/options screen
+- USB keyboard sometimes freezes title screen
+- PS/2 keyboard causes flickering on LCDC interrupts
 - SGB sound test doesn't seem to work, test on hardware
 
  General
@@ -32,7 +33,6 @@ Bugs
 - big list of "real names" to use in place of ID and OT
 - cut off sprites with the text box using an LCD interrupt (see https://gbdev.io/pandocs/#faux-layer-textbox-status-bar)
 - print stats, records, rolédex
-- PS/2 and USB keyboard support
 
 Optimization
 
@@ -169,6 +169,17 @@ Super GameBoy
 - extra music voices
 - fix LCD interrupt flickering when sending packets
 - use second controller?
+
+Keyboard
+
+- add shortcut keys
+  - F1 for help (ie. pull up Rolédex page of opposing player)
+  - F2 to rename a player that has been selected in the lineup
+  - F3 to search through Rolédex, items, etc.
+  - ALT+F4 to restart the game
+  - CTRL+S to save anytime (save state?)
+  - num keys to select move? maybe to change the lineup
+- allow user to change the Rolédex page
 
 Design Notes
 
