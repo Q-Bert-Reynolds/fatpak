@@ -1,8 +1,4 @@
 IGKBHandleCode::;a = scan code
-  push af
-  ld bc, _SCRN0+32*5+5
-  call DrawHexNumber
-  pop af
 .handleSpace
   cp a, 137
   jr nz, .handlePeriod
@@ -52,19 +48,7 @@ IGKBHandleCode::;a = scan code
 .handleOther;The shift trick that IG does fucks up most special keys.
   sub a, 93;assuming that shift key not pressed, we subtract 93
   push af;save scan code
-
-  push af
-  ld bc, _SCRN0+32*6+5
-  call DrawHexNumber
-  pop af
-
   sub a, 41;HID code table starts with 41, so we subtract that too
-
-  push af
-  ld bc, _SCRN0+32*7+5
-  call DrawHexNumber
-  pop af
-
   ld b, 0
   ld c, a
   ld hl, IGKBJumpTable
