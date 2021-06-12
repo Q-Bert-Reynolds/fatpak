@@ -60,6 +60,8 @@ SECTION "Keyboard Code Bank 0", ROM0
 INCLUDE "src/keyboard/ps2_interrupt.asm"
 
 SECTION "Keyboard Code Bank X", ROMX
+INCLUDE "src/keyboard/kb_demo.asm"
+INCLUDE "src/keyboard/kb_debug_ui.asm"
 INCLUDE "src/keyboard/kb_jump_table.asm"
 INCLUDE "src/keyboard/kb_handlers.asm"
 INCLUDE "src/keyboard/ps2_ascii_keymaps.asm"

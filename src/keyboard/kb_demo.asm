@@ -1,5 +1,4 @@
 SECTION "Keyboard Demo", ROM0
-INCLUDE "src/keyboard/kb_debug_ui.asm"
 
 KeyboardDemo::
   DISPLAY_OFF

@@ -208,7 +208,7 @@ UpdateTime::
   ld [hours+1], a
   ret
  
-UpdateInput::;https://gbdev.io/pandocs/#joypad-input
+UpdateInput::;https://gbdev.io/pandocs/Joypad_Input.html
   push af
   push bc
   push de

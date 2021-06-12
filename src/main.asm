@@ -6,26 +6,25 @@ WORLD_ENABLED    EQU 1
 PLAY_ENABLED     EQU 1
 
 INCLUDE "src/beisbol.inc"
-; INCLUDE "src/keyboard/kb_demo.asm"
 
 TestTitle: DB "TEST TITLE",0
 TestText: DB "test text",0
 RUN_TESTS: MACRO
 
-  DISPLAY_OFF
-  call LoadFontTiles
-  ld a, " "
-  call ClearScreen
-  DISPLAY_ON
+  ; DISPLAY_OFF
+  ; call LoadFontTiles
+  ; ld a, " "
+  ; call ClearScreen
+  ; DISPLAY_ON
 
-  SHOW_WIN
+  ; SHOW_WIN
 
-  ld bc, TestTitle
-  ld de, TestText
-  ld l, 12
-  call ShowTextEntry
+  ; ld bc, TestTitle
+  ; ld de, TestText
+  ; ld l, 12
+  ; call ShowTextEntry
 
-  ; call KeyboardDemo
+  TRAMPOLINE KeyboardDemo
   ; DISPLAY_ON
   ; ld a, SIM_BANK
   ; call SetBank
