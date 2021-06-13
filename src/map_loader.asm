@@ -1679,13 +1679,11 @@ GetCurrentMap::;returns address in hl, bank in a
 
 GetCurrentMapChunk:;returns chunk address in hl, index in a
   ld a, [map_chunk]
-  ld hl, MapOverworldChunks
   call GetMapChunk
   ret
 
 SetCurrentMapChunk::;a = chunk index, returns address in hl, index in a
   ld [map_chunk], a
-  ld hl, MapOverworldChunks;TODO: this should be the beginning of the current map bank
   call GetMapChunk
   ret
 GetCurrentMapChunkNeighbor:;a = direction, returns chunk in hl, index in a
@@ -1708,7 +1706,7 @@ GetMapChunk:;a = jump table index, returns chunk in hl, index in a
   push bc
   push af;index
   call GetCurrentMap;should already be in correct bank
-  ld bc, 9
+  ld bc, 7
   add hl, bc;[hl] = lower byte of chunk jump table
   ld a, [hli]
   ld b, a
