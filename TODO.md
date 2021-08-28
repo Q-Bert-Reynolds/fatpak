@@ -1,6 +1,5 @@
 Priority
 
-- separate palettes and stamps from object data
 - load/interact characters and items from map data
   - handle sprite collisions
 - using the computer

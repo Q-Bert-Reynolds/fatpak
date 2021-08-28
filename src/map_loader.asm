@@ -198,7 +198,7 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
   ld de, map_sprite_buffer
   ld a, [map_sprite_count]
   and a
-  ret z
+  jr z, .clearRemainingOAM
 .loopMapSprites
     push af;count
     ld a, [de];bank

@@ -73,7 +73,7 @@ ENDM
 MoveUp: MOVE_PLAYER WalkUpAnim, MoveMapUp, 0
 MoveDown: MOVE_PLAYER WalkDownAnim, MoveMapDown, DrawMapBottomEdge
 MoveLeft: MOVE_PLAYER WalkLeftAnim, MoveMapLeft, 0
-MoveRight: MOVE_PLAYER WalkRightAnim, MoveMapRight, DrawMapRightEdge  
+MoveRight: MOVE_PLAYER WalkRightAnim, MoveMapRight, DrawMapRightEdge
 
 Look:;a = button_state
   push af
@@ -576,6 +576,7 @@ Overworld::
   xor a
   ld [list_selection], a
 
+  call FixMapScroll
   call DrawMapToScreen
 
   SHOW_BKG
