@@ -558,7 +558,6 @@ CheckRandomAppearance:
   ret
 
 Overworld::
-  call InitializeGameData;TODO: remove me
   DISPLAY_OFF
   SET_DEFAULT_PALETTE
 

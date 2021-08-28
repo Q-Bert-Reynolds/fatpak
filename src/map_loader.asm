@@ -149,8 +149,8 @@ RunMapScript::;a = script index
   call GetCurrentMap
   call SetBank
 
-  ld bc, 11
-  add hl, bc;[hl] = lower byte of doors address
+  ld bc, 9
+  add hl, bc;[hl] = lower byte of scripts address
   ld a, [hli]
   ld c, a
   ld a, [hl]
