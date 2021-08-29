@@ -297,7 +297,7 @@ GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, co
   push de
   call GetSpriteCollision
   pop de
-  pop hl
+  pop bc
   ret nz;return early if sprite collision found
   ld a, d
   srl a
@@ -305,7 +305,7 @@ GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, co
   ld a, e
   srl a
   ld [_y], a
-  ld bc, 6;tile(1)+pal(1)+neighbors(4)
+  ld hl, 6;tile(1)+pal(1)+neighbors(4)
   add hl, bc
 .loop
     ld a, [hli];map object type and collision
@@ -486,11 +486,12 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, collision type in 
   xor a
   ret
 .matchFound
+  ld hl, 5
+  add hl, bc;extra data, if any
   pop bc;collision type in b
   pop af;discard count
   POP_VAR loaded_bank
   call SetBank
-  ;TODO: handle extra data
   ld a, b;collision type
   and a, MAP_COLLISION_MASK
   ret
@@ -1094,6 +1095,8 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
     ld a, [hl];check done
     and a
     ret z
+    and a, MAP_COLLISION_MASK
+    ld [_c], a;collision type
     push hl; current address
     
     inc hl
@@ -1162,18 +1165,31 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
     inc hl;tile
     inc hl;pal
     inc hl;next
-    jr .loadSpritesLoop
+    jr .checkExtraSpriteData
   .spriteAlreadyInBuffer
     pop af;discard count
     pop de;current sprite address
     ld hl, 5
     add hl, de
-    jr .loadSpritesLoop
+    jr .checkExtraSpriteData
   .outOfRange
     pop de;toss current sprite address
     inc hl;tile
     inc hl;palette
     inc hl;next
+  .checkExtraSpriteData
+    ld a, [_c]
+    cp a, MAP_COLLISION_TEXT
+    jp z, .spriteHasExtraData
+    cp a, MAP_COLLISION_SCRIPT
+    jp z, .spriteHasExtraData
+    cp a, MAP_COLLISION_LEDGE
+    jr z, .spriteHasExtraData
+    cp a, MAP_COLLISION_DOOR
+    jr z, .spriteHasExtraData
+    jr .loadSpritesLoop
+  .spriteHasExtraData
+    inc hl
     jr .loadSpritesLoop
 
 TestMapObjectMinXY:; de = xy, max XY in _u,_v, returns xy in de, sets z if out of range

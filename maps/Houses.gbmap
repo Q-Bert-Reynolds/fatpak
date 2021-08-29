@@ -1,9 +1,9 @@
-MapHouses:: ;621 bytes total
+MapHouses:: ;653 bytes total
   DB MAP_HOUSES
   DW MapHousesPalettes ;64 bytes
-  DW MapHousesText ;130
+  DW MapHousesText ;161
   DW MapHousesDoors ;20
-  DW MapHousesChunks ;406 bytes
+  DW MapHousesChunks ;407 bytes
   DW MapHousesScripts ;3 bytes
 
 MapHousesPalettes: ;64 bytes
@@ -49,11 +49,13 @@ MapHousesPalettes: ;64 bytes
 
 MAP_HOUSES_TEXT_ITS_JUST_A_BUNCHOF_TRASH EQU 0
 MAP_HOUSES_TEXT_BATTERYS_BROKENDONT_TURN_IT_OFF EQU 1
-MAP_HOUSES_TEXT_YOU_CAN_SLEEPWHEN_YOUVE_WON EQU 2
-MAP_HOUSES_TEXT_THIS_TRASH_CANIS_REALLY_BEAT_UP EQU 3
-MapHousesText: ;130 bytes
+MAP_HOUSES_TEXT_OLD_GAMES_LOOKBETTER_ON_CRTS EQU 2
+MAP_HOUSES_TEXT_YOU_CAN_SLEEPWHEN_YOUVE_WON EQU 3
+MAP_HOUSES_TEXT_THIS_TRASH_CANIS_REALLY_BEAT_UP EQU 4
+MapHousesText: ;161 bytes
   DB "It's just a bunch\nof trash.",0
   DB "Battery's broken.\nDon't turn it off.",0
+  DB "Old games look\nbetter on CRTs.",0
   DB "You can sleep\nwhen you've won.",0
   DB "This trash can\nis really beat up.",0
 
@@ -92,7 +94,7 @@ MapHousesChunks: ;6 bytes
   DW MapHousesChunkCalvinsHouse
   DW MapHousesChunkNolansHouse
 
-;Map Chunks, 400 bytes
+;Map Chunks, 401 bytes
 MapHousesChunkCalvinsRoom:
 .tile:    DB 252
 .palette: DB 1
@@ -236,7 +238,7 @@ MapHousesChunkCalvinsRoom:
   DB 16;x
   DB 16;y
   DW GBStampTV
-  DB MAP_HOUSES_TEXT_BATTERYS_BROKENDONT_TURN_IT_OFF; Battery's broken.\nDon't turn it off.
+  DB MAP_HOUSES_TEXT_OLD_GAMES_LOOKBETTER_ON_CRTS; Old games look\nbetter on CRTs.
 
   DB MAP_OBJ_NONE_FILL | MAP_COLLISION_SCRIPT ;My PC
   DB 10;x1
@@ -255,19 +257,20 @@ MapHousesChunkCalvinsRoom:
 
 MapHousesSpritesCalvinsRoom:
 
-  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Console
+  DB MAP_OBJ_TILE | MAP_COLLISION_TEXT ;Console
   DB 133;x1
   DB 151;y1
   DB 161;tile
   DB 6;palette
+  DB MAP_HOUSES_TEXT_BATTERYS_BROKENDONT_TURN_IT_OFF; Battery's broken.\nDon't turn it off.
 
-  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Controller
+  DB MAP_OBJ_TILE | MAP_COLLISION_NONE ;Controller
   DB 127;x1
   DB 159;y1
   DB 160;tile
   DB 6;palette
 
-  DB 0;END CalvinsRoom sprite objects, 11 bytes
+  DB 0;END CalvinsRoom sprite objects, 12 bytes
 
 MapHousesChunkCalvinsHouse:
 .tile:    DB 252

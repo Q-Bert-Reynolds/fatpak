@@ -1,6 +1,5 @@
 Priority
 
-- handle sprite collisions
 - load and interact with characters and items from map data
 - using the computer
   - Bill's PC (will allow roster changes!!!)
