@@ -462,6 +462,7 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, collision type in 
     ld a, [bc];obj/collision type
     push af
     ld a, [hli];x
+    inc a;HACK: perhaps this should be fixed in the exporter
     swap a
     and a, %00001111
     cp a, d
