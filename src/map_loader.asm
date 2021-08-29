@@ -182,6 +182,7 @@ RunMapScript::;a = script index
 
 ClearMapSprites::
   xor a
+  ld [map_sprite_count], a
   ld hl, oam_buffer+4*4
   ld bc, 36*4
   call mem_Set
