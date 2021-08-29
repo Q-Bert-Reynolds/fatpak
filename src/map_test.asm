@@ -18,7 +18,6 @@ TestMap::
   call SetCurrentMap
   ld a, MAP_OVERWORLD_CHUNK_BILLETTOWNNE
   ld [map_chunk], a
-  ld [_breakpoint], a
   call DrawMapToScreen
   DISPLAY_ON
 

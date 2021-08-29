@@ -482,6 +482,7 @@ CheckPlayerCollision:;returns z if no collision
   cp a, MAP_COLLISION_DOOR
   ret z
   cp a, MAP_COLLISION_SOLID
+  ld [_breakpoint], a
   jr z, .stay
   cp a, MAP_COLLISION_TEXT
   jr z, .stay

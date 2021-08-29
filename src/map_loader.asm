@@ -439,25 +439,14 @@ GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, co
   cp a, MAP_COLLISION_GRASS
   ret
 
-GetSpriteCollision::;de = xy, returns z if no collision, collision type in a, extra data in [hl]
+GetSpriteCollision::;de = tile xy, returns z if no collision, collision type in a, extra data in [hl]
   ld a, [map_sprite_count]
   and a
   ret z;done if no sprites in buffer
-
-.truncateXY
-  ld a, [rSCX]
-  ld b, a;x offset
-  ld a, d
-  sub a, b;x - xOff
-  swap a;x
-  and a, %00001111
-  ld [_x], a;_x = x/16
-  ld a, [rSCY]
-  ld c, a;y offset
-  ld a, e;y
-  sub a, c;y - yOff
-  and a, %00001111
-  ld [_y], a;_y = y/16
+  
+  ;sprite xy/16 = tile xy/2
+  srl d;x/2
+  srl e;y/2
 
   PUSH_VAR loaded_bank
   ld hl, map_sprite_buffer
@@ -470,19 +459,16 @@ GetSpriteCollision::;de = xy, returns z if no collision, collision type in a, ex
     ld c, a
     ld a, [hli];upper byte of address
     ld b, a
-    ld a, [bc];collision type
+    ld a, [bc];obj/collision type
     push af
     ld a, [hli];x
     swap a
     and a, %00001111
-    ld d, a
-    ld a, [_x]
     cp a, d
     jr nz, .xMismatch
     ld a, [hli];y
     swap a
     and a, %00001111
-    ld e, a;de = xy
     cp a, e
     jr nz, .yMismatch
     jr .matchFound
@@ -499,12 +485,13 @@ GetSpriteCollision::;de = xy, returns z if no collision, collision type in a, ex
   xor a
   ret
 .matchFound
-  pop bc;collision type
+  pop bc;collision type in b
   pop af;discard count
   POP_VAR loaded_bank
   call SetBank
-  or a
+  ;TODO: handle extra data
   ld a, b;collision type
+  and a, MAP_COLLISION_MASK
   ret
 
 ;HACK: rounds rSCX and rSCY to nearest multiple of 8
@@ -972,7 +959,6 @@ DrawMapToScreen::
   ret
 
 DrawMapChunk:; hl = chunk address, de=xy, bc=wh
-  ld [_breakpoint], a
 .testWidth
   ld a, b;w
   and a
