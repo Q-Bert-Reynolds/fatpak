@@ -16,7 +16,6 @@ INCLUDE "maps/map_stamps.gbstamp"
 ; SetMapPalettes
 ; SetMapTiles
 ; DrawMapToScreen              draws map to visible background
-; GetMapText                   a = text index, returns text in str_buffer
 ; EnterMapDoor                 a = door index
 ; RunMapScript                 a = script index
 ; ClearMapSprites              removes map sprites from screen and buffer
@@ -43,8 +42,8 @@ INCLUDE "maps/map_stamps.gbstamp"
 MAP_OVERWORLD   EQU 0
 MAP_HOUSES      EQU 1
 MAP_BUSINESSES  EQU 2
-MAP_VETERANPARK EQU 3
-MAP_MOUNTAINS   EQU 4
+MAP_MOUNTAINS   EQU 3
+MAP_VETERANPARK EQU 4
 MapBanks:
   DB BANK(MapOverworld)
   DB BANK(MapHouses)
@@ -340,10 +339,6 @@ GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, co
     ; cp a, MAP_OBJ_STAMP_FILL
     ; jp z, .fill
     ; cp a, MAP_OBJ_TILE_FILL
-    ; jp z, .fill
-    ; cp a, MAP_OBJ_TEXT
-    ; jp z, .fill
-    ; cp a, MAP_OBJ_TEXT_FILL
     ; jp z, .fill
   
   .fill
@@ -1034,10 +1029,6 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
     jp z, .tile
     cp a, MAP_OBJ_TILE_FILL
     jp z, .tileFill
-    cp a, MAP_OBJ_TEXT
-    jp z, .tileFill
-    cp a, MAP_OBJ_TEXT_FILL
-    jp z, .tileFill
     cp a, MAP_OBJ_NONE
     jr z, .checkExtraData
     ; else MAP_OBJ_NONE_FILL
@@ -1337,24 +1328,12 @@ DrawMapTileFill:;a = map obj type, hl = tile fill data, de = xy, min/max XY in _
   ret z;if height==0
   ld c, a
   push hl;next map object
-  ld a, [_c];map obj type
-  cp a, MAP_OBJ_TEXT_FILL
   ld a, [_a];tile
   push de;xy
   push bc;wh
-  jr z, .stringFill
 .singleTile
   ld hl, _SCRN0
   call gbdk_SetTilesTo
-  jr .palettes
-.stringFill
-  call GetMapText
-  call ClipMapText
-  pop hl;wh
-  pop de;xy
-  push de;xy
-  push hl;wh
-  call gbdk_SetBkgTiles
 .palettes
   pop bc;wh
   pop de;xy
@@ -1375,12 +1354,6 @@ DrawMapTileFill:;a = map obj type, hl = tile fill data, de = xy, min/max XY in _
   ld bc, 4
   add hl, bc
   ret
-
-;str_buffer = text
-;returns clipped text in bc
-ClipMapText::;TODO - there's a bug and a feature listed for this function
-  ld bc, str_buffer
-  ret 
 
 DrawMapStamp:;hl = stamp data, de = xy, min/max XY in _x,_y,_u,_v, returns wh in bc
   call TestMapObjectMinXY

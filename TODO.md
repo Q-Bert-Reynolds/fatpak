@@ -1,6 +1,5 @@
 Priority
 
-- ditch old map text code now that they're converted to stamps on export
 - load and interact with characters and items from map data
 - using the computer
   - Bill's PC (will allow roster changes!!!)
@@ -15,7 +14,6 @@ Bugs
 
 - on GBC/SGB, player colors aren't reset after viewing the move list during a ballgame
 - on SGB, viewing a player on your team during a ballgame crashes the game
-- unclipped map text drawn incorrectly most of the time
 - can't deposit special items
 - if holding more than one directional button, can't hop ledge
 - palettes broken when exiting lineup or roledex

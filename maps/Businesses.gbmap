@@ -52,7 +52,7 @@ MapBusinessesText: ;0 bytes
 MapBusinessesDoors: ;5 bytes
 .doorExit
   DB MAP_OVERWORLD
-  DB MAP_OVERWORLD_CHUNK_ROUTE1WEST_43
+  DB MAP_OVERWORLD_CHUNK_VETERANCITYCLINICANDSHOP
   DB 2;x=12
   DB 8;y=18
   DB 128;direction
