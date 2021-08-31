@@ -1,5 +1,6 @@
 Priority
 
+- ditch old map text code now that they're converted to stamps on export
 - load and interact with characters and items from map data
 - using the computer
   - Bill's PC (will allow roster changes!!!)
@@ -34,6 +35,7 @@ Bugs
 
 Optimization
 
+- collision checks should only happen on first step, not every pixel!
 - COPY_TILE_BLOCK macro in GBDK.asm should be a subroutine, add HRAM vars to allow for this
 - utilize remaining HRAM (after DMA routine)
 - replace long chains of compares and jumps with jump tables
@@ -114,7 +116,6 @@ Map System
 - handle different sprite types (ie. tile, stamp, animation, avatar)
 - sprites should be pooled
   - make an array of map object instances (current position, map chunk, map sprites index)
-- map text should be clipped (or converted to stamps or turned off completely)
 - map scripts should also have collision check
 - use Unity's collision trigger property for finer control over GB collisions
 - palette 0 is used for UI, should not be exported
@@ -134,7 +135,6 @@ Items
 
 - change select arrow to empty after selecting item
 - hide play/item/team/run when item menu selected
-- max offer should depend on ball (baseball = $100, game ball = $1000, etc.)
 - use protein, carbos, etc.
 - add music/text when playing harmonica in overworld
 - wake player when playing harmonica in game
@@ -186,10 +186,11 @@ Design Notes
 - player stats should peak at their prime age (~25)
 - after prime age, speed and throw stats begin to decline (bat and field don't)
 - when a player dies (~75), their second type becomes Ghost
-- rather than selecting a player, you're selecting one of Doc Hicory's three teams - you get to name it
+- rather than selecting a player, you're selecting one of Doc Hicory's three teams (you get to name it?)
 - play against Doc Hicory (the Billet Town team that neither you nor your rival picked) anytime you want to
 - pitch speed should be a relative speed so that pitches appear faster when the pitcher's Throw stat is higher than the batter's Bat stat
-- each town should have an age limits for their league, you should be able to replay home teams as many times as you want
+- each town has age restrictions for their league (ie. <8, <12, <18, <30, unrestricted, 30+, 40+, 50+)
+- you should be able to replay teams more than once
 - Bill (of Bill's PC fame) is Bill James.
 - teammates in their 20s and 30s have a small chance of producing a child
 - A storm has cut off the path to the weather tower. It's cleared after you beat the game. That's where you meet the weather man, Mike.
@@ -197,16 +198,17 @@ Design Notes
 - You can use items as often as you want, but using an item on your pitcher while they're pitching requires a mound visit. Umps won't let you make more than one mound visit per inning per pitcher.
 - Pitchers must complete a plate appearance before they can be swapped out.
 - Low HP means more errors and bad pitches, slower movement.
-- You get the frozen head of Ted Williams in the equivalent of Pewter City's Museum of Science.
+- You get a frozen head (ie. Ted Williams) in the equivalent of Pewter City's Museum of Science.
 - replace "PC" with "server"
-- When a player reaches 0 HP, they're hurt and must come out of the game. The minimum number of players on the field is 7. Below that, and the team must forefeit. Whenever there is no player for a lineup spot, an out is recorded for that batter.
+- When a player reaches 0 HP, they're hurt and come out of the game. Whenever there is no player for a lineup spot, an out is recorded for that batter.
 - Batting/Pitching sprites should be shown on appropriate stat screens.
 - Main player image should be flipped to show correct handedness.
 - make some players only available on certain hardware (DMG, GBC, SGB 1/2, GBP, GBA, emulators)
 - age should be independent of experience and based instead on game time
   - if 30 minutes of playing is 1 month, you would need to play for 6 hours for your initial team of 5-year-olds to turn 6
-  - experience would be tied to Grade (instead of Level)
+  - experience would be tied to Grade (the equivalent to Level)
   - steroid use would then affect Grade instead of Age
   - steroids use should be tracked separately
   - steroids stop working after they've been taken 20 times
   - some transformations (Gio to OT, for example) require steroid use
+- max offer should depend on ball (baseball = $100, game ball = $1000, etc.)

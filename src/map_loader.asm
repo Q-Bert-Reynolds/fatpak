@@ -270,6 +270,9 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     ld a, [de]
     and a
     jr nz, .removeLoop
+  ld a, [map_sprite_count]
+  dec a
+  ld [map_sprite_count], a
   pop hl;OAM
   pop af;sprites left
   dec a
@@ -494,6 +497,7 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, collision type in 
   call SetBank
   ld a, b;collision type
   and a, MAP_COLLISION_MASK
+  ld [_breakpoint], a
   ret
 
 ;HACK: rounds rSCX and rSCY to nearest multiple of 8
