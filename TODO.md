@@ -179,6 +179,7 @@ Keyboard
 
 Design Notes
 
+- break large areas of repeated tiles, should be at least 2 different tiles on any given 20x18 tile region
 - Ghost runners appear when an unrecruited player gets on base
 - you can only see/sign Ghost runners after you've bought a ticket to the Field of Dreams
 - player stats should peak at their prime age (~25)

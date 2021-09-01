@@ -64,7 +64,7 @@ MapMountainsText: ;90 bytes
   DB "Boulder Baseball Science  Museum",0
 
 MapMountainsDoors: ;5 bytes
-.doorDoor
+.doorToVeteranParkNorth
   DB MAP_VETERANPARK
   DB MAP_VETERANPARK_CHUNK_VETERANPARKNORTHENTRANCE
   DB 4;x=14
@@ -428,7 +428,7 @@ MapMountainsChunkVeteranParkNorthEntrance:
   DB 21;x2
   DB 4;y2
 
-  DB MAP_OBJ_NONE_FILL | MAP_COLLISION_DOOR ;Door
+  DB MAP_OBJ_NONE_FILL | MAP_COLLISION_DOOR ;ToVeteranParkNorth
   DB 22;x1
   DB 4;y1
   DB 24;x2
