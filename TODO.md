@@ -1,6 +1,12 @@
 Priority
 
-- load and interact with characters and items from map data
+- new sprite types
+  - export sprite stamps from map editor
+  - load sprite stamps from map data
+  - export items from map editor
+  - load items from map data
+  - export avatars from map editor
+  - load avatars from map data
 - using the computer
   - Bill's PC (will allow roster changes!!!)
   - Doc's PC

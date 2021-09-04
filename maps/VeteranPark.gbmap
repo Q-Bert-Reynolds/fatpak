@@ -1,9 +1,9 @@
-MapVeteranPark:: ;1538 bytes total
+MapVeteranPark:: ;1543 bytes total
   DB MAP_VETERANPARK
   DW MapVeteranParkPalettes ;64 bytes
   DW MapVeteranParkText ;61
   DW MapVeteranParkDoors ;10
-  DW MapVeteranParkChunks ;1402 bytes
+  DW MapVeteranParkChunks ;1407 bytes
   DW MapVeteranParkScripts ;0 bytes
 
 MapVeteranParkPalettes: ;64 bytes
@@ -116,7 +116,7 @@ MapVeteranParkChunks: ;40 bytes
   DW MapVeteranParkChunkVeteranParkLoneTreeByExit
   DW MapVeteranParkChunkVeteranParkNWCorner
 
-;Map Chunks, 1362 bytes
+;Map Chunks, 1367 bytes
 MapVeteranParkChunkVeteranParkFieldEntrance:
 .tile:    DB 156
 .palette: DB 1
@@ -364,7 +364,12 @@ MapVeteranParkChunkVeteranParkWestOfSouthEntrance:
 
 MapVeteranParkSpritesVeteranParkWestOfSouthEntrance:
 
-  DB 0;END VeteranParkWestOfSouthEntrance sprite objects, 1 bytes
+  DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;Flower (3)
+  DB 130;x
+  DB 59;y
+  DW GBStampBaseball
+
+  DB 0;END VeteranParkWestOfSouthEntrance sprite objects, 6 bytes
 
 MapVeteranParkChunkVeteranParkSouthEntrance:
 .tile:    DB 156
@@ -1150,13 +1155,6 @@ MapVeteranParkChunkVeteranParkNorthWall:
   DB 32;x2
   DB 20;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
-  DB 8;x1
-  DB 20;y1
-  DW GBStampTree
-  DB 12;x2
-  DB 32;y2
-
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (25)
   DB 18;x1
   DB 28;y1
@@ -1176,6 +1174,13 @@ MapVeteranParkChunkVeteranParkNorthWall:
   DB 28;y1
   DW GBStampTree
   DB 32;x2
+  DB 32;y2
+
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
+  DB 8;x1
+  DB 20;y1
+  DW GBStampTree
+  DB 12;x2
   DB 32;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (21)
@@ -1227,6 +1232,13 @@ MapVeteranParkChunkVeteranParkNECorner:
 .south:   DB MAP_VETERANPARK_CHUNK_VETERANPARKEASTWALL
 .west:    DB MAP_VETERANPARK_CHUNK_VETERANPARKNORTHWALL
 
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (28)
+  DB 8;x1
+  DB 28;y1
+  DW GBStampTrunk
+  DB 10;x2
+  DB 32;y2
+
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
   DB 0;x1
   DB 28;y1
@@ -1246,13 +1258,6 @@ MapVeteranParkChunkVeteranParkNECorner:
   DB 22;y1
   DW GBStampTrunk
   DB 16;x2
-  DB 32;y2
-
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (28)
-  DB 8;x1
-  DB 28;y1
-  DW GBStampTrunk
-  DB 10;x2
   DB 32;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (23)

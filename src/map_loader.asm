@@ -245,8 +245,21 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     pop af;count
     dec a
     jp nz, .loopMapSprites
-.clearRemainingOAM;TODO: set the rest of OAM to 0
-
+.clearRemainingOAM
+  ld a, [map_sprite_count]
+  ld b, a
+  ld a, 36;max sprites - 4 avatar sprites
+  sub a, b
+  jr z, .exit
+  ld b, a;num to clear
+  xor a
+.clearLoop
+    ld [hli], a
+    ld [hli], a
+    ld [hli], a
+    ld [hli], a
+    dec b
+    jr nz, .clearLoop
 .exit
   pop af;bank
   call SetBank

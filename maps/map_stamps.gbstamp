@@ -484,7 +484,7 @@ GBStampWildFlowers: ;14 bytes
   DB 3, 3, 1
   DB 1, 2, 2
 
-GBStampGBSpriteStamp: ;7 bytes
+GBStampBaseball: ;7 bytes
   DB 2;width
   DB 2;height
 .tiles
@@ -501,20 +501,20 @@ GBStampShopText: ;7 bytes
 .palette
   DB 135
 
+GBStampClinicText: ;9 bytes
+  DB 6;width
+  DB 1;height
+.tiles
+  DB  67, 108, 105, 110, 105,  99
+.palette
+  DB 135
+
 GBStampBoulderFieldText: ;17 bytes
   DB 7;width
   DB 2;height
 .tiles
   DB  66, 111, 117, 108, 100, 101, 114
   DB  32,  32,  70, 105, 101, 108, 100
-.palette
-  DB 135
-
-GBStampClinicText: ;9 bytes
-  DB 6;width
-  DB 1;height
-.tiles
-  DB  67, 108, 105, 110, 105,  99
 .palette
   DB 135
 
