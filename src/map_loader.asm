@@ -230,13 +230,30 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     ld a, c
     jr nz, .offScreenY
     inc de
+    ld [_y], a
     ld [hli], a;y
     ld a, b;x
+    ld [_x], a
     ld [hli], a
-    pop bc;map sprite address, [map object type/collision flags]
+    pop bc;map sprite address
+    ld a, [bc];map object type/collision flags
+    and a, MAP_OBJ_STAMP
     inc bc;initial x 
     inc bc;initial y
-    inc bc;tile
+    inc bc;tile or lower byte of stamp
+    jr z, .spriteTile
+  .spriteStamp
+    ld a, [bc];lower byte of stamp
+    push af;lower byte of stamp
+    ld a, [bc];upper byte of stamp
+    ld b, a
+    pop af;lower byte of stamp
+    ld c, a
+    pop af;count
+    call CopySpriteStampToOAMBuffer;a = count, bc = stamp, de = map sprite buffer, hl = OAM buffer, returns count in a, sets z if count is 0
+    jp nz, .loopMapSprites
+    jr .clearRemainingOAM
+  .spriteTile
     ld a, [bc];tile
     ld [hli], a;tile
     inc bc;palette
@@ -290,6 +307,10 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
   dec a
   jp nz, .loopMapSprites
   jp .clearRemainingOAM
+
+CopySpriteStampToOAMBuffer::;a = count, bc = stamp, de = map sprite buffer, hl = OAM buffer, returns count in a, sets z if count is 0
+  dec a
+  ret
 
 GetScreenCollision::;bc = xy pixel offset (-127,127), returns z if no collision, collision type in a, extra data in b
   ld a, [loaded_bank]
@@ -1170,8 +1191,8 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
     ld [hli], a;y
     ld h, d
     ld l, e
-    inc hl;tile
-    inc hl;pal
+    inc hl;tile or stamp lower
+    inc hl;pal or stamp upper
     inc hl;next
     jr .checkExtraSpriteData
   .spriteAlreadyInBuffer
