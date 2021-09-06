@@ -1,7 +1,6 @@
 Priority
 
 - new sprite types
-  - export sprite stamps from map editor
   - load sprite stamps from map data
   - export items from map editor
   - load items from map data

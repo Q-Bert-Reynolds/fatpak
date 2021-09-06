@@ -239,6 +239,7 @@ MAP_SPRITE_SIZE      EQU 5;bytes... bank, address, x, y
 MAP_BUFFER_SIZE      EQU 36 * MAP_SPRITE_SIZE;max 40 sprites - 4 sprites used by user avatar
 
 ;sizes
+STACK_SIZE       EQU 128
 MAX_ITEMS        EQU 20
 MAX_PC_ITEMS     EQU 50
 BYTES_PER_ITEM   EQU 2

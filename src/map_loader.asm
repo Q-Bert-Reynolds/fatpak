@@ -4,7 +4,7 @@ MAP_LOADER SET 1
 INCLUDE "src/beisbol.inc"
 
 SECTION "Map Loader", ROM0
-INCLUDE "maps/map_stamps.gbstamp"
+INCLUDE "maps/map_stamps.gbstamp";TODO: move this out of ROM0
 ; ROUTINES THAT SWITCH TO A BANK, DO SOME WORK, AND SWITCH BACK
 ; GetScreenCollision           bc = xy pixel offset (-127,127), returns z if no collision, collision type in a, extra data in b
 ; GetMapChunkCollision         hl = chunk address, de = xy, returns z if no collision, collision type in a, extra data in [hl]
@@ -231,29 +231,35 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     jr nz, .offScreenY
     inc de
     ld [_y], a
-    ld [hli], a;y
     ld a, b;x
     ld [_x], a
-    ld [hli], a
     pop bc;map sprite address
     ld a, [bc];map object type/collision flags
-    and a, MAP_OBJ_STAMP
     inc bc;initial x 
     inc bc;initial y
     inc bc;tile or lower byte of stamp
+    and a, MAP_OBJ_STAMP
     jr z, .spriteTile
   .spriteStamp
     ld a, [bc];lower byte of stamp
+    inc bc
     push af;lower byte of stamp
     ld a, [bc];upper byte of stamp
     ld b, a
     pop af;lower byte of stamp
     ld c, a
+    push de;map sprite buffer
+    call CopySpriteStampToOAMBuffer;bc = stamp, hl = OAM buffer, returns next OAM buffer slot in hl
+    pop de;map sprite buffer
     pop af;count
-    call CopySpriteStampToOAMBuffer;a = count, bc = stamp, de = map sprite buffer, hl = OAM buffer, returns count in a, sets z if count is 0
+    dec a
     jp nz, .loopMapSprites
     jr .clearRemainingOAM
   .spriteTile
+    ld a, [_y]
+    ld [hli], a;y
+    ld a, [_x]
+    ld [hli], a;x
     ld a, [bc];tile
     ld [hli], a;tile
     inc bc;palette
@@ -263,20 +269,12 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     dec a
     jp nz, .loopMapSprites
 .clearRemainingOAM
-  ld a, [map_sprite_count]
-  ld b, a
-  ld a, 36;max sprites - 4 avatar sprites
-  sub a, b
-  jr z, .exit
-  ld b, a;num to clear
-  xor a
-.clearLoop
+    ld a, l
+    cp a, LOW(oam_buffer+40*4);assumes lower byte oam_buffer address is 0
+    jr nc, .exit
+    xor a
     ld [hli], a
-    ld [hli], a
-    ld [hli], a
-    ld [hli], a
-    dec b
-    jr nz, .clearLoop
+    jr .clearRemainingOAM
 .exit
   pop af;bank
   call SetBank
@@ -308,8 +306,46 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
   jp nz, .loopMapSprites
   jp .clearRemainingOAM
 
-CopySpriteStampToOAMBuffer::;a = count, bc = stamp, de = map sprite buffer, hl = OAM buffer, returns count in a, sets z if count is 0
-  dec a
+CopySpriteStampToOAMBuffer::;a = count, bc = stamp, hl = OAM buffer, [_x][_y] = position, returns count in a, sets z if count is 0
+  ld a, [_x];x
+  ld d, a
+  ld a, [_y];y
+  ld e, a
+  ld a, [bc];stamp width
+  ld [_w], a
+  inc bc
+  ld a, [bc];stamp height
+  inc bc
+.loopY
+    push af;height
+    push de;xy
+    ld a, [_w];width
+  .loopX
+      push af;width
+      push de;xy
+      ld a, e
+      ld [hli], a;y
+      ld a, d
+      ld [hli], a;x
+      ld a, [bc]
+      ld [hli], a;tile
+      inc bc
+      xor a
+      ld [hli], a;pal
+      pop de;xy
+      ld a, 8
+      add a, d
+      ld d, a;x
+      pop af;width
+      dec a
+      jr nz, .loopX
+    pop de;xy
+    ld a, 8
+    add a, e
+    ld e, a;y
+    pop af;height
+    dec a
+    jr nz, .loopY
   ret
 
 GetScreenCollision::;bc = xy pixel offset (-127,127), returns z if no collision, collision type in a, extra data in b

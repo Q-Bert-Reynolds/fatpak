@@ -159,6 +159,10 @@ ball_vel_y:: DB
 ball_vel_z:: DB
 ball_state:: DB;bits... 7 = caught, 6 = landed, 5 = fair, 4 = inPlay, 3..0 = position player holding ball
 
+SECTION "Stack", WRAM0
+stack_top: DS STACK_SIZE
+stack_bottom:
+
 SECTION "Buffers", WRAMX
 ;buffers
 tile_buffer:: DS BUFFER_SIZE

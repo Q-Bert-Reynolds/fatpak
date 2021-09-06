@@ -121,7 +121,6 @@ Main::
 
 .setupDisplay
   di
-  ld sp, $ffff
   DISPLAY_OFF
   DISABLE_LCD_INTERRUPT
   xor a
@@ -129,7 +128,6 @@ Main::
   ld [rSCY], a
   ld [rWX], a
   ld [rWY], a
-  
   SETUP_DMA_TRANSFER
 
 .initializeRAM
@@ -143,6 +141,7 @@ Main::
   call mem_Set
   ld a, KB_MODE_BUTTONS
   ld [kb_mode], a
+  ld sp, stack_bottom
 
 .setupAudio
   ld hl, rAUDENA
