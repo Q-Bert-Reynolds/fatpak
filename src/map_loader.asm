@@ -198,7 +198,7 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
   ld de, map_sprite_buffer
   ld a, [map_sprite_count]
   and a
-  jr z, .clearRemainingOAM
+  jp z, .clearRemainingOAM
 .loopMapSprites
     push af;count
     ld a, [de];bank
@@ -238,8 +238,18 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     inc bc;initial x 
     inc bc;initial y
     inc bc;tile or lower byte of stamp
-    and a, MAP_OBJ_STAMP
+    and a, MAP_OBJ_TYPE_MASK
+    cp a, MAP_OBJ_TILE
     jr z, .spriteTile
+    cp a, MAP_OBJ_STAMP
+    jr z, .spriteStamp
+    ;We should never get here. Why are we?
+    ld bc, 4
+    add hl, bc
+    pop af
+    dec a
+    jp nz, .loopMapSprites
+    jr .clearRemainingOAM
   .spriteStamp
     ld a, [bc];lower byte of stamp
     inc bc
@@ -562,7 +572,6 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, collision type in 
   call SetBank
   ld a, b;collision type
   and a, MAP_COLLISION_MASK
-  ld [_breakpoint], a
   ret
 
 ;HACK: rounds rSCX and rSCY to nearest multiple of 8
