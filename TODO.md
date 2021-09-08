@@ -1,11 +1,10 @@
 Priority
 
 - new sprite types
-  - load sprite stamps from map data
-  - export items from map editor
-  - load items from map data
   - export avatars from map editor
   - load avatars from map data
+  - export items from map editor
+  - load items from map data
 - using the computer
   - Bill's PC (will allow roster changes!!!)
   - Doc's PC
@@ -38,6 +37,7 @@ Bugs
 
 Optimization
 
+- all sprite stamps are 2x2, remove data from export and simplify stamp drawing
 - collision checks should only happen on first step, not every pixel!
 - COPY_TILE_BLOCK macro in GBDK.asm should be a subroutine, add HRAM vars to allow for this
 - utilize remaining HRAM (after DMA routine)
@@ -116,22 +116,18 @@ Team Menu
 
 Map System
 
-- handle different sprite types (ie. tile, stamp, animation, avatar)
-- sprites should be pooled
-  - make an array of map object instances (current position, map chunk, map sprites index)
 - map scripts should also have collision check
 - use Unity's collision trigger property for finer control over GB collisions
-- palette 0 is used for UI, should not be exported
+- palette 0 is used for UI and player avatar, should not be exported
 - chunks should be exported as tile arrays when more efficient than objects
 - print errors for more than 255 chunks, text, doors, etc. when exporting a scene
 - map stamps should be referenced from an index to a jump table instead of directly addressed
 - default collision type for chunk
 - regions should have their own music, palettes, tiles, etc
-- an chunk index of 0 should fill the chunk with some default tile
+- a chunk index of 0 should fill the chunk with some default tile
 - make legs go behind things
 - animated tiles
-- add diagonal lines to map system, (already implemented in editor)
-- draw map to bkg_buffer then copy to _SCRN0... unsure if it's faster, but it should be tested
+- add diagonal lines to map system, (already implemented(ish) in editor)
 - make the editor a standalone application
 
 Items

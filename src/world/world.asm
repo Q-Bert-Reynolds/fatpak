@@ -16,7 +16,8 @@ INCLUDE "maps/Businesses.gbmap"
 SECTION "World Code", ROMX, BANK[WORLD_BANK]
 INCLUDE "src/world/computer.asm"
 INCLUDE "src/world/scripts.asm"
-INCLUDE "img/avatars/avatars.asm"
+INCLUDE "img/maps/world_sprites.asm"
+INCLUDE "maps/map_animations.gbanim"
 
 MOVE_PLAYER: MACRO;\1 = animation address, \2 = map move routine, \3 = map draw routine
   ld hl, \1
@@ -70,10 +71,10 @@ ENDC
   ret
 ENDM
 
-MoveUp: MOVE_PLAYER WalkUpAnim, MoveMapUp, 0
-MoveDown: MOVE_PLAYER WalkDownAnim, MoveMapDown, DrawMapBottomEdge
-MoveLeft: MOVE_PLAYER WalkLeftAnim, MoveMapLeft, 0
-MoveRight: MOVE_PLAYER WalkRightAnim, MoveMapRight, DrawMapRightEdge
+MoveUp: MOVE_PLAYER GBStampAnimationCalvinWalkUp, MoveMapUp, 0
+MoveDown: MOVE_PLAYER GBStampAnimationCalvinWalkDown, MoveMapDown, DrawMapBottomEdge
+MoveLeft: MOVE_PLAYER GBStampAnimationCalvinWalkLeft, MoveMapLeft, 0
+MoveRight: MOVE_PLAYER GBStampAnimationCalvinWalkRight, MoveMapRight, DrawMapRightEdge
 
 Look:;a = button_state
   push af
@@ -84,7 +85,7 @@ Look:;a = button_state
   push af
   and a, PADF_UP
   jr z, .checkDown
-  ld hl, WalkUpAnim
+  ld hl, GBStampAnimationCalvinWalkUp
   call AnimateAvatar
   jr .exit
 .checkDown
@@ -92,7 +93,7 @@ Look:;a = button_state
   push af
   and a, PADF_DOWN
   jr z, .checkRight
-  ld hl, WalkDownAnim
+  ld hl, GBStampAnimationCalvinWalkDown
   call AnimateAvatar
   jr .exit
 .checkRight
@@ -100,7 +101,7 @@ Look:;a = button_state
   push af
   and a, PADF_RIGHT
   jr z, .checkLeft
-  ld hl, WalkRightAnim
+  ld hl, GBStampAnimationCalvinWalkRight
   call AnimateAvatar
   jr .exit
 .checkLeft
@@ -109,7 +110,7 @@ Look:;a = button_state
   and a, PADF_LEFT
   jr z, .exit
   ld b, 1;flip
-  ld hl, WalkLeftAnim
+  ld hl, GBStampAnimationCalvinWalkLeft
   call AnimateAvatar
 .exit
   pop af
@@ -145,65 +146,7 @@ Move:;a = button_state
 .exit
   pop af
   ret 
-
-WalkLeftAnim:
-  db 1
-  dw _CalvinAvatarIdleRightTileMap
-  dw _CalvinAvatarIdleRightPropMap
-  db 1
-  dw _CalvinAvatarWalkRightTileMap
-  dw _CalvinAvatarWalkRightPropMap
-  db 1
-  dw _CalvinAvatarIdleRightTileMap
-  dw _CalvinAvatarIdleRightPropMap
-  db 1
-  dw _CalvinAvatarWalkRightTileMap
-  dw _CalvinAvatarWalkRightPropMap
-
-WalkRightAnim:
-  db 0
-  dw _CalvinAvatarIdleRightTileMap
-  dw _CalvinAvatarIdleRightPropMap
-  db 0
-  dw _CalvinAvatarWalkRightTileMap
-  dw _CalvinAvatarWalkRightPropMap
-  db 0
-  dw _CalvinAvatarIdleRightTileMap
-  dw _CalvinAvatarIdleRightPropMap
-  db 0
-  dw _CalvinAvatarWalkRightTileMap
-  dw _CalvinAvatarWalkRightPropMap
-
-WalkUpAnim:
-  db 0
-  dw _CalvinAvatarIdleUpTileMap
-  dw _CalvinAvatarIdleUpPropMap
-  db 0
-  dw _CalvinAvatarWalkUpTileMap
-  dw _CalvinAvatarWalkUpPropMap
-  db 1
-  dw _CalvinAvatarIdleUpTileMap
-  dw _CalvinAvatarIdleUpPropMap
-  db 1
-  dw _CalvinAvatarWalkUpTileMap
-  dw _CalvinAvatarWalkUpPropMap
-
-WalkDownAnim:
-  db 0
-  dw _CalvinAvatarIdleDownTileMap
-  dw _CalvinAvatarIdleDownPropMap
-  db 0
-  dw _CalvinAvatarWalkDownTileMap
-  dw _CalvinAvatarWalkDownPropMap
-  db 1
-  dw _CalvinAvatarIdleDownTileMap
-  dw _CalvinAvatarIdleDownPropMap
-  db 1
-  dw _CalvinAvatarWalkDownTileMap
-  dw _CalvinAvatarWalkDownPropMap
-
-WALK_ANIM_FRAMES EQU (WalkDownAnim-WalkUpAnim)/5
-
+  
 AnimateAvatar:;hl = animation
   ld a, [anim_frame];assumes a < 52
   ld b, a
@@ -536,10 +479,10 @@ ShowPlayerAvatar:
   ret 
 
 LoadAvatarSprites:;NOTE: this should be done BEFORE setting GBC map palettes
-  ld hl, _AvatarsTiles
-  ld de, $8000
-  ld bc, _AVATARS_TILE_COUNT*16
-  call mem_CopyVRAM
+  ; ld hl, _AvatarsTiles
+  ; ld de, $8000
+  ; ld bc, _AVATARS_TILE_COUNT*16
+  ; call mem_CopyVRAM
 
   ld hl, PaletteCalvin
   ld a, 7

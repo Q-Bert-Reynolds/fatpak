@@ -5,6 +5,7 @@ INCLUDE "src/beisbol.inc"
 
 SECTION "Map Loader", ROM0
 INCLUDE "maps/map_stamps.gbstamp";TODO: move this out of ROM0
+
 ; ROUTINES THAT SWITCH TO A BANK, DO SOME WORK, AND SWITCH BACK
 ; GetScreenCollision           bc = xy pixel offset (-127,127), returns z if no collision, collision type in a, extra data in b
 ; GetMapChunkCollision         hl = chunk address, de = xy, returns z if no collision, collision type in a, extra data in [hl]
@@ -71,6 +72,20 @@ MapTileAddresses:
   DW _BusinessesTiles
   DW _OverworldTiles
   DW _ForestTiles
+
+MapSpriteTileBanks:
+  DB BANK(_WorldSpritesTiles)
+  DB BANK(_WorldSpritesTiles)
+  DB BANK(_WorldSpritesTiles)
+  DB BANK(_WorldSpritesTiles)
+  DB BANK(_WorldSpritesTiles)
+
+MapSpriteTileAddresses:
+  DW _WorldSpritesTiles
+  DW _WorldSpritesTiles
+  DW _WorldSpritesTiles
+  DW _WorldSpritesTiles
+  DW _WorldSpritesTiles
 
 GetMapText::;a = text index, returns text in str_buffer
   ld b, 0
@@ -786,6 +801,26 @@ SetMapTiles::
   ld h, a
   ld l, b
   ld de, $8800
+  ld bc, 128*16;tiles*bytes/tile
+  call mem_CopyVRAM
+
+  ld a, [map]
+  ld b, 0
+  ld c, a
+  ld hl, MapSpriteTileBanks
+  add hl, bc
+  ld a, [hl]
+  call SetBank
+
+  ld hl, MapSpriteTileAddresses
+  add hl, bc
+  add hl, bc
+  ld a, [hli]
+  ld b, a
+  ld a, [hli]
+  ld h, a
+  ld l, b
+  ld de, $8000
   ld bc, 128*16;tiles*bytes/tile
   call mem_CopyVRAM
 
