@@ -340,12 +340,15 @@ CopySpriteStampToOAMBuffer::;a = count, bc = stamp, hl = OAM buffer, [_x][_y] = 
   ld [_w], a
   inc bc
   ld a, [bc];stamp height
+  ld [_v], a
   inc bc
-.loopY
+  
+  push hl;OAM buffer
+.loopTilesY
     push af;height
     push de;xy
     ld a, [_w];width
-  .loopX
+  .loopTilesX
       push af;width
       push de;xy
       ld a, e
@@ -355,22 +358,41 @@ CopySpriteStampToOAMBuffer::;a = count, bc = stamp, hl = OAM buffer, [_x][_y] = 
       ld a, [bc]
       ld [hli], a;tile
       inc bc
-      xor a
-      ld [hli], a;pal
+      inc hl;skip props
       pop de;xy
       ld a, 8
       add a, d
       ld d, a;x
       pop af;width
       dec a
-      jr nz, .loopX
+      jr nz, .loopTilesX
     pop de;xy
     ld a, 8
     add a, e
     ld e, a;y
     pop af;height
     dec a
-    jr nz, .loopY
+    jr nz, .loopTilesY
+
+  pop hl;OAM buffer
+  ld a, [_v];height
+.loopPropsY
+    push af;height
+    ld a, [_w];width
+  .loopPropsX
+      push af;width
+      inc hl;skip y
+      inc hl;skip x
+      inc hl;skip tile
+      ld a, [bc];props
+      ld [hli], a
+      inc bc
+      pop af;width
+      dec a
+      jr nz, .loopPropsX
+    pop af;height
+    dec a
+    jr nz, .loopPropsY
   ret
 
 GetScreenCollision::;bc = xy pixel offset (-127,127), returns z if no collision, collision type in a, extra data in b
