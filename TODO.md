@@ -1,5 +1,6 @@
 Priority
 
+- sprites on neighboring chunks draw unnecessarily
 - new sprite types
   - export avatars from map editor
   - load avatars from map data

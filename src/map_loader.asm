@@ -331,19 +331,30 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
   jp nz, .loopMapSprites
   jp .clearRemainingOAM
 
-CopySpriteStampToOAMBuffer::;a = count, bc = stamp, hl = OAM buffer, [_x][_y] = position, returns count in a, sets z if count is 0
-  ld a, [_x];x
-  ld d, a
-  ld a, [_y];y
-  ld e, a
+CopySpriteStampToOAMBuffer:;a = count, bc = stamp, hl = OAM buffer, [_x][_y] = position, returns count in a, sets z if count is 0
   ld a, [bc];stamp width
   ld [_w], a
+  sla a
+  sla a;8px * width / 2
+  ld d, a
+  ld a, [_x];x
+  sub a, d
+  add a, 8
+  ld d, a
   inc bc
+
   ld a, [bc];stamp height
   ld [_v], a
+  sla a
+  sla a;8px * height / 2
+  ld e, a
+  ld a, [_y];y
+  sub a, e
+  ld e, a
   inc bc
-  
+
   push hl;OAM buffer
+  ld a, [_v];height
 .loopTilesY
     push af;height
     push de;xy
@@ -1147,7 +1158,7 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
 .drawTilesLoop
     ld a, [hli];map object type and collision
     and a
-    jp z, .loadSprites
+    jp z, .loadSpritesLoop
     ld b, a;map object type and collision
 
     ld a, [hli];x
@@ -1201,27 +1212,6 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
     inc hl
     jp .drawTilesLoop
 
-.loadSprites;convert coordinates from tiles to pixels
-  ld a, [_x]
-  sla a;*2
-  sla a;*4
-  sla a;*8
-  ld [_x], a
-  ld a, [_y]
-  sla a;*2
-  sla a;*4
-  sla a;*8
-  ld [_y], a
-  ld a, [_u]
-  sla a;*2
-  sla a;*4
-  sla a;*8
-  ld [_u], a
-  ld a, [_v]
-  sla a;*2
-  sla a;*4
-  sla a;*8
-  ld [_v], a
 .loadSpritesLoop
     ld a, [hl];check done
     and a
@@ -1235,14 +1225,21 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
     ld d, a
     ld a, [hli];y
     ld e, a
+    push de;xy
+    
+  .testXY
+    srl d
+    srl d
+    srl d;x/8
+    srl e
+    srl e
+    srl e;y/8
+    call TestMapObjectMinXY
+    jr z, .outOfRange
+    call TestMapObjectMaxXY
+    jr z, .outOfRange
 
-  ;TODO: figure out why clipping doesn't work correctly
-  ; .testXY
-  ;   call TestMapObjectMinXY
-  ;   jr z, .outOfRange
-  ;   call TestMapObjectMaxXY
-  ;   jr z, .outOfRange
-
+    pop de;xy
   .testBankAndAddress
     ld hl, map_sprite_buffer
     ld a, [loaded_bank]
@@ -1304,10 +1301,10 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
     add hl, de
     jr .checkExtraSpriteData
   .outOfRange
+    pop de;toss xy
     pop de;toss current sprite address
-    inc hl;tile
-    inc hl;palette
-    inc hl;next
+    inc hl;skip tile
+    inc hl;skip palette
   .checkExtraSpriteData
     ld a, [_c]
     cp a, MAP_COLLISION_TEXT
@@ -1318,10 +1315,10 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
     jr z, .spriteHasExtraData
     cp a, MAP_COLLISION_DOOR
     jr z, .spriteHasExtraData
-    jr .loadSpritesLoop
+    jp .loadSpritesLoop
   .spriteHasExtraData
     inc hl
-    jr .loadSpritesLoop
+    jp .loadSpritesLoop
 
 TestMapObjectMinXY:; de = xy, max XY in _u,_v, returns xy in de, sets z if out of range
 .testMinX
