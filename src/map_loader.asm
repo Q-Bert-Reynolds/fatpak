@@ -233,7 +233,7 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     sub a, b;x+8-scroll x
     ld b, a;x+8-scroll x
     BETWEEN 192, 224
-    jr nz, .removeSprite
+    jp nz, .removeSprite
     inc de
     ld a, [rSCY]
     ld c, a;bg scroll y
@@ -243,7 +243,7 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     ld c, a
     BETWEEN 192, 224
     ld a, c
-    jr nz, .offScreenY
+    jp nz, .offScreenY
     inc de
     ld [_y], a
     ld a, b;x
@@ -252,27 +252,32 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     ld a, [bc];map object type/collision flags
     inc bc;initial x 
     inc bc;initial y
-    inc bc;tile or lower byte of stamp
+    inc bc;tile or lower byte of address
     and a, MAP_OBJ_TYPE_MASK
     cp a, MAP_OBJ_TILE
     jr z, .spriteTile
     cp a, MAP_OBJ_STAMP
     jr z, .spriteStamp
-    ;We should never get here. Why are we?
+    cp a, MAP_OBJ_AVATAR
+    jr z, .spriteAvatar
+  .spriteError ;We should never get here. Why are we?
     ld bc, 4
     add hl, bc
     pop af
     dec a
     jp nz, .loopMapSprites
     jr .clearRemainingOAM
+  .spriteAvatar
+    push de;map sprite buffer
+    call CopyAddressStoredAtBCToBC;bc = avatar address
+    call GetSpriteStampForAvatar
+    pop de;map sprite buffer
+    pop af;count
+    dec a
+    jp nz, .loopMapSprites
+    jr .clearRemainingOAM
   .spriteStamp
-    ld a, [bc];lower byte of stamp
-    inc bc
-    push af;lower byte of stamp
-    ld a, [bc];upper byte of stamp
-    ld b, a
-    pop af;lower byte of stamp
-    ld c, a
+    call CopyAddressStoredAtBCToBC;bc = stamp address
     push de;map sprite buffer
     call CopySpriteStampToOAMBuffer;bc = stamp, hl = OAM buffer, returns next OAM buffer slot in hl
     pop de;map sprite buffer
@@ -404,6 +409,32 @@ CopySpriteStampToOAMBuffer:;a = count, bc = stamp, hl = OAM buffer, [_x][_y] = p
     pop af;height
     dec a
     jr nz, .loopPropsY
+  ret
+
+GetSpriteStampForAvatar::;bc = avatar address, currently returns animation address contained at avatar.down
+  ld a, [loaded_bank]
+  push af;loaded bank
+  ld a, WORLD_BANK
+  call SetBank;assumes all map avatars in WORLD_BANK
+.getAddressForDirection;TODO: should get direction based on some stored value
+  ;starts at avatar.left
+  inc bc
+  inc bc;avatar.right
+  inc bc
+  inc bc;avatar.up
+  inc bc
+  inc bc;avatar.down
+.loadAnimation
+  call CopyAddressStoredAtBCToBC;bc = address of animation
+.loadSprite;TODO: refactor AnimateAvatar so it can be used here
+  inc bc;skip flip
+  call CopyAddressStoredAtBCToBC;bc = address of stamp+2
+  dec bc
+  dec bc
+  call CopySpriteStampToOAMBuffer;TODO: remove me
+.restoreBank
+  pop af;previously loaded bank
+  call SetBank
   ret
 
 GetScreenCollision::;bc = xy pixel offset (-127,127), returns z if no collision, collision type in a, extra data in b

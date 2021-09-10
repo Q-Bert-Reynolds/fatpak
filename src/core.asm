@@ -2,6 +2,7 @@ SECTION "Core", ROM0
 
 ; GetTypeString                   a = type, string in name_buffer
 ; GetStatusString                 a = status mask, string in name_buffer
+; CopyAddressStoredAtBCToBC       bc = address of address, returns address stored at bc in bc
 ; SetBank                         a = bank ;TODO: handle more than 255 banks
 ; Trampoline                      b = bank, hl = address, can only use de and RAM for args, can't return anything in a
 ; UpdateInput
@@ -95,6 +96,16 @@ GetStatusString:: ;a = status mask, string in name_buffer
   call str_FromArray
   ld de, name_buffer
   call str_Copy
+  ret
+
+CopyAddressStoredAtBCToBC::;bc = address of address, returns address stored at bc in bc, uses a
+  ld a, [bc];lower byte
+  inc bc
+  push af;lower byte
+  ld a, [bc];upper byte
+  ld b, a
+  pop af;lower byte
+  ld c, a
   ret
 
 SetBank:: ;a = BANK ;TODO: handle more than 255 banks

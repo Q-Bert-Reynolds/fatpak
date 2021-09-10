@@ -1,0 +1,7 @@
+GBAvatars:: ;8 bytes
+GBAvatarCalvinAvatar:: ;8 bytes
+.left: DW GBStampAnimationCalvinWalkLeft
+.right: DW GBStampAnimationCalvinWalkRight
+.up: DW GBStampAnimationCalvinWalkUp
+.down: DW GBStampAnimationCalvinWalkDown
+

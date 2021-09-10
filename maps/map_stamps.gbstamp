@@ -494,7 +494,7 @@ GBStampBaseball: ;7 bytes
   DB 0, 0
   DB 0, 0
 
-GBStampCalvinIdleDown: ;10 bytes
+GBStampCalvinIdleDown:: ;10 bytes
   DB 2;width
   DB 2;height
 .tiles

@@ -18,6 +18,7 @@ INCLUDE "src/world/computer.asm"
 INCLUDE "src/world/scripts.asm"
 INCLUDE "img/maps/world_sprites.asm"
 INCLUDE "maps/map_animations.gbanim"
+INCLUDE "maps/map_avatars.gbavatar"
 
 MOVE_PLAYER: MACRO;\1 = animation address, \2 = map move routine, \3 = map draw routine
   ld hl, \1

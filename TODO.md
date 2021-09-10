@@ -1,8 +1,7 @@
 Priority
 
 - new sprite types
-  - export avatars from map editor
-  - load avatars from map data
+  - refactor player avatar animation subroutines so they can be used for all avatars
   - export items from map editor
   - load items from map data
 - using the computer
@@ -118,7 +117,8 @@ Map System
 
 - map scripts should also have collision check
 - use Unity's collision trigger property for finer control over GB collisions
-- palette 0 is used for UI and player avatar, should not be exported
+- bg palette 0 is used for UI, should not be exported
+- sprite palette 7 is used for player avatar, should be switched to palette 0 and not exported
 - chunks should be exported as tile arrays when more efficient than objects
 - print errors for more than 255 chunks, text, doors, etc. when exporting a scene
 - map stamps should be referenced from an index to a jump table instead of directly addressed
