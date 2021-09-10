@@ -1,5 +1,8 @@
 Priority
 
+- running out of room in ROM0, move stuff to other banks
+  - data like strings and colors shouldn't be in ROM0
+  - helper routines that don't take any args should use TRAMPOLINE instead
 - new sprite types
   - refactor player avatar animation subroutines so they can be used for all avatars
   - export items from map editor
@@ -28,6 +31,7 @@ Bugs
 
  General
 
+- remove manual ROMX assignments, let linker handle bank management instead
 - link cable support!
 - copy string labels and English text to spreadsheet, translate to other languages, parse CSV
 - give math subroutines more appropriate names
