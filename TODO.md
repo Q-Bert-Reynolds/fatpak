@@ -1,6 +1,5 @@
 Priority
 
-- sprites on neighboring chunks draw unnecessarily
 - new sprite types
   - export avatars from map editor
   - load avatars from map data
@@ -17,6 +16,7 @@ Priority
 
 Bugs
 
+- sprite culling still has issues at times
 - on GBC/SGB, player colors aren't reset after viewing the move list during a ballgame
 - on SGB, viewing a player on your team during a ballgame crashes the game
 - can't deposit special items
@@ -32,8 +32,7 @@ Bugs
 - link cable support!
 - copy string labels and English text to spreadsheet, translate to other languages, parse CSV
 - give math subroutines more appropriate names
-- big list of "real names" to use in place of ID and OT
-- cut off sprites with the text box using an LCD interrupt (see https://gbdev.io/pandocs/#faux-layer-textbox-status-bar)
+- cut off sprites with the text box using an LCD interrupt (see https://gbdev.io/pandocs/LCDC.html#faux-layer-textboxstatus-bar)
 - print stats, records, rolédex
 
 Optimization
@@ -51,7 +50,7 @@ Optimization
 - Load/Set User/Opposing PlayerBkgTiles subroutines share a ton of code
 - palette ids are at most 7, so two palettes could fit in a byte, cutting palette data in half
 - several routines that simply call their banked counterpart can likely be replaced with Trampoline
-
+- use halt and stop where appropriate (see https://gbdev.io/pandocs/Reducing_Power_Consumption.html)
 Python scripts
 
 - add colors and palette maps to player data
@@ -181,6 +180,7 @@ Keyboard
 
 Design Notes
 
+- big list of "real names" to use in place of ID and OT
 - break large areas of repeated tiles, should be at least 2 different tiles on any given 20x18 tile region
 - Ghost runners appear when an unrecruited player gets on base
 - you can only see/sign Ghost runners after you've bought a ticket to the Field of Dreams

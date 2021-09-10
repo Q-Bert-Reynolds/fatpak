@@ -51,6 +51,10 @@ collision_type:: DB
 collision_data:: DB
 map_scroll_speed:: DB
 map_sprite_count:: DB
+min_x:: DB
+min_y:: DB
+max_x:: DB
+max_y:: DB
 
 ;banking
 temp_bank:: DB;only roledex.asm still uses this, should use stack instead

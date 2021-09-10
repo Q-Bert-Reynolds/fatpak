@@ -1118,15 +1118,15 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
 
 .storeMinMax
   ld a, d
-  ld [_x], a;minX
+  ld [min_x], a;minX
   ld a, e
-  ld [_y], a;minY
+  ld [min_y], a;minY
   ld a, b
   add a, d;x+w
-  ld [_u], a;maxX
+  ld [max_x], a;maxX
   ld a, c
   add a, e;y+h
-  ld [_v], a;maxY
+  ld [max_y], a;maxY
   xor a
   ld [rVBK], a
 .setChunkTile
@@ -1228,15 +1228,23 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
     push de;xy
     
   .testXY
+    inc d
     srl d
     srl d
     srl d;x/8
+    inc e
     srl e
     srl e
     srl e;y/8
     call TestMapObjectMinXY
     jr z, .outOfRange
+    push hl;map sprite address
+    ld h, d
+    inc h
+    ld l, e
+    inc l
     call TestMapObjectMaxXY
+    pop hl;map sprite address
     jr z, .outOfRange
 
     pop de;xy
@@ -1320,33 +1328,33 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
     inc hl
     jp .loadSpritesLoop
 
-TestMapObjectMinXY:; de = xy, max XY in _u,_v, returns xy in de, sets z if out of range
+TestMapObjectMinXY:; de = xy, max XY in max_x,max_y, returns xy in de, sets z if out of range
 .testMinX
-  ld a, [_u];chunk maxX
+  ld a, [max_x];chunk maxX
   cp a, d;stamp minX
   jr c, .outOfRange;chunk maxX < stamp minX
-  jr z, .outOfRange;chunk maxX == stamp minX
+  ret z;.outOfRange;chunk maxX == stamp minX
 .testMinY
-  ld a, [_v];chunk maxY
+  ld a, [max_y];chunk maxY
   cp a, e;stamp minY
   jr c, .outOfRange;chunk maxY < stamp minY
-  jr z, .outOfRange;chunk maxY == stamp minY
+  ret z;.outOfRange;chunk maxY == stamp minY
 .inRange
   ret
 .outOfRange
   xor a
   ret 
 
-TestMapObjectMaxXY:; de = xy, min XY in _x,_y, returns xy in de, sets z if out of range
+TestMapObjectMaxXY:; hl = xy, min XY in min_x,min_y, returns xy in hl, sets z if out of range
 .testMaxX
-  ld a, [_x];chunk minX
+  ld a, [min_x];chunk minX
   cp a, h;stamp maxX
-  jp z, .outOfRange;chunk minX == stamp maxX
+  ret z;.outOfRange;chunk minX == stamp maxX
   jp nc, .outOfRange;chunk minX > stamp maxX
 .testMaxY
-  ld a, [_y];chunk minX
+  ld a, [min_y];chunk minX
   cp a, l;stamp maxy
-  jp z, .outOfRange;chunk minY == stamp maxY
+  ret z;.outOfRange;chunk minY == stamp maxY
   jp nc, .outOfRange;chunk minY > stamp maxY
 .inRange
   ret
@@ -1354,7 +1362,7 @@ TestMapObjectMaxXY:; de = xy, min XY in _x,_y, returns xy in de, sets z if out o
   xor a
   ret 
     
-DrawMapStampFill:;hl = stamp fill data, de = xy, min/max XY in _x,_y,_u,_v
+DrawMapStampFill:;hl = stamp fill data, de = xy, min/max XY in min_x,min_y,max_x,max_y
   call TestMapObjectMinXY
   jr z, .outOfRange
 
@@ -1410,24 +1418,24 @@ DrawMapStampFill:;hl = stamp fill data, de = xy, min/max XY in _x,_y,_u,_v
   add hl, bc
   ret
 
-DrawMapTileFill:;a = map obj type, hl = tile fill data, de = xy, min/max XY in _x,_y,_u,_v
+DrawMapTileFill:;a = map obj type, hl = tile fill data, de = xy, min/max XY in min_x,min_y,max_x,max_y
   ld [_c], a;map obj type
   ld bc, 0
 .testX
-  ld a, [_u];maxX
+  ld a, [max_x];maxX
   cp a, d;x
   jp c, .outOfRange;maxX < x
   jp z, .outOfRange;maxX == x
-  ld a, [_x];minX
+  ld a, [min_x];minX
   cp a, d
   jr c, .testY
   ld d, a
 .testY
-  ld a, [_v];maxY
+  ld a, [max_y];maxY
   cp a, e;y
   jp c, .outOfRange;maxY < y
   jp z, .outOfRange;maxY == y
-  ld a, [_y];minY
+  ld a, [min_y];minY
   cp a, e
   jr c, .draw
   ld e, a
@@ -1438,14 +1446,14 @@ DrawMapTileFill:;a = map obj type, hl = tile fill data, de = xy, min/max XY in _
   ld [_b], a
   ld a, [hli];fill maxX
   ld b, a;fill maxX
-  ld a, [_u];chunk maxX
+  ld a, [max_x];chunk maxX
   cp a, b
   jr nc, .skipMaxXTruncate;chunk maxX >= fill maxX
   ld b, a;fill maxX = chunk maxX
 .skipMaxXTruncate
   ld a, [hli];fill maxY
   ld c, a;fill maxY
-  ld a, [_v];chunk maxY
+  ld a, [max_y];chunk maxY
   cp a, c
   jr nc, .skipMaxYTruncate;chunk maxY >= fill maxY
   ld c, a;fill maxY = chunk maxY
@@ -1488,7 +1496,7 @@ DrawMapTileFill:;a = map obj type, hl = tile fill data, de = xy, min/max XY in _
   add hl, bc
   ret
 
-DrawMapStamp:;hl = stamp data, de = xy, min/max XY in _x,_y,_u,_v, returns wh in bc
+DrawMapStamp:;hl = stamp data, de = xy, min/max XY in min_x,min_y,max_x,max_y, returns wh in bc
   call TestMapObjectMinXY
   jr z, .outOfRange
 
@@ -1555,13 +1563,13 @@ DrawMapStamp:;hl = stamp data, de = xy, min/max XY in _x,_y,_u,_v, returns wh in
   ret
 
 ;bc = stamp tiles, de = stamp minXY, hl = stamp maxXY
-;chunk min/max XY in _x,_y,_u,_v
+;chunk min/max XY in min_x,min_y,max_x,max_y
 ;returns tilemap/palettemap in tile_buffer, xy in de, wh in hl
 ClipStamp:
   push de;xy
   push bc;stamp tiles
 
-  ld a, [_x];chunk minX
+  ld a, [min_x];chunk minX
   sub a, d;stamp minX
   jr nc, .setMinX
   xor a
@@ -1569,7 +1577,7 @@ ClipStamp:
   ld [_a], a;x offset
   ld b, a
 
-  ld a, [_y];chunk minY
+  ld a, [min_y];chunk minY
   sub a, e;stamp minY
   jr nc, .setMinY
   xor a
@@ -1577,7 +1585,7 @@ ClipStamp:
   ld [_b], a;y offset
   ld c, a
 
-  ld a, [_u];chunk maxX
+  ld a, [max_x];chunk maxX
   cp a, h;stamp maxX
   jr c, .setClippedWidth;chunk maxX >= stamp maxX
   ld a, h;maxX
@@ -1586,7 +1594,7 @@ ClipStamp:
   sub a, b;maxX - stamp minX - x offset
   ld [_c], a;clipped width
 
-  ld a, [_v];chunk maxY
+  ld a, [max_y];chunk maxY
   cp a, l;stamp maxY
   jr c, .setClippedHeight;chunk maxY >= stamp maxY
   ld a, l;maxY
@@ -1715,22 +1723,22 @@ ClipStamp:
   ld l, a;h
   ret
 
-DrawMapTile:;hl = tile data, de = xy, min/max XY in _x,_y,_u,_v
+DrawMapTile:;hl = tile data, de = xy, min/max XY in min_x,min_y,max_x,max_y
 .testX
-  ld a, [_u];maxX
+  ld a, [max_x];maxX
   cp a, d;x
   jr c, .tileOutOfRange;maxX < x
   jr z, .tileOutOfRange;maxX == x
-  ld a, [_x];minX
+  ld a, [min_x];minX
   cp a, d;x
   jr z, .testY;minX == x
   jr nc, .tileOutOfRange;minX > x
 .testY
-  ld a, [_v];maxY
+  ld a, [max_y];maxY
   cp a, e;y
   jr c, .tileOutOfRange;maxY < y
   jr z, .tileOutOfRange;maxY == y
-  ld a, [_y];minY
+  ld a, [min_y];minY
   cp a, e;y
   jr z, .draw;minY == y
   jr nc, .tileOutOfRange;minY > y
