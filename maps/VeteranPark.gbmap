@@ -867,7 +867,7 @@ MapVeteranParkChunkVeteranParkCentralSign:
   DB 8;x2
   DB 16;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Couch (6)
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (6)
   DB 0;x1
   DB 0;y1
   DW GBStampTree

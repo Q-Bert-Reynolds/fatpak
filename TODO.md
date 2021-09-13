@@ -1,8 +1,5 @@
 Priority
 
-- running out of room in ROM0, move stuff to other banks
-  - data like strings and colors shouldn't be in ROM0
-  - helper routines that don't take any args should use TRAMPOLINE instead
 - new sprite types
   - refactor player avatar animation subroutines so they can be used for all avatars
   - export items from map editor
@@ -36,12 +33,15 @@ Bugs
 - copy string labels and English text to spreadsheet, translate to other languages, parse CSV
 - give math subroutines more appropriate names
 - cut off sprites with the text box using an LCD interrupt (see https://gbdev.io/pandocs/LCDC.html#faux-layer-textboxstatus-bar)
-- print stats, records, rolédex
+- use GB Printer to print stats, records, rolédex, baseball cards
 
 Optimization
 
-- all sprite stamps are 2x2, remove data from export and simplify stamp drawing
 - collision checks should only happen on first step, not every pixel!
+- running out of room in ROM0, move stuff to other banks
+  - data like strings and colors shouldn't be in ROM0
+  - helper routines that don't take any args should use TRAMPOLINE instead
+- if all sprite stamps are 2x2, remove data from export and simplify stamp drawing
 - COPY_TILE_BLOCK macro in GBDK.asm should be a subroutine, add HRAM vars to allow for this
 - utilize remaining HRAM (after DMA routine)
 - replace long chains of compares and jumps with jump tables
@@ -54,6 +54,7 @@ Optimization
 - palette ids are at most 7, so two palettes could fit in a byte, cutting palette data in half
 - several routines that simply call their banked counterpart can likely be replaced with Trampoline
 - use halt and stop where appropriate (see https://gbdev.io/pandocs/Reducing_Power_Consumption.html)
+
 Python scripts
 
 - add colors and palette maps to player data
@@ -119,18 +120,21 @@ Team Menu
 
 Map System
 
-- map scripts should also have collision check
+- export map lists (ie. MapAddresses, MapTileAddresses) instead of writing by hand
+- regions should have their own music, palettes, tiles, etc
+- map scripts should optionally have collision check
+- sanitize maps before export (ie. objects with text should always have a collider and be on the text layer)
+- handle temporary bg tiles (ie. trees that can be cut down)
+- add support for animated tiles
 - use Unity's collision trigger property for finer control over GB collisions
 - bg palette 0 is used for UI, should not be exported
 - sprite palette 7 is used for player avatar, should be switched to palette 0 and not exported
 - chunks should be exported as tile arrays when more efficient than objects
 - print errors for more than 255 chunks, text, doors, etc. when exporting a scene
+- make legs go behind things
 - map stamps should be referenced from an index to a jump table instead of directly addressed
 - default collision type for chunk
-- regions should have their own music, palettes, tiles, etc
 - a chunk index of 0 should fill the chunk with some default tile
-- make legs go behind things
-- animated tiles
 - add diagonal lines to map system, (already implemented(ish) in editor)
 - make the editor a standalone application
 

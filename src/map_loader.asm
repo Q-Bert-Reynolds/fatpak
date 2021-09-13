@@ -658,7 +658,13 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, collision type in 
 .matchFound
   ld hl, 5
   add hl, bc;extra data, if any
-  pop bc;collision type in b
+  pop bc;obj/collision type in b
+  ld a, b
+  and a, MAP_OBJ_TYPE_MASK
+  cp a, MAP_OBJ_AVATAR
+  jr nz, .finish
+  inc hl
+.finish
   pop af;discard count
   POP_VAR loaded_bank
   call SetBank
@@ -1260,6 +1266,10 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
     ld a, [hl];check done
     and a
     ret z
+    ld b, a
+    and a, MAP_OBJ_TYPE_MASK
+    ld [_t], a
+    ld a, b
     and a, MAP_COLLISION_MASK
     ld [_c], a;collision type
     push hl; current address
@@ -1341,13 +1351,17 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
     inc de
     ld a, [de];y
     ld [hli], a;y
-    xor a;TODO: get extra data from map sprite (ie. direction, state, frame)
-    ld [hli], a;extra data
+    inc de;tile or stamp lower
+    inc de;pal or stamp upper
+    inc de;next (or extra data)
+    ld a, [_t]
+    cp a, MAP_OBJ_AVATAR
+    jr nz, .initMapSpriteExtraData
+    ld a, [de]
+  .initMapSpriteExtraData
+    ld [hli], a;extra data (garbage data if not an avatar)
     ld h, d
     ld l, e
-    inc hl;tile or stamp lower
-    inc hl;pal or stamp upper
-    inc hl;next
     jr .checkExtraSpriteData
   .spriteAlreadyInBuffer
     pop af;discard count
@@ -1358,9 +1372,14 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
   .outOfRange
     pop de;toss xy
     pop de;toss current sprite address
-    inc hl;skip tile
-    inc hl;skip palette
+    inc hl;skip tile or stamp lower
+    inc hl;skip palette or stamp upper
   .checkExtraSpriteData
+    ld a, [_t]
+    cp a, MAP_OBJ_AVATAR
+    jr nz, .checkSpriteCollisionData
+    inc hl ;skip avatar extra data
+  .checkSpriteCollisionData
     ld a, [_c]
     cp a, MAP_COLLISION_TEXT
     jp z, .spriteHasExtraData

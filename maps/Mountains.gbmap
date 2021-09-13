@@ -1,9 +1,9 @@
-MapMountains:: ;3653 bytes total
+MapMountains:: ;3586 bytes total
   DB MAP_MOUNTAINS
   DW MapMountainsPalettes ;64 bytes
-  DW MapMountainsText ;90
+  DW MapMountainsText ;30
   DW MapMountainsDoors ;5
-  DW MapMountainsChunks ;3493 bytes
+  DW MapMountainsChunks ;3486 bytes
   DW MapMountainsScripts ;0 bytes
 
 MapMountainsPalettes: ;64 bytes
@@ -48,20 +48,12 @@ MapMountainsPalettes: ;64 bytes
   RGB 0, 8, 15
 
 MAP_MOUNTAINS_TEXT_ROUTE_2 EQU 0
-MAP_MOUNTAINS_TEXT_SHOP EQU 1
-MAP_MOUNTAINS_TEXT_VETERAN_CITY EQU 2
-MAP_MOUNTAINS_TEXT_LOCKED EQU 3
-MAP_MOUNTAINS_TEXT_CLINIC EQU 4
-MAP_MOUNTAINS_TEXT_BOULDER__FIELD EQU 5
-MAP_MOUNTAINS_TEXT_BOULDER_BASEBALL_SCIENCE__MUSEUM EQU 6
-MapMountainsText: ;90 bytes
+MAP_MOUNTAINS_TEXT_VETERAN_CITY EQU 1
+MAP_MOUNTAINS_TEXT_LOCKED EQU 2
+MapMountainsText: ;30 bytes
   DB "ROUTE 2",0
-  DB "Shop",0
   DB "VETERAN CITY",0
   DB "Locked!?",0
-  DB "Clinic",0
-  DB "Boulder  Field",0
-  DB "Boulder Baseball Science  Museum",0
 
 MapMountainsDoors: ;5 bytes
 .doorToVeteranParkNorth
@@ -136,7 +128,7 @@ MapMountainsChunks: ;62 bytes
   DW MapMountainsChunkRoute1West84
   DW MapMountainsChunkRoute1West85
 
-;Map Chunks, 3431 bytes
+;Map Chunks, 3424 bytes
 MapMountainsChunkHouseSouthOfDugoutCave:
 .tile:    DB 255
 .palette: DB 1
@@ -1680,11 +1672,11 @@ MapMountainsChunkScienceMuseumEntrance:
   DB 2;palette
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (36)
-  DB 31;x1
+  DB 0;x1
   DB 8;y1
   DB 197;tile
   DB 2;palette
-  DB 34;x2
+  DB 2;x2
   DB 9;y2
 
   DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;GameObject (45)
@@ -3615,14 +3607,6 @@ MapMountainsChunkBoulderCityCenterField:
   DB 30;x2
   DB 32;y2
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (36)
-  DB 31;x1
-  DB 8;y1
-  DB 197;tile
-  DB 2;palette
-  DB 34;x2
-  DB 9;y2
-
   DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;GameObject (73)
   DB 27;x1
   DB 5;y1
@@ -3647,7 +3631,7 @@ MapMountainsChunkBoulderCityCenterField:
   DB 158;tile
   DB 5;palette
 
-  DB 0;END BoulderCityCenterField background objects, 90 bytes
+  DB 0;END BoulderCityCenterField background objects, 83 bytes
 
 MapMountainsSpritesBoulderCityCenterField:
 
