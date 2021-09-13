@@ -22,7 +22,7 @@ INCLUDE "maps/map_avatars.gbavatar"
 
 MOVE_PLAYER: MACRO;\1 = animation address, \2 = map move routine, \3 = map draw routine
   ld hl, \1
-  call AnimateAvatar
+  call AnimatePlayerAvatar
   call CheckPlayerCollision
   call SetupAvatarAnimation
 .loop
@@ -31,7 +31,7 @@ MOVE_PLAYER: MACRO;\1 = animation address, \2 = map move routine, \3 = map draw 
     cp a, MAP_STEP_SIZE/2
     jr nz, .checkCollision
     ld hl, \1
-    call AnimateAvatar
+    call AnimatePlayerAvatar
   .checkCollision
     call CheckPlayerCollision
     jr nz, .collisionResponse
@@ -87,7 +87,7 @@ Look:;a = button_state
   and a, PADF_UP
   jr z, .checkDown
   ld hl, GBStampAnimationCalvinWalkUp
-  call AnimateAvatar
+  call AnimatePlayerAvatar
   jr .exit
 .checkDown
   pop af
@@ -95,7 +95,7 @@ Look:;a = button_state
   and a, PADF_DOWN
   jr z, .checkRight
   ld hl, GBStampAnimationCalvinWalkDown
-  call AnimateAvatar
+  call AnimatePlayerAvatar
   jr .exit
 .checkRight
   pop af
@@ -103,7 +103,7 @@ Look:;a = button_state
   and a, PADF_RIGHT
   jr z, .checkLeft
   ld hl, GBStampAnimationCalvinWalkRight
-  call AnimateAvatar
+  call AnimatePlayerAvatar
   jr .exit
 .checkLeft
   pop af
@@ -112,7 +112,7 @@ Look:;a = button_state
   jr z, .exit
   ld b, 1;flip
   ld hl, GBStampAnimationCalvinWalkLeft
-  call AnimateAvatar
+  call AnimatePlayerAvatar
 .exit
   pop af
   ret 
@@ -148,74 +148,13 @@ Move:;a = button_state
   pop af
   ret 
   
-AnimateAvatar:;hl = animation
-  ld a, [anim_frame];assumes a < 52
-  ld b, a
-  add a, a;a*2
-  add a, a;a*4
-  add a, b;a*5
-  ld d, 0
-  ld e, a
-  add hl, de
-
-  ld a, [hli];flip
-  push af
-
-  ld a, [hli]
-  ld c, a
-  ld a, [hli]
-  ld b, a;tilemap
-
-  ld a, [hli]
-  ld e, a
-  ld a, [hl]
-  ld d, a;propmap
-
-  ld h, b
-  ld l, c;tilemap
-
-  pop af;flip
-  and a
-  jr z, .noFlip
-
-  ld a, 4
-  ld bc, tile_buffer
-.flipPropsLoop
-    push af
-    ld a, [de]
-    xor a, OAMF_XFLIP
-    ld [bc], a
-    inc de
-    inc bc
-
-    pop af
-    dec a
-    jr nz, .flipPropsLoop
-
-  ld de, tile_buffer+4
-  ld bc, 4
-  call mem_Copy
-
-  ld hl, tile_buffer
-  ld c, 4
-.swapLoop
-    ld a, [hli]
-    ld b, a
-    ld a, [hld]
-    ld [hli], a
-    ld a, b
-    ld [hli], a
-    dec c
-    jr nz, .swapLoop
-
-  ld de, tile_buffer
-  ld hl, tile_buffer+4
-
-.noFlip
+AnimatePlayerAvatar:;hl = animation
+  ld a, [anim_frame]
   ld b, 0
-  ld c, 4
-  call SetSpriteTilesProps ;bc = offset\count, hl = tilemap, de = propmap
-  
+  call AnimateAvatar
+  ld [anim_frame], a
+
+  ;TODO: player palette should be index 0, remove code below 
   ld a, 4
   ld hl, oam_buffer+3
   ld de, 4
@@ -229,15 +168,6 @@ AnimateAvatar:;hl = animation
     pop af
     dec a
     jr nz, .colorProps
-
-  ld a, [anim_frame]
-  inc a
-  cp WALK_ANIM_FRAMES
-  jr nz, .skipMod
-  xor a
-.skipMod
-  ld [anim_frame], a
-
   ret
 
 SetupAvatarAnimation:;returns step count in a, collision type in c

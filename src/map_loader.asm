@@ -40,6 +40,7 @@ INCLUDE "maps/map_stamps.gbstamp";TODO: move this out of ROM0
 ; GetCurrentMap                returns address in hl, bank in a
 ; FixMapScroll                 HACK: called after moving right or down to solve off-by-one collision issues
 
+;TODO: the arrays and constants below should be exported from Unity
 MAP_OVERWORLD   EQU 0
 MAP_HOUSES      EQU 1
 MAP_BUSINESSES  EQU 2
@@ -202,7 +203,7 @@ ClearMapSprites::
   call mem_Set
   xor a
   ld hl, map_sprite_buffer
-  ld bc, MAP_BUFFER_SIZE
+  ld bc, MAP_SPRITE_BUFFER_SIZE
   call mem_Set
   ret
 
@@ -244,10 +245,13 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     BETWEEN 192, 224
     ld a, c
     jp nz, .offScreenY
-    inc de
     ld [_y], a
     ld a, b;x
     ld [_x], a
+    inc de
+    ld a, [de];extra data
+    ld b, a;b = extra data
+    inc de;next map sprite
     pop bc;map sprite address
     ld a, [bc];map object type/collision flags
     inc bc;initial x 
@@ -269,8 +273,9 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     jr .clearRemainingOAM
   .spriteAvatar
     push de;map sprite buffer
+    ld d, b;extra data
     call CopyAddressStoredAtBCToBC;bc = avatar address
-    call GetSpriteStampForAvatar
+    call CopyMapAvatarToOAMBuffer
     pop de;map sprite buffer
     pop af;count
     dec a
@@ -295,6 +300,10 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     inc bc;palette
     ld a, [bc]
     ld [hli], a
+  .checkEndOfOAM
+    ld a, l
+    cp a, LOW(oam_buffer+40*4)
+    jr nc, .outOfOAM
     pop af;count
     dec a
     jp nz, .loopMapSprites
@@ -309,6 +318,9 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
   pop af;bank
   call SetBank
   ret
+.outOfOAM
+  pop af;toss count
+  jr .exit
 .offScreenY
   dec de;[x]
 .removeSprite
@@ -318,8 +330,8 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
   dec de;[lower map sprite address]
   dec de;[bank], sprite to be removed
 .removeLoop
-    ld hl, 5
-    ld bc, 5
+    ld hl, MAP_SPRITE_SIZE
+    ld bc, MAP_SPRITE_SIZE
     add hl, de;next sprite
     push hl;next sprite
     call mem_Copy
@@ -411,7 +423,7 @@ CopySpriteStampToOAMBuffer:;a = count, bc = stamp, hl = OAM buffer, [_x][_y] = p
     jr nz, .loopPropsY
   ret
 
-GetSpriteStampForAvatar::;bc = avatar address, currently returns animation address contained at avatar.down
+CopyMapAvatarToOAMBuffer::;bc = avatar address, d = extra data
   ld a, [loaded_bank]
   push af;loaded bank
   ld a, WORLD_BANK
@@ -426,7 +438,7 @@ GetSpriteStampForAvatar::;bc = avatar address, currently returns animation addre
   inc bc;avatar.down
 .loadAnimation
   call CopyAddressStoredAtBCToBC;bc = address of animation
-.loadSprite;TODO: refactor AnimateAvatar so it can be used here
+.loadSprite;TODO: refactor AnimatePlayerAvatar so it can be used here
   inc bc;skip flip
   call CopyAddressStoredAtBCToBC;bc = address of stamp+2
   dec bc
@@ -631,8 +643,9 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, collision type in 
     jr nz, .yMismatch
     jr .matchFound
   .xMismatch
-    inc hl
+    inc hl;skip y
   .yMismatch
+    inc hl;skip extra data
     pop af;discard collision type
     pop af;count
     dec a
@@ -1306,6 +1319,7 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
       inc hl;skip upper address byte
       inc hl;skip x
       inc hl;skip y
+      inc hl;skip extra data
       pop af;count
       dec a
       jr nz, .loopMapSprites
@@ -1327,6 +1341,8 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
     inc de
     ld a, [de];y
     ld [hli], a;y
+    xor a;TODO: get extra data from map sprite (ie. direction, state, frame)
+    ld [hli], a;extra data
     ld h, d
     ld l, e
     inc hl;tile or stamp lower

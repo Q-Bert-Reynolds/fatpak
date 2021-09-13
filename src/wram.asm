@@ -172,7 +172,7 @@ SECTION "Buffers", WRAMX
 tile_buffer:: DS BUFFER_SIZE
 bkg_buffer:: DS BUFFER_SIZE
 win_buffer:: DS BUFFER_SIZE
-map_sprite_buffer:: DS MAP_BUFFER_SIZE; bank, address, x, y
+map_sprite_buffer:: DS MAP_SPRITE_BUFFER_SIZE; bank, address, x, y, extra
 cmd_buffer:: DS BUFFER_SIZE/2
 str_buffer:: DS 64
 name_buffer:: DS 16
