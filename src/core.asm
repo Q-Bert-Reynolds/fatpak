@@ -21,7 +21,6 @@ SECTION "Core", ROM0
 ; SetSpriteTilesProps             bc = offset\count, hl = tilemap, de = propmap
 ; MoveSprites                     bc = xy in screen space, hl = wh in tiles, a = first sprite index
 ; SetSpriteTilesXY                bc = xy in screen space, hl = wh in tiles, de = tilemap, a = VRAM offset
-; AnimatePlayerAvatar                   a = frame(<52), de = animation, hl = OAM address, returns next OAM address in hl, next frame in a
 ; SetHPBarTiles                   de = player, hl = address
 ; SetAgeTiles                     de = player, hl = address
 ; SetMovePPTiles                  a = move, de = player, hl = tile address
@@ -99,6 +98,7 @@ GetStatusString:: ;a = status mask, string in name_buffer
   call str_Copy
   ret
 
+;TODO: perhaps this should be a macro instead
 CopyAddressStoredAtBCToBC::;bc = address of address, returns address stored at bc in bc, uses a
   ld a, [bc];lower byte
   inc bc
@@ -651,82 +651,6 @@ SetSpriteTilesXY:: ;bc = xy in screen space, hl = wh in tiles, de = tilemap, a =
   xor a
   ld [sprite_first_tile], a;reset first tile to zero ;TODO: handle this better
 
-  ret
-
-AnimateAvatar::;a = frame(<52), hl = animation, b = OAM index, returns next frame in a
-  push af;frame
-  push bc;b = OAM index
-  ld b, a;frame
-  add a, a;a*2
-  add a, a;a*4
-  add a, b;a*5
-  ld b, 0
-  ld c, a
-  add hl, bc
-
-  ld a, [hli];flip
-  push af;flip
-
-  ld a, [hli]
-  ld c, a
-  ld a, [hli]
-  ld b, a;tilemap
-
-  ld a, [hli]
-  ld e, a
-  ld a, [hl]
-  ld d, a;propmap
-
-  ld h, b
-  ld l, c;tilemap
-
-  pop af;flip
-  and a
-  jr z, .copyToOAM
-
-  ld a, 4
-  ld bc, tile_buffer
-.flipPropsLoop
-    push af
-    ld a, [de]
-    xor a, OAMF_XFLIP
-    ld [bc], a
-    inc de
-    inc bc
-
-    pop af
-    dec a
-    jr nz, .flipPropsLoop
-
-  ld de, tile_buffer+4
-  ld bc, 4
-  call mem_Copy
-
-  ld hl, tile_buffer
-  ld c, 4
-.swapLoop
-    ld a, [hli]
-    ld b, a
-    ld a, [hld]
-    ld [hli], a
-    ld a, b
-    ld [hli], a
-    dec c
-    jr nz, .swapLoop
-
-  ld de, tile_buffer
-  ld hl, tile_buffer+4
-
-.copyToOAM
-  pop bc;b = offset
-  ld c, 4
-  call SetSpriteTilesProps ;bc = offset\count, hl = tilemap, de = propmap
-
-  pop af;frame
-  inc a
-  cp WALK_ANIM_FRAMES
-  ret nz
-  xor a
   ret
 
 FlipTileMapX::;hl=wh; bc=in_tiles, de=out_tiles

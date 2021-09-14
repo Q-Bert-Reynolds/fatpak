@@ -409,7 +409,7 @@ MapHousesSpritesCalvinsHouse:
   DB 144;x
   DB 138;y
   DW GBAvatarCalvinAvatar
-  DB MAP_AVATAR_DOWN | MAP_AVATAR_STATIONARY
+  DB MAP_AVATAR_RIGHT | MAP_AVATAR_STATIONARY
   DB MAP_HOUSES_TEXT_YO; Yo!
 
   DB 0;END CalvinsHouse sprite objects, 7 bytes

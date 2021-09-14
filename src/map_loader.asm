@@ -250,7 +250,7 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     ld [_x], a
     inc de
     ld a, [de];extra data
-    ld b, a;b = extra data
+    ld [_a], a;extra data
     inc de;next map sprite
     pop bc;map sprite address
     ld a, [bc];map object type/collision flags
@@ -273,8 +273,9 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     jr .clearRemainingOAM
   .spriteAvatar
     push de;map sprite buffer
-    ld d, b;extra data
     call CopyAddressStoredAtBCToBC;bc = avatar address
+    ld a, [_a];extra data
+    ld d, a
     call CopyMapAvatarToOAMBuffer
     pop de;map sprite buffer
     pop af;count
@@ -423,30 +424,179 @@ CopySpriteStampToOAMBuffer:;a = count, bc = stamp, hl = OAM buffer, [_x][_y] = p
     jr nz, .loopPropsY
   ret
 
-CopyMapAvatarToOAMBuffer::;bc = avatar address, d = extra data
+CopyMapAvatarToOAMBuffer::;hl = oam buffer address, bc = avatar address, d = extra data, returns new extra data in d
+  push de;d = extra data
   ld a, [loaded_bank]
   push af;loaded bank
   ld a, WORLD_BANK
-  call SetBank;assumes all map avatars in WORLD_BANK
-.getAddressForDirection;TODO: should get direction based on some stored value
-  ;starts at avatar.left
+  call SetBank;assumes all map avatars and animations are in WORLD_BANK
+  ld a, d;extra data
+  and a, MAP_AVATAR_DIRECTION
+  rlc a
+  rlc a
+.getAddressForDirection
+  jr z, .loadAnimation
   inc bc
-  inc bc;avatar.right
   inc bc
-  inc bc;avatar.up
-  inc bc
-  inc bc;avatar.down
+  dec a
+  jr .getAddressForDirection
 .loadAnimation
-  call CopyAddressStoredAtBCToBC;bc = address of animation
-.loadSprite;TODO: refactor AnimatePlayerAvatar so it can be used here
-  inc bc;skip flip
-  call CopyAddressStoredAtBCToBC;bc = address of stamp+2
-  dec bc
-  dec bc
-  call CopySpriteStampToOAMBuffer;TODO: remove me
+  push hl;oam address
+  ld e, l;lower byte of oam address
+  srl e
+  srl e;oam index = oam address/4
+  ld a, [bc];lower byte
+  ld l, a
+  inc bc
+  ld a, [bc];upper byte
+  ld h, a
+  ld b, e;index
+  xor a
+  ld [_breakpoint], a
+  call AnimateAvatar
+  pop hl;oam address
+.moveToPosition
+  ld d, 8
+  ld a, [_x];x
+  sub a, d
+  add a, 8
+  ld d, a
+
+  ld e, 8
+  ld a, [_y];y
+  sub a, e
+  ld e, a
+  
+  ld a, 2;height
+.loopY
+    push af;height
+    push de;xy
+    ld a, 2;width
+  .loopX
+      push af;width
+      ld a, e
+      ld [hli], a;y
+      ld a, d
+      ld [hli], a;x
+      inc hl
+      inc hl
+      ld a, 8
+      add a, d
+      ld d, a;x
+      pop af;width
+      dec a
+      jr nz, .loopX
+    pop de;xy
+    ld a, 8
+    add a, e
+    ld e, a;y
+    pop af;height
+    dec a
+    jr nz, .loopY
 .restoreBank
   pop af;previously loaded bank
   call SetBank
+  pop de;extra data
+  ret
+
+AnimateAvatar::;a = frame(<52), hl = animation, b = OAM index
+  push af;frame
+  push bc;b = OAM index
+  ld b, a;frame
+  add a, a;a*2
+  add a, a;a*4
+  add a, b;a*5
+  ld b, 0
+  ld c, a
+  add hl, bc
+
+  ld a, [hli];flip
+  push af;flip
+
+  ld a, [hli]
+  ld c, a
+  ld a, [hli]
+  ld b, a;tilemap
+
+  ld a, [hli]
+  ld e, a
+  ld a, [hl]
+  ld d, a;propmap
+
+  ld h, b
+  ld l, c;tilemap
+
+  pop af;flip
+  and a
+  jr z, .copyToOAM
+
+  ld a, 4
+  ld bc, tile_buffer
+.flipPropsLoop
+    push af
+    ld a, [de]
+    xor a, OAMF_XFLIP
+    ld [bc], a
+    inc de
+    inc bc
+
+    pop af
+    dec a
+    jr nz, .flipPropsLoop
+
+  ld de, tile_buffer+4
+  ld bc, 4
+  call mem_Copy
+
+  ld hl, tile_buffer
+  ld c, 4
+.swapLoop
+    ld a, [hli]
+    ld b, a
+    ld a, [hld]
+    ld [hli], a
+    ld a, b
+    ld [hli], a
+    dec c
+    jr nz, .swapLoop
+
+  ld de, tile_buffer
+  ld hl, tile_buffer+4
+
+.copyToOAM
+  pop bc;b = offset
+  push hl
+  ld hl, oam_buffer
+  ld c, b
+  ld b, 0
+  add hl, bc
+  add hl, bc
+  add hl, bc
+  add hl, bc
+  ld b, h
+  ld c, l
+  pop hl
+  ld a, 4
+.loop
+    push af
+    inc bc
+    inc bc
+    ld a, [hli]
+    ld [bc], a
+    inc bc
+    ld a, [de]
+    inc de
+    ld [bc], a
+    inc bc
+    pop af
+    dec a
+    jr nz, .loop
+
+  pop af;frame
+  inc a
+  cp WALK_ANIM_FRAMES
+  ret nz
+  xor a
   ret
 
 GetScreenCollision::;bc = xy pixel offset (-127,127), returns z if no collision, collision type in a, extra data in b
