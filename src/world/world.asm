@@ -397,13 +397,19 @@ CheckActions:
   call math_Multiply;hl = map sprite index * map sprite size
   ld de, map_sprite_buffer+3
   add hl, de;hl = map sprite x address
+  ld a, [rSCX]
+  ld b, a
   ld a, [hli];x
-  cp a, 72
+  sub a, b
+  cp a, 64
   jr c, .lookRight
-  cp a, 88
+  cp a, 80
   jr nc, .lookLeft
+  ld a, [rSCY]
+  ld b, a
   ld a, [hl];y
-  cp a, 66
+  sub a, b 
+  cp a, 64
   jr c, .lookDown
   cp a, 80
   jr nc, .lookUp

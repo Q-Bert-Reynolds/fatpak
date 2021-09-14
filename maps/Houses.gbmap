@@ -406,7 +406,7 @@ MapHousesChunkCalvinsHouse:
 MapHousesSpritesCalvinsHouse:
 
   DB MAP_OBJ_AVATAR | MAP_COLLISION_TEXT ;Bed (1)
-  DB 144;x
+  DB 160;x
   DB 138;y
   DW GBAvatarCalvinAvatar
   DB MAP_AVATAR_RIGHT | MAP_AVATAR_STATIONARY
