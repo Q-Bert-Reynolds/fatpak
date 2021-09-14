@@ -171,7 +171,7 @@ AnimatePlayerAvatar:;hl = animation
   ret
 
 SetupAvatarAnimation:;returns step count in a, collision type in c
-  ld a, [collision_type]
+  ld a, [map_collision_type]
   ld c, a
   cp a, MAP_COLLISION_LEDGE
   ld a, MAP_STEP_SIZE
@@ -205,7 +205,7 @@ EnterDoor::
   ld hl, PaletteCalvin
   ld a, 7
   call GBCSetPalette
-  ld a, [collision_data]
+  ld a, [map_collision_data]
   call EnterMapDoor
   call FixMapScroll
   call ShowPlayerAvatar
@@ -348,10 +348,17 @@ CheckPlayerCollision:;returns z if no collision
   ld c, 76
 .getChunk
   call GetScreenCollision;NONE and GRASS already handled
-  ld [collision_type], a
+  push af
+  and a, MAP_OBJ_TYPE_MASK
+  ld [map_obj_type], a
+  ld a, c
+  ld [map_sprite_collision_index], a
+  pop af
+  and a, MAP_COLLISION_MASK
+  ld [map_collision_type], a
   ld a, b
-  ld [collision_data], a
-  ld a, [collision_type]
+  ld [map_collision_data], a
+  ld a, [map_collision_type]
   ret z
   cp a, MAP_COLLISION_DOOR
   ret z
@@ -365,14 +372,14 @@ CheckPlayerCollision:;returns z if no collision
   cp a, MAP_COLLISION_WATER
   jr z, .stay;TODO: add swimming
 .checkLedgeMove;all other collision types already handled
-  ld a, [collision_data];directions allowed
+  ld a, [map_collision_data];directions allowed
   cpl;flip bits
   ld b, a;directions stopped
   ld a, [last_map_button_state]
   and a, b
   ret z
   ld a, MAP_COLLISION_SOLID
-  ld [collision_type], a
+  ld [map_collision_type], a
   ret
 .stay
   ld a, 1
@@ -381,16 +388,55 @@ CheckPlayerCollision:;returns z if no collision
 
 CheckActions:
   call CheckPlayerCollision
-  ld a, [collision_type]
+  ld a, [map_obj_type]
+  cp a, MAP_OBJ_AVATAR
+  jr nz, .checkCollisionType
+.foundAvatar
+  ld a, [map_sprite_collision_index]
+  ld de, MAP_SPRITE_SIZE
+  call math_Multiply;hl = map sprite index * map sprite size
+  ld de, map_sprite_buffer+3
+  add hl, de;hl = map sprite x address
+  ld a, [hli];x
+  cp a, 72
+  jr c, .lookRight
+  cp a, 88
+  jr nc, .lookLeft
+  ld a, [hl];y
+  cp a, 66
+  jr c, .lookDown
+  cp a, 80
+  jr nc, .lookUp
+  ;shouldn't be here
+.lookLeft
+  ld c, MAP_AVATAR_LEFT
+  jr .look
+.lookRight
+  ld c, MAP_AVATAR_RIGHT
+  jr .look
+.lookUp
+  ld c, MAP_AVATAR_UP
+  jr .look
+.lookDown
+  ld c, MAP_AVATAR_DOWN
+.look
+  inc hl
+  ld a, [hl];extra data
+  and a, ~MAP_AVATAR_DIRECTION
+  or a, c
+  ld [hl], a
+  call CopyMapSpritesToOAMBuffer
+.checkCollisionType
+  ld a, [map_collision_type]
   cp a, MAP_COLLISION_TEXT
   jr z, .displayText
   cp a, MAP_COLLISION_SCRIPT
   ret nz
 .runScript
-  ld a, [collision_data]
+  ld a, [map_collision_data]
   jp RunMapScript
 .displayText
-  ld a, [collision_data]
+  ld a, [map_collision_data]
   call GetMapText
   call RevealTextAndWait
   HIDE_WIN
@@ -422,7 +468,7 @@ LoadAvatarSprites:;NOTE: this should be done BEFORE setting GBC map palettes
 
 CheckRandomAppearance:
   call CheckPlayerCollision.center
-  ld a, [collision_type]
+  ld a, [map_collision_type]
   and a, MAP_COLLISION_GRASS
   ret z
   call gbdk_Random

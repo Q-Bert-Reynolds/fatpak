@@ -7,9 +7,9 @@ SECTION "Map Loader", ROM0
 INCLUDE "maps/map_stamps.gbstamp";TODO: move this out of ROM0
 
 ; ROUTINES THAT SWITCH TO A BANK, DO SOME WORK, AND SWITCH BACK
-; GetScreenCollision           bc = xy pixel offset (-127,127), returns z if no collision, collision type in a, extra data in b
-; GetMapChunkCollision         hl = chunk address, de = xy, returns z if no collision, collision type in a, extra data in [hl]
-; GetSpriteCollision           de = pixel xy, returns z if no collision, collision type in a, extra data in [hl]
+; GetScreenCollision           bc = xy pixel offset (-127,127), returns z if no collision, obj/collision type in a, extra data in b, map sprite index or -1 in c
+; GetMapChunkCollision         hl = chunk address, de = xy, returns z if no collision, obj/collision type in a, extra data in [hl], map sprite index or -1 in c
+; GetSpriteCollision           de = pixel xy, returns z if no collision, obj/collision type in a, extra data in [hl], map sprite index or -1 in c
 ; MoveMapLeft
 ; MoveMapRight
 ; MoveMapUp
@@ -452,7 +452,6 @@ CopyMapAvatarToOAMBuffer::;hl = oam buffer address, bc = avatar address, d = ext
   ld h, a
   ld b, e;index
   xor a
-  ld [_breakpoint], a
   call AnimateAvatar
   pop hl;oam address
 .moveToPosition
@@ -599,7 +598,7 @@ AnimateAvatar::;a = frame(<52), hl = animation, b = OAM index
   xor a
   ret
 
-GetScreenCollision::;bc = xy pixel offset (-127,127), returns z if no collision, collision type in a, extra data in b
+GetScreenCollision::;bc = xy pixel offset (-127,127), returns z if no collision, obj/collision type in a, extra data in b, map sprite index or -1 in c
   ld a, [loaded_bank]
   push af;current bank
   call GetCurrentMap
@@ -607,21 +606,21 @@ GetScreenCollision::;bc = xy pixel offset (-127,127), returns z if no collision,
   call GetMapChunkForOffset
   call GetMapChunkCollision
   pop de;previous bank
-  push af;collision type and flags
+  push af;obj/collision type and flags
   ld a, [hl];extra data
   ld b, a
   ld a, d;previous bank
   call SetBank
-  pop af;collision type and flags
+  pop af;obj/collision type and flags
   ret
 
-GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, collision type in a, extra data in [hl]
-  push hl
-  push de
+GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, obj/collision type in a, extra data in [hl], map sprite index or -1 in c
+  push hl;chunk address
+  push de;xy
   call GetSpriteCollision
-  pop de
-  pop bc
-  ret nz;return early if sprite collision found
+  jp nz, .spriteCollisionFound
+  pop de;xy
+  pop bc;chunk address
   ld a, d
   srl a
   ld [_x], a
@@ -750,15 +749,22 @@ GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, co
     inc hl
     jp .loop
 
+.spriteCollisionFound
+  pop de;toss xy
+  pop de;toss chunk address
+  ret;a = obj/collision type, [hl] = extra data, c = sprite index
+
 .collisonFound
   pop bc
   ld a, c
   cp a, MAP_COLLISION_NONE
   jp z, .loop
   cp a, MAP_COLLISION_GRASS
+  ld a, b;obj/collision type
   ret
 
-GetSpriteCollision::;de = tile xy, returns z if no collision, collision type in a, extra data in [hl]
+GetSpriteCollision::;de = tile xy, returns z if no collision, obj/collision type in a, extra data in [hl], map sprite index or -1 in c
+  ld c, -1
   ld a, [map_sprite_count]
   and a
   ret z;done if no sprites in buffer
@@ -803,6 +809,7 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, collision type in 
 .noMatchFound
   POP_VAR loaded_bank
   call SetBank
+  ld c, -1
   xor a
   ret
 .matchFound
@@ -815,11 +822,16 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, collision type in 
   jr nz, .finish
   inc hl
 .finish
-  pop af;discard count
+  pop af;count
+  ld c, a
+  ld a, [map_sprite_count]
+  sub a, c
+  ld c, a;sprite index
   POP_VAR loaded_bank
   call SetBank
-  ld a, b;collision type
-  and a, MAP_COLLISION_MASK
+  ld a, b;obj/collision type
+  or a, MAP_COLLISION_MASK;test for collision
+  ld a, b;return obj/collision type
   ret
 
 ;HACK: rounds rSCX and rSCY to nearest multiple of 8
