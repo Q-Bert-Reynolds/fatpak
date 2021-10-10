@@ -637,7 +637,7 @@ GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, ob
     ld b, a;map object type and collision
     and a, MAP_COLLISION_MASK
     ld c, a;collision type
-    push bc
+    push bc;b = obj type and collision, c = just collision
     
     ld a, [hli];x
     srl a
@@ -734,7 +734,7 @@ GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, ob
     inc hl
 
   .checkExtraData
-    pop bc
+    pop bc;b = obj type and collision, c = just collision
     ld a, c
     cp a, MAP_COLLISION_TEXT
     jp z, .hasExtraData
@@ -755,11 +755,10 @@ GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, ob
   ret;a = obj/collision type, [hl] = extra data, c = sprite index
 
 .collisonFound
-  pop bc
+  pop bc;b = obj type and collision, c = just collision
   ld a, c
   cp a, MAP_COLLISION_NONE
   jp z, .loop
-  cp a, MAP_COLLISION_GRASS
   ld a, b;obj/collision type
   ret
 

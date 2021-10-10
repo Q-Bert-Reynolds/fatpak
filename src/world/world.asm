@@ -347,7 +347,7 @@ CheckPlayerCollision:;returns z if no collision
   ld b, 76
   ld c, 76
 .getChunk
-  call GetScreenCollision;NONE and GRASS already handled
+  call GetScreenCollision
   push af
   and a, MAP_OBJ_TYPE_MASK
   ld [map_obj_type], a
@@ -359,6 +359,9 @@ CheckPlayerCollision:;returns z if no collision
   ld a, b
   ld [map_collision_data], a
   ld a, [map_collision_type]
+  cp a, MAP_COLLISION_GRASS
+  ret z
+  cp a, MAP_COLLISION_NONE
   ret z
   cp a, MAP_COLLISION_DOOR
   ret z
