@@ -128,6 +128,7 @@ Runners:
 
 SECTION "Player Utils", ROM0
 
+;CreateLineup                 - hl = src lineup data, de = destination lineup address, bc = player size
 ;CreatePlayer                 - a = player number, l = level, returns player data in hl
 ;SetPlayerMove                - hl = player, a = move num, b = new move id
 ;GetPlayerMoveName            - hl = player, d = move mask, a = move num, returns move name in name_buffer

@@ -157,6 +157,7 @@ NewGame::
   call SetCoachPalettes
 
 .fadeInDoc
+  PLAY_SONG hurrah_for_our_national_game_data, 1
   call FadeIn
   
   ld hl, HelloThereString

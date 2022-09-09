@@ -1,5 +1,10 @@
 Priority
 
+- baseball simulation
+  - play random result text (after ball is hit in the field in sim mode) 
+  - play result text based on player that fields the ball
+  - move a fielder to a position
+  - move fielders to positions based on result
 - new sprite types
   - refactor player avatar animation subroutines so they can be used for all avatars
   - export items from map editor
@@ -11,11 +16,11 @@ Priority
 - unsigned player should be pitcher in leadoff spot for random appearances
   - ghosts should be the rest of the spots
   - unsigned player always bats, ghosts always run
-- make batting results semi-random so we can move on to FX
 
 Bugs
 
-- sprite culling still has issues at times
+- in Calvin's bedroom, when you first turn on the PC, the SGB console sprite sits on top of the text box
+- map sprite culling still has issues at times
 - on GBC/SGB, player colors aren't reset after viewing the move list during a ballgame
 - on SGB, viewing a player on your team during a ballgame crashes the game
 - can't deposit special items
@@ -82,7 +87,7 @@ Play Ball
 - reduce pitching frames to 3, batting to 2, make trail fx a sprite
 - ball should go behind lefty user batter, righty opposing batter
 - ball should fly off screen after contact
-- slide batter across screen right after contact, walk, etc.
+- slide batter (and stats) across screen right after contact, walk, etc.
 - more pitching/batting animations
 - change color of move info based on type
 - bunting

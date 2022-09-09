@@ -1103,11 +1103,11 @@ StartGame::
   
   call SetPlayBallTiles
 
-  ;EXAMPLE: ld a, (3 << 4) | (2 << 2) | 1 ;3 balls, 2 strikes, 1 out
+  ;ld a, (3 << 4) | (2 << 2) | 1 ;3 balls, 2 strikes, 1 out
   xor a;0 balls, 0 strikes, 0 outs
   ld [balls_strikes_outs], a
   
-  ;EXAMPLE: ld bc, (9 << 8) | 5 ;9th batter on third, 5th batter on first
+  ;ld bc, (9 << 8) | 5 ;9th batter on third, 5th batter on first
   ld bc, 0; nobody on
   ld hl, runners_on_base
   ld a, b
@@ -1121,9 +1121,29 @@ StartGame::
   ld [home_score], a
   ld [away_score], a
   ld [current_batter], a
-  ; ld a, 1
+  
+.randomizeHomeAway
+  call gbdk_Random
+  ld a, [rand_hi]
+  and 1
   ld [home_team], a
 
+.randomizeLineup
+  ;TODO: randomize rest of lineup
+  .randomizePlayerNum
+    ld a, [rand_lo]
+    cp a, 151
+    jr c, .setPlayerNum
+    sub a, 151;essentially a %= 151
+  .setPlayerNum
+    inc a;numbers should be 1-151, not 0-150
+  .createPlayer;a = player num
+    ld b, 23;age
+    ld c, PITCHER;position
+    ld d, BAT_SWITCH | THROW_RIGHT;handedness
+    ld hl, OpponentLineupPlayer1;address to write player
+    call CreatePlayer;a = num, b = age, c = pos, d = handedness, hl = address to write player, all registers restored
+  
   call GetCurrentOpponentPlayer
   call GetPlayerNumber
   ld [_a], a; player num

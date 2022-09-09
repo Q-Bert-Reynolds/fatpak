@@ -125,7 +125,7 @@ NowIsNotTheTimeText:       DB "Doc: %s!\nThis isn't the\ntime to use that!",0
 BootedUpTMText:            DB "Booted up a TM!",0
 ItContainedMoveText:       DB "It contained\n%s!",0
 TeachMoveText:             DB "Teach %s\nto a PLAYER?",0
-WriteAnOfferToPlayerText:  DB "Write an offer\nto %s.",0
+WriteAnOfferToPlayerText:  DB "Write an offer\nfor %s.",0
 BaseOfferText:             DB "$000000/game"
 OfferPlayerMoneyText:      DB "Offer %s\n$%s/game?",0
 PlayerRejectsOfferText:    DB "%s is\nnot interested.",0

@@ -7,21 +7,7 @@ INCLUDE "src/baseball/interrupts.asm"
 ;strings
 UnsignedPlayerAppearedText::  DB "Unsigned %s\nappeared!",0
 TeamChallengeText::           DB " wants to \nplay %s innings.",0
-PlayBallText::                DB "Play ball!",0
-
-ShowPlayBallWindow:
-  ld bc, 0
-  ld d, 20
-  ld e, 6
-  ld a, DRAW_FLAGS_WIN
-  call DrawUIBox
-
-  ld a, 7
-  ld [rWX], a
-  ld a, 96
-  ld [rWY], a
-  SHOW_WIN
-  ret 
+PlayBallText::                DB "Play ball!",0 
 
 SGBPlayBallIntroAttrBlk:
   ATTR_BLK 2
@@ -33,8 +19,21 @@ PlayBallIntro: ;[_a] = player num or coach id
   call sgb_PacketTransfer
 
   call LoadFontTiles
-  call ShowPlayBallWindow
 
+.showPlayBallWindow
+  ld bc, 0
+  ld d, 20
+  ld e, 6
+  ld a, DRAW_FLAGS_WIN
+  call DrawUIBox
+
+  ld a, 7
+  ld [rWX], a
+  ld a, 96
+  ld [rWY], a
+  SHOW_WIN
+
+.loadCalvin
   ld a, 1
   ld hl, tile_buffer
   ld bc, 240
@@ -52,6 +51,7 @@ PlayBallIntro: ;[_a] = player num or coach id
   ld hl, _CalvinBack2xTiles
   call SetBkgDataDoubled
 
+.unsignedOrCoachCheck
   ld a, [game_state]
   and a, GAME_STATE_UNSIGNED_PLAYER
   jr z, .loadOpposingCoach

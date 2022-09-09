@@ -539,6 +539,5 @@ Overworld::
     ld a, [button_state]
     call Move
     call CheckRandomAppearance
-    jp .moveLoop
     jr z, .moveLoop
     ret

@@ -68,7 +68,7 @@ Seed::
 
   ld hl, TempUserLineup
   ld de, UserLineup
-  ld bc, UserLineupPlayer2-UserLineupPlayer1
+  ld bc, UserLineupPlayer2-UserLineupPlayer1;size of PLAYER_DATA + USER_PLAYER_DATA
   call CreateLineup
                       ;lineup address     name             pay
   ADD_USER_PLAYER_DATA UserLineupPlayer1, "Buttercup",      42
@@ -84,7 +84,7 @@ Seed::
 .opposingLineup
   ld hl, TempOpponentLineup
   ld de, OpponentLineup
-  ld bc, OpponentLineupPlayer2-OpponentLineupPlayer1
+  ld bc, OpponentLineupPlayer2-OpponentLineupPlayer1;size of PLAYER_DATA + OPPONENT_PLAYER_DATA
   call CreateLineup
 
 .seenSigned
