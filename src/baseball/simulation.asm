@@ -296,31 +296,31 @@ UpdateRunners:
 
 InitRunners:
   ;TODO: set palettebased on player data
-  ;batter
-  ld a, HOME_PLATE_X+8;TODO: place based on handedness
-  ld [SimulationRunners0.pos_x], a
-  ld a, HOME_PLATE_Y+16
-  ld [SimulationRunners0.pos_y], a
+  ; ;batter
+  ; ld a, HOME_PLATE_X+8;TODO: place based on handedness
+  ; ld [SimulationRunners0.pos_x], a
+  ; ld a, HOME_PLATE_Y+16
+  ; ld [SimulationRunners0.pos_y], a
 
-  ;runner on first
-  ld a, FIRST_BASE_X+8
-  ld [SimulationRunners1.pos_x], a
-  ld a, FIRST_BASE_Y
-  ld [SimulationRunners1.pos_y], a
+  ; ;runner on first
+  ; ld a, FIRST_BASE_X+8
+  ; ld [SimulationRunners1.pos_x], a
+  ; ld a, FIRST_BASE_Y
+  ; ld [SimulationRunners1.pos_y], a
 
-  ;runner on second
-  ld a, SECOND_BASE_X-8
-  ld [SimulationRunners2.pos_x], a
-  ld a, SECOND_BASE_Y
-  ld [SimulationRunners2.pos_y], a
+  ; ;runner on second
+  ; ld a, SECOND_BASE_X-8
+  ; ld [SimulationRunners2.pos_x], a
+  ; ld a, SECOND_BASE_Y
+  ; ld [SimulationRunners2.pos_y], a
 
-  ;runner on third
-  ld a, THIRD_BASE_X-8
-  ld [SimulationRunners3.pos_x], a
-  ld a, THIRD_BASE_Y+16
-  ld [SimulationRunners3.pos_y], a
+  ; ;runner on third
+  ; ld a, THIRD_BASE_X-8
+  ; ld [SimulationRunners3.pos_x], a
+  ; ld a, THIRD_BASE_Y+16
+  ; ld [SimulationRunners3.pos_y], a
 
-  call DrawRunners
+  ; call DrawRunners
 
   ret
 

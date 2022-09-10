@@ -1026,8 +1026,13 @@ ShowUserPlayer::
   ret
 
 ShowOpposingPlayer::
+  ld a, [game_state]
+  and a, GAME_STATE_UNSIGNED_PLAYER
+  jr nz, .setPlayerColors
+.drawPlayerUI
   ld a, 1
   call DrawPlayerUI
+.setPlayerColors
   call SetPlayerColors
   call LoadOpposingPlayerBkgTiles
   xor a

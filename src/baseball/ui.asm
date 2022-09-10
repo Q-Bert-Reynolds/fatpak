@@ -1,37 +1,22 @@
 
 DrawPlayerUI:: ;a = team (0 = user, 1 = opponent)
-  ld b, a;team
-
-  ld a, [game_state]
-  and a, GAME_STATE_UNSIGNED_PLAYER
-  jr z, .setLocation
-  ld a, b;team
-  and a
-  ret nz;if UI is for opponent and it's an unsigned player, skip it
-  
-.setLocation
-  ld a, b;team
   push af;team
+  ld c, a;team
+  and a
+  jr z, .userPlayer
+.opposingPlayer
   xor a
   ld [_x], a
-  ld a, 2
-  ld [_y], a;if (team) x = 0, y = 2;
-
-  pop af
-  push af;team
-  and a
-  jr nz, .skip 
+  ld a, 3
+  ld [_y], a;if (team) x = 0, y = 3;
+  jr .checkHomeAway
+.userPlayer
   ld a, 8
   ld [_x], a
   ld a, 10
   ld [_y], a ;else x = 8, y = 10;
-.skip
-
-  ld a, 1
-  ld b, a
-  pop af
-  push af;team
-  ld c, a
+.checkHomeAway
+  ld b, 1
   ld a, [home_team]
   cp c
   jr z, .teamIsHome
@@ -250,49 +235,12 @@ DrawBases::
 
 DrawCountOutsInning::
   ld hl, tile_buffer
-  ld [hl], INNING_BOTTOM
-  ld a, [frame]
-  bit 0, a
-  jr nz, .skip ;tiles[0] = (frame % 2 == 0) ? INNING_TOP : INNING_BOTTOM;
-  ld [hl], INNING_TOP
-.skip
-  inc hl
-  ld d, h
-  ld e, l
-  srl a;frame/2
-  inc a
-  ld l, a
-  xor a
-  ld h, a
-  call str_Number;tiles[1] = 49 + frame/2;
-
-  ld hl, tile_buffer
-  call str_Length
-  ld h, e;w
-  ld l, 1;h
-  ld d, 1;x
-  ld e, 13;y
-  ld bc, tile_buffer
-  call gbdk_SetBkgTiles;set_bkg_tiles(1,13,len,1,tiles);
-
-  ld hl, tile_buffer
+.setBallsTiles
   ld a, "B"
   ld [hli], a
-  ld a, "S"
-  ld [hli], a
-  ld a, "O"
-  ld [hl], a
-  ld h, 1;w
-  ld l, 3;h
-  ld d, 1;x
-  ld e, 14;y
-  ld bc, tile_buffer
-  call gbdk_SetBkgTiles;set_bkg_tiles(1,14,1,3,"BSO");
-
-  ld hl, tile_buffer
   xor a
   ld [_i], a
-.setBallsLoop ;for (i = 0; i < 4; i++) tiles[0+i] = (i < balls()  ) ? BASEBALL : DOTTED_CIRCLE;
+.setBallsLoop
     ld a, DOTTED_CIRCLE
     ld [hl], a
     call GetBalls
@@ -310,9 +258,12 @@ DrawCountOutsInning::
     cp 3
     jr nz, .setBallsLoop
 
+.setStrikesTiles
+  ld a, "S"
+  ld [hli], a
   xor a
   ld [_i], a
-.setStrikesLoop ;for (i = 0; i < 3; i++) tiles[4+i] = (i < strikes()) ? BASEBALL : DOTTED_CIRCLE;
+.setStrikesLoop
     ld a, DOTTED_CIRCLE
     ld [hl], a
     call GetStrikes
@@ -330,12 +281,12 @@ DrawCountOutsInning::
     cp 2
     jr nz, .setStrikesLoop
   
-  ld a, " "
-  ld [hli], a;tiles[7] = " ";
-
+.setOutsTiles
+  ld a, "O"
+  ld [hli], a
   xor a
   ld [_i], a
-.setOutsLoop ;for (i = 0; i < 3; i++) tiles[8+i] = (i < outs()   ) ? BASEBALL : DOTTED_CIRCLE;
+.setOutsLoop
     ld a, DOTTED_CIRCLE
     ld [hl], a
     call GetOuts
@@ -352,16 +303,33 @@ DrawCountOutsInning::
     ld [_i], a
     cp 2
     jr nz, .setOutsLoop
+  
+.setInningFrameTiles
+  ld [hl], INNING_BOTTOM
+  ld a, [frame]
+  bit 0, a
+  jr nz, .skip ;tiles[0] = (frame % 2 == 0) ? INNING_TOP : INNING_BOTTOM;
+  ld [hl], INNING_TOP
+.skip
+  inc hl
+  ld d, h
+  ld e, l
+  srl a;frame/2
+  inc a
+  ld l, a
+  xor a
+  ld h, a
+  call str_Number
 
-  ld a, " "
-  ld [hl], a;tiles[11] = " ";
-
-  ld d, 2;x
-  ld e, 14;y
-  ld h, 3;w
-  ld l, 3;h
+.drawCountOutsInning
+  ld hl, tile_buffer
+  call str_Length
+  ld h, e;w
+  ld l, 1;h
+  ld d, 0;x
+  ld e, 2;y
   ld bc, tile_buffer
-  call gbdk_SetBkgTiles;set_bkg_tiles(2,14,4,3,tiles);
+  call gbdk_SetBkgTiles
   ret
 
 DrawTeamNames::

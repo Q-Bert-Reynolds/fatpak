@@ -1,7 +1,7 @@
 Priority
 
+- move balls/strikes/outs to where the opposing player UI once was
 - baseball simulation
-  - runners are on shown on base when they aren't supposed to (and with the wrong palette)
   - play random result text (after ball is hit in the field in sim mode) 
   - play result text based on player that fields the ball
   - move a fielder to a position
@@ -53,7 +53,10 @@ Optimization
 - remove use of temp_bank in rolédex to free up RAM
 - move_data.id could be stored in upper 7 bits (since there are < 128 moves), move_data.use in LSB
 - player image data need to be compressed to fit more
-- math_Divide24 and str_Number24 are both really similar to their 16 bit counterparts, perhaps they can be reduced in to a smaller number of instructions, or we could only use the 24 bit versions
+- math_Divide24 and str_Number24 are both really similar to their 16 bit counterparts, 
+  - perhaps they can be reduced in to a smaller number of instructions
+  - or we could only use the 24 bit versions
+  - how much harder would 32 bit be? kinda need it for money anyway
 - SetSpriteTiles, SetSpriteTilesProps, and SetSpriteTilesXY can likely be merged
 - Load/Set User/Opposing PlayerBkgTiles subroutines share a ton of code
 - palette ids are at most 7, so two palettes could fit in a byte, cutting palette data in half
@@ -113,6 +116,9 @@ Simulation
 - implement basic rules
 - iterative landing spot calc slightly off, direct method often way off
 - field should probably be bigger than 32x32
+- runners are commented out (ie. ghost runners), turn on/off based on runnes actual positions
+- runners have wrong palette
+- reuse the lineup sprites on the field
 
 Team Menu
 
