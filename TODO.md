@@ -1,6 +1,5 @@
 Priority
 
-- move balls/strikes/outs to where the opposing player UI once was
 - baseball simulation
   - play random result text (after ball is hit in the field in sim mode) 
   - play result text based on player that fields the ball
@@ -31,7 +30,7 @@ Bugs
 - PS/2 keyboard causes flickering on LCDC interrupts
 - SGB sound test doesn't seem to work, test on hardware
 
- General
+General
 
 - remove manual ROMX assignments, let linker handle bank management instead
 - link cable support!

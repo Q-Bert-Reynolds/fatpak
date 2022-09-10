@@ -122,7 +122,7 @@ RunnersOnBaseTexts::          DB "Nobody on base.",0              ;000
                               DB "Runner on first.",0             ;001
                               DB "Runner on second.",0            ;010
                               DB "Runners on first\nand second.",0;011
-                              DB "Runner on second.",0            ;100
+                              DB "Runner on third.",0            ;100
                               DB "Runners on first\nand third.",0 ;101
                               DB "Runners on second\nand third.",0;110
                               DB "Bases loaded.",0                ;110

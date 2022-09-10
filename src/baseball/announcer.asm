@@ -130,8 +130,8 @@ SECTION "Announcer Bank X", ROMX, BANK[ANNOUNCER_BANK]
   ;  OPPOSING COACH WIN/LOSS STATEMENT
   ;  "That win brings you to 16W - 5L"
 
-INCLUDE "src/baseball/announcer_strings.asm"
-
+; INCLUDE "src/baseball/announcer_strings.asm"
+INCLUDE "data/strings/announcer_strings.asm"
 ;----------------------------------------------------------------------
 ; AnnounceBeginningOfFrame - called at beginning of each frame
 ;  

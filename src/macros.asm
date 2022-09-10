@@ -1,45 +1,27 @@
-NICKNAME: MACRO ;\1 = nickname
-  DB \1
-  DS NICKNAME_LENGTH - STRLEN(\1)
-ENDM
 
-ADD_USER_PLAYER_DATA: MACRO ;\1 = player address, \2 = nickname, \3 = pay 
-  jr .copyNickname\@
-.nickname\@ 
-  NICKNAME \2
-.copyNickname\@
-  ld hl, \1
-  ld de, .nickname\@
-  call SetUserPlayerName
-  ld b, (\3 & $FF0000) >> 16
-  ld c, (\3 & $00FF00) >> 8
-  ld d, (\3 & $0000FF)
-  ld hl, \1
-  call SetUserPlayerPay
-  ld a, [\1.age]
-  call GetXPForAge
-  ld hl, \1.xp
-  ld a, c
-  ld [hli], a
-  ld a, d
-  ld [hli], a
-  ld a, e
-  ld [hli], a
-  ld hl, \1
-  call GetPlayerMaxHP
-  push hl;max hp
-  call gbdk_Random
-  pop hl;max hp
-  ld a, d
-  and a, h
-  ld d, a
-  ld a, e
-  and a, l
-  or a, 1
-  ld e, a
-  ld hl, \1
-  call SetPlayerHP
-ENDM
+; Macro                                 Arguments
+;   TRAMPOLINE                            AddressInAnotherBank
+;   PUSH_VAR                              WRAMAddressToStore
+;   POP_VAR                               WRAMAddressToRestore
+;   DEBUG_LOG_STRING                      "string"
+;   DEBUG_LOG_ADDRESS                     address16 bank8
+;   DEBUG_LOG_LABEL                       LabeledAddress
+;   SET_LCD_INTERRUPT                     InterruptAddress
+;   DISABLE_LCD_INTERRUPT
+;   HIDE_ALL_SPRITES
+;   CLEAR_SCREEN                          tile8
+;   CLEAR_BKG_AREA                        x8, y8, w8, h8, tile8
+;   CLEAR_WIN_AREA                        x8, y8, w8, h8, tile8
+;   UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS   JumpAddress, buttons8
+;   JUMP_TO_IF_BUTTONS                    JumpAddress, buttons8
+;   EXITABLE_DELAY                        JumpAddress, buttons8, frames8
+;   WAITPAD_UP                                    
+;   WAITPAD_UP_OR_FRAMES                  frames8
+;   SET_DEFAULT_PALETTE                                   
+;   RGB                                   red5, green5, blue5
+;   D24                                   num24
+;   BETWEEN                               n8, n8
+;   ADD_USER_PLAYER_DATA                  PlayerAddress, "nickname", pay24 
 
 TRAMPOLINE: MACRO ;\1 = jump address
   ld b, BANK(\1)
@@ -147,32 +129,32 @@ HIDE_ALL_SPRITES: MACRO
 ENDM
 
 CLEAR_SCREEN: MACRO ;\1 = tile
-  ld a, \1
+  ld a, \1;tile
   call ClearScreen
 ENDM
 
 CLEAR_BKG_AREA: MACRO ;x, y, w, h, tile
-  ld a, \5
-  ld bc, \3 * \4
+  ld a, \5;tile
+  ld bc, \3 * \4;width * height
   ld hl, tile_buffer
   call mem_Set
-  ld d, \1
-  ld e, \2
-  ld h, \3
-  ld l, \4
+  ld d, \1;x
+  ld e, \2;y
+  ld h, \3;w
+  ld l, \4;h
   ld bc, tile_buffer
   call gbdk_SetBkgTiles
 ENDM
 
 CLEAR_WIN_AREA: MACRO ;x, y, w, h, tile
-  ld a, \5
-  ld bc, \3 * \4
+  ld a, \5;tile
+  ld bc, \3 * \4;width * height
   ld hl, tile_buffer
   call mem_Set
-  ld d, \1
-  ld e, \2
-  ld h, \3
-  ld l, \4
+  ld d, \1;x
+  ld e, \2;y
+  ld h, \3;w
+  ld l, \4;h
   ld bc, tile_buffer
   call gbdk_SetWinTiles
 ENDM
@@ -280,4 +262,43 @@ ENDC
   ld a, 1
   and a
 .end\@
+ENDM
+
+ADD_USER_PLAYER_DATA: MACRO ;\1 = player address, \2 = nickname, \3 = pay 
+  jr .copyNickname\@
+.nickname\@ 
+  DB \2
+  DS NICKNAME_LENGTH - STRLEN(\2)
+.copyNickname\@
+  ld hl, \1
+  ld de, .nickname\@
+  call SetUserPlayerName
+  ld b, (\3 & $FF0000) >> 16
+  ld c, (\3 & $00FF00) >> 8
+  ld d, (\3 & $0000FF)
+  ld hl, \1
+  call SetUserPlayerPay
+  ld a, [\1.age]
+  call GetXPForAge
+  ld hl, \1.xp
+  ld a, c
+  ld [hli], a
+  ld a, d
+  ld [hli], a
+  ld a, e
+  ld [hli], a
+  ld hl, \1
+  call GetPlayerMaxHP
+  push hl;max hp
+  call gbdk_Random
+  pop hl;max hp
+  ld a, d
+  and a, h
+  ld d, a
+  ld a, e
+  and a, l
+  or a, 1
+  ld e, a
+  ld hl, \1
+  call SetPlayerHP
 ENDM
