@@ -1,7 +1,17 @@
 
 DrawPlayerUI:: ;a = team (0 = user, 1 = opponent)
-  push af;team
+  ld b, a;team
+
+  ld a, [game_state]
+  and a, GAME_STATE_UNSIGNED_PLAYER
+  jr z, .setLocation
+  ld a, b;team
+  and a
+  ret nz;if UI is for opponent and it's an unsigned player, skip it
   
+.setLocation
+  ld a, b;team
+  push af;team
   xor a
   ld [_x], a
   ld a, 2
@@ -373,11 +383,23 @@ DrawTeamNames::
   ld bc, name_buffer
   call gbdk_SetBkgTiles;set_bkg_tiles(0,y,7,1,name_buff);
 
-  ld hl, rival_name
+  ld a, [game_state]
+  and a, GAME_STATE_UNSIGNED_PLAYER
+  jr z, .setOpposingTeamName
+
+.setUnsignedPlayerName
+  call GetCurrentOpponentPlayer
+  call GetPlayerNumber
+  call GetPlayerName
+  jr .drawOpposingName
+
+.setOpposingTeamName
+  ld hl, rival_name;TODO: get coach/team name
   ld de, name_buffer
   ld bc, 8
   call mem_Copy;memcpy(name_buff, rival_name, 8);
 
+.drawOpposingName
   ld hl, name_buffer
   call str_Length;l = strlen(name_buff);
   ld h, e ;w

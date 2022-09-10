@@ -1122,36 +1122,14 @@ StartGame::
   ld [away_score], a
   ld [current_batter], a
   
-.randomizeHomeAway
-  call gbdk_Random
-  ld a, [rand_hi]
-  and 1
-  ld [home_team], a
-
-.randomizeLineup
-  ;TODO: randomize rest of lineup
-  .randomizePlayerNum
-    ld a, [rand_lo]
-    cp a, 151
-    jr c, .setPlayerNum
-    sub a, 151;essentially a %= 151
-  .setPlayerNum
-    inc a;numbers should be 1-151, not 0-150
-  .createPlayer;a = player num
-    ld b, 23;age
-    ld c, PITCHER;position
-    ld d, BAT_SWITCH | THROW_RIGHT;handedness
-    ld hl, OpponentLineupPlayer1;address to write player
-    call CreatePlayer;a = num, b = age, c = pos, d = handedness, hl = address to write player, all registers restored
-  
   call GetCurrentOpponentPlayer
   call GetPlayerNumber
   ld [_a], a; player num
 
-  ld a, [game_state]
-  and a, ~GAME_STATE_UNSIGNED_PLAYER
-  or a, GAME_STATE_UNSIGNED_PLAYER; TODO: replace with team/random encounter
-  ld [game_state], a
+  ;clear the unsigned player game state flag to play a team
+  ; ld a, [game_state]
+  ; and a, ~GAME_STATE_UNSIGNED_PLAYER 
+  ; ld [game_state], a
 
   call ShowPlayBallIntro
   call SetupGameUI
@@ -1163,7 +1141,7 @@ StartGame::
 .playBallLoop
     call SelectPlayMenuItem
     ld a, [play_menu_selection]
-.playMenuItemSelected
+  .playMenuItemSelected
     cp 0
     jr nz, .teamMenuItemSelected
     call SelectMoveMenuItem ;returns selection in a
@@ -1172,7 +1150,7 @@ StartGame::
     dec a;selected move
     call PlayBall
     jr .playBallLoop
-.teamMenuItemSelected
+  .teamMenuItemSelected
     cp 1
     jr nz, .itemMenuItemSelected
     call GetUserPitcherOrder
@@ -1191,10 +1169,10 @@ StartGame::
     jr z, .skip
     TRAMPOLINE AnnouncePitcher
     HIDE_WIN
-.skip
+  .skip
     call ShowPitcher
     jr .playBallLoop
-.itemMenuItemSelected
+  .itemMenuItemSelected
     cp 2
     jr nz, .runMenuItemSelected
     call CopyBkgToWin
@@ -1211,7 +1189,7 @@ StartGame::
     call ShowPitcher
     call ShowBatter
     jr .playBallLoop
-.runMenuItemSelected
+  .runMenuItemSelected
     cp 3
     jr nz, .playBallLoop
     ; ld hl, QuittingIsNotAnOptionText

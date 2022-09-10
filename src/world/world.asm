@@ -475,15 +475,58 @@ LoadAvatarSprites:;NOTE: this should be done BEFORE setting GBC map palettes
   call GBCSetPalette
   ret
 
-CheckRandomAppearance:
+CheckRandomEncounter:;TODO get available players and age range from grass in exported object
   call CheckPlayerCollision.center
   ld a, [map_collision_type]
   and a, MAP_COLLISION_GRASS
-  ret z
+  ret z;not on the grass
   call gbdk_Random
   ld a, d
   and a, e
   and a, %10000000
+  ret z;no tryout
+  xor a, d
+  ret z;no tryout
+
+.setUnsignedPlayerGameStateFlag
+  ld a, [game_state]
+  or a, GAME_STATE_UNSIGNED_PLAYER
+  ld [game_state], a
+
+.randomizeHomeAway
+  ld a, [rand_hi]
+  and 1;This instruction gets me hype every time I type it.
+  ld [home_team], a
+
+.randomizeUnsignedPlayer
+  ld a, [rand_lo]
+  cp a, 151
+  jr c, .setPlayerNum
+  sub a, 151;essentially a %= 151
+  .setPlayerNum
+  inc a;numbers should be 1-151, not 0-150
+
+  ld b, a;player number in b
+  ld c, PITCHER
+  ld hl, OpponentLineupPlayer1
+.fillLineupWithPlayerLoop
+    push bc;player num, position
+    ld a, b;player num
+    ld b, 23;age
+    ld d, BAT_SWITCH | THROW_RIGHT;handedness
+    push hl;lineup address
+    call CreatePlayer;a = num, b = age, c = pos, d = handedness, hl = address to write player, all registers restored
+    pop hl;lineup address
+    ld b, 0
+    ld c, OpponentLineupPlayer2 - OpponentLineupPlayer1
+    add hl, bc
+    pop bc;player num, position
+    inc c;next position
+    ld a, 10
+    cp a, c
+    jr nz, .fillLineupWithPlayerLoop
+  ld a, 1
+  and 1
   ret
 
 Overworld::
@@ -511,33 +554,33 @@ Overworld::
   SHOW_BKG
   HIDE_WIN
   DISPLAY_ON
-.moveLoop
+  .moveLoop
     call gbdk_WaitVBL
     call UpdateInput
     ld a, [button_state]
     and a, PADF_UP | PADF_DOWN | PADF_LEFT | PADF_RIGHT
     jr z, .checkStart
     ld [last_map_button_state], a
-.checkStart
+  .checkStart
     ld a, [button_state]
     and a, PADF_START
     jr z, .checkA
     call ShowPauseMenu
-.checkA
+  .checkA
     ld a, [button_state]
     and a, PADF_A
     jr z, .look
     call CheckActions
-.look
+  .look
     ld a, [last_button_state]
     and a, PADF_LEFT|PADF_RIGHT|PADF_UP|PADF_DOWN
     jr nz, .move
     ld a, [button_state]
     call Look
     jr .moveLoop
-.move
+  .move
     ld a, [button_state]
     call Move
-    call CheckRandomAppearance
+    call CheckRandomEncounter
     jr z, .moveLoop
     ret

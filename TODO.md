@@ -1,10 +1,12 @@
 Priority
 
 - baseball simulation
+  - runners are on shown on base when they aren't supposed to (and with the wrong palette)
   - play random result text (after ball is hit in the field in sim mode) 
   - play result text based on player that fields the ball
   - move a fielder to a position
   - move fielders to positions based on result
+  - end game, get experience, level up!!!
 - new sprite types
   - refactor player avatar animation subroutines so they can be used for all avatars
   - export items from map editor
@@ -13,9 +15,7 @@ Priority
   - Bill's PC (will allow roster changes!!!)
   - Doc's PC
   - League PC
-- unsigned player should be pitcher in leadoff spot for random appearances
-  - ghosts should be the rest of the spots
-  - unsigned player always bats, ghosts always run
+- games against other coaches/teams
 
 Bugs
 
