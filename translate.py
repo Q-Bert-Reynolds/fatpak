@@ -17,29 +17,39 @@ def create_strings_file(dict_reader, name):
   if not os.path.exists(dir):
     os.mkdir(dir)
 
-  main_label = ""
-  with open(dir+name+".asm", "w+", encoding='utf8') as asm:    
-    for entry in dict_reader:
-      label = entry["Label"]
-      english = entry["English"]
-      spanish = entry["Spanish"]
+  main_labels = ["",""]
+  languages = ["English", "Spanish"]
+  assemblies = ['IF DEF(_LANG_EN);English\n', 'ELIF DEF(_LANG_ES);Spanish\n']
+  for entry in dict_reader:
+    comment = entry["Comment"]
+    label = entry["Label"]
+    for i in range(len(languages)):
+      language = languages[i]
+      asm = assemblies[i]
+      if comment:
+        asm += "\n;" + comment + "\n"
+
+      text = entry[language]
+      if not text:
+        text = entry["English"]
 
       label_parts = label.split('.')
-      if label_parts[0] != main_label:
-        main_label = label_parts[0]
-        asm.write('\n'+main_label+'::')
+      sub_label = len(label_parts) > 1
+      if label_parts[0] != main_labels[i]:
+        main_labels[i] = label_parts[0]
+        asm += (main_labels[i]+'::').ljust(32)
+        if sub_label:
+          asm += '\n'
 
-      if len(label_parts) > 1:
-        asm.write('\n.'+label_parts[1]+':')
-
-      if not spanish.strip():
-        asm.write(' DB "'+english+'",0')
-      else:
-        asm.write('\nIF DEF(_LANG_ES)')
-        asm.write('\n  DB "'+spanish+'",0')
-        asm.write('\nELSE')
-        asm.write('\n  DB "'+english+'",0')
-        asm.write('\nENDC')
+      if sub_label:
+        asm += ('  .' + label_parts[1] + ':').ljust(32)
+      asm += ' DB "' + text + '",0\n'
+      assemblies[i] = asm
+        
+  with open(dir+name+".asm", "w+", encoding='utf8') as file:    
+    for asm in assemblies:
+      file.write(asm)
+    file.write('ENDC\n')
 
 if __name__ == "__main__":
   main()
