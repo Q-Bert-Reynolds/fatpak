@@ -30,8 +30,11 @@
 ;     Replaces string bc in source hl with string af in destination de
 ;     Entry: hl = src string, de = dest string, bc = replace string, af = with string
 ;   str_Number
-;     Converts number hl to string de
+;     Converts number hl to string de, legacy code convenience wrapper for str_Number16
 ;     Entry: hl = 16 bit number, de = dest string
+;   str_Number16
+;     Converts number hl to string bc
+;     Entry: hl = 16 bit number, bc = dest string
 ;   str_Number24
 ;     Converts number ehl to string bc
 ;     Entry: ehl = 24 bit number, bc = dest string
@@ -219,7 +222,7 @@ str_Replace::
 
 ;***************************************************************************
 ;
-; str_Number - converts number hl to string de
+; str_Number - a wrapper around str_Number16 for compatibility with old code
 ;
 ; input:
 ;   hl - number
@@ -227,59 +230,27 @@ str_Replace::
 ;
 ;***************************************************************************
 str_Number::
-  ld a, h ; if hl == 0, return "0",0
-  and a
-  jr nz, .skip
-  ld a, l
-  and a
-  jr nz, .skip
-  ld a, "0"
-  ld [de], a
-  inc de
-  xor a
-  ld [de], a
+  push bc
+  push de;dest string
+  pop bc;dest string
+  call str_Number16
+  inc hl
+  push hl;dest string
+  pop de;dest_string
+  pop bc
   ret
-.skip
-  push de ;dest string
-  ld c, 0 ;num digits
-.divLoop
-    push bc
-    ld c, 10
-    call math_Divide
-    add a, 48;convert num to string
-    ld [de], a
-    inc de
-    pop bc
-    inc c ;num digits
-    ld a, h ; if hl > 0, loop
-    and a
-    jr nz, .divLoop
-    ld a, l
-    and a
-    jr nz, .divLoop
 
-  pop hl ;dest string
-  xor a
-  ld [de], a;terminate string
-  ld a, c
-  cp 1
-  ret z ;no need to swap if only one digit
-
-  push de
-  srl c;num digits / 2
-  dec de
-.swapLoop
-    ld a, [hl]
-    ld b, a
-    ld a, [de]
-    ld [hli], a
-    ld a, b
-    ld [de], a
-    dec de
-    dec c
-    jr nz, .swapLoop
-  pop de
-  ret
+;***************************************************************************
+;
+; str_Number16 - converts number hl to string bc
+;
+; input:
+;   hl - number
+;   bc - dest string
+;
+;***************************************************************************
+str_Number16::
+  ld e, 0;fall through to str_Number24
 
 ;***************************************************************************
 ;
@@ -291,74 +262,7 @@ str_Number::
 ;
 ;***************************************************************************
 str_Number24::
-  ld d, 0
-  ld a, e ; if ehl == 0, return "0",0
-  and a
-  jr nz, .skip
-  ld a, h
-  and a
-  jr nz, .skip
-  ld a, l
-  and a
-  jr nz, .skip
-  ld a, "0"
-  ld [bc], a
-  inc bc
-  xor a
-  ld [bc], a
-  ret
-
-.skip
-  xor a
-  push bc ;dest string start
-  push af ;num digits
-  push bc ;dest string
-.divLoop
-    ld d, 10
-    call math_Divide24
-    add a, "0";convert num to string
-
-    pop bc;dest string
-    ld [bc], a
-    inc bc
-    pop af;num digits
-    inc a 
-    push af;num digits
-    push bc;dest string
-    
-    ld a, e ; if ehl > 0, loop
-    and a
-    jr nz, .divLoop
-    ld a, h
-    and a
-    jr nz, .divLoop
-    ld a, l
-    and a
-    jr nz, .divLoop
-
-  pop bc ;dest string
-  xor a
-  ld [bc], a;terminate string
-  pop af;num digits
-  cp 1
-  pop hl ;dest string start
-  ret z ;no need to swap if only one digit
-  
-  ld d, a;num digits
-  srl d;num digits / 2
-  dec bc
-.swapLoop
-    ld a, [hl]
-    ld e, a
-    ld a, [bc]
-    ld [hli], a
-    ld a, e
-    ld [bc], a
-    dec bc
-    dec d
-    jr nz, .swapLoop
-  ret
-
+  ld d, 0;fall through to str_Number32
 
 ;***************************************************************************
 ;

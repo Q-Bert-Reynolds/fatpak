@@ -15,6 +15,8 @@
 ;     de (remainder hl) = hl / bc
 ;   math_Divide24
 ;     ehl (remainder a) = ehl / d
+;   math_Divide32
+;     dehl (remainder a) = dehl / c
 ;   math_Sub24
 ;     ehl = ehl - bcd
 ;   math_Sub16
