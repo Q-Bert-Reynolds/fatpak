@@ -124,8 +124,10 @@ SECTION "Super GameBoy Banked", ROMX, BANK[SGB_BANK]
 
 IF DEF(_HOME)
 INCLUDE "img/home_version/home_version_sgb_border.asm"
-ELSE
+ELIF DEF(_AWAY)
 INCLUDE "img/away_version/away_version_sgb_border.asm"
+ELSE
+INCLUDE "img/demo_version/demo_version_sgb_border.asm"
 ENDC
 
 ; Initialization packets extracted from the official documentation

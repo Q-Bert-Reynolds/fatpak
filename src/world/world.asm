@@ -431,7 +431,7 @@ CheckActions:
 .look
   inc hl
   ld a, [hl];extra data
-  and a, ~MAP_AVATAR_DIRECTION
+  and a, (~MAP_AVATAR_DIRECTION)&%11111111
   or a, c
   ld [hl], a
   call CopyMapSpritesToOAMBuffer
