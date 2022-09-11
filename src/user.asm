@@ -73,14 +73,16 @@ _ShowUserInfo:
   call str_Copy
 
   ld a, [money]
-  ld e, a
+  ld d, a
   ld a, [money+1]
-  ld h, a
+  ld e, a
   ld a, [money+2]
+  ld h, a
+  ld a, [money+3]
   ld l, a
 
   ld bc, name_buffer
-  call str_Number24
+  call str_Number32
 
   ld hl, name_buffer
   ld de, str_buffer  

@@ -11,7 +11,7 @@ sram_minutes: DB
 sram_seconds: DB
 sram_inventory: DS MAX_ITEMS*BYTES_PER_ITEM
 sram_pc_items: DS MAX_PC_ITEMS*BYTES_PER_ITEM
-sram_money: DS 3
+sram_money: DS 4;32bit... ~$4b
 sram_players_seen: DS 151/8+1
 sram_players_sign: DS 151/8+1
 sram_map: DB

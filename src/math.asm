@@ -200,6 +200,24 @@ math_Divide24:: ; ehl (remainder a) = ehl / d
     jr nz, .loop
   ret
 
+math_Divide32::; dehl (remainder a) = dehl / c
+  xor	a
+  ld	b, 32
+.loop:
+    add	hl, hl
+    rl e
+    rl d
+    rl a
+    jr c, .skip
+    cp c
+    jr c, .skip
+    sub	c
+    inc	l
+  .skip
+    dec b
+    jr nz, .loop
+  ret
+
 math_Add24:: ;ehl = ehl + bcd
   ld a, l
   add a, d

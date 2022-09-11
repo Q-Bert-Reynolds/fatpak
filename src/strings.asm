@@ -35,6 +35,9 @@
 ;   str_Number24
 ;     Converts number ehl to string bc
 ;     Entry: ehl = 24 bit number, bc = dest string
+;   str_Number32
+;     Converts number dehl to string bc
+;     Entry: dehl = 32 bit number, bc = dest string
 
 
 IF !DEF(STRINGS_ASM)
@@ -324,6 +327,92 @@ str_Number24::
     push bc;dest string
     
     ld a, e ; if ehl > 0, loop
+    and a
+    jr nz, .divLoop
+    ld a, h
+    and a
+    jr nz, .divLoop
+    ld a, l
+    and a
+    jr nz, .divLoop
+
+  pop bc ;dest string
+  xor a
+  ld [bc], a;terminate string
+  pop af;num digits
+  cp 1
+  pop hl ;dest string start
+  ret z ;no need to swap if only one digit
+  
+  ld d, a;num digits
+  srl d;num digits / 2
+  dec bc
+.swapLoop
+    ld a, [hl]
+    ld e, a
+    ld a, [bc]
+    ld [hli], a
+    ld a, e
+    ld [bc], a
+    dec bc
+    dec d
+    jr nz, .swapLoop
+  ret
+
+
+;***************************************************************************
+;
+; str_Number32 - converts number dehl to string bc
+;
+; input:
+;   dehl - number
+;   bc - dest string
+;
+;***************************************************************************
+str_Number32::
+  ld a, d ; if dehl == 0, return "0",0
+  and a
+  jr nz, .nonZero;if d != 0
+  ld a, e
+  and a
+  jr nz, .nonZero;if e != 0
+  ld a, h
+  and a
+  jr nz, .nonZero;if h != 0
+  ld a, l
+  and a
+  jr nz, .nonZero;if l != 0
+  
+.returnZero
+  ld a, "0"
+  ld [bc], a
+  inc bc
+  xor a
+  ld [bc], a
+  ret
+
+.nonZero
+  xor a
+  push bc ;dest string start
+  push af ;num digits
+  push bc ;dest string
+.divLoop
+    ld c, 10
+    call math_Divide32
+    add a, "0";convert num to string
+
+    pop bc;dest string
+    ld [bc], a
+    inc bc
+    pop af;num digits
+    inc a 
+    push af;num digits
+    push bc;dest string
+    
+    ld a, d ; if dehl > 0, loop
+    and a
+    jr nz, .divLoop
+    ld a, e
     and a
     jr nz, .divLoop
     ld a, h

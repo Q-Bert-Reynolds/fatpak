@@ -34,7 +34,6 @@ General
 
 - remove manual ROMX assignments, let linker handle bank management instead
 - link cable support!
-- copy string labels and English text to spreadsheet, translate to other languages, parse CSV
 - give math subroutines more appropriate names
 - cut off sprites with the text box using an LCD interrupt (see https://gbdev.io/pandocs/LCDC.html#faux-layer-textboxstatus-bar)
 - use GB Printer to print stats, records, rolédex, baseball cards
@@ -52,10 +51,7 @@ Optimization
 - remove use of temp_bank in rolédex to free up RAM
 - move_data.id could be stored in upper 7 bits (since there are < 128 moves), move_data.use in LSB
 - player image data need to be compressed to fit more
-- math_Divide24 and str_Number24 are both really similar to their 16 bit counterparts, 
-  - perhaps they can be reduced in to a smaller number of instructions
-  - or we could only use the 24 bit versions
-  - how much harder would 32 bit be? kinda need it for money anyway
+- 16 and 24 bit math and string functions are probably unnecessary, ditch in favor of 32 bit functions
 - SetSpriteTiles, SetSpriteTilesProps, and SetSpriteTilesXY can likely be merged
 - Load/Set User/Opposing PlayerBkgTiles subroutines share a ton of code
 - palette ids are at most 7, so two palettes could fit in a byte, cutting palette data in half
@@ -64,12 +60,14 @@ Optimization
 
 Python scripts
 
+- handle translated player and item text
+- support these languages: en, es, fr, it, pt, de, jp
 - add colors and palette maps to player data
 - roledex description parser should print warning when more than 6 lines
 - avatar directional maps should be organized into arrays
 - SGB borders should (optionally?) use PNG palettes directly
 - duplicate functionality (like the PascalCase function) should be moved to library file
-- only update .asm file when PNG, GIF, TMX, or MOD files change
+- only update .asm file when PNG, GIF, or MOD files change
 - handle 1bpp and rle images
 
 Start
