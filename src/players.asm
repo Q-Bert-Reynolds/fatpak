@@ -430,7 +430,7 @@ SetStatsFromAge:: ;hl = player
   ld d, a;de = max health
   ld h, d
   ld l, e
-  call math_Sub16;hl = max_hp - hp
+  call math_Subtract16;hl = max_hp - hp
   ld b, h
   ld c, l;bc = hp diff
   pop hl;player.hp address
@@ -439,7 +439,7 @@ SetStatsFromAge:: ;hl = player
   push hl;player.hp address
   ld h, d
   ld l, e;hl = new max hp
-  call math_Sub16;hl = new hp = new max - (max_hp - hp)
+  call math_Subtract16;hl = new hp = new max - (max_hp - hp)
   ld d, h
   ld e, l;bc = new hp
   pop hl;player.hp address
@@ -702,7 +702,7 @@ HealPlayer:: ;hl = player, bc = amount, returns used in a(0=not used), amount he
 .write
   pop bc;old hp
   push hl;new hp
-  call math_Sub16
+  call math_Subtract16
   pop bc;new hp
   pop de;player
   push hl;hp diff
@@ -842,7 +842,7 @@ GetUserPlayerXPToNextAge:: ;hl = player, returns xp in ehl
   pop de;current age xp in bcd
   pop bc
   ld e, a;next age xp in ehl
-  call math_Sub24;ehl = ehl - bcd
+  call math_Subtract24;ehl = ehl - bcd
   ret
 
 GetXPForAge:: ;a = age, returns experience needed in cde 

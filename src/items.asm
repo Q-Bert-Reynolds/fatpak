@@ -705,7 +705,7 @@ GetOfferFromText:;"$000000/week" in str_buffer, returns number in ehl
     ld a, [_i]
     call GetPowerOfTen
   .loopPowersOfTen
-      call math_Add24
+      call math_Add_EHL_BCD
       ld a, [_j]
       dec a
       ld [_j], a

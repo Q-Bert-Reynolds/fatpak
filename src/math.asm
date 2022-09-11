@@ -1,44 +1,34 @@
-; Math
-;  Started 14-Jan-20
-;
-; Initials: NB = Nolan Baker
-; V1.0 - 14-Jan-20 : Original Release - NB
+; math.asm by Nolan Baker
+; a math library for GameBoy
+;        11 Sep 2022 : divide and divide24 fall through to divide32 now -NB
+;        10 Sep 2022 : divide a 32-bit number by an 8-bit number -NB
+;        29 Nov 2020 : adds signed multiply and signed sin/cos routines -NB
+;        12 May 2020 : lerp now works for values outside of 0 to 1 range -NB
+;        20 Mar 2020 : adds bit counting function -NB
+;         4 Mar 2020 : division by 16bit numbers -NB
+;         3 Mar 2020 : 24-bit subtraction, multiply 2 16-bit numbers -NB
+;         2 Mar 2020 : divide 24-bit numbers by 8-bit numbers -NB
+;        26 Jan 2020 : adds divide function -NB
+; v1.0 - 14 Jan 2020 : Original Release -NB
 ;
 ; Library Subroutines:
-;   math_Multiply
-;     hl = de * a
-;   math_Multiply16
-;     bcde = de * hl
-;   math_Divide
-;     hl (remainder a) = hl / c
-;   math_Divide16
-;     de (remainder hl) = hl / bc
-;   math_Divide24
-;     ehl (remainder a) = ehl / d
-;   math_Divide32
-;     dehl (remainder a) = dehl / c
-;   math_Sub24
-;     ehl = ehl - bcd
-;   math_Sub16
-;      hl = hl - bc
-;   math_CountBits
-;     a = byte, returns count in a
-;   math_TestBit
-;     tests bit d of byte e, affects z flag, all registers
-;   math_AddSignedByteToWord
-;     a = byte, [hl] = word, result in [hl], a -> 2=carry,3=borrow
-;   math_Distance
-;     hl = xy1, de = xy2, returns distance in a
-;   math_Length
-;     a = length(de)
-;   math_Normalize
-;     de = normalized(de)
-;   math_Abs
-;     a = |a|
-;   math_Cos255
-;     a = cos(a) * 255 where a in degrees <= 180
-;   math_Sin255
-;     a = sin(a) * 255 where a in degrees <= 180
+;   math_Multiply                hl = de * a
+;   math_Multiply16              bcde = de * hl
+;   math_Divide                  hl (remainder a) = hl / c
+;   math_Divide16                de (remainder hl) = hl / bc
+;   math_Divide24                ehl (remainder a) = ehl / d
+;   math_Divide32                dehl (remainder a) = dehl / c
+;   math_Subtract16              hl = hl - bc
+;   math_Subtract24              ehl = ehl - bcd
+;   math_CountBits               a = byte, returns count in a
+;   math_TestBit                 tests bit d of byte e, affects z flag, all registers
+;   math_AddSignedByteToWord     a = byte, [hl] = word, result in [hl], a -> 2=carry,3=borrow
+;   math_Distance                hl = xy1, de = xy2, returns distance in a
+;   math_Length                  a = length(de)
+;   math_Normalize               de = normalized(de)
+;   math_Abs                     a = |a|
+;   math_Cos255                  a = cos(a) * 255 where a in degrees <= 180
+;   math_Sin255                  a = sin(a) * 255 where a in degrees <= 180
 
 IF !DEF(MATH_ASM)
 MATH_ASM SET 1
@@ -158,23 +148,6 @@ ENDR
   pop hl             ; Restore multiplier.
   ret
 
-;FIXME: This seems to be broken for large values of C ...
-math_Divide:: ; hl (remainder a) = hl / c
-  xor a
-  ld b, 16
-.loop
-    add hl, hl
-    rla
-    jr c, .skip
-    cp c
-    jr c, .skip
-    sub c
-    inc l
-  .skip
-    dec b
-    jr nz, .loop
-  ret
-
 math_Divide16:: ;de (remainder hl) = hl / bc
   ld de, 0 ;quotient
 .loop ;while remainder >= denominator
@@ -185,22 +158,13 @@ math_Divide16:: ;de (remainder hl) = hl / bc
   dec de
   ret
 
-;FIXME: This also seems to be broken for large values of D ...
-math_Divide24:: ; ehl (remainder a) = ehl / d
+math_Divide:: ; hl (remainder a) = hl / c
   xor a
-  ld b, 24
-.loop
-    add hl,hl
-    rl e
-    rla
-    cp d
-    jr c, .skip
-    sub d
-    inc l
-  .skip
-    dec b
-    jr nz, .loop
-  ret
+  ld e, a
+
+math_Divide24:: ; ehl (remainder a) = ehl / c
+  xor a
+  ld d, a
 
 math_Divide32::; dehl (remainder a) = dehl / c
   xor	a
@@ -220,7 +184,7 @@ math_Divide32::; dehl (remainder a) = dehl / c
     jr nz, .loop
   ret
 
-math_Add24:: ;ehl = ehl + bcd
+math_Add_EHL_BCD:: ;ehl = ehl + bcd
   ld a, l
   add a, d
   ld l, a
@@ -232,7 +196,7 @@ math_Add24:: ;ehl = ehl + bcd
   ld e, a
   ret
 
-math_Sub24:: ;ehl = ehl - bcd
+math_Subtract24:: ;ehl = ehl - bcd
   ld a, l
   sub a, d
   ld l, a
@@ -244,7 +208,7 @@ math_Sub24:: ;ehl = ehl - bcd
   ld e, a
   ret
 
-math_Sub16:: ;hl = hl - bc
+math_Subtract16:: ;hl = hl - bc
   ld a, l
   sub a, c
   ld l, a
