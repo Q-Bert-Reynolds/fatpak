@@ -468,7 +468,7 @@ StatScreenExperienceText:
  DB "EXPERIENCE"
  DB "          "
  DB "NEXT AGE  "
- DB "      țᚠ  ";to yr
+ DB "      <to><yr>  "
 
 DrawPageTwo:
   ;img and name already drawn
@@ -511,7 +511,7 @@ DrawPageTwo:
     call gbdk_SetBkgTiles
 
     ld bc, name_buffer
-    ld a, "ℙ"
+    ld a, "<P>"
     ld [bc], a
     inc bc
     ld [bc], a

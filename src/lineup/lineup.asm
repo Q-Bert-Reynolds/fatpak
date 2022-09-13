@@ -88,7 +88,7 @@ SwapPositions: ;bc = player count, selected player
     ld a, [_k]
     cp b
     jr z, .checkA
-    ld a, ARROW_RIGHT_BLANK
+    ld a, "▷"
     ld hl, name_buffer
     ld [hl], a
 
@@ -286,7 +286,7 @@ ReorderLineup: ;bc = player count, selected player
     ld a, [_k]
     cp b
     jr z, .checkA
-    ld a, ARROW_RIGHT_BLANK
+    ld a, "▷"
     ld hl, name_buffer
     ld [hl], a
 
@@ -715,7 +715,7 @@ ShowPlayerMenu:
   call gbdk_GetBkgTiles
   
 .showEmptyArrow
-  ld a, ARROW_RIGHT_BLANK
+  ld a, "▷"
   ld hl, name_buffer
   ld [hl], a
 

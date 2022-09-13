@@ -89,13 +89,13 @@ DrawRoledexBaseUI:
   call SetTiles
 
   ld hl, tile_buffer
-  ld a, BOX_VERTICAL
+  ld a, "│"
   ld [hli], a
   ld c, 9
 .loop
-    ld a, BOX_VERTICAL
+    ld a, "│"
     ld [hli], a
-    ld a, BOX_JUNCTION
+    ld a, "┼"
     ld [hli], a
     dec c
     jr nz, .loop
@@ -107,7 +107,7 @@ DrawRoledexBaseUI:
   call SetTiles
 
   ld hl, tile_buffer
-  ld a, BOX_HORIZONTAL
+  ld a, "─"
   ld bc, 5
   call mem_Set
 
@@ -169,7 +169,7 @@ DrawRoledexListEntry:;a = number, de = xy
   jr .drawTiles
 
 .setSigned
-  ld a, BASEBALL
+  ld a, "○"
   ld hl, tile_buffer
   ld [hl], a
 
@@ -529,9 +529,9 @@ ShowRoledexPlayerData:;a player num
 .drawDividingLine
   ld hl, tile_buffer+1
   ld bc, 18
-  ld a, BOX_HORIZONTAL
+  ld a, "─"
   call mem_Set
-  ld a, BOX_JUNCTION
+  ld a, "┼"
   ld [hl], a
 
   ld de, $0009
@@ -609,7 +609,7 @@ ShowRoledexMenu:;returns exit code in a
   ld hl, $0101
   ld d, 0
   ld e, c
-  ld a, ARROW_RIGHT_BLANK
+  ld a, "▷"
   ld bc, tile_buffer
   ld [bc], a
   ld a, DRAW_FLAGS_BKG

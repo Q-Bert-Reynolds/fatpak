@@ -257,7 +257,7 @@ _ShowInventory:
     ld a, " "
     jr c, .drawDown
   .drawDownArrow
-    ld a, ARROW_DOWN
+    ld a, "▼"
   .drawDown
     ld d, 18
     ld e, 11
@@ -637,7 +637,7 @@ UpdateOffer:
   ld bc, str_buffer
   call gbdk_SetWinTiles
 
-  ld a, ARROW_UP
+  ld a, "▲"
   ld [name_buffer], a
   ld a, [_x]
   add a, 8
@@ -647,7 +647,7 @@ UpdateOffer:
   ld hl, $0101
   call gbdk_SetWinTiles
 
-  ld a, ARROW_DOWN
+  ld a, "▼"
   ld [name_buffer], a
   ld a, [_x]
   add a, 8

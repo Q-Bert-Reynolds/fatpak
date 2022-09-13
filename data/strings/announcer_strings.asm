@@ -62,13 +62,13 @@ HitPopFlyText::                  DB "Pop fly ",0
 
 ;outfield location by angle
 OutfieldLocationTexts::         
-  .leftLine:                     DB "down\nthe ļ line.",0
+  .leftLine:                     DB "down\nthe <LF> line.",0
   .leftField:                    DB "to\nleft field.",0
   .leftCenter:                   DB "to\nleft center.",0
   .centerField:                  DB "to\ncenter field.",0
   .rightCenter:                  DB "to\nright center.",0
   .rightField:                   DB "to\nright field.",0
-  .rightLine:                    DB "down\nthe ŗ line.",0
+  .rightLine:                    DB "down\nthe <RF> line.",0
 
 ;hit to infield - append infield location or "to the" position text
 HitLineDriveText::               DB "Line drive ",0
@@ -79,15 +79,15 @@ HitBuntText::                    DB "Bunted ",0
 
 ;infield location by angle
 InfieldLocationTexts::          
-  .thirdBaseLine:                DB "down\nthe ³ line",0
+  .thirdBaseLine:                DB "down\nthe <3B> line",0
   .third:                        DB "\nto third.",0
-  .shortThirdHole:               DB "\nin the ş-³ hole.",0
+  .shortThirdHole:               DB "\nin the <SS>-<3B> hole.",0
   .short:                        DB "\nto short.",0
   .upTheMiddle:                  DB "\nup the middle.",0
   .second:                       DB "\nto second.",0
-  .firstSecondHole:              DB "\nin the ¹-² hole.",0
+  .firstSecondHole:              DB "\nin the <1B>-<2B> hole.",0
   .first:                        DB "\nto first.",0
-  .firstBaseLine:                DB "down\nthe ¹ line",0
+  .firstBaseLine:                DB "down\nthe <1B> line",0
 
 ;append to bunts and popups, replace %s with position
 ToThePositionText::              DB "to the\n%s.",0
@@ -122,7 +122,7 @@ BallText::                       DB "Ball %s.",0
 WalkText::                       DB "%s on base\nwith a walk.",0
 PassedBallText::                 DB "Wild pitch!",0
 WildPitchText::                  DB "Passed ball!",0
-HitByPitchText::                 DB "That hit 'em, so\n%s is on ¹.",0
+HitByPitchText::                 DB "That hit 'em, so\n%s is on <1B>.",0
 BenchesClearText::               DB "And the benches clear.",0
 
 ;runners on
@@ -136,7 +136,7 @@ RunnersOnBaseTexts::
   .secondAndThird:               DB "Runners on second\nand third.",0
   .basesLoaded:                  DB "Bases loaded.",0
 
-;;tagging up
+;tagging up
 TaggingFromTexts::              
   .first:                        DB "%s tags from first.",0
   .second:                       DB "%s will\ntag from second.",0
@@ -211,7 +211,7 @@ BaseTexts::
 
 ;beginning of frame
 TakesTheMoundText::              DB "%s en el\nmontículo",0
-WalksToThePlateText::            DB "%S camina\nup al plato.",0
+WalksToThePlateText::            DB "%s se acerca\nal plato.",0
 
 ;move selected
 BatterStepsIntoTheBoxText::      DB "%s pasos\ninto la caja.",0
@@ -221,7 +221,7 @@ PitcherSetsText::                DB "%s conjuntos.",0
 AndThePitchText::                DB "Y el tono.",0
 
 ;append to "And the pitch." text, replace %s with pitch name
-ThrewAPitchText::                DB "na %s.",0
+ThrewAPitchText::                DB "\nUn %s.",0
 
 ;after pitch
 EarlySwingText::                 DB "Swing temprano.",0
@@ -237,13 +237,13 @@ HitPopFlyText::                  DB "Mosca",0
 
 ;outfield location by angle
 OutfieldLocationTexts::         
-  .leftLine:                     DB "Abajo\nthe ļ ļ línea.",0
-  .leftField:                    DB "a\nleft campo.",0
-  .leftCenter:                   DB "a\nleft Center.",0
-  .centerField:                  DB "a\ncenter campo.",0
-  .rightCenter:                  DB "a\nright Center.",0
-  .rightField:                   DB "al campo\nright.",0
-  .rightLine:                    DB "Abajo\nthe ŗ ŗ línea.",0
+  .leftLine:                     DB "Abajo\nthe <LF> <LF> línea.",0
+  .leftField:                    DB "a\njardín izquierdo.",0
+  .leftCenter:                   DB "a\ncentro izquierda.",0
+  .centerField:                  DB "a\njardin centro.",0
+  .rightCenter:                  DB "a\ncentro derecho",0
+  .rightField:                   DB "a\njardín derecho.",0
+  .rightLine:                    DB "Abajo\nthe <RF> línea.",0
 
 ;hit to infield - append infield location or "to the" position text
 HitLineDriveText::               DB "Línea de línea",0
@@ -254,15 +254,15 @@ HitBuntText::                    DB "Buntado",0
 
 ;infield location by angle
 InfieldLocationTexts::          
-  .thirdBaseLine:                DB "abajo\nthe ³ línea",0
+  .thirdBaseLine:                DB "abajo\nthe <3B> línea",0
   .third:                        DB "nto tercero.",0
-  .shortThirdHole:               DB "Nin el hoyo ş -³.",0
+  .shortThirdHole:               DB "Nin el hoyo <SS> -<3B>.",0
   .short:                        DB "nto corto.",0
   .upTheMiddle:                  DB "nup the Middle.",0
   .second:                       DB "nto segundo.",0
-  .firstSecondHole:              DB "Nin el hoyo ¹ -ie.",0
+  .firstSecondHole:              DB "Nin el hoyo  <1B>-<2B>.",0
   .first:                        DB "nto primero.",0
-  .firstBaseLine:                DB "abajo\nthe ¹ línea",0
+  .firstBaseLine:                DB "abajo\nthe <1B> línea",0
 
 ;append to bunts and popups, replace %s with position
 ToThePositionText::              DB "al\n%s.",0
@@ -297,7 +297,7 @@ BallText::                       DB "Pelotas.",0
 WalkText::                       DB "%s en la base\n con una caminata.",0
 PassedBallText::                 DB "¡Partido salvaje!",0
 WildPitchText::                  DB "¡Pasó la pelota!",0
-HitByPitchText::                 DB "Eso lo golpeó, por lo que\n%s está en ¹.",0
+HitByPitchText::                 DB "Eso lo golpeó, por lo que\n%s está en <1B>.",0
 BenchesClearText::               DB "Y los bancos despejados.",0
 
 ;runners on

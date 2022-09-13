@@ -1,112 +1,112 @@
-Label,Comment,English,Spanish
-PositionTexts.pitcher,positions ordered by position id,pitcher,lanzador
-PositionTexts.catcher,,catcher,receptor
-PositionTexts.first,,first baseman,primera base
-PositionTexts.second,,second baseman,segunda base
-PositionTexts.third,,third baseman,tercera base
-PositionTexts.shortstop,,shortstop,campocorto
-PositionTexts.left,,left fielder,jardinero izquierdo
-PositionTexts.center,,center fielder,jardinero central
-PositionTexts.right,,right fielder,jardinero derecho
-InningTexts.first,ordinal numbers for innings,1st,
-InningTexts.second,,2nd,
-InningTexts.third,,3rd,
-InningTexts.fourth,,4th,
-InningTexts.fifth,,5th,
-InningTexts.sixth,,6th,
-InningTexts.seventh,,7th,
-InningTexts.eighth,,8th,
-InningTexts.ninth,,9th,
-InningTexts.tenth,,10th,
-InningTexts.eleventh,,11th,
-InningTexts.twelfth,,12th,
-BaseTexts.first,base names,first,primero
-BaseTexts.second,,second,segundo
-BaseTexts.third,,third,tercera
-BaseTexts.home,,home plate,plato casero
-TakesTheMoundText,beginning of frame,%s takes\nthe mound.,%s en el\nmontículo
-WalksToThePlateText,,%s walks\nup to the plate.,%S camina\nup al plato.
-BatterStepsIntoTheBoxText,move selected,%s steps\ninto the box.,%s pasos\ninto la caja.
-PitcherSetsText,,%s sets.,%s conjuntos.
-AndThePitchText,beginning of play,And the pitch.,Y el tono.
-ThrewAPitchText,"append to ""And the pitch."" text, replace %s with pitch name",\nA %s.,na %s.
-EarlySwingText,after pitch,Early swing.,Swing temprano.
-LateSwingText,,Late swing.,Swing tardío.
-SwingAndMissText,,Swing and a miss.,Swing y una señorita.
-HitBarrelText,,Really got the\nbarrel on that one.,Realmente tengo el\nbarrel en ese.
-HitDeepFlyBallText,hit to outfield - append outfield location,Deep fly ball ,Bola de mosca profunda
-HitFlyBallText,,Fly ball ,Pelota voladora
-HitShallowFlyBallText,,Shallow fly ,Mosca poco profunda
-HitPopFlyText,,Pop fly ,Mosca
-OutfieldLocationTexts.leftLine,outfield location by angle,down\nthe ļ line.,Abajo\nthe ļ ļ línea.
-OutfieldLocationTexts.leftField,,to\nleft field.,a\nleft campo.
-OutfieldLocationTexts.leftCenter,,to\nleft center.,a\nleft Center.
-OutfieldLocationTexts.centerField,,to\ncenter field.,a\ncenter campo.
-OutfieldLocationTexts.rightCenter,,to\nright center.,a\nright Center.
-OutfieldLocationTexts.rightField,,to\nright field.,al campo\nright.
-OutfieldLocationTexts.rightLine,,down\nthe ŗ line.,Abajo\nthe ŗ ŗ línea.
-HitLineDriveText,"hit to infield - append infield location or ""to the"" position text",Line drive ,Línea de línea
-HitGroundBallText,,Ground ball ,Bola de tierra
-HitChopperText,,A chopper ,Un helicóptero
-HitPopUpText,,Popped up ,Aparecido
-HitBuntText,,Bunted ,Buntado
-InfieldLocationTexts.thirdBaseLine,infield location by angle,down\nthe ³ line,abajo\nthe ³ línea
-InfieldLocationTexts.third,,\nto third.,nto tercero.
-InfieldLocationTexts.shortThirdHole,,\nin the ş-³ hole.,Nin el hoyo ş -³.
-InfieldLocationTexts.short,,\nto short.,nto corto.
-InfieldLocationTexts.upTheMiddle,,\nup the middle.,nup the Middle.
-InfieldLocationTexts.second,,\nto second.,nto segundo.
-InfieldLocationTexts.firstSecondHole,,\nin the ¹-² hole.,Nin el hoyo ¹ -ie.
-InfieldLocationTexts.first,,\nto first.,nto primero.
-InfieldLocationTexts.firstBaseLine,,down\nthe ¹ line,abajo\nthe ¹ línea
-ToThePositionText,"append to bunts and popups, replace %s with position",to the\n%s.,al\n%s.
-CaughtByText,"fielded, replace %s with player name",%s makes\nthe catch.,%s hace la captura.
-LeapingCatchByText,,%s leaps\n and snags it.,%s salta\n y lo engancha.
-DivingCatchByText,,%s with\nthe diving grab.,%s con\nthe Diving Grab.
-FieldedByText,,Fielded by\n%s.,Filentado por\n%s.
-OffTheGloveOfText,errors,Off the glove of\n%s.,Fuera del guante de\n%s.
-BobbledByText,,Bobbled by\n%s.,Bobado por\n%s.
-BadThrowByText,,A bad throw\nfrom %s.,Un mal lanzamiento\nfrom %s.
-ThrowsToText,"throw, replace %s with player name, append base thrown to",Throws to %s.,Lanza a %s.
-PlacesTheTagText,"tag, replace %s with player name",%s\nplaces the tag.,%s\nplaces la etiqueta.
-DeadBallText,dead ball,Dead ball!,¡Pelota muerta!
-StrikeText,strike,Strike %s!,¡Huelgas!
-StrikeOutLookingText,,%s strikes\nout looking!,%s huelga\nout mirando!
-StrikeOutSwingingText,,%s strikes\nout swinging!,%s huelga\nout balanceándose!
-BallText,no swing,Ball %s.,Pelotas.
-WalkText,,%s on base\nwith a walk.,%s en la base\n con una caminata.
-PassedBallText,,Wild pitch!,¡Partido salvaje!
-WildPitchText,,Passed ball!,¡Pasó la pelota!
-HitByPitchText,,"That hit 'em, so\n%s is on ¹.","Eso lo golpeó, por lo que\n%s está en ¹."
-BenchesClearText,,And the benches clear.,Y los bancos despejados.
-RunnersOnBaseTexts.nobody,runners on,Nobody on base.,Nadie en la base.
-RunnersOnBaseTexts.first,,Runner on first.,Runner en primero.
-RunnersOnBaseTexts.second,,Runner on second.,Corredor en segundo.
-RunnersOnBaseTexts.firstAndSecond,,Runners on first\nand second.,Corredores en el primer segundo.
-RunnersOnBaseTexts.third,,Runner on third.,Corredor en tercero.
-RunnersOnBaseTexts.firstAndThird,,Runners on first\nand third.,Corredores en el primer\nand tercero.
-RunnersOnBaseTexts.secondAndThird,,Runners on second\nand third.,Corredores en el segundo\nand tercero.
-RunnersOnBaseTexts.basesLoaded,,Bases loaded.,Bases cargadas.
-TaggingFromTexts.first,;tagging up,%s tags from first.,%s etiquetas desde primero.
-TaggingFromTexts.second,,%s will\ntag from second.,%s será de segundo.
-TaggingFromTexts.third,,Tagging from third\nis %s.,Etiquetado de tercero\nis %s.
-SafeText,safe/out,Safe!,¡Seguro!
-OutText,,Out!,¡Afuera!
-DoublePlayText,,Double Play!,¡Doble jugada!
-TriplePlayText,,Triple Play!,¡Juego triple!
-HitFoulTipText,foul,Foul tip.,Consejo sucio.
-HitFoulBackText,,Foulled back.,Flolled de regreso.
-HitFoulBallText,,Foul Ball!,¡Bola de falta!
-InFoulTerritoryText,,in\nfoul territory.,en el territorio de\nfoul.
-HitBaseHitText,hit,Base hit!,¡Base Hit!
-HitDoubleText,,Double!,¡Doble!
-HitTripleText,,Triple!,¡Triple!
-HitHomeRunText,,HOME RUN!,¡CARRERA!
-HitGrandSlamText,,GRAND SLAM!,
-CriticalHitText,,Critical hit!,¡Impacto crítico!
-PlayerScoresText,score, scores., puntuaciones.
-TwoPlayersScoreText,, and\n%s score., y puntaje\n%s.
-BasesClearedScoreText,,And that clears\nthe bases.,Y eso borra las bases.
-BottomOfTheText,end of frame,Bottom of\nthe %s.,Inferior de\nthe %s.
-TopOfTheText,,Top of\nthe %s.,Superior de\nthe %s.
-AndThatsTheBallGameText,end of game,And that's the\nball game.,Y ese es el juego\nball.
+Label,Comment,English,Spanish,French,Italian,Portuguese,German,Japanese
+PositionTexts.pitcher,positions ordered by position id,pitcher,lanzador,,,,,
+PositionTexts.catcher,,catcher,receptor,,,,,
+PositionTexts.first,,first baseman,primera base,,,,,
+PositionTexts.second,,second baseman,segunda base,,,,,
+PositionTexts.third,,third baseman,tercera base,,,,,
+PositionTexts.shortstop,,shortstop,campocorto,,,,,
+PositionTexts.left,,left fielder,jardinero izquierdo,,,,,
+PositionTexts.center,,center fielder,jardinero central,,,,,
+PositionTexts.right,,right fielder,jardinero derecho,,,,,
+InningTexts.first,ordinal numbers for innings,1st,,,,,,
+InningTexts.second,,2nd,,,,,,
+InningTexts.third,,3rd,,,,,,
+InningTexts.fourth,,4th,,,,,,
+InningTexts.fifth,,5th,,,,,,
+InningTexts.sixth,,6th,,,,,,
+InningTexts.seventh,,7th,,,,,,
+InningTexts.eighth,,8th,,,,,,
+InningTexts.ninth,,9th,,,,,,
+InningTexts.tenth,,10th,,,,,,
+InningTexts.eleventh,,11th,,,,,,
+InningTexts.twelfth,,12th,,,,,,
+BaseTexts.first,base names,first,primero,,,,,
+BaseTexts.second,,second,segundo,,,,,
+BaseTexts.third,,third,tercera,,,,,
+BaseTexts.home,,home plate,plato casero,,,,,
+TakesTheMoundText,beginning of frame,%s takes\nthe mound.,%s en el\nmontículo,,,,,
+WalksToThePlateText,,%s walks\nup to the plate.,%s se acerca\nal plato.,,,,,
+BatterStepsIntoTheBoxText,move selected,%s steps\ninto the box.,%s pasos\ninto la caja.,,,,,
+PitcherSetsText,,%s sets.,%s conjuntos.,,,,,
+AndThePitchText,beginning of play,And the pitch.,Y el tono.,,,,,
+ThrewAPitchText,"append to ""And the pitch."" text, replace %s with pitch name",\nA %s.,\nUn %s.,,,,,
+EarlySwingText,after pitch,Early swing.,Swing temprano.,,,,,
+LateSwingText,,Late swing.,Swing tardío.,,,,,
+SwingAndMissText,,Swing and a miss.,Swing y una señorita.,,,,,
+HitBarrelText,,Really got the\nbarrel on that one.,Realmente tengo el\nbarrel en ese.,,,,,
+HitDeepFlyBallText,hit to outfield - append outfield location,Deep fly ball ,Bola de mosca profunda,,,,,
+HitFlyBallText,,Fly ball ,Pelota voladora,,,,,
+HitShallowFlyBallText,,Shallow fly ,Mosca poco profunda,,,,,
+HitPopFlyText,,Pop fly ,Mosca,,,,,
+OutfieldLocationTexts.leftLine,outfield location by angle,down\nthe <LF> line.,Abajo\nthe <LF> <LF> línea.,,,,,
+OutfieldLocationTexts.leftField,,to\nleft field.,a\njardín izquierdo.,,,,,
+OutfieldLocationTexts.leftCenter,,to\nleft center.,a\ncentro izquierda.,,,,,
+OutfieldLocationTexts.centerField,,to\ncenter field.,a\njardin centro.,,,,,
+OutfieldLocationTexts.rightCenter,,to\nright center.,a\ncentro derecho,,,,,
+OutfieldLocationTexts.rightField,,to\nright field.,a\njardín derecho.,,,,,
+OutfieldLocationTexts.rightLine,,down\nthe <RF> line.,Abajo\nthe <RF> línea.,,,,,
+HitLineDriveText,"hit to infield - append infield location or ""to the"" position text",Line drive ,Línea de línea,,,,,
+HitGroundBallText,,Ground ball ,Bola de tierra,,,,,
+HitChopperText,,A chopper ,Un helicóptero,,,,,
+HitPopUpText,,Popped up ,Aparecido,,,,,
+HitBuntText,,Bunted ,Buntado,,,,,
+InfieldLocationTexts.thirdBaseLine,infield location by angle,down\nthe <3B> line,abajo\nthe <3B> línea,,,,,
+InfieldLocationTexts.third,,\nto third.,nto tercero.,,,,,
+InfieldLocationTexts.shortThirdHole,,\nin the <SS>-<3B> hole.,Nin el hoyo <SS> -<3B>.,,,,,
+InfieldLocationTexts.short,,\nto short.,nto corto.,,,,,
+InfieldLocationTexts.upTheMiddle,,\nup the middle.,nup the Middle.,,,,,
+InfieldLocationTexts.second,,\nto second.,nto segundo.,,,,,
+InfieldLocationTexts.firstSecondHole,,\nin the <1B>-<2B> hole.,Nin el hoyo  <1B>-<2B>.,,,,,
+InfieldLocationTexts.first,,\nto first.,nto primero.,,,,,
+InfieldLocationTexts.firstBaseLine,,down\nthe <1B> line,abajo\nthe <1B> línea,,,,,
+ToThePositionText,"append to bunts and popups, replace %s with position",to the\n%s.,al\n%s.,,,,,
+CaughtByText,"fielded, replace %s with player name",%s makes\nthe catch.,%s hace la captura.,,,,,
+LeapingCatchByText,,%s leaps\n and snags it.,%s salta\n y lo engancha.,,,,,
+DivingCatchByText,,%s with\nthe diving grab.,%s con\nthe Diving Grab.,,,,,
+FieldedByText,,Fielded by\n%s.,Filentado por\n%s.,,,,,
+OffTheGloveOfText,errors,Off the glove of\n%s.,Fuera del guante de\n%s.,,,,,
+BobbledByText,,Bobbled by\n%s.,Bobado por\n%s.,,,,,
+BadThrowByText,,A bad throw\nfrom %s.,Un mal lanzamiento\nfrom %s.,,,,,
+ThrowsToText,"throw, replace %s with player name, append base thrown to",Throws to %s.,Lanza a %s.,,,,,
+PlacesTheTagText,"tag, replace %s with player name",%s\nplaces the tag.,%s\nplaces la etiqueta.,,,,,
+DeadBallText,dead ball,Dead ball!,¡Pelota muerta!,,,,,
+StrikeText,strike,Strike %s!,¡Huelgas!,,,,,
+StrikeOutLookingText,,%s strikes\nout looking!,%s huelga\nout mirando!,,,,,
+StrikeOutSwingingText,,%s strikes\nout swinging!,%s huelga\nout balanceándose!,,,,,
+BallText,no swing,Ball %s.,Pelotas.,,,,,
+WalkText,,%s on base\nwith a walk.,%s en la base\n con una caminata.,,,,,
+PassedBallText,,Wild pitch!,¡Partido salvaje!,,,,,
+WildPitchText,,Passed ball!,¡Pasó la pelota!,,,,,
+HitByPitchText,,"That hit 'em, so\n%s is on <1B>.","Eso lo golpeó, por lo que\n%s está en <1B>.",,,,,
+BenchesClearText,,And the benches clear.,Y los bancos despejados.,,,,,
+RunnersOnBaseTexts.nobody,runners on,Nobody on base.,Nadie en la base.,,,,,
+RunnersOnBaseTexts.first,,Runner on first.,Runner en primero.,,,,,
+RunnersOnBaseTexts.second,,Runner on second.,Corredor en segundo.,,,,,
+RunnersOnBaseTexts.firstAndSecond,,Runners on first\nand second.,Corredores en el primer segundo.,,,,,
+RunnersOnBaseTexts.third,,Runner on third.,Corredor en tercero.,,,,,
+RunnersOnBaseTexts.firstAndThird,,Runners on first\nand third.,Corredores en el primer\nand tercero.,,,,,
+RunnersOnBaseTexts.secondAndThird,,Runners on second\nand third.,Corredores en el segundo\nand tercero.,,,,,
+RunnersOnBaseTexts.basesLoaded,,Bases loaded.,Bases cargadas.,,,,,
+TaggingFromTexts.first,tagging up,%s tags from first.,%s etiquetas desde primero.,,,,,
+TaggingFromTexts.second,,%s will\ntag from second.,%s será de segundo.,,,,,
+TaggingFromTexts.third,,Tagging from third\nis %s.,Etiquetado de tercero\nis %s.,,,,,
+SafeText,safe/out,Safe!,¡Seguro!,,,,,
+OutText,,Out!,¡Afuera!,,,,,
+DoublePlayText,,Double Play!,¡Doble jugada!,,,,,
+TriplePlayText,,Triple Play!,¡Juego triple!,,,,,
+HitFoulTipText,foul,Foul tip.,Consejo sucio.,,,,,
+HitFoulBackText,,Foulled back.,Flolled de regreso.,,,,,
+HitFoulBallText,,Foul Ball!,¡Bola de falta!,,,,,
+InFoulTerritoryText,,in\nfoul territory.,en el territorio de\nfoul.,,,,,
+HitBaseHitText,hit,Base hit!,¡Base Hit!,,,,,
+HitDoubleText,,Double!,¡Doble!,,,,,
+HitTripleText,,Triple!,¡Triple!,,,,,
+HitHomeRunText,,HOME RUN!,¡CARRERA!,,,,,
+HitGrandSlamText,,GRAND SLAM!,,,,,,
+CriticalHitText,,Critical hit!,¡Impacto crítico!,,,,,
+PlayerScoresText,score, scores., puntuaciones.,,,,,
+TwoPlayersScoreText,, and\n%s score., y puntaje\n%s.,,,,,
+BasesClearedScoreText,,And that clears\nthe bases.,Y eso borra las bases.,,,,,
+BottomOfTheText,end of frame,Bottom of\nthe %s.,Inferior de\nthe %s.,,,,,
+TopOfTheText,,Top of\nthe %s.,Superior de\nthe %s.,,,,,
+AndThatsTheBallGameText,end of game,And that's the\nball game.,Y ese es el juego\nball.,,,,,

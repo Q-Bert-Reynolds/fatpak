@@ -1,17 +1,42 @@
 NEWCHARMAP baseball
-charmap "ℙ", 1 ; pitcher
-charmap "ℂ", 2 ; catcher
-charmap "¹", 3 ; first
-charmap "²", 4 ; second
-charmap "³", 5 ; third
-charmap "ş", 6 ; short
-charmap "ļ", 7 ; left
-charmap "ç", 8 ; center
-charmap "ŗ", 9 ; right
-charmap "◌", 10
-charmap "⚾", 11
-charmap "ț", 15 ; to
-charmap "ᚠ", 16 ; age
-charmap "↵", 30 ; end/return
+charmap "<P>", 1 ; pitcher
+charmap "<C>", 2 ; catcher
+charmap "<3B>", 3 ; first
+charmap "<2B>", 4 ; second
+charmap "<3B>", 5 ; third
+charmap "<SS>", 6 ; short
+charmap "<LF>", 7 ; left
+charmap "<CF>", 8 ; center
+charmap "<RF>", 9 ; right
+charmap "◌", 10 ; dotted circle
+charmap "○", 11 ; baseball
+charmap "◀", 12
+charmap "▶", 13
+charmap "▷", 14
+charmap "<to>", 15
+charmap "<yr>", 16
+charmap "┌", 17
+charmap "┐", 18
+charmap "└", 19
+charmap "┘", 20
+charmap "─", 21
+charmap "│", 22
+charmap "◇", 23
+charmap "◆", 24
+charmap "<ERA>", 25
+charmap "<BA>", 26
+charmap "ꓘ", 27
+charmap "▼", 28 ;bottom of the inning
+charmap "▲", 29 ;top of the inning
+charmap "↵", 30 ;end/return
+charmap "┼", 31
+charmap "í",  91
+charmap "ó",  93
+charmap "ú",  94
+charmap "ü",  95
+charmap "á",  96
+charmap "¡",  123
+charmap "¿",  125
+charmap "ñ",  126
 charmap "é",  127
 charmap "\n", 128

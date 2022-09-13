@@ -71,8 +71,8 @@ FlashNextArrow:: ;a = draw flags, de = xy
   push de;xy
   push af;draw flags
   ld bc, tile_buffer
-  ld a, ARROW_DOWN
-  ld [bc], a ;tile_buffer[0] = ARROW_DOWN;
+  ld a, "▼"
+  ld [bc], a ;tile_buffer[0] = "▼";
   ld hl, $0101
   pop af;draw flags
   push af
@@ -129,38 +129,38 @@ GetUIBoxTiles: ;Entry: de = wh, Affects: hl, fills tile_buffer
       ld a, [_j] 
       and a
       jr nz, .testBottom
-    .testUpperLeft ;if (i == 0) k = BOX_UPPER_LEFT;
+    .testUpperLeft ;if (i == 0) k = "┌";
       ld a, [_i]
       and a
       jr nz, .testUpperRight
-      ld a, BOX_UPPER_LEFT
+      ld a, "┌"
       jp .setTile
-    .testUpperRight ;else if (i == w-1) k = BOX_UPPER_RIGHT;
+    .testUpperRight ;else if (i == w-1) k = "┐";
       ld a, [_i]
       sub a, d
       inc a
       jr nz, .setHorizontal
-      ld a, BOX_UPPER_RIGHT
+      ld a, "┐"
       jp .setTile
     .testBottom ;else if (j == h-1) {
       ld a, [_j] 
       sub a, e
       inc a
       jr nz, .testSides
-    .testLowerLeft ;if (i == 0) k = BOX_LOWER_LEFT;
+    .testLowerLeft ;if (i == 0) k = "└";
       ld a, [_i]
       and a
       jr nz, .testLowerRight
-      ld a, BOX_LOWER_LEFT
+      ld a, "└"
       jp .setTile
-    .testLowerRight ;else if (i == w-1) k = BOX_LOWER_RIGHT;
+    .testLowerRight ;else if (i == w-1) k = "┘";
       ld a, [_i]
       sub a, d
       inc a
       jr nz, .setHorizontal
-      ld a, BOX_LOWER_RIGHT
+      ld a, "┘"
       jp .setTile
-    .testSides ;else if (i == 0 || i == w-1) k = BOX_VERTICAL;
+    .testSides ;else if (i == 0 || i == w-1) k = "│";
       ld a, [_i]
       and a
       jr z, .setVertical
@@ -171,10 +171,10 @@ GetUIBoxTiles: ;Entry: de = wh, Affects: hl, fills tile_buffer
       ld a, " "
       jr .setTile
     .setVertical
-      ld a, BOX_VERTICAL
+      ld a, "│"
       jr .setTile
     .setHorizontal
-      ld a, BOX_HORIZONTAL
+      ld a, "─"
     .setTile
       ld [hli], a ;tiles[j*w+i] = k;
 
@@ -331,7 +331,7 @@ DrawListMenuArrow:: ;a = draw flags, de = xy, _j = current index, _c = count
   ld c, a
   ld hl, tile_buffer
   add hl, bc
-  ld a, ARROW_RIGHT
+  ld a, "▶"
   ld [hl], a
 
   ld a, 1
@@ -843,14 +843,14 @@ SET_MOVE_OPTIONS_ARROW_TILE: MACRO ;var, row, column
   ld a, [\1]
   cp \3
   jr nz, .setTile\@
-  ld a, ARROW_RIGHT_BLANK
+  ld a, "▷"
   ld bc, tile_buffer
   ld [bc], a
 .subY\@
   ld a, [_y]
   cp \2
   jr nz, .setTile\@
-  ld a, ARROW_RIGHT
+  ld a, "▶"
   ld bc, tile_buffer
   ld [bc], a
 .setTile\@
@@ -906,7 +906,7 @@ MoveOptionsArrow:
   SET_MOVE_OPTIONS_ARROW_TILE coaching_style, 2, 1
   call gbdk_SetBkgTiles; set_bkg_tiles(10,13,1,1,tile_buffer + (c==1 ? 2 : 0) - (y==2 ? 1 : 0));
 
-  ld a, ARROW_RIGHT
+  ld a, "▶"
   ld bc, tile_buffer
   ld [bc], a
   ld d, 1 ;x
@@ -916,7 +916,7 @@ MoveOptionsArrow:
   ld a, [_y]
   cp 3
   jr z, .setCancelTile
-  ld a, ARROW_RIGHT_BLANK
+  ld a, "▷"
   ld [bc], a
 .setCancelTile
   call gbdk_SetBkgTiles; set_bkg_tiles(1,16,1,1,tile_buffer + (y==3 ? 1 : 2));
@@ -1208,8 +1208,8 @@ MoveTextEntryArrow: ; bc = from xy, de = to xy
   pop de ;to xy
   pop bc ;from xy  
   ld hl, tile_buffer
-  ld a, ARROW_RIGHT
-  ld [hl], a; tiles[0] = ARROW_RIGHT;
+  ld a, "▶"
+  ld [hl], a; tiles[0] = "▶";
   ld a, e
   cp 5; if (to_y == 5) {
   jr nz, .notToLineFive
@@ -1286,7 +1286,7 @@ UpdateTextEntryDisplay: ; hl = str, d = max_len
   call str_Length; w = strlen(str);
   ld hl, tile_buffer
   add hl, de
-  ld a, "^"
+  ld a, "▲"
   ld [hl], a
 
   ld d, 10;x
@@ -1358,8 +1358,8 @@ DrawTextEntryBox:
       ld a, [_j]
       sub a, b
       jr nz, .notArrowTile;(x==i && y==j) ?
-      ld a, ARROW_RIGHT
-      ld [hli], a;tiles[j*2*18+i*2] = ARROW_RIGHT
+      ld a, "▶"
+      ld [hli], a;tiles[j*2*18+i*2] = "▶"
       jr .setCharTile
     .notArrowTile
       ld a, " "

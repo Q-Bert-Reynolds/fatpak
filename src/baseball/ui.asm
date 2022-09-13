@@ -41,8 +41,8 @@ DrawPlayerUI:: ;a = team (0 = user, 1 = opponent)
   xor a
   ld [_i], a
 .nameBarLoop;for (i = 0; i < 10; i++) 
-    ld a, BOX_HORIZONTAL
-    ld [hli], a ;tiles[i+2] = BOX_HORIZONTAL;
+    ld a, "─"
+    ld [hli], a ;tiles[i+2] = "─";
     ld a, [_i]
     inc a
     ld [_i], a
@@ -98,18 +98,18 @@ DrawPlayerUI:: ;a = team (0 = user, 1 = opponent)
   ld hl, tile_buffer+1
   call CurrentOrderInLineup
   add a, "1"
-  ld [hl], a ;tiles[1] = NUMBERS + p->batting_order;
+  ld [hl], a ;tiles[1] = "1" + p->batting_order;
   ld hl, tile_buffer+15
-  ld a, BATTING_AVG
-  ld [hl], a ;tiles[15] = BATTING_AVG;
+  ld a, "<BA>"
+  ld [hl], a ;tiles[15] = "<BA>";
   jr .doneWithPlayerStats
 .isPitcher ;else {
   ld hl, tile_buffer+1
-  ld a, "ℙ"
+  ld a, "<P>"
   ld [hl], a ;tiles[1] = p->position;
   ld hl, tile_buffer+15
-  ld a, EARNED_RUN_AVG
-  ld [hl], a ;tiles[15] = EARNED_RUN_AVG;
+  ld a, "<ERA>"
+  ld [hl], a ;tiles[15] = "<ERA>";
 
 .doneWithPlayerStats
   ld a, " "
@@ -192,36 +192,36 @@ DrawBases::
   ld hl, tile_buffer+4
   ld [hl], a
 
-  ld hl, tile_buffer+5 ;tiles[5] = (runners_on_base & FIRST_BASE_MASK) ? OCCUPIED_BASE : EMPTY_BASE;
-  ld a, EMPTY_BASE
+  ld hl, tile_buffer+5 ;tiles[5] = (runners_on_base & FIRST_BASE_MASK) ? "◆" : "◇";
+  ld a, "◇"
   ld [hl], a
   ld a, [runners_on_base+1]
   and a, FIRST_BASE_MASK
   and a
   jr z, .notOnFirst
-  ld a, OCCUPIED_BASE
+  ld a, "◆"
   ld [hl], a
 .notOnFirst
 
-  ld hl, tile_buffer+1 ;tiles[1] = (runners_on_base & SECOND_BASE_MASK) ? OCCUPIED_BASE : EMPTY_BASE;
-  ld a, EMPTY_BASE
+  ld hl, tile_buffer+1 ;tiles[1] = (runners_on_base & SECOND_BASE_MASK) ? "◆" : "◇";
+  ld a, "◇"
   ld [hl], a
   ld a, [runners_on_base+1]
   and a, SECOND_BASE_MASK
   and a
   jr z, .notOnSecond
-  ld a, OCCUPIED_BASE
+  ld a, "◆"
   ld [hl], a
 .notOnSecond
   
-  ld hl, tile_buffer+3 ;tiles[3] = (runners_on_base & THIRD_BASE_MASK) ? OCCUPIED_BASE : EMPTY_BASE;
-  ld a, EMPTY_BASE
+  ld hl, tile_buffer+3 ;tiles[3] = (runners_on_base & THIRD_BASE_MASK) ? "◆" : "◇";
+  ld a, "◇"
   ld [hl], a
   ld a, [runners_on_base]
   and a, THIRD_BASE_MASK >> 8
   and a
   jr z, .notOnThird
-  ld a, OCCUPIED_BASE
+  ld a, "◆"
   ld [hl], a
 .notOnThird
 
@@ -241,14 +241,14 @@ DrawCountOutsInning::
   xor a
   ld [_i], a
 .setBallsLoop
-    ld a, DOTTED_CIRCLE
+    ld a, "◌"
     ld [hl], a
     call GetBalls
     ld b, a
     ld a, [_i]
     cp b
     jr nc, .skipBall
-    ld a, BASEBALL
+    ld a, "○"
     ld [hl], a
   .skipBall
     ld a, [_i]
@@ -264,14 +264,14 @@ DrawCountOutsInning::
   xor a
   ld [_i], a
 .setStrikesLoop
-    ld a, DOTTED_CIRCLE
+    ld a, "◌"
     ld [hl], a
     call GetStrikes
     ld b, a
     ld a, [_i]
     cp b
     jr nc, .skipStrike
-    ld a, BASEBALL
+    ld a, "○"
     ld [hl], a
   .skipStrike
     ld a, [_i]
@@ -287,14 +287,14 @@ DrawCountOutsInning::
   xor a
   ld [_i], a
 .setOutsLoop
-    ld a, DOTTED_CIRCLE
+    ld a, "◌"
     ld [hl], a
     call GetOuts
     ld b, a
     ld a, [_i]
     cp b
     jr nc, .skipOut
-    ld a, BASEBALL
+    ld a, "○"
     ld [hl], a
   .skipOut
     ld a, [_i]
@@ -305,11 +305,11 @@ DrawCountOutsInning::
     jr nz, .setOutsLoop
   
 .setInningFrameTiles
-  ld [hl], INNING_BOTTOM
+  ld [hl], "▼"
   ld a, [frame]
   bit 0, a
-  jr nz, .skip ;tiles[0] = (frame % 2 == 0) ? INNING_TOP : INNING_BOTTOM;
-  ld [hl], INNING_TOP
+  jr nz, .skip ;tiles[0] = (frame % 2 == 0) ? "▲" : "▼";
+  ld [hl], "▲"
 .skip
   inc hl
   ld d, h
@@ -461,9 +461,9 @@ MovePlayMenuArrow:
       ld a, [_j]
       cp b
       jr nz, .notArrow
-      ld a, ARROW_RIGHT
+      ld a, "▶"
       ld [hl], a
-    .notArrow ;tiles[0] = (x==i && y==j) ? ARROW_RIGHT : " ";
+    .notArrow ;tiles[0] = (x==i && y==j) ? "▶" : " ";
       ld a, [_i]
       add a, a;i*2
       add a, a;i*4
@@ -579,9 +579,9 @@ MoveMoveMenuArrow:
     ld a, " "
     jr .setTile
 .setArrow
-    ld a, ARROW_RIGHT
+    ld a, "▶"
 .setTile
-    ld [hli], a;tiles[i] = (i == y) ? ARROW_RIGHT : 0;
+    ld [hli], a;tiles[i] = (i == y) ? "▶" : 0;
     ld a, [_i]
     inc a
     ld [_i], a

@@ -1036,7 +1036,7 @@ Transition:
   ld hl, tile_buffer
   xor a
   ld [hli], a
-  ld a, OCCUPIED_BASE
+  ld a, "◆"
   ld [hli], a
   xor a
   ld [hli], a

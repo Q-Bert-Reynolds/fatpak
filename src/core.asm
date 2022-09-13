@@ -821,7 +821,7 @@ SetHPBarTilesFromPct::;hl = address, de = health pct
 SetAgeTiles::;de = player, hl = address
   push hl;address
   push de;player
-  ld a, AGE
+  ld a, "<yr>"
   ld [hl], a
 
   pop hl;player

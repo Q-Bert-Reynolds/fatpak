@@ -1,5 +1,6 @@
 
 ; Macro                                 Arguments
+;   INCLUDE_TRANSLATED                    "path/without/the/language/or/extension"
 ;   TRAMPOLINE                            AddressInAnotherBank
 ;   PUSH_VAR                              WRAMAddressToStore
 ;   POP_VAR                               WRAMAddressToRestore
@@ -22,6 +23,10 @@
 ;   D24                                   num24
 ;   BETWEEN                               n8, n8
 ;   ADD_USER_PLAYER_DATA                  PlayerAddress, "nickname", pay24 
+
+INCLUDE_TRANSLATED: MACRO ;\1 = path
+  
+ENDM
 
 TRAMPOLINE: MACRO ;\1 = jump address
   ld b, BANK(\1)
