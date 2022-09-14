@@ -19,7 +19,7 @@ def create_strings_file(dict_reader, name):
 
   main_labels = ["",""]
   languages = ["English", "Spanish"]
-  assemblies = ['IF DEF(_LANG_EN);English\n', 'ELIF DEF(_LANG_ES);Spanish\n']
+  assemblies = ['IF LANGUAGE == "en";English\n', '\nELIF LANGUAGE == "es";Spanish\n']
   for entry in dict_reader:
     comment = entry["Comment"]
     label = entry["Label"]

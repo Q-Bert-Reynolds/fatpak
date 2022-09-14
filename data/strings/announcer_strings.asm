@@ -1,4 +1,4 @@
-IF DEF(_LANG_EN);English
+IF LANGUAGE == "en";English
 
 ;positions ordered by position id
 PositionTexts::                 
@@ -173,7 +173,8 @@ TopOfTheText::                   DB "Top of\nthe %s.",0
 
 ;end of game
 AndThatsTheBallGameText::        DB "And that's the\nball game.",0
-ELIF DEF(_LANG_ES);Spanish
+
+ELIF LANGUAGE == "es";Spanish
 
 ;positions ordered by position id
 PositionTexts::                 

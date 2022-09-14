@@ -1,5 +1,5 @@
 VERSION = DEMO#DEMO AWAY HOME
-LANGUAGE = LANG_ES
+LANGUAGE = es
 GAME_NAME = BEISBOL_$(VERSION)
 ROM_NAME = $(GAME_NAME).gbc
 ROM_FILE = $(DIST_DIR)/$(ROM_NAME)
@@ -15,7 +15,7 @@ all:
 	@mkdir -p $(OBJ_DIR)
 	@mkdir -p $(DIST_DIR)
 	
-	rgbasm -D _$(VERSION) -D _$(LANGUAGE) -o $(OBJ_DIR)/main.o $(SRC_DIR)/main.asm
+	rgbasm -D _$(VERSION) -D LANGUAGE=\"$(LANGUAGE)\" -o $(OBJ_DIR)/main.o $(SRC_DIR)/main.asm
 	rgblink -m $(OBJ_DIR)/main.map -n $(SYM_FILE) -o $(ROM_FILE) $(OBJ_DIR)/main.o
 	rgbfix -jvcs -k 01 -l 0x33 -m 0x1B -p 255 -t $(GAME_NAME) $(ROM_FILE)
 
