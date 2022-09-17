@@ -31,9 +31,9 @@ charmap "▲", 29 ;top of the inning
 charmap "↵", 30 ;end/return
 charmap "┼", 31
 charmap "í",  91
-charmap "ó",  93
+charmap "ü",  93
 charmap "ú",  94
-charmap "ü",  95
+charmap "ó",  95
 charmap "á",  96
 charmap "¡",  123
 charmap "¿",  125

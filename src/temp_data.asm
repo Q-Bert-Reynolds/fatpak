@@ -53,16 +53,7 @@ TempOpponentLineup:
   DB NUM_EVIE,      23, CENTER_FIELDER, THROW_RIGHT | BAT_RIGHT
   DB NUM_RAI,       33, PITCHER,        THROW_LEFT  | BAT_RIGHT
 
-; TempUserName: DB "Nolan",0
-; TempRivalName: DB "Calvin",0
 Seed::
-  ; ld hl, TempUserName
-  ; ld de, user_name
-  ; call str_Copy
-
-  ; ld hl, TempRivalName
-  ; ld de, rival_name
-  ; call str_Copy
 
 .userLineup 
 
@@ -145,12 +136,12 @@ Seed::
 
 .money
   ld hl, money
-  ld a, (1234567890 >> 24) & %11111111
+  ld a, (START_MONEY >> 24) & %11111111
   ld [hli], a
-  ld a, (1234567890 >> 16) & %11111111
+  ld a, (START_MONEY >> 16) & %11111111
   ld [hli], a
-  ld a, (1234567890 >> 8) & %11111111
+  ld a, (START_MONEY >> 8) & %11111111
   ld [hli], a
-  ld a,  1234567890 & %11111111
+  ld a,  START_MONEY & %11111111
   ld [hli], a
   ret
