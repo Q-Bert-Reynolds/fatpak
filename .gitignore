@@ -1,6 +1,3 @@
-# all bin files
-bin/*
-
 # files created in /img, /data, and /music
 img/**/*.asm
 img/**/*.tilemap
@@ -14,6 +11,8 @@ music/*.asm
 music/*.bak
 
 # generated GameBoy files
+bin/*
+build/*
 *.gb
 *.gbc
 *.map

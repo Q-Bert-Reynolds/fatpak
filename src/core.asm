@@ -4,7 +4,7 @@ SECTION "Core", ROM0
 ; GetStatusString                 a = status mask, string in name_buffer
 ; CopyAddressStoredAtBCToBC       bc = address of address, returns address stored at bc in bc
 ; SetBank                         a = bank ;TODO: handle more than 255 banks
-; Trampoline                      b = bank, hl = address, can only use de and RAM for args, can't return anything in a
+; Trampoline                      b = bank, hl = address, can only use a, e, and RAM for args, can return in any register
 ; UpdateInput
 ; DrawStateMap
 ; ClearTiles                      a = clear tile, display should be off
@@ -114,17 +114,21 @@ SetBank:: ;a = BANK ;TODO: handle more than 255 banks
   ld [rROMB0], a
   ret
   
-Trampoline:: ;b = bank, hl = address, can only use de and RAM for args, can't return anything in a
+Trampoline:: ;b = bank, hl = address, can use a,e, and RAM for args, can return in any register
+  ld d, a;store arg a
   ld a, [loaded_bank]
   push af;old bank
   ld a, b;new bank
   call SetBank
   ld bc, .bounceBack
   push bc ;put return addres on stack before jumping
+  ld a, d;restore arg a
   jp hl
 .bounceBack
+  ld [_a], a;perhaps using _a is a bad idea
   pop af;old bank
   call SetBank
+  ld a, [_a]
   ret
 
 SerialInterrupt::

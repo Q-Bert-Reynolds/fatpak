@@ -59,7 +59,7 @@ max_x:: DB
 max_y:: DB
 
 ;banking
-temp_bank:: DB;only roledex.asm still uses this, should use stack instead
+temp_bank:: DB;TODO: only roledex.asm still uses this, should use stack instead
 loaded_bank:: DB
 
 ;temp vars

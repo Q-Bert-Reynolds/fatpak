@@ -54,8 +54,6 @@ ENDM
 INCLUDE "src/memory1.asm"
   rev_Check_memory1_asm 1.2
 
-HRAM_START = $FF80
-HRAM_LEFT = $FFFE - HRAM_START
 SETUP_DMA_TRANSFER: MACRO
   ld c, _HRAM % $100
   ld b, .DMATransferEnd - .DMATransfer
@@ -78,11 +76,11 @@ SETUP_DMA_TRANSFER: MACRO
   ret
 .DMATransferEnd
 
-HRAM_START = HRAM_START + (.DMATransferEnd - .DMATransfer)
+HRAM_START = _HRAM + (.DMATransferEnd - .DMATransfer)
 HRAM_LEFT = $FFFE - HRAM_START
-PRINTT "DMA Transfer routine setup.\n"
-PRINTT "{HRAM_LEFT} bytes of HRAM left.\n"
-PRINTT "HRAM variables can start at {HRAM_START}\n"
+PRINTT "\nDMA Transfer routine setup.\n"
+PRINTT "  {HRAM_LEFT} bytes of HRAM left.\n"
+PRINTT "  HRAM variables can start at {HRAM_START}\n\n"
 ENDM
 
 DISPLAY_ON: MACRO

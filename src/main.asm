@@ -1,4 +1,4 @@
-TESTS_ENABLED    EQU 0
+TESTS_ENABLED    EQU 1
 INTRO_ENABLED    EQU 1
 TITLE_ENABLED    EQU 1
 NEW_GAME_ENABLED EQU 1
@@ -10,28 +10,26 @@ INCLUDE "src/beisbol.inc"
 TestTitle: DB "TEST TITLE",0
 TestText: DB "test text",0
 RUN_TESTS: MACRO
+  DISPLAY_OFF
+  call LoadFontTiles
+  ld a, " "
+  call ClearScreen
+  DISPLAY_ON
+  SHOW_WIN
+  
+  ld a, 11
+  TRAMPOLINE _fib
+  ld h, 0
+  ld l, a
+  ld bc, name_buffer
+  call str_Number16
 
-  ; DISPLAY_OFF
-  ; call LoadFontTiles
-  ; ld a, " "
-  ; call ClearScreen
-  ; DISPLAY_ON
+  ld a, DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP
+  ld hl, name_buffer
+  call RevealTextAndWait
 
-  ; SHOW_WIN
 
-  ; ld bc, TestTitle
-  ; ld de, TestText
-  ; ld l, 12
-  ; call ShowTextEntry
 
-  TRAMPOLINE KeyboardDemo
-  ; DISPLAY_ON
-  ; ld a, SIM_BANK
-  ; call SetBank
-  ; TEST_SIM 250, -15, 10
-  ; ld a, WORLD_BANK
-  ; call SetBank
-  ; call TestMap
 ENDM
 
 TEST_SIM: MACRO ;\1 = speed, \2 = deg left/right, \3 = deg up/down
@@ -252,3 +250,5 @@ ENDC
   jp Main ;restart the game
   nop
   ret
+
+INCLUDE "build/test.asm"
