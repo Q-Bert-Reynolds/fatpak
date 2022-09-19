@@ -29,6 +29,9 @@ LoadFontTiles::
   call SetBank
   ret
 
+_RevealTextAndWait:: ;extern void RevealTextAndWait(char* text[]);
+  push de;compiler puts text in de
+  pop hl;we need it in hl
 RevealTextAndWait:: ;hl = text
   ld de, str_buffer
   call str_Copy

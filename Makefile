@@ -31,7 +31,7 @@ endif
 
 $(GEN_ASM): $(C_SOURCES)
 	@mkdir -p $(BUILD_DIR)
-	sdcc $< -msm83 --asm=rgbds --codeseg ROMX --no-optsdcc-in-asm --no-std-crt0 --fsigned-char -S -o $@
+	sdcc $< -msm83 --asm=rgbds -S -o $@
 	
 clean:
 	@rm -rf $(BUILD_DIR)

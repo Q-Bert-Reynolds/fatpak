@@ -7,8 +7,6 @@ PLAY_ENABLED     EQU 1
 
 INCLUDE "src/beisbol.inc"
 
-TestTitle: DB "TEST TITLE",0
-TestText: DB "test text",0
 RUN_TESTS: MACRO
   DISPLAY_OFF
   call LoadFontTiles
@@ -17,19 +15,7 @@ RUN_TESTS: MACRO
   DISPLAY_ON
   SHOW_WIN
   
-  ld a, 11
-  TRAMPOLINE _fib
-  ld h, 0
-  ld l, a
-  ld bc, name_buffer
-  call str_Number16
-
-  ld a, DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP
-  ld hl, name_buffer
-  call RevealTextAndWait
-
-
-
+  TRAMPOLINE _cFunctionTest
 ENDM
 
 TEST_SIM: MACRO ;\1 = speed, \2 = deg left/right, \3 = deg up/down

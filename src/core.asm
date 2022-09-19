@@ -125,10 +125,10 @@ Trampoline:: ;b = bank, hl = address, can use a,e, and RAM for args, can return 
   ld a, d;restore arg a
   jp hl
 .bounceBack
-  ld [_a], a;perhaps using _a is a bad idea
+  ld [_temp], a
   pop af;old bank
   call SetBank
-  ld a, [_a]
+  ld a, [_temp]
   ret
 
 SerialInterrupt::

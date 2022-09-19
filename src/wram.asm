@@ -63,6 +63,7 @@ temp_bank:: DB;TODO: only roledex.asm still uses this, should use stack instead
 loaded_bank:: DB
 
 ;temp vars
+_temp:: DB
 _a:: DB
 _b:: DB
 _c:: DB
@@ -177,4 +178,5 @@ win_buffer:: DS BUFFER_SIZE
 map_sprite_buffer:: DS MAP_SPRITE_BUFFER_SIZE; bank, address, x, y, extra
 cmd_buffer:: DS BUFFER_SIZE/2
 str_buffer:: DS 64
+_name_buffer::
 name_buffer:: DS 16

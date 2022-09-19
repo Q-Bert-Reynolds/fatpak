@@ -220,6 +220,14 @@ str_Replace::
   ld [de], a
   ret
 
+
+_StringNumber::;extern void StringNumber(unsigned long n);
+  ;n is debc, needs to be dehl
+  push bc
+  pop hl
+  ld bc, name_buffer
+  jr str_Number32
+
 ;***************************************************************************
 ;
 ; str_Number - a wrapper around str_Number16 for compatibility with old code
