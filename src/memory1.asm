@@ -33,9 +33,9 @@
 ;
 
 IF !DEF(MEMORY1_ASM)
-MEMORY1_ASM SET 1
+MEMORY1_ASM = 1
 
-rev_Check_memory1_asm: MACRO
+MACRO rev_Check_memory1_asm
   IF \1 > 1.2
     WARN "Version \1 or later of 'memory1.asm' is required."
   ENDC
@@ -45,7 +45,7 @@ INCLUDE "src/hardware.inc"
   rev_Check_hardware_inc 1.5
 
 ; Macro that pauses until VRAM available.
-LCD_WAIT_VRAM: MACRO
+MACRO LCD_WAIT_VRAM
   ldh  a,[rSTAT]  ; <---+
   and  STATF_BUSY ;     |
   jr   nz,@-4     ; ----+

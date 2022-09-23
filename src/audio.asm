@@ -2,12 +2,12 @@ INCLUDE "src/beisbol.inc"
 INCLUDE "src/gbt_player/gbt_player.inc"
 
 IF !DEF(AUDIO_ASM)
-AUDIO_ASM SET 1
+AUDIO_ASM = 1
 
 INCLUDE "src/gbt_player/gbt_player.asm"
 INCLUDE "src/gbt_player/gbt_player_bank1.asm"
 
-PLAY_SONG: MACRO ;\1 load address, \2 loop
+MACRO PLAY_SONG ;\1 load address, \2 loop
   di
   ld a, BANK(\1)
   ld hl, \1
@@ -17,7 +17,7 @@ PLAY_SONG: MACRO ;\1 load address, \2 loop
   ld [gbt_loop_enabled], a
 ENDM
 
-PLAY_SFX: MACRO ;\1 load address
+MACRO PLAY_SFX ;\1 load address
   di
   push hl
   push af

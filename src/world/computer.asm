@@ -186,7 +186,7 @@ AccessPlayerStorageSystem:
   ld hl, WhatText
   ld a, DRAW_FLAGS_PAD_TOP | DRAW_FLAGS_WIN
   call DisplayTextAtPos
-.
+.showFarmList
   ld hl, PlayerFarmSystemMenuText
   ld de, str_buffer
   call str_Copy

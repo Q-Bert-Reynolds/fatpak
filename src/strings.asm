@@ -44,9 +44,9 @@
 
 
 IF !DEF(STRINGS_ASM)
-STRINGS_ASM SET 1
+STRINGS_ASM = 1
 
-rev_Check_strings_asm: MACRO
+MACRO rev_Check_strings_asm
   IF \1 > 1
     WARN "Version \1 or later of 'strings.asm' is required."
   ENDC

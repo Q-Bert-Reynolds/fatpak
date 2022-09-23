@@ -5,7 +5,7 @@ img/**/*.propmap
 img/**/*.tiles
 maps/**/*.asm
 maps/**/*.tilemap
-data/*.asm
+data/**/*.asm
 data/*.inc
 music/*.asm
 music/*.bak

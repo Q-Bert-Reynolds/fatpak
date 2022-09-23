@@ -23,18 +23,18 @@
 ;   BETWEEN                               n8, n8
 ;   ADD_USER_PLAYER_DATA                  PlayerAddress, "nickname", pay24 
 
-TRAMPOLINE: MACRO ;\1 = jump address
+MACRO TRAMPOLINE ;\1 = jump address
   ld b, BANK(\1)
   ld hl, \1
   call Trampoline
 ENDM
 
-PUSH_VAR: MACRO ;\1 = WRAM address
+MACRO PUSH_VAR ;\1 = WRAM address
   ld a, [\1]
   push af
 ENDM
 
-POP_VAR: MACRO ;\1 = WRAM address
+MACRO POP_VAR ;\1 = WRAM address
   pop af
   ld [\1], a
 ENDM
@@ -42,7 +42,7 @@ ENDM
 ;Debug messages can contain expressions between %%. 
 ;When enabled in the settings, whenever a debug message is encountered in the code, it will be logged to the debug messages window or log file.
 ;Debug messages also support ternary operators in the form: "%boolean expression%text if true;text if false;".
-DEBUG_LOG_STRING: MACRO; \1 = string
+MACRO DEBUG_LOG_STRING; \1 = string
   ld  d, d
   jr .end\@
   dw $6464
@@ -51,7 +51,7 @@ DEBUG_LOG_STRING: MACRO; \1 = string
 .end\@:
 ENDM
 
-DEBUG_LOG_ADDRESS: MACRO; \1 = address, \2 = bank
+MACRO DEBUG_LOG_ADDRESS; \1 = address, \2 = bank
   ld  d, d
   jr .end\@
   dw $6464
@@ -61,11 +61,11 @@ DEBUG_LOG_ADDRESS: MACRO; \1 = address, \2 = bank
 .end\@:
 ENDM
 
-DEBUG_LOG_LABEL: MACRO; \1 = label
+MACRO DEBUG_LOG_LABEL; \1 = label
   DEBUG_LOG_ADDRESS \1, BANK(\1)
 ENDM
 
-SET_LCD_INTERRUPT: MACRO ;\1 = interrupt address
+MACRO SET_LCD_INTERRUPT ;\1 = interrupt address
   di
 
   ld b, ~IEF_LCDC
@@ -94,7 +94,7 @@ SET_LCD_INTERRUPT: MACRO ;\1 = interrupt address
   ei
 ENDM
 
-DISABLE_LCD_INTERRUPT: MACRO
+MACRO DISABLE_LCD_INTERRUPT
   di
     
   ld b, ~IEF_LCDC
@@ -115,7 +115,7 @@ DISABLE_LCD_INTERRUPT: MACRO
   ei
 ENDM
 
-HIDE_ALL_SPRITES: MACRO
+MACRO HIDE_ALL_SPRITES
   xor a
   ld b, 40
   ld hl, oam_buffer
@@ -128,12 +128,12 @@ HIDE_ALL_SPRITES: MACRO
   jr nz, .loop\@
 ENDM
 
-CLEAR_SCREEN: MACRO ;\1 = tile
+MACRO CLEAR_SCREEN ;\1 = tile
   ld a, \1;tile
   call ClearScreen
 ENDM
 
-CLEAR_BKG_AREA: MACRO ;x, y, w, h, tile
+MACRO CLEAR_BKG_AREA ;x, y, w, h, tile
   ld a, \5;tile
   ld bc, \3 * \4;width * height
   ld hl, tile_buffer
@@ -146,7 +146,7 @@ CLEAR_BKG_AREA: MACRO ;x, y, w, h, tile
   call gbdk_SetBkgTiles
 ENDM
 
-CLEAR_WIN_AREA: MACRO ;x, y, w, h, tile
+MACRO CLEAR_WIN_AREA ;x, y, w, h, tile
   ld a, \5;tile
   ld bc, \3 * \4;width * height
   ld hl, tile_buffer
@@ -159,12 +159,12 @@ CLEAR_WIN_AREA: MACRO ;x, y, w, h, tile
   call gbdk_SetWinTiles
 ENDM
 
-UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS: MACRO ; \1=address, \2=buttons
+MACRO UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS ; \1=address, \2=buttons
   call UpdateInput
   JUMP_TO_IF_BUTTONS \1, \2
 ENDM
 
-JUMP_TO_IF_BUTTONS: MACRO ; \1=address, \2=buttons
+MACRO JUMP_TO_IF_BUTTONS ; \1=address, \2=buttons
   ld a, [last_button_state]
   and a
   jr nz, .skip\@
@@ -174,7 +174,7 @@ JUMP_TO_IF_BUTTONS: MACRO ; \1=address, \2=buttons
 .skip\@
 ENDM
 
-EXITABLE_DELAY: MACRO ; \1=address, \2=buttons, \3=frames
+MACRO EXITABLE_DELAY ; \1=address, \2=buttons, \3=frames
   ld a, \3
 .loop\@
     push af
@@ -190,7 +190,7 @@ EXITABLE_DELAY: MACRO ; \1=address, \2=buttons, \3=frames
 .exit\@
 ENDM
 
-WAITPAD_UP: MACRO
+MACRO WAITPAD_UP
 .loop\@
   call gbdk_WaitVBL
   call UpdateInput
@@ -199,7 +199,7 @@ WAITPAD_UP: MACRO
   jr nz, .loop\@
 ENDM
 
-WAITPAD_UP_OR_FRAMES: MACRO ; \1=frames
+MACRO WAITPAD_UP_OR_FRAMES ; \1=frames
   ld a, \1
 .loop\@
     push af;frames
@@ -216,7 +216,7 @@ WAITPAD_UP_OR_FRAMES: MACRO ; \1=frames
   pop af;frames
 ENDM
 
-SET_DEFAULT_PALETTE: MACRO
+MACRO SET_DEFAULT_PALETTE
   ld hl, rBGP
   ld [hl], DMG_PAL_BDLW
   ld hl, rOBP0
@@ -225,19 +225,19 @@ SET_DEFAULT_PALETTE: MACRO
   ld [hl], DMG_PAL_DLWW
 ENDM
 
-RGB: MACRO ;\1 = red, \2 = green, \3 = blue
+MACRO RGB ;\1 = red, \2 = green, \3 = blue
   DW (\3 << 10 | \2 << 5 | \1)
 ENDM
 
-D24: MACRO ;\1 = 24 bit number 
+MACRO D24 ;\1 = 24 bit number 
   DB (\1 & $FF0000) >> 16
   DB (\1 & $00FF00) >> 8
   DB (\1 & $0000FF)
 ENDM
 
-BETWEEN: MACRO; if \1 <= a < \2
+MACRO BETWEEN; if \1 <= a < \2
 IF \1 > \2
-  PRINTT "ERROR: LOWER BOUND CAN'T BE HIGHER THAN UPPER BOUND."
+  PRINT "ERROR: LOWER BOUND CAN'T BE HIGHER THAN UPPER BOUND."
 ELIF \1 < 0 && \2 >= 0
   cp 128
   jr c, .positive\@
@@ -264,7 +264,7 @@ ENDC
 .end\@
 ENDM
 
-ADD_USER_PLAYER_DATA: MACRO ;\1 = player address, \2 = nickname, \3 = pay 
+MACRO ADD_USER_PLAYER_DATA ;\1 = player address, \2 = nickname, \3 = pay 
   jr .copyNickname\@
 .nickname\@ 
   DB \2

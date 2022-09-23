@@ -31,15 +31,15 @@
 ;   math_Sin255                  a = sin(a) * 255 where a in degrees <= 180
 
 IF !DEF(MATH_ASM)
-MATH_ASM SET 1
+MATH_ASM = 1
 
-rev_Check_math_asm: MACRO
+MACRO rev_Check_math_asm
   IF \1 > 1
     WARN "Version \1 or later of 'math.asm' is required."
   ENDC
 ENDM
 
-ADC_HL: MACRO;\1 = r1, \2 = r2
+MACRO ADC_HL;\1 = r1, \2 = r2
   ld a, l
   jr c, .carry\@
   add a, \2
@@ -53,7 +53,7 @@ ADC_HL: MACRO;\1 = r1, \2 = r2
   ld h, a
 ENDM
 
-SBC_HL: MACRO;\1 = r1, \2 = r2
+MACRO SBC_HL;\1 = r1, \2 = r2
   ld a, l
   jr c, .borrow\@
   sub a, \2
@@ -67,7 +67,7 @@ SBC_HL: MACRO;\1 = r1, \2 = r2
   ld h, a
 ENDM
 
-ADD_HL_DE_ADC_REG: MACRO ;\1 = register
+MACRO ADD_HL_DE_ADC_REG ;\1 = register
   jr nc, .skip\@
   add hl,de           ; Add multiplicand to product.
   adc a,\1            ; (Product in AHL)

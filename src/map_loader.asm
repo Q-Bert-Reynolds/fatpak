@@ -1,5 +1,5 @@
 IF !DEF(MAP_LOADER)
-MAP_LOADER SET 1
+MAP_LOADER = 1
 
 INCLUDE "src/beisbol.inc"
 

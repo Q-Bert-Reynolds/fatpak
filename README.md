@@ -20,7 +20,6 @@ You've finally been granted your Béisbol coach's license. Now, it's time to hea
     gcc -o bin/mod2gbt mod2gbt.c
     python3 mod2gbt.py
     python3 img2rgbds.py
-    python3 tmx2rgbds.py
     python3 roledex.py
     python3 moves.py
     python3 items.py

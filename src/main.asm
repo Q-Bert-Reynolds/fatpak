@@ -7,7 +7,7 @@ PLAY_ENABLED     EQU 1
 
 INCLUDE "src/beisbol.inc"
 
-RUN_TESTS: MACRO
+MACRO RUN_TESTS
   DISPLAY_OFF
   call LoadFontTiles
   ld a, " "
@@ -18,14 +18,14 @@ RUN_TESTS: MACRO
   TRAMPOLINE _cFunctionTest
 ENDM
 
-TEST_SIM: MACRO ;\1 = speed, \2 = deg left/right, \3 = deg up/down
+MACRO TEST_SIM ;\1 = speed, \2 = deg left/right, \3 = deg up/down
   ld a, \1
   ld b, \2
   ld c, \3
   call RunSimulation;a = exit velocity b = spray angle c = launch angle
 ENDM
 
-TEST_ANNOUNCER: MACRO ;\1 = angle left or right
+MACRO TEST_ANNOUNCER ;\1 = angle left or right
   ld hl, str_buffer
   xor a
   ld [hl], a

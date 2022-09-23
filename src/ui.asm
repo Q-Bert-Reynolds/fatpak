@@ -535,7 +535,7 @@ AnimationOptionString: DB "AT-BAT ANIMATIONS "
 
 CoachingOptionString:  DB "COACHING STYLE    "
                        DB "                  "
-                       DB " SHIFT    SET     "
+                       DB " SHIFT    =     "
 
 ; Text Entry
 LowerCase:             DB "abcdefghijklmnopqrstuvwxyz *():;[]#%-?!*+/.,↵", 0
@@ -1014,7 +1014,7 @@ UIShowOptions::
   ; set_bkg_tiles(1,11,18,3,
   ;   "COACHING STYLE    "
   ;   "                  "
-  ;   " SHIFT    SET     "
+  ;   " SHIFT    =     "
   ld d, 1
   ld e, 11
   ld h, 18

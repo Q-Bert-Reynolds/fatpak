@@ -1,4 +1,4 @@
-PLAYER_DATA: MACRO;\1 = team, \2 = order
+MACRO PLAYER_DATA;\1 = team, \2 = order
 \1Player\2:
 .number   DB
 .age      DB
@@ -15,7 +15,7 @@ PLAYER_DATA: MACRO;\1 = team, \2 = order
 .throw    DW
 ENDM
 
-USER_PLAYER_DATA: MACRO
+MACRO USER_PLAYER_DATA
 .nickname          DS NICKNAME_LENGTH
 .xp                DS 3
 .pay               DS 3 ;paid each game
@@ -46,14 +46,14 @@ USER_PLAYER_DATA: MACRO
 .hit_batters       DW
 ENDM
 
-OPPONENT_PLAYER_DATA: MACRO ;only needs data for BA and ERA
+MACRO OPPONENT_PLAYER_DATA ;only needs data for BA and ERA
 .hits          DW
 .at_bats       DW
 .runs_allowed  DW
 .outs_recorded DW
 ENDM
 
-SIMULATION_PLAYER_DATA: MACRO ;\1 = fielder/runner, \2 = sprite index
+MACRO SIMULATION_PLAYER_DATA ;\1 = fielder/runner, \2 = sprite index
 Simulation\1\2:
 .player     DB ;upper nibble = team, lower nibble = lineup order
 .anim_state DB ;upper nibble = running/fielding/throwing, lower nibble = frame

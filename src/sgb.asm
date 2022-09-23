@@ -59,50 +59,50 @@ INCLUDE "src/memory1.asm"
 ;  $17   MASK_EN   Game Boy Window Mask
 ;  $18   OBJ_TRN   Super NES OBJ Mode
 
-SGB_PACKET: MACRO ;\1 = code, \2 = num packets
+MACRO SGB_PACKET ;\1 = code, \2 = num packets
   DB (\1 << 3) + \2
 ENDM
 
-ATTR_BLK: MACRO ;\1 = num packets
+MACRO ATTR_BLK ;\1 = num packets
   SGB_PACKET $4, ((\1 * 6)/16) + 1
 	DB \1
 ENDM
 
-ATTR_BLK_PACKET: MACRO ;\1 = control code, \2\3\4 = palettes, \5\6 = xy, \7\8 = wh
+MACRO ATTR_BLK_PACKET ;\1 = control code, \2\3\4 = palettes, \5\6 = xy, \7\8 = wh
 	DB \1 ;bit 2 = outside block, bit 1 = on border, bit 0 = inisde block
 	DB (\2 << 4) + (\3 << 2) + \4 ;\2 = outside, \3 = border, \4 = inside
 	DB \5, \6, \5+\7-1, \6+\8-1
 ENDM
 
-MLT_REQ: MACRO ;\1 = player count
+MACRO MLT_REQ ;\1 = player count
   SGB_PACKET $11, 1
   DB \1 - 1
   DS 14
 ENDM
 
-CHR_TRN: MACRO ;\1 = tile table (0=$00-$7F, 1=$80-$FF), \2 = tile type (0=BG, 1=OBJ)
+MACRO CHR_TRN ;\1 = tile table (0=$00-$7F, 1=$80-$FF), \2 = tile type (0=BG, 1=OBJ)
   SGB_PACKET $13, 1
   DB \1 + (\2 << 1)
   DS 14
 ENDM
 
-PCT_TRN: MACRO
+MACRO PCT_TRN
   SGB_PACKET $14, 1
   DS 15
 ENDM
 
-PAL_SET: MACRO ;\1 = Pal0, \2 = Pal1, \3 = Pal2, \4 = Pal3
+MACRO PAL_SET ;\1 = Pal0, \2 = Pal1, \3 = Pal2, \4 = Pal3
   SGB_PACKET $0A, 1
   DW \1, \2, \3, \4
   DS 7
 ENDM
 
-PAL_TRN: MACRO
+MACRO PAL_TRN
   SGB_PACKET $0B, 1
   DS 15
 ENDM
 
-MASK_EN: MACRO ;\1 = screen mask (0=cancel,1=freeze)
+MACRO MASK_EN ;\1 = screen mask (0=cancel,1=freeze)
   SGB_PACKET $17, 1
   DB \1
   DS 14
@@ -113,7 +113,7 @@ ENDM
 ; Bit 2-3 - Sound Effect A Volume (0..2=High..Low, 3=Mute on)
 ; Bit 4-5 - Sound Effect B Pitch (0..3=Low..High)
 ; Bit 6-7 - Sound Effect B Volume (0..2=High..Low, 3=Not used)
-SGB_SOUND: MACRO
+MACRO SGB_SOUND
   SGB_PACKET $08, 1
   DB \1, \2, \3, \4
   4 Music Score Code (must be zero if not used)

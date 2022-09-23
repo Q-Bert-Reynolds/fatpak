@@ -9,7 +9,7 @@
 ; https://source.android.com/devices/input/keyboard-devices.html
 
 IF !DEF(USB_HID_KEYS)
-USB_HID_KEYS SET 1
+USB_HID_KEYS = 1
 ;
 ;Modifier masks - used for the first byte in the HID report.
 ;NOTE: The second byte in the report is reserved, 0x00

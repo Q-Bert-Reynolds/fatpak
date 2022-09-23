@@ -43,9 +43,9 @@
 ;
 
 IF !DEF(GBDK_ASM)
-GBDK_ASM  SET  1
+GBDK_ASM  =  1
 
-rev_Check_GBDK_ASM: MACRO
+MACRO rev_Check_GBDK_ASM
   IF \1 > 1
     WARN "Version \1 or later of 'gbdk.asm' is required."
   ENDC
@@ -54,7 +54,7 @@ ENDM
 INCLUDE "src/memory1.asm"
   rev_Check_memory1_asm 1.2
 
-SETUP_DMA_TRANSFER: MACRO
+MACRO SETUP_DMA_TRANSFER
   ld c, _HRAM % $100
   ld b, .DMATransferEnd - .DMATransfer
   ld hl, .DMATransfer
@@ -78,93 +78,93 @@ SETUP_DMA_TRANSFER: MACRO
 
 HRAM_START = _HRAM + (.DMATransferEnd - .DMATransfer)
 HRAM_LEFT = $FFFE - HRAM_START
-PRINTT "\nDMA Transfer routine setup.\n"
-PRINTT "  {HRAM_LEFT} bytes of HRAM left.\n"
-PRINTT "  HRAM variables can start at {HRAM_START}\n\n"
+PRINT "\nDMA Transfer routine setup.\n"
+PRINT "  {HRAM_LEFT} bytes of HRAM left.\n"
+PRINT "  HRAM variables can start at {HRAM_START}\n\n"
 ENDM
 
-DISPLAY_ON: MACRO
+MACRO DISPLAY_ON
   ld a, [rLCDC]
   or LCDCF_ON
   ld [rLCDC], a
 ENDM
 
-DISPLAY_OFF: MACRO
+MACRO DISPLAY_OFF
   call gbdk_DisplayOff
 ENDM
 
-SHOW_BKG: MACRO
+MACRO SHOW_BKG
   ld a, [rLCDC]
   or LCDCF_BGON
   ld [rLCDC], a
 ENDM
 
-HIDE_BKG: MACRO
+MACRO HIDE_BKG
   ld a, [rLCDC]
   and ~LCDCF_BGON
   ld [rLCDC], a
 ENDM
 
-SHOW_WIN: MACRO
+MACRO SHOW_WIN
   ld a, [rLCDC]
   or LCDCF_WINON
   ld [rLCDC], a
 ENDM
 
-HIDE_WIN: MACRO
+MACRO HIDE_WIN
   ld a, [rLCDC]
   and ~LCDCF_WINON
   ld [rLCDC], a
 ENDM
 
-SHOW_SPRITES: MACRO
+MACRO SHOW_SPRITES
   ld a, [rLCDC]
   or LCDCF_OBJON
   ld [rLCDC], a
 ENDM
 
-HIDE_SPRITES: MACRO
+MACRO HIDE_SPRITES
   ld a, [rLCDC]
   and ~LCDCF_OBJON
   ld [rLCDC], a
 ENDM
 
-SPRITES_8x16: MACRO
+MACRO SPRITES_8x16
   ld a, [rLCDC]
   or LCDCF_OBJ16
   ld [rLCDC], a
 ENDM
 
-SPRITES_8x8: MACRO
+MACRO SPRITES_8x8
   ld a, [rLCDC]
   and ~LCDCF_OBJ16
   ld [rLCDC], a
 ENDM
 
 ; MBC5
-SWITCH_ROM_MBC5: MACRO ;word \1
+MACRO SWITCH_ROM_MBC5 ;word \1
   ld hl, rROMB0
   ld [hl], \1 & $FF
   ld hl, rROMB1
   ld [hl], \1 >> 8
 ENDM
 
-SWITCH_RAM_MBC5: MACRO ;byte \1
+MACRO SWITCH_RAM_MBC5 ;byte \1
   ld hl, rRAMB
   ld [hl], \1
 ENDM
 
-ENABLE_RAM_MBC5: MACRO
+MACRO ENABLE_RAM_MBC5
   ld hl, rRAMG
   ld [hl], $0A
 ENDM
 
-DISABLE_RAM_MBC5: MACRO
+MACRO DISABLE_RAM_MBC5
   xor a
   ld [rRAMG], a
 ENDM
 
-CGB_COMPATIBILITY: MACRO
+MACRO CGB_COMPATIBILITY
   ld a,$80
   ldh [rBCPS], a ; set default bkg palette
   ld a,$ff  ; white
@@ -212,7 +212,7 @@ WAIT_VRAM    EQU 1
 ;   hl - 32x32 tile table (usually _SCRN0 or _SCRN1)
 ;   de - x pos, y pos
 ;   bc - source
-COPY_TILE_BLOCK: MACRO; \1 = operation, \2 = wait VRAM?
+MACRO COPY_TILE_BLOCK; \1 = operation, \2 = wait VRAM?
   push bc ; store source
   xor a
   or e

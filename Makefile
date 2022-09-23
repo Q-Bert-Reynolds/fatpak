@@ -12,7 +12,7 @@ BIN_DIR   = ./bin
 BUILD_DIR = ./build
 
 C_SOURCES = $(wildcard $(SRC_DIR)/*.c)
-GEN_ASM   = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.asm,$(BUILD_DIR)/)
+GEN_ASM   = $(patsubst %.c,$(BUILD_DIR)/%.asm,$(BUILD_DIR))
 
 all: $(GEN_ASM)
 	@mkdir -p $(BUILD_DIR)
@@ -21,7 +21,7 @@ all: $(GEN_ASM)
 	rgbasm -D _$(VERSION) -D LANGUAGE=\"$(LANGUAGE)\" -o $(BUILD_DIR)/main.o $(SRC_DIR)/main.asm
 	rgblink -m $(BUILD_DIR)/main.map -n $(SYM_FILE) -o $(ROM_FILE) $(BUILD_DIR)/main.o
 	rgbfix -jvcs -k 01 -l 0x33 -m 0x1B -p 255 -t $(GAME_NAME) $(ROM_FILE)
- 
+
 ifeq ($(OS), Windows_NT)
 	taskkill -im bgb.exe -f -fi "STATUS eq RUNNING"
 	start "$(ROM_FILE)"
@@ -31,7 +31,8 @@ endif
 
 $(GEN_ASM): $(C_SOURCES)
 	@mkdir -p $(BUILD_DIR)
-	sdcc $< -msm83 --asm=rgbds -S -o $@
-	
+	echo "$< $@"
+	# sdcc "$<" -msm83 --asm=rgbds -S -o "$@"
+
 clean:
 	@rm -rf $(BUILD_DIR)

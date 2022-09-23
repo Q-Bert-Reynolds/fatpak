@@ -1,4 +1,4 @@
-SCALE_2X_CALC_A: MACRO
+MACRO SCALE_2X_CALC_A
   ld a, [_b]
   swap a
   and %00001111
@@ -9,7 +9,7 @@ SCALE_2X_CALC_A: MACRO
   ld a, [hl]
 ENDM
 
-SCALE_2X_CALC_B: MACRO
+MACRO SCALE_2X_CALC_B
   ld a, [_b]
   and %00001111
   ld b, 0
@@ -20,7 +20,7 @@ SCALE_2X_CALC_B: MACRO
 ENDM
 
 ;sets tiles (j*2 + offset) and (j*2 + offset + 2)
-SCALE_2X_SET_TILE: MACRO ;\1 = offset, a = data from calc
+MACRO SCALE_2X_SET_TILE ;\1 = offset, a = data from calc
   push af ;calc
 
   ld hl, tile_buffer

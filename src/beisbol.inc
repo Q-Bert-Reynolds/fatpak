@@ -1,5 +1,5 @@
 IF !DEF(BEISBOL_INC)
-BEISBOL_INC SET 1
+BEISBOL_INC = 1
 
 INCLUDE "src/hardware.inc"
 INCLUDE "src/memory1.asm"
