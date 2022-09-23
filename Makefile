@@ -12,7 +12,7 @@ BIN_DIR   = ./bin
 BUILD_DIR = ./build
 
 C_SOURCES = $(wildcard $(SRC_DIR)/*.c)
-GEN_ASM   = $(patsubst %.c,$(BUILD_DIR)/%.asm,$(BUILD_DIR))
+GEN_ASM   = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.asm,$(C_SOURCES))
 
 all: $(GEN_ASM)
 	@mkdir -p $(BUILD_DIR)
@@ -31,8 +31,7 @@ endif
 
 $(GEN_ASM): $(C_SOURCES)
 	@mkdir -p $(BUILD_DIR)
-	echo "$< $@"
-	# sdcc "$<" -msm83 --asm=rgbds -S -o "$@"
+	sdcc "$<" -msm83 --asm=rgbds -S -o "$@"
 
 clean:
 	@rm -rf $(BUILD_DIR)
