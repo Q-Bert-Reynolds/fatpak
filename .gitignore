@@ -6,7 +6,7 @@ img/**/*.tiles
 maps/**/*.asm
 maps/**/*.tilemap
 data/**/*.asm
-data/*.inc
+data/**.inc
 music/*.asm
 music/*.bak
 

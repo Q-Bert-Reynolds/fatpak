@@ -236,5 +236,3 @@ ENDC
   jp Main ;restart the game
   nop
   ret
-
-INCLUDE "build/test.asm"
