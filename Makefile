@@ -1,5 +1,7 @@
 VERSION   = DEMO#DEMO AWAY HOME
-LANGUAGE  = en#es
+LANGUAGE  = EN#ES
+DEFINES   = -D _$(VERSION) -D LANG_$(LANGUAGE) 
+
 GAME_NAME = BEISBOL_$(VERSION)
 ROM_NAME  = $(GAME_NAME).gbc
 ROM_FILE  = $(BIN_DIR)/$(ROM_NAME)
@@ -11,16 +13,14 @@ MUSIC_DIR = ./music
 BIN_DIR   = ./bin
 BUILD_DIR = ./build
 
-C_SOURCES = $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/**/*.c) 
+C_SOURCES = $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/**/*.c) $(wildcard $(DATA_DIR)/**/*.c) 
 GEN_ASM   = $(patsubst %.c, $(BUILD_DIR)/%.asm, $(notdir $(C_SOURCES)))
 
 all: $(GEN_ASM)
 	@mkdir -p $(BUILD_DIR)
 	@mkdir -p $(BIN_DIR)
-
-	echo $(C_SOURCES)
 	
-	rgbasm -D _$(VERSION) -D LANGUAGE=\"$(LANGUAGE)\" -o $(BUILD_DIR)/main.o $(SRC_DIR)/main.asm
+	rgbasm $(DEFINES) -o $(BUILD_DIR)/main.o $(SRC_DIR)/main.asm
 	rgblink -m $(BUILD_DIR)/main.map -n $(SYM_FILE) -o $(ROM_FILE) $(BUILD_DIR)/main.o
 	rgbfix -jvcs -k 01 -l 0x33 -m 0x1B -p 255 -t $(GAME_NAME) $(ROM_FILE)
 
@@ -33,7 +33,7 @@ endif
 
 $(GEN_ASM): $(C_SOURCES)
 	@mkdir -p $(BUILD_DIR)
-	sdcc "$<" -msm83 --asm=rgbds -S -o "$@"
+	sdcc "$<" -msm83 --asm=rgbds $(DEFINES) -S -o "$@"
 
 clean:
 	@rm -rf $(BUILD_DIR)
