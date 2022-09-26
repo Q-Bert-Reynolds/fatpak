@@ -38,8 +38,6 @@ def create_strings_file(dict_reader, name):
       if label_parts[0] != main_labels[i]:
         is_first = True
         if main_labels[i] != "":
-          # if is_array:
-          #   segment += '"'
           segment += '";\n'
         if comment:
           segment += "\n//" + comment + "\n"
