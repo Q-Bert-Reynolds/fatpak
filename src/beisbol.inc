@@ -44,6 +44,5 @@ INCLUDE "src/wram.asm"
 INCLUDE "src/sram.asm"
 
 ;TODO: makefile should create/update a file that includes all assemblies generated from C sources 
-INCLUDE "build/test.asm"
 
 ENDC ; BEISBOL_INC

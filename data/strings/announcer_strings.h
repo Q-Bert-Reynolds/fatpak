@@ -115,8 +115,8 @@ const char StrikeOutSwingingText[] =      "%s strikes\x80out swinging!";
 //no swing
 const char BallText[] =                   "Ball %s.";
 const char WalkText[] =                   "%s on base\x80with a walk.";
-const char PassedBallText[] =             "Wild pitch!";
-const char WildPitchText[] =              "Passed ball!";
+const char PassedBallText[] =             "Passed ball!";
+const char WildPitchText[] =              "Wild pitch!";
 const char HitByPitchText[] =             "That hit 'em, so\x80%s is on <1B>.";
 const char BenchesClearText[] =           "And the benches clear.";
 
@@ -172,9 +172,9 @@ const char AndThatsTheBallGameText[] =    "And that's the\x80ball game.";
 //positions ordered by position id
 const char PositionTexts[] =              "lanzador\0"
                                           "receptor\0"
-                                          "primera base\0"
-                                          "segunda base\0"
-                                          "tercera base\0"
+                                          "initialista\0"
+                                          "intermedista\0"
+                                          "antesalista\0"
                                           "campocorto\0"
                                           "jardinero izquierdo\0"
                                           "jardinero central\0"
@@ -198,7 +198,7 @@ const char InningTexts[] =                "1st\0"
 const char BaseTexts[] =                  "primero\0"
                                           "segundo\0"
                                           "tercera\0"
-                                          "plato casero";
+                                          "el home";
 
 //beginning of frame
 const char TakesTheMoundText[] =          "%s en el\x80montículo";
@@ -243,7 +243,7 @@ const char HitPopUpText[] =               "Aparecido";
 const char HitBuntText[] =                "Buntado";
 
 //infield location by angle
-const char InfieldLocationTexts[] =       "abajo\x80the <3B> línea\0"
+const char InfieldLocationTexts[] =       "abajo\x80el<3B> línea\0"
                                           "nto tercero.\0"
                                           "Nin el hoyo <SS> -<3B>.\0"
                                           "nto corto.\0"
@@ -251,7 +251,7 @@ const char InfieldLocationTexts[] =       "abajo\x80the <3B> línea\0"
                                           "nto segundo.\0"
                                           "Nin el hoyo  <1B>-<2B>.\0"
                                           "nto primero.\0"
-                                          "abajo\x80the <1B> línea";
+                                          "abajo\x80el <1B> línea";
 
 //append to bunts and popups, replace %s with position
 const char ToThePositionText[] =          "al\x80%s.";
@@ -282,10 +282,10 @@ const char StrikeOutLookingText[] =       "%s huelga\x80out mirando!";
 const char StrikeOutSwingingText[] =      "%s huelga\x80out balanceándose!";
 
 //no swing
-const char BallText[] =                   "Pelotas.";
+const char BallText[] =                   "Bola %s.";
 const char WalkText[] =                   "%s en la base\x80 con una caminata.";
-const char PassedBallText[] =             "¡Partido salvaje!";
-const char WildPitchText[] =              "¡Pasó la pelota!";
+const char PassedBallText[] =             "¡Pasból!";
+const char WildPitchText[] =              "¡Lanzamiento\x80salvaje!";
 const char HitByPitchText[] =             "Eso lo golpeó, por lo que\x80%s está en <1B>.";
 const char BenchesClearText[] =           "Y los bancos despejados.";
 
@@ -295,8 +295,8 @@ const char RunnersOnBaseTexts[] =         "Nadie en la base.\0"
                                           "Corredor en segundo.\0"
                                           "Corredores en el primer segundo.\0"
                                           "Corredor en tercero.\0"
-                                          "Corredores en el primer\x80and tercero.\0"
-                                          "Corredores en el segundo\x80and tercero.\0"
+                                          "Corredores en el primer\x80y tercero.\0"
+                                          "Corredores en el segundo\x80y tercero.\0"
                                           "Bases cargadas.";
 
 //tagging up
@@ -317,10 +317,10 @@ const char HitFoulBallText[] =            "¡Bola de falta!";
 const char InFoulTerritoryText[] =        "en el territorio de\x80foul.";
 
 //hit
-const char HitBaseHitText[] =             "¡Base Hit!";
+const char HitBaseHitText[] =             "¡Indiscutible!";
 const char HitDoubleText[] =              "¡Doble!";
 const char HitTripleText[] =              "¡Triple!";
-const char HitHomeRunText[] =             "¡CARRERA!";
+const char HitHomeRunText[] =             "¡Jonrón!";
 const char HitGrandSlamText[] =           "GRAND SLAM!";
 const char CriticalHitText[] =            "¡Impacto crítico!";
 
@@ -330,7 +330,7 @@ const char TwoPlayersScoreText[] =        " y puntaje\x80%s.";
 const char BasesClearedScoreText[] =      "Y eso borra las bases.";
 
 //end of frame
-const char BottomOfTheText[] =            "Inferior de\x80the %s.";
+const char BottomOfTheText[] =            "Inferior de\x80t %s.";
 const char TopOfTheText[] =               "Superior de\x80the %s.";
 
 //end of game

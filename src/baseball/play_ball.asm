@@ -3,8 +3,10 @@ INCLUDE "src/baseball/intro.asm"
 INCLUDE "src/baseball/announcer.asm"
 INCLUDE "src/baseball/utils.asm"
 
-SECTION "Play Ball SGB", ROMX, BANK[SGB_BANK+1]
+;include compiled assemblies last
+INCLUDE "src/baseball/_announcer.asm"
 
+SECTION "Play Ball SGB", ROMX, BANK[SGB_BANK+1]
 INCLUDE "img/play/play_ball_sgb_border.asm"
 
 SECTION "Play Ball", ROMX, BANK[PLAY_BALL_BANK]
@@ -1133,6 +1135,9 @@ StartGame::
 
   call ShowPlayBallIntro
   call SetupGameUI
+
+  TRAMPOLINE _announceSomething
+
   TRAMPOLINE AnnounceBeginningOfFrame
 
   xor a

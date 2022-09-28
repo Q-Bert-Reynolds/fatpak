@@ -32,7 +32,7 @@ endif
 
 $(C_SOURCES): 
 	@mkdir -p $(BUILD_DIR)
-	sdcc $@ -msm83 --asm=rgbds $(DEFINES) -S -o $(patsubst %.c, $(BUILD_DIR)/%.asm, $(notdir $@))
+	sdcc $@ -msm83 --asm=rgbds $(DEFINES) -S -o $(patsubst %.c, $(dir $@)_%.asm, $(notdir $@))
 
 clean:
 	@rm -rf $(BUILD_DIR)

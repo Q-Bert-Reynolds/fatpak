@@ -2,12 +2,14 @@
 ; File Created by SDCC : free open source ISO C Compiler 
 ; Version 4.2.8 #13684 (MINGW64)
 ;--------------------------------------------------------
-	; MODULE announcer_strings
+	; MODULE announcer
 	; Generated using the rgbds tokens.
 
 ;--------------------------------------------------------
 ; Public variables in this module
 ;--------------------------------------------------------
+	EXPORT _announceSomething
+	EXPORT _RevealTextAndWait
 	EXPORT _AndThatsTheBallGameText
 	EXPORT _TopOfTheText
 	EXPORT _BottomOfTheText
@@ -80,7 +82,7 @@
 ;--------------------------------------------------------
 ; ram data
 ;--------------------------------------------------------
-	SECTION FRAGMENT "data/strings/announcer_strings.c_DATA",WRAMX
+	SECTION FRAGMENT "src/baseball/announcer.c_DATA",WRAMX
 ;--------------------------------------------------------
 ; ram data
 ;--------------------------------------------------------
@@ -99,23 +101,34 @@
 ;--------------------------------------------------------
 ; Home
 ;--------------------------------------------------------
-	SECTION FRAGMENT "data/strings/announcer_strings.c_HOME",ROM0
-	SECTION FRAGMENT "data/strings/announcer_strings.c_HOME",ROM0
+	SECTION FRAGMENT "src/baseball/announcer.c_HOME",ROM0
+	SECTION FRAGMENT "src/baseball/announcer.c_HOME",ROM0
 ;--------------------------------------------------------
 ; code
 ;--------------------------------------------------------
-	SECTION FRAGMENT "data/strings/announcer_strings.c_CODE",ROMX
-	SECTION FRAGMENT "data/strings/announcer_strings.c_CODE",ROMX
+	SECTION FRAGMENT "src/baseball/announcer.c_CODE",ROMX
+;src/baseball/announcer.c:6: void announceSomething() {
+;	---------------------------------
+; Function announceSomething
+; ---------------------------------
+_announceSomething::
+;src/baseball/announcer.c:7: RevealTextAndWait(1, BallText);
+	ld	de, _BallText
+	ld	a, $01
+	jp	_RevealTextAndWait
+.l00101:
+;src/baseball/announcer.c:8: }
+	ret
 _PositionTexts:
 	DB "lanzador"
 	DB $00
 	DB "receptor"
 	DB $00
-	DB "primera base"
+	DB "initialista"
 	DB $00
-	DB "segunda base"
+	DB "intermedista"
 	DB $00
-	DB "tercera base"
+	DB "antesalista"
 	DB $00
 	DB "campocorto"
 	DB $00
@@ -157,7 +170,7 @@ _BaseTexts:
 	DB $00
 	DB "tercera"
 	DB $00
-	DB "plato casero"
+	DB "el home"
 	DB $00
 _TakesTheMoundText:
 	DB "%s en el"
@@ -286,8 +299,8 @@ _HitBuntText:
 	DB $00
 _InfieldLocationTexts:
 	DB "abajo"
-	DB $80
-	DB "the <3B> l"
+	DB $0E
+	DB "l<3B> l"
 	DB $C3
 	DB $AD
 	DB "nea"
@@ -307,8 +320,8 @@ _InfieldLocationTexts:
 	DB "nto primero."
 	DB $00
 	DB "abajo"
-	DB $80
-	DB "the <1B> l"
+	DB $0E
+	DB "l <1B> l"
 	DB $C3
 	DB $AD
 	DB "nea"
@@ -383,7 +396,7 @@ _StrikeOutSwingingText:
 	DB "ndose!"
 	DB $00
 _BallText:
-	DB "Pelotas."
+	DB "Bola %s."
 	DB $00
 _WalkText:
 	DB "%s en la base"
@@ -393,15 +406,17 @@ _WalkText:
 _PassedBallText:
 	DB $C2
 	DB $A1
-	DB "Partido salvaje!"
+	DB "Pasb"
+	DB $C3
+	DB $B3
+	DB "l!"
 	DB $00
 _WildPitchText:
 	DB $C2
 	DB $A1
-	DB "Pas"
-	DB $C3
-	DB $B3
-	DB " la pelota!"
+	DB "Lanzamiento"
+	DB $80
+	DB "salvaje!"
 	DB $00
 _HitByPitchText:
 	DB "Eso lo golpe"
@@ -429,12 +444,12 @@ _RunnersOnBaseTexts:
 	DB "Corredor en tercero."
 	DB $00
 	DB "Corredores en el primer"
-	DB $0A
-	DB "nd tercero."
+	DB $80
+	DB "y tercero."
 	DB $00
 	DB "Corredores en el segundo"
-	DB $0A
-	DB "nd tercero."
+	DB $80
+	DB "y tercero."
 	DB $00
 	DB "Bases cargadas."
 	DB $00
@@ -489,7 +504,7 @@ _InFoulTerritoryText:
 _HitBaseHitText:
 	DB $C2
 	DB $A1
-	DB "Base Hit!"
+	DB "Indiscutible!"
 	DB $00
 _HitDoubleText:
 	DB $C2
@@ -504,7 +519,10 @@ _HitTripleText:
 _HitHomeRunText:
 	DB $C2
 	DB $A1
-	DB "CARRERA!"
+	DB "Jonr"
+	DB $C3
+	DB $B3
+	DB "n!"
 	DB $00
 _HitGrandSlamText:
 	DB "GRAND SLAM!"
@@ -531,7 +549,7 @@ _BasesClearedScoreText:
 _BottomOfTheText:
 	DB "Inferior de"
 	DB $80
-	DB "the %s."
+	DB "t %s."
 	DB $00
 _TopOfTheText:
 	DB "Superior de"
@@ -543,5 +561,6 @@ _AndThatsTheBallGameText:
 	DB $BA
 	DB "ll."
 	DB $00
+	SECTION FRAGMENT "src/baseball/announcer.c_CODE",ROMX
 	SECTION FRAGMENT "_INITIALIZER",ROM0
 	SECTION FRAGMENT "_CABS (ABS)",ROM0

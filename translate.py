@@ -49,7 +49,7 @@ def create_strings_file(dict_reader, name):
       segment += '"' + text
       segments[i] = segment
         
-  with open(dir+name+".c", "w+", encoding='utf8') as file:    
+  with open(dir+name+".h", "w+", encoding='utf8') as file:    
     for segment in segments:
       file.write(segment)
     file.write('";\n#endif\n')
