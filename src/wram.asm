@@ -1,4 +1,9 @@
 SECTION "Gloval Vars", WRAM0
+
+; labels that start with an underscore are available in C using extern (ie. _breakpoint, _i) 
+; labels without the underscore are not available in C (ie. sys_info, text_speed)
+; the C_DATA macro makes a label and it's C equivalent (ie. game_state and _game_state)
+
 ;debug
 _breakpoint:: DB
 
@@ -6,7 +11,7 @@ _breakpoint:: DB
 sys_info:: DB
 
 ;game state
-game_state:: DB
+  C_DATA game_state, DB
 
 ;UI
 list_selection:: DB
@@ -16,8 +21,8 @@ inventory_mode:: DB
 text_speed:: DB
 animation_style:: DB
 coaching_style:: DB
-user_name:: DS NAME_LENGTH
-rival_name:: DS NAME_LENGTH
+  C_DATA user_name, DS NAME_LENGTH
+  C_DATA rival_name, DS NAME_LENGTH
 hours:: DW
 minutes:: DB
 seconds:: DB
@@ -172,11 +177,10 @@ stack_bottom:
 
 SECTION "Buffers", WRAMX
 ;buffers
-tile_buffer:: DS BUFFER_SIZE
-bkg_buffer:: DS BUFFER_SIZE
-win_buffer:: DS BUFFER_SIZE
-map_sprite_buffer:: DS MAP_SPRITE_BUFFER_SIZE; bank, address, x, y, extra
-cmd_buffer:: DS BUFFER_SIZE/2
-str_buffer:: DS 64
-_name_buffer::
-name_buffer:: DS 16
+  C_DATA tile_buffer,       DS BUFFER_SIZE
+  C_DATA bkg_buffer,        DS BUFFER_SIZE
+  C_DATA win_buffer,        DS BUFFER_SIZE
+  C_DATA map_sprite_buffer, DS MAP_SPRITE_BUFFER_SIZE; bank, address, x, y, extra
+  C_DATA cmd_buffer,        DS BUFFER_SIZE/2
+  C_DATA str_buffer,        DS 64
+  C_DATA name_buffer,       DS 16

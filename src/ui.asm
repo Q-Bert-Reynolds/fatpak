@@ -17,6 +17,9 @@ SECTION "UI Bank 0", ROM0
 ; ShowOptions
 ; ShowNumberPicker    a = draw flags, bc = xy, de = wh, h = max number, returns number in a (0 = cancel)
 
+; SDCC extern:
+; _RevealTextAndWait  de = text
+
 LoadFontTiles::
   ld a, [loaded_bank]
   push af;bank

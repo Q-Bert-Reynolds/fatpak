@@ -1,6 +1,7 @@
 
 ; Macro                                 Arguments
 ;   TRAMPOLINE                            AddressInAnotherBank
+;   C_DATA                                 AddressWithCInterface, *
 ;   PUSH_VAR                              WRAMAddressToStore
 ;   POP_VAR                               WRAMAddressToRestore
 ;   DEBUG_LOG_STRING                      "string"
@@ -27,6 +28,16 @@ MACRO TRAMPOLINE ;\1 = jump address
   ld b, BANK(\1)
   ld hl, \1
   call Trampoline
+ENDM
+
+; declares a variable with a label as well as it's C equivalent
+;   C_DATA a_byte, db
+;   C_DATA a_word, dw
+;   C_DATA a_array, ds 10
+;   C_DATA a_string, "blah"
+MACRO C_DATA ;\1 = label, \2 = everything else
+_\1::
+\1:: \2
 ENDM
 
 MACRO PUSH_VAR ;\1 = WRAM address
