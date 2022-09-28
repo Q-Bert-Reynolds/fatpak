@@ -1,0 +1,7 @@
+IF !DEF(_062WRATH_TILE_COUNT)
+_062WRATH_TILE_COUNT EQU 43
+_062WRATH_ROWS EQU 7
+_062WRATH_COLUMNS EQU 7
+_062WrathTiles: INCBIN "img/players/062Wrath.tiles"
+_062WrathTileMap: INCBIN "img/players/062Wrath.tilemap"
+ENDC

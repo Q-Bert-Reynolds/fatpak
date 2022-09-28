@@ -1,0 +1,13 @@
+IF !DEF(_002IVY_LEFTY_BATTER_OPPONENT_TILE_COUNT)
+_002IVY_LEFTY_BATTER_OPPONENT_TILE_COUNT EQU 64
+_002IvyLeftyBatterOpponentTiles: INCBIN "img/players/002Ivy/002Ivy_lefty_batter_opponent.tiles"
+_002IVY_LEFTY_BATTER_OPPONENT0_ROWS EQU 7
+_002IVY_LEFTY_BATTER_OPPONENT0_COLUMNS EQU 8
+_002IvyLeftyBatterOpponent0TileMap: INCBIN "img/players/002Ivy/002Ivy_lefty_batter_opponent0.tilemap"
+_002IVY_LEFTY_BATTER_OPPONENT1_ROWS EQU 7
+_002IVY_LEFTY_BATTER_OPPONENT1_COLUMNS EQU 8
+_002IvyLeftyBatterOpponent1TileMap: INCBIN "img/players/002Ivy/002Ivy_lefty_batter_opponent1.tilemap"
+_002IVY_LEFTY_BATTER_OPPONENT2_ROWS EQU 7
+_002IVY_LEFTY_BATTER_OPPONENT2_COLUMNS EQU 8
+_002IvyLeftyBatterOpponent2TileMap: INCBIN "img/players/002Ivy/002Ivy_lefty_batter_opponent2.tilemap"
+ENDC

@@ -1,0 +1,7 @@
+IF !DEF(_124JINX_TILE_COUNT)
+_124JINX_TILE_COUNT EQU 33
+_124JINX_ROWS EQU 6
+_124JINX_COLUMNS EQU 6
+_124JinxTiles: INCBIN "img/players/124Jinx.tiles"
+_124JinxTileMap: INCBIN "img/players/124Jinx.tilemap"
+ENDC

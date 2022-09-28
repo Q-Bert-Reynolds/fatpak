@@ -1,0 +1,7 @@
+IF !DEF(_048NATTY_TILE_COUNT)
+_048NATTY_TILE_COUNT EQU 25
+_048NATTY_ROWS EQU 5
+_048NATTY_COLUMNS EQU 5
+_048NattyTiles: INCBIN "img/players/048Natty.tiles"
+_048NattyTileMap: INCBIN "img/players/048Natty.tilemap"
+ENDC

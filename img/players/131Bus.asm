@@ -1,0 +1,7 @@
+IF !DEF(_131BUS_TILE_COUNT)
+_131BUS_TILE_COUNT EQU 42
+_131BUS_ROWS EQU 7
+_131BUS_COLUMNS EQU 7
+_131BusTiles: INCBIN "img/players/131Bus.tiles"
+_131BusTileMap: INCBIN "img/players/131Bus.tilemap"
+ENDC

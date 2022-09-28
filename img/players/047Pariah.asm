@@ -1,0 +1,7 @@
+IF !DEF(_047PARIAH_TILE_COUNT)
+_047PARIAH_TILE_COUNT EQU 45
+_047PARIAH_ROWS EQU 7
+_047PARIAH_COLUMNS EQU 7
+_047PariahTiles: INCBIN "img/players/047Pariah.tiles"
+_047PariahTileMap: INCBIN "img/players/047Pariah.tilemap"
+ENDC

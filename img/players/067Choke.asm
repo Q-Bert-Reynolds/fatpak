@@ -1,0 +1,7 @@
+IF !DEF(_067CHOKE_TILE_COUNT)
+_067CHOKE_TILE_COUNT EQU 46
+_067CHOKE_ROWS EQU 7
+_067CHOKE_COLUMNS EQU 7
+_067ChokeTiles: INCBIN "img/players/067Choke.tiles"
+_067ChokeTileMap: INCBIN "img/players/067Choke.tilemap"
+ENDC

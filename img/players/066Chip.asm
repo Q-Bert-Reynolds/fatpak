@@ -1,0 +1,7 @@
+IF !DEF(_066CHIP_TILE_COUNT)
+_066CHIP_TILE_COUNT EQU 25
+_066CHIP_ROWS EQU 5
+_066CHIP_COLUMNS EQU 5
+_066ChipTiles: INCBIN "img/players/066Chip.tiles"
+_066ChipTileMap: INCBIN "img/players/066Chip.tilemap"
+ENDC

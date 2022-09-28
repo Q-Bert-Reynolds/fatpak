@@ -1,0 +1,7 @@
+IF !DEF(_118GOLDIE_TILE_COUNT)
+_118GOLDIE_TILE_COUNT EQU 35
+_118GOLDIE_ROWS EQU 6
+_118GOLDIE_COLUMNS EQU 6
+_118GoldieTiles: INCBIN "img/players/118Goldie.tiles"
+_118GoldieTileMap: INCBIN "img/players/118Goldie.tilemap"
+ENDC

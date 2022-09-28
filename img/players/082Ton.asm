@@ -1,0 +1,7 @@
+IF !DEF(_082TON_TILE_COUNT)
+_082TON_TILE_COUNT EQU 36
+_082TON_ROWS EQU 6
+_082TON_COLUMNS EQU 6
+_082TonTiles: INCBIN "img/players/082Ton.tiles"
+_082TonTileMap: INCBIN "img/players/082Ton.tilemap"
+ENDC

@@ -1,0 +1,7 @@
+IF !DEF(_070WEEPY_TILE_COUNT)
+_070WEEPY_TILE_COUNT EQU 30
+_070WEEPY_ROWS EQU 6
+_070WEEPY_COLUMNS EQU 6
+_070WeepyTiles: INCBIN "img/players/070Weepy.tiles"
+_070WeepyTileMap: INCBIN "img/players/070Weepy.tilemap"
+ENDC

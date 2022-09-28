@@ -1,0 +1,7 @@
+IF !DEF(_115GENGIS_TILE_COUNT)
+_115GENGIS_TILE_COUNT EQU 39
+_115GENGIS_ROWS EQU 7
+_115GENGIS_COLUMNS EQU 7
+_115GengisTiles: INCBIN "img/players/115Gengis.tiles"
+_115GengisTileMap: INCBIN "img/players/115Gengis.tilemap"
+ENDC

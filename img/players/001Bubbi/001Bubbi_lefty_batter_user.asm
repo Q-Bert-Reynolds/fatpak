@@ -1,0 +1,13 @@
+IF !DEF(_001BUBBI_LEFTY_BATTER_USER_TILE_COUNT)
+_001BUBBI_LEFTY_BATTER_USER_TILE_COUNT EQU 42
+_001BubbiLeftyBatterUserTiles: INCBIN "img/players/001Bubbi/001Bubbi_lefty_batter_user.tiles"
+_001BUBBI_LEFTY_BATTER_USER0_ROWS EQU 7
+_001BUBBI_LEFTY_BATTER_USER0_COLUMNS EQU 8
+_001BubbiLeftyBatterUser0TileMap: INCBIN "img/players/001Bubbi/001Bubbi_lefty_batter_user0.tilemap"
+_001BUBBI_LEFTY_BATTER_USER1_ROWS EQU 7
+_001BUBBI_LEFTY_BATTER_USER1_COLUMNS EQU 8
+_001BubbiLeftyBatterUser1TileMap: INCBIN "img/players/001Bubbi/001Bubbi_lefty_batter_user1.tilemap"
+_001BUBBI_LEFTY_BATTER_USER2_ROWS EQU 7
+_001BUBBI_LEFTY_BATTER_USER2_COLUMNS EQU 8
+_001BubbiLeftyBatterUser2TileMap: INCBIN "img/players/001Bubbi/001Bubbi_lefty_batter_user2.tilemap"
+ENDC

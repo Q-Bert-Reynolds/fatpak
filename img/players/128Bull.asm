@@ -1,0 +1,7 @@
+IF !DEF(_128BULL_TILE_COUNT)
+_128BULL_TILE_COUNT EQU 40
+_128BULL_ROWS EQU 7
+_128BULL_COLUMNS EQU 7
+_128BullTiles: INCBIN "img/players/128Bull.tiles"
+_128BullTileMap: INCBIN "img/players/128Bull.tilemap"
+ENDC

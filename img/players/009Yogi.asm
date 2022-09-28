@@ -1,0 +1,7 @@
+IF !DEF(_009YOGI_TILE_COUNT)
+_009YOGI_TILE_COUNT EQU 44
+_009YOGI_ROWS EQU 7
+_009YOGI_COLUMNS EQU 7
+_009YogiTiles: INCBIN "img/players/009Yogi.tiles"
+_009YogiTileMap: INCBIN "img/players/009Yogi.tilemap"
+ENDC

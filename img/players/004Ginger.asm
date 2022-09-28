@@ -1,0 +1,7 @@
+IF !DEF(_004GINGER_TILE_COUNT)
+_004GINGER_TILE_COUNT EQU 22
+_004GINGER_ROWS EQU 5
+_004GINGER_COLUMNS EQU 5
+_004GingerTiles: INCBIN "img/players/004Ginger.tiles"
+_004GingerTileMap: INCBIN "img/players/004Ginger.tilemap"
+ENDC

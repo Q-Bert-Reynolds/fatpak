@@ -1,0 +1,7 @@
+IF !DEF(_046PARIS_TILE_COUNT)
+_046PARIS_TILE_COUNT EQU 23
+_046PARIS_ROWS EQU 5
+_046PARIS_COLUMNS EQU 5
+_046ParisTiles: INCBIN "img/players/046Paris.tiles"
+_046ParisTileMap: INCBIN "img/players/046Paris.tilemap"
+ENDC

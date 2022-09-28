@@ -1,0 +1,7 @@
+IF !DEF(_135JOLT_TILE_COUNT)
+_135JOLT_TILE_COUNT EQU 29
+_135JOLT_ROWS EQU 6
+_135JOLT_COLUMNS EQU 6
+_135JoltTiles: INCBIN "img/players/135Jolt.tiles"
+_135JoltTileMap: INCBIN "img/players/135Jolt.tilemap"
+ENDC

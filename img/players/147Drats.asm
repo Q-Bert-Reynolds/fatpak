@@ -1,0 +1,7 @@
+IF !DEF(_147DRATS_TILE_COUNT)
+_147DRATS_TILE_COUNT EQU 20
+_147DRATS_ROWS EQU 5
+_147DRATS_COLUMNS EQU 5
+_147DratsTiles: INCBIN "img/players/147Drats.tiles"
+_147DratsTileMap: INCBIN "img/players/147Drats.tilemap"
+ENDC

@@ -1,0 +1,4 @@
+IF !DEF(_BUSINESSES_TILE_COUNT)
+_BUSINESSES_TILE_COUNT EQU 128
+_BusinessesTiles: INCBIN "img/maps/businesses.tiles"
+ENDC

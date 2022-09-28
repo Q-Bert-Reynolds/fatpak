@@ -1,0 +1,7 @@
+IF !DEF(_120STARCHILD_TILE_COUNT)
+_120STARCHILD_TILE_COUNT EQU 34
+_120STARCHILD_ROWS EQU 6
+_120STARCHILD_COLUMNS EQU 6
+_120StarchildTiles: INCBIN "img/players/120Starchild.tiles"
+_120StarchildTileMap: INCBIN "img/players/120Starchild.tilemap"
+ENDC

@@ -1,0 +1,7 @@
+IF !DEF(_116BRAIN_TILE_COUNT)
+_116BRAIN_TILE_COUNT EQU 20
+_116BRAIN_ROWS EQU 5
+_116BRAIN_COLUMNS EQU 5
+_116BrainTiles: INCBIN "img/players/116Brain.tiles"
+_116BrainTileMap: INCBIN "img/players/116Brain.tilemap"
+ENDC

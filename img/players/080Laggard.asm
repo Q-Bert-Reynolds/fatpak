@@ -1,0 +1,7 @@
+IF !DEF(_080LAGGARD_TILE_COUNT)
+_080LAGGARD_TILE_COUNT EQU 47
+_080LAGGARD_ROWS EQU 7
+_080LAGGARD_COLUMNS EQU 7
+_080LaggardTiles: INCBIN "img/players/080Laggard.tiles"
+_080LaggardTileMap: INCBIN "img/players/080Laggard.tilemap"
+ENDC

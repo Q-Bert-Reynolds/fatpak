@@ -1,0 +1,13 @@
+IF !DEF(_145ZAPH_RIGHTY_BATTER_USER_TILE_COUNT)
+_145ZAPH_RIGHTY_BATTER_USER_TILE_COUNT EQU 57
+_145ZaphRightyBatterUserTiles: INCBIN "img/players/145Zaph/145Zaph_righty_batter_user.tiles"
+_145ZAPH_RIGHTY_BATTER_USER0_ROWS EQU 7
+_145ZAPH_RIGHTY_BATTER_USER0_COLUMNS EQU 8
+_145ZaphRightyBatterUser0TileMap: INCBIN "img/players/145Zaph/145Zaph_righty_batter_user0.tilemap"
+_145ZAPH_RIGHTY_BATTER_USER1_ROWS EQU 7
+_145ZAPH_RIGHTY_BATTER_USER1_COLUMNS EQU 8
+_145ZaphRightyBatterUser1TileMap: INCBIN "img/players/145Zaph/145Zaph_righty_batter_user1.tilemap"
+_145ZAPH_RIGHTY_BATTER_USER2_ROWS EQU 7
+_145ZAPH_RIGHTY_BATTER_USER2_COLUMNS EQU 8
+_145ZaphRightyBatterUser2TileMap: INCBIN "img/players/145Zaph/145Zaph_righty_batter_user2.tilemap"
+ENDC

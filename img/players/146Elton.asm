@@ -1,0 +1,7 @@
+IF !DEF(_146ELTON_TILE_COUNT)
+_146ELTON_TILE_COUNT EQU 43
+_146ELTON_ROWS EQU 7
+_146ELTON_COLUMNS EQU 7
+_146EltonTiles: INCBIN "img/players/146Elton.tiles"
+_146EltonTileMap: INCBIN "img/players/146Elton.tilemap"
+ENDC

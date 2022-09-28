@@ -1,0 +1,13 @@
+IF !DEF(_RIGHTY_BATTER_OPPONENT_TILE_COUNT)
+_RIGHTY_BATTER_OPPONENT_TILE_COUNT EQU 62
+_RightyBatterOpponentTiles: INCBIN "img/play/righty_batter_opponent.tiles"
+_RIGHTY_BATTER_OPPONENT0_ROWS EQU 7
+_RIGHTY_BATTER_OPPONENT0_COLUMNS EQU 8
+_RightyBatterOpponent0TileMap: INCBIN "img/play/righty_batter_opponent0.tilemap"
+_RIGHTY_BATTER_OPPONENT1_ROWS EQU 7
+_RIGHTY_BATTER_OPPONENT1_COLUMNS EQU 8
+_RightyBatterOpponent1TileMap: INCBIN "img/play/righty_batter_opponent1.tilemap"
+_RIGHTY_BATTER_OPPONENT2_ROWS EQU 7
+_RIGHTY_BATTER_OPPONENT2_COLUMNS EQU 8
+_RightyBatterOpponent2TileMap: INCBIN "img/play/righty_batter_opponent2.tilemap"
+ENDC

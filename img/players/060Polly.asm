@@ -1,0 +1,7 @@
+IF !DEF(_060POLLY_TILE_COUNT)
+_060POLLY_TILE_COUNT EQU 24
+_060POLLY_ROWS EQU 5
+_060POLLY_COLUMNS EQU 5
+_060PollyTiles: INCBIN "img/players/060Polly.tiles"
+_060PollyTileMap: INCBIN "img/players/060Polly.tilemap"
+ENDC

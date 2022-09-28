@@ -1,0 +1,16 @@
+IF !DEF(_002IVY_RIGHTY_PITCHER_OPPONENT_TILE_COUNT)
+_002IVY_RIGHTY_PITCHER_OPPONENT_TILE_COUNT EQU 64
+_002IvyRightyPitcherOpponentTiles: INCBIN "img/players/002Ivy/002Ivy_righty_pitcher_opponent.tiles"
+_002IVY_RIGHTY_PITCHER_OPPONENT0_ROWS EQU 7
+_002IVY_RIGHTY_PITCHER_OPPONENT0_COLUMNS EQU 8
+_002IvyRightyPitcherOpponent0TileMap: INCBIN "img/players/002Ivy/002Ivy_righty_pitcher_opponent0.tilemap"
+_002IVY_RIGHTY_PITCHER_OPPONENT1_ROWS EQU 7
+_002IVY_RIGHTY_PITCHER_OPPONENT1_COLUMNS EQU 8
+_002IvyRightyPitcherOpponent1TileMap: INCBIN "img/players/002Ivy/002Ivy_righty_pitcher_opponent1.tilemap"
+_002IVY_RIGHTY_PITCHER_OPPONENT2_ROWS EQU 7
+_002IVY_RIGHTY_PITCHER_OPPONENT2_COLUMNS EQU 8
+_002IvyRightyPitcherOpponent2TileMap: INCBIN "img/players/002Ivy/002Ivy_righty_pitcher_opponent2.tilemap"
+_002IVY_RIGHTY_PITCHER_OPPONENT3_ROWS EQU 7
+_002IVY_RIGHTY_PITCHER_OPPONENT3_COLUMNS EQU 8
+_002IvyRightyPitcherOpponent3TileMap: INCBIN "img/players/002Ivy/002Ivy_righty_pitcher_opponent3.tilemap"
+ENDC

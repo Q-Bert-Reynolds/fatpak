@@ -1,0 +1,7 @@
+IF !DEF(_036FABLE_TILE_COUNT)
+_036FABLE_TILE_COUNT EQU 33
+_036FABLE_ROWS EQU 6
+_036FABLE_COLUMNS EQU 6
+_036FableTiles: INCBIN "img/players/036Fable.tiles"
+_036FableTileMap: INCBIN "img/players/036Fable.tilemap"
+ENDC

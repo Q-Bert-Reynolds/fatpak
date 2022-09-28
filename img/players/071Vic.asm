@@ -1,0 +1,7 @@
+IF !DEF(_071VIC_TILE_COUNT)
+_071VIC_TILE_COUNT EQU 39
+_071VIC_ROWS EQU 7
+_071VIC_COLUMNS EQU 7
+_071VicTiles: INCBIN "img/players/071Vic.tiles"
+_071VicTileMap: INCBIN "img/players/071Vic.tilemap"
+ENDC

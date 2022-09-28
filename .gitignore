@@ -1,26 +1,26 @@
 # files created in /img, /data, and /music
-img/**/*.asm
-img/**/*.tilemap
-img/**/*.propmap
-img/**/*.tiles
-maps/**/*.asm
-maps/**/*.tilemap
-data/**/*.c
-data/**/*.asm
-data/**.inc
-music/*.asm
-music/*.bak
+# img/**/*.asm
+# img/**/*.tilemap
+# img/**/*.propmap
+# img/**/*.tiles
+# maps/**/*.asm
+# maps/**/*.tilemap
+# data/**/*.c
+# data/**/*.asm
+# data/**.inc
+# music/*.asm
+# music/*.bak
 
 # generated GameBoy files
-bin/*
-build/*
-*.gb
-*.gbc
-*.map
-*.lst
-*.sym
-*.1bpp
-*.2bpp
+# bin/*
+# build/*
+# *.gb
+# *.gbc
+# *.map
+# *.lst
+# *.sym
+# *.1bpp
+# *.2bpp
 *.sav
 
 # Tiled map editor
@@ -81,5 +81,5 @@ __pycache__/*
 *.pdb
 
 # Editor config folder
-*.vscode
+# *.vscode
 node_modules

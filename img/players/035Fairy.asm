@@ -1,0 +1,7 @@
+IF !DEF(_035FAIRY_TILE_COUNT)
+_035FAIRY_TILE_COUNT EQU 24
+_035FAIRY_ROWS EQU 5
+_035FAIRY_COLUMNS EQU 5
+_035FairyTiles: INCBIN "img/players/035Fairy.tiles"
+_035FairyTileMap: INCBIN "img/players/035Fairy.tilemap"
+ENDC

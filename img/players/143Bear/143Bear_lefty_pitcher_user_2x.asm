@@ -1,0 +1,16 @@
+IF !DEF(_143BEAR_LEFTY_PITCHER_USER_2X_TILE_COUNT)
+_143BEAR_LEFTY_PITCHER_USER_2X_TILE_COUNT EQU 36
+_143BearLeftyPitcherUser2xTiles: INCBIN "img/players/143Bear/143Bear_lefty_pitcher_user_2x.tiles"
+_143BEAR_LEFTY_PITCHER_USER_2X0_ROWS EQU 8
+_143BEAR_LEFTY_PITCHER_USER_2X0_COLUMNS EQU 8
+_143BearLeftyPitcherUser2x0TileMap: INCBIN "img/players/143Bear/143Bear_lefty_pitcher_user_2x0.tilemap"
+_143BEAR_LEFTY_PITCHER_USER_2X1_ROWS EQU 8
+_143BEAR_LEFTY_PITCHER_USER_2X1_COLUMNS EQU 8
+_143BearLeftyPitcherUser2x1TileMap: INCBIN "img/players/143Bear/143Bear_lefty_pitcher_user_2x1.tilemap"
+_143BEAR_LEFTY_PITCHER_USER_2X2_ROWS EQU 8
+_143BEAR_LEFTY_PITCHER_USER_2X2_COLUMNS EQU 8
+_143BearLeftyPitcherUser2x2TileMap: INCBIN "img/players/143Bear/143Bear_lefty_pitcher_user_2x2.tilemap"
+_143BEAR_LEFTY_PITCHER_USER_2X3_ROWS EQU 8
+_143BEAR_LEFTY_PITCHER_USER_2X3_COLUMNS EQU 8
+_143BearLeftyPitcherUser2x3TileMap: INCBIN "img/players/143Bear/143Bear_lefty_pitcher_user_2x3.tilemap"
+ENDC

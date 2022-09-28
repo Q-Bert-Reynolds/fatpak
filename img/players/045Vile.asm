@@ -1,0 +1,7 @@
+IF !DEF(_045VILE_TILE_COUNT)
+_045VILE_TILE_COUNT EQU 40
+_045VILE_ROWS EQU 7
+_045VILE_COLUMNS EQU 7
+_045VileTiles: INCBIN "img/players/045Vile.tiles"
+_045VileTileMap: INCBIN "img/players/045Vile.tilemap"
+ENDC

@@ -1,0 +1,7 @@
+IF !DEF(_079SLOWPOKE_TILE_COUNT)
+_079SLOWPOKE_TILE_COUNT EQU 25
+_079SLOWPOKE_ROWS EQU 5
+_079SLOWPOKE_COLUMNS EQU 5
+_079SlowpokeTiles: INCBIN "img/players/079Slowpoke.tiles"
+_079SlowpokeTileMap: INCBIN "img/players/079Slowpoke.tilemap"
+ENDC

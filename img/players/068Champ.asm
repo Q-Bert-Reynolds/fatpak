@@ -1,0 +1,7 @@
+IF !DEF(_068CHAMP_TILE_COUNT)
+_068CHAMP_TILE_COUNT EQU 40
+_068CHAMP_ROWS EQU 7
+_068CHAMP_COLUMNS EQU 7
+_068ChampTiles: INCBIN "img/players/068Champ.tiles"
+_068ChampTileMap: INCBIN "img/players/068Champ.tilemap"
+ENDC

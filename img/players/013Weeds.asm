@@ -1,0 +1,7 @@
+IF !DEF(_013WEEDS_TILE_COUNT)
+_013WEEDS_TILE_COUNT EQU 19
+_013WEEDS_ROWS EQU 5
+_013WEEDS_COLUMNS EQU 5
+_013WeedsTiles: INCBIN "img/players/013Weeds.tiles"
+_013WeedsTileMap: INCBIN "img/players/013Weeds.tilemap"
+ENDC

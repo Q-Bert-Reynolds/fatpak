@@ -1,0 +1,7 @@
+IF !DEF(_032CHICO_TILE_COUNT)
+_032CHICO_TILE_COUNT EQU 22
+_032CHICO_ROWS EQU 5
+_032CHICO_COLUMNS EQU 5
+_032ChicoTiles: INCBIN "img/players/032Chico.tiles"
+_032ChicoTileMap: INCBIN "img/players/032Chico.tilemap"
+ENDC

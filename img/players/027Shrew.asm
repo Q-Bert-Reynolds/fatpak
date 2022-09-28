@@ -1,0 +1,7 @@
+IF !DEF(_027SHREW_TILE_COUNT)
+_027SHREW_TILE_COUNT EQU 22
+_027SHREW_ROWS EQU 5
+_027SHREW_COLUMNS EQU 5
+_027ShrewTiles: INCBIN "img/players/027Shrew.tiles"
+_027ShrewTileMap: INCBIN "img/players/027Shrew.tilemap"
+ENDC

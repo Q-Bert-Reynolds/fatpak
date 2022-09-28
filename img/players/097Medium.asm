@@ -1,0 +1,7 @@
+IF !DEF(_097MEDIUM_TILE_COUNT)
+_097MEDIUM_TILE_COUNT EQU 42
+_097MEDIUM_ROWS EQU 7
+_097MEDIUM_COLUMNS EQU 7
+_097MediumTiles: INCBIN "img/players/097Medium.tiles"
+_097MediumTileMap: INCBIN "img/players/097Medium.tilemap"
+ENDC

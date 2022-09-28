@@ -1,0 +1,7 @@
+IF !DEF(_088GREASER_TILE_COUNT)
+_088GREASER_TILE_COUNT EQU 23
+_088GREASER_ROWS EQU 5
+_088GREASER_COLUMNS EQU 5
+_088GreaserTiles: INCBIN "img/players/088Greaser.tiles"
+_088GreaserTileMap: INCBIN "img/players/088Greaser.tilemap"
+ENDC

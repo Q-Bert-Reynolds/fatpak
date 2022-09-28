@@ -1,0 +1,7 @@
+IF !DEF(_CIRCLE_TILE_COUNT)
+_CIRCLE_TILE_COUNT EQU 10
+_CIRCLE_ROWS EQU 1
+_CIRCLE_COLUMNS EQU 10
+_CircleTiles: INCBIN "img/circle.tiles"
+_CircleTileMap: INCBIN "img/circle.tilemap"
+ENDC

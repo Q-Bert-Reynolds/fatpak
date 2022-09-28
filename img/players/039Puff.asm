@@ -1,0 +1,7 @@
+IF !DEF(_039PUFF_TILE_COUNT)
+_039PUFF_TILE_COUNT EQU 24
+_039PUFF_ROWS EQU 5
+_039PUFF_COLUMNS EQU 5
+_039PuffTiles: INCBIN "img/players/039Puff.tiles"
+_039PuffTileMap: INCBIN "img/players/039Puff.tilemap"
+ENDC

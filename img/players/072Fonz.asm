@@ -1,0 +1,7 @@
+IF !DEF(_072FONZ_TILE_COUNT)
+_072FONZ_TILE_COUNT EQU 22
+_072FONZ_ROWS EQU 5
+_072FONZ_COLUMNS EQU 5
+_072FonzTiles: INCBIN "img/players/072Fonz.tiles"
+_072FonzTileMap: INCBIN "img/players/072Fonz.tilemap"
+ENDC

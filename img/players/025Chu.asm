@@ -1,0 +1,7 @@
+IF !DEF(_025CHU_TILE_COUNT)
+_025CHU_TILE_COUNT EQU 23
+_025CHU_ROWS EQU 5
+_025CHU_COLUMNS EQU 5
+_025ChuTiles: INCBIN "img/players/025Chu.tiles"
+_025ChuTileMap: INCBIN "img/players/025Chu.tilemap"
+ENDC

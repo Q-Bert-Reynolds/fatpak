@@ -1,0 +1,7 @@
+IF !DEF(_121STARMAN_TILE_COUNT)
+_121STARMAN_TILE_COUNT EQU 32
+_121STARMAN_ROWS EQU 6
+_121STARMAN_COLUMNS EQU 6
+_121StarmanTiles: INCBIN "img/players/121Starman.tiles"
+_121StarmanTileMap: INCBIN "img/players/121Starman.tilemap"
+ENDC

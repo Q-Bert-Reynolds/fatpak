@@ -1,0 +1,16 @@
+IF !DEF(_007SQUIRT_RIGHTY_PITCHER_OPPONENT_TILE_COUNT)
+_007SQUIRT_RIGHTY_PITCHER_OPPONENT_TILE_COUNT EQU 41
+_007SquirtRightyPitcherOpponentTiles: INCBIN "img/players/007Squirt/007Squirt_righty_pitcher_opponent.tiles"
+_007SQUIRT_RIGHTY_PITCHER_OPPONENT0_ROWS EQU 7
+_007SQUIRT_RIGHTY_PITCHER_OPPONENT0_COLUMNS EQU 8
+_007SquirtRightyPitcherOpponent0TileMap: INCBIN "img/players/007Squirt/007Squirt_righty_pitcher_opponent0.tilemap"
+_007SQUIRT_RIGHTY_PITCHER_OPPONENT1_ROWS EQU 7
+_007SQUIRT_RIGHTY_PITCHER_OPPONENT1_COLUMNS EQU 8
+_007SquirtRightyPitcherOpponent1TileMap: INCBIN "img/players/007Squirt/007Squirt_righty_pitcher_opponent1.tilemap"
+_007SQUIRT_RIGHTY_PITCHER_OPPONENT2_ROWS EQU 7
+_007SQUIRT_RIGHTY_PITCHER_OPPONENT2_COLUMNS EQU 8
+_007SquirtRightyPitcherOpponent2TileMap: INCBIN "img/players/007Squirt/007Squirt_righty_pitcher_opponent2.tilemap"
+_007SQUIRT_RIGHTY_PITCHER_OPPONENT3_ROWS EQU 7
+_007SQUIRT_RIGHTY_PITCHER_OPPONENT3_COLUMNS EQU 8
+_007SquirtRightyPitcherOpponent3TileMap: INCBIN "img/players/007Squirt/007Squirt_righty_pitcher_opponent3.tilemap"
+ENDC

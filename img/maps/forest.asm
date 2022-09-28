@@ -1,0 +1,4 @@
+IF !DEF(_FOREST_TILE_COUNT)
+_FOREST_TILE_COUNT EQU 128
+_ForestTiles: INCBIN "img/maps/forest.tiles"
+ENDC

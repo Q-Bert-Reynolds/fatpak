@@ -1,0 +1,13 @@
+IF !DEF(_143BEAR_RIGHTY_BATTER_OPPONENT_TILE_COUNT)
+_143BEAR_RIGHTY_BATTER_OPPONENT_TILE_COUNT EQU 64
+_143BearRightyBatterOpponentTiles: INCBIN "img/players/143Bear/143Bear_righty_batter_opponent.tiles"
+_143BEAR_RIGHTY_BATTER_OPPONENT0_ROWS EQU 7
+_143BEAR_RIGHTY_BATTER_OPPONENT0_COLUMNS EQU 8
+_143BearRightyBatterOpponent0TileMap: INCBIN "img/players/143Bear/143Bear_righty_batter_opponent0.tilemap"
+_143BEAR_RIGHTY_BATTER_OPPONENT1_ROWS EQU 7
+_143BEAR_RIGHTY_BATTER_OPPONENT1_COLUMNS EQU 8
+_143BearRightyBatterOpponent1TileMap: INCBIN "img/players/143Bear/143Bear_righty_batter_opponent1.tilemap"
+_143BEAR_RIGHTY_BATTER_OPPONENT2_ROWS EQU 7
+_143BEAR_RIGHTY_BATTER_OPPONENT2_COLUMNS EQU 8
+_143BearRightyBatterOpponent2TileMap: INCBIN "img/players/143Bear/143Bear_righty_batter_opponent2.tilemap"
+ENDC

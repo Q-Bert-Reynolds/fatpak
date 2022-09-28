@@ -1,0 +1,7 @@
+IF !DEF(_093MORTY_TILE_COUNT)
+_093MORTY_TILE_COUNT EQU 36
+_093MORTY_ROWS EQU 6
+_093MORTY_COLUMNS EQU 6
+_093MortyTiles: INCBIN "img/players/093Morty.tiles"
+_093MortyTileMap: INCBIN "img/players/093Morty.tilemap"
+ENDC

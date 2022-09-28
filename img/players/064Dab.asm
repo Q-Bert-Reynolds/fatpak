@@ -1,0 +1,7 @@
+IF !DEF(_064DAB_TILE_COUNT)
+_064DAB_TILE_COUNT EQU 29
+_064DAB_ROWS EQU 6
+_064DAB_COLUMNS EQU 6
+_064DabTiles: INCBIN "img/players/064Dab.tiles"
+_064DabTileMap: INCBIN "img/players/064Dab.tilemap"
+ENDC

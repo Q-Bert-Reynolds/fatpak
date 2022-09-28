@@ -1,0 +1,7 @@
+IF !DEF(_012BUTTERFLY_TILE_COUNT)
+_012BUTTERFLY_TILE_COUNT EQU 40
+_012BUTTERFLY_ROWS EQU 7
+_012BUTTERFLY_COLUMNS EQU 7
+_012ButterflyTiles: INCBIN "img/players/012Butterfly.tiles"
+_012ButterflyTileMap: INCBIN "img/players/012Butterfly.tilemap"
+ENDC

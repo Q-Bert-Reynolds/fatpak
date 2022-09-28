@@ -1,0 +1,7 @@
+IF !DEF(_075GRAVEL_TILE_COUNT)
+_075GRAVEL_TILE_COUNT EQU 36
+_075GRAVEL_ROWS EQU 6
+_075GRAVEL_COLUMNS EQU 6
+_075GravelTiles: INCBIN "img/players/075Gravel.tiles"
+_075GravelTileMap: INCBIN "img/players/075Gravel.tilemap"
+ENDC

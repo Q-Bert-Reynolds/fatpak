@@ -1,0 +1,7 @@
+IF !DEF(_113CHANCE_TILE_COUNT)
+_113CHANCE_TILE_COUNT EQU 36
+_113CHANCE_ROWS EQU 6
+_113CHANCE_COLUMNS EQU 6
+_113ChanceTiles: INCBIN "img/players/113Chance.tiles"
+_113ChanceTileMap: INCBIN "img/players/113Chance.tilemap"
+ENDC

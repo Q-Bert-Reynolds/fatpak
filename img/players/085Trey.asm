@@ -1,0 +1,7 @@
+IF !DEF(_085TREY_TILE_COUNT)
+_085TREY_TILE_COUNT EQU 31
+_085TREY_ROWS EQU 7
+_085TREY_COLUMNS EQU 7
+_085TreyTiles: INCBIN "img/players/085Trey.tiles"
+_085TreyTileMap: INCBIN "img/players/085Trey.tilemap"
+ENDC

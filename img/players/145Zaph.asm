@@ -1,0 +1,7 @@
+IF !DEF(_145ZAPH_TILE_COUNT)
+_145ZAPH_TILE_COUNT EQU 39
+_145ZAPH_ROWS EQU 7
+_145ZAPH_COLUMNS EQU 7
+_145ZaphTiles: INCBIN "img/players/145Zaph.tiles"
+_145ZaphTileMap: INCBIN "img/players/145Zaph.tilemap"
+ENDC

@@ -1,0 +1,7 @@
+IF !DEF(_137POLYGON_TILE_COUNT)
+_137POLYGON_TILE_COUNT EQU 25
+_137POLYGON_ROWS EQU 6
+_137POLYGON_COLUMNS EQU 6
+_137PolygonTiles: INCBIN "img/players/137Polygon.tiles"
+_137PolygonTileMap: INCBIN "img/players/137Polygon.tilemap"
+ENDC

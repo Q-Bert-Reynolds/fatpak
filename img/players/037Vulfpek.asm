@@ -1,0 +1,7 @@
+IF !DEF(_037VULFPEK_TILE_COUNT)
+_037VULFPEK_TILE_COUNT EQU 28
+_037VULFPEK_ROWS EQU 6
+_037VULFPEK_COLUMNS EQU 6
+_037VulfpekTiles: INCBIN "img/players/037Vulfpek.tiles"
+_037VulfpekTileMap: INCBIN "img/players/037Vulfpek.tilemap"
+ENDC

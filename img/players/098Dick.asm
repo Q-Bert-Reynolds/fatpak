@@ -1,0 +1,7 @@
+IF !DEF(_098DICK_TILE_COUNT)
+_098DICK_TILE_COUNT EQU 24
+_098DICK_ROWS EQU 5
+_098DICK_COLUMNS EQU 5
+_098DickTiles: INCBIN "img/players/098Dick.tiles"
+_098DickTileMap: INCBIN "img/players/098Dick.tilemap"
+ENDC

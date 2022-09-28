@@ -1,0 +1,4 @@
+IF !DEF(_UI_FONT_TILE_COUNT)
+_UI_FONT_TILE_COUNT EQU 128
+_UiFontTiles: INCBIN "img/ui_font.tiles"
+ENDC

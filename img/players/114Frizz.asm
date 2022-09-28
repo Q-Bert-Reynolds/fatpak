@@ -1,0 +1,7 @@
+IF !DEF(_114FRIZZ_TILE_COUNT)
+_114FRIZZ_TILE_COUNT EQU 31
+_114FRIZZ_ROWS EQU 6
+_114FRIZZ_COLUMNS EQU 6
+_114FrizzTiles: INCBIN "img/players/114Frizz.tiles"
+_114FrizzTileMap: INCBIN "img/players/114Frizz.tilemap"
+ENDC

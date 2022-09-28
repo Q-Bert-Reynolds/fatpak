@@ -1,0 +1,4 @@
+IF !DEF(_LINEUP_SPRITES_TILE_COUNT)
+_LINEUP_SPRITES_TILE_COUNT EQU 36
+_LineupSpritesTiles: INCBIN "img/lineup_sprites.tiles"
+ENDC

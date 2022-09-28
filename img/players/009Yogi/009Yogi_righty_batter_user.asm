@@ -1,0 +1,13 @@
+IF !DEF(_009YOGI_RIGHTY_BATTER_USER_TILE_COUNT)
+_009YOGI_RIGHTY_BATTER_USER_TILE_COUNT EQU 54
+_009YogiRightyBatterUserTiles: INCBIN "img/players/009Yogi/009Yogi_righty_batter_user.tiles"
+_009YOGI_RIGHTY_BATTER_USER0_ROWS EQU 7
+_009YOGI_RIGHTY_BATTER_USER0_COLUMNS EQU 8
+_009YogiRightyBatterUser0TileMap: INCBIN "img/players/009Yogi/009Yogi_righty_batter_user0.tilemap"
+_009YOGI_RIGHTY_BATTER_USER1_ROWS EQU 7
+_009YOGI_RIGHTY_BATTER_USER1_COLUMNS EQU 8
+_009YogiRightyBatterUser1TileMap: INCBIN "img/players/009Yogi/009Yogi_righty_batter_user1.tilemap"
+_009YOGI_RIGHTY_BATTER_USER2_ROWS EQU 7
+_009YOGI_RIGHTY_BATTER_USER2_COLUMNS EQU 8
+_009YogiRightyBatterUser2TileMap: INCBIN "img/players/009Yogi/009Yogi_righty_batter_user2.tilemap"
+ENDC

@@ -1,0 +1,7 @@
+IF !DEF(_021STOOP_TILE_COUNT)
+_021STOOP_TILE_COUNT EQU 21
+_021STOOP_ROWS EQU 5
+_021STOOP_COLUMNS EQU 5
+_021StoopTiles: INCBIN "img/players/021Stoop.tiles"
+_021StoopTileMap: INCBIN "img/players/021Stoop.tilemap"
+ENDC

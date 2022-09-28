@@ -1,0 +1,7 @@
+IF !DEF(_095ONYX_TILE_COUNT)
+_095ONYX_TILE_COUNT EQU 39
+_095ONYX_ROWS EQU 7
+_095ONYX_COLUMNS EQU 7
+_095OnyxTiles: INCBIN "img/players/095Onyx.tiles"
+_095OnyxTileMap: INCBIN "img/players/095Onyx.tilemap"
+ENDC

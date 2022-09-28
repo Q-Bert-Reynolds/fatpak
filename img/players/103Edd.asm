@@ -1,0 +1,7 @@
+IF !DEF(_103EDD_TILE_COUNT)
+_103EDD_TILE_COUNT EQU 46
+_103EDD_ROWS EQU 7
+_103EDD_COLUMNS EQU 7
+_103EddTiles: INCBIN "img/players/103Edd.tiles"
+_103EddTileMap: INCBIN "img/players/103Edd.tilemap"
+ENDC

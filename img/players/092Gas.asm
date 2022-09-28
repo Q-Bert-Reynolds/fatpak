@@ -1,0 +1,7 @@
+IF !DEF(_092GAS_TILE_COUNT)
+_092GAS_TILE_COUNT EQU 47
+_092GAS_ROWS EQU 7
+_092GAS_COLUMNS EQU 7
+_092GasTiles: INCBIN "img/players/092Gas.tiles"
+_092GasTileMap: INCBIN "img/players/092Gas.tilemap"
+ENDC

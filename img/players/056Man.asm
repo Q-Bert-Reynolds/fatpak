@@ -1,0 +1,7 @@
+IF !DEF(_056MAN_TILE_COUNT)
+_056MAN_TILE_COUNT EQU 24
+_056MAN_ROWS EQU 5
+_056MAN_COLUMNS EQU 5
+_056ManTiles: INCBIN "img/players/056Man.tiles"
+_056ManTileMap: INCBIN "img/players/056Man.tilemap"
+ENDC

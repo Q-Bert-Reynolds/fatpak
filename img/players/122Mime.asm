@@ -1,0 +1,7 @@
+IF !DEF(_122MIME_TILE_COUNT)
+_122MIME_TILE_COUNT EQU 36
+_122MIME_ROWS EQU 6
+_122MIME_COLUMNS EQU 6
+_122MimeTiles: INCBIN "img/players/122Mime.tiles"
+_122MimeTileMap: INCBIN "img/players/122Mime.tilemap"
+ENDC

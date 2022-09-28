@@ -1,0 +1,7 @@
+IF !DEF(_016PIDGE_TILE_COUNT)
+_016PIDGE_TILE_COUNT EQU 18
+_016PIDGE_ROWS EQU 5
+_016PIDGE_COLUMNS EQU 5
+_016PidgeTiles: INCBIN "img/players/016Pidge.tiles"
+_016PidgeTileMap: INCBIN "img/players/016Pidge.tilemap"
+ENDC

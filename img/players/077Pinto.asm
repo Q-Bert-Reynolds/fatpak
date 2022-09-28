@@ -1,0 +1,7 @@
+IF !DEF(_077PINTO_TILE_COUNT)
+_077PINTO_TILE_COUNT EQU 29
+_077PINTO_ROWS EQU 6
+_077PINTO_COLUMNS EQU 6
+_077PintoTiles: INCBIN "img/players/077Pinto.tiles"
+_077PintoTileMap: INCBIN "img/players/077Pinto.tilemap"
+ENDC

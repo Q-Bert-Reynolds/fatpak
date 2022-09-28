@@ -1,0 +1,7 @@
+IF !DEF(_026RAI_TILE_COUNT)
+_026RAI_TILE_COUNT EQU 39
+_026RAI_ROWS EQU 7
+_026RAI_COLUMNS EQU 7
+_026RaiTiles: INCBIN "img/players/026Rai.tiles"
+_026RaiTileMap: INCBIN "img/players/026Rai.tilemap"
+ENDC

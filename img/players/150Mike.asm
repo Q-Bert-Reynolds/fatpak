@@ -1,0 +1,7 @@
+IF !DEF(_150MIKE_TILE_COUNT)
+_150MIKE_TILE_COUNT EQU 41
+_150MIKE_ROWS EQU 7
+_150MIKE_COLUMNS EQU 7
+_150MikeTiles: INCBIN "img/players/150Mike.tiles"
+_150MikeTileMap: INCBIN "img/players/150Mike.tilemap"
+ENDC

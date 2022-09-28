@@ -1,0 +1,7 @@
+IF !DEF(_106BRUCE_TILE_COUNT)
+_106BRUCE_TILE_COUNT EQU 38
+_106BRUCE_ROWS EQU 7
+_106BRUCE_COLUMNS EQU 7
+_106BruceTiles: INCBIN "img/players/106Bruce.tiles"
+_106BruceTileMap: INCBIN "img/players/106Bruce.tilemap"
+ENDC

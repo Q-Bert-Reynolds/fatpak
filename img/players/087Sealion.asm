@@ -1,0 +1,7 @@
+IF !DEF(_087SEALION_TILE_COUNT)
+_087SEALION_TILE_COUNT EQU 29
+_087SEALION_ROWS EQU 6
+_087SEALION_COLUMNS EQU 6
+_087SealionTiles: INCBIN "img/players/087Sealion.tiles"
+_087SealionTileMap: INCBIN "img/players/087Sealion.tilemap"
+ENDC

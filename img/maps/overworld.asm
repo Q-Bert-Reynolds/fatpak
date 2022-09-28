@@ -1,0 +1,4 @@
+IF !DEF(_OVERWORLD_TILE_COUNT)
+_OVERWORLD_TILE_COUNT EQU 128
+_OverworldTiles: INCBIN "img/maps/overworld.tiles"
+ENDC

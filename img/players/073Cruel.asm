@@ -1,0 +1,7 @@
+IF !DEF(_073CRUEL_TILE_COUNT)
+_073CRUEL_TILE_COUNT EQU 31
+_073CRUEL_ROWS EQU 6
+_073CRUEL_COLUMNS EQU 6
+_073CruelTiles: INCBIN "img/players/073Cruel.tiles"
+_073CruelTileMap: INCBIN "img/players/073Cruel.tilemap"
+ENDC

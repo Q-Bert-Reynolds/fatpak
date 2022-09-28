@@ -1,0 +1,7 @@
+IF !DEF(_117EINSTEIN_TILE_COUNT)
+_117EINSTEIN_TILE_COUNT EQU 24
+_117EINSTEIN_ROWS EQU 6
+_117EINSTEIN_COLUMNS EQU 6
+_117EinsteinTiles: INCBIN "img/players/117Einstein.tiles"
+_117EinsteinTileMap: INCBIN "img/players/117Einstein.tilemap"
+ENDC

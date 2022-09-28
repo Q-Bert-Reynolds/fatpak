@@ -1,0 +1,7 @@
+IF !DEF(_052MEOW_TILE_COUNT)
+_052MEOW_TILE_COUNT EQU 22
+_052MEOW_ROWS EQU 5
+_052MEOW_COLUMNS EQU 5
+_052MeowTiles: INCBIN "img/players/052Meow.tiles"
+_052MeowTileMap: INCBIN "img/players/052Meow.tilemap"
+ENDC

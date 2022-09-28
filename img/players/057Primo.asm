@@ -1,0 +1,7 @@
+IF !DEF(_057PRIMO_TILE_COUNT)
+_057PRIMO_TILE_COUNT EQU 43
+_057PRIMO_ROWS EQU 7
+_057PRIMO_COLUMNS EQU 7
+_057PrimoTiles: INCBIN "img/players/057Primo.tiles"
+_057PrimoTileMap: INCBIN "img/players/057Primo.tilemap"
+ENDC

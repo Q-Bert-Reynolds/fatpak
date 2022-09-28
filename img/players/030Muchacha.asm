@@ -1,0 +1,7 @@
+IF !DEF(_030MUCHACHA_TILE_COUNT)
+_030MUCHACHA_TILE_COUNT EQU 35
+_030MUCHACHA_ROWS EQU 6
+_030MUCHACHA_COLUMNS EQU 6
+_030MuchachaTiles: INCBIN "img/players/030Muchacha.tiles"
+_030MuchachaTileMap: INCBIN "img/players/030Muchacha.tilemap"
+ENDC

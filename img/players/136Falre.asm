@@ -1,0 +1,7 @@
+IF !DEF(_136FALRE_TILE_COUNT)
+_136FALRE_TILE_COUNT EQU 33
+_136FALRE_ROWS EQU 6
+_136FALRE_COLUMNS EQU 6
+_136FalreTiles: INCBIN "img/players/136Falre.tiles"
+_136FalreTileMap: INCBIN "img/players/136Falre.tilemap"
+ENDC

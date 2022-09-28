@@ -1,0 +1,7 @@
+IF !DEF(_133EVIE_TILE_COUNT)
+_133EVIE_TILE_COUNT EQU 25
+_133EVIE_ROWS EQU 5
+_133EVIE_COLUMNS EQU 5
+_133EvieTiles: INCBIN "img/players/133Evie.tiles"
+_133EvieTileMap: INCBIN "img/players/133Evie.tilemap"
+ENDC

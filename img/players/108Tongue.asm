@@ -1,0 +1,7 @@
+IF !DEF(_108TONGUE_TILE_COUNT)
+_108TONGUE_TILE_COUNT EQU 37
+_108TONGUE_ROWS EQU 7
+_108TONGUE_COLUMNS EQU 7
+_108TongueTiles: INCBIN "img/players/108Tongue.tiles"
+_108TongueTileMap: INCBIN "img/players/108Tongue.tilemap"
+ENDC

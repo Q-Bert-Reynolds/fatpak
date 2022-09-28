@@ -1,0 +1,7 @@
+IF !DEF(_096ZEE_TILE_COUNT)
+_096ZEE_TILE_COUNT EQU 33
+_096ZEE_ROWS EQU 6
+_096ZEE_COLUMNS EQU 6
+_096ZeeTiles: INCBIN "img/players/096Zee.tiles"
+_096ZeeTileMap: INCBIN "img/players/096Zee.tilemap"
+ENDC
