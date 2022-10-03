@@ -40,6 +40,7 @@ INCLUDE "data/player_strings.asm"
 
 
 SECTION "Roledex", ROM0
+_GetMoveName::
 GetMoveName:: ; a = move number, returns name in name_buffer
   and a
   jr nz, .findName

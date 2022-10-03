@@ -8,7 +8,44 @@
 ;--------------------------------------------------------
 ; Public variables in this module
 ;--------------------------------------------------------
-	EXPORT _announceSomething
+	EXPORT __AnnounceSwingContact
+	EXPORT _AnnounceEndOfGame
+	EXPORT _AnnounceRunScored
+	EXPORT _AnnounceRunnersOn
+	EXPORT _AnnounceAdvanceRunners
+	EXPORT _AnnounceFoulBall
+	EXPORT _AnnounceFieldingText
+	EXPORT _AnnounceBuntText
+	EXPORT _AppendInfieldLocationTextByAngle
+	EXPORT _AnnounceHitInAirToInfield
+	EXPORT _AppendOutfieldLocationTextByAngle
+	EXPORT _AnnounceHitInAirToOutfield
+	EXPORT _AnnounceHitInAir
+	EXPORT _AnnounceHitOnGround
+	EXPORT _AnnounceSwingMiss
+	EXPORT _AnnounceWildPitchOrPassedBall
+	EXPORT _AnnounceNoSwing
+	EXPORT _AnnounceBatterStepsIntoBox
+	EXPORT _AnnounceNextBatter
+	EXPORT _AnnouncePitchName
+	EXPORT _AnnounceAndThePitch
+	EXPORT _AnnouncePitcherSets
+	EXPORT _AnnounceBeginningOfFrame
+	EXPORT _AnnounceBatter
+	EXPORT _AnnouncePitcher
+	EXPORT _GetMoveName
+	EXPORT _IncrementOuts
+	EXPORT _CheckStrike
+	EXPORT _SetStrikes
+	EXPORT _GetStrikes
+	EXPORT _SetBalls
+	EXPORT _GetBalls
+	EXPORT _str_Number
+	EXPORT _str_Replace
+	EXPORT _str_Append
+	EXPORT _str_Copy
+	EXPORT _str_FromArray
+	EXPORT _DisplayText
 	EXPORT _RevealTextAndWait
 	EXPORT _AndThatsTheBallGameText
 	EXPORT _TopOfTheText
@@ -107,17 +144,25 @@
 ; code
 ;--------------------------------------------------------
 	SECTION FRAGMENT "src/baseball/announcer.c_CODE",ROMX
-;src/baseball/announcer.c:6: void announceSomething() {
+;src/baseball/announcer.c:134: void AnnouncePitcher(void) {
 ;	---------------------------------
-; Function announceSomething
+; Function AnnouncePitcher
 ; ---------------------------------
-_announceSomething::
-;src/baseball/announcer.c:7: RevealTextAndWait(1, BallText);
-	ld	de, _BallText
-	ld	a, $01
+_AnnouncePitcher::
+;src/baseball/announcer.c:138: __endasm;
+	TRAMPOLINE	ShowPitcher
+	TRAMPOLINE	GetCurrentPitcherName
+;src/baseball/announcer.c:139: str_Replace(TakesTheMoundText, str_buffer, name_buffer);
+	ld	de, _name_buffer
+	push	de
+	ld	bc, _str_buffer
+	ld	de, _TakesTheMoundText
+	call	_str_Replace
+;src/baseball/announcer.c:140: RevealTextAndWait(str_buffer);
+	ld	de, _str_buffer
 	jp	_RevealTextAndWait
 .l00101:
-;src/baseball/announcer.c:8: }
+;src/baseball/announcer.c:141: }
 	ret
 _PositionTexts:
 	DB "lanzador"
@@ -561,6 +606,543 @@ _AndThatsTheBallGameText:
 	DB $BA
 	DB "ll."
 	DB $00
+;src/baseball/announcer.c:143: void AnnounceBatter(void) {
+;	---------------------------------
+; Function AnnounceBatter
+; ---------------------------------
+_AnnounceBatter::
+;src/baseball/announcer.c:148: __endasm;
+	TRAMPOLINE	DrawCountOutsInning
+	TRAMPOLINE	ShowBatter
+	TRAMPOLINE	GetCurrentBatterName
+;src/baseball/announcer.c:149: str_Replace(WalksToThePlateText, str_buffer, name_buffer);
+	ld	de, _name_buffer
+	push	de
+	ld	bc, _str_buffer
+	ld	de, _WalksToThePlateText
+	call	_str_Replace
+;src/baseball/announcer.c:150: RevealTextAndWait(str_buffer);
+	ld	de, _str_buffer
+	jp	_RevealTextAndWait
+.l00101:
+;src/baseball/announcer.c:151: }
+	ret
+;src/baseball/announcer.c:160: void AnnounceBeginningOfFrame(void) {
+;	---------------------------------
+; Function AnnounceBeginningOfFrame
+; ---------------------------------
+_AnnounceBeginningOfFrame::
+;src/baseball/announcer.c:161: char* inningText = str_FromArray(frame>>1, InningTexts);
+	ld	bc, _InningTexts+0
+	ld	hl, _frame
+	ld	e, [hl]
+	srl	e
+	ld	d, $00
+	call	_str_FromArray
+	ld	e, c
+	ld	d, b
+;src/baseball/announcer.c:162: str_Copy(inningText, name_buffer);
+	ld	bc, _name_buffer
+	call	_str_Copy
+;src/baseball/announcer.c:163: const char* topBottomText = (frame % 2 == 0) ? TopOfTheText : BottomOfTheText;
+	push	hl
+	ld	hl, _frame
+	bit	0, [hl]
+	pop	hl
+	jr	Z, .l00111
+.l00110:
+	jr	.l00103
+.l00111:
+	ld	de, _TopOfTheText+0
+	jr	.l00104
+.l00103:
+	ld	de, _BottomOfTheText+0
+.l00104:
+;src/baseball/announcer.c:164: str_Replace(topBottomText, str_buffer, name_buffer);
+	ld	bc, _name_buffer
+	push	bc
+	ld	bc, _str_buffer
+	call	_str_Replace
+;src/baseball/announcer.c:165: RevealTextAndWait(str_buffer);
+	ld	de, _str_buffer
+	call	_RevealTextAndWait
+;src/baseball/announcer.c:166: AnnouncePitcher();
+	call	_AnnouncePitcher
+;src/baseball/announcer.c:167: AnnounceBatter();
+	jp	_AnnounceBatter
+.l00101:
+;src/baseball/announcer.c:168: }
+	ret
+;src/baseball/announcer.c:170: void AnnouncePitcherSets(void) {
+;	---------------------------------
+; Function AnnouncePitcherSets
+; ---------------------------------
+_AnnouncePitcherSets::
+;src/baseball/announcer.c:173: __endasm;
+	TRAMPOLINE	GetCurrentPitcherName
+;src/baseball/announcer.c:174: str_Replace(PitcherSetsText, str_buffer, name_buffer);
+	ld	de, _name_buffer
+	push	de
+	ld	bc, _str_buffer
+	ld	de, _PitcherSetsText
+	call	_str_Replace
+;src/baseball/announcer.c:175: DisplayText(DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP, str_buffer);
+	ld	de, _str_buffer
+	ld	a, $03
+	jp	_DisplayText
+.l00101:
+;src/baseball/announcer.c:176: }
+	ret
+;src/baseball/announcer.c:178: void AnnounceAndThePitch(void) {
+;	---------------------------------
+; Function AnnounceAndThePitch
+; ---------------------------------
+_AnnounceAndThePitch::
+;src/baseball/announcer.c:179: DisplayText(DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP, AndThePitchText);
+	ld	de, _AndThePitchText
+	ld	a, $03
+	jp	_DisplayText
+.l00101:
+;src/baseball/announcer.c:180: }
+	ret
+;src/baseball/announcer.c:182: void AnnouncePitchName(void) {
+;	---------------------------------
+; Function AnnouncePitchName
+; ---------------------------------
+_AnnouncePitchName::
+;src/baseball/announcer.c:183: GetMoveName(pitch_move_id);//"PITCH_NAME" in name_buffer
+	ld	hl, _pitch_move_id
+	ld	a, [hl]
+	call	_GetMoveName
+;src/baseball/announcer.c:184: str_Copy(AndThePitchText, str_buffer);//"And the pitch.""
+	ld	bc, _str_buffer
+	ld	de, _AndThePitchText
+	call	_str_Copy
+;src/baseball/announcer.c:185: str_Replace(ThrewAPitchText, tile_buffer, name_buffer);//"\nA PITCH_NAME."
+	ld	de, _name_buffer
+	push	de
+	ld	bc, _tile_buffer
+	ld	de, _ThrewAPitchText
+	call	_str_Replace
+;src/baseball/announcer.c:186: str_Append(tile_buffer, str_buffer);//"And the pitch.\nA PITCH_NAME."
+	ld	bc, _str_buffer
+	ld	de, _tile_buffer
+	call	_str_Append
+;src/baseball/announcer.c:187: DisplayText(DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP, str_buffer);
+	ld	de, _str_buffer
+	ld	a, $03
+	jp	_DisplayText
+.l00101:
+;src/baseball/announcer.c:188: }
+	ret
+;src/baseball/announcer.c:190: void AnnounceNextBatter(void) {
+;	---------------------------------
+; Function AnnounceNextBatter
+; ---------------------------------
+_AnnounceNextBatter::
+;src/baseball/announcer.c:191: SetBalls(0);
+	xor	a, a
+	call	_SetBalls
+;src/baseball/announcer.c:192: SetStrikes(0);
+	xor	a, a
+	call	_SetStrikes
+;src/baseball/announcer.c:193: __asm__("TRAMPOLINE NextBatter");
+	TRAMPOLINE	NextBatter
+;src/baseball/announcer.c:194: AnnounceBatter();
+	jp	_AnnounceBatter
+.l00101:
+;src/baseball/announcer.c:195: }
+	ret
+;src/baseball/announcer.c:197: void AnnounceBatterStepsIntoBox(void) {
+;	---------------------------------
+; Function AnnounceBatterStepsIntoBox
+; ---------------------------------
+_AnnounceBatterStepsIntoBox::
+;src/baseball/announcer.c:198: __asm__("TRAMPOLINE GetCurrentBatterName");
+	TRAMPOLINE	GetCurrentBatterName
+;src/baseball/announcer.c:199: str_Replace(BatterStepsIntoTheBoxText, str_buffer, name_buffer);
+	ld	de, _name_buffer
+	push	de
+	ld	bc, _str_buffer
+	ld	de, _BatterStepsIntoTheBoxText
+	call	_str_Replace
+;src/baseball/announcer.c:200: DisplayText(DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP, str_buffer);
+	ld	de, _str_buffer
+	ld	a, $03
+	jp	_DisplayText
+.l00101:
+;src/baseball/announcer.c:201: }
+	ret
+;src/baseball/announcer.c:210: void AnnounceNoSwing(void) {
+;	---------------------------------
+; Function AnnounceNoSwing
+; ---------------------------------
+_AnnounceNoSwing::
+;src/baseball/announcer.c:212: if (CheckStrike()) { //strike
+	call	_CheckStrike
+	ld	c, a
+	or	a, a
+	jp	Z, .l00110
+;src/baseball/announcer.c:213: char strikes = GetStrikes();
+	call	_GetStrikes
+;src/baseball/announcer.c:214: if (strikes < 2) {
+	cp	a, $02
+	jp	NC, .l00104
+;src/baseball/announcer.c:215: SetStrikes(++strikes);
+	ld	c, a
+	inc	c
+	push	bc
+	ld	a, c
+	call	_SetStrikes
+	pop	bc
+;src/baseball/announcer.c:216: __asm__("TRAMPOLINE DrawCountOutsInning");
+	TRAMPOLINE	DrawCountOutsInning
+;src/baseball/announcer.c:217: str_Number(strikes);
+	ld	b, $00
+	ld	de, $0000
+	call	_str_Number
+;src/baseball/announcer.c:218: str_Replace(StrikeText, str_buffer, name_buffer);
+	ld	de, _name_buffer
+	push	de
+	ld	bc, _str_buffer
+	ld	de, _StrikeText
+	call	_str_Replace
+;src/baseball/announcer.c:219: RevealTextAndWait(str_buffer);
+	ld	de, _str_buffer
+	jp	_RevealTextAndWait
+.l00104:
+;src/baseball/announcer.c:222: __asm__("TRAMPOLINE GetCurrentBatterName");
+	TRAMPOLINE	GetCurrentBatterName
+;src/baseball/announcer.c:223: str_Replace(StrikeOutLookingText, str_buffer, name_buffer);
+	ld	de, _name_buffer
+	push	de
+	ld	bc, _str_buffer
+	ld	de, _StrikeOutLookingText
+	call	_str_Replace
+;src/baseball/announcer.c:224: RevealTextAndWait(str_buffer);
+	ld	de, _str_buffer
+	call	_RevealTextAndWait
+;src/baseball/announcer.c:225: __asm__("TRAMPOLINE HideBatter");
+	TRAMPOLINE	HideBatter
+;src/baseball/announcer.c:226: if (IncrementOuts() < 3) {
+	call	_IncrementOuts
+	sub	a, $03
+	jp	NC, .l00112
+;src/baseball/announcer.c:227: AnnounceNextBatter();
+	jp	_AnnounceNextBatter
+	jp	.l00112
+.l00110:
+;src/baseball/announcer.c:232: char balls = GetBalls();
+	call	_GetBalls
+;src/baseball/announcer.c:233: if (balls < 3) {
+	cp	a, $03
+	jp	NC, .l00107
+;src/baseball/announcer.c:234: SetBalls(++balls);
+	ld	c, a
+	inc	c
+	push	bc
+	ld	a, c
+	call	_SetBalls
+	pop	bc
+;src/baseball/announcer.c:235: __asm__("TRAMPOLINE DrawCountOutsInning");
+	TRAMPOLINE	DrawCountOutsInning
+;src/baseball/announcer.c:236: str_Number(balls);
+	ld	b, $00
+	ld	de, $0000
+	call	_str_Number
+;src/baseball/announcer.c:237: str_Replace(BallText, str_buffer, name_buffer);
+	ld	de, _name_buffer
+	push	de
+	ld	bc, _str_buffer
+	ld	de, _BallText
+	call	_str_Replace
+;src/baseball/announcer.c:238: RevealTextAndWait(str_buffer);
+	ld	de, _str_buffer
+	jp	_RevealTextAndWait
+.l00107:
+;src/baseball/announcer.c:241: __asm__("TRAMPOLINE PutBatterOnFirst");
+	TRAMPOLINE	PutBatterOnFirst
+;src/baseball/announcer.c:242: __asm__("TRAMPOLINE GetCurrentBatterName");
+	TRAMPOLINE	GetCurrentBatterName
+;src/baseball/announcer.c:243: str_Replace(WalkText, str_buffer, name_buffer);
+	ld	de, _name_buffer
+	push	de
+	ld	bc, _str_buffer
+	ld	de, _WalkText
+	call	_str_Replace
+;src/baseball/announcer.c:244: RevealTextAndWait(str_buffer);
+	ld	de, _str_buffer
+	call	_RevealTextAndWait
+;src/baseball/announcer.c:245: __asm__("TRAMPOLINE HideBatter");
+	TRAMPOLINE	HideBatter
+;src/baseball/announcer.c:246: AnnounceRunScored();
+	call	_AnnounceRunScored
+;src/baseball/announcer.c:247: AnnounceNextBatter();
+	jp	_AnnounceNextBatter
+.l00112:
+;src/baseball/announcer.c:250: }
+	ret
+;src/baseball/announcer.c:252: void AnnounceWildPitchOrPassedBall(void) {
+;	---------------------------------
+; Function AnnounceWildPitchOrPassedBall
+; ---------------------------------
+_AnnounceWildPitchOrPassedBall::
+;src/baseball/announcer.c:255: }
+.l00101:
+	ret
+;src/baseball/announcer.c:264: void AnnounceSwingMiss(void) {
+;	---------------------------------
+; Function AnnounceSwingMiss
+; ---------------------------------
+_AnnounceSwingMiss::
+	dec	sp
+;src/baseball/announcer.c:267: char strikes = GetStrikes();
+	call	_GetStrikes
+	ld	hl, sp+0
+;src/baseball/announcer.c:268: if (strikes < 2) {
+	ld	[hl], a
+	sub	a, $02
+	jp	NC, .l00104
+;src/baseball/announcer.c:269: SetStrikes(++strikes);
+	ld	c, [hl]
+	inc	c
+	push	bc
+	ld	a, c
+	call	_SetStrikes
+	pop	bc
+;src/baseball/announcer.c:270: __asm__("TRAMPOLINE DrawCountOutsInning");
+	TRAMPOLINE	DrawCountOutsInning
+;src/baseball/announcer.c:271: str_Number(strikes);
+	ld	b, $00
+	ld	de, $0000
+	call	_str_Number
+;src/baseball/announcer.c:272: str_Replace(StrikeText, str_buffer, name_buffer);
+	ld	de, _name_buffer
+	push	de
+	ld	bc, _str_buffer
+	ld	de, _StrikeText
+	call	_str_Replace
+;src/baseball/announcer.c:273: RevealTextAndWait(str_buffer);
+	ld	de, _str_buffer
+	inc	sp
+	jp	_RevealTextAndWait
+	jp	.l00106
+.l00104:
+;src/baseball/announcer.c:276: __asm__("TRAMPOLINE GetCurrentBatterName");
+	TRAMPOLINE	GetCurrentBatterName
+;src/baseball/announcer.c:277: str_Replace(StrikeOutSwingingText, str_buffer, name_buffer);
+	ld	de, _name_buffer
+	push	de
+	ld	bc, _str_buffer
+	ld	de, _StrikeOutSwingingText
+	call	_str_Replace
+;src/baseball/announcer.c:278: RevealTextAndWait(str_buffer);
+	ld	de, _str_buffer
+	call	_RevealTextAndWait
+;src/baseball/announcer.c:279: __asm__("TRAMPOLINE HideBatter");
+	TRAMPOLINE	HideBatter
+;src/baseball/announcer.c:280: if (IncrementOuts() < 3) {
+	call	_IncrementOuts
+	sub	a, $03
+	jr	NC, .l00106
+;src/baseball/announcer.c:281: AnnounceNextBatter();
+	inc	sp
+	jp	_AnnounceNextBatter
+.l00106:
+;src/baseball/announcer.c:284: }
+	inc	sp
+	ret
+;src/baseball/announcer.c:286: void AnnounceHitOnGround(char speed, char spray) {
+;	---------------------------------
+; Function AnnounceHitOnGround
+; ---------------------------------
+_AnnounceHitOnGround::
+;src/baseball/announcer.c:288: }
+.l00101:
+	ret
+;src/baseball/announcer.c:290: void AnnounceHitInAir(char speed, char spray, char launch) {
+;	---------------------------------
+; Function AnnounceHitInAir
+; ---------------------------------
+_AnnounceHitInAir::
+;src/baseball/announcer.c:303: }
+.l00101:
+	pop	hl
+	inc	sp
+	jp	hl
+;src/baseball/announcer.c:305: void AnnounceHitInAirToOutfield(unsigned char distance, char sparay, char launch) {   
+;	---------------------------------
+; Function AnnounceHitInAirToOutfield
+; ---------------------------------
+_AnnounceHitInAirToOutfield::
+;src/baseball/announcer.c:381: }
+.l00101:
+	pop	hl
+	inc	sp
+	jp	hl
+;src/baseball/announcer.c:383: void AppendOutfieldLocationTextByAngle(char spray) {// appends text to str_buffer
+;	---------------------------------
+; Function AppendOutfieldLocationTextByAngle
+; ---------------------------------
+_AppendOutfieldLocationTextByAngle::
+;src/baseball/announcer.c:405: }
+.l00101:
+	ret
+;src/baseball/announcer.c:407: void AnnounceHitInAirToInfield(unsigned char distance, char spray, char launch) {  
+;	---------------------------------
+; Function AnnounceHitInAirToInfield
+; ---------------------------------
+_AnnounceHitInAirToInfield::
+;src/baseball/announcer.c:440: }
+.l00101:
+	pop	hl
+	inc	sp
+	jp	hl
+;src/baseball/announcer.c:442: void AppendInfieldLocationTextByAngle(char spray) {// appends text to str_buffer
+;	---------------------------------
+; Function AppendInfieldLocationTextByAngle
+; ---------------------------------
+_AppendInfieldLocationTextByAngle::
+;src/baseball/announcer.c:464: }
+.l00101:
+	ret
+;src/baseball/announcer.c:466: void AnnounceBuntText(char launch, char spray) {
+;	---------------------------------
+; Function AnnounceBuntText
+; ---------------------------------
+_AnnounceBuntText::
+;src/baseball/announcer.c:491: }
+.l00101:
+	ret
+;src/baseball/announcer.c:493: void AnnounceFieldingText(unsigned char position, unsigned char distance, unsigned char hang_time){
+;	---------------------------------
+; Function AnnounceFieldingText
+; ---------------------------------
+_AnnounceFieldingText::
+;src/baseball/announcer.c:564: }
+.l00101:
+	pop	hl
+	inc	sp
+	jp	hl
+;src/baseball/announcer.c:566: void AnnounceFoulBall(void) {
+;	---------------------------------
+; Function AnnounceFoulBall
+; ---------------------------------
+_AnnounceFoulBall::
+;src/baseball/announcer.c:574: }
+.l00101:
+	ret
+;src/baseball/announcer.c:576: void AnnounceAdvanceRunners(void) {
+;	---------------------------------
+; Function AnnounceAdvanceRunners
+; ---------------------------------
+_AnnounceAdvanceRunners::
+;src/baseball/announcer.c:578: }
+.l00101:
+	ret
+;src/baseball/announcer.c:580: void AnnounceRunnersOn(void) {
+;	---------------------------------
+; Function AnnounceRunnersOn
+; ---------------------------------
+_AnnounceRunnersOn::
+;src/baseball/announcer.c:582: }
+.l00101:
+	ret
+;src/baseball/announcer.c:585: void AnnounceRunScored(void) {//if upper nibble of [runners_on_base] non-zero, announces runner who scored
+;	---------------------------------
+; Function AnnounceRunScored
+; ---------------------------------
+_AnnounceRunScored::
+;src/baseball/announcer.c:649: }
+.l00101:
+	ret
+;src/baseball/announcer.c:651: void AnnounceEndOfGame(void) {
+;	---------------------------------
+; Function AnnounceEndOfGame
+; ---------------------------------
+_AnnounceEndOfGame::
+;src/baseball/announcer.c:655: }
+.l00101:
+	ret
+;src/baseball/announcer.c:657: void _AnnounceSwingContact(unsigned char speed, signed char spray, signed char launch) {
+;	---------------------------------
+; Function _AnnounceSwingContact
+; ---------------------------------
+__AnnounceSwingContact::
+	ld	c, a
+	ld	b, e
+;src/baseball/announcer.c:660: ball_state = BALL_STATE_IN_PLAY;
+	ld	hl, _ball_state
+	ld	[hl], $10
+;src/baseball/announcer.c:662: if (spray > -45 && spray < 45) {
+	ld	e, b
+	ld	a, $D3
+	ld	d, a
+	ld	a, $D3
+	sub	a, b
+	bit	7, e
+	jr	Z, .l00124
+	bit	7, d
+	jr	NZ, .l00125
+	cp	a, a
+	jr	.l00125
+.l00124:
+	bit	7, d
+	jr	Z, .l00125
+	scf
+.l00125:
+	jr	NC, .l00102
+	ld	a, b
+	xor	a, $80
+	sub	a, $AD
+	jr	NC, .l00102
+;src/baseball/announcer.c:663: ball_state |= BALL_STATE_FAIR; 
+	ld	[hl], $30
+.l00102:
+;src/baseball/announcer.c:666: if (launch > 0) {
+	ld	hl, sp+2
+	ld	a, [hl]
+	ld	e, a
+	ld	a, $00
+	ld	d, a
+	xor	a, a
+	sub	a, [hl]
+	bit	7, e
+	jr	Z, .l00126
+	bit	7, d
+	jr	NZ, .l00127
+	cp	a, a
+	jr	.l00127
+.l00126:
+	bit	7, d
+	jr	Z, .l00127
+	scf
+.l00127:
+	jr	NC, .l00105
+;src/baseball/announcer.c:667: AnnounceHitInAir(speed, spray, launch);
+	ld	hl, sp+2
+	ld	a, [hl]
+	push	af
+	inc	sp
+	ld	e, b
+	ld	a, c
+	call	_AnnounceHitInAir
+	jr	.l00107
+.l00105:
+;src/baseball/announcer.c:670: ball_state |= BALL_STATE_LANDED;
+	ld	hl, _ball_state
+	ld	a, [hl]
+	or	a, $40
+	ld	[hl], a
+;src/baseball/announcer.c:671: AnnounceHitOnGround(speed, spray);
+	ld	e, b
+	ld	a, c
+	call	_AnnounceHitOnGround
+.l00107:
+;src/baseball/announcer.c:673: }
+	pop	hl
+	inc	sp
+	jp	hl
 	SECTION FRAGMENT "src/baseball/announcer.c_CODE",ROMX
 	SECTION FRAGMENT "_INITIALIZER",ROM0
 	SECTION FRAGMENT "_CABS (ABS)",ROM0

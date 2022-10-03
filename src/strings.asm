@@ -65,6 +65,14 @@ SECTION "Strings Code", ROM0
 ;   de - dst string
 ;
 ;***************************************************************************
+_str_Copy::;void str_Copy(char src[], char dest[])
+  ;compiler puts src in de, should be hl
+  ld h, d
+  ld l, e
+  ;compiler puts dest in bc, should be de
+  ld d, b
+  ld e, c
+
 str_Copy::
   ld   a, [hli]
   ld   [de], a
@@ -103,6 +111,19 @@ str_Length::
 ;   hl - string at index bc
 ;
 ;***************************************************************************
+_str_FromArray::;void str_FromArray(int index, char strings[])
+  ;compiler puts array of strings in bc, should be in hl
+  ld h, b
+  ld l, c
+  ;compiler puts index in de, should be in bc
+  ld b, d
+  ld c, e
+  call str_FromArray
+  ;compiler expects return to be in bc
+  ld b, h
+  ld c, l
+  ret
+
 str_FromArray::
   inc bc
   jr .test
@@ -153,6 +174,14 @@ str_CopyLine::
 ;   de - dest string
 ;
 ;***************************************************************************
+_str_Append::;void str_Append(char append[], char dest[])
+  ;compiler puts append in de, should be hl
+  ld h, d
+  ld l, e
+  ;compiler puts dest in bc, should be de
+  ld d, b
+  ld e, c
+
 str_Append::
   ld a, [de]
   inc de
@@ -193,6 +222,22 @@ str_AppendChar:
 ;   bc - replace data
 ;
 ;***************************************************************************
+_str_Replace::
+  ld hl, sp+2
+  ld a, [hli]
+  push af
+  ld a, [hli]
+  ld h, d ;src in de, should be in hl
+  ld l, e
+  ld d, b ;dst in bc, should be in de
+  ld e, c
+  pop bc; replace on stack, should be in bc
+  ld c, b
+  ld b, a
+  call str_Replace
+  pop	hl;get return address
+	pop	de;discard replacement text
+	jp hl
 str_Replace::
   ld a, [hli]
   and a
@@ -221,13 +266,6 @@ str_Replace::
   ret
 
 
-_StringNumber::;extern void StringNumber(unsigned long n);
-  ;n is debc, needs to be dehl
-  push bc
-  pop hl
-  ld bc, name_buffer
-  jr str_Number32
-
 ;***************************************************************************
 ;
 ; str_Number - a wrapper around str_Number16 for compatibility with old code
@@ -237,6 +275,12 @@ _StringNumber::;extern void StringNumber(unsigned long n);
 ;   de - dest string
 ;
 ;***************************************************************************
+_str_Number::;extern void str_Number(unsigned long n);
+  ;n is debc, needs to be dehl
+  push bc
+  pop hl
+  ld bc, name_buffer
+  jr str_Number32
 str_Number::
   push bc
   push de;dest string

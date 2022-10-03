@@ -32,12 +32,14 @@ SECTION "Baseball Utils Bank 0", ROM0
 ; CurrentOrderInLineup            returns order in a
 ; GetPitchBreak                   b = path, c = z, returns xy offset in de
 
+_GetBalls::
 GetBalls::; returns (balls_strikes_outs & BALLS_MASK) >> 4 in a
   ld a, [balls_strikes_outs]
   and BALLS_MASK
   swap a
   ret
 
+_SetBalls::
 SetBalls::; a = balls
   swap a
   and BALLS_MASK
@@ -48,6 +50,7 @@ SetBalls::; a = balls
   ld [balls_strikes_outs], a
   ret
 
+_GetStrikes::
 GetStrikes::; returns (balls_strikes_outs & STRIKES_MASK) >> 2 in a
   ld a, [balls_strikes_outs]
   and STRIKES_MASK
@@ -55,6 +58,7 @@ GetStrikes::; returns (balls_strikes_outs & STRIKES_MASK) >> 2 in a
   srl a
   ret
 
+_SetStrikes::
 SetStrikes::; a = strikes
   sla a
   sla a
@@ -153,6 +157,7 @@ SetOuts::; a = outs
   ld [balls_strikes_outs], a
   ret
 
+_IncrementOuts::
 IncrementOuts::;increments outs, returns outs in a
   call GetOuts
   inc a
@@ -171,6 +176,7 @@ IncrementOuts::;increments outs, returns outs in a
   ld a, 3
   ret
 
+_CheckStrike::
 CheckStrike:: ;returns ball (z) or strike (nz)
   ld a, [_b]
   ld b, a
@@ -1022,8 +1028,7 @@ ShowUserPlayer::
   call SetPlayerColors
   call LoadUserPlayerBkgTiles
   xor a
-  call SetUserPlayerBkgTiles
-  ret
+  jp SetUserPlayerBkgTiles
 
 ShowOpposingPlayer::
   ld a, [game_state]
@@ -1036,8 +1041,7 @@ ShowOpposingPlayer::
   call SetPlayerColors
   call LoadOpposingPlayerBkgTiles
   xor a
-  call SetOpposingPlayerBkgTiles
-  ret
+  jp SetOpposingPlayerBkgTiles
 
 HideBatter::
   call IsUserFielding
@@ -1077,26 +1081,22 @@ GetUserPitcherOrder::;returns user pitcher's batting order in b
 
 GetUserPitcher::;puts user pitcher's player data in hl
   ld a, 1
-  call GetUserPlayerByPosition
-  ret
+  jp GetUserPlayerByPosition
 
 GetUserBatter::;puts user batter's player data in hl
   ld a, [current_batter]
   and a, %00001111
-  call GetUserPlayerInLineup
-  ret
+  jp GetUserPlayerInLineup
   
 GetOpponentPitcher::;puts opposing pitcher's player data in hl
   ld a, 1
-  call GetOpposingPlayerByPosition
-  ret
+  jp GetOpposingPlayerByPosition
 
 GetOpponentBatter::;puts opposing batter's player data in hl
   ld a, [current_batter]
   swap a
   and a, %00001111
-  call GetOpposingPlayerInLineup
-  ret
+  jp GetOpposingPlayerInLineup
 
 GetCurrentBatter:: ;puts batter's player data in hl
   call IsUserFielding
@@ -1107,13 +1107,11 @@ GetCurrentBatterName:: ;puts batter's name in name_buffer
   call IsUserFielding
   jr nz, .getOpponentBatter
   call GetUserBatter
-  call GetUserPlayerName
-  ret
+  jp GetUserPlayerName
 .getOpponentBatter
   call GetOpponentBatter
   call GetPlayerNumber
-  call GetPlayerName
-  ret
+  jp GetPlayerName
 
 GetCurrentPitcher:: ;puts pitcher's player data in hl
   call IsUserFielding
@@ -1124,13 +1122,11 @@ GetCurrentPitcherName:: ;pust pitcher's name in name_buffer
   call IsUserFielding
   jr z, .getOpponentPitcher
   call GetUserPitcher
-  call GetUserPlayerName
-  ret
+  jp GetUserPlayerName
 .getOpponentPitcher
   call GetOpponentPitcher
   call GetPlayerNumber
-  call GetPlayerName
-  ret
+  jp GetPlayerName
 
 GetCurrentUserPlayer::;puts user's current batter or pitcher player data in hl
   call IsUserFielding

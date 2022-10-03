@@ -1,3 +1,5 @@
+;TODO: This file and announcer.asm are deprecated. Move logic to announcer.c
+
 IF DEF(LANG_EN);English
 
 ;positions ordered by position id

@@ -133,8 +133,6 @@ SECTION "Announcer Bank X", ROMX, BANK[ANNOUNCER_BANK]
 INCLUDE "data/strings/announcer_strings.asm"
 ;----------------------------------------------------------------------
 ; AnnounceBeginningOfFrame - called at beginning of each frame
-;  
-;   returns exit code in a (0 = continue, 1 = win, -1 = lose)
 ;
 ;   "GINGER steps on the mound."
 ;   "BUBBI walks up to the plate."
@@ -166,9 +164,6 @@ AnnounceBeginningOfFrame::
 
   call AnnouncePitcher
   call AnnounceBatter
-  TRAMPOLINE DrawBases
-  HIDE_WIN
-  xor a
   ret
 
 AnnouncePitcher::

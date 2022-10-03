@@ -10,7 +10,7 @@
 ;--------------------------------------------------------
 	EXPORT _cFunctionTest
 	EXPORT _fib
-	EXPORT _StringNumber
+	EXPORT _str_Number
 	EXPORT _RevealTextAndWait
 	EXPORT _some_text
 ;--------------------------------------------------------
@@ -79,20 +79,37 @@ _fib::
 ; Function cFunctionTest
 ; ---------------------------------
 _cFunctionTest::
-;src/test.c:22: char n = fib(11);
-	ld	a, $0B
+;src/test.c:22: RevealTextAndWait(1, some_text);
+	ld	de, _some_text
+	ld	a, $01
+	call	_RevealTextAndWait
+;src/test.c:23: for (char i = 0; i < 12; i++) {
+	ld	l, $00
+;	spillPairReg hl
+;	spillPairReg hl
+.l00103:
+	ld	a, l
+	sub	a, $0C
+	ret	NC
+;src/test.c:24: str_Number(fib(i));
+	push	hl
+	ld	a, l
 	call	_fib
-;src/test.c:23: StringNumber(n);
+	pop	hl
 	ld	c, a
 	ld	b, $00
 	ld	de, $0000
-	call	_StringNumber
-;src/test.c:27: RevealTextAndWait(1, some_text);
-	ld	de, _some_text
+	push	hl
+	call	_str_Number
+	ld	de, _name_buffer
 	ld	a, $01
-	jp	_RevealTextAndWait
-.l00101:
-;src/test.c:29: }
+	call	_RevealTextAndWait
+	pop	hl
+;src/test.c:23: for (char i = 0; i < 12; i++) {
+	inc	l
+	jr	.l00103
+.l00105:
+;src/test.c:27: }
 	ret
 _some_text:
 	DB "This is a test."

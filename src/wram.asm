@@ -146,13 +146,13 @@ item_data::
 ;Baseball
 balls_strikes_outs:: DB; XBBBSSOO
 runners_on_base:: DW; lineup order of runners on base - HHHHTTTT SSSSFFFF
-frame:: DB
+  C_DATA frame, DB
 current_batter:: DB;upper nibble is opponent, lower nibble is user
 home_team:: DB;1 = user is home team
 home_score:: DB
 away_score:: DB
 move_choice:: DB
-pitch_move_id:: DB
+  C_DATA pitch_move_id, DB
 swing_move_id:: DB
 play_menu_selection:: DB
 aim_x:: DB
@@ -169,7 +169,7 @@ ball_vel_x:: DB;same location used for velocity in simulation
 pitch_target_y::
 ball_vel_y:: DB
 ball_vel_z:: DB
-ball_state:: DB;bits... 7 = caught, 6 = landed, 5 = fair, 4 = inPlay, 3..0 = position player holding ball
+  C_DATA ball_state, DB;bits... 7 = caught, 6 = landed, 5 = fair, 4 = inPlay, 3..0 = position player holding ball
 
 SECTION "Stack", WRAM0
 stack_top: DS STACK_SIZE

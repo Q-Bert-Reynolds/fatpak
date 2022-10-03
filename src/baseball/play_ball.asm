@@ -303,7 +303,7 @@ Pitch:
   ld a, 0
   call SetOpposingPlayerBkgTiles
 
-  TRAMPOLINE AnnouncePitcherSets
+  TRAMPOLINE _AnnouncePitcherSets
   call ShowStrikeZone
 
 .setAimSize; 100% accuracy = size 0, 50% accuracy = size 10
@@ -332,7 +332,7 @@ Pitch:
   ld [aim_y], a
   call MoveAimCircle
 
-  TRAMPOLINE AnnounceBatterStepsIntoBox
+  TRAMPOLINE _AnnounceBatterStepsIntoBox
   
   xor a
 .preSetAimLoop
@@ -343,7 +343,7 @@ Pitch:
     cp 10
     jr nz, .preSetAimLoop
 
-  TRAMPOLINE AnnouncePitcherSets
+  TRAMPOLINE _AnnouncePitcherSets
 
   xor a
 .preWindupAimLoop
@@ -369,7 +369,7 @@ Pitch:
   ld a, 2
   call SetUserPlayerBkgTiles
 
-  TRAMPOLINE AnnounceAndThePitch
+  TRAMPOLINE _AnnounceAndThePitch
   
 .checkPitchAccuracy
   ld a, [move_data.accuracy]
@@ -441,7 +441,7 @@ Pitch:
     jr .skip
 
 .displayPitchName
-    TRAMPOLINE AnnouncePitchName 
+    TRAMPOLINE _AnnouncePitchName 
 
 .skip
     ld a, [_w]
@@ -1133,13 +1133,14 @@ StartGame::
   ; and a, ~GAME_STATE_UNSIGNED_PLAYER 
   ; ld [game_state], a
 
-  call ShowPlayBallIntro
+  ; call ShowPlayBallIntro
   call SetupGameUI
 
-  TRAMPOLINE _announceSomething
-
-  TRAMPOLINE AnnounceBeginningOfFrame
-
+  TRAMPOLINE _AnnounceBeginningOfFrame ;C
+  ; TRAMPOLINE AnnounceBeginningOfFrame ;ASM 
+  TRAMPOLINE DrawBases
+  HIDE_WIN
+  
   xor a
   ld [play_menu_selection], a
 
@@ -1172,7 +1173,7 @@ StartGame::
     jr z, .skip
     call IsUserFielding
     jr z, .skip
-    TRAMPOLINE AnnouncePitcher
+    TRAMPOLINE _AnnouncePitcher
     HIDE_WIN
   .skip
     call ShowPitcher

@@ -19,6 +19,7 @@ SECTION "UI Bank 0", ROM0
 
 ; SDCC extern:
 ; _RevealTextAndWait  de = text
+; _DisplayText        a = draw flags, de = text
 
 LoadFontTiles::
   ld a, [loaded_bank]
@@ -32,7 +33,7 @@ LoadFontTiles::
   call SetBank
   ret
 
-_RevealTextAndWait:: ;extern void RevealTextAndWait(char* text[]);
+_RevealTextAndWait:: ;extern void RevealTextAndWait(char text[]);
   push de;compiler puts text in de
   pop hl;we need it in hl
 RevealTextAndWait:: ;hl = text
@@ -298,6 +299,9 @@ DisplayTextAtPos:: ;a = draw flags, hl = text, bc = xy
   pop af;draw flags
   ret
 
+_DisplayText:: ;a = draw flags, de = text
+  push de;compiler puts text in de
+  pop hl;we need it in hl
 DisplayText:: ;a = draw flags, hl = text
   ld bc, 0
   call DisplayTextAtPos
