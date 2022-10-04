@@ -80,6 +80,7 @@ FoulBall::
 
 ; b = bases to advance, c = batter (1-9) to put on first or 0
 ; returns runs scored in a, last scoring runner in upper nibble of runners_on_base
+_AdvanceRunners::
 AdvanceRunners::
   xor a
   ld e, a;runs scored
@@ -240,6 +241,7 @@ GetPositionPlayerAndName::
 ;     a = distance
 ;
 ;----------------------------------------------------------------------
+_DistanceFromSpeedLaunchAngle::
 DistanceFromSpeedLaunchAngle::;a = speed, c = launch angle, returns distance in a
   push af;speed
   ld a, c
@@ -316,6 +318,7 @@ HeightFromSpeedLaunchAngle::;a = speed, c = launch angle, returns height in a
 ;     a = hang time (255 = 10 sec)
 ;
 ;----------------------------------------------------------------------
+_HangTimeFromSpeedLaunchAngle::
 HangTimeFromSpeedLaunchAngle::
   push af;speed
   ld a, c
@@ -357,6 +360,7 @@ HangTimeFromSpeedLaunchAngle::
 ;     de = xy position
 ;
 ;----------------------------------------------------------------------
+_LocationFromDistSprayAngle::
 LocationFromDistSprayAngle::;a = distance, b = spray angle, returns xy in de
   push af;distance
   ld a, b;spray
@@ -454,6 +458,7 @@ XLocationsOfPositions::
   DB  82,  36, 128, 164,  63, 92, 88, 193, 216
 YLocationsOfPositions::
   DB 174, 219, 199, 159, 119, 92, 38,  67, 191
+_GetClosestFielderByLocation::
 GetClosestFielderByLocation::;de = xy, returns position number in a, distance in b
   ld a, 255
   ld [_t], a;min dist
@@ -508,6 +513,7 @@ IsUserFielding::;nz = user is fielding, z = user is batting
   pop bc
   ret
 
+_CurrentOrderInLineup::
 CurrentOrderInLineup::;returns order in a
   call IsUserFielding
   ld a, [current_batter]

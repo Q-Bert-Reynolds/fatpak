@@ -6,23 +6,30 @@
 #include "../../data/strings/announcer_strings.h"
 
 // src/ui.asm
-extern void RevealTextAndWait(char text[]);
-extern void DisplayText(char drawFlags, char text[]);
+extern void RevealTextAndWait(const char text[]);
+extern void DisplayText(char drawFlags, const char text[]);
 
 // src/strings.asm
 extern char* str_FromArray(int index, char strings[]);
-extern void str_Copy(const char src[], char dest[]);
-extern void str_Append(char append[], char dest[]);
-extern void str_Replace(const char src[], char dest[], char replacement[]);
+extern void str_Copy(const char src[], const char dest[]);
+extern void str_Append(const char append[], const char dest[]);
+extern void str_Replace(const char src[], const char dest[], const char replacement[]);
 extern void str_Number(unsigned long n);
 
 // src/utils.asm
-extern char GetBalls();
-extern void SetBalls(char balls);
-extern char GetStrikes();
-extern void SetStrikes(char strikes);
-extern char CheckStrike();
-extern char IncrementOuts();
+extern unsigned char GetBalls(void);
+extern void SetBalls(unsigned char balls);
+extern unsigned char GetStrikes(void);
+extern void SetStrikes(unsigned char strikes);
+extern unsigned char CheckStrike(void);
+extern unsigned char IncrementOuts(void);
+extern unsigned char DistanceFromSpeedLaunchAngle(unsigned char speed, signed char launch);
+extern unsigned char HangTimeFromSpeedLaunchAngle(unsigned char speed, signed char launch);
+extern unsigned char CurrentOrderInLineup(void);
+extern unsigned char AdvanceRunners(unsigned char num_bases, unsigned char batter);// batter is lineup order (1-9) to put on first or 0 if no batter on 1st
+extern unsigned int LocationFromDistSprayAngle(unsigned char distance, signed char spray);//returns xy in de
+extern unsigned int GetClosestFielderByLocation(unsigned int xy);//de = xy, returns position number in a, distance in b
+
 
 // src/players.asm
 extern void GetMoveName(char index);
@@ -35,6 +42,32 @@ extern char frame;
 extern char tile_buffer[];
 extern char str_buffer[];
 extern char name_buffer[];
+
+void AnnouncePitcher(void);
+void AnnounceBatter(void);
+void AnnounceBeginningOfFrame(void);
+void AnnouncePitcherSets(void);
+void AnnounceAndThePitch(void);
+void AnnouncePitchName(void);
+void AnnounceNextBatter(void);
+void AnnounceBatterStepsIntoBox(void);
+void AnnounceNoSwing(void);
+void AnnounceWildPitchOrPassedBall(void);
+void AnnounceSwingMiss(void);
+void _AnnounceSwingContact(unsigned char speed, signed char spray, signed char launch);
+void AnnounceHitOnGround(char speed, char spray);
+void AnnounceHitInAir(unsigned char speed, signed char spray, signed char launch);
+void AnnounceHitInAirToOutfield(unsigned char speed, unsigned char distance, signed char spray, signed char launch);
+void AppendOutfieldLocationTextByAngle(signed char spray);
+void AnnounceHitInAirToInfield(unsigned char distance, signed char spray, signed char launch);
+void AppendInfieldLocationTextByAngle(signed char spray);
+void AnnounceBuntText(char launch, char spray);
+void AnnounceFieldingText(unsigned char position, unsigned char distance, unsigned char hang_time);
+void AnnounceFoulBall(void);
+void AnnounceAdvanceRunners(void);
+void AnnounceRunnersOn(void);
+void AnnounceRunScored(void);
+void AnnounceEndOfGame(void);
 
 //script
     // "Unsigned GINGER appeared!" or  "CALVIN wants to play 3 innings."
@@ -210,7 +243,7 @@ void AnnounceBatterStepsIntoBox(void) {
 void AnnounceNoSwing(void) {
 
     if (CheckStrike()) { //strike
-        char strikes = GetStrikes();
+        unsigned char strikes = GetStrikes();
         if (strikes < 2) {
             SetStrikes(++strikes);
             __asm__("TRAMPOLINE DrawCountOutsInning");
@@ -229,7 +262,7 @@ void AnnounceNoSwing(void) {
         }
     }
     else { //ball
-        char balls = GetBalls();
+        unsigned char balls = GetBalls();
         if (balls < 3) {
             SetBalls(++balls);
             __asm__("TRAMPOLINE DrawCountOutsInning");
@@ -283,104 +316,85 @@ void AnnounceSwingMiss(void) {
     }
 }
 
+
+void _AnnounceSwingContact(unsigned char speed, signed char spray, signed char launch) {
+    //TODO: foul tip caught, foul bunt K
+
+    ball_state = BALL_STATE_IN_PLAY;
+
+    if (spray > -45 && spray < 45) {
+        ball_state |= BALL_STATE_FAIR; 
+    }
+
+    if (launch > 0) {
+        AnnounceHitInAir(speed, spray, launch);
+    }
+    else { //on ground
+        ball_state |= BALL_STATE_LANDED;
+        AnnounceHitOnGround(speed, spray);
+    }
+}
+
 void AnnounceHitOnGround(char speed, char spray) {
 
 }
 
-void AnnounceHitInAir(char speed, char spray, char launch) {
-//   push bc;spray, launch
-//   call DistanceFromSpeedLaunchAngle;a = speed, c = launch angle, returns distance in a
-// .outfield;wall at 240
-//   cp a, 96;bases at 90
-//   jr c, .infield 
-//   pop bc;b=sparay angle, c=launch angle
-//   call AnnounceHitInAirToOutfield
-//   ret
-// .infield
-//   pop bc;b=sparay angle, c=launch angle
-//   call AnnounceHitInAirToInfield
-//   ret
+void AnnounceHitInAir(unsigned char speed, signed char spray, signed char launch) {
+    unsigned char distance = DistanceFromSpeedLaunchAngle(speed, launch);
+    if (distance < 100) {//infield
+        AnnounceHitInAirToInfield(distance, spray, launch);
+    }
+    else {//outfield
+        AnnounceHitInAirToOutfield(speed, distance, spray, launch);
+    }
 }
 
-void AnnounceHitInAirToOutfield(unsigned char distance, char sparay, char launch) {   
-//   push bc;spray,launch
-//   push af;distance
-//   call HangTimeFromSpeedLaunchAngle
-//   ld e, a;hang time
-//   pop af;dist
-//   push af;dist
-//   push de;e = hang time
-// .deepFly
-//   cp 220
-//   jr c, .flyBall
-//   ld hl, HitDeepFlyBallText
-//   jr .copyString
-// .flyBall
-//   cp 180
-//   jr c, .shallowFly
-//   ld hl, HitFlyBallText
-//   jr .copyString
-// .shallowFly
-//   cp 140
-//   jr c, .popFly
-//   ld hl, HitShallowFlyBallText
-//   jr .copyString
-// .popFly
-//   ld hl, HitPopFlyText
-// .copyString
-//   ld de, str_buffer
-//   call str_Copy
+void AnnounceHitInAirToOutfield(unsigned char speed, unsigned char distance, signed char spray, signed char launch) {   
+    //TODO: LeapingCatchByText
 
-//   call AppendOutfieldLocationTextByAngle
-//   ld hl, str_buffer
-//   call RevealTextAndWait
-  
-//   pop de;e= hang time
-//   pop af;distance
-//   pop bc;spray,launch
-//   cp a, 240
-//   jr c, .fieldBall
+    if (distance > 240) { //out of play
+        if (ball_state & BALL_STATE_FAIR != 0) { //home run
+            unsigned char order = CurrentOrderInLineup();
+            unsigned char runs_scored = AdvanceRunners(4, ++order);//current batter is 0 to 8, needs to be 1 to 9
+            const char* home_run_text = (runs_scored == 4) ? HitGrandSlamText : HitHomeRunText;
+            RevealTextAndWait(home_run_text);
+            __asm__("TRAMPOLINE DrawScore");
+            AnnounceNextBatter();
+            return;
+        }
 
-//   ld a, [ball_state]
-//   and a, BALL_STATE_FAIR
-//   jp z, AnnounceFoulBall
-// .homeRun
-//   ;TODO: LeapingCatchByText
-//   call CurrentOrderInLineup
-//   inc a;current batter is 0 to 8, needs to be 1 to 9
-//   ld c, a
-//   ld b, 4
-//   call AdvanceRunners
-//   cp a, 4
-//   jr z, .grandSlam
-//   ld hl, HitHomeRunText
-//   call RevealTextAndWait
-//   TRAMPOLINE DrawScore
-//   call AnnounceNextBatter
-//   ret
-// .grandSlam
-//   ld hl, HitGrandSlamText
-//   call RevealTextAndWait
-//   TRAMPOLINE DrawScore
-//   call AnnounceNextBatter
-//   ret
+        //else, foul ball
+        AnnounceFoulBall();
+        return;
+    }
 
-// .fieldBall
-//   push de;hang time
-//   call LocationFromDistSprayAngle
-//   call GetClosestFielderByLocation
-//   and a, BALL_STATE_FIELDER;sanitize fielder
-//   ld e, a;fielder
-//   ld a, [ball_state]
-//   or a, e
-//   ld [ball_state], a
-//   ld a, e;fielder
-//   pop de;e = hang time
-//   ld c, e;c = hang time
-//   jp AnnounceFieldingText
+    const char* hitText = HitPopFlyText;
+    if (distance > 220) {
+        hitText = HitDeepFlyBallText;
+    }
+    else if (distance > 180) {
+        hitText = HitFlyBallText;
+    }
+    else if (distance > 140) {
+        hitText = HitShallowFlyBallText;
+    }
+    str_Copy(hitText, str_buffer);
+    AppendOutfieldLocationTextByAngle(spray);
+    RevealTextAndWait(str_buffer);
+
+    unsigned int xy = LocationFromDistSprayAngle(distance, spray);
+    unsigned char x = (char)(xy >> 8);//x in upper nibble
+    unsigned char y = (char)(xy & 255);//y in lower nibble
+    unsigned int posDist = GetClosestFielderByLocation(xy);
+    unsigned char pos = (char)((posDist >> 8) & BALL_STATE_FIELDER);//position in first 4 bits of upper nibble
+    unsigned char dist = (char)(posDist & 255);//distance in lower nibble
+    ball_state |= pos;
+
+    unsigned char hang_time = HangTimeFromSpeedLaunchAngle(speed, launch);
+    AnnounceFieldingText(pos, dist, hang_time);
 }
 
-void AppendOutfieldLocationTextByAngle(char spray) {// appends text to str_buffer
+void AppendOutfieldLocationTextByAngle(signed char spray) {// appends text to str_buffer
 //   ld a, b
 //   cp a, 45
 //   jr c, .outfieldLocation
@@ -404,7 +418,7 @@ void AppendOutfieldLocationTextByAngle(char spray) {// appends text to str_buffe
 //   ret
 }
 
-void AnnounceHitInAirToInfield(unsigned char distance, char spray, char launch) {  
+void AnnounceHitInAirToInfield(unsigned char distance, signed char spray, signed char launch) {  
 //   push bc;spray,launch
 //   push af;distance
 // .lineDrive
@@ -439,7 +453,7 @@ void AnnounceHitInAirToInfield(unsigned char distance, char spray, char launch) 
 //   jp AnnounceFieldingText
 }
 
-void AppendInfieldLocationTextByAngle(char spray) {// appends text to str_buffer
+void AppendInfieldLocationTextByAngle(signed char spray) {// appends text to str_buffer
 //   ld a, b
 //   cp a, 40
 //   jr c, .infieldLocation
@@ -578,7 +592,7 @@ void AnnounceAdvanceRunners(void) {
 }
 
 void AnnounceRunnersOn(void) {
-//   ; RunnersOnBaseTexts
+    // RunnersOnBaseTexts
 }
 
 // TODO: handle more than one run -> TwoPlayersScoreText, BasesClearedScoreText
@@ -649,25 +663,6 @@ void AnnounceRunScored(void) {//if upper nibble of [runners_on_base] non-zero, a
 }
 
 void AnnounceEndOfGame(void) {
-//   ; ;end of game
-//   ; AndThatsTheBallGameText
-//   ret
-}
-
-void _AnnounceSwingContact(unsigned char speed, signed char spray, signed char launch) {
-    //TODO: foul tip caught, foul bunt K
-
-    ball_state = BALL_STATE_IN_PLAY;
-
-    if (spray > -45 && spray < 45) {
-        ball_state |= BALL_STATE_FAIR; 
-    }
-
-    if (launch > 0) {
-        AnnounceHitInAir(speed, spray, launch);
-    }
-    else { //on ground
-        ball_state |= BALL_STATE_LANDED;
-        AnnounceHitOnGround(speed, spray);
-    }
+    // end of game
+    RevealTextAndWait(AndThatsTheBallGameText);
 }

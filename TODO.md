@@ -1,5 +1,6 @@
 Priority
 
+- translate.py should replace all characters in charmap.asm (possibly using that file directly)
 - C facing labels have to have start with an underscore (ie. _i, _j, _text_speed, _game_state) 
 - replace announcer mode with C code
 - baseball simulation

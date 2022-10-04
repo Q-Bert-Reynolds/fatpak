@@ -2,7 +2,24 @@ import csv
 import glob
 import os
 
+charMap = {}
+
 def main():
+  with open("src/charmap.asm", encoding="utf8") as file:
+    inverseMap = {}
+    for line in file:
+      if not line.startswith("charmap"):
+        continue
+      line = line.split(";")[0] #discard comments
+      char, val = line.split(",")
+      char = char.split("\"")[1] #discard "charmap" and quotes
+      if val in inverseMap:
+        val = inverseMap[val]
+      else:
+        inverseMap[val] = char
+        val =  "\\"+oct(int(val)).replace("0o","").zfill(3)
+      charMap[char] = val
+
   fileNames = glob.glob("./data/*_strings.csv")
   for fileName in fileNames:
     language_map = {}
@@ -11,6 +28,15 @@ def main():
       name = os.path.splitext(os.path.basename(fileName))[0]
       create_strings_file(dict_reader, name)
      
+def charMapReplace(text):
+  # SDCC replaces unicode characters with their unicode values instead
+  # of leaving them for RGBDS's charmap to replace.
+  # We need to replace those values before the compiler does it wrong.
+  for char, val in charMap.items():
+    if char.startswith("<"): #let RGBDS handle <> replacement
+      continue
+    text = text.replace(char, val)
+  return text
 
 def create_strings_file(dict_reader, name):
   dir = "./data/strings/"
@@ -30,7 +56,7 @@ def create_strings_file(dict_reader, name):
       text = entry[language]
       if not text:
         text = entry["English"]
-      text = text.replace("\\n", "\\x80") #sdcc replaces \n with $0A, but we need $80
+      text = charMapReplace(text)
       
       label_parts = label.split('.')
       is_array = len(label_parts) > 1

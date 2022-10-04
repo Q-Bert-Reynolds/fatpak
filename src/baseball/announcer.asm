@@ -1,3 +1,8 @@
+; announcer.asm
+; This code is deprecated.
+; It's being replaced by announcer.c 
+; 
+
 SECTION "Announcer Bank 0", ROM0
 
 AnnounceDisplayText:: ;hl = text address
