@@ -1,5 +1,5 @@
 VERSION   = DEMO#DEMO AWAY HOME
-LANGUAGE  = ES#EN ES
+LANGUAGE  = EN#EN ES
 DEFINES   = -D _$(VERSION) -D LANG_$(LANGUAGE) 
 
 GAME_NAME = BEISBOL_$(VERSION)
@@ -13,22 +13,42 @@ MUSIC_DIR = music
 BIN_DIR   = bin
 BUILD_DIR = build
 
+ifeq ($(OS), Windows_NT)
+MOD2GBT   = $(BIN_DIR)/mod2gbt.exe
+else
+MOD2GBT   = $(BIN_DIR)/mod2gbt
+endif
+
 C_SOURCES = $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/**/*.c) $(wildcard $(DATA_DIR)/**/*.c) 
 
-all: $(C_SOURCES)
-	@mkdir -p $(BUILD_DIR)
-	@mkdir -p $(BIN_DIR)
-	
+all: assets $(C_SOURCES)
 	rgbasm $(DEFINES) -o $(BUILD_DIR)/main.o $(SRC_DIR)/main.asm
 	rgblink -m $(BUILD_DIR)/main.map -n $(SYM_FILE) -o $(ROM_FILE) $(BUILD_DIR)/main.o
 	rgbfix -jvcs -k 01 -l 0x33 -m 0x1B -p 255 -t $(GAME_NAME) $(ROM_FILE)
 
+run:
 ifeq ($(OS), Windows_NT)
 	taskkill -im bgb.exe -f -fi "STATUS eq RUNNING"
 	start "$(ROM_FILE)"
 else
 	open $(ROM_FILE)
 endif
+
+assets:
+	@mkdir -p $(BUILD_DIR)
+	@mkdir -p $(BIN_DIR)
+
+ifeq ("$(wildcard $(MOD2GBT))","")
+	gcc -o $(MOD2GBT) mod2gbt.c
+endif
+
+	
+	python mod2gbt.py
+	python img2rgbds.py
+	python roledex.py
+	python moves.py
+	python items.py
+	python translate.py 
 
 $(C_SOURCES): 
 	@mkdir -p $(BUILD_DIR)

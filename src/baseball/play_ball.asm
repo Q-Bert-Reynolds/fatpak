@@ -504,12 +504,12 @@ Pitch:
   and a
   jr z, .noSwing
 .swingAndMiss
-  TRAMPOLINE AnnounceSwingMiss
+  TRAMPOLINE _AnnounceSwingMiss
   jp FinishPitch
 .contactMade
   jp HitBall
 .noSwing
-  TRAMPOLINE AnnounceNoSwing
+  TRAMPOLINE _AnnounceNoSwing
   jp FinishPitch
 
 Swing:; aim xy = de, pitch z = a, returns contact made in a
@@ -671,7 +671,7 @@ Bat:
   call MoveAimCircle ;TODO: handle lefty batters
   call ShowStrikeZone
 
-  TRAMPOLINE AnnounceBatterStepsIntoBox
+  TRAMPOLINE _AnnounceBatterStepsIntoBox
   
   xor a
 .preSetAimLoop
@@ -684,7 +684,7 @@ Bat:
 
   call GetCurrentPitcherName
 
-  TRAMPOLINE AnnouncePitcherSets
+  TRAMPOLINE _AnnouncePitcherSets
 
   xor a
 .preWindupAimLoop
@@ -710,7 +710,7 @@ Bat:
   ld a, 2
   call SetOpposingPlayerBkgTiles
 
-  TRAMPOLINE AnnounceAndThePitch
+  TRAMPOLINE _AnnounceAndThePitch
 
   xor a
   ld [_u], a; c = swing frame
@@ -732,7 +732,7 @@ Bat:
     jr .aim
 
 .displayPitchName
-    TRAMPOLINE AnnouncePitchName
+    TRAMPOLINE _AnnouncePitchName
 
 .aim
     ld a, [_u]
@@ -817,10 +817,10 @@ Bat:
 .hitBall
   jr HitBall
 .noSwing
-  TRAMPOLINE AnnounceNoSwing
+  TRAMPOLINE _AnnounceNoSwing
   jp FinishPitch
 .swingAndMiss
-  TRAMPOLINE AnnounceSwingMiss
+  TRAMPOLINE _AnnounceSwingMiss
   jp FinishPitch
 
 HitBall:
@@ -857,7 +857,7 @@ HitBall:
   jr FinishPitch
 .announceContact
   pop af;exit velocity
-  call AnnounceSwingContact;a = exit velocity b = spray angle c = launch angle
+  call _AnnounceSwingContact;a = exit velocity b = spray angle c = launch angle
   ;fall through to FinishPitch  
 
 FinishPitch:

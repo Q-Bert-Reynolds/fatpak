@@ -17,14 +17,8 @@ You've finally been granted your Béisbol coach's license. Now, it's time to hea
 - [Old rom hack attempt](https://bitbucket.org/q_bert_reynolds/beisbolromhack)
 
 # Compiling:
-    gcc -o bin/mod2gbt mod2gbt.c
-    python3 mod2gbt.py
-    python3 img2rgbds.py
-    python3 roledex.py
-    python3 moves.py
-    python3 items.py
     make clean
-    make
+    make all
 
 # Cart:
 MCB5, 2M ROM (128 banks), 32K SRAM (4 banks)
@@ -41,42 +35,8 @@ MCB5, 2M ROM (128 banks), 32K SRAM (4 banks)
 # Thanks
 
 - [Nintendo](https://www.nintendo.com/), [Creatures inc.](https://www.creatures.co.jp/), and [GAME FREAK inc.](https://www.gamefreak.co.jp/) for creating [Pokémon](https://www.pokemon.com/us/pokemon-video-games/pokemon-red-version-and-pokemon-blue-version/).
-- Pascal Felber, Lars Malmborg, and Michael Hope for [GBDK](https://gbdk.sourceforge.net)
 - [Jeff Frohwein](https://devrs.com/gb/)
-- [John Metcalf](https://www.retroprogramming.com)
-- Anyone who has contributed to [Z80 Heaven](https://z80-heaven.wikidot.com/)
-- Anyone who worked on the [GameBoy Pandocs](https://gbdev.github.io/pandocs/):
-  - Pan of Anthrox
-  - Marat Fayzullin
-  - Pascal Felber
-  - Paul Robson
-  - Martin Korth
-  - Antonio Niño Díaz
-  - Antonio Vivace
-  - Beannaich
-  - Elizafox
-  - endrift
-  - exezin
-  - Furrtek
-  - Gekkio
-  - Eldred Habert (ISSOtm)
-  - Jeff Frohwein
-  - John Harrison
-  - kOOPa
-  - Lior Halphon (LIJI32)
-  - jrra
-  - Mantidactyle
-  - mattcurrie
-  - nitro2k01
-  - pinobatch
-  - T4g1
-  - TechFalcon
-- Anyone who worked on the [GameBoy CPU Manual](http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf)
-  - Pan of Anthrox
-  - GABY
-  - Marat Fayzullin
-  - Pascal Felber
-  - Paul Robson
-  - Martin Korth
-  - kOOPa
-  - Bowser
+- [John Metcalf](http://www.retroprogramming.com)
+- [Z80 Heaven](https://z80-heaven.wikidot.com/)
+- [GameBoy Pandocs](https://gbdev.github.io/pandocs/):
+- [GameBoy CPU Manual](http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf)

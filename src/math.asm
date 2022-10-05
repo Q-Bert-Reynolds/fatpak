@@ -166,6 +166,7 @@ math_Divide24:: ; ehl (remainder a) = ehl / c
   xor a
   ld d, a
 
+_math_Divide::
 math_Divide32::; dehl (remainder a) = dehl / c
   xor	a
   ld	b, 32

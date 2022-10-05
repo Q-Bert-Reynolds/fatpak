@@ -6,7 +6,7 @@
         {
             "label": "run makefile",
             "type": "shell",
-            "command": "make clean; make all -B;",
+            "command": "make clean; make all -B;make run",
             "group": {
                 "kind": "build",
                 "isDefault": true
