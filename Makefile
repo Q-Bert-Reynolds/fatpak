@@ -14,8 +14,10 @@ BIN_DIR   = bin
 BUILD_DIR = build
 
 ifeq ($(OS), Windows_NT)
+PYTHON	  = python
 MOD2GBT   = $(BIN_DIR)/mod2gbt.exe
 else
+PYTHON	  = python3
 MOD2GBT   = $(BIN_DIR)/mod2gbt
 endif
 
@@ -42,17 +44,16 @@ ifeq ("$(wildcard $(MOD2GBT))","")
 	gcc -o $(MOD2GBT) mod2gbt.c
 endif
 
-	
-	python mod2gbt.py
-	python img2rgbds.py
-	python roledex.py
-	python moves.py
-	python items.py
-	python translate.py 
+	$(PYTHON) mod2gbt.py
+	$(PYTHON) img2rgbds.py
+	$(PYTHON) roledex.py
+	$(PYTHON) moves.py
+	$(PYTHON) items.py
+	$(PYTHON) translate.py 
 
 $(C_SOURCES): 
 	@mkdir -p $(BUILD_DIR)
-	sdcc $@ -msm83 --asm=rgbds $(DEFINES) --disable-warning 218 -S -o $(patsubst %.c, $(dir $@)_%.asm, $(notdir $@))
+	sdcc $@ -msm83 --asm=rgbds --peep-file peephole.def $(DEFINES) --disable-warning 218 -S -o $(patsubst %.c, $(dir $@)_%.asm, $(notdir $@))
 
 clean:
 	@rm -rf $(BUILD_DIR)

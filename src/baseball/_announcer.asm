@@ -1,6 +1,6 @@
 ;--------------------------------------------------------
-; File Created by SDCC : free open source ISO C Compiler 
-; Version 4.2.8 #13684 (MINGW64)
+; File Created by SDCC : free open source ANSI-C Compiler
+; Version 4.2.0 #13081 (Mac OS X ppc)
 ;--------------------------------------------------------
 	; MODULE announcer
 	; Generated using the rgbds tokens.
@@ -965,7 +965,7 @@ __AnnounceSwingContact::
 ;src/baseball/announcer.c:338: }
 	pop	hl
 	inc	sp
-	jp	hl
+	jp hl 
 ;src/baseball/announcer.c:340: void AnnounceHitOnGround(char speed, char spray) {
 ;	---------------------------------
 ; Function AnnounceHitOnGround
@@ -1016,7 +1016,7 @@ _AnnounceHitInAir::
 ;src/baseball/announcer.c:352: }
 	pop	hl
 	inc	sp
-	jp	hl
+	jp hl 
 ;src/baseball/announcer.c:354: void AnnounceHitInAirToOutfield(unsigned char speed, unsigned char distance, signed char spray, signed char launch) {   
 ;	---------------------------------
 ; Function AnnounceHitInAirToOutfield
@@ -1155,8 +1155,9 @@ _AnnounceHitInAirToOutfield::
 	inc	sp
 	inc	sp
 	pop	hl
-	pop	af
-	jp	hl
+	inc	sp
+	inc	sp
+	jp hl 
 ;src/baseball/announcer.c:399: void AppendOutfieldLocationTextByAngle(signed char spray) {// appends text to str_buffer
 ;	---------------------------------
 ; Function AppendOutfieldLocationTextByAngle
@@ -1219,6 +1220,9 @@ _AppendOutfieldLocationTextByAngle::
 ;src/baseball/announcer.c:406: str_Append(location_text, str_buffer);
 	ld	bc, _str_buffer
 	pop	de
+	push	de
+	inc	sp
+	inc	sp
 	jp	_str_Append
 .l00104:
 ;src/baseball/announcer.c:407: }
@@ -1282,13 +1286,16 @@ _AnnounceHitInAirToInfield::
 	ld	d, b
 	call	_GetClosestFielderByLocation
 	ld	[hl], b
-	ld	hl, sp+2
+	ld	hl, sp+3
 ;src/baseball/announcer.c:429: unsigned char fielder_position = (char)((position_and_distance_from_ball >> 8) & BALL_STATE_FIELDER);//position in first 4 bits of upper nibble
+	dec	hl
 	ld	a, [hl]
 	and	a, $0F
 ;src/baseball/announcer.c:430: unsigned char fielder_dist_from_ball = (char)(position_and_distance_from_ball & 255);//distance in lower nibble
-;src/baseball/announcer.c:431: ball_state |= fielder_position;
 	ld	[hl], a
+;src/baseball/announcer.c:431: ball_state |= fielder_position;
+	ld	hl, _ball_state
+	ld	a, [hl]
 	ld	hl, sp+2
 	or	a, [hl]
 	ld	[hl], a
@@ -1310,8 +1317,9 @@ _AnnounceHitInAirToInfield::
 ;src/baseball/announcer.c:435: }
 	add	sp, 6
 	pop	hl
-	pop	af
-	jp	hl
+	inc	sp
+	inc	sp
+	jp hl 
 ;src/baseball/announcer.c:437: void AppendInfieldLocationTextByAngle(signed char spray) {// appends text to str_buffer
 ;	---------------------------------
 ; Function AppendInfieldLocationTextByAngle
@@ -1337,7 +1345,7 @@ _AnnounceFieldingText::
 .l00101:
 	pop	hl
 	inc	sp
-	jp	hl
+	jp hl 
 ;src/baseball/announcer.c:561: void AnnounceFoulBall(void) {
 ;	---------------------------------
 ; Function AnnounceFoulBall
