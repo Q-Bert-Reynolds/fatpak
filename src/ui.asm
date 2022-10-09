@@ -542,7 +542,7 @@ AnimationOptionString: DB "AT-BAT ANIMATIONS "
 
 CoachingOptionString:  DB "COACHING STYLE    "
                        DB "                  "
-                       DB " SHIFT    =     "
+                       DB " SHIFT    SET     "
 
 ; Text Entry
 LowerCase:             DB "abcdefghijklmnopqrstuvwxyz *():;[]#%-?!*+/.,↵", 0

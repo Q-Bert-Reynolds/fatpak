@@ -1105,7 +1105,7 @@ StartGame::
   
   call SetPlayBallTiles
 
-  ;ld a, (3 << 4) | (2 << 2) | 1 ;3 balls, 2 strikes, 1 out
+  ; ld a, (3 << 4) | (2 << 2) | 1 ;3 balls, 2 strikes, 1 out
   xor a;0 balls, 0 strikes, 0 outs
   ld [balls_strikes_outs], a
   

@@ -70,6 +70,7 @@ void AnnounceNextBatter(void);
 void AnnounceBatterStepsIntoBox(void);
 void AnnounceNoSwing(void);
 void AnnounceWildPitchOrPassedBall(void);
+void AnnounceStrike(const char strike_out_text[]);
 void AnnounceSwingMiss(void);
 void _AnnounceSwingContact(unsigned char speed, signed char spray, signed char launch);
 void AnnounceHitOnGround(char speed, char spray);
@@ -250,6 +251,28 @@ void AnnounceBatterStepsIntoBox(void) {
     DisplayText(DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP, str_buffer);
 }
 
+void AnnounceStrike(const char strike_out_text[]) {
+    str_Copy(strike_out_text, tile_buffer);
+    unsigned char strikes = GetStrikes();
+    strikes++;
+    if (strikes == 3) {//strikeout
+        __asm__("TRAMPOLINE GetCurrentBatterName");
+        str_Replace(tile_buffer, str_buffer, name_buffer);
+        RevealTextAndWait(str_buffer);
+        __asm__("TRAMPOLINE HideBatter");
+        unsigned char outs = IncrementOuts();
+        if (outs != 3) {
+            AnnounceNextBatter();
+        }
+    }
+    else {
+        SetStrikes(strikes);
+        str_Number(strikes);
+        str_Replace(StrikeText, str_buffer, name_buffer);
+        __asm__("TRAMPOLINE DrawCountOutsInning");
+        RevealTextAndWait(str_buffer);
+    }
+}
 
 //----------------------------------------------------------------------
 // AnnounceNoSwing - called if the player doesn't swing
@@ -258,25 +281,9 @@ void AnnounceBatterStepsIntoBox(void) {
 //
 //----------------------------------------------------------------------
 void AnnounceNoSwing(void) {
-
-    if (CheckStrike()) { //strike
-        unsigned char strikes = GetStrikes();
-        if (strikes < 2) {
-            SetStrikes(++strikes);
-            __asm__("TRAMPOLINE DrawCountOutsInning");
-            str_Number(strikes);
-            str_Replace(StrikeText, str_buffer, name_buffer);
-            RevealTextAndWait(str_buffer);
-        }
-        else { //strikeout
-            __asm__("TRAMPOLINE GetCurrentBatterName");
-            str_Replace(StrikeOutLookingText, str_buffer, name_buffer);
-            RevealTextAndWait(str_buffer);
-            __asm__("TRAMPOLINE HideBatter");
-            if (IncrementOuts() < 3) {
-                AnnounceNextBatter();
-            }
-        }
+    unsigned char was_strike = CheckStrike();
+    if (was_strike) { //strike
+        AnnounceStrike(StrikeOutLookingText);
     }
     else { //ball
         unsigned char balls = GetBalls();
@@ -313,25 +320,7 @@ void AnnounceWildPitchOrPassedBall(void) {
 //----------------------------------------------------------------------
 void AnnounceSwingMiss(void) {
     // TODO: check for wild pitch, passed ball, dropped 3rd strike
-    unsigned char strikes = GetStrikes();
-    strikes++;
-    if (strikes < 3) {
-        SetStrikes(strikes);
-        __asm__("TRAMPOLINE DrawCountOutsInning");
-        str_Number(strikes);
-        str_Replace(StrikeText, str_buffer, name_buffer);
-        RevealTextAndWait(str_buffer);
-    }
-    else { //strikeout
-        __asm__("TRAMPOLINE GetCurrentBatterName");
-        str_Replace(StrikeOutSwingingText, str_buffer, name_buffer);
-        RevealTextAndWait(str_buffer);
-        __asm__("TRAMPOLINE HideBatter");
-        unsigned char outs = IncrementOuts();
-        if (outs != 3) {
-            AnnounceNextBatter();
-        }
-    }
+    AnnounceStrike(StrikeOutSwingingText);
 }
 
 
