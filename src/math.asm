@@ -75,6 +75,7 @@ MACRO ADD_HL_DE_ADC_REG ;\1 = register
 ENDM
 
 SECTION "Math Code", ROM0
+_math_Multiply::
 math_Multiply:: ; hl = de * a where 0 <= a <= 255
   ld hl, 0
   and a

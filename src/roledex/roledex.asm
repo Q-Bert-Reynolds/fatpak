@@ -103,6 +103,7 @@ GetMove:: ; a = move number, returns move_data
   pop bc
   ret 
 
+_GetPlayerName::
 GetPlayerName:: ; a = number, returns name in name_buffer
   dec a
   ld c, a;number

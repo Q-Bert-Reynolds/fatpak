@@ -11,6 +11,7 @@ extern void DisplayText(char drawFlags, const char text[]);
 
 // src/math.asm
 extern unsigned long math_Divide(unsigned long num, unsigned char div);
+extern unsigned int math_Multiply(unsigned int word, unsigned char byte);
 
 // src/strings.asm
 extern char* str_FromArray(int index, char strings[]);
@@ -20,10 +21,12 @@ extern void str_Replace(const char src[], const char dest[], const char replacem
 extern void str_Number(unsigned long n);
 
 // src/utils.asm
-extern unsigned char GetBalls(void);
 extern void SetBalls(unsigned char balls);
-extern unsigned char GetStrikes(void);
 extern void SetStrikes(unsigned char strikes);
+extern void FoulBall(void);
+extern unsigned char IsUserFielding(void);
+extern unsigned char GetBalls(void);
+extern unsigned char GetStrikes(void);
 extern unsigned char CheckStrike(void);
 extern unsigned char IncrementOuts(void);
 extern unsigned char DistanceFromSpeedLaunchAngle(unsigned char speed, signed char launch);
@@ -32,19 +35,31 @@ extern unsigned char CurrentOrderInLineup(void);
 extern unsigned char AdvanceRunners(unsigned char num_bases, unsigned char batter);// batter is lineup order (1-9) to put on first or 0 if no batter on 1st
 extern unsigned int LocationFromDistSprayAngle(unsigned char distance, signed char spray);//returns xy in de
 extern unsigned int GetClosestFielderByLocation(unsigned int xy);//de = xy, returns position number in a, distance in b
+extern unsigned int GetPositionPlayerAndName(unsigned char position);//a = position number (1-9), returns position player in hl, name in [name_buffer]
 
 // src/players.asm
 extern void GetMoveName(char index);
+extern void GetUserPlayerName(unsigned int player);//hl = user player, returns name in name_buffer
+extern unsigned int GetPlayerSpeed(unsigned int player);//hl = player, returns speed in hl
+extern unsigned int GetUserPlayerInLineup(unsigned char lineup_index);//a = lineup index, returns player in hl
+extern unsigned int GetOpposingPlayerInLineup(unsigned char lineup_index);//a = lineup index, returns player in hl
+
+// src/roledex.asm
+extern void GetPlayerName(unsigned char num);//a = number, returns name in name_buffer
 
 // src/wram.asm
-extern char ball_state;
-extern int runners_on_base;
-extern char pitch_move_id;
-extern char frame;
+extern unsigned char ball_state;
+extern unsigned int runners_on_base;
+extern unsigned char pitch_move_id;
+extern unsigned char frame;
+extern unsigned char home_team;
+extern unsigned char away_score;
+extern unsigned char home_score;
 extern char tile_buffer[];
 extern char str_buffer[];
 extern char name_buffer[];
 
+// TODO: this should be in src/announcer.h
 void AnnouncePitcher(void);
 void AnnounceBatter(void);
 void AnnounceBeginningOfFrame(void);
@@ -298,10 +313,10 @@ void AnnounceWildPitchOrPassedBall(void) {
 //----------------------------------------------------------------------
 void AnnounceSwingMiss(void) {
     // TODO: check for wild pitch, passed ball, dropped 3rd strike
-
-    char strikes = GetStrikes();
-    if (strikes < 2) {
-        SetStrikes(++strikes);
+    unsigned char strikes = GetStrikes();
+    strikes++;
+    if (strikes < 3) {
+        SetStrikes(strikes);
         __asm__("TRAMPOLINE DrawCountOutsInning");
         str_Number(strikes);
         str_Replace(StrikeText, str_buffer, name_buffer);
@@ -312,7 +327,8 @@ void AnnounceSwingMiss(void) {
         str_Replace(StrikeOutSwingingText, str_buffer, name_buffer);
         RevealTextAndWait(str_buffer);
         __asm__("TRAMPOLINE HideBatter");
-        if (IncrementOuts() < 3) {
+        unsigned char outs = IncrementOuts();
+        if (outs != 3) {
             AnnounceNextBatter();
         }
     }
@@ -434,108 +450,49 @@ void AnnounceHitInAirToInfield(unsigned char speed, unsigned char distance, sign
     AnnounceFieldingText(fielder_position, fielder_dist_from_ball, hang_time);
 }
 
-void AppendInfieldLocationTextByAngle(signed char spray) {// appends text to str_buffer
-//   ld a, b
-//   cp a, 40
-//   jr c, .infieldLocation
-//   cp a, -40
-//   jr nc, .infieldLocation
-//   ld hl, InFoulTerritoryText
-//   jr .append
-// .infieldLocation
-//   add a, 40
-//   ld h, 0
-//   ld l, a
-//   ld c, 10
-//   call math_Divide
-//   ld b, h
-//   ld c, l
-//   ld hl, InfieldLocationTexts;9 locations
-//   call str_FromArray
-// .append
-//   ld de, str_buffer
-//   call str_Append
-//   ret
+void AppendInfieldLocationTextByAngle(signed char spray) {
+    const char* infield_location_text = InFoulTerritoryText;
+    if (spray > -40 && spray < 40) {
+        spray += 40;
+        spray = math_Divide(spray, 10);
+        infield_location_text = str_FromArray(spray, InfieldLocationTexts);
+
+    }
+    str_Append(infield_location_text, str_buffer);
 }
 
 void AnnounceBuntText(char launch, char spray) {
-//   ld hl, HitBuntText
-//   ld de, tile_buffer
-//   call str_Copy
-
-//   ld hl, ToThePositionText
-//   ld de, tile_buffer
-//   call str_Append
-
-//   ld hl, PositionTexts
-//   ld bc, 1
-//   call str_FromArray
-
-//   ld hl, PositionTexts
-//   add hl, bc
-//   ld b, h
-//   ld c, l
-
-//   ld hl, tile_buffer
-//   ld de, str_buffer
-//   call str_Replace
-
-//   ld hl, str_buffer
-//   call RevealTextAndWait
-//   ret
+    str_Copy(HitBuntText, tile_buffer);
+    str_Append(ToThePositionText, tile_buffer);
+    char* position_text = str_FromArray(1, PositionTexts);
+    str_Replace(tile_buffer, str_buffer, position_text);
+    RevealTextAndWait(str_buffer);
 }
 
 void AnnounceFieldingText(unsigned char position, unsigned char distance, unsigned char hang_time){
-//   push bc;dist, hang time
-//   call GetPositionPlayerAndName;player in hl, name in name_buffer
-//   call GetPlayerSpeed
-//   ld d, h
-//   ld e, l
-//   pop bc;dist, hang time
-//   ld a, c;hang time
-//   call math_Multiply;dist covered = player speed * hang time, doesn't affect bc
-//   ld [_breakpoint], a
-//   ld a, h;discard lower byte of range
-//   sub a, b;if player speed * hang time > dist from player, caught
-//   jr c, .landed
+    int player = GetPositionPlayerAndName(position);//player in hl, name in name_buffer
+    int speed = GetPlayerSpeed(player);
+    int dist_covered = math_Multiply(speed, hang_time);//dist covered = player speed * hang time, doesn't affect bc
+    if ((char)(dist_covered >> 8) > distance) {//if player speed * hang time > dist from player, caught
+        str_Replace(CaughtByText, str_buffer, name_buffer);
+        RevealTextAndWait(str_buffer);
+        __asm__("TRAMPOLINE HideBatter");
+        RevealTextAndWait(OutText);
+        unsigned char outs = IncrementOuts();
+        if (outs == 3) AnnounceNextBatter();
+        return;
+    }
+    else {// otherwise, landed
+        ball_state |= BALL_STATE_LANDED;
+        if ((ball_state & BALL_STATE_FAIR) == 0) {
+            AnnounceFoulBall();
+            return;
+        }
 
-// .caught 
-//   ld hl, CaughtByText
-//   ;TODO: DivingCatchByText
-//   ld bc, name_buffer
-//   ld de, str_buffer
-//   call str_Replace
-
-//   ld hl, str_buffer
-//   call RevealTextAndWait
-
-//   TRAMPOLINE HideBatter
-//   ld hl, OutText
-//   call RevealTextAndWait
-
-//   call IncrementOuts
-//   cp 3
-//   jp nz, AnnounceNextBatter
-//   ret
-
-// .landed
-//   ld a, [ball_state]
-//   or a, BALL_STATE_LANDED
-//   ld [ball_state], a
-//   and a, BALL_STATE_FAIR
-//   jp z, AnnounceFoulBall
-
-//   ld hl, FieldedByText
-  
-//   ld bc, name_buffer
-//   ld de, str_buffer
-//   call str_Replace
-
-//   ld hl, str_buffer
-//   call RevealTextAndWait
-//   jp nz, AnnounceNextBatter
-  
-
+        str_Replace(FieldedByText, str_buffer, name_buffer);
+        RevealTextAndWait(str_buffer);
+        AnnounceNextBatter();
+    }
 //   ; ;errors
 //   ; OffTheGloveOfText
 //   ; BobbledByText
@@ -555,17 +512,14 @@ void AnnounceFieldingText(unsigned char position, unsigned char distance, unsign
 //   ; OutText
 //   ; DoublePlayText
 //   ; TriplePlayText
-//   ret
 }
 
 void AnnounceFoulBall(void) {
-//   call FoulBall
-//   ld hl, HitFoulBallText
+    FoulBall();
 //   ;TODO: HitFoulBackText
-//   call RevealTextAndWait
-//   TRAMPOLINE ShowBatter
-//   TRAMPOLINE DrawCountOutsInning
-//   ret
+    RevealTextAndWait(HitFoulBallText);
+    __asm__("TRAMPOLINE ShowBatter");
+    __asm__("TRAMPOLINE DrawCountOutsInning");
 }
 
 void AnnounceAdvanceRunners(void) {
@@ -578,69 +532,28 @@ void AnnounceRunnersOn(void) {
 
 // TODO: handle more than one run -> TwoPlayersScoreText, BasesClearedScoreText
 void AnnounceRunScored(void) {//if upper nibble of [runners_on_base] non-zero, announces runner who scored
-//   ld a, [runners_on_base]
-//   ld b, a
-//   and a, %00001111
-//   ld [runners_on_base], a
-//   swap b
-//   ld a, b
-//   and a, %00001111
-//   ret z;no one scored if a == 0
-//   dec a
-//   ld b, a;batting order index(0-8)
-//   call IsUserFielding
-//   jr z, .userIsBatting
-// .opponentIsBatting
-//   ld a, [home_team]
-//   and a
-//   jr z, .opponentIsHome
-// .opponentIsAway
-//   ld a, [away_score]
-//   inc a
-//   ld [away_score], a
-//   jr .getOpponentPlayerName
-// .opponentIsHome
-//   ld a, [home_score]
-//   inc a
-//   ld [home_score], a
-// .getOpponentPlayerName
-//   push bc
-//   TRAMPOLINE DrawScore
-//   pop bc
-//   ld a, b
-//   call GetOpposingPlayerInLineup
-//   call GetPlayerName
-//   jr .announceScoringPlayer
-// .userIsBatting
-//   ld a, [home_team]
-//   and a
-//   jr nz, .userIsHome
-// .userIsAway
-//   ld a, [away_score]
-//   inc a
-//   ld [away_score], a
-//   jr .getUserPlayerName
-// .userIsHome
-//   ld a, [home_score]
-//   inc a
-//   ld [home_score], a
-// .getUserPlayerName
-//   push bc
-//   TRAMPOLINE DrawScore
-//   pop bc
-//   ld a, b
-//   call GetUserPlayerInLineup
-//   call GetUserPlayerName
-// .announceScoringPlayer
-//   ld hl, name_buffer
-//   ld de, str_buffer
-//   call str_Copy
-//   ld hl, PlayerScoresText
-//   ld de, str_buffer
-//   call str_Append
-//   ld hl, str_buffer
-//   call RevealTextAndWait
-//   ret
+    unsigned char scoring_runner = (char)(runners_on_base >> 12);
+    if (scoring_runner == 0) return;
+
+    runners_on_base &= 0b0000111111111111;
+    scoring_runner--;
+    if (IsUserFielding() == 0) {// user is batting
+        if (home_team == 0) away_score++;
+        else home_score++;
+        unsigned int player = GetUserPlayerInLineup(scoring_runner);
+        GetUserPlayerName(player);
+    }
+    else {// opponentIsBatting
+        if (home_team == 0) home_score++;
+        else away_score++;
+
+        unsigned int player = GetOpposingPlayerInLineup(scoring_runner);//TODO: make return structs
+        GetPlayerName(1);
+    }
+    __asm__("TRAMPOLINE DrawScore");
+    str_Copy(name_buffer, str_buffer);
+    str_Append(PlayerScoresText, str_buffer);
+    RevealTextAndWait(str_buffer);
 }
 
 void AnnounceEndOfGame(void) {

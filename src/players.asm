@@ -773,6 +773,7 @@ GetPlayerField:: ;hl = player, returns field in hl
   pop bc
   ret
 
+_GetPlayerSpeed::
 GetPlayerSpeed:: ;hl = player, returns speed in hl
   push bc
   ld bc, UserLineupPlayer1.speed - UserLineupPlayer1
@@ -893,6 +894,7 @@ SetUserPlayerName::;hl = player, de = name address
   call str_Copy
   ret
 
+_GetUserPlayerName::
 GetUserPlayerName::;hl = user player, returns name in name_buffer
   push bc
   push hl;user's player
@@ -913,6 +915,7 @@ GetUserPlayerName::;hl = user player, returns name in name_buffer
   pop bc
   ret
 
+_GetOpposingPlayerInLineup::
 GetOpposingPlayerInLineup::;a = lineup index, returns player in hl
   ld bc, OpponentLineup
   ld de, OpponentLineupPlayer2 - OpponentLineupPlayer1
@@ -920,6 +923,7 @@ GetOpposingPlayerInLineup::;a = lineup index, returns player in hl
   add hl, bc
   ret
 
+_GetUserPlayerInLineup::
 GetUserPlayerInLineup::;a = lineup index, returns player in hl
   ld bc, UserLineup
   ld de, UserLineupPlayer2 - UserLineupPlayer1

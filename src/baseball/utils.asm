@@ -70,6 +70,7 @@ SetStrikes::; a = strikes
   ld [balls_strikes_outs], a
   ret
 
+_FoulBall::
 FoulBall::
   call GetStrikes
   cp a, 2
@@ -203,6 +204,7 @@ CheckStrike:: ;returns ball (z) or strike (nz)
 ;            hl = position player address
 ;
 ;----------------------------------------------------------------------
+_GetPositionPlayerAndName::;unsigned int GetPositionPlayerAndName(unsigned char position)
 GetPositionPlayerAndName::
   ld b, a;position number
   ld a, [loaded_bank]
@@ -503,6 +505,7 @@ GetClosestFielderByLocation::;de = xy, returns position number in a, distance in
   inc a;position
   ret
 
+_IsUserFielding::  
 IsUserFielding::;nz = user is fielding, z = user is batting
   push bc
   ld a, [home_team];1 = user is home team
