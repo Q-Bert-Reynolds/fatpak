@@ -1,6 +1,5 @@
 ; announcer.asm
-; This code is deprecated.
-; It's being replaced by announcer.c 
+; This is obsolete. It has been replaced by announcer.c 
 ; Keeping this to compare generated code in _announcer.asm
 
 SECTION "Announcer Bank 0", ROM0

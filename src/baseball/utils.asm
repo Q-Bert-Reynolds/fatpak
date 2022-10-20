@@ -244,6 +244,7 @@ GetPositionPlayerAndName::
 ;
 ;----------------------------------------------------------------------
 _DistanceFromSpeedLaunchAngle::
+  ld c, e;launch angle in e, should be in c
 DistanceFromSpeedLaunchAngle::;a = speed, c = launch angle, returns distance in a
   push af;speed
   ld a, c
@@ -984,7 +985,7 @@ NextFrame::
   ld a, [frame]
   inc a
   ld [frame], a
-  TRAMPOLINE AnnounceBeginningOfFrame
+  TRAMPOLINE _AnnounceBeginningOfFrame
   ret
 
 NextBatter::

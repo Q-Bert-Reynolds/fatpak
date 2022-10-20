@@ -149,6 +149,19 @@ ENDR
   pop hl             ; Restore multiplier.
   ret
 
+_math_Divide::
+  ;compiler puts numerator in debc, should be in dehl
+  ld h, b
+  ld l, c
+  ld c, a;compiler puts denominator in a, should be in c
+  call math_Divide32;dehl (remainder a) = dehl / c
+  ;return dehl, compiler expects debc
+  ld b, h
+  ld c, l  
+  pop	hl
+	inc	sp
+	jp	hl
+
 math_Divide16:: ;de (remainder hl) = hl / bc
   ld de, 0 ;quotient
 .loop ;while remainder >= denominator
@@ -167,7 +180,6 @@ math_Divide24:: ; ehl (remainder a) = ehl / c
   xor a
   ld d, a
 
-_math_Divide::
 math_Divide32::; dehl (remainder a) = dehl / c
   xor	a
   ld	b, 32

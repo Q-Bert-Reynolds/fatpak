@@ -849,12 +849,12 @@ DW _151MickTileMap
 SECTION "Player Animations 0", ROMX, BANK[PLAYER_IMG_BANK+IMG_BANK_COUNT+0]
 
 
-INCLUDE "img/players/001Bubbi/001Bubbi_righty_pitcher_user_2x.asm"
-INCLUDE "img/players/001Bubbi/001Bubbi_righty_batter_user.asm"
 INCLUDE "img/players/001Bubbi/001Bubbi_lefty_batter_opponent.asm"
-INCLUDE "img/players/001Bubbi/001Bubbi_righty_pitcher_opponent.asm"
 INCLUDE "img/players/001Bubbi/001Bubbi_lefty_batter_user.asm"
 INCLUDE "img/players/001Bubbi/001Bubbi_lefty_pitcher_opponent.asm"
+INCLUDE "img/players/001Bubbi/001Bubbi_righty_batter_user.asm"
+INCLUDE "img/players/001Bubbi/001Bubbi_righty_pitcher_opponent.asm"
+INCLUDE "img/players/001Bubbi/001Bubbi_righty_pitcher_user_2x.asm"
 INCLUDE "img/players/002Ivy/002Ivy_lefty_batter_opponent.asm"
 INCLUDE "img/players/002Ivy/002Ivy_righty_pitcher_opponent.asm"
 INCLUDE "img/players/003Venus/003Venus_lefty_batter_user.asm"
@@ -865,14 +865,14 @@ INCLUDE "img/players/004Ginger/004Ginger_lefty_pitcher_user_2x.asm"
 SECTION "Player Animations 1", ROMX, BANK[PLAYER_IMG_BANK+IMG_BANK_COUNT+1]
 
 
-INCLUDE "img/players/005Freckles/005Freckles_lefty_pitcher_user_2x.asm"
 INCLUDE "img/players/005Freckles/005Freckles_lefty_pitcher_opponent.asm"
+INCLUDE "img/players/005Freckles/005Freckles_lefty_pitcher_user_2x.asm"
 INCLUDE "img/players/006BigRed/006BigRed_lefty_pitcher_opponent.asm"
 INCLUDE "img/players/006BigRed/006BigRed_lefty_pitcher_user.asm"
 INCLUDE "img/players/007Squirt/007Squirt_righty_pitcher_opponent.asm"
 INCLUDE "img/players/009Yogi/009Yogi_righty_batter_user.asm"
 INCLUDE "img/players/026Rai/026Rai_lefty_pitcher_opponent.asm"
-INCLUDE "img/players/143Bear/143Bear_righty_batter_opponent.asm"
 INCLUDE "img/players/143Bear/143Bear_lefty_pitcher_user_2x.asm"
+INCLUDE "img/players/143Bear/143Bear_righty_batter_opponent.asm"
 INCLUDE "img/players/143Bear/143Bear_righty_batter_user.asm"
 INCLUDE "img/players/145Zaph/145Zaph_righty_batter_user.asm"

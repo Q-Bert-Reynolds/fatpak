@@ -14,7 +14,7 @@ extern unsigned long math_Divide(unsigned long num, unsigned char div);
 extern unsigned int math_Multiply(unsigned int word, unsigned char byte);
 
 // src/strings.asm
-extern char* str_FromArray(int index, char strings[]);
+extern char* str_FromArray(unsigned int index, char strings[]);
 extern void str_Copy(const char src[], const char dest[]);
 extern void str_Append(const char append[], const char dest[]);
 extern void str_Replace(const char src[], const char dest[], const char replacement[]);
@@ -72,7 +72,7 @@ void AnnounceNoSwing(void);
 void AnnounceWildPitchOrPassedBall(void);
 void AnnounceStrike(const char strike_out_text[]);
 void AnnounceSwingMiss(void);
-void _AnnounceSwingContact(unsigned char speed, signed char spray, signed char launch);
+void AnnounceSwingContact(unsigned char speed, signed char spray, signed char launch);
 void AnnounceHitOnGround(char speed, char spray);
 void AnnounceHitInAir(unsigned char speed, signed char spray, signed char launch);
 void AnnounceHitInAirToOutfield(unsigned char speed, unsigned char distance, signed char spray, signed char launch);
@@ -323,8 +323,20 @@ void AnnounceSwingMiss(void) {
     AnnounceStrike(StrikeOutSwingingText);
 }
 
+void AnnounceTest(void) {
+    // unsigned long num = math_Divide(1000, 10);
+    // str_Number(num);
+    // RevealTextAndWait(name_buffer);
 
-void _AnnounceSwingContact(unsigned char speed, signed char spray, signed char launch) {
+    str_Copy("", str_buffer);
+    for (int i = 170; i < 250; i += 10) {
+        AnnounceSwingContact(i, 20, 45);
+    }
+
+}
+
+
+void AnnounceSwingContact(unsigned char speed, signed char spray, signed char launch) {
     //TODO: foul tip caught, foul bunt K
 
     ball_state = BALL_STATE_IN_PLAY;
@@ -344,6 +356,7 @@ void _AnnounceSwingContact(unsigned char speed, signed char spray, signed char l
 
 void AnnounceHitOnGround(char speed, char spray) {
     //TODO
+    AnnounceHitInAir(speed, spray, 0);
 }
 
 void AnnounceHitInAir(unsigned char speed, signed char spray, signed char launch) {
@@ -359,8 +372,8 @@ void AnnounceHitInAir(unsigned char speed, signed char spray, signed char launch
 void AnnounceHitInAirToOutfield(unsigned char speed, unsigned char distance, signed char spray, signed char launch) {   
     //TODO: LeapingCatchByText
 
-    if (distance > 240) { //out of play
-        if (ball_state & BALL_STATE_FAIR != 0) { //home run
+    if (distance > 200) { //out of play
+        if ((ball_state & BALL_STATE_FAIR) != 0) { //home run
             unsigned char order = CurrentOrderInLineup();
             unsigned char runs_scored = AdvanceRunners(4, ++order);//current batter is 0 to 8, needs to be 1 to 9
             const char* home_run_text = (runs_scored == 4) ? HitGrandSlamText : HitHomeRunText;
@@ -375,43 +388,48 @@ void AnnounceHitInAirToOutfield(unsigned char speed, unsigned char distance, sig
         return;
     }
 
-    const char* hit_text = HitPopFlyText;
-    if (distance > 220) {
+    const char* hit_text;
+    if (distance > 180) {
         hit_text = HitDeepFlyBallText;
     }
-    else if (distance > 180) {
+    else if (distance > 120) {
         hit_text = HitFlyBallText;
     }
-    else if (distance > 140) {
+    else if (distance > 100) {
         hit_text = HitShallowFlyBallText;
+    }
+    else {
+        hit_text = HitPopFlyText;
     }
     str_Copy(hit_text, str_buffer);
     AppendOutfieldLocationTextByAngle(spray);
     RevealTextAndWait(str_buffer);
 
-    unsigned int xy = LocationFromDistSprayAngle(distance, spray);
-    unsigned char x = (char)(xy >> 8);//x in upper nibble
-    unsigned char y = (char)(xy & 255);//y in lower nibble
-    unsigned int position_and_distance_from_ball = GetClosestFielderByLocation(xy);
-    unsigned char fielder_position = (char)((position_and_distance_from_ball >> 8) & BALL_STATE_FIELDER);//position in first 4 bits of upper nibble
-    unsigned char fielder_dist_from_ball = (char)(position_and_distance_from_ball & 255);//distance in lower nibble
-    ball_state |= fielder_position;
+    // unsigned int xy = LocationFromDistSprayAngle(distance, spray);
+    // unsigned char x = (char)(xy >> 8);//x in upper nibble
+    // unsigned char y = (char)(xy & 255);//y in lower nibble
+    // unsigned int position_and_distance_from_ball = GetClosestFielderByLocation(xy);
+    // unsigned char fielder_position = (char)((position_and_distance_from_ball >> 8) & BALL_STATE_FIELDER);//position in first 4 bits of upper nibble
+    // unsigned char fielder_dist_from_ball = (char)(position_and_distance_from_ball & 255);//distance in lower nibble
+    // ball_state |= fielder_position;
 
-    unsigned char hang_time = HangTimeFromSpeedLaunchAngle(speed, launch);
-    AnnounceFieldingText(fielder_position, fielder_dist_from_ball, hang_time);
+    // unsigned char hang_time = HangTimeFromSpeedLaunchAngle(speed, launch);
+    // AnnounceFieldingText(fielder_position, fielder_dist_from_ball, hang_time);
 }
 
 void AppendOutfieldLocationTextByAngle(signed char spray) {// appends text to str_buffer
-    const char* location_text = InFoulTerritoryText;
-    if (spray <= -45 && spray >= 45) { //fair ball
-        spray += 46;
-        unsigned int index = (unsigned int)math_Divide(spray, 15);
+    const char* location_text;
+    if (spray >= -45 && spray <= 45) { //fair ball
+        unsigned int index = (unsigned int)math_Divide((unsigned long)(spray+45), 15);
         location_text = str_FromArray(index, OutfieldLocationTexts);
+    }
+    else {
+        location_text = InFoulTerritoryText;
     }
     str_Append(location_text, str_buffer);
 }
 
-void AnnounceHitInAirToInfield(unsigned char speed, unsigned char distance, signed char spray, signed char launch) {  
+void AnnounceHitInAirToInfield(unsigned char speed, unsigned char distance, signed char spray, signed char launch) {
     const char* hit_text = HitPopUpText;
     if (distance > 200) {
         hit_text = HitLineDriveText;
@@ -427,27 +445,28 @@ void AnnounceHitInAirToInfield(unsigned char speed, unsigned char distance, sign
     AppendInfieldLocationTextByAngle(spray);
     RevealTextAndWait(str_buffer);
 
-    unsigned int xy = LocationFromDistSprayAngle(distance, spray);
-    unsigned char x = (char)(xy >> 8);//x in upper nibble
-    unsigned char y = (char)(xy & 255);//y in lower nibble
-    unsigned int position_and_distance_from_ball = GetClosestFielderByLocation(xy);
-    unsigned char fielder_position = (char)((position_and_distance_from_ball >> 8) & BALL_STATE_FIELDER);//position in first 4 bits of upper nibble
-    unsigned char fielder_dist_from_ball = (char)(position_and_distance_from_ball & 255);//distance in lower nibble
-    ball_state |= fielder_position;
+    // unsigned int xy = LocationFromDistSprayAngle(distance, spray);
+    // unsigned char x = (char)(xy >> 8);//x in upper nibble
+    // unsigned char y = (char)(xy & 255);//y in lower nibble
+    // unsigned int position_and_distance_from_ball = GetClosestFielderByLocation(xy);
+    // unsigned char fielder_position = (char)((position_and_distance_from_ball >> 8) & BALL_STATE_FIELDER);//position in first 4 bits of upper nibble
+    // unsigned char fielder_dist_from_ball = (char)(position_and_distance_from_ball & 255);//distance in lower nibble
+    // ball_state |= fielder_position;
 
-    unsigned char hang_time = HangTimeFromSpeedLaunchAngle(speed, launch);
-    AnnounceFieldingText(fielder_position, fielder_dist_from_ball, hang_time);
+    // unsigned char hang_time = HangTimeFromSpeedLaunchAngle(speed, launch);
+    // AnnounceFieldingText(fielder_position, fielder_dist_from_ball, hang_time);
 }
 
 void AppendInfieldLocationTextByAngle(signed char spray) {
-    const char* infield_location_text = InFoulTerritoryText;
-    if (spray > -40 && spray < 40) {
-        spray += 40;
-        spray = math_Divide(spray, 10);
-        infield_location_text = str_FromArray(spray, InfieldLocationTexts);
-
+    const char* location_text;
+    if (spray >= -45 && spray <= 45) { //fair ball
+        unsigned int index = (unsigned int)math_Divide((unsigned long)(spray+45), 11);
+        location_text = str_FromArray(index, InfieldLocationTexts);
     }
-    str_Append(infield_location_text, str_buffer);
+    else {
+        location_text = InFoulTerritoryText;
+    }
+    str_Append(location_text, str_buffer);
 }
 
 void AnnounceBuntText(char launch, char spray) {

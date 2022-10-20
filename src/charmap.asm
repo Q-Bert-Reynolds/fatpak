@@ -32,7 +32,7 @@ charmap "<e`>", 127
 
 charmap "<P>", 1 ; pitcher
 charmap "<C>", 2 ; catcher
-charmap "<3B>", 3 ; first
+charmap "<1B>", 3 ; first
 charmap "<2B>", 4 ; second
 charmap "<3B>", 5 ; third
 charmap "<SS>", 6 ; short

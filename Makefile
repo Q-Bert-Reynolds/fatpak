@@ -23,7 +23,7 @@ endif
 
 C_SOURCES = $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/**/*.c) $(wildcard $(DATA_DIR)/**/*.c) 
 
-all: assets assemble
+all: clean assets assemble run
 
 $(C_SOURCES): 
 	@mkdir -p $(BUILD_DIR)
@@ -59,3 +59,4 @@ endif
 
 clean:
 	@rm -rf $(BUILD_DIR)
+	@rm -f $(ROM_FILE) 

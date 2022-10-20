@@ -223,7 +223,7 @@ DB "Their brains can\noutperform any\nadvanced analytics\nsoftware. Their\n#BOL 
 DB "Loves to build its\nmuscles. It trains\nin all styles of\nmartial arts to\nbecome even\nstronger", 0
 DB "Its muscular body\nis so powerful, it\nmust wear a power\nsave belt to be\nable to regulate\nits motions", 0
 DB "Using its heavy\nmuscles, it throws\npowerful punches\nthat can send the\nvictim clear over\nthe horizon", 0
-DB "A carnivorous\nPOKéMON that traps\nand eats bugs. It\nuses its root feet\nto soak up needed\nmoisture", 0
+DB "A carnivorous\nPOKéMON that\ntraps and eats\nbugs. It uses its\nroot feet to soak\nup needed moisture", 0
 DB "It spits out\nPOISONPOWDER to\nimmobilize the\nenemy and then\nfinishes it with a\nspray of ACID", 0
 DB "Said to live in\nhuge colonies deep\nin jungles,\nalthough no one\nhas ever returned\nfrom there", 0
 DB "Drifts in shallow\nseas. Anglers who\nhook them by\naccident are often\npunished by its\nstinging acid", 0

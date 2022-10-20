@@ -1,6 +1,5 @@
 INCLUDE "src/beisbol.inc"
 INCLUDE "src/baseball/intro.asm"
-INCLUDE "src/baseball/announcer.asm"
 INCLUDE "src/baseball/utils.asm"
 
 ;include compiled assemblies last
@@ -9,7 +8,37 @@ INCLUDE "src/baseball/_announcer.asm"
 SECTION "Play Ball SGB", ROMX, BANK[SGB_BANK+1]
 INCLUDE "img/play/play_ball_sgb_border.asm"
 
-SECTION "Play Ball", ROMX, BANK[PLAY_BALL_BANK]
+SECTION "Play Ball HOME", ROM0
+;TODO: Figure out how banking works in C so these can go in announcer.c
+AnnounceDisplayText:: ;hl = text address
+  ld a, ANNOUNCER_BANK
+  call SetBank
+  
+  ld a, DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP
+  call DisplayText
+
+  ld a, PLAY_BALL_BANK
+  call SetBank
+  ret
+
+AnnounceSwingContact:: ; a = speed, b = spray angle, c = launch angle
+  push af;speed
+  ld a, BANK(_AnnounceSwingContact)
+  call SetBank
+  pop af;speed
+
+  ld e, b;spray
+  ld b, c;launch
+  push bc;b = launch
+  inc sp
+
+  call _AnnounceSwingContact; a = speed, e = spray, [sp+2] = launch angle
+
+  ld a, PLAY_BALL_BANK
+  call SetBank
+  ret
+
+SECTION "Play Ball BANKED", ROMX, BANK[PLAY_BALL_BANK]
 
 DISPLAY_PITCH_NAME_DELAY EQU 6
 
@@ -545,12 +574,12 @@ Swing:; aim xy = de, pitch z = a, returns contact made in a
   cp 128
   jr c, .late
 .early
-  ld hl, EarlySwingText
+  ld hl, _EarlySwingText
   call AnnounceDisplayText
   xor a
   ret
 .late
-  ld hl, LateSwingText
+  ld hl, _LateSwingText
   call AnnounceDisplayText
   xor a
   ret
@@ -573,12 +602,12 @@ Swing:; aim xy = de, pitch z = a, returns contact made in a
   ld a, 1
   ret
 .barrel
-  ld hl, HitBarrelText
+  ld hl, _HitBarrelText
   call AnnounceDisplayText
   ld a, 1
   ret
 .miss
-  ld hl, SwingAndMissText
+  ld hl, _SwingAndMissText
   call AnnounceDisplayText
   xor a
   ret
@@ -857,7 +886,7 @@ HitBall:
   jr FinishPitch
 .announceContact
   pop af;exit velocity
-  call _AnnounceSwingContact;a = exit velocity b = spray angle c = launch angle
+  call AnnounceSwingContact;a = exit velocity b = spray angle c = launch angle
   ;fall through to FinishPitch  
 
 FinishPitch:
@@ -1136,8 +1165,8 @@ StartGame::
   ; call ShowPlayBallIntro
   call SetupGameUI
 
-  TRAMPOLINE _AnnounceBeginningOfFrame ;C
-  ; TRAMPOLINE AnnounceBeginningOfFrame ;ASM 
+  TRAMPOLINE _AnnounceTest
+  TRAMPOLINE _AnnounceBeginningOfFrame
   TRAMPOLINE DrawBases
   HIDE_WIN
   
