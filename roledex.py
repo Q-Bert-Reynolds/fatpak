@@ -68,8 +68,8 @@ def main():
 
 def generate_img_bank(roledex):
   with open("./data/player_img.asm", "w+") as asm_file:
-    asm_file.write("IMG_BANK_COUNT EQU " + str(file_count) + "\n")
-    asm_file.write("PLAYERS_PER_BANK = (151 + (IMG_BANK_COUNT- 1)) / IMG_BANK_COUNT\n\n")
+    asm_file.write("DEF IMG_BANK_COUNT EQU " + str(file_count) + "\n")
+    asm_file.write("DEF PLAYERS_PER_BANK EQU (151 + (IMG_BANK_COUNT- 1)) / IMG_BANK_COUNT\n\n")
     for bank in range(file_count):
       player_count = players_per_file
       if bank == file_count-1:
@@ -213,7 +213,7 @@ def weight_string(player):
 def generate_player_data(roledex, learned_moves, taught_moves):
   with open("./data/player_data.asm", "w+") as asm_file:
     for player in roledex:
-      asm_file.write("NUM_"+player["Nickname"].upper().replace(" ","_").replace("-","_")+" EQU "+str(int(player["#"]))+"\n")
+      asm_file.write("DEF NUM_"+player["Nickname"].upper().replace(" ","_").replace("-","_")+" EQU "+str(int(player["#"]))+"\n")
 
     asm_file.write("SECTION \"Player Data\", ROMX, BANK[PLAYER_DATA_BANK]\n")
     asm_file.write(";weight format: DDDDLLLL LLLLLLLL where D is decimal and L is lbs\n")

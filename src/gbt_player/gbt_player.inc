@@ -10,7 +10,7 @@
 
 
     IF !DEF(GBT_PLAYER_INC)
-GBT_PLAYER_INC = 1
+DEF GBT_PLAYER_INC EQU 1
 
 ;###############################################################################
 

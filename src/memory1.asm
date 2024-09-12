@@ -33,7 +33,7 @@
 ;
 
 IF !DEF(MEMORY1_ASM)
-MEMORY1_ASM = 1
+DEF MEMORY1_ASM EQU 1
 
 MACRO rev_Check_memory1_asm
   IF \1 > 1.2
@@ -42,7 +42,7 @@ MACRO rev_Check_memory1_asm
 ENDM
 
 INCLUDE "src/hardware.inc"
-  rev_Check_hardware_inc 1.5
+  rev_Check_hardware_inc 4
 
 ; Macro that pauses until VRAM available.
 MACRO LCD_WAIT_VRAM

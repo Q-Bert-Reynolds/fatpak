@@ -31,7 +31,7 @@
 ;   math_Sin255                  a = sin(a) * 255 where a in degrees <= 180
 
 IF !DEF(MATH_ASM)
-MATH_ASM = 1
+DEF MATH_ASM EQU 1
 
 MACRO rev_Check_math_asm
   IF \1 > 1

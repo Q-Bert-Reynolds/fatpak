@@ -1,5 +1,5 @@
 IF !DEF(MAP_LOADER)
-MAP_LOADER = 1
+DEF MAP_LOADER EQU 1
 
 INCLUDE "src/beisbol.inc"
 
@@ -41,11 +41,11 @@ INCLUDE "maps/map_stamps.gbstamp";TODO: move this out of ROM0
 ; FixMapScroll                 HACK: called after moving right or down to solve off-by-one collision issues
 
 ;TODO: the arrays and constants below should be exported from Unity
-MAP_OVERWORLD   EQU 0
-MAP_HOUSES      EQU 1
-MAP_BUSINESSES  EQU 2
-MAP_MOUNTAINS   EQU 3
-MAP_VETERANPARK EQU 4
+DEF MAP_OVERWORLD   EQU 0
+DEF MAP_HOUSES      EQU 1
+DEF MAP_BUSINESSES  EQU 2
+DEF MAP_MOUNTAINS   EQU 3
+DEF MAP_VETERANPARK EQU 4
 MapBanks:
   DB BANK(MapOverworld)
   DB BANK(MapHouses)

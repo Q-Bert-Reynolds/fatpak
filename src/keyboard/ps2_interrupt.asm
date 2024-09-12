@@ -18,7 +18,7 @@ PS2KeyboardInterrupt::
   jp .checkAllErrors;bail early if start bit not 0
 
 .waitForLastBits
-  ld a, SCF_TRANSFER_START | SCF_CLOCK_EXTERNAL
+  ld a, SCF_START | SCF_SOURCE
   ld [rSC], a      ;ask for more bits using keyboard clock 
   xor a
   ld [kb_error], a ;reset current error code
@@ -45,7 +45,7 @@ PS2KeyboardInterrupt::
   
 .allBitsRead
   ld c, d;replace incomplete expected value with actual value (234567PF)
-  ld a, SCF_TRANSFER_STOP | SCF_CLOCK_EXTERNAL
+  ld a, SCF_SOURCE
   ld [rSC], a;stop asking for stuff, use external clock
 
 .testFinishBit
@@ -136,6 +136,6 @@ PS2KeyboardInterrupt::
   ld [kb_interrupt_count], a
   xor a
   ld [rSB], a;clear serial bits
-  ld a, SCF_TRANSFER_START | SCF_CLOCK_EXTERNAL
+  ld a, SCF_START | SCF_SOURCE
   ld [rSC], a;start next transfer using external clock
   ret

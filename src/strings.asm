@@ -44,7 +44,7 @@
 
 
 IF !DEF(STRINGS_ASM)
-STRINGS_ASM = 1
+DEF STRINGS_ASM EQU 1
 
 MACRO rev_Check_strings_asm
   IF \1 > 1

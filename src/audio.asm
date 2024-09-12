@@ -2,7 +2,7 @@ INCLUDE "src/beisbol.inc"
 INCLUDE "src/gbt_player/gbt_player.inc"
 
 IF !DEF(AUDIO_ASM)
-AUDIO_ASM = 1
+DEF AUDIO_ASM EQU 1
 
 INCLUDE "src/gbt_player/gbt_player.asm"
 INCLUDE "src/gbt_player/gbt_player_bank1.asm"

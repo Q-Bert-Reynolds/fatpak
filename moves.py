@@ -32,7 +32,7 @@ def generate_move_data(moves):
       var_name = move["Move"].replace(" ","").replace(".","").replace("-","") + "Move"
       var_names += "DW " + var_name + "\n"
       constant = move["Move"].upper().replace(" ","_").replace(".","").replace("-","_") + "_MOVE"
-      constants += constant + " EQU " + str(i+1) + "\n"
+      constants += "DEF " + constant + " EQU " + str(i+1) + "\n"
       move_data += "\n" + var_name + ":;" + move["Description"] + "\n"
       move_data += "DB " + constant + "\n"
       if move["Category"] == "Pitching":

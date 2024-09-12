@@ -1,5 +1,5 @@
 IF !DEF(BEISBOL_INC)
-BEISBOL_INC = 1
+DEF BEISBOL_INC EQU 1
 
 INCLUDE "src/hardware.inc"
 INCLUDE "src/memory1.asm"

@@ -34,7 +34,7 @@ def generate_item_data(items):
       var_name = item["Name"].replace(" ","").replace(".","").replace("-","").replace("é","e") + "Item"
       var_names += "DW " + var_name + "\n"
       constant = item["Name"].replace("é","e").upper().replace(" ","_").replace(".","").replace("-","_") + "_ITEM"
-      constants += constant + " EQU " + str(i+1) + "\n"
+      constants += "DEF " + constant + " EQU " + str(i+1) + "\n"
       item_data += "\n" + var_name + ":;" + item["Description"] + "\n"
       item_data += "DB " + constant + "\n"
       item_data += "DB ITEM_TYPE_" + item["Type"].upper().replace(" ","_").replace(".","").replace("-","_") + "\n"

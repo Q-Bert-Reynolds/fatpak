@@ -40,7 +40,7 @@ AnnounceSwingContact:: ; a = speed, b = spray angle, c = launch angle
 
 SECTION "Play Ball BANKED", ROMX, BANK[PLAY_BALL_BANK]
 
-DISPLAY_PITCH_NAME_DELAY EQU 6
+DEF DISPLAY_PITCH_NAME_DELAY EQU 6
 
 INCLUDE "src/baseball/play_ball_strings.asm"
 INCLUDE "src/baseball/ui.asm"
@@ -1226,7 +1226,7 @@ StartGame::
     jr .playBallLoop
   .runMenuItemSelected
     cp 3
-    jr nz, .playBallLoop
+    jp nz, .playBallLoop
     ; ld hl, QuittingIsNotAnOptionText
     ; call RevealTextAndWait
     ; HIDE_WIN

@@ -631,7 +631,7 @@ ShowRoledexMenu:;returns exit code in a
 .checkA
     ld a, [button_state]
     and a, PADF_A
-    jr z, .checkB
+    jp z, .checkB
 
       ld a, [_j]
 .checkShowData

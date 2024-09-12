@@ -181,7 +181,7 @@ def image_set_to_asm (root, name, tileset, tilemaps, dimensions, properties, pal
     
   with open(os.path.join(root, name + ".asm"), "w+") as asm_file:
     asm_file.write("IF !DEF(_" + name.upper() + "_TILE_COUNT)\n")
-    asm_file.write("_" + name.upper() + "_TILE_COUNT EQU " + str(len(tileset)) + "\n")
+    asm_file.write("DEF _" + name.upper() + "_TILE_COUNT EQU " + str(len(tileset)) + "\n")
 
     asm_file.write("_"+PascalCase(name)+"Tiles: INCBIN \"")
     asm_file.write(tilesPath + "\"\n")
@@ -195,8 +195,8 @@ def image_set_to_asm (root, name, tileset, tilemaps, dimensions, properties, pal
     for img_name in tilemaps.keys():
       rows, cols = dimensions[img_name]
       if "avatar" not in img_name:
-        asm_file.write("_" + img_name.upper() + "_ROWS EQU " + str(rows) + "\n")
-        asm_file.write("_" + img_name.upper() + "_COLUMNS EQU " + str(cols) + "\n")
+        asm_file.write("DEF _" + img_name.upper() + "_ROWS EQU " + str(rows) + "\n")
+        asm_file.write("DEF _" + img_name.upper() + "_COLUMNS EQU " + str(cols) + "\n")
       tilemapPath = pathlib.PurePath(root, img_name + ".tilemap").as_posix()
       asm_file.write("_" + PascalCase(img_name)+"TileMap: INCBIN \"")
       asm_file.write(tilemapPath+"\"\n")
@@ -308,7 +308,7 @@ def png_to_gb (path, base, name):
 
     with open(base + ".asm", "w+") as asm_file:
       asm_file.write("IF !DEF(_" + name.upper() + "_TILE_COUNT)\n")
-      asm_file.write("_" + name.upper() + "_TILE_COUNT EQU " + str(tile_count) + "\n")
+      asm_file.write("DEF _" + name.upper() + "_TILE_COUNT EQU " + str(tile_count) + "\n")
 
       tilesPath = pathlib.PurePath(base + ".tiles").as_posix()
       asm_file.write("_"+PascalCase(name)+"Tiles: INCBIN \"")
@@ -352,15 +352,15 @@ def png_to_gb (path, base, name):
 
     with open(base + ".asm", "w+") as asm_file:
       asm_file.write("IF !DEF(_" + name.upper() + "_TILE_COUNT)\n")
-      asm_file.write("_" + name.upper() + "_TILE_COUNT EQU " + str(tile_count) + "\n")
+      asm_file.write("DEF _" + name.upper() + "_TILE_COUNT EQU " + str(tile_count) + "\n")
 
       has_map = (name not in ["health_bar"]) and ("sprites" not in name)
       if has_map:
-        asm_file.write("_" + name.upper() + "_ROWS EQU " + str(rows) + "\n")
-        asm_file.write("_" + name.upper() + "_COLUMNS EQU " + str(cols) + "\n")
+        asm_file.write("DEF _" + name.upper() + "_ROWS EQU " + str(rows) + "\n")
+        asm_file.write("DEF _" + name.upper() + "_COLUMNS EQU " + str(cols) + "\n")
 
       if colors:
-        asm_file.write("_" + name.upper() + "_PALETTE_COUNT EQU " + str(len(colors)) + "\n")
+        asm_file.write("DEF _" + name.upper() + "_PALETTE_COUNT EQU " + str(len(colors)) + "\n")
         asm_file.write("_"+PascalCase(name)+"Colors:\n"+"".join(colors))
         asm_file.write("_"+PascalCase(name)+"PaletteMap:\n"+palettemap)
 

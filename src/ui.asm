@@ -846,7 +846,7 @@ UIRevealTextAndWait::
   call FlashNextArrow ;flash_next_arrow(18,4);
   ret
 
-SET_MOVE_OPTIONS_ARROW_TILE: MACRO ;var, row, column
+MACRO SET_MOVE_OPTIONS_ARROW_TILE ;var, row, column
   ld a, " "
   ld bc, tile_buffer
   ld [bc], a

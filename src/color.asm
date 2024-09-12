@@ -1,18 +1,18 @@
 SECTION "Colors", ROM0
 ;DMG
-DMG_PAL_BDLW EQU %11100100 ;normal
-DMG_PAL_WLDB EQU %00100111 ;inverted
-DMG_PAL_BDLL EQU %11100101 ;black, dark,  light, light/transparent
-DMG_PAL_DLWW EQU %10010000 ;dark,  light, white, white/transparent
-DMG_PAL_BDWW EQU %11100000 ;black, dark,  white, white/transparent
-DMG_PAL_BLWW EQU %11010000 ;black, light, white, white/transparent
-DMG_PAL_BLBW EQU %11011100 ;black, light, black, white/transparent
-DMG_PAL_WLBW EQU %00011100 ;white, light, black, white/transparent
+DEF DMG_PAL_BDLW EQU %11100100 ;normal
+DEF DMG_PAL_WLDB EQU %00100111 ;inverted
+DEF DMG_PAL_BDLL EQU %11100101 ;black, dark,  light, light/transparent
+DEF DMG_PAL_DLWW EQU %10010000 ;dark,  light, white, white/transparent
+DEF DMG_PAL_BDWW EQU %11100000 ;black, dark,  white, white/transparent
+DEF DMG_PAL_BLWW EQU %11010000 ;black, light, white, white/transparent
+DEF DMG_PAL_BLBW EQU %11011100 ;black, light, black, white/transparent
+DEF DMG_PAL_WLBW EQU %00011100 ;white, light, black, white/transparent
 
 ;CGB/SGB
-WHITE_R EQU 29
-WHITE_G EQU 29
-WHITE_B EQU 27
+DEF WHITE_R EQU 29
+DEF WHITE_G EQU 29
+DEF WHITE_B EQU 27
 
 MACRO COLOR_WHITE       
   RGB 31, 31, 31
@@ -133,84 +133,84 @@ ColorWhite:: COLOR_ALMOST_WHITE
 ColorLight:: COLOR_LIGHT_GREY
 ColorDark::  COLOR_DARK_GREY
 ColorBlack:: COLOR_BLACK
-PALETTE_GREY EQU (PaletteGrey-DefaultPalettes)/8
+DEF PALETTE_GREY EQU (PaletteGrey-DefaultPalettes)/8
 
 PaletteSepia::
   COLOR_ALMOST_WHITE
   COLOR_TAN
   COLOR_BROWN
   COLOR_DARK_BROWN
-PALETTE_SEPIA EQU (PaletteSepia-DefaultPalettes)/8
+DEF PALETTE_SEPIA EQU (PaletteSepia-DefaultPalettes)/8
 
 PaletteUI::
   COLOR_ALMOST_WHITE
   COLOR_TAN    
   COLOR_RED      
   COLOR_BLACK 
-PALETTE_UI EQU (PaletteUI-DefaultPalettes)/8
+DEF PALETTE_UI EQU (PaletteUI-DefaultPalettes)/8
 
 PaletteBaseball::
   COLOR_ALMOST_WHITE
   COLOR_ALMOST_WHITE    
   COLOR_RED      
   COLOR_DARK_RED 
-PALETTE_BASEBALL EQU (PaletteBaseball-DefaultPalettes)/8
+DEF PALETTE_BASEBALL EQU (PaletteBaseball-DefaultPalettes)/8
 
 PaletteField::
   COLOR_ALMOST_WHITE
   COLOR_DIRT    
   COLOR_GRASS     
   COLOR_DARK_BROWN
-PALETTE_FIELD EQU (PaletteField-DefaultPalettes)/8
+DEF PALETTE_FIELD EQU (PaletteField-DefaultPalettes)/8
 
 PaletteDark::
   COLOR_ALMOST_WHITE
   COLOR_DARKER_GREY
   COLOR_ALMOST_BLACK
   COLOR_BLACK 
-PALETTE_DARK EQU (PaletteDark-DefaultPalettes)/8
+DEF PALETTE_DARK EQU (PaletteDark-DefaultPalettes)/8
 
 PaletteTownMap::
   COLOR_ALMOST_WHITE
   COLOR_BLUE_GREY    
   COLOR_GREEN      
   COLOR_BLACK 
-PALETTE_TOWN_MAP EQU (PaletteTownMap-DefaultPalettes)/8
+DEF PALETTE_TOWN_MAP EQU (PaletteTownMap-DefaultPalettes)/8
 
 PaletteTownMapLocation::
   COLOR_ALMOST_WHITE
   COLOR_RED    
   COLOR_GREEN      
   COLOR_BLACK 
-PALETTE_TOWN_MAP_LOCATION EQU (PaletteTownMapLocation-DefaultPalettes)/8
+DEF PALETTE_TOWN_MAP_LOCATION EQU (PaletteTownMapLocation-DefaultPalettes)/8
 
 PaletteWarning::
   COLOR_ALMOST_WHITE
   COLOR_TAN    
   COLOR_WARNING      
   COLOR_BLACK 
-PALETTE_WARNING EQU (PaletteWarning-DefaultPalettes)/8
+DEF PALETTE_WARNING EQU (PaletteWarning-DefaultPalettes)/8
 
 PaletteGood::
   COLOR_ALMOST_WHITE
   COLOR_TAN    
   COLOR_GREEN      
   COLOR_BLACK 
-PALETTE_GOOD EQU (PaletteGood-DefaultPalettes)/8
+DEF PALETTE_GOOD EQU (PaletteGood-DefaultPalettes)/8
 
 PaletteIntro::
   COLOR_ALMOST_WHITE
   RGB 30, 22, 28
   RGB 13,  4,  9
   RGB  3,  1,  7
-PALETTE_INTRO EQU (PaletteIntro-DefaultPalettes)/8
+DEF PALETTE_INTRO EQU (PaletteIntro-DefaultPalettes)/8
 
 PaletteTitleScreen::
   COLOR_ALMOST_WHITE
   COLOR_YELLOW    
   COLOR_BLUE      
   COLOR_DARK_BLUE 
-PALETTE_TITLE_SCREEN EQU (PaletteTitleScreen-DefaultPalettes)/8
+DEF PALETTE_TITLE_SCREEN EQU (PaletteTitleScreen-DefaultPalettes)/8
 
 PaletteCalvin::
 IF DEF(_HOME)
@@ -229,7 +229,7 @@ ELSE;DEMO
   COLOR_BROWN
   COLOR_BLACK
 ENDC
-PALETTE_CALVIN EQU (PaletteCalvin-DefaultPalettes)/8
+DEF PALETTE_CALVIN EQU (PaletteCalvin-DefaultPalettes)/8
 
 PaletteLineupA::
 IF DEF(_HOME)
@@ -248,7 +248,7 @@ ELSE;DEMO
   COLOR_GREEN
   COLOR_BLACK
 ENDC
-PALETTE_LINEUP_A EQU (PaletteLineupA-DefaultPalettes)/8
+DEF PALETTE_LINEUP_A EQU (PaletteLineupA-DefaultPalettes)/8
 
 PaletteLineupB::
 IF DEF(_HOME)
@@ -267,7 +267,7 @@ ELSE;DEMO
   COLOR_BLACK
   COLOR_BLACK
 ENDC
-PALETTE_LINEUP_B EQU (PaletteLineupB-DefaultPalettes)/8
+DEF PALETTE_LINEUP_B EQU (PaletteLineupB-DefaultPalettes)/8
 
 PaletteVersion::
 IF DEF(_HOME)
@@ -286,7 +286,7 @@ ELSE;DEMO
   COLOR_DARK_BROWN
   COLOR_BLACK
 ENDC
-PALETTE_VERSION EQU (PaletteVersion-DefaultPalettes)/8
+DEF PALETTE_VERSION EQU (PaletteVersion-DefaultPalettes)/8
 
 PaletteNolan::
 IF DEF(_AWAY)
@@ -305,14 +305,14 @@ ELSE;DEMO
   COLOR_BROWN
   COLOR_DARK_BLUE
 ENDC
-PALETTE_NOLAN EQU (PaletteNolan-DefaultPalettes)/8
+DEF PALETTE_NOLAN EQU (PaletteNolan-DefaultPalettes)/8
 
 PaletteStartLights::
   COLOR_ALMOST_WHITE
   COLOR_TAN
   COLOR_BROWN
   COLOR_BLACK
-PALETTE_START_LIGHTS EQU (PaletteStartLights-DefaultPalettes)/8
+DEF PALETTE_START_LIGHTS EQU (PaletteStartLights-DefaultPalettes)/8
 
 ;Players
 PaletteBubbi::
@@ -320,46 +320,46 @@ PaletteBubbi::
   COLOR_LIGHT_GREEN     
   COLOR_BROWN
   COLOR_BLACK
-PALETTE_BUBBI EQU (PaletteBubbi-DefaultPalettes)/8
+DEF PALETTE_BUBBI EQU (PaletteBubbi-DefaultPalettes)/8
 
 PaletteGinger::
   COLOR_ALMOST_WHITE
   COLOR_PEACH
   COLOR_SALMON
   COLOR_BLACK 
-PALETTE_GINGER EQU (PaletteGinger-DefaultPalettes)/8
+DEF PALETTE_GINGER EQU (PaletteGinger-DefaultPalettes)/8
 
 PaletteSquirt::
   COLOR_ALMOST_WHITE
   COLOR_TAN
   COLOR_BLUE
   COLOR_DARK_BLUE
-PALETTE_SQUIRT EQU (PaletteSquirt-DefaultPalettes)/8
+DEF PALETTE_SQUIRT EQU (PaletteSquirt-DefaultPalettes)/8
 
 PaletteMacobb::
   COLOR_ALMOST_WHITE
   COLOR_YELLOW
   COLOR_PURPLE_GREY
   COLOR_DEEP_PURPLE
-PALETTE_MACOBB EQU (PaletteMacobb-DefaultPalettes)/8
+DEF PALETTE_MACOBB EQU (PaletteMacobb-DefaultPalettes)/8
 
 PalettePuff::
   COLOR_ALMOST_WHITE
   COLOR_PINK
   COLOR_RED
   COLOR_BLACK
-PALETTE_PUFF EQU (PalettePuff-DefaultPalettes)/8
+DEF PALETTE_PUFF EQU (PalettePuff-DefaultPalettes)/8
 
 PaletteMuchacho::
   COLOR_ALMOST_WHITE
   COLOR_PINK
   COLOR_PURPLE_GREY
   COLOR_BLACK
-PALETTE_MUCHACHO EQU (PaletteMuchacho-DefaultPalettes)/8
+DEF PALETTE_MUCHACHO EQU (PaletteMuchacho-DefaultPalettes)/8
 
 PaletteElectric::
   COLOR_ALMOST_WHITE
   COLOR_YELLOW
   COLOR_TAN
   COLOR_DEEP_PURPLE
-PALETTE_ELECTRIC EQU (PaletteElectric-DefaultPalettes)/8
+DEF PALETTE_ELECTRIC EQU (PaletteElectric-DefaultPalettes)/8

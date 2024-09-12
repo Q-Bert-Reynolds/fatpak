@@ -199,7 +199,7 @@ Start::
   ld bc, _CopyrightTileMap
   call gbdk_SetBkgTiles
 
-  ld a, LCDCF_ON | LCDCF_BG8800 | LCDCF_OBJ8 | LCDCF_OBJOFF | LCDCF_BGON
+  ld a, LCDCF_ON | LCDCF_BLK21 | LCDCF_OBJ8 | LCDCF_OBJOFF | LCDCF_BGON
   ld [rLCDC], a
 
   ld de, 2000
@@ -246,7 +246,7 @@ Start::
   ld bc, _VERSION_SPRITES_TILE_COUNT*16
   call mem_CopyVRAM
 
-  ld a, LCDCF_ON | LCDCF_WIN9C00 | LCDCF_BG8800 | LCDCF_OBJ8 | LCDCF_OBJON | LCDCF_BGON
+  ld a, LCDCF_ON | LCDCF_WIN9C00 | LCDCF_BLK21 | LCDCF_OBJ8 | LCDCF_OBJON | LCDCF_BGON
   ld [rLCDC], a
   
   xor a

@@ -43,7 +43,7 @@
 ;
 
 IF !DEF(GBDK_ASM)
-GBDK_ASM  =  1
+DEF GBDK_ASM EQU 1
 
 MACRO rev_Check_GBDK_ASM
   IF \1 > 1
@@ -76,8 +76,8 @@ MACRO SETUP_DMA_TRANSFER
   ret
 .DMATransferEnd
 
-HRAM_START = _HRAM + (.DMATransferEnd - .DMATransfer)
-HRAM_LEFT = $FFFE - HRAM_START
+DEF HRAM_START EQU _HRAM + (.DMATransferEnd - .DMATransfer)
+DEF HRAM_LEFT EQU $FFFE - HRAM_START
 PRINT "\nDMA Transfer routine setup.\n"
 PRINT "  {HRAM_LEFT} bytes of HRAM left.\n"
 PRINT "  HRAM variables can start at {HRAM_START}\n\n"
@@ -203,11 +203,11 @@ MACRO CGB_COMPATIBILITY
   ldh [rOCPD], a
 ENDM
 
-OP_COPY_TO   EQU 0
-OP_COPY_FROM EQU 1
-OP_SET_TO    EQU 2
-SKIP_VRAM    EQU 0
-WAIT_VRAM    EQU 1
+DEF OP_COPY_TO   EQU 0
+DEF OP_COPY_FROM EQU 1
+DEF OP_SET_TO    EQU 2
+DEF SKIP_VRAM    EQU 0
+DEF WAIT_VRAM    EQU 1
 ;   width, height on stack
 ;   hl - 32x32 tile table (usually _SCRN0 or _SCRN1)
 ;   de - x pos, y pos
@@ -523,7 +523,7 @@ gbdk_CopyTilesFrom::
 ;
 ; registers used: af, de
 ;***************************************************************************
-_CPMS EQU 4194/4  ; 4.194304 MHz
+DEF _CPMS EQU 4194/4  ; 4.194304 MHz
 gbdk_Delay::
 .delay               ; 6 cycles for the call
   push bc            ; 4 cycles

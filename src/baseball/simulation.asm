@@ -10,10 +10,10 @@ INCLUDE "img/simulation.asm"
 ;26 to 36 - dust particles for running
 ;37,38,39 - bounce fx, ball, shadow
 
-SIM_HEAD_TILE_ID EQU $33
-SIM_BODY_TILE_ID EQU $64
+DEF SIM_HEAD_TILE_ID EQU $33
+DEF SIM_BODY_TILE_ID EQU $64
 
-PHYS_POS_STEPS EQU 5
+DEF PHYS_POS_STEPS EQU 5
 
 ShowField:
   DISPLAY_OFF

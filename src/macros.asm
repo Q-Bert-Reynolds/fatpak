@@ -79,7 +79,7 @@ ENDM
 MACRO SET_LCD_INTERRUPT ;\1 = interrupt address
   di
 
-  ld b, ~IEF_LCDC
+  ld b, ~IEF_STAT
   ld a, [rIE]
   and a, b
   ld [rIE], a
@@ -94,7 +94,7 @@ MACRO SET_LCD_INTERRUPT ;\1 = interrupt address
   ld a, c
   ld [hl], a
 
-  ld b, IEF_LCDC
+  ld b, IEF_STAT
   ld a, [rIE]
   or a, b
   ld [rIE], a
@@ -108,7 +108,7 @@ ENDM
 MACRO DISABLE_LCD_INTERRUPT
   di
     
-  ld b, ~IEF_LCDC
+  ld b, ~IEF_STAT
   ld a, [rIE]
   and a, b
   ld [rIE], a
