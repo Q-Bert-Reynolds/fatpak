@@ -8,6 +8,8 @@ def main():
   with open("src/charmap.asm", encoding="utf8") as file:
     inverseMap = {}
     for line in file:
+      if line.startswith("; Standard printable ASCII characters"):
+        break
       if not line.startswith("charmap"):
         continue
       line = line.split(";")[0] #discard comments

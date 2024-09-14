@@ -1165,7 +1165,7 @@ StartGame::
   ; call ShowPlayBallIntro
   call SetupGameUI
 
-  TRAMPOLINE _AnnounceTest
+  ; TRAMPOLINE _AnnounceTest
   TRAMPOLINE _AnnounceBeginningOfFrame
   TRAMPOLINE DrawBases
   HIDE_WIN
