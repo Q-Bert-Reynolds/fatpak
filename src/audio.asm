@@ -47,7 +47,7 @@ UpdateAudio::
   call gbt_update
   
   pop af
-  call SetBank
+  SET_BANK
   ret
 
 FinishSFX:
@@ -118,7 +118,7 @@ UpdateSFX:
   push af
   
   ld a, [current_sfx_bank]
-  call SetBank
+  SET_BANK
 
   ld a, [hli]
   ld [sfx_ticks], a
@@ -144,7 +144,7 @@ ENDR
   ld [bc], a
 
   pop af;restore bank
-  call SetBank
+  SET_BANK
 
   reti
 
@@ -172,7 +172,7 @@ PlaySFX:: ; a = bank, hl = sfx address
   push af;bank
 
   ld a, [current_sfx_bank]
-  call SetBank
+  SET_BANK
 
   ld a, [hli];step count
   ld [sfx_step_count], a
@@ -180,7 +180,7 @@ PlaySFX:: ; a = bank, hl = sfx address
   ld [sfx_disable_mask], a
 
   pop af;bank
-  call SetBank
+  SET_BANK
 
   ld a, AUDENA_ON
   ld [rAUDENA], a
@@ -204,7 +204,7 @@ PlaySong:: ; a = bank, hl = song address
   call gbt_play
 
   pop af;bank
-  call SetBank
+  SET_BANK
   ret
 
 ENDC ;AUDIO_ASM

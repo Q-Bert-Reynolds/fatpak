@@ -146,7 +146,7 @@ Main::
 
 .setupSuperGameBoy
   ld a, SGB_BANK
-  call SetBank
+  SET_BANK
   call sgb_Init
   SET_DEFAULT_PALETTE
 
@@ -158,7 +158,7 @@ Main::
 
 .seed ;load temp data
   ld a, TEMP_BANK
-  call SetBank
+  SET_BANK
   call Seed
   
 .loadGame
@@ -184,28 +184,22 @@ ENDC
 
 .start ;show intro credits, batting animation
 IF INTRO_ENABLED == 1
-  ld a, START_BANK
-  call SetBank
-  call Start
+  TRAMPOLINE Start
   HIDE_ALL_SPRITES
 ENDC
 
 IF TITLE_ENABLED == 1
 .title ;show title drop, version slide, cycle of players, new game/continue screen
   ld a, TITLE_BANK
-  call SetBank
+  SET_BANK
   call Title ;sets z if new game pressed
   jr nz, .startClock
 ENDC
 
 IF NEW_GAME_ENABLED == 1
 .newGame
-  ld a, NEW_GAME_BANK
-  call SetBank
-  call NewGame
-  ld a, TEMP_BANK
-  call SetBank
-  call Seed
+  TRAMPOLINE NewGame
+  TRAMPOLINE Seed
 ENDC
 
 .startClock
@@ -218,9 +212,7 @@ IF WORLD_ENABLED == 1
     ld a, [game_state]
     and a, ~GAME_STATE_PLAY_BALL
     ld [game_state], a
-    ld a, WORLD_BANK
-    call SetBank
-    call Overworld
+    TRAMPOLINE Overworld
 ENDC
 
 IF PLAY_ENABLED == 1
@@ -228,14 +220,12 @@ IF PLAY_ENABLED == 1
     ld a, [game_state]
     or a, GAME_STATE_PLAY_BALL
     ld [game_state], a
-    ld a, PLAY_BALL_BANK
-    call SetBank
-    call StartGame
+    TRAMPOLINE StartGame
 ENDC
     jr .mainLoop; TODO: if game finished, exit
 
   xor a
-  call SetBank
+  SET_BANK
   jp Main ;restart the game
   nop
   ret

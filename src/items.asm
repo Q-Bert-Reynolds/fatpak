@@ -24,10 +24,10 @@ ShowInventory::
   ld a, [loaded_bank]
   push af
   ld a, ITEM_BANK
-  call SetBank
+  SET_BANK
   call _ShowInventory
   pop af
-  call SetBank
+  SET_BANK
   ret
 
 GetItemListID::; hl = item list, a = index of item in list, returns item id in a, item count in [hl]
@@ -47,7 +47,7 @@ GetItemData::;a = item id, returns [item data]
   ld a, [loaded_bank]
   push af;bank
   ld a, ITEM_BANK
-  call SetBank
+  SET_BANK
   ld a, b;item id
   dec a
   ld hl, ItemList
@@ -64,7 +64,7 @@ GetItemData::;a = item id, returns [item data]
   ld bc, item_data.end - item_data
   call mem_Copy
   pop af;bank
-  call SetBank
+  SET_BANK
   pop bc
   pop de
   ret
@@ -77,7 +77,7 @@ GetItemName::;a = item id, returns item name in [name_buffer]
   ld a, [loaded_bank]
   push af;bank
   ld a, ITEM_BANK
-  call SetBank
+  SET_BANK
 
   ld hl, ItemNames
   call str_FromArray
@@ -85,33 +85,33 @@ GetItemName::;a = item id, returns item name in [name_buffer]
   call str_Copy
 
   pop af;bank
-  call SetBank
+  SET_BANK
   ret 
 
 AddItemToInventory::;bc = item id, amount, returns z if inventory full, new list length in e, bc = item id, amount added
   ld a, [loaded_bank]
   push af;current bank
   ld a, ITEM_BANK
-  call SetBank
+  SET_BANK
   ld hl, inventory
   ld a, MAX_ITEMS
   call AddItemToList
   pop hl;h = previous bank
   ld a, h;previous bank
-  call SetBank
+  SET_BANK
   ret
 
 AddItemToPC::;bc = item id, amount, returns z if inventory full, new list length in e, bc = item id, amount added
   ld a, [loaded_bank]
   push af;current bank
   ld a, ITEM_BANK
-  call SetBank
+  SET_BANK
   ld hl, pc_items
   ld a, MAX_PC_ITEMS
   call AddItemToList
   pop hl;h = previous bank
   ld a, h;previous bank
-  call SetBank
+  SET_BANK
   ret
 
 SECTION "Item Bank X", ROMX, BANK[ITEM_BANK]

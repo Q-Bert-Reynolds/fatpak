@@ -268,7 +268,7 @@ sgb_SetBorder:: ;a = bank, hl = tiles, de = tile map
   ld a, b;new bank
   push de;tile map
   push hl;tiles
-  call SetBank
+  SET_BANK
 
   ld hl, sgb_MaskEnFreeze
   call  _sgb_PacketTransfer      ; Freezes the visualization of the Super Game Boy screen to hide the graphic garbage during the VRAM transfers
@@ -292,7 +292,7 @@ sgb_SetBorder:: ;a = bank, hl = tiles, de = tile map
   call _sgb_PacketTransfer       ; Super Game Boy screen visualization unfreezing
 
   pop af;old bank
-  call SetBank
+  SET_BANK
   reti
 
 sgb_PlaySound:: ;a = sound A, b = sound B, c = attributes

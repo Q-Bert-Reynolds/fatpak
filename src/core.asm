@@ -108,18 +108,13 @@ CopyAddressStoredAtBCToBC::;bc = address of address, returns address stored at b
   pop af;lower byte
   ld c, a
   ret
-
-SetBank:: ;a = BANK ;TODO: handle more than 255 banks
-  ld [loaded_bank], a
-  ld [rROMB0], a
-  ret
   
 Trampoline:: ;b = bank, hl = address, can use a,e, and RAM for args, can return in any register
   ld d, a;store arg a
   ld a, [loaded_bank]
   push af;old bank
   ld a, b;new bank
-  call SetBank
+  SET_BANK
   ld bc, .bounceBack
   push bc ;put return addres on stack before jumping
   ld a, d;restore arg a
@@ -127,7 +122,7 @@ Trampoline:: ;b = bank, hl = address, can use a,e, and RAM for args, can return 
 .bounceBack
   ld [_temp], a
   pop af;old bank
-  call SetBank
+  SET_BANK
   ld a, [_temp]
   ret
 
@@ -294,13 +289,13 @@ DrawStateMap::;a = draw flags
   ld a, [loaded_bank]
   push af;bank
   ld a, UI_BANK
-  call SetBank
+  SET_BANK
 
   ld a, b;draw flags
   call UIDrawStateMap
 
   pop af;bank
-  call SetBank
+  SET_BANK
   ret
 
 ClearTiles:: ;a = tile, display should be off
@@ -399,7 +394,7 @@ DrawSaveStats::;draw flags, de = xy
   ld a, [loaded_bank]
   ld b, a;old bank
   ld a, UI_BANK
-  call SetBank
+  SET_BANK
 
   pop de;xy
   pop af;draw flags
@@ -407,39 +402,39 @@ DrawSaveStats::;draw flags, de = xy
   call UIDrawSaveStats
 
   pop af;old bank
-  call SetBank
+  SET_BANK
   ret
 
 ShowRoledex::
   ld a, ROLEDEX_BANK
-  call SetBank
+  SET_BANK
 
   call ShowRoledexUI
   
   ld a, WORLD_BANK
-  call SetBank
+  SET_BANK
   ret
 
 LoadSimulation::;a = ball speed b = spray angle c = launch angle
   push af;ball speed
   ld a, SIM_BANK
-  call SetBank
+  SET_BANK
 
   pop af;ball speed
   call RunSimulation
   
   ld a, PLAY_BALL_BANK
-  call SetBank
+  SET_BANK
   ret
 
 ShowPlayBallIntro:: ;[_a] = player num or coach id
   ld a, PLAY_BALL_INTRO_BANK
-  call SetBank
+  SET_BANK
 
   call PlayBallIntro
 
   ld a, PLAY_BALL_BANK
-  call SetBank
+  SET_BANK
   ret
 
 SetSpriteTiles:: ;bc = count, hl = map, de = offset\props

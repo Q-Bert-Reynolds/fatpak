@@ -210,7 +210,7 @@ GetPositionPlayerAndName::
   ld a, [loaded_bank]
   push af;bank
   ld a, PLAY_BALL_BANK
-  call SetBank
+  SET_BANK
   push bc;position number
   call IsUserFielding
   jr nz, .userIsFielding
@@ -229,7 +229,7 @@ GetPositionPlayerAndName::
 .exit
   pop hl;player
   pop af;bank
-  call SetBank
+  SET_BANK
   ret
 
 ;----------------------------------------------------------------------
@@ -531,10 +531,10 @@ GetPitchBreak:: ;b = path, c = z, returns xy offset in de
   ld a, [loaded_bank]
   push af
   ld a, BANK(_GetPitchBreak)
-  call SetBank
+  SET_BANK
   call _GetPitchBreak
   pop af
-  call SetBank
+  SET_BANK
   ret
 
 SECTION "Baseball Utils Bank X", ROMX, BANK[PLAY_BALL_BANK]

@@ -95,7 +95,7 @@ GetMapText::;a = text index, returns text in str_buffer
   push af;current bank
   push bc;index
   call GetCurrentMap
-  call SetBank
+  SET_BANK
 
   ld bc, 3
   add hl, bc;[hl] = lower byte of strings address
@@ -111,7 +111,7 @@ GetMapText::;a = text index, returns text in str_buffer
   ld hl, str_buffer
 
   pop af;previous bank
-  call SetBank
+  SET_BANK
   ret
 
 EnterMapDoor::;a = door index
@@ -120,7 +120,7 @@ EnterMapDoor::;a = door index
   push af;current bank
   push bc;index
   call GetCurrentMap
-  call SetBank
+  SET_BANK
   
   ld bc, 5
   add hl, bc;[hl] = lower byte of doors address
@@ -152,7 +152,7 @@ EnterMapDoor::;a = door index
   call DrawMapToScreen
   
   pop af;previous bank
-  call SetBank
+  SET_BANK
 
   ret
 
@@ -162,7 +162,7 @@ RunMapScript::;a = script index
   push af;current bank
   push bc;index
   call GetCurrentMap
-  call SetBank
+  SET_BANK
 
   ld bc, 9
   add hl, bc;[hl] = lower byte of scripts address
@@ -185,14 +185,14 @@ RunMapScript::;a = script index
   ld h, a
   ld l, c;hl = script address
   ld a, b;bank
-  call SetBank
+  SET_BANK
   ld de, .return
   push de
   jp hl
 .return 
 
   pop af;previous bank
-  call SetBank
+  SET_BANK
   ret
 
 ClearMapSprites::
@@ -219,7 +219,7 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     push af;count
     ld a, [de];bank
     inc de
-    call SetBank
+    SET_BANK
     ld a, [de];lower address
     ld c, a
     inc de
@@ -317,7 +317,7 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     jr .clearRemainingOAM
 .exit
   pop af;bank
-  call SetBank
+  SET_BANK
   ret
 .outOfOAM
   pop af;toss count
@@ -429,7 +429,7 @@ CopyMapAvatarToOAMBuffer::;hl = oam buffer address, bc = avatar address, d = ext
   ld a, [loaded_bank]
   push af;loaded bank
   ld a, WORLD_BANK
-  call SetBank;assumes all map avatars and animations are in WORLD_BANK
+  SET_BANK;assumes all map avatars and animations are in WORLD_BANK
   ld a, d;extra data
   and a, MAP_AVATAR_DIRECTION
   rlc a
@@ -494,7 +494,7 @@ CopyMapAvatarToOAMBuffer::;hl = oam buffer address, bc = avatar address, d = ext
     jr nz, .loopY
 .restoreBank
   pop af;previously loaded bank
-  call SetBank
+  SET_BANK
   pop de;extra data
   ret
 
@@ -602,7 +602,7 @@ GetScreenCollision::;bc = xy pixel offset (-127,127), returns z if no collision,
   ld a, [loaded_bank]
   push af;current bank
   call GetCurrentMap
-  call SetBank
+  SET_BANK
   call GetMapChunkForOffset
   call GetMapChunkCollision
   pop de;previous bank
@@ -610,7 +610,7 @@ GetScreenCollision::;bc = xy pixel offset (-127,127), returns z if no collision,
   ld a, [hl];extra data
   ld b, a
   ld a, d;previous bank
-  call SetBank
+  SET_BANK
   pop af;obj/collision type and flags
   ret
 
@@ -778,7 +778,7 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, obj/collision type
 .loop
     push af;count
     ld a, [hli];bank
-    call SetBank
+    SET_BANK
     ld a, [hli];lower byte of address
     ld c, a
     ld a, [hli];upper byte of address
@@ -807,7 +807,7 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, obj/collision type
     jr nz, .loop
 .noMatchFound
   POP_VAR loaded_bank
-  call SetBank
+  SET_BANK
   ld c, -1
   xor a
   ret
@@ -827,7 +827,7 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, obj/collision type
   sub a, c
   ld c, a;sprite index
   POP_VAR loaded_bank
-  call SetBank
+  SET_BANK
   ld a, b;obj/collision type
   or a, MAP_COLLISION_MASK;test for collision
   ld a, b;return obj/collision type
@@ -866,7 +866,7 @@ MoveMapLeft::
   ld a, [loaded_bank]
   push af;current bank
   call GetCurrentMap
-  call SetBank
+  SET_BANK
   ld a, [map_scroll_speed]
   ld b, a
   ld a, [rSCX]
@@ -891,14 +891,14 @@ MoveMapLeft::
   pop af;new scx
   ld [rSCX], a
   pop af;previous bank
-  call SetBank
+  SET_BANK
   ret
 
 MoveMapRight::
   ld a, [loaded_bank]
   push af;current bank
   call GetCurrentMap
-  call SetBank
+  SET_BANK
   ld a, [map_scroll_speed]
   ld b, a
   ld a, [rSCX]
@@ -923,14 +923,14 @@ MoveMapRight::
   pop af
   ld [rSCX], a
   pop af;previous bank
-  call SetBank
+  SET_BANK
   ret
 
 MoveMapUp::
   ld a, [loaded_bank]
   push af;current bank
   call GetCurrentMap
-  call SetBank
+  SET_BANK
   ld a, [map_scroll_speed]
   ld b, a
   ld a, [rSCY]
@@ -955,14 +955,14 @@ MoveMapUp::
   pop af
   ld [rSCY], a
   pop af;previous bank
-  call SetBank
+  SET_BANK
   ret
 
 MoveMapDown::
   ld a, [loaded_bank]
   push af;current bank
   call GetCurrentMap
-  call SetBank
+  SET_BANK
   ld a, [map_scroll_speed]
   ld b, a
   ld a, [rSCY]
@@ -987,14 +987,14 @@ MoveMapDown::
   pop af
   ld [rSCY], a
   pop af;previous bank
-  call SetBank
+  SET_BANK
   ret
 
 SetMapPalettes::
   ld a, [loaded_bank]
   push af;current bank
   call GetCurrentMap
-  call SetBank
+  SET_BANK
   inc hl;[hl] = first byte of palette address
   ld a, [hli]
   ld b, a
@@ -1021,7 +1021,7 @@ SetMapPalettes::
     dec c
     jr nz, .spriteLoop
   pop af;previous bank
-  call SetBank
+  SET_BANK
   ret
 
 SetMapTiles::
@@ -1034,7 +1034,7 @@ SetMapTiles::
   ld hl, MapTileBanks
   add hl, bc
   ld a, [hl]
-  call SetBank
+  SET_BANK
 
   ld hl, MapTileAddresses
   add hl, bc
@@ -1054,7 +1054,7 @@ SetMapTiles::
   ld hl, MapSpriteTileBanks
   add hl, bc
   ld a, [hl]
-  call SetBank
+  SET_BANK
 
   ld hl, MapSpriteTileAddresses
   add hl, bc
@@ -1069,7 +1069,7 @@ SetMapTiles::
   call mem_CopyVRAM
 
   pop af
-  call SetBank
+  SET_BANK
   ret
 
 DrawMapLeftEdge:
@@ -1229,7 +1229,7 @@ DrawMapToScreen::
   ld a, [loaded_bank]
   push af;current bank
   call GetCurrentMap
-  call SetBank
+  SET_BANK
   
   ld a, [map_x]
   ld d, a
@@ -1313,7 +1313,7 @@ DrawMapToScreen::
   call DrawMapChunk
 .finish
   pop af;previous bank
-  call SetBank
+  SET_BANK
   call CopyMapSpritesToOAMBuffer
   ret
 

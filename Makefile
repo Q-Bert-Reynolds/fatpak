@@ -30,7 +30,7 @@ $(C_SOURCES):
 	sdcc $@ -msm83 --asm=rgbds --opt-code-size --peep-file peephole.def $(DEFINES) --disable-warning 218 -S -o $(patsubst %.c, $(dir $@)_%.asm, $(notdir $@))
 
 assemble: $(C_SOURCES)
-	rgbasm $(DEFINES) -o $(BUILD_DIR)/main.o $(SRC_DIR)/main.asm
+	rgbasm $(DEFINES) -w -o $(BUILD_DIR)/main.o $(SRC_DIR)/main.asm
 	rgblink -m $(BUILD_DIR)/main.map -n $(SYM_FILE) -o $(ROM_FILE) $(BUILD_DIR)/main.o
 	rgbfix -jvcs -k 01 -l 0x33 -m 0x1B -p 255 $(ROM_FILE)
 

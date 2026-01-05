@@ -1,6 +1,6 @@
 ;--------------------------------------------------------
 ; File Created by SDCC : free open source ISO C Compiler 
-; Version 4.4.0 #14620 (Mac OS X x86_64)
+; Version 4.2.8 #13684 (MINGW64)
 ;--------------------------------------------------------
 	; MODULE announcer
 	; Generated using the rgbds tokens.
@@ -592,10 +592,10 @@ _AnnounceBeginningOfFrame::
 	ld	hl, _frame
 	bit	0, [hl]
 	pop	hl
-	jr	Z, .l00113
-.l00112:
+	jr	Z, .l00111
+.l00110:
 	jr	.l00103
-.l00113:
+.l00111:
 	ld	de, _TopOfTheText+0
 	jr	.l00104
 .l00103:
@@ -733,10 +733,10 @@ _AnnounceStrike::
 ;src/baseball/announcer.c:258: if (strikes == 3) {//strikeout
 	ld	[hl], a
 	sub	a, $03
-	jr	Z, .l00123
-.l00122:
+	jr	Z, .l00119
+.l00118:
 	jp	.l00104
-.l00123:
+.l00119:
 ;src/baseball/announcer.c:259: __asm__("TRAMPOLINE GetCurrentBatterName");
 	TRAMPOLINE	GetCurrentBatterName
 ;src/baseball/announcer.c:260: str_Replace(tile_buffer, str_buffer, name_buffer);
@@ -755,7 +755,7 @@ _AnnounceStrike::
 ;src/baseball/announcer.c:264: if (outs != 3) {
 	sub	a, $03
 	jp	Z,.l00106
-.l00124:
+.l00120:
 ;src/baseball/announcer.c:265: AnnounceNextBatter();
 	inc	sp
 	jp	_AnnounceNextBatter
@@ -928,16 +928,16 @@ _AnnounceSwingContact::
 	ld	a, $D3
 	sub	a, b
 	bit	7, e
-	jr	Z, .l00130
+	jr	Z, .l00124
 	bit	7, d
-	jr	NZ, .l00131
+	jr	NZ, .l00125
 	cp	a, a
-	jr	.l00131
-.l00130:
+	jr	.l00125
+.l00124:
 	bit	7, d
-	jr	Z, .l00131
+	jr	Z, .l00125
 	scf
-.l00131:
+.l00125:
 	jr	NC, .l00102
 	ld	a, b
 	xor	a, $80
@@ -955,16 +955,16 @@ _AnnounceSwingContact::
 	xor	a, a
 	sub	a, [hl]
 	bit	7, e
-	jr	Z, .l00132
+	jr	Z, .l00126
 	bit	7, d
-	jr	NZ, .l00133
+	jr	NZ, .l00127
 	cp	a, a
-	jr	.l00133
-.l00132:
+	jr	.l00127
+.l00126:
 	bit	7, d
-	jr	Z, .l00133
+	jr	Z, .l00127
 	scf
-.l00133:
+.l00127:
 	jr	NC, .l00105
 ;src/baseball/announcer.c:349: AnnounceHitInAir(speed, spray, launch);
 	ld	hl, sp+2
@@ -1018,10 +1018,9 @@ _AnnounceHitInAir::
 	ld	e, [hl]
 	ld	a, c
 	call	_DistanceFromSpeedLaunchAngle
-	ld	e, a
 	pop	bc
 ;src/baseball/announcer.c:364: if (distance < 100) {//infield
-	ld	a, e
+	ld	e, a
 	sub	a, $64
 	jr	NC, .l00102
 ;src/baseball/announcer.c:365: AnnounceHitInAirToInfield(speed, distance, spray, launch);
@@ -1063,7 +1062,7 @@ _AnnounceHitInAirToOutfield::
 	ld	a, [hl]
 	bit	5, a
 	jp	Z,.l00102
-.l00160:
+.l00148:
 ;src/baseball/announcer.c:377: unsigned char order = CurrentOrderInLineup();
 	call	_CurrentOrderInLineup
 ;src/baseball/announcer.c:378: unsigned char runs_scored = AdvanceRunners(4, ++order);//current batter is 0 to 8, needs to be 1 to 9
@@ -1073,10 +1072,10 @@ _AnnounceHitInAirToOutfield::
 	call	_AdvanceRunners
 ;src/baseball/announcer.c:379: const char* home_run_text = (runs_scored == 4) ? HitGrandSlamText : HitHomeRunText;
 	sub	a, $04
-	jr	Z, .l00162
-.l00161:
+	jr	Z, .l00150
+.l00149:
 	jr	.l00116
-.l00162:
+.l00150:
 	ld	de, _HitGrandSlamText+0
 	jr	.l00117
 .l00116:
@@ -1154,16 +1153,16 @@ _AppendOutfieldLocationTextByAngle::
 	ld	a, $2D
 	sub	a, c
 	bit	7, e
-	jr	Z, .l00121
+	jr	Z, .l00117
 	bit	7, d
-	jr	NZ, .l00122
+	jr	NZ, .l00118
 	cp	a, a
-	jr	.l00122
-.l00121:
+	jr	.l00118
+.l00117:
 	bit	7, d
-	jr	Z, .l00122
+	jr	Z, .l00118
 	scf
-.l00122:
+.l00118:
 	jr	C, .l00102
 ;src/baseball/announcer.c:423: unsigned int index = (unsigned int)math_Divide((unsigned long)(spray+45), 15);
 	ld	a, c
@@ -1286,16 +1285,16 @@ _AppendInfieldLocationTextByAngle::
 	ld	a, $2D
 	sub	a, c
 	bit	7, e
-	jr	Z, .l00121
+	jr	Z, .l00117
 	bit	7, d
-	jr	NZ, .l00122
+	jr	NZ, .l00118
 	cp	a, a
-	jr	.l00122
-.l00121:
+	jr	.l00118
+.l00117:
 	bit	7, d
-	jr	Z, .l00122
+	jr	Z, .l00118
 	scf
-.l00122:
+.l00118:
 	jr	C, .l00102
 ;src/baseball/announcer.c:463: unsigned int index = (unsigned int)math_Divide((unsigned long)(spray+45), 11);
 	ld	a, c
@@ -1403,10 +1402,10 @@ _AnnounceFieldingText::
 	call	_IncrementOuts
 ;src/baseball/announcer.c:490: if (outs == 3) AnnounceNextBatter();
 	sub	a, $03
-	jr	Z, .l00132
-.l00131:
+	jr	Z, .l00126
+.l00125:
 	jr	.l00102
-.l00132:
+.l00126:
 	call	_AnnounceNextBatter
 .l00102:
 ;src/baseball/announcer.c:491: return;
@@ -1419,10 +1418,10 @@ _AnnounceFieldingText::
 ;src/baseball/announcer.c:495: if ((ball_state & BALL_STATE_FAIR) == 0) {
 	ld	[hl], a
 	bit	5, a
-	jr	Z, .l00134
-.l00133:
+	jr	Z, .l00128
+.l00127:
 	jr	.l00104
-.l00134:
+.l00128:
 ;src/baseball/announcer.c:496: AnnounceFoulBall();
 	call	_AnnounceFoulBall
 ;src/baseball/announcer.c:497: return;

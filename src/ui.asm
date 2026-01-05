@@ -25,12 +25,12 @@ LoadFontTiles::
   ld a, [loaded_bank]
   push af;bank
   ld a, UI_BANK
-  call SetBank
+  SET_BANK
 
   call UILoadFontTiles
 
   pop af;bank
-  call SetBank
+  SET_BANK
   ret
 
 _RevealTextAndWait:: ;extern void RevealTextAndWait(char text[]);
@@ -43,14 +43,14 @@ RevealTextAndWait:: ;hl = text
   ld a, [loaded_bank]
   push af;bank
   ld a, UI_BANK
-  call SetBank
+  SET_BANK
 
   ld hl, str_buffer
   ld a, DRAW_FLAGS_PAD_TOP
   call UIRevealTextAndWait
 
   pop af;bank
-  call SetBank
+  SET_BANK
   ret
 
 RevealText:: ;a = draw flags, de = xy, hl = text
@@ -63,7 +63,7 @@ RevealText:: ;a = draw flags, de = xy, hl = text
   call str_Copy
 
   ld a, UI_BANK
-  call SetBank
+  SET_BANK
 
   pop de;xy
   pop af;draw flags
@@ -71,7 +71,7 @@ RevealText:: ;a = draw flags, de = xy, hl = text
   call UIRevealText
 
   pop af;bank
-  call SetBank
+  SET_BANK
   ret
 
 FlashNextArrow:: ;a = draw flags, de = xy
@@ -426,14 +426,14 @@ ShowListMenu:: ;a = draw flags, bc = xy, de = wh, [list_selection] = initial sel
   push af;bank
   push hl;draw flags
   ld a, UI_BANK
-  call SetBank
+  SET_BANK
   
   pop af;draw flags
   call UIShowListMenu
   ld b, a;choice
 
   pop af;bank
-  call SetBank
+  SET_BANK
 
   ld a, b;choice
   ret; return a=choice;
@@ -469,7 +469,7 @@ ShowTextEntry:: ;bc = title, de = str, l = max_len -> puts text in name_buffer
   call str_Copy
 
   ld a, UI_BANK
-  call SetBank
+  SET_BANK
   
   ld de, str_buffer
   ld hl, name_buffer
@@ -477,19 +477,19 @@ ShowTextEntry:: ;bc = title, de = str, l = max_len -> puts text in name_buffer
   call UIShowTextEntry
 
   pop af;bank
-  call SetBank
+  SET_BANK
   ret
 
 ShowOptions::
   ld a, [loaded_bank]
   push af;bank
   ld a, UI_BANK
-  call SetBank
+  SET_BANK
 
   call UIShowOptions
 
   pop af;bank
-  call SetBank
+  SET_BANK
   ret
 
 ShowNumberPicker::; a = draw flags, bc = xy, de = wh, h = max number, returns number in a (0 = cancel)
@@ -497,14 +497,14 @@ ShowNumberPicker::; a = draw flags, bc = xy, de = wh, h = max number, returns nu
   ld a, [loaded_bank]
   push af;bank
   ld a, UI_BANK
-  call SetBank
+  SET_BANK
   
   ld a, l;draw flags
   call UIShowNumberPicker
   ld b, a;number
 
   pop af;bank
-  call SetBank
+  SET_BANK
 
   ld a, b;number
   ret

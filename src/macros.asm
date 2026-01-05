@@ -1,7 +1,8 @@
 
 ; Macro                                 Arguments
+;   SET_BANK
 ;   TRAMPOLINE                            AddressInAnotherBank
-;   C_DATA                                 AddressWithCInterface, *
+;   C_DATA                                AddressWithCInterface, *
 ;   PUSH_VAR                              WRAMAddressToStore
 ;   POP_VAR                               WRAMAddressToRestore
 ;   DEBUG_LOG_STRING                      "string"
@@ -23,6 +24,11 @@
 ;   D24                                   num24
 ;   BETWEEN                               n8, n8
 ;   ADD_USER_PLAYER_DATA                  PlayerAddress, "nickname", pay24 
+
+MACRO SET_BANK
+  ld [loaded_bank], a
+  ld [rROMB0], a
+ENDM
 
 MACRO TRAMPOLINE ;\1 = jump address
   ld b, BANK(\1)

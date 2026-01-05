@@ -1,12 +1,12 @@
 SECTION "User Info Bank 0", ROM0
 ShowUserInfo::
   ld a, USER_BANK
-  call SetBank
+  SET_BANK
 
   call _ShowUserInfo
 
   ld a, WORLD_BANK
-  call SetBank
+  SET_BANK
   ret
 
 SECTION "User Info Bank X", ROMX, BANK[ITEM_BANK]

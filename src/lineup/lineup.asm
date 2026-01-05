@@ -5,12 +5,12 @@ ShowLineup::;b = item id (0 = no item), returns item used in c (0 = not used, 1 
   ld a, [loaded_bank]
   push af
   ld a, LINEUP_BANK
-  call SetBank
+  SET_BANK
 
   call _ShowLineup
 
   pop af
-  call SetBank
+  SET_BANK
   ret
 
 SECTION "Lineup", ROMX, BANK[LINEUP_BANK]

@@ -12,19 +12,19 @@ SECTION "Play Ball HOME", ROM0
 ;TODO: Figure out how banking works in C so these can go in announcer.c
 AnnounceDisplayText:: ;hl = text address
   ld a, ANNOUNCER_BANK
-  call SetBank
+  SET_BANK
   
   ld a, DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP
   call DisplayText
 
   ld a, PLAY_BALL_BANK
-  call SetBank
+  SET_BANK
   ret
 
 AnnounceSwingContact:: ; a = speed, b = spray angle, c = launch angle
   push af;speed
   ld a, BANK(_AnnounceSwingContact)
-  call SetBank
+  SET_BANK
   pop af;speed
 
   ld e, b;spray
@@ -35,7 +35,7 @@ AnnounceSwingContact:: ; a = speed, b = spray angle, c = launch angle
   call _AnnounceSwingContact; a = speed, e = spray, [sp+2] = launch angle
 
   ld a, PLAY_BALL_BANK
-  call SetBank
+  SET_BANK
   ret
 
 SECTION "Play Ball BANKED", ROMX, BANK[PLAY_BALL_BANK]

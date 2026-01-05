@@ -6,13 +6,13 @@ SECTION "Announcer Bank 0", ROM0
 
 AnnounceDisplayText:: ;hl = text address
   ld a, ANNOUNCER_BANK
-  call SetBank
+  SET_BANK
   
   ld a, DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP
   call DisplayText
 
   ld a, PLAY_BALL_BANK
-  call SetBank
+  SET_BANK
   ret
 
 ;----------------------------------------------------------------------
@@ -31,11 +31,11 @@ AnnounceDisplayText:: ;hl = text address
 AnnounceSwingContact::
   push af;speed
   ld a, ANNOUNCER_BANK
-  call SetBank
+  SET_BANK
   pop af;speed
   call _AnnounceSwingContact
   ld a, PLAY_BALL_BANK
-  call SetBank
+  SET_BANK
   ret
 
 SECTION "Announcer Bank X", ROMX, BANK[ANNOUNCER_BANK]

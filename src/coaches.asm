@@ -216,14 +216,14 @@ LoadCoachTiles:: ;a = coach id, de = vram address
   ld a, [loaded_bank]
   ld b, a;bank
   ld a, COACHES_BANK
-  call SetBank
+  SET_BANK
 
   pop af
   push bc;bank
   call BankedLoadCoachTiles
 
   pop af;bank
-  call SetBank
+  SET_BANK
   ret
 
 LoadCoachPalettes:: ;a = coach id, h = offset
@@ -231,14 +231,14 @@ LoadCoachPalettes:: ;a = coach id, h = offset
   ld a, [loaded_bank]
   ld b, a;bank
   ld a, COACHES_BANK
-  call SetBank
+  SET_BANK
 
   pop af
   push bc;bank
   call BankedLoadCoachPalettes
 
   pop af;bank
-  call SetBank
+  SET_BANK
   ret
 
 SetCoachTiles:: ;a = coach, de=xy, h=offset
@@ -246,14 +246,14 @@ SetCoachTiles:: ;a = coach, de=xy, h=offset
   ld a, [loaded_bank]
   ld b, a;bank
   ld a, COACHES_BANK
-  call SetBank
+  SET_BANK
 
   pop af
   push bc;bank
   call BankedSetCoachTiles
 
   pop af;bank
-  call SetBank
+  SET_BANK
   ret
 
 SetCoachPalettes:: ;a = coach, de=xy, h=offset
@@ -261,14 +261,14 @@ SetCoachPalettes:: ;a = coach, de=xy, h=offset
   ld a, [loaded_bank]
   ld b, a;bank
   ld a, COACHES_BANK
-  call SetBank
+  SET_BANK
 
   pop af
   push bc;bank
   call BankedSetCoachPalettes
 
   pop af;bank
-  call SetBank
+  SET_BANK
   ret
 
 GetCoachesName:: ;a = coach, returns name in name_buffer
@@ -276,12 +276,12 @@ GetCoachesName:: ;a = coach, returns name in name_buffer
   ld a, [loaded_bank]
   ld b, a;bank
   ld a, COACHES_BANK
-  call SetBank
+  SET_BANK
 
   pop af
   push bc;bank
   call BankedGetCoachsName
 
   pop af;bank
-  call SetBank
+  SET_BANK
   ret

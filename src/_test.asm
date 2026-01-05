@@ -1,6 +1,6 @@
 ;--------------------------------------------------------
 ; File Created by SDCC : free open source ISO C Compiler 
-; Version 4.4.0 #14620 (Mac OS X x86_64)
+; Version 4.2.8 #13684 (MINGW64)
 ;--------------------------------------------------------
 	; MODULE test
 	; Generated using the rgbds tokens.
@@ -50,11 +50,13 @@
 ; ---------------------------------
 _fib::
 ;src/test.c:13: if (i < 2) return i;
-	cp	a, $02
-	jr	C, .l00103
+	ld	c, a
+	sub	a, $02
+	jr	NC, .l00102
+	ld	a, c
+	jr	.l00103
 .l00102:
 ;src/test.c:14: return fib(i-1) + fib(i-2);
-	ld	c, a
 	ld	b, c
 	dec	b
 	push	bc
