@@ -770,7 +770,9 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, obj/collision type
   
   ;sprite xy/16 = tile xy/2
   srl d;x/2
+  swap d
   srl e;y/2
+  swap e
 
   PUSH_VAR loaded_bank
   ld hl, map_sprite_buffer
@@ -786,14 +788,11 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, obj/collision type
     ld a, [bc];obj/collision type
     push af
     ld a, [hli];x
-    inc a;HACK: perhaps this should be fixed in the exporter
-    swap a
-    and a, %00001111
+    and a, %11110000
     cp a, d
     jr nz, .xMismatch
     ld a, [hli];y
-    swap a
-    and a, %00001111
+    and a, %11110000
     cp a, e
     jr nz, .yMismatch
     jr .matchFound
