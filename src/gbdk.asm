@@ -216,27 +216,26 @@ MACRO COPY_TILE_BLOCK; \1 = operation, \2 = wait VRAM?
   push bc ; store source
   xor a
   or e
-  jp z,.skip\@
-
+  jr z, .initX\@
   ld bc, 32 ; one line is 32 tiles
-.rowLoop\@
-    add hl,bc ; y coordinate
-    dec e
-    jp nz, .rowLoop\@
-  .skip\@
-    ld b,0 ; x coordinate
-    ld c,d
-    add hl,bc
+.initY\@
+  add hl,bc
+  dec e
+  jr nz, .initY\@
+.initX\@
+  ld b,0
+  ld c,d
+  add hl,bc
 
     pop bc ; bc = source
     pop de ; de = wh
-    push hl ; store origin
+.rowLoop\@
     push de ; store wh
   .columnLoop\@
 IF \2 == WAIT_VRAM
       ldh a,[rSTAT]
       and STATF_BUSY
-      jp nz, .columnLoop\@
+      jr nz, .columnLoop\@
 ENDC
 
 IF \1 == OP_COPY_TO
@@ -253,23 +252,19 @@ ELIF \1 == OP_SET_TO
 ENDC
 
       dec d
-      jp nz, .columnLoop\@
-      pop hl ; hl = wh
-      ld d,h ; restore d = w
-      pop hl ; hl = origin
-      dec e
-      jp z, .exit\@
+      jr nz, .columnLoop\@
+      
+    pop de ;restore wh
+    dec e
+    ret z
 
-      push bc ; next line
-      ld bc, 32 ; one line is 32 tiles
-      add hl,bc
-      pop bc
-
-      push hl ; store current origin
-      push de ; store wh
-      jp .columnLoop\@
-.exit\@
-  ret
+    ld a, 32
+    sub d 
+    add a, l
+    ld l, a
+    jr nc, .rowLoop\@
+    inc h
+    jr .rowLoop\@
 ENDM
 
 SECTION "GBDK Vars", WRAM0[_RAM]
@@ -434,7 +429,7 @@ gbdk_SetBkgTiles::
 ;   bc - source
 ;
 ;***************************************************************************
-gbdk_CopyTilesTo::
+gbdk_CopyTilesTo:
   COPY_TILE_BLOCK OP_COPY_TO, WAIT_VRAM
 
 ;***************************************************************************
