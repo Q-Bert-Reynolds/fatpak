@@ -785,8 +785,6 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, obj/collision type
     ld c, a
     ld a, [hli];upper byte of address
     ld b, a
-    ld a, [bc];obj/collision type
-    push af
     ld a, [hli];x
     and a, %11110000
     cp a, d
@@ -800,7 +798,6 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, obj/collision type
     inc hl;skip y
   .yMismatch
     inc hl;skip extra data
-    pop af;discard collision type
     pop af;count
     dec a
     jr nz, .loop
@@ -813,8 +810,8 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, obj/collision type
 .matchFound
   ld hl, 5
   add hl, bc;extra data, if any
-  pop bc;obj/collision type in b
-  ld a, b
+  ld a, [bc];obj/collision type
+  ld b, a
   and a, MAP_OBJ_TYPE_MASK
   cp a, MAP_OBJ_AVATAR
   jr nz, .finish
