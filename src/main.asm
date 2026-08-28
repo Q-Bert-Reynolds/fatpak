@@ -11,6 +11,7 @@ IF TESTS_ENABLED == 1
 ENDC
 
 MACRO RUN_TESTS
+  call KeyboardDemo
   DISPLAY_OFF
   call LoadFontTiles
   ld a, " "

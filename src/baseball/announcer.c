@@ -73,7 +73,7 @@ void AnnounceWildPitchOrPassedBall(void);
 void AnnounceStrike(const char strike_out_text[]);
 void AnnounceSwingMiss(void);
 void AnnounceSwingContact(unsigned char speed, signed char spray, signed char launch);
-void AnnounceHitOnGround(char speed, char spray);
+void AnnounceHitOnGround(char speed, char spray, signed char launch);
 void AnnounceHitInAir(unsigned char speed, signed char spray, signed char launch);
 void AnnounceHitInAirToOutfield(unsigned char speed, unsigned char distance, signed char spray, signed char launch);
 void AppendOutfieldLocationTextByAngle(signed char spray);
@@ -289,9 +289,9 @@ void AnnounceNoSwing(void) {
         unsigned char balls = GetBalls();
         if (balls < 3) {
             SetBalls(++balls);
-            __asm__("TRAMPOLINE DrawCountOutsInning");
             str_Number(balls);
             str_Replace(BallText, str_buffer, name_buffer);
+            __asm__("TRAMPOLINE DrawCountOutsInning");
             RevealTextAndWait(str_buffer);
         }
         else { //walk
@@ -350,13 +350,23 @@ void AnnounceSwingContact(unsigned char speed, signed char spray, signed char la
     }
     else { //on ground
         ball_state |= BALL_STATE_LANDED;
-        AnnounceHitOnGround(speed, spray);
+        AnnounceHitOnGround(speed, spray, launch);
     }
 }
 
-void AnnounceHitOnGround(char speed, char spray) {
-    //TODO
-    AnnounceHitInAir(speed, spray, 0);
+void AnnounceHitOnGround(char speed, char spray, signed char launch) {
+    const char* hit_text = HitGroundBallText;
+    
+    // A steep negative launch angle drives the ball down, causing a high bounce
+    if (launch < -20) {
+        hit_text = HitChopperText;
+    }
+    
+    str_Copy(hit_text, str_buffer);
+    AppendInfieldLocationTextByAngle(spray);
+    RevealTextAndWait(str_buffer);
+    
+    // TODO
 }
 
 void AnnounceHitInAir(unsigned char speed, signed char spray, signed char launch) {
@@ -405,16 +415,13 @@ void AnnounceHitInAirToOutfield(unsigned char speed, unsigned char distance, sig
     AppendOutfieldLocationTextByAngle(spray);
     RevealTextAndWait(str_buffer);
 
-    // unsigned int xy = LocationFromDistSprayAngle(distance, spray);
-    // unsigned char x = (char)(xy >> 8);//x in upper nibble
-    // unsigned char y = (char)(xy & 255);//y in lower nibble
-    // unsigned int position_and_distance_from_ball = GetClosestFielderByLocation(xy);
-    // unsigned char fielder_position = (char)((position_and_distance_from_ball >> 8) & BALL_STATE_FIELDER);//position in first 4 bits of upper nibble
-    // unsigned char fielder_dist_from_ball = (char)(position_and_distance_from_ball & 255);//distance in lower nibble
-    // ball_state |= fielder_position;
-
-    // unsigned char hang_time = HangTimeFromSpeedLaunchAngle(speed, launch);
-    // AnnounceFieldingText(fielder_position, fielder_dist_from_ball, hang_time);
+    unsigned int xy = LocationFromDistSprayAngle(distance, spray);
+    unsigned int position_and_distance_from_ball = GetClosestFielderByLocation(xy);
+    unsigned char fielder_position = (char)(position_and_distance_from_ball & BALL_STATE_FIELDER);//position in first 4 bits of lower nibble
+    unsigned char fielder_dist_from_ball = (char)(position_and_distance_from_ball >> 8);//distance in upper nibble
+    ball_state |= fielder_position;
+    unsigned char hang_time = HangTimeFromSpeedLaunchAngle(speed, launch);
+    AnnounceFieldingText(fielder_position, fielder_dist_from_ball, hang_time);
 }
 
 void AppendOutfieldLocationTextByAngle(signed char spray) {// appends text to str_buffer
@@ -445,16 +452,13 @@ void AnnounceHitInAirToInfield(unsigned char speed, unsigned char distance, sign
     AppendInfieldLocationTextByAngle(spray);
     RevealTextAndWait(str_buffer);
 
-    // unsigned int xy = LocationFromDistSprayAngle(distance, spray);
-    // unsigned char x = (char)(xy >> 8);//x in upper nibble
-    // unsigned char y = (char)(xy & 255);//y in lower nibble
-    // unsigned int position_and_distance_from_ball = GetClosestFielderByLocation(xy);
-    // unsigned char fielder_position = (char)((position_and_distance_from_ball >> 8) & BALL_STATE_FIELDER);//position in first 4 bits of upper nibble
-    // unsigned char fielder_dist_from_ball = (char)(position_and_distance_from_ball & 255);//distance in lower nibble
-    // ball_state |= fielder_position;
-
-    // unsigned char hang_time = HangTimeFromSpeedLaunchAngle(speed, launch);
-    // AnnounceFieldingText(fielder_position, fielder_dist_from_ball, hang_time);
+    unsigned int xy = LocationFromDistSprayAngle(distance, spray);
+    unsigned int position_and_distance_from_ball = GetClosestFielderByLocation(xy);
+    unsigned char fielder_position = (char)(position_and_distance_from_ball & BALL_STATE_FIELDER);//position in first 4 bits of lower nibble
+    unsigned char fielder_dist_from_ball = (char)(position_and_distance_from_ball >> 8);//distance in upper nibble
+    ball_state |= fielder_position;
+    unsigned char hang_time = HangTimeFromSpeedLaunchAngle(speed, launch);
+    AnnounceFieldingText(fielder_position, fielder_dist_from_ball, hang_time);
 }
 
 void AppendInfieldLocationTextByAngle(signed char spray) {
@@ -535,7 +539,15 @@ void AnnounceAdvanceRunners(void) {
 }
 
 void AnnounceRunnersOn(void) {
-    // RunnersOnBaseTexts
+    unsigned char index = 0;
+    
+    // Check each base's nibble based on the ASM masks
+    if (runners_on_base & 0x000F) index |= 1; // First base
+    if (runners_on_base & 0x00F0) index |= 2; // Second base
+    if (runners_on_base & 0x0F00) index |= 4; // Third base
+    
+    char* runners_text = str_FromArray(index, RunnersOnBaseTexts);
+    RevealTextAndWait(runners_text);
 }
 
 // TODO: handle more than one run -> TwoPlayersScoreText, BasesClearedScoreText

@@ -39,7 +39,7 @@ ifeq ($(OS), Windows_NT)
 	taskkill -im bgb.exe -f -fi "STATUS eq RUNNING"
 	start "$(ROM_FILE)"
 else
-	open $(ROM_FILE)
+	sameboy $(ROM_FILE)
 endif
 
 assets:

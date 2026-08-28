@@ -462,6 +462,7 @@ XLocationsOfPositions::
 YLocationsOfPositions::
   DB 174, 219, 199, 159, 119, 92, 38,  67, 191
 _GetClosestFielderByLocation::
+; compiler returns distance/position in bc
 GetClosestFielderByLocation::;de = xy, returns position number in a, distance in b
   ld a, 255
   ld [_t], a;min dist
@@ -504,6 +505,7 @@ GetClosestFielderByLocation::;de = xy, returns position number in a, distance in
   ld b, a;distance
   ld a, [_c]
   inc a;position
+  ld c, a;distance/position in bc for use with SDCC
   ret
 
 _IsUserFielding::  

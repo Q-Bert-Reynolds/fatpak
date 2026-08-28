@@ -171,7 +171,7 @@ DW 100 ;cost
 DB STAT_THROW
 DW 2;change
 
-GuardSpecItem:;In a game, the opposing Player can’t use special abilities.
+GuardSpecItem:;In a game, the opposing Player canâ€™t use special abilities.
 DB GUARD_SPEC_ITEM
 DB ITEM_TYPE_GAME
 DW 100 ;cost
@@ -530,7 +530,7 @@ DB ITEM_TYPE_MOVE
 DW 0 ;can't be sold
 DB SUBMARINE_MOVE
 
-SteroidsItem:;Increases Player’s level by 1.
+SteroidsItem:;Increases Playerâ€™s level by 1.
 DB STEROIDS_ITEM
 DB ITEM_TYPE_STATS
 DW 10000 ;cost
@@ -579,7 +579,7 @@ DW 5000 ;cost
 DB STAT_MAXPP
 DW 1;change
 
-NuggetItem:;This item is not very effective unless you’re after gold.
+NuggetItem:;This item is not very effective unless youâ€™re after gold.
 DB NUGGET_ITEM
 DB ITEM_TYPE_SELL
 DW 50000 ;cost
@@ -619,7 +619,7 @@ DB DREAM_SCOPE_ITEM
 DB ITEM_TYPE_SPECIAL
 DW 0 ;can't be sold
 
-HarmonicaItem:;It wakes up sleeping Players. It’s handy during games.
+HarmonicaItem:;It wakes up sleeping Players. Itâ€™s handy during games.
 DB HARMONICA_ITEM
 DB ITEM_TYPE_SPECIAL
 DW 0 ;can't be sold
@@ -629,12 +629,12 @@ DB OLD_ROD_ITEM
 DB ITEM_TYPE_SPECIAL
 DW 0 ;can't be sold
 
-GoodRodItem:;This rod can recruit Players that the OLD ROD can’t.
+GoodRodItem:;This rod can recruit Players that the OLD ROD canâ€™t.
 DB GOOD_ROD_ITEM
 DB ITEM_TYPE_SPECIAL
 DW 0 ;can't be sold
 
-SuperRodItem:;The best rod. It recruits Players that the other rods can’t.
+SuperRodItem:;The best rod. It recruits Players that the other rods canâ€™t.
 DB SUPER_ROD_ITEM
 DB ITEM_TYPE_SPECIAL
 DW 0 ;can't be sold
@@ -644,7 +644,7 @@ DB ITEMFINDER_ITEM
 DB ITEM_TYPE_SPECIAL
 DW 0 ;can't be sold
 
-ExpAllItem:;Share experience with Players who didn’t play.
+ExpAllItem:;Share experience with Players who didnâ€™t play.
 DB EXP_ALL_ITEM
 DB ITEM_TYPE_SPECIAL
 DW 0 ;can't be sold
@@ -754,7 +754,7 @@ DB ITEM_TYPE_STATS
 DW 100 ;cost
 DB STAT_ALL
 
-ReviveItem:;This will revive an exhausted Player and restore ½ HP.
+ReviveItem:;This will revive an exhausted Player and restore Â½ HP.
 DB REVIVE_ITEM
 DB ITEM_TYPE_STATS
 DW 100 ;cost

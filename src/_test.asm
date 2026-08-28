@@ -1,6 +1,6 @@
 ;--------------------------------------------------------
-; File Created by SDCC : free open source ISO C Compiler 
-; Version 4.2.8 #13684 (MINGW64)
+; File Created by SDCC : free open source ANSI-C Compiler
+; Version 4.2.0 #13081 (Linux)
 ;--------------------------------------------------------
 	; MODULE test
 	; Generated using the rgbds tokens.
