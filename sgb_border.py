@@ -82,7 +82,7 @@ def convert(im_path, outpath):
 
     # Make this non-deterministic so that, if it fails to build good palettes when it should be possible, 
     # you can just try again        
-    shuffle(palette_deps) 
+    # shuffle(palette_deps) 
 
     for pd in palette_deps:
         # First check if any existing palette contains all or some of the colors of this tile

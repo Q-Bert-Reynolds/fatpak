@@ -39,7 +39,9 @@ ifeq ($(OS), Windows_NT)
 	taskkill -im bgb.exe -f -fi "STATUS eq RUNNING"
 	start "$(ROM_FILE)"
 else
-	sameboy $(ROM_FILE)
+# 	open $(ROM_FILE)
+# 	sameboy $(ROM_FILE)
+	~/Projects/Gearboy/platforms/linux/gearboy $(ROM_FILE) $(SYM_FILE)
 endif
 
 assets:

@@ -242,6 +242,7 @@ DEF PLAYERS_PER_FARM EQU 20
 DEF FARM_SIZE        EQU (PLAYER_DATA_SIZE+PLAYER_STAT_SIZE)*PLAYERS_PER_FARM
 DEF INPUT_REPEAT     EQU 6;Input read multiple times in a row to reduce switch bounce issues. See: https://gbdev.io/pandocs/#joypad-input
 DEF START_MONEY      EQU 1234567890
+
 ;audio
 DEF SFX_CH_1 EQU $10
 DEF SFX_CH_2 EQU $15

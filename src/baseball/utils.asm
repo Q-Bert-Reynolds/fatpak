@@ -40,7 +40,9 @@ GetBalls::; returns (balls_strikes_outs & BALLS_MASK) >> 4 in a
   ret
 
 _SetBalls::
-SetBalls::; a = balls
+SetBalls::; a = balls, leaves registers unchanged
+  push af
+  push bc
   swap a
   and BALLS_MASK
   ld b, a
@@ -48,6 +50,8 @@ SetBalls::; a = balls
   and ~BALLS_MASK
   or a, b
   ld [balls_strikes_outs], a
+  pop bc
+  pop af
   ret
 
 _GetStrikes::
@@ -59,7 +63,9 @@ GetStrikes::; returns (balls_strikes_outs & STRIKES_MASK) >> 2 in a
   ret
 
 _SetStrikes::
-SetStrikes::; a = strikes
+SetStrikes::; a = strikes, leaves registers unchanged
+  push af
+  push bc
   sla a
   sla a
   and STRIKES_MASK
@@ -68,10 +74,12 @@ SetStrikes::; a = strikes
   and ~STRIKES_MASK
   or a, b
   ld [balls_strikes_outs], a
+  pop bc
+  pop af
   ret
 
 _FoulBall::
-FoulBall::
+FoulBall::;returns strikes in a
   call GetStrikes
   cp a, 2
   ret nc 
@@ -145,18 +153,22 @@ ScoreRuns::; a = runs, returns runs in a
   ld a, b;runs
   ret
 
-GetOuts::; returns balls_strikes_outs & OUTS_MASK in a
+_GetOuts::
+GetOuts::; returns outs in a
   ld a, [balls_strikes_outs]
   and OUTS_MASK
   ret
 
-SetOuts::; a = outs
+SetOuts::; a = outs, leaves registers unchanged
+  push bc
   and OUTS_MASK
   ld b, a
   ld a, [balls_strikes_outs]
   and ~OUTS_MASK
   or a, b
   ld [balls_strikes_outs], a
+  ld a, b
+  pop bc
   ret
 
 _IncrementOuts::
@@ -532,11 +544,39 @@ CurrentOrderInLineup::;returns order in a
 GetPitchBreak:: ;b = path, c = z, returns xy offset in de
   ld a, [loaded_bank]
   push af
-  ld a, BANK(_GetPitchBreak)
+  ld a, BANK(GetPitchBreakBanked)
   SET_BANK
-  call _GetPitchBreak
+  call GetPitchBreakBanked
   pop af
   SET_BANK
+  ret
+
+_GetCurrentBatterName::
+  TRAMPOLINE GetCurrentBatterName
+  ret
+
+_GetCurrentPitcherName::
+  TRAMPOLINE GetCurrentPitcherName
+  ret
+
+_NextBatter::
+  TRAMPOLINE NextBatter
+  ret
+
+_ShowBatter::
+  TRAMPOLINE ShowBatter
+  ret
+
+_HideBatter::
+  TRAMPOLINE HideBatter
+  ret
+
+_ShowPitcher::
+  TRAMPOLINE ShowPitcher
+  ret
+
+_PutBatterOnFirst::
+  TRAMPOLINE PutBatterOnFirst
   ret
 
 SECTION "Baseball Utils Bank X", ROMX, BANK[PLAY_BALL_BANK]
@@ -567,7 +607,7 @@ SECTION "Baseball Utils Bank X", ROMX, BANK[PLAY_BALL_BANK]
 ; GetCurrentUserPlayer - puts user's current batter or pitcher player data in hl
 ; GetCurrentOpponentPlayer - puts opponent's current batter or pitcher player data in hl
 
-_GetPitchBreak: ;b = path, c = z, returns xy offset in de
+GetPitchBreakBanked: ;b = path, c = z, returns xy offset in de
   ld de, 0
 
   ld a, b;path
@@ -1071,7 +1111,7 @@ HideUserPlayer::
   ret
 
 HideOpposingPlayer::
-  CLEAR_BKG_AREA 0, 2, 12, 2, " "
+  ; CLEAR_BKG_AREA 0, 2, 12, 2, " "
   CLEAR_BKG_AREA 12, 0, 8, 7, " "
   ret
 

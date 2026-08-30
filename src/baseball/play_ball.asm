@@ -38,6 +38,14 @@ AnnounceSwingContact:: ; a = speed, b = spray angle, c = launch angle
   SET_BANK
   ret
 
+_DrawCountOutsInning::
+  TRAMPOLINE DrawCountOutsInning
+  ret
+
+_DrawScore::
+  TRAMPOLINE DrawScore
+  ret
+
 SECTION "Play Ball BANKED", ROMX, BANK[PLAY_BALL_BANK]
 
 DEF DISPLAY_PITCH_NAME_DELAY EQU 6
