@@ -158,9 +158,10 @@ void AnnounceSwingMiss() {
 void AnnounceSwingContact(unsigned char speed, signed char spray, signed char launch) {
     //TODO: foul tip caught, foul bunt K
 
+    HideBatter();
     ball_state = BALL_STATE_IN_PLAY;
 
-    if (spray > -45 && spray < 45) {
+    if (spray >= -45 && spray <= 45) {
         ball_state |= BALL_STATE_FAIR; 
     }
 
@@ -213,6 +214,7 @@ void AnnounceBattedInAirToOutfield(unsigned char speed, unsigned char distance, 
             const char* home_run_text = (runs_scored == 4) ? HitGrandSlamText : HitHomeRunText;
             RevealTextAndWait(home_run_text);
             DrawScore();
+            DrawBases();
             AnnounceNextBatter();
             return;
         }
@@ -328,7 +330,6 @@ void AnnounceFieldingText(unsigned char position, unsigned char distance, unsign
         return;//early exit
     }
 
-    HideBatter();
     str_Replace(FieldedByText, str_buffer, name_buffer);
     RevealTextAndWait(str_buffer);
     
