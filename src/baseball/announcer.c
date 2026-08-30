@@ -313,7 +313,7 @@ void AnnounceCaughtBy() {
 //
 //----------------------------------------------------------------------
 void AnnounceFieldingText(unsigned char position, unsigned char distance, unsigned char hang_time){
-    int player = GetPositionPlayerAndName(position);//player in hl, name in name_buffer
+    PlayerData* player = GetPositionPlayerAndName(position);//player in hl, name in name_buffer
     int speed = GetPlayerSpeed(player);
     int dist_covered = math_Multiply(speed, hang_time);//dist covered = player speed * hang time, doesn't affect bc
     if (hang_time > 0 && (char)(dist_covered >> 8) > distance) {//if player speed * hang time > dist from player, caught
@@ -338,8 +338,8 @@ void AnnounceFieldingText(unsigned char position, unsigned char distance, unsign
 
 void AnnounceHit(char bases) {
     //TODO: handle doubles, triples... move logic to AnnounceAdvanceRunners
-    unsigned char order = CurrentOrderInLineup() + 1;
     RevealTextAndWait(HitBaseHitText);
+    unsigned char order = CurrentOrderInLineup() + 1;
     unsigned char runs_scored = AdvanceRunners(bases, order);
     DrawBases();
     if (runs_scored > 0) AnnounceRunScored();

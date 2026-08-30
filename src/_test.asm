@@ -49,12 +49,13 @@
 ; Function fib
 ; ---------------------------------
 _fib::
-;src/test.c:13: if (i < 2) return i;
 	ld	c, a
-	sub	a, $02
-	jr	NC, .l00102
+;src/test.c:13: if (i < 2) return i;
 	ld	a, c
-	jr	.l00103
+	sub	a, $02
+	jp	NC, .l00102
+	ld	a, c
+	jp	.l00103
 .l00102:
 ;src/test.c:14: return fib(i-1) + fib(i-2);
 	ld	b, c
@@ -90,7 +91,7 @@ _cFunctionTest::
 .l00103:
 	ld	a, l
 	sub	a, $0C
-	ret	NC
+	jp	NC, .l00105
 ;src/test.c:24: str_Number(fib(i));
 	push	hl
 	ld	a, l
@@ -101,13 +102,16 @@ _cFunctionTest::
 	ld	de, $0000
 	push	hl
 	call	_str_Number
+	pop	hl
+;src/test.c:25: RevealTextAndWait(1, name_buffer);
+	push	hl
 	ld	de, _name_buffer
 	ld	a, $01
 	call	_RevealTextAndWait
 	pop	hl
 ;src/test.c:23: for (char i = 0; i < 12; i++) {
 	inc	l
-	jr	.l00103
+	jp	.l00103
 .l00105:
 ;src/test.c:27: }
 	ret

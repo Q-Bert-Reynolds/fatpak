@@ -22,7 +22,7 @@ SECTION "Baseball Utils Bank 0", ROM0
 ; SetOuts                         a = outs
 ; IncrementOuts                   returns outs in a
 ; CheckStrike                     returns ball (z) or strike (nz)
-; GetPositionPlayerAndName        a = position number (1-9), returns position player in hl, name in [name_buffer]
+; GetPositionPlayerAndName        a = position number (1-9), returns position player in bc, name in [name_buffer]
 ; DistanceFromSpeedLaunchAngle    a = speed, c = launch angle, returns distance in a
 ; HeightFromSpeedLaunchAngle      a = speed, c = launch angle, returns height in a
 ; HangTimeFromSpeedLaunchAngle    a = speed, c = launch angle, returns hang time in a
@@ -215,7 +215,7 @@ CheckStrike:: ;returns ball (z) or strike (nz)
 ;
 ;   input: a = position number (1-9)
 ;   returns: name_buffer = position player's name
-;            hl = position player address
+;            bc = position player address
 ;
 ;----------------------------------------------------------------------
 _GetPositionPlayerAndName::;unsigned int GetPositionPlayerAndName(unsigned char position)
@@ -241,7 +241,7 @@ GetPositionPlayerAndName::
   push hl;player
   call GetUserPlayerName
 .exit
-  pop hl;player
+  pop bc;player
   pop af;bank
   SET_BANK
   ret
@@ -336,6 +336,7 @@ HeightFromSpeedLaunchAngle::;a = speed, c = launch angle, returns height in a
 ;
 ;----------------------------------------------------------------------
 _HangTimeFromSpeedLaunchAngle::
+  ld c, e;compiler puts second arg in e, needs to be in c
 HangTimeFromSpeedLaunchAngle::
   push af;speed
   ld a, c
@@ -378,6 +379,11 @@ HangTimeFromSpeedLaunchAngle::
 ;
 ;----------------------------------------------------------------------
 _LocationFromDistSprayAngle::
+  ld b, e;SDCC puts second arg in e, needs to be in b
+  call LocationFromDistSprayAngle
+  ld b, d;xy retuned in de
+  ld c, e;SDCC expects xy to be bc instead
+  ret
 LocationFromDistSprayAngle::;a = distance, b = spray angle, returns xy in de
   push af;distance
   ld a, b;spray

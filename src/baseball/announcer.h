@@ -48,12 +48,12 @@ extern unsigned char CurrentOrderInLineup();
 extern unsigned char AdvanceRunners(unsigned char num_bases, unsigned char batter);// batter is lineup order (1-9) to put on first or 0 if no batter on 1st
 extern unsigned int LocationFromDistSprayAngle(unsigned char distance, signed char spray);//returns xy in de
 extern unsigned int GetClosestFielderByLocation(unsigned int xy);//de = xy, returns position number in a, distance in b
-extern unsigned int GetPositionPlayerAndName(unsigned char position);//a = position number (1-9), returns position player in hl, name in [name_buffer]
+extern PlayerData* GetPositionPlayerAndName(unsigned char position);//a = position number (1-9), returns position player in hl, name in [name_buffer]
 
 // src/players.asm
 extern void GetMoveName(char index);
 extern void GetUserPlayerName(PlayerData* player);//hl = user player, returns name in name_buffer
-extern unsigned int GetPlayerSpeed(unsigned int player);//hl = player, returns speed in hl
+extern unsigned int GetPlayerSpeed(PlayerData* player);//hl = player, returns speed in hl
 extern PlayerData* GetUserPlayerInLineup(unsigned char lineup_index);//a = lineup index, returns player in hl
 extern PlayerData* GetOpposingPlayerInLineup(unsigned char lineup_index);//a = lineup index, returns player in hl
 

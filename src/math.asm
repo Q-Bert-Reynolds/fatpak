@@ -76,6 +76,10 @@ ENDM
 
 SECTION "Math Code", ROM0
 _math_Multiply::
+  call math_Multiply
+  ld b, h;SDCC expects return value in bc
+  ld c, l
+  ret
 math_Multiply:: ; hl = de * a where 0 <= a <= 255
   ld hl, 0
   and a

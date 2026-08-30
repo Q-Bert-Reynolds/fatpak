@@ -774,6 +774,12 @@ GetPlayerField:: ;hl = player, returns field in hl
   ret
 
 _GetPlayerSpeed::
+  ld h, d
+  ld l, e
+  call GetPlayerSpeed
+  ld b, h
+  ld c, l
+  ret
 GetPlayerSpeed:: ;hl = player, returns speed in hl
   push bc
   ld bc, UserLineupPlayer1.speed - UserLineupPlayer1
