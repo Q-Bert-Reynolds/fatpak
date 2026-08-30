@@ -871,6 +871,7 @@ PutBatterOnFirst::;upper nibble of runners_on_base stores scoring runner (if any
   ld b, a;second base runner
   ld a, [runners_on_base]
   swap a;third base runner (if any) scores
+  and a, THIRD_BASE_MASK;clear third
   or a, b;second base runner moved to third
   ld [runners_on_base], a;store scoring runner (if any) and new runner on third
 .putBatterOnFirst
@@ -883,7 +884,11 @@ PutBatterOnFirst::;upper nibble of runners_on_base stores scoring runner (if any
   or a, b
   ld [runners_on_base+1], a
   call DrawBases
-  ret
+  ld a, [runners_on_base]
+  and a, HOME_MASK
+  ret z
+  ld a, 1
+  jp ScoreRuns
 
 HealthPctToString:: ;a = health_pct, returns str_buff
   ld hl, str_buffer

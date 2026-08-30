@@ -46,6 +46,10 @@ _DrawScore::
   TRAMPOLINE DrawScore
   ret
 
+_DrawBases::
+  TRAMPOLINE DrawBases
+  ret
+
 SECTION "Play Ball BANKED", ROMX, BANK[PLAY_BALL_BANK]
 
 DEF DISPLAY_PITCH_NAME_DELAY EQU 6

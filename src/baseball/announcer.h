@@ -7,6 +7,7 @@
 // src/baseball/play_ball.asm
 extern void DrawCountOutsInning();
 extern void DrawScore();
+extern void DrawBases();
 
 // src/ui.asm
 extern void RevealTextAndWait(const char text[]);

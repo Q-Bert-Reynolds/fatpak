@@ -339,9 +339,10 @@ void AnnounceFieldingText(unsigned char position, unsigned char distance, unsign
 void AnnounceHit(char bases) {
     //TODO: handle doubles, triples... move logic to AnnounceAdvanceRunners
     RevealTextAndWait(HitBaseHitText);
-    unsigned char order = CurrentOrderInLineup();
-    unsigned char runs_scored = AdvanceRunners(1, ++order);
+    unsigned char order = CurrentOrderInLineup() + 1;
+    unsigned char runs_scored = AdvanceRunners(bases, order);
     if (runs_scored > 0) AnnounceRunScored();
+    DrawBases();
 }
 
 void AnnounceForcePlay() {
@@ -410,15 +411,10 @@ void AnnounceRunScored() {//if upper nibble of [runners_on_base] non-zero, annou
     runners_on_base &= 0x0FFF;
     scoring_runner--;
     if (IsUserFielding() == 0) {// user is batting
-        if (home_team == 0) away_score++;
-        else home_score++;
         unsigned int player = GetUserPlayerInLineup(scoring_runner);
         GetUserPlayerName(player);
     }
     else {// opponentIsBatting
-        if (home_team == 0) home_score++;
-        else away_score++;
-
         unsigned int player = GetOpposingPlayerInLineup(scoring_runner);//TODO: make return structs
         GetPlayerName(1);
     }
