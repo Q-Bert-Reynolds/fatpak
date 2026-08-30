@@ -182,8 +182,15 @@ void AnnounceBattedOnGround(char speed, char spray, signed char launch) {
     str_Copy(hit_text, str_buffer);
     AppendInfieldLocationTextByAngle(spray);
     RevealTextAndWait(str_buffer);
-    
-    // TODO
+
+    unsigned int distance = 120;
+    if (speed < distance) distance = speed;
+    unsigned int xy = LocationFromDistSprayAngle(distance, spray);
+    unsigned int position_and_distance_from_ball = GetClosestFielderByLocation(xy);
+    unsigned char fielder_position = (char)(position_and_distance_from_ball & BALL_STATE_FIELDER);//position in first 4 bits of lower nibble
+    unsigned char fielder_dist_from_ball = (char)(position_and_distance_from_ball >> 8);//distance in upper nibble
+    ball_state |= fielder_position;
+    AnnounceFieldingText(fielder_position, fielder_dist_from_ball, 0);
 }
 
 void AnnounceBattedInAir(unsigned char speed, signed char spray, signed char launch) {
@@ -309,7 +316,7 @@ void AnnounceFieldingText(unsigned char position, unsigned char distance, unsign
     int player = GetPositionPlayerAndName(position);//player in hl, name in name_buffer
     int speed = GetPlayerSpeed(player);
     int dist_covered = math_Multiply(speed, hang_time);//dist covered = player speed * hang time, doesn't affect bc
-    if ((char)(dist_covered >> 8) > distance) {//if player speed * hang time > dist from player, caught
+    if (hang_time > 0 && (char)(dist_covered >> 8) > distance) {//if player speed * hang time > dist from player, caught
         AnnounceCaughtBy();
         return;
     }

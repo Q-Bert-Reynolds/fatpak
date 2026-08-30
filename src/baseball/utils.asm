@@ -470,7 +470,7 @@ LocationFromDistSprayAngle::;a = distance, b = spray angle, returns xy in de
   ret
 
 XLocationsOfPositions::
-  DB  82,  36, 128, 164,  63, 92, 88, 193, 216
+  DB  82,  36, 128, 164, 63, 92, 88, 193, 216
 YLocationsOfPositions::
   DB 174, 219, 199, 159, 119, 92, 38,  67, 191
 _GetClosestFielderByLocation::
