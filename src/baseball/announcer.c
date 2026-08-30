@@ -374,10 +374,10 @@ void AnnounceForcePlay() {
     if (outs < 3) {
         unsigned char runs = AdvanceRunners(1, 0); 
         if (runs > 0) AnnounceRunScored();
+        DrawBases();
         AnnounceNextBatter();
     }
 }
-
 
 void AnnounceFoulBall() {
     FoulBall();
@@ -411,12 +411,12 @@ void AnnounceRunScored() {//if upper nibble of [runners_on_base] non-zero, annou
     runners_on_base &= 0x0FFF;
     scoring_runner--;
     if (IsUserFielding() == 0) {// user is batting
-        unsigned int player = GetUserPlayerInLineup(scoring_runner);
+        PlayerData* player = GetUserPlayerInLineup(scoring_runner);
         GetUserPlayerName(player);
     }
     else {// opponentIsBatting
-        unsigned int player = GetOpposingPlayerInLineup(scoring_runner);//TODO: make return structs
-        GetPlayerName(1);
+        PlayerData* player = GetOpposingPlayerInLineup(scoring_runner);
+        GetPlayerName(player->number);
     }
     DrawScore();
     str_Copy(name_buffer, str_buffer);

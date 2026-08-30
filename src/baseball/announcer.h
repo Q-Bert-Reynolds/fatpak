@@ -2,6 +2,7 @@
 #define ANNOUNCER
 
 #include "../constants.h"
+#include "../players.h"
 #include "../../data/strings/announcer_strings.h"
 
 // src/baseball/play_ball.asm
@@ -51,10 +52,10 @@ extern unsigned int GetPositionPlayerAndName(unsigned char position);//a = posit
 
 // src/players.asm
 extern void GetMoveName(char index);
-extern void GetUserPlayerName(unsigned int player);//hl = user player, returns name in name_buffer
+extern void GetUserPlayerName(PlayerData* player);//hl = user player, returns name in name_buffer
 extern unsigned int GetPlayerSpeed(unsigned int player);//hl = player, returns speed in hl
-extern unsigned int GetUserPlayerInLineup(unsigned char lineup_index);//a = lineup index, returns player in hl
-extern unsigned int GetOpposingPlayerInLineup(unsigned char lineup_index);//a = lineup index, returns player in hl
+extern PlayerData* GetUserPlayerInLineup(unsigned char lineup_index);//a = lineup index, returns player in hl
+extern PlayerData* GetOpposingPlayerInLineup(unsigned char lineup_index);//a = lineup index, returns player in hl
 
 // src/roledex.asm
 extern void GetPlayerName(unsigned char num);//a = number, returns name in name_buffer

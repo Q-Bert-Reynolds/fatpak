@@ -90,6 +90,8 @@ FoulBall::;returns strikes in a
 ; b = bases to advance, c = batter (1-9) to put on first or 0
 ; returns runs scored in a, last scoring runner in upper nibble of runners_on_base
 _AdvanceRunners::
+  ld b, a;SDCC puts first 8-bit arg in A, but it needs to be in B
+  ld c, e;it buts the second 8-bit arg in E, but it needs to be in C
 AdvanceRunners::
   xor a
   ld e, a;runs scored

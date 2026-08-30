@@ -895,6 +895,8 @@ SetUserPlayerName::;hl = player, de = name address
   ret
 
 _GetUserPlayerName::
+  ld h, d;SDCC passes player address in de
+  ld l, e;needs to be in hl
 GetUserPlayerName::;hl = user player, returns name in name_buffer
   push bc
   push hl;user's player
@@ -916,22 +918,27 @@ GetUserPlayerName::;hl = user player, returns name in name_buffer
   ret
 
 _GetOpposingPlayerInLineup::
-GetOpposingPlayerInLineup::;a = lineup index, returns player in hl
+GetOpposingPlayerInLineup::;a = lineup index, returns player in hl (and bc)
   ld bc, OpponentLineup
   ld de, OpponentLineupPlayer2 - OpponentLineupPlayer1
   call math_Multiply
   add hl, bc
+  ld b, h;SDCC expects return to be in bc
+  ld c, l
   ret
 
 _GetUserPlayerInLineup::
-GetUserPlayerInLineup::;a = lineup index, returns player in hl
+GetUserPlayerInLineup::;a = lineup index, returns player in hl (and bc)
   ld bc, UserLineup
   ld de, UserLineupPlayer2 - UserLineupPlayer1
   call math_Multiply
   add hl, bc
+  ld b, h;SDCC expects return to be in bc
+  ld c, l
   ret
 
-GetOpposingPlayerByPosition::;a = position(1-9), returns player in hl
+_GetOpposingPlayerByPosition::
+GetOpposingPlayerByPosition::;a = position(1-9), returns player in hl (and bc)
   ld b, a;position
   ld hl, OpponentLineupPlayer1.position
   ld de, OpponentLineupPlayer2 - OpponentLineupPlayer1
@@ -942,15 +949,20 @@ GetOpposingPlayerByPosition::;a = position(1-9), returns player in hl
     jr nz, .next
     dec hl
     dec hl
+    ld b, h;SDCC expects return to be in bc
+    ld c, l
     ret;opposing player in hl
 .next
     add hl, de
     dec c
     jr nz, .loop
   ld hl, OpponentLineupPlayer1;no player with that position
+  ld b, h;SDCC expects return to be in bc
+  ld c, l
   ret
 
-GetUserPlayerByPosition::;a = position(1-9), returns player in hl
+_GetUserPlayerByPosition::
+GetUserPlayerByPosition::;a = position(1-9), returns player in hl (and bc)
   ld b, a;position
   ld hl, UserLineupPlayer1.position
   ld de, UserLineupPlayer2 - UserLineupPlayer1
@@ -961,10 +973,14 @@ GetUserPlayerByPosition::;a = position(1-9), returns player in hl
     jr nz, .next
     dec hl
     dec hl
+    ld b, h;SDCC expects return to be in bc
+    ld c, l
     ret;user player in hl
 .next
     add hl, de
     dec c
     jr nz, .loop
   ld hl, UserLineupPlayer1;no player with that position
+  ld b, h;SDCC expects return to be in bc
+  ld c, l
   ret
