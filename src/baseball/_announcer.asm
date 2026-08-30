@@ -1624,30 +1624,30 @@ _AnnounceFieldingText::
 ; Function AnnounceHit
 ; ---------------------------------
 _AnnounceHit::
-	dec	sp
-	ld	[hl], a
-;src/baseball/announcer.c:341: RevealTextAndWait(HitBaseHitText);
-	ld	de, _HitBaseHitText
-	call	_RevealTextAndWait
-;src/baseball/announcer.c:342: unsigned char order = CurrentOrderInLineup() + 1;
+	ld	d, a
+;src/baseball/announcer.c:341: unsigned char order = CurrentOrderInLineup() + 1;
+	push	de
 	call	_CurrentOrderInLineup
+	pop	de
 	ld	e, a
 	inc	e
+;src/baseball/announcer.c:342: RevealTextAndWait(HitBaseHitText);
+	push	de
+	ld	de, _HitBaseHitText
+	call	_RevealTextAndWait
+	pop	de
 ;src/baseball/announcer.c:343: unsigned char runs_scored = AdvanceRunners(bases, order);
-	ld	hl, sp+0
-	ld	a, [hl]
+	ld	a, d
 	call	_AdvanceRunners
 ;src/baseball/announcer.c:344: if (runs_scored > 0) AnnounceRunScored();
 	or	a, a
-	jr	Z, .l00102
+	jp	Z,_DrawBases
 	call	_AnnounceRunScored
 .l00102:
 ;src/baseball/announcer.c:345: DrawBases();
-	inc	sp
 	jp	_DrawBases
 .l00103:
 ;src/baseball/announcer.c:346: }
-	inc	sp
 	ret
 ;src/baseball/announcer.c:348: void AnnounceForcePlay() {
 ;	---------------------------------

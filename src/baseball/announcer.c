@@ -338,11 +338,12 @@ void AnnounceFieldingText(unsigned char position, unsigned char distance, unsign
 
 void AnnounceHit(char bases) {
     //TODO: handle doubles, triples... move logic to AnnounceAdvanceRunners
-    RevealTextAndWait(HitBaseHitText);
     unsigned char order = CurrentOrderInLineup() + 1;
+    RevealTextAndWait(HitBaseHitText);
     unsigned char runs_scored = AdvanceRunners(bases, order);
-    if (runs_scored > 0) AnnounceRunScored();
     DrawBases();
+    if (runs_scored > 0) AnnounceRunScored();
+    AnnounceNextBatter();
 }
 
 void AnnounceForcePlay() {
