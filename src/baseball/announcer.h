@@ -17,6 +17,7 @@ extern void DisplayText(char drawFlags, const char text[]);
 // src/math.asm
 extern unsigned long math_Divide(unsigned long num, unsigned char div);
 extern unsigned int math_Multiply(unsigned int word, unsigned char byte);
+extern unsigned char math_Distance(unsigned int xy1, unsigned int xy2);
 
 // src/strings.asm
 extern char* str_FromArray(unsigned int index, char strings[]);
@@ -48,12 +49,14 @@ extern unsigned char CurrentOrderInLineup();
 extern unsigned char AdvanceRunners(unsigned char num_bases, unsigned char batter);// batter is lineup order (1-9) to put on first or 0 if no batter on 1st
 extern unsigned int LocationFromDistSprayAngle(unsigned char distance, signed char spray);//returns xy in de
 extern unsigned int GetClosestFielderByLocation(unsigned int xy);//de = xy, returns position number in a, distance in b
+extern PlayerData* GetCurrentBatter();
 extern PlayerData* GetPositionPlayerAndName(unsigned char position);//a = position number (1-9), returns position player in hl, name in [name_buffer]
 
 // src/players.asm
 extern void GetMoveName(char index);
 extern void GetUserPlayerName(PlayerData* player);//hl = user player, returns name in name_buffer
 extern unsigned int GetPlayerSpeed(PlayerData* player);//hl = player, returns speed in hl
+extern unsigned int GetPlayerThrow(PlayerData* player);//hl = player, returns throw in hl
 extern PlayerData* GetUserPlayerInLineup(unsigned char lineup_index);//a = lineup index, returns player in hl
 extern PlayerData* GetOpposingPlayerInLineup(unsigned char lineup_index);//a = lineup index, returns player in hl
 

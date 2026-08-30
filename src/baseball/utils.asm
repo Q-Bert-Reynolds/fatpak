@@ -559,6 +559,18 @@ GetPitchBreak:: ;b = path, c = z, returns xy offset in de
   SET_BANK
   ret
 
+_GetCurrentBatter::
+  ld a, [loaded_bank]
+  push af
+  ld a, BANK(GetCurrentBatter)
+  SET_BANK
+  call GetCurrentBatter
+  ld b, h;SDCC expects return in bc
+  ld c, l
+  pop af
+  SET_BANK
+  ret
+
 _GetCurrentBatterName::
   TRAMPOLINE GetCurrentBatterName
   ret

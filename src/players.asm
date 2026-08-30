@@ -792,6 +792,13 @@ GetPlayerSpeed:: ;hl = player, returns speed in hl
   pop bc
   ret
 
+_GetPlayerThrow::
+  ld h, d
+  ld l, e
+  call GetPlayerThrow
+  ld b, h
+  ld c, l
+  ret
 GetPlayerThrow:: ;hl = player, returns throw in hl
   push bc
   ld bc, UserLineupPlayer1.throw - UserLineupPlayer1

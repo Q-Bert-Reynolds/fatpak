@@ -324,7 +324,12 @@ math_AddSignedByteToWord:: ;a = byte, [hl] = word, result in [hl], a -> 2=carry,
   xor a
   ret
 
-
+_math_Distance::
+  ;SDCC sets first arg to de, second to bc
+  ld h, d
+  ld l, e
+  ld d, b
+  ld e, c
 math_Distance:: ;hl = xy1, de = xy2, returns distance in a
   ld a, d
   sub a, h
