@@ -148,7 +148,7 @@ BallYSeq:
   DB 56,52,48,44,40,36,32,26
 
 UpdateIntroSparks:
-  xor a
+  ld a, [_IntroSparksTileMap]
   ld hl, tile_buffer
   ld bc, 24
   call mem_Set
@@ -169,7 +169,7 @@ UpdateIntroSparks:
 
   ld hl, tile_buffer
   ld de, tile_buffer+24
-  ld b, 1
+  ld b, 0
   ld c, 24
   call SetSpriteTilesProps
 
@@ -256,6 +256,7 @@ Start::
   call gbdk_MoveSprite
   xor a
   ld c, a
+  ld a, [_IntroBaseballTileMap]
   ld d, a ;tile
   call gbdk_SetSpriteTile
   xor a
@@ -495,7 +496,7 @@ Start::
     ld [hli], a;y
     ld a, d
     ld [hli], a;x
-    xor a
+    ld a, [_IntroBaseballTileMap]
     ld [hli], a;tile
     ld a, OAMF_PRI | OAMF_PAL1 | 4
     ld [hl], a;props
