@@ -195,7 +195,7 @@ DrawBases::
   ld hl, tile_buffer+5 ;tiles[5] = (runners_on_base & FIRST_BASE_MASK) ? "◆" : "◇";
   ld a, "◇"
   ld [hl], a
-  ld a, [runners_on_base+1]
+  ld a, [runners_on_base]
   and a, FIRST_BASE_MASK
   and a
   jr z, .notOnFirst
@@ -206,7 +206,7 @@ DrawBases::
   ld hl, tile_buffer+1 ;tiles[1] = (runners_on_base & SECOND_BASE_MASK) ? "◆" : "◇";
   ld a, "◇"
   ld [hl], a
-  ld a, [runners_on_base+1]
+  ld a, [runners_on_base]
   and a, SECOND_BASE_MASK
   and a
   jr z, .notOnSecond
@@ -217,7 +217,7 @@ DrawBases::
   ld hl, tile_buffer+3 ;tiles[3] = (runners_on_base & THIRD_BASE_MASK) ? "◆" : "◇";
   ld a, "◇"
   ld [hl], a
-  ld a, [runners_on_base]
+  ld a, [runners_on_base+1]
   and a, THIRD_BASE_MASK >> 8
   and a
   jr z, .notOnThird

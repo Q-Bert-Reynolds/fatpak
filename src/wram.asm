@@ -145,7 +145,7 @@ item_data::
 
 ;Baseball
 balls_strikes_outs:: DB; XBBBSSOO
-  C_DATA runners_on_base, DW; lineup order of runners on base - HHHHTTTT SSSSFFFF
+  C_DATA runners_on_base, DW; lineup order of runners on base - HHHHTTTTSSSSFFFF
   C_DATA frame, DB
 current_batter:: DB;upper nibble is opponent, lower nibble is user
   C_DATA home_team, DB;1 = user is home team

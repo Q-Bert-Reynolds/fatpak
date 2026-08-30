@@ -1734,47 +1734,49 @@ _AnnounceForcePlay::
 	call	_AdvanceRunners
 ;src/baseball/announcer.c:376: if (runs > 0) AnnounceRunScored();
 	or	a, a
-	jp	Z,_AnnounceNextBatter
+	jr	Z, .l00106
 	call	_AnnounceRunScored
 .l00106:
-;src/baseball/announcer.c:377: AnnounceNextBatter();
+;src/baseball/announcer.c:377: DrawBases();
+	call	_DrawBases
+;src/baseball/announcer.c:378: AnnounceNextBatter();
 	jp	_AnnounceNextBatter
 .l00109:
-;src/baseball/announcer.c:379: }
+;src/baseball/announcer.c:380: }
 	ret
-;src/baseball/announcer.c:381: void AnnounceFoulBall() {
+;src/baseball/announcer.c:382: void AnnounceFoulBall() {
 ;	---------------------------------
 ; Function AnnounceFoulBall
 ; ---------------------------------
 _AnnounceFoulBall::
-;src/baseball/announcer.c:382: FoulBall();
+;src/baseball/announcer.c:383: FoulBall();
 	call	_FoulBall
-;src/baseball/announcer.c:384: RevealTextAndWait(HitFoulBallText);
+;src/baseball/announcer.c:385: RevealTextAndWait(HitFoulBallText);
 	ld	de, _HitFoulBallText
 	call	_RevealTextAndWait
-;src/baseball/announcer.c:385: ShowBatter();
+;src/baseball/announcer.c:386: ShowBatter();
 	call	_ShowBatter
-;src/baseball/announcer.c:386: DrawCountOutsInning();
+;src/baseball/announcer.c:387: DrawCountOutsInning();
 	jp	_DrawCountOutsInning
 .l00101:
-;src/baseball/announcer.c:387: }
+;src/baseball/announcer.c:388: }
 	ret
-;src/baseball/announcer.c:389: void AnnounceAdvanceRunners() {
+;src/baseball/announcer.c:390: void AnnounceAdvanceRunners() {
 ;	---------------------------------
 ; Function AnnounceAdvanceRunners
 ; ---------------------------------
 _AnnounceAdvanceRunners::
-;src/baseball/announcer.c:391: }
+;src/baseball/announcer.c:392: }
 .l00101:
 	ret
-;src/baseball/announcer.c:393: void AnnounceRunnersOn() {
+;src/baseball/announcer.c:394: void AnnounceRunnersOn() {
 ;	---------------------------------
 ; Function AnnounceRunnersOn
 ; ---------------------------------
 _AnnounceRunnersOn::
-;src/baseball/announcer.c:394: unsigned char index = 0;
+;src/baseball/announcer.c:395: unsigned char index = 0;
 	ld	e, $00
-;src/baseball/announcer.c:397: if (runners_on_base & 0x000F) index |= 1; // First base
+;src/baseball/announcer.c:398: if (runners_on_base & 0x000F) index |= 1; // First base
 	ld	hl, _runners_on_base
 	ld	a, [hl]
 	and	a, $0F
@@ -1782,7 +1784,7 @@ _AnnounceRunnersOn::
 .l00124:
 	ld	e, $01
 .l00102:
-;src/baseball/announcer.c:398: if (runners_on_base & 0x00F0) index |= 2; // Second base
+;src/baseball/announcer.c:399: if (runners_on_base & 0x00F0) index |= 2; // Second base
 	ld	hl, _runners_on_base
 	ld	a, [hl]
 	and	a, $F0
@@ -1790,7 +1792,7 @@ _AnnounceRunnersOn::
 .l00125:
 	set	1, e
 .l00104:
-;src/baseball/announcer.c:399: if (runners_on_base & 0x0F00) index |= 4; // Third base
+;src/baseball/announcer.c:400: if (runners_on_base & 0x0F00) index |= 4; // Third base
 	ld	hl, _runners_on_base + 1
 	ld	a, [hl]
 	and	a, $0F
@@ -1798,42 +1800,42 @@ _AnnounceRunnersOn::
 .l00126:
 	set	2, e
 .l00106:
-;src/baseball/announcer.c:401: char* runners_text = str_FromArray(index, RunnersOnBaseTexts);
+;src/baseball/announcer.c:402: char* runners_text = str_FromArray(index, RunnersOnBaseTexts);
 	ld	bc, _RunnersOnBaseTexts+0
 	ld	d, $00
 	call	_str_FromArray
-;src/baseball/announcer.c:402: RevealTextAndWait(runners_text);
+;src/baseball/announcer.c:403: RevealTextAndWait(runners_text);
 	ld	e, c
 	ld	d, b
 	jp	_RevealTextAndWait
 .l00107:
-;src/baseball/announcer.c:403: }
+;src/baseball/announcer.c:404: }
 	ret
-;src/baseball/announcer.c:406: void AnnounceRunScored() {//if upper nibble of [runners_on_base] non-zero, announces runner who scored
+;src/baseball/announcer.c:407: void AnnounceRunScored() {//if upper nibble of [runners_on_base] non-zero, announces runner who scored
 ;	---------------------------------
 ; Function AnnounceRunScored
 ; ---------------------------------
 _AnnounceRunScored::
-;src/baseball/announcer.c:407: unsigned char scoring_runner = (char)(runners_on_base >> 12);
+;src/baseball/announcer.c:408: unsigned char scoring_runner = (char)(runners_on_base >> 12);
 	ld	hl, _runners_on_base + 1
 	ld	a, [hl]
 	swap	a
 	and	a, $0F
 	ld	c, a
 	ld	b, $00
-;src/baseball/announcer.c:408: if (scoring_runner == 0) return;
+;src/baseball/announcer.c:409: if (scoring_runner == 0) return;
 	ld	a, c
 	or	a, a
 	jr	Z, .l00106
 .l00102:
-;src/baseball/announcer.c:410: runners_on_base &= 0x0FFF;
+;src/baseball/announcer.c:411: runners_on_base &= 0x0FFF;
 	ld	hl, _runners_on_base + 1
 	ld	a, [hl]
 	and	a, $0F
 	ld	[hl], a
-;src/baseball/announcer.c:411: scoring_runner--;
+;src/baseball/announcer.c:412: scoring_runner--;
 	dec	c
-;src/baseball/announcer.c:412: if (IsUserFielding() == 0) {// user is batting
+;src/baseball/announcer.c:413: if (IsUserFielding() == 0) {// user is batting
 	push	bc
 	call	_IsUserFielding
 	ld	e, a
@@ -1841,48 +1843,48 @@ _AnnounceRunScored::
 	ld	a, e
 	or	a, a
 	jr	NZ, .l00104
-;src/baseball/announcer.c:413: PlayerData* player = GetUserPlayerInLineup(scoring_runner);
+;src/baseball/announcer.c:414: PlayerData* player = GetUserPlayerInLineup(scoring_runner);
 	ld	a, c
 	call	_GetUserPlayerInLineup
-;src/baseball/announcer.c:414: GetUserPlayerName(player);
+;src/baseball/announcer.c:415: GetUserPlayerName(player);
 	ld	e, c
 	ld	d, b
 	call	_GetUserPlayerName
 	jr	.l00105
 .l00104:
-;src/baseball/announcer.c:417: PlayerData* player = GetOpposingPlayerInLineup(scoring_runner);
+;src/baseball/announcer.c:418: PlayerData* player = GetOpposingPlayerInLineup(scoring_runner);
 	ld	a, c
 	call	_GetOpposingPlayerInLineup
-;src/baseball/announcer.c:418: GetPlayerName(player->number);
+;src/baseball/announcer.c:419: GetPlayerName(player->number);
 	ld	a, [bc]
 	call	_GetPlayerName
 .l00105:
-;src/baseball/announcer.c:420: DrawScore();
+;src/baseball/announcer.c:421: DrawScore();
 	call	_DrawScore
-;src/baseball/announcer.c:421: str_Copy(name_buffer, str_buffer);
+;src/baseball/announcer.c:422: str_Copy(name_buffer, str_buffer);
 	ld	bc, _str_buffer
 	ld	de, _name_buffer
 	call	_str_Copy
-;src/baseball/announcer.c:422: str_Append(PlayerScoresText, str_buffer);
+;src/baseball/announcer.c:423: str_Append(PlayerScoresText, str_buffer);
 	ld	bc, _str_buffer
 	ld	de, _PlayerScoresText
 	call	_str_Append
-;src/baseball/announcer.c:423: RevealTextAndWait(str_buffer);
+;src/baseball/announcer.c:424: RevealTextAndWait(str_buffer);
 	ld	de, _str_buffer
 	jp	_RevealTextAndWait
 .l00106:
-;src/baseball/announcer.c:424: }
+;src/baseball/announcer.c:425: }
 	ret
-;src/baseball/announcer.c:426: void AnnounceEndOfGame() {
+;src/baseball/announcer.c:427: void AnnounceEndOfGame() {
 ;	---------------------------------
 ; Function AnnounceEndOfGame
 ; ---------------------------------
 _AnnounceEndOfGame::
-;src/baseball/announcer.c:428: RevealTextAndWait(AndThatsTheBallGameText);
+;src/baseball/announcer.c:429: RevealTextAndWait(AndThatsTheBallGameText);
 	ld	de, _AndThatsTheBallGameText
 	jp	_RevealTextAndWait
 .l00101:
-;src/baseball/announcer.c:429: }
+;src/baseball/announcer.c:430: }
 	ret
 	SECTION FRAGMENT "src/baseball/announcer.c_CODE",ROMX
 	SECTION FRAGMENT "_INITIALIZER",ROM0

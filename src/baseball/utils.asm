@@ -97,26 +97,26 @@ AdvanceRunners::
   ld e, a;runs scored
 .loop
   .clearHome
-    ld a, [runners_on_base]
-    and a, %00001111;clear run 
-    ld [runners_on_base], a
-  .firstToSecond
     ld a, [runners_on_base+1]
+    and a, %00001111;clear run 
+    ld [runners_on_base+1], a
+  .firstToSecond
+    ld a, [runners_on_base]
     swap a;first base runner moved to second
     ld d, a;second base runner in lower nibble
-    and a, %11110000;clear first base
+    and a, SECOND_BASE_MASK;clear first base
     or a, c;put batter (or nothing) on first
     ld c, 0;clear batter after first use
-    ld [runners_on_base+1], a
+    ld [runners_on_base], a
     ld a, d;second base runner in lower nibble
     and %00001111;second base runner
   .secondToThird
     ld d, a;second base runner
-    ld a, [runners_on_base]
+    ld a, [runners_on_base+1]
     swap a;third base runner (if any) scores
     or a, d;second base runner moved to third
-    ld [runners_on_base], a;store scoring runner (if any) and new runner on third
-    and a, %11110000
+    ld [runners_on_base+1], a;store scoring runner (if any) and new runner on third
+    and a, HOME_MASK >> 8
     jr z, .checkDone
   .runScores
     inc e;score  
@@ -146,7 +146,7 @@ ScoreRuns::; a = runs, returns runs in a
   ld a, [away_score]
   add a, b;add runs
   ld [away_score], a
-  ld b, a;runs
+  ld a, b;runs
   ret
 .homeScored
   ld a, [home_score]
@@ -857,37 +857,37 @@ StrikeZonePosition:: ; returns strike zone pos in de
   ret
 
 PutBatterOnFirst::;upper nibble of runners_on_base stores scoring runner (if any)
-  ld a, [runners_on_base+1]
+  ld a, [runners_on_base]
   and a, FIRST_BASE_MASK
   jr z, .putBatterOnFirst
 .putRunnerOnSecond
-  ld a, [runners_on_base+1]
-  swap a
+  ld a, [runners_on_base]
+  swap a;move first base runner to second
   ld b, a;second base runner in lower nibble
-  and a, SECOND_BASE_MASK
-  ld [runners_on_base+1], a;first base runner moved to second
+  and a, SECOND_BASE_MASK;clear first
+  ld [runners_on_base], a;first base runner moved to second
   ld a, b;second base runner in lower nibble
-  and %00001111;second base runner
-  jr z, .putBatterOnFirst
+  and %00001111;isolate second base runner
+  jr z, .putBatterOnFirst;there was no one on second
 .putRunnerOnThird
   ld b, a;second base runner
-  ld a, [runners_on_base]
-  swap a;third base runner (if any) scores
-  and a, THIRD_BASE_MASK;clear third
-  or a, b;second base runner moved to third
-  ld [runners_on_base], a;store scoring runner (if any) and new runner on third
-.putBatterOnFirst
   ld a, [runners_on_base+1]
+  swap a;third base runner (if any) scores
+  and a, HOME_MASK >> 8;clear third
+  or a, b;second base runner moved to third
+  ld [runners_on_base+1], a;store scoring runner (if any) and new runner on third
+.putBatterOnFirst
+  ld a, [runners_on_base]
   and a, SECOND_BASE_MASK
   push af;second base runner
   call CurrentOrderInLineup
   inc a;current batter is 0 to 8, needs to be 1 to 9
   pop bc;b=second base runner
   or a, b
-  ld [runners_on_base+1], a
+  ld [runners_on_base], a
   call DrawBases
-  ld a, [runners_on_base]
-  and a, HOME_MASK
+  ld a, [runners_on_base+1]
+  and a, HOME_MASK >> 8
   ret z
   ld a, 1
   jp ScoreRuns
