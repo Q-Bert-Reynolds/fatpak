@@ -91,20 +91,15 @@ void AnnounceWildPitchOrPassedBall();
 void AnnounceStrike(const char* strike_out_text);
 void AnnounceSwingMiss();
 void AnnounceSwingContact(unsigned char speed, signed char spray, signed char launch);
-
-void AnnounceBattedOnGround(char speed, char spray, signed char launch);
-void AnnounceBattedInAir(unsigned char speed, signed char spray, signed char launch);
-void AnnounceBattedInAirToOutfield(unsigned char speed, unsigned char distance, signed char spray, signed char launch);
-void AnnounceBattedInAirToInfield(unsigned char speed, unsigned char distance, signed char spray, signed char launch);
 void AnnounceBuntText(char launch, char spray);
 void AnnounceHit(char bases);
+void AnnounceFoulBall(const char* foul_ball_text);
 
 void AppendOutfieldLocationTextByAngle(signed char spray);
 void AppendInfieldLocationTextByAngle(signed char spray);
 void AnnounceFieldingText(unsigned char position, unsigned char distance, unsigned char hang_time);
 void AnnounceCaughtBy();
 void AnnounceForcePlay();
-void AnnounceFoulBall();
 
 void AnnounceAdvanceRunners();
 void AnnounceRunnersOn();

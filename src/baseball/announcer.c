@@ -156,89 +156,71 @@ void AnnounceSwingMiss() {
 }
 
 void AnnounceSwingContact(unsigned char speed, signed char spray, signed char launch) {
-    //TODO: foul tip caught, foul bunt K
 
-    HideBatter();
+    //update ball state
     ball_state = BALL_STATE_IN_PLAY;
-
-    if (spray >= -45 && spray <= 45) {
-        ball_state |= BALL_STATE_FAIR; 
+    if (launch < 0) ball_state |= BALL_STATE_LANDED;
+    if (launch < 90 && launch > -90 && spray >= -45 && spray <= 45) {
+        ball_state |= BALL_STATE_FAIR;
     }
-
-    if (launch > 0) {
-        AnnounceBattedInAir(speed, spray, launch);
-    }
-    else { //on ground
-        ball_state |= BALL_STATE_LANDED;
-        AnnounceBattedOnGround(speed, spray, launch);
-    }
-}
-
-void AnnounceBattedOnGround(char speed, char spray, signed char launch) {
-    const char* hit_text;
     
-    if (launch < -20) hit_text = HitChopperText;
-    else hit_text = HitGroundBallText;
+    //check for foul balls where there's no play 
+    if (launch > 100 || launch < -90) {
+        if (launch > 120 || launch < -120) {
+            AnnounceFoulBall(HitFoulTipText);
+            //TODO: random chance it ends up in catcher's glove for strike 3
+        }
+        else if (launch >= 100) AnnounceFoulBall(HitFoulBackText);
+        else AnnounceFoulBall(HitFoulBallText);//hit on the ground
+        return;
+    }
     
-    str_Copy(hit_text, str_buffer);
-    AppendInfieldLocationTextByAngle(spray);
-    RevealTextAndWait(str_buffer);
-
-    unsigned int distance = 120;
-    if (speed < distance) distance = speed;
+    //find landing spot and closest fielder
+    unsigned char hang_time = HangTimeFromSpeedLaunchAngle(speed, launch);
+    unsigned char distance = DistanceFromSpeedLaunchAngle(speed, launch);
     unsigned int xy = LocationFromDistSprayAngle(distance, spray);
     unsigned int position_and_distance_from_ball = GetClosestFielderByLocation(xy);
     unsigned char fielder_position = (char)(position_and_distance_from_ball & BALL_STATE_FIELDER);//position in first 4 bits of lower nibble
     unsigned char fielder_dist_from_ball = (char)(position_and_distance_from_ball >> 8);//distance in upper nibble
     ball_state |= fielder_position;
-    AnnounceFieldingText(fielder_position, fielder_dist_from_ball, 0);
-}
 
-void AnnounceBattedInAir(unsigned char speed, signed char spray, signed char launch) {
-    unsigned char distance = DistanceFromSpeedLaunchAngle(speed, launch);
-    if (distance < 100) {//infield
-        AnnounceBattedInAirToInfield(speed, distance, spray, launch);
+    //hit type from launch angle and distance
+    const char* hit_text;
+    if (launch > 15)
+    {
+        if (distance > 180) hit_text = HitDeepFlyBallText;
+        else if (distance > 140) hit_text = HitFlyBallText;
+        else if (distance > 110) hit_text = HitShallowFlyBallText;
+        else if (distance > 80) hit_text = HitPopFlyText;
+        else hit_text = HitPopUpText;
     }
-    else {//outfield
-        AnnounceBattedInAirToOutfield(speed, distance, spray, launch);
-    }
-}
+    else if (launch > 0) hit_text = HitLineDriveText;
+    else if (launch > -45) hit_text = HitGroundBallText;
+    else hit_text = HitChopperText;
 
-void AnnounceBattedInAirToOutfield(unsigned char speed, unsigned char distance, signed char spray, signed char launch) {   
-    //TODO: LeapingCatchByText
+    //append location text and show it
+    str_Copy(hit_text, str_buffer);
+    if (distance > 100 && launch > 15) AppendOutfieldLocationTextByAngle(spray);
+    else AppendInfieldLocationTextByAngle(spray);
+    RevealTextAndWait(str_buffer);
 
-    if (distance > 200) { //out of play
-        if ((ball_state & BALL_STATE_FAIR) != 0) { //home run
-            unsigned char order = CurrentOrderInLineup();
-            unsigned char runs_scored = AdvanceRunners(4, ++order);//current batter is 0 to 8, needs to be 1 to 9
-            const char* home_run_text = (runs_scored == 4) ? HitGrandSlamText : HitHomeRunText;
-            RevealTextAndWait(home_run_text);
-            DrawScore();
-            DrawBases();
-            AnnounceNextBatter();
+    //out of play
+    if (distance > 200 && launch > 0) { 
+        if ((ball_state & BALL_STATE_FAIR) == 0) { 
+            AnnounceFoulBall(HitFoulBallText);
             return;
         }
-
-        //else, foul ball
-        AnnounceFoulBall();
+        //home run
+        unsigned char order = CurrentOrderInLineup();
+        unsigned char runs_scored = AdvanceRunners(4, ++order);//current batter is 0 to 8, needs to be 1 to 9
+        const char* home_run_text = (runs_scored == 4) ? HitGrandSlamText : HitHomeRunText;
+        RevealTextAndWait(home_run_text);
+        DrawScore();
+        DrawBases();
+        AnnounceNextBatter();
         return;
     }
 
-    const char* hit_text;
-    if (distance > 180) hit_text = HitDeepFlyBallText;
-    else if (distance > 120) hit_text = HitFlyBallText;
-    else if (distance > 100) hit_text = HitShallowFlyBallText;
-    else hit_text = HitPopFlyText;
-    str_Copy(hit_text, str_buffer);
-    AppendOutfieldLocationTextByAngle(spray);
-    RevealTextAndWait(str_buffer);
-
-    unsigned int xy = LocationFromDistSprayAngle(distance, spray);
-    unsigned int position_and_distance_from_ball = GetClosestFielderByLocation(xy);
-    unsigned char fielder_position = (char)(position_and_distance_from_ball & BALL_STATE_FIELDER);//position in first 4 bits of lower nibble
-    unsigned char fielder_dist_from_ball = (char)(position_and_distance_from_ball >> 8);//distance in upper nibble
-    ball_state |= fielder_position;
-    unsigned char hang_time = HangTimeFromSpeedLaunchAngle(speed, launch);
     AnnounceFieldingText(fielder_position, fielder_dist_from_ball, hang_time);
 }
 
@@ -252,26 +234,6 @@ void AppendOutfieldLocationTextByAngle(signed char spray) {// appends text to st
         location_text = InFoulTerritoryText;
     }
     str_Append(location_text, str_buffer);
-}
-
-void AnnounceBattedInAirToInfield(unsigned char speed, unsigned char distance, signed char spray, signed char launch) {
-    const char* hit_text;
-    if (distance > 200) hit_text = HitLineDriveText;
-    else if (distance > 140) hit_text = HitGroundBallText;
-    else if (distance > 100) hit_text = HitChopperText;
-    else hit_text = HitPopUpText;
-    str_Copy(hit_text, str_buffer);
-
-    AppendInfieldLocationTextByAngle(spray);
-    RevealTextAndWait(str_buffer);
-
-    unsigned int xy = LocationFromDistSprayAngle(distance, spray);
-    unsigned int position_and_distance_from_ball = GetClosestFielderByLocation(xy);
-    unsigned char fielder_position = (char)(position_and_distance_from_ball & BALL_STATE_FIELDER);//position in first 4 bits of lower nibble
-    unsigned char fielder_dist_from_ball = (char)(position_and_distance_from_ball >> 8);//distance in upper nibble
-    ball_state |= fielder_position;
-    unsigned char hang_time = HangTimeFromSpeedLaunchAngle(speed, launch);
-    AnnounceFieldingText(fielder_position, fielder_dist_from_ball, hang_time);
 }
 
 void AppendInfieldLocationTextByAngle(signed char spray) {
@@ -326,7 +288,7 @@ void AnnounceFieldingText(unsigned char position, unsigned char distance, unsign
     // otherwise, landed
     ball_state |= BALL_STATE_LANDED;
     if ((ball_state & BALL_STATE_FAIR) == 0) {
-        AnnounceFoulBall();
+        AnnounceFoulBall(HitFoulBallText);
         return;//early exit
     }
 
@@ -381,10 +343,9 @@ void AnnounceForcePlay() {
     }
 }
 
-void AnnounceFoulBall() {
+void AnnounceFoulBall(const char* foul_ball_text) {
     FoulBall();
-//   ;TODO: HitFoulBackText
-    RevealTextAndWait(HitFoulBallText);
+    RevealTextAndWait(foul_ball_text);
     ShowBatter();
     DrawCountOutsInning();
 }
