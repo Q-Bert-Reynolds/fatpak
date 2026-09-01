@@ -1,112 +1,113 @@
-Label,Comment,English,Spanish,French,Italian,Portuguese,German,Japanese
-PositionTexts.pitcher,positions ordered by position id,pitcher,lanzador,,,,,
-PositionTexts.catcher,,catcher,receptor,,,,,
-PositionTexts.first,,first baseman,initialista,,,,,
-PositionTexts.second,,second baseman,intermedista,,,,,
-PositionTexts.third,,third baseman,antesalista,,,,,
-PositionTexts.shortstop,,shortstop,campocorto,,,,,
-PositionTexts.left,,left fielder,jardinero izquierdo,,,,,
-PositionTexts.center,,center fielder,jardinero central,,,,,
-PositionTexts.right,,right fielder,jardinero derecho,,,,,
-InningTexts.first,ordinal numbers for innings,1st,,,,,,
-InningTexts.second,,2nd,,,,,,
-InningTexts.third,,3rd,,,,,,
-InningTexts.fourth,,4th,,,,,,
-InningTexts.fifth,,5th,,,,,,
-InningTexts.sixth,,6th,,,,,,
-InningTexts.seventh,,7th,,,,,,
-InningTexts.eighth,,8th,,,,,,
-InningTexts.ninth,,9th,,,,,,
-InningTexts.tenth,,10th,,,,,,
-InningTexts.eleventh,,11th,,,,,,
-InningTexts.twelfth,,12th,,,,,,
-BaseTexts.first,base names,first,primero,,,,,
-BaseTexts.second,,second,segundo,,,,,
-BaseTexts.third,,third,tercera,,,,,
-BaseTexts.home,,home plate,el home,,,,,
-TakesTheMoundText,beginning of frame,%s takes\nthe mound.,%s en el\nmontículo,,,,,
-WalksToThePlateText,,%s walks\nup to the plate.,%s se acerca\nal plato.,,,,,
-BatterStepsIntoTheBoxText,move selected,%s steps\ninto the box.,%s pasos\ninto la caja.,,,,,
-PitcherSetsText,,%s sets.,%s conjuntos.,,,,,
-AndThePitchText,beginning of play,And the pitch.,Y el tono.,,,,,
-ThrewAPitchText,"append to ""And the pitch."" text, replace %s with pitch name",\nA %s.,\nUn %s.,,,,,
-EarlySwingText,after pitch,Early swing.,Swing temprano.,,,,,
-LateSwingText,,Late swing.,Swing tardío.,,,,,
-SwingAndMissText,,Swing and a miss.,Swing y una señorita.,,,,,
-HitBarrelText,,Really got the\nbarrel on that one.,Realmente tengo el\nbarrel en ese.,,,,,
-HitDeepFlyBallText,hit to outfield - append outfield location,Deep fly ball ,Bola de mosca profunda,,,,,
-HitFlyBallText,,Fly ball ,Pelota voladora,,,,,
-HitShallowFlyBallText,,Shallow fly ,Mosca poco profunda,,,,,
-HitPopFlyText,,Pop fly ,Mosca,,,,,
-OutfieldLocationTexts.leftLine,outfield location by angle,down\nthe <LF> line.,Abajo\nthe <LF> <LF> línea.,,,,,
-OutfieldLocationTexts.leftField,,to\nleft field.,a\njardín izquierdo.,,,,,
-OutfieldLocationTexts.leftCenter,,to\nleft center.,a\ncentro izquierda.,,,,,
-OutfieldLocationTexts.centerField,,to\ncenter field.,a\njardin centro.,,,,,
-OutfieldLocationTexts.rightCenter,,to\nright center.,a\ncentro derecho,,,,,
-OutfieldLocationTexts.rightField,,to\nright field.,a\njardín derecho.,,,,,
-OutfieldLocationTexts.rightLine,,down\nthe <RF> line.,Abajo\nthe <RF> línea.,,,,,
-HitLineDriveText,"hit to infield - append infield location or ""to the"" position text",Line drive ,Línea de línea,,,,,
-HitGroundBallText,,Ground ball ,Bola de tierra,,,,,
-HitChopperText,,A chopper ,Un helicóptero,,,,,
-HitPopUpText,,Popped up ,Aparecido,,,,,
-HitBuntText,,Bunted ,Buntado,,,,,
-InfieldLocationTexts.thirdBaseLine,infield location by angle,down\nthe <3B> line,abajo\nel<3B> línea,,,,,
-InfieldLocationTexts.third,,\nto third.,nto tercero.,,,,,
-InfieldLocationTexts.shortThirdHole,,\nin the <SS>-<3B> hole.,Nin el hoyo <SS> -<3B>.,,,,,
-InfieldLocationTexts.short,,\nto short.,nto corto.,,,,,
-InfieldLocationTexts.upTheMiddle,,\nup the middle.,nup the Middle.,,,,,
-InfieldLocationTexts.second,,\nto second.,nto segundo.,,,,,
-InfieldLocationTexts.firstSecondHole,,\nin the <1B>-<2B> hole.,Nin el hoyo  <1B>-<2B>.,,,,,
-InfieldLocationTexts.first,,\nto first.,nto primero.,,,,,
-InfieldLocationTexts.firstBaseLine,,down\nthe <1B> line,abajo\nel <1B> línea,,,,,
-ToThePositionText,"append to bunts and popups, replace %s with position",to the\n%s.,al\n%s.,,,,,
-CaughtByText,"fielded, replace %s with player name",%s makes\nthe catch.,%s hace la captura.,,,,,
-LeapingCatchByText,,%s leaps\n and snags it.,%s salta\n y lo engancha.,,,,,
-DivingCatchByText,,%s with\nthe diving grab.,%s con\nthe Diving Grab.,,,,,
-FieldedByText,,Fielded by\n%s.,Filentado por\n%s.,,,,,
-OffTheGloveOfText,errors,Off the glove of\n%s.,Fuera del guante de\n%s.,,,,,
-BobbledByText,,Bobbled by\n%s.,Bobado por\n%s.,,,,,
-BadThrowByText,,A bad throw\nfrom %s.,Un mal lanzamiento\nfrom %s.,,,,,
-ThrowsToText,"throw, replace %s with player name, append base thrown to",Throws to %s.,Lanza a %s.,,,,,
-PlacesTheTagText,"tag, replace %s with player name",%s\nplaces the tag.,%s\nplaces la etiqueta.,,,,,
-DeadBallText,dead ball,Dead ball!,¡Pelota muerta!,,,,,
-StrikeText,strike,Strike %s!,¡Huelgas!,,,,,
-StrikeOutLookingText,,%s strikes\nout looking!,%s huelga\nout mirando!,,,,,
-StrikeOutSwingingText,,%s strikes\nout swinging!,%s huelga\nout balanceándose!,,,,,
-BallText,no swing,Ball %s.,Bola %s.,,,,,
-WalkText,,%s on base\nwith a walk.,%s en la base\n con una caminata.,,,,,
-PassedBallText,,Passed ball!,¡Pasból!,,,,,
-WildPitchText,,Wild pitch!,¡Lanzamiento\nsalvaje!,,,,,
-HitByPitchText,,"That hit 'em, so\n%s is on <1B>.","Eso lo golpeó, por lo que\n%s está en <1B>.",,,,,
-BenchesClearText,,And the benches clear.,Y los bancos despejados.,,,,,
-RunnersOnBaseTexts.nobody,runners on,Nobody on base.,Nadie en la base.,,,,,
-RunnersOnBaseTexts.first,,Runner on first.,Runner en primero.,,,,,
-RunnersOnBaseTexts.second,,Runner on second.,Corredor en segundo.,,,,,
-RunnersOnBaseTexts.firstAndSecond,,Runners on first\nand second.,Corredores en el primer segundo.,,,,,
-RunnersOnBaseTexts.third,,Runner on third.,Corredor en tercero.,,,,,
-RunnersOnBaseTexts.firstAndThird,,Runners on first\nand third.,Corredores en el primer\ny tercero.,,,,,
-RunnersOnBaseTexts.secondAndThird,,Runners on second\nand third.,Corredores en el segundo\ny tercero.,,,,,
-RunnersOnBaseTexts.basesLoaded,,Bases loaded.,Bases cargadas.,,,,,
-TaggingFromTexts.first,tagging up,%s tags from first.,%s etiquetas desde primero.,,,,,
-TaggingFromTexts.second,,%s will\ntag from second.,%s será de segundo.,,,,,
-TaggingFromTexts.third,,Tagging from third\nis %s.,Etiquetado de tercero\nis %s.,,,,,
-SafeText,safe/out,Safe!,¡Seguro!,,,,,
-OutText,,Out!,¡Afuera!,,,,,
-DoublePlayText,,Double Play!,¡Doble jugada!,,,,,
-TriplePlayText,,Triple Play!,¡Juego triple!,,,,,
-HitFoulTipText,foul,Foul tip.,Consejo sucio.,,,,,
-HitFoulBackText,,Foulled back.,Flolled de regreso.,,,,,
-HitFoulBallText,,Foul Ball!,¡Bola de falta!,,,,,
-InFoulTerritoryText,,in\nfoul territory.,en el territorio de\nfoul.,,,,,
-HitBaseHitText,hit,Base hit!,¡Indiscutible!,,,,,
-HitDoubleText,,Double!,¡Doble!,,,,,
-HitTripleText,,Triple!,¡Triple!,,,,,
-HitHomeRunText,,HOME RUN!,¡Jonrón!,,,,,
-HitGrandSlamText,,GRAND SLAM!,,,,,,
-CriticalHitText,,Critical hit!,¡Impacto crítico!,,,,,
-PlayerScoresText,score, scores., puntuaciones.,,,,,
-TwoPlayersScoreText,, and\n%s score., y puntaje\n%s.,,,,,
-BasesClearedScoreText,,And that clears\nthe bases.,Y eso borra las bases.,,,,,
-BottomOfTheText,end of frame,Bottom of\nthe %s.,Inferior de\nt %s.,,,,,
-TopOfTheText,,Top of\nthe %s.,Superior de\nthe %s.,,,,,
-AndThatsTheBallGameText,end of game,And that's the\nball game.,Y ese es el juego\nball.,,,,,
+Label,Comment,English-en,Spanish-es,French-fr,Italian-it,Portuguese-pt,German-de,Japanese-ja
+PositionTexts.pitcher,positions ordered by position id,pitcher,lanzador,lanceur,lanciatore,arremessador,Werfer,投手
+PositionTexts.catcher,,catcher,receptor,receveur,ricevitore,receptor,Fänger,捕手
+PositionTexts.first,,first baseman,initialista,premier but,prima base,primeira-base,First Baseman,一塁手
+PositionTexts.second,,second baseman,intermedista,deuxième but,secondobase,segunda-base,Zweitbasemann,二塁手
+PositionTexts.third,,third baseman,antesalista,joueur de troisième base,terza base,terceiro-base,Drittbasemann,三塁手
+PositionTexts.shortstop,,shortstop,campocorto,arrêt-court,interbase,interbase,Shortstop,遊撃手
+PositionTexts.left,,left fielder,jardinero izquierdo,voltigeur de gauche,esterno sinistro,jardinheiro esquerdo,Left Fielder,左翼手
+PositionTexts.center,,center fielder,jardinero central,voltigeur de centre,esterno centro,jardineiro central,Centerfielder,中堅手
+PositionTexts.right,,right fielder,jardinero derecho,voltigeur de droite,esterno destro,jardineiro direito,Rightfielder,右翼手
+InningTexts.first,ordinal numbers for innings,1st,1er,1er,1°,1º,1.,1回
+InningTexts.second,,2nd,2do,2e,2°,2º,2.,2回
+InningTexts.third,,3rd,3er,3e,3°,3º,3.,3回
+InningTexts.fourth,,4th,4to,4e,4°,4º,4.,4回
+InningTexts.fifth,,5th,5to,5e,5°,5º,5.,5回
+InningTexts.sixth,,6th,6to,6e,6°,6º,6.,6回
+InningTexts.seventh,,7th,7mo,7e,7°,7º,7.,7回
+InningTexts.eighth,,8th,8vo,8e,8°,8º,8.,8回
+InningTexts.ninth,,9th,9no,9e,9°,9º,9.,9回
+InningTexts.tenth,,10th,10ma,10e,10°,10º,10.,10回
+InningTexts.eleventh,,11th,11ro,11e,11°,11º,11.,11回
+InningTexts.twelfth,,12th,12do,12e,12°,12º,12.,12回
+BaseTexts.first,base names,first,primero,premier,prima,primeira,Erste Base,一塁
+BaseTexts.second,,second,segundo,deuxième,seconda,segunda,zweite,二塁
+BaseTexts.third,,third,tercera,troisième,terza,terceira,Dritte Base,三塁
+BaseTexts.home,,home plate,el home,marbre,casa base,home plate,Homeplate,本塁
+TakesTheMoundText,beginning of frame,%s takes\nthe mound.,%s en el\nmontículo,%s monte sur\nle monticule.,%s sale sul\nmonte.,%s assume o\nmontinho.,%s betritt\nden Werferhügel.,%sが\nマウンドに上がります。
+WalksToThePlateText,,%s walks\nup to the plate.,%s se acerca\nal plato.,%s s'avance\nau marbre.,%s si avvicina\nal piatto.,%s caminha\naté o home plate.,%s tritt\nan den Schlag.,%sが打席に\n向かいます。
+BatterStepsIntoTheBoxText,move selected,%s steps\ninto the box.,%s pasos\ninto la caja.,%s s'avance\ndans le rectangle.,%s entra\nnel box.,%s entra\nna caixa.,%s tritt\nin die Box.,%sが\n打席に入ります。
+PitcherSetsText,,%s sets.,%s conjuntos.,%s se prépare.,%s è pronto.,%s se prepara.,%s macht sich bereit.,%sがセットに入ります。
+AndThePitchText,beginning of play,And the pitch.,Y el tono.,Et le lancer.,E il lancio.,E o arremesso.,Und der Wurf.,投げました。
+ThrewAPitchText,"append to ""And the pitch."" text, replace %s with pitch name",\nA %s.,\nUn %s.,\nUn %s.,\nUn %s.,\nUm %s.,\nEin %s.,\n%s。
+EarlySwingText,after pitch,Early swing.,Swing temprano.,Swing en avance.,Swing anticipato.,Swing adiantado.,Früher Schwung.,早いスイング
+LateSwingText,,Late swing.,Swing tardío.,Élan tardif.,Swing in ritardo.,Swing atrasado.,Später Schwung.,振り遅れ
+SwingAndMissText,,Swing and a miss.,Abanica.,Élan et raté.,Swing a vuoto,Swing e errou.,Schwung und Fehlschlag.,空振り
+HitBarrelText,,Really got the\nbarrel on that one.,Realmente tengo\nel barrel en ese.,Vraiment mis le\ncentre de la batte.,Ha davvero preso\nil centro della mazza.,Pegou em cheio\nna bola.,Den Ball richtig\ngut getroffen.,芯で捉えた！
+HitDeepFlyBallText,hit to outfield - append outfield location,Deep fly ball ,Bola de mosca profunda,Balle haute profonde,Volata profonda,Bola alta e profunda,Weiter Flyball,大きなフライ
+HitFlyBallText,,Fly ball ,Pelota voladora,Balle volante,Volata,Bola alta,Flyball,フライボール
+HitShallowFlyBallText,,Shallow fly ,Mosca poco profunda,Ballon court,Volata corta,Fly curto,Kurzer Flyball,浅いフライ
+HitPopFlyText,,Pop fly ,Mosca,Chandelle,Volata alta,Pop fly,Pop-Fly,ポップフライ
+OutfieldLocationTexts.leftLine,outfield location by angle,down\nthe <LF> line.,Abajo\nlínea <LF>.,le long de\nla ligne <LF>.,lungo\nla linea di <LF>.,pela\nlinha de <LF>.,Entlang der\n<LF>-Linie.,<LF>線\n沿い。
+OutfieldLocationTexts.leftField,,to\nleft field.,a\njardín izquierdo.,au\nchamp gauche.,all'esterno\nsinistro,para o\ncampo esquerdo.,ins\nlinke Feld.,レフトへ
+OutfieldLocationTexts.leftCenter,,to\nleft center.,a\ncentro izquierda.,au\ncentre gauche.,a\ncentro sinistra.,para\no centro-esquerdo.,nach\nlinksmitte.,左中間へ
+OutfieldLocationTexts.centerField,,to\ncenter field.,a\njardin centro.,au\nchamp centre.,al\ncampo centrale.,para o\njardim central.,ins\nCenter Field.,センターへ
+OutfieldLocationTexts.rightCenter,,to\nright center.,a\ncentro derecho,au\ncentre droit.,al\ncentro destra.,para o\ncentro-direito.,nach\nrechts-mitte.,右中間へ
+OutfieldLocationTexts.rightField,,to\nright field.,a\njardín derecho.,au\nchamp droit.,al\ncampo destro.,para o\ncampo direito.,ins\nrechte Feld.,ライトへ
+OutfieldLocationTexts.rightLine,,down\nthe <RF> line.,Abajo\n <RF> línea.,le long de\nla ligne <RF>.,lungo\nla linea di <RF>.,pela\nlinha do <RF>.,die <RF>-Linie\nentlang.,<RF>線沿い
+HitLineDriveText,"hit to infield - append infield location or ""to the"" position text",Line drive ,Línea de línea,Flèche,Linea,Linhada,Line Drive,ライナー
+HitSoftLinerText,,Soft liner,Línea suave,Ligne douce,Linea morbida,Linha suave,Weicher Line Drive,弱いライナー
+HitGroundBallText,,Ground ball ,Bola de tierra,Roulant,Palla a terra,Bola rasteira,Groundball,ゴロ
+HitChopperText,,A chopper ,Un helicóptero,Un chopper,Un chopper,Um chopper,Ein Hopper,ボテボテのゴロ
+HitPopUpText,,Popped up ,Aparecido,Chandelle,Spuntato,Subiu,Hoch geschlagen,打ち上げた
+HitBuntText,,Bunted ,Buntado,Amorti,Smorzato,Buntou,Gebuntet,バント
+InfieldLocationTexts.thirdBaseLine,infield location by angle,down\nthe <3B> line,abajo\ndel <3B> línea,le long de\nla ligne de <3B>,lungo\nla linea di <3B>,pela\nlinha da <3B>,entlang der\n<3B>-Linie,<3B>線\n沿い
+InfieldLocationTexts.third,,\nto third.,\na tercero.,\nau troisième.,\na terza.,\npara a terceira.,\nzur Dritten.,\nサードへ
+InfieldLocationTexts.shortThirdHole,,\nin the <SS>-<3B> hole.,\nen el hoyo de <SS>-<3B>.,\ndans le trou <SS>-<3B>.,\nnel buco <SS>-<3B>.,\nno buraco <SS>-<3B>.,\nim <SS>-<3B>-Loch.,\n<SS>-<3B>の間。
+InfieldLocationTexts.short,,\nto short.,\nal campocorto.,\nà l'arrêt-court.,\nall'interbase.,\npara o interbase.,\nzum Shortstop.,\nショートへ。
+InfieldLocationTexts.upTheMiddle,,\nup the middle.,\nen el medio,\nau milieu.,\nal centro.,\npelo meio.,\ndurch die Mitte.,\nセンターへ
+InfieldLocationTexts.second,,\nto second.,\nal segundo.,\nau deuxième.,\nin seconda.,\npara a segunda.,\nzum zweiten Base.,\nセカンドへ
+InfieldLocationTexts.firstSecondHole,,\nin the <1B>-<2B> hole.,\nen el hoyo de <1B>-<2B>.,\ndans le trou <1B>-<2B>.,\nnel buco <1B>-<2B>.,\nno buraco de <1B>-<2B>.,\nim <1B>-<2B>-Loch.,\n<1B>-<2B>間へ
+InfieldLocationTexts.first,,\nto first.,\n al primero.,\nau premier.,\nin prima.,\npara a primeira.,\nzu First.,\n一塁へ。
+InfieldLocationTexts.firstBaseLine,,down\nthe <1B> line,abajo\n <1B> línea,le long de\nla ligne du <1B>,lungo\nla linea di <1B>,pela\nlinha de <1B>,entlang der\n<1B>-Linie,<1B>線沿い
+ToThePositionText,"append to bunts and popups, replace %s with position",to the\n%s.,al\n%s.,au\n%s.,al\n%s.,ao\n%s.,zum\n%s.,%sへ
+CaughtByText,"fielded, replace %s with player name",%s makes\nthe catch.,%s hace la captura.,%s fait\nl'attrapé.,%s effettua\nla presa.,%s faz\na captura.,%s macht\nden Fang.,%sが\nキャッチ。
+LeapingCatchByText,,%s leaps\n and snags it.,%s salta\n y lo engancha.,%s saute\n et l'attrape.,%s salta\n e la afferra.,%s salta\ne agarra.,%s springt\n und schnappt ihn.,%sがジャンプして\nキャッチ！
+DivingCatchByText,,%s with\nthe diving grab.,%s con\nla barrida,%s avec\nl'attrapé en plongeant.,%s con\nla presa in tuffo.,%s com\na defesa de peixinho.,%s mit\ndem Hechtsprung.,%sの\nダイビングキャッチ。
+FieldedByText,,Fielded by\n%s.,Filentado por\n%s.,Capté par\n%s.,Raccolta da\n%s.,Defendido por\n%s.,Aufgenommen von\n%s.,%sが捕球
+OffTheGloveOfText,errors,Off the glove of\n%s.,Fuera del guante de\n%s.,Sur le gant de\n%s.,Fuori dal guanto di\n%s.,Fora da luva de\n%s.,Vom Handschuh von\n%s.,%sのグラブを\n弾いた
+BobbledByText,,Bobbled by\n%s.,Bobado por\n%s.,Échappé par\n%s.,Mancata da\n%s.,Bobeado por\n%s.,Fallen gelassen von\n%s.,%sがファンブル。
+BadThrowByText,,A bad throw\nfrom %s.,Un mal lanzamiento\nfrom %s.,Un mauvais lancer\nde %s.,Un brutto tiro\nda %s.,Um mau arremesso\nde %s.,Ein schlechter Wurf\nvon %s.,%sからの\n悪送球
+ThrowsToText,"throw, replace %s with player name, append base thrown to",Throws to %s.,Lanza a %s.,Lance à %s.,Lancia a %s.,Arremessa para %s.,Wirft zu %s.,%sへ送球。
+PlacesTheTagText,"tag, replace %s with player name",%s\nplaces the tag.,%s\nplaces la etiqueta.,%s\neffectue le toucher.,%s\neffettua la toccata.,%s\naplica o tag.,%s\nsetzt das Tag.,%sが\nタッチします。
+DeadBallText,dead ball,Dead ball!,¡Pelota muerta!,Balle morte !,Palla morta!,Bola morta!,Toter Ball!,ボールデッド！
+StrikeText,strike,Strike %s!,¡Huelgas!,Prise %s !,Strike %s!,Strike %s!,Strike %s!,ストライク%s！
+StrikeOutLookingText,,%s strikes\nout looking!,%s huelga\nout mirando!,%s est retiré\nsans balancer !,%s viene eliminato\nal piatto guardando!,%s é pego\nolhando!,%s sieht dem\ndritten Strike zu!,%s\n見逃し三振！
+StrikeOutSwingingText,,%s strikes\nout swinging!,%s huelga\nout balanceándose!,%s retiré\nau bâton !,%s eliminato\nsventolando!,%s foi ponchado\nbalançando!,%s geht\nschwingend aus!,%s\n空振り三振！
+BallText,no swing,Ball %s.,Bola %s.,Balle %s.,Ball %s.,Bola %s.,Ball %s.,ボール%s。
+WalkText,,%s on base\nwith a walk.,%s en la base\n con una caminata.,%s sur base\navec un but sur balles.,%s in base\ncon una base su ball.,%s na base\ncom um walk.,%s mit einem Walk\nauf Base.,%sが四球で\n出塁。
+PassedBallText,,Passed ball!,¡Pasból!,Balle passée !,Palla passata!,Bola passada!,Passed Ball!,パスボール！
+WildPitchText,,Wild pitch!,¡Lanzamiento\nsalvaje!,Mauvais lancer !,Lancio pazzo!,Lançamento\ndescontrolado!,Wild Pitch!,ワイルドピッチ！
+HitByPitchText,,"That hit 'em, so\n%s is on <1B>.","Eso lo golpeó, por lo que\n%s está en <1B>.","Ça l'a touché, donc\n%s est sur la <1B>.","L'ha colpito, quindi\n%s è in <1B>.","Acertou nele, então\n%s está na <1B>.","Das hat ihn getroffen,\nalso ist %s auf <1B>.",デッドボール！\n%sは<1B>へ。
+BenchesClearText,,And the benches clear.,Y los bancos despejados.,Et les bancs se vident.,E le panchine si svuotano.,E os bancos se esvaziam.,Und die Bänke leeren sich.,両軍のベンチから選手が飛び出します。
+RunnersOnBaseTexts.nobody,runners on,Nobody on base.,Nadie en la base.,Personne sur les buts.,Nessuno in base.,Ninguém nas bases.,Niemand auf Base.,ランナーなし
+RunnersOnBaseTexts.first,,Runner on first.,Runner en primero.,Coureur en première base.,Corridore in prima.,Corredor na primeira.,Läufer auf der ersten Base.,ランナー一塁
+RunnersOnBaseTexts.second,,Runner on second.,Corredor en segundo.,Coureur au deuxième.,Corridore in seconda.,Corredor na segunda.,Läufer auf der zweiten Base.,ランナー2塁
+RunnersOnBaseTexts.firstAndSecond,,Runners on first\nand second.,Corredores en el primer segundo.,Coureurs au premier\net au deuxième.,Corridori in prima\ne seconda.,Corredores na primeira\ne segunda.,Läufer auf der ersten\nund zweiten Base.,ランナー一、二塁
+RunnersOnBaseTexts.third,,Runner on third.,Corredor en tercero.,Coureur au troisième.,Corritore in terza.,Corredor na terceira.,Läufer auf der dritten Base.,ランナー3塁
+RunnersOnBaseTexts.firstAndThird,,Runners on first\nand third.,Corredores en el primer\ny tercero.,Coureurs au premier\net au troisième.,Corridori in prima\ne terza.,Corredores na primeira\ne terceira.,Läufer auf 1.\nund 3. Base.,ランナー一・\n三塁
+RunnersOnBaseTexts.secondAndThird,,Runners on second\nand third.,Corredores en el segundo\ny tercero.,Coureurs aux deuxième\net troisième.,Corridori in seconda\ne terza.,Corredores na segunda\ne terceira.,Läufer auf der zweiten\nund dritten Base.,ランナー2・3塁
+RunnersOnBaseTexts.basesLoaded,,Bases loaded.,Bases cargadas.,Bases pleines.,Basi piene,Bases lotadas.,Alle Bases besetzt.,満塁。
+TaggingFromTexts.first,tagging up,%s tags from first.,%s etiquetas desde primero.,%s repart du premier.,%s parte dalla prima.,%s pisa e corre da primeira.,%s rückt von First nach.,%sが一塁からタッチアップ。
+TaggingFromTexts.second,,%s will\ntag from second.,%s será de segundo.,%s va\nrepartir du deuxième.,%s ripartirà\ndalla seconda.,%s vai\ncorrer da segunda.,%s rückt von\nzweiter Base auf.,%sは2塁から\nタッチアップ。
+TaggingFromTexts.third,,Tagging from third\nis %s.,Etiquetado de tercero\nis %s.,S'élance du troisième\nest %s.,Pesta da terza\nè %s.,Avançando da terceira\né %s.,Taggt von der dritten\nist %s.,サードからのタッチアップは\n%s。
+SafeText,safe/out,Safe!,¡Seguro!,Sauf !,Salvo!,Salvo!,Sicher!,セーフ！
+OutText,,Out!,¡Afuera!,Retiré !,Fuori!,Fora!,Aus!,アウト！
+DoublePlayText,,Double Play!,¡Doble jugada!,Double jeu !,Doppio gioco!,Jogada Dupla!,Doppelplay!,ダブルプレー！
+TriplePlayText,,Triple Play!,¡Juego triple!,Triple jeu !,Triplo gioco!,Jogada tripla!,Dreifachspiel!,トリプルプレー!
+HitFoulTipText,foul,Foul tip.,Consejo sucio.,Foul tip.,Foul tip,Foul tip.,Foul Tip.,ファウルチップ
+HitFoulBackText,,Foulled back.,Flolled de regreso.,Foul ball vers l'arrière.,Fallo all'indietro.,Foul para trás.,Foul nach hinten.,ファウルバック
+HitFoulBallText,,Foul Ball!,¡Bola de falta!,Balle fausse !,Palla foul!,Bola de foul!,Foulball!,ファウルボール！
+InFoulTerritoryText,,in\nfoul territory.,en el territorio de\nfoul.,en\nterritoire des fausses balles.,in\nterritorio foul.,em\nterritório foul.,im\nFoul-Territorium.,ファウルエリア\nで
+HitBaseHitText,hit,Base hit!,¡Indiscutible!,Coup sûr !,Valida!,Tacada simples!,Base Hit!,ヒット！
+HitDoubleText,,Double!,¡Doble!,Double !,Doppio!,Dupla!,Double!,ツーベース！
+HitTripleText,,Triple!,¡Triple!,Triple !,Triplo!,Triplo!,Triple!,スリーベース！
+HitHomeRunText,,HOME RUN!,¡Jonrón!,COUP DE CIRCUIT !,FUORICAMPO!,HOME RUN!,HOMERUN!,ホームラン！
+HitGrandSlamText,,GRAND SLAM!,¡Jonrón con las\nbases llenas!,GRAND CHELEM !,GRAND SLAM!,GRAND SLAM!,GRAND SLAM!,満塁ホームラン！
+CriticalHitText,,Critical hit!,¡Impacto crítico!,Coup critique !,Colpo critico!,Acerto crítico!,Kritischer Treffer!,クリティカルヒット！
+PlayerScoresText,score, scores., puntuaciones.,marque.,segna.,marca.,erzielt einen Run.,が生還。
+TwoPlayersScoreText,, and\n%s score., y puntaje\n%s.,et\n%s marquent.,e\n%s segnano.,e\n%s marcam.,und\n%s punkten.,と\n%sが得点。
+BasesClearedScoreText,,And that clears\nthe bases.,Y eso borra las bases.,Et ça vide\nles buts.,E questo svuota\nle basi.,E isso limpa\nas bases.,Und das räumt\ndie Bases ab.,これで走者一掃！
+BottomOfTheText,end of frame,Bottom of\nthe %s.,Inferior de\nt %s.,Bas de\nla %s.,Parte bassa\ndel %s.,Parte inferior\ndo %s.,Unteres\n%s.,%sの裏
+TopOfTheText,,Top of\nthe %s.,Superior\n del %s.,Début de\nla %s.,Parte alta\ndel %s.,Topo da\n%s.,Anfang\ndes %s.,%sの表
+AndThatsTheBallGameText,end of game,And that's the\nball game.,Y ese es el juego.,Et c'est la fin\ndu match.,E la partita\nfinisce qui.,E fim de\njogo.,Und das ist das\nSpiel.,これで\nゲームセットです。

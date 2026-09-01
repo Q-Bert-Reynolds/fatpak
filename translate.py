@@ -45,19 +45,26 @@ def create_strings_file(dict_reader, name):
   if not os.path.exists(dir):
     os.mkdir(dir)
 
-  languages = ["English", "Spanish"]
-  segments = ['#if defined(LANG_EN)//English\n', '";\n\n#elif defined(LANG_ES)//Spanish\n']
-  main_labels = ["", ""]
+  languages = dict_reader.fieldnames[2:]
+  num = len(languages)
+  segments = []
+  for i in range(num):
+    language, code = languages[i].split('-')
+    segment = '#' if i == 0 else '";\n\n#el'
+    segment += f'if defined(LANG_{code.upper()})//{language}\n'
+    segments.append(segment)
+
+  main_labels = [""] * num
   for entry in dict_reader:
     comment = entry["Comment"]
     label = entry["Label"]
-    for i in range(len(languages)):
+    for i in range(num):
       language = languages[i]
       segment = segments[i]
 
       text = entry[language]
       if not text:
-        text = entry["English"]
+        text = entry["English-en"]
       text = charMapReplace(text)
       
       label_parts = label.split('.')
