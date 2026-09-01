@@ -96,6 +96,7 @@
 	EXPORT _HitPopUpText
 	EXPORT _HitChopperText
 	EXPORT _HitGroundBallText
+	EXPORT _HitSoftLinerText
 	EXPORT _HitLineDriveText
 	EXPORT _OutfieldLocationTexts
 	EXPORT _HitPopFlyText
@@ -356,6 +357,9 @@ _OutfieldLocationTexts:
 	DB $00
 _HitLineDriveText:
 	DB "Line drive "
+	DB $00
+_HitSoftLinerText:
+	DB "Soft liner"
 	DB $00
 _HitGroundBallText:
 	DB "Ground ball "
@@ -964,10 +968,89 @@ _AnnounceSwingContact::
 ;src/baseball/announcer.c:163: if (launch < 90 && launch > -90 && spray >= -45 && spray <= 45) {
 	ld	hl, sp+10
 	ld	a, [hl]
+	xor	a, $80
+	sub	a, $DA
+	jp	NC, .l00104
+	ld	a, [hl]
 	ld	e, a
 	ld	a, $A6
 	ld	d, a
 	ld	a, $A6
+	sub	a, [hl]
+	bit	7, e
+	jp	Z, .l00257
+	bit	7, d
+	jp	NZ, .l00258
+	cp	a, a
+	jp	.l00258
+.l00257:
+	bit	7, d
+	jp	Z, .l00258
+	scf
+.l00258:
+	jp	NC, .l00104
+	ld	hl, sp+6
+	ld	a, [hl]
+	xor	a, $80
+	sub	a, $53
+	jp	C, .l00104
+	ld	a, [hl]
+	ld	e, a
+	ld	a, $2D
+	ld	d, a
+	ld	a, $2D
+	sub	a, [hl]
+	bit	7, e
+	jp	Z, .l00259
+	bit	7, d
+	jp	NZ, .l00260
+	cp	a, a
+	jp	.l00260
+.l00259:
+	bit	7, d
+	jp	Z, .l00260
+	scf
+.l00260:
+	jp	C, .l00104
+;src/baseball/announcer.c:164: ball_state |= BALL_STATE_FAIR;
+	ld	hl, _ball_state
+	ld	a, [hl]
+	or	a, $20
+	ld	[hl], a
+.l00104:
+;src/baseball/announcer.c:168: if (launch > 100 || launch < -90) {
+	ld	hl, sp+10
+	ld	a, [hl]
+	ld	e, a
+	ld	a, $64
+	ld	d, a
+	ld	a, $64
+	sub	a, [hl]
+	bit	7, e
+	jp	Z, .l00261
+	bit	7, d
+	jp	NZ, .l00262
+	cp	a, a
+	jp	.l00262
+.l00261:
+	bit	7, d
+	jp	Z, .l00262
+	scf
+.l00262:
+	jp	C, .l00115
+	ld	hl, sp+10
+	ld	a, [hl]
+	xor	a, $80
+	sub	a, $26
+	jp	NC, .l00116
+.l00115:
+;src/baseball/announcer.c:169: if (launch > 120 || launch < -120) {
+	ld	hl, sp+10
+	ld	a, [hl]
+	ld	e, a
+	ld	a, $78
+	ld	d, a
+	ld	a, $78
 	sub	a, [hl]
 	bit	7, e
 	jp	Z, .l00263
@@ -980,29 +1063,83 @@ _AnnounceSwingContact::
 	jp	Z, .l00264
 	scf
 .l00264:
-	ld	a, $00
-	rla
-	ld	hl, sp+5
-	ld	[hl], a
+	jp	C, .l00111
 	ld	hl, sp+10
 	ld	a, [hl]
 	xor	a, $80
-	sub	a, $DA
-	jp	NC, .l00104
-	ld	hl, sp+5
-	ld	a, [hl]
-	or	a, a
-	jp	Z, .l00104
-	inc	hl
+	sub	a, $08
+	jp	NC, .l00112
+.l00111:
+;src/baseball/announcer.c:170: AnnounceFoulBall(HitFoulTipText);
+	ld	de, _HitFoulTipText
+	call	_AnnounceFoulBall
+	jp	.l00113
+.l00112:
+;src/baseball/announcer.c:173: else if (launch >= 100) AnnounceFoulBall(HitFoulBackText);
+	ld	hl, sp+10
 	ld	a, [hl]
 	xor	a, $80
-	sub	a, $53
-	jp	C, .l00104
+	sub	a, $E4
+	jp	C, .l00109
+	ld	de, _HitFoulBackText
+	call	_AnnounceFoulBall
+	jp	.l00113
+.l00109:
+;src/baseball/announcer.c:174: else AnnounceFoulBall(HitFoulBallText);//hit on the ground
+	ld	de, _HitFoulBallText
+	call	_AnnounceFoulBall
+.l00113:
+;src/baseball/announcer.c:175: return;
+	jp	.l00148
+.l00116:
+;src/baseball/announcer.c:179: unsigned char hang_time = HangTimeFromSpeedLaunchAngle(speed, launch);
+	ld	hl, sp+10
+	ld	e, [hl]
+	ld	hl, sp+7
+	ld	a, [hl]
+	call	_HangTimeFromSpeedLaunchAngle
+	ld	hl, sp+0
+	ld	[hl], a
+;src/baseball/announcer.c:180: unsigned char distance = DistanceFromSpeedLaunchAngle(speed, launch);
+	ld	hl, sp+10
+	ld	e, [hl]
+	ld	hl, sp+7
+	ld	a, [hl]
+	call	_DistanceFromSpeedLaunchAngle
+	ld	hl, sp+1
+	ld	[hl], a
+;src/baseball/announcer.c:181: unsigned int xy = LocationFromDistSprayAngle(distance, spray);
+	ld	hl, sp+6
+	ld	e, [hl]
+	ld	hl, sp+1
+	ld	a, [hl]
+	call	_LocationFromDistSprayAngle
+;src/baseball/announcer.c:182: unsigned int position_and_distance_from_ball = GetClosestFielderByLocation(xy);
+	ld	e, c
+	ld	d, b
+	call	_GetClosestFielderByLocation
+;src/baseball/announcer.c:183: unsigned char fielder_position = (char)(position_and_distance_from_ball & BALL_STATE_FIELDER);//position in first 4 bits of lower nibble
+	ld	a, c
+	and	a, $0F
+	ld	hl, sp+2
+	ld	[hl], a
+;src/baseball/announcer.c:184: unsigned char fielder_dist_from_ball = (char)(position_and_distance_from_ball >> 8);//distance in upper nibble
+	inc	hl
+	ld	[hl], b
+;src/baseball/announcer.c:185: ball_state |= fielder_position;
+	ld	hl, _ball_state
+	ld	a, [hl]
+	ld	hl, sp+2
+	or	a, [hl]
+	ld	hl, _ball_state
+	ld	[hl], a
+;src/baseball/announcer.c:189: if (launch > 15)
+	ld	hl, sp+10
 	ld	a, [hl]
 	ld	e, a
-	ld	a, $2D
+	ld	a, $0F
 	ld	d, a
-	ld	a, $2D
+	ld	a, $0F
 	sub	a, [hl]
 	bit	7, e
 	jp	Z, .l00265
@@ -1015,38 +1152,17 @@ _AnnounceSwingContact::
 	jp	Z, .l00266
 	scf
 .l00266:
-	jp	C, .l00104
-;src/baseball/announcer.c:164: ball_state |= BALL_STATE_FAIR;
-	ld	hl, _ball_state
-	ld	a, [hl]
-	or	a, $20
-	ld	[hl], a
-.l00104:
-;src/baseball/announcer.c:168: if (launch < 100 && launch > -90) HideBatter();
-	ld	hl, sp+10
-	ld	a, [hl]
-	xor	a, $80
-	sub	a, $E4
 	ld	a, $00
 	rla
-	ld	c, a
-	ld	a, c
-	or	a, a
-	jp	Z, .l00116
-	ld	hl, sp+5
-	ld	a, [hl]
-	or	a, a
-	jp	Z, .l00116
-	call	_HideBatter
-	jp	.l00117
-.l00116:
-;src/baseball/announcer.c:170: if (launch > 120 || launch < -120) {
+	ld	hl, sp+4
+	ld	[hl], a
+;src/baseball/announcer.c:197: else if (launch > 0) hit_text = HitLineDriveText;
 	ld	hl, sp+10
 	ld	a, [hl]
 	ld	e, a
-	ld	a, $78
+	ld	a, $00
 	ld	d, a
-	ld	a, $78
+	xor	a, a
 	sub	a, [hl]
 	bit	7, e
 	jp	Z, .l00267
@@ -1059,80 +1175,66 @@ _AnnounceSwingContact::
 	jp	Z, .l00268
 	scf
 .l00268:
-	jp	C, .l00111
-	ld	hl, sp+10
-	ld	a, [hl]
-	xor	a, $80
-	sub	a, $08
-	jp	NC, .l00112
-.l00111:
-;src/baseball/announcer.c:171: AnnounceFoulBall(HitFoulTipText);
-	ld	de, _HitFoulTipText
-	call	_AnnounceFoulBall
-	jp	.l00113
-.l00112:
-;src/baseball/announcer.c:174: else if (launch >= 100) AnnounceFoulBall(HitFoulBackText);
-	bit	0, c
-	jp	NZ, .l00109
-	ld	de, _HitFoulBackText
-	call	_AnnounceFoulBall
-	jp	.l00113
-.l00109:
-;src/baseball/announcer.c:175: else AnnounceFoulBall(HitFoulBallText);//hit on the ground
-	ld	de, _HitFoulBallText
-	call	_AnnounceFoulBall
-.l00113:
-;src/baseball/announcer.c:176: return;
-	jp	.l00149
-.l00117:
-;src/baseball/announcer.c:180: unsigned char hang_time = HangTimeFromSpeedLaunchAngle(speed, launch);
-	ld	hl, sp+10
-	ld	e, [hl]
-	ld	hl, sp+7
-	ld	a, [hl]
-	call	_HangTimeFromSpeedLaunchAngle
-	ld	hl, sp+0
+	ld	a, $00
+	rla
+	ld	hl, sp+5
 	ld	[hl], a
-;src/baseball/announcer.c:181: unsigned char distance = DistanceFromSpeedLaunchAngle(speed, launch);
-	ld	hl, sp+10
-	ld	e, [hl]
-	ld	hl, sp+7
+;src/baseball/announcer.c:189: if (launch > 15)
+	dec	hl
 	ld	a, [hl]
-	call	_DistanceFromSpeedLaunchAngle
+	or	a, a
+	jp	Z, .l00137
+;src/baseball/announcer.c:191: if (distance > 180) hit_text = HitDeepFlyBallText;
+	ld	a, $B4
 	ld	hl, sp+1
-	ld	[hl], a
-;src/baseball/announcer.c:182: unsigned int xy = LocationFromDistSprayAngle(distance, spray);
-	ld	hl, sp+6
-	ld	e, [hl]
+	sub	a, [hl]
+	jp	NC, .l00128
+	ld	de, _HitDeepFlyBallText+0
+	jp	.l00138
+.l00128:
+;src/baseball/announcer.c:192: else if (distance > 140) hit_text = HitFlyBallText;
+	ld	a, $8C
 	ld	hl, sp+1
+	sub	a, [hl]
+	jp	NC, .l00125
+	ld	de, _HitFlyBallText
+	jp	.l00138
+.l00125:
+;src/baseball/announcer.c:193: else if (distance > 110) hit_text = HitShallowFlyBallText;
+	ld	a, $6E
+	ld	hl, sp+1
+	sub	a, [hl]
+	jp	NC, .l00122
+	ld	de, _HitShallowFlyBallText
+	jp	.l00138
+.l00122:
+;src/baseball/announcer.c:194: else if (distance > 80) hit_text = HitPopFlyText;
+	ld	a, $50
+	ld	hl, sp+1
+	sub	a, [hl]
+	jp	NC, .l00119
+	ld	de, _HitPopFlyText
+	jp	.l00138
+.l00119:
+;src/baseball/announcer.c:195: else hit_text = HitPopUpText;
+	ld	de, _HitPopUpText
+	jp	.l00138
+.l00137:
+;src/baseball/announcer.c:197: else if (launch > 0) hit_text = HitLineDriveText;
+	ld	hl, sp+5
 	ld	a, [hl]
-	call	_LocationFromDistSprayAngle
-;src/baseball/announcer.c:183: unsigned int position_and_distance_from_ball = GetClosestFielderByLocation(xy);
-	ld	e, c
-	ld	d, b
-	call	_GetClosestFielderByLocation
-;src/baseball/announcer.c:184: unsigned char fielder_position = (char)(position_and_distance_from_ball & BALL_STATE_FIELDER);//position in first 4 bits of lower nibble
-	ld	a, c
-	and	a, $0F
-	ld	hl, sp+2
-	ld	[hl], a
-;src/baseball/announcer.c:185: unsigned char fielder_dist_from_ball = (char)(position_and_distance_from_ball >> 8);//distance in upper nibble
-	inc	hl
-	ld	[hl], b
-;src/baseball/announcer.c:186: ball_state |= fielder_position;
-	ld	hl, _ball_state
-	ld	a, [hl]
-	ld	hl, sp+2
-	or	a, [hl]
-	ld	hl, _ball_state
-	ld	[hl], a
-;src/baseball/announcer.c:190: if (launch > 15)
+	or	a, a
+	jp	Z, .l00134
+	ld	de, _HitLineDriveText
+	jp	.l00138
+.l00134:
+;src/baseball/announcer.c:198: else if (launch > -45) hit_text = HitGroundBallText;
 	ld	hl, sp+10
 	ld	a, [hl]
 	ld	e, a
-	ld	a, $0F
+	ld	a, $D3
 	ld	d, a
-	ld	a, $0F
+	ld	a, $D3
 	sub	a, [hl]
 	bit	7, e
 	jp	Z, .l00269
@@ -1145,158 +1247,65 @@ _AnnounceSwingContact::
 	jp	Z, .l00270
 	scf
 .l00270:
-	ld	a, $00
-	rla
-	ld	hl, sp+4
-	ld	[hl], a
-;src/baseball/announcer.c:198: else if (launch > 0) hit_text = HitLineDriveText;
-	ld	hl, sp+10
-	ld	a, [hl]
-	ld	e, a
-	ld	a, $00
-	ld	d, a
-	xor	a, a
-	sub	a, [hl]
-	bit	7, e
-	jp	Z, .l00271
-	bit	7, d
-	jp	NZ, .l00272
-	cp	a, a
-	jp	.l00272
-.l00271:
-	bit	7, d
-	jp	Z, .l00272
-	scf
-.l00272:
-	ld	a, $00
-	rla
-	ld	hl, sp+5
-	ld	[hl], a
-;src/baseball/announcer.c:190: if (launch > 15)
-	dec	hl
-	ld	a, [hl]
-	or	a, a
-	jp	Z, .l00138
-;src/baseball/announcer.c:192: if (distance > 180) hit_text = HitDeepFlyBallText;
-	ld	a, $B4
-	ld	hl, sp+1
-	sub	a, [hl]
-	jp	NC, .l00129
-	ld	de, _HitDeepFlyBallText+0
-	jp	.l00139
-.l00129:
-;src/baseball/announcer.c:193: else if (distance > 140) hit_text = HitFlyBallText;
-	ld	a, $8C
-	ld	hl, sp+1
-	sub	a, [hl]
-	jp	NC, .l00126
-	ld	de, _HitFlyBallText
-	jp	.l00139
-.l00126:
-;src/baseball/announcer.c:194: else if (distance > 110) hit_text = HitShallowFlyBallText;
-	ld	a, $6E
-	ld	hl, sp+1
-	sub	a, [hl]
-	jp	NC, .l00123
-	ld	de, _HitShallowFlyBallText
-	jp	.l00139
-.l00123:
-;src/baseball/announcer.c:195: else if (distance > 80) hit_text = HitPopFlyText;
-	ld	a, $50
-	ld	hl, sp+1
-	sub	a, [hl]
-	jp	NC, .l00120
-	ld	de, _HitPopFlyText
-	jp	.l00139
-.l00120:
-;src/baseball/announcer.c:196: else hit_text = HitPopUpText;
-	ld	de, _HitPopUpText
-	jp	.l00139
-.l00138:
-;src/baseball/announcer.c:198: else if (launch > 0) hit_text = HitLineDriveText;
-	ld	hl, sp+5
-	ld	a, [hl]
-	or	a, a
-	jp	Z, .l00135
-	ld	de, _HitLineDriveText
-	jp	.l00139
-.l00135:
-;src/baseball/announcer.c:199: else if (launch > -45) hit_text = HitGroundBallText;
-	ld	hl, sp+10
-	ld	a, [hl]
-	ld	e, a
-	ld	a, $D3
-	ld	d, a
-	ld	a, $D3
-	sub	a, [hl]
-	bit	7, e
-	jp	Z, .l00273
-	bit	7, d
-	jp	NZ, .l00274
-	cp	a, a
-	jp	.l00274
-.l00273:
-	bit	7, d
-	jp	Z, .l00274
-	scf
-.l00274:
-	jp	NC, .l00132
+	jp	NC, .l00131
 	ld	de, _HitGroundBallText
-	jp	.l00139
-.l00132:
-;src/baseball/announcer.c:200: else hit_text = HitChopperText;
+	jp	.l00138
+.l00131:
+;src/baseball/announcer.c:199: else hit_text = HitChopperText;
 	ld	de, _HitChopperText
-.l00139:
-;src/baseball/announcer.c:203: str_Copy(hit_text, str_buffer);
+.l00138:
+;src/baseball/announcer.c:202: str_Copy(hit_text, str_buffer);
 	ld	bc, _str_buffer
 	call	_str_Copy
-;src/baseball/announcer.c:204: if (distance > 100 && launch > 15) AppendOutfieldLocationTextByAngle(spray);
+;src/baseball/announcer.c:203: if (distance > 100 && launch > 15) AppendOutfieldLocationTextByAngle(spray);
 	ld	a, $64
 	ld	hl, sp+1
 	sub	a, [hl]
-	jp	NC, .l00141
+	jp	NC, .l00140
 	ld	hl, sp+4
 	ld	a, [hl]
 	or	a, a
-	jp	Z, .l00141
+	jp	Z, .l00140
 	inc	hl
 	inc	hl
 	ld	a, [hl]
 	call	_AppendOutfieldLocationTextByAngle
-	jp	.l00142
-.l00141:
-;src/baseball/announcer.c:205: else AppendInfieldLocationTextByAngle(spray);
+	jp	.l00141
+.l00140:
+;src/baseball/announcer.c:204: else AppendInfieldLocationTextByAngle(spray);
 	ld	hl, sp+6
 	ld	a, [hl]
 	call	_AppendInfieldLocationTextByAngle
-.l00142:
-;src/baseball/announcer.c:206: RevealTextAndWait(str_buffer);
+.l00141:
+;src/baseball/announcer.c:205: RevealTextAndWait(str_buffer);
 	ld	de, _str_buffer
 	call	_RevealTextAndWait
+;src/baseball/announcer.c:206: HideBatter();
+	call	_HideBatter
 ;src/baseball/announcer.c:209: if (distance > 200 && launch > 0) { 
 	ld	a, $C8
 	ld	hl, sp+1
 	sub	a, [hl]
-	jp	NC, .l00147
+	jp	NC, .l00146
 	ld	hl, sp+5
 	ld	a, [hl]
 	or	a, a
-	jp	Z, .l00147
+	jp	Z, .l00146
 ;src/baseball/announcer.c:210: if ((ball_state & BALL_STATE_FAIR) == 0) { 
 	ld	hl, _ball_state
 	ld	a, [hl]
 	bit	5, a
-	jp	NZ,.l00275
-	jp	.l00276
-.l00275:
-	jp	.l00145
-.l00276:
+	jp	NZ,.l00271
+	jp	.l00272
+.l00271:
+	jp	.l00144
+.l00272:
 ;src/baseball/announcer.c:211: AnnounceFoulBall(HitFoulBallText);
 	ld	de, _HitFoulBallText
 	call	_AnnounceFoulBall
 ;src/baseball/announcer.c:212: return;
-	jp	.l00149
-.l00145:
+	jp	.l00148
+.l00144:
 ;src/baseball/announcer.c:215: unsigned char order = CurrentOrderInLineup();
 	call	_CurrentOrderInLineup
 ;src/baseball/announcer.c:216: unsigned char runs_scored = AdvanceRunners(4, ++order);//current batter is 0 to 8, needs to be 1 to 9
@@ -1306,16 +1315,16 @@ _AnnounceSwingContact::
 	call	_AdvanceRunners
 ;src/baseball/announcer.c:217: const char* home_run_text = (runs_scored == 4) ? HitGrandSlamText : HitHomeRunText;
 	sub	a, $04
-	jp	NZ,.l00277
-	jp	.l00278
-.l00277:
-	jp	.l00151
-.l00278:
+	jp	NZ,.l00273
+	jp	.l00274
+.l00273:
+	jp	.l00150
+.l00274:
 	ld	de, _HitGrandSlamText+0
-	jp	.l00152
-.l00151:
+	jp	.l00151
+.l00150:
 	ld	de, _HitHomeRunText+0
-.l00152:
+.l00151:
 ;src/baseball/announcer.c:218: RevealTextAndWait(home_run_text);
 	call	_RevealTextAndWait
 ;src/baseball/announcer.c:219: DrawScore();
@@ -1325,8 +1334,8 @@ _AnnounceSwingContact::
 ;src/baseball/announcer.c:221: AnnounceNextBatter();
 	call	_AnnounceNextBatter
 ;src/baseball/announcer.c:222: return;
-	jp	.l00149
-.l00147:
+	jp	.l00148
+.l00146:
 ;src/baseball/announcer.c:225: AnnounceFieldingText(fielder_position, fielder_dist_from_ball, hang_time);
 	ld	hl, sp+0
 	ld	a, [hl]
@@ -1337,7 +1346,7 @@ _AnnounceSwingContact::
 	dec	hl
 	ld	a, [hl]
 	call	_AnnounceFieldingText
-.l00149:
+.l00148:
 ;src/baseball/announcer.c:226: }
 	add	sp, 8
 	pop	hl

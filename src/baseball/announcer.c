@@ -203,6 +203,7 @@ void AnnounceSwingContact(unsigned char speed, signed char spray, signed char la
     if (distance > 100 && launch > 15) AppendOutfieldLocationTextByAngle(spray);
     else AppendInfieldLocationTextByAngle(spray);
     RevealTextAndWait(str_buffer);
+    HideBatter();
 
     //out of play
     if (distance > 200 && launch > 0) { 

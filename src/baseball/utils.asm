@@ -480,9 +480,8 @@ LocationFromDistSprayAngle::;a = distance, b = spray angle, returns xy in de
 XLocationsOfPositions::
   DB  82,  36, 128, 164, 63, 92, 88, 193, 216
 YLocationsOfPositions::
-  DB 174, 219, 199, 159, 119, 92, 38,  67, 191
+  DB 174, 219, 199, 159, 119, 92, 38, 67, 191
 _GetClosestFielderByLocation::
-; compiler returns distance/position in bc
 GetClosestFielderByLocation::;de = xy, returns position number in a, distance in b
   ld a, 255
   ld [_t], a;min dist
@@ -527,6 +526,16 @@ GetClosestFielderByLocation::;de = xy, returns position number in a, distance in
   inc a;position
   ld c, a;distance/position in bc for use with SDCC
   ret
+
+SprayAngleToPositions::
+  DB  0, -127, 36, 21, -33, -23, -30, 1, 38
+DistanceToPositions::
+  DB 54, 10, 86, 132, 95, 130, 180, 209, 174
+_GetClosestFielderByAngle::
+GetClosestFielderByAngle::;a = angle, returns position number in a
+  xor a;TODO
+  ret
+
 
 _IsUserFielding::  
 IsUserFielding::;nz = user is fielding, z = user is batting
