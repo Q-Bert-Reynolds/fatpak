@@ -1,5 +1,6 @@
 SECTION "Core", ROM0
 
+INCLUDE "data/strings/core_strings.asm"
 ; GetTypeString                   a = type, string in name_buffer
 ; GetStatusString                 a = status mask, string in name_buffer
 ; CopyAddressStoredAtBCToBC       bc = address of address, returns address stored at bc in bc
@@ -37,38 +38,6 @@ SECTION "Core", ROM0
 ; GBCSetPalette                   a = palette id, hl = colors
 ; CopyPalettesTo                  hl = destination
 ; CopyPalettesFrom                hl = source
-
-TypeStrings::
-  DB "", 0
-  DB "Normal", 0
-  DB "Fire", 0
-  DB "Water", 0
-  DB "Electric", 0
-  DB "Grass", 0
-  DB "Ice", 0
-  DB "Fighting", 0
-  DB "Poison", 0
-  DB "Ground", 0
-  DB "Flying", 0
-  DB "Psychic", 0
-  DB "Bug", 0
-  DB "Rock", 0
-  DB "Ghost", 0
-  DB "Dragon", 0
-
-StatusStrings::
-  DB "OK", 0
-  DB "BRN", 0
-  DB "FRZ", 0
-  DB "PAR", 0
-  DB "PSN", 0
-  DB "SLP", 0
-
-CancelString::    DB "CANCEL", 0
-YesNoText::       DB "YES\nNO",0
-SaveGameText:     DB "Would you like to\nSAVE the game?",0
-NowSavingText:    DB "Now saving...",0
-SavedTheGameText: DB "%s saved\nthe game.",0
 
 GetTypeString:: ;a = type, string in name_buffer
   ld b, 0

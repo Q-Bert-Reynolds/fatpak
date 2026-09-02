@@ -1,0 +1,28 @@
+Label,Comment,English-en,Spanish-es,French-fr,Italian-it,Portuguese-pt,German-de,Japanese-ja
+TypeStrings.None,types ordered by type id, , , , , , , 
+TypeStrings.Normal,,Basic,Básico,Basique,Basico,Básico,Basis,ベーシック
+TypeStrings.Fire,,Hot,Caliente,Chaud,Caldo,Quente,Heiß,熱い
+TypeStrings.Water,,Fluid,Fluido,Fluide,Fluido,Fluido,Flüssig,流体
+TypeStrings.Electric,,Electric,Eléctrico,Électrique,Elettrico,Elétrico,Elektrisch,電気
+TypeStrings.Grass,,Rooted,Arraigado,Enraciné,Radicato,Enraizado,Verwurzelt,根付いた
+TypeStrings.Ice,,Chill,Frío,Froid,Freddo,Frio,Kühl,冷気
+TypeStrings.Fighting,,Tough,Resistente,Dur,Duro,Resistente,Hart,タフ
+TypeStrings.Poison,,Filthy,Sucio,Sale,Sporco,Sujo,Schmutzig,不潔
+TypeStrings.Ground,,Gritty,Arenoso,Sableux,Sabbioso,Arenoso,Körnig,砂っぽい
+TypeStrings.Flying,,Acrobat,Acróbata,Acrobate,Acrobata,Acróbata,Akrobat,アクロバット
+TypeStrings.Psychic,,Mental,Mental,Mental,Mentale,Mental,Mental,メンタル
+TypeStrings.Bug,,Pesky,Molesto,Agaçant,Fastidioso,Irritante,Lästig,厄介
+TypeStrings.Rock,,Solid,Sólido,Solide,Solido,Sólido,Fest,固い
+TypeStrings.Ghost,,Dead,Muerto,Mort,Morto,Morto,Tot,死んだ
+TypeStrings.Dragon,,Myth,Mito,Mythe,Mito,Mito,Mythos,神話
+StatusStrings.Normal,status strings from a mask,OK,OK,OK,OK,OK,OK,OK
+StatusStrings.Burned,,BRN,QMD,BRU,BRN,QMD,BRN,やけど
+StatusStrings.Frozen,,FRZ,CON,GEL,CGL,CON,GEF,こおり
+StatusStrings.Paralyzed,,PAR,PAR,PAR,PAR,PAR,PAR,マヒ
+StatusStrings.Poisoned,,PSN,VEN,POI,PSN,ENV,PSN,どく
+StatusStrings.Asleep,,SLP,DOR,SOM,SLP,DOR,SCH,ねむり
+CancelString,menu strings,CANCEL,CANCELAR,ANNULER,ANNULLA,CANCELAR,ABBRECHEN,キャンセル
+YesNoText,,YES\nNO,SÍ\nNO,OUI\nNON,SÌ\nNO,SIM\nNÃO,JA\nNEIN,はい\nいいえ
+SaveGameText,,Would you like to\nSAVE the game?,¿Quieres GUARDAR\nla partida?,Voulez-vous\nSAUVEGARDER?,Vuoi SALVARE\nla partita?,Deseja\nSALVAR o jogo?,Möchtest du das\nSpiel SPEICHERN?,ゲームを\nセーブしますか？
+NowSavingText,,Now saving...,Guardando...,Sauvegarde en cours...,Salvataggio in corso...,Salvando agora...,Wird gespeichert...,セーブ中...
+SavedTheGameText,,%s saved\nthe game.,%s guardó\nla partida.,%s a sauvegardé\nla partie.,%s ha salvato\nla partita.,%s salvou\no jogo.,%s hat das Spiel\ngespeichert.,%sは\nゲームをセーブした。

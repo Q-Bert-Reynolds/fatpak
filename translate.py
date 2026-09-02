@@ -22,13 +22,16 @@ def main():
         val =  "\\"+oct(int(val)).replace("0o","").zfill(3)
       charMap[char] = val
 
-  fileNames = glob.glob("./data/*_strings.csv")
+  fileNames = glob.glob("./data/*_strings.*.csv")
   for fileName in fileNames:
     language_map = {}
+    name,output = os.path.splitext(os.path.basename(fileName))[0].split('.')
     with open(fileName, encoding='utf8') as file:
       dict_reader = csv.DictReader(file)
-      name = os.path.splitext(os.path.basename(fileName))[0]
-      create_strings_files(dict_reader, name)
+      if output == "h":
+        create_c_strings_files(dict_reader, name)
+      elif output == "asm":
+        create_asm_strings_files(dict_reader, name)
      
 def charMapReplace(text):
   # SDCC replaces unicode characters with their unicode values instead
@@ -40,7 +43,7 @@ def charMapReplace(text):
     text = text.replace(char, val)
   return text
 
-def create_strings_files(dict_reader, name):
+def create_c_strings_files(dict_reader, name):
   dir = "./data/strings/"
   if not os.path.exists(dir):
     os.mkdir(dir)
@@ -93,6 +96,56 @@ def create_strings_files(dict_reader, name):
   for i in range(numLanguages):
     with open(f"{dir}{name}.{codes[i]}.h", "w+", encoding='utf8') as file:    
       file.write(segments[i]+'";\n')
+
+def create_asm_strings_files(dict_reader, name):
+  dir = "./data/strings/"
+  if not os.path.exists(dir):
+    os.mkdir(dir)
+
+  languages = dict_reader.fieldnames[2:]
+  numLanguages = len(languages)
+  segments = []
+  codes = []
+  with open(dir+name+".asm", "w+", encoding='utf8') as file:    
+    for i in range(numLanguages):
+      language, code = languages[i].split('-')
+      segments.append(f";\n; {name}.{code}.asm\n;\n")
+      codes.append(code)
+      s = '' if i == 0 else 'EL'
+      s += f'IF DEF(LANG_{code.upper()});{language}\n'
+      s += f'INCLUDE "data/strings/{name}.{code}.asm"\n'
+      file.write(s)
+    file.write("ENDC\n")
+
+  main_labels = [""] * numLanguages
+  for entry in dict_reader:
+    comment = entry["Comment"]
+    label = entry["Label"]
+    for i in range(numLanguages):
+      language = languages[i]
+      segment = segments[i]
+
+      text = entry[language]
+      if not text:
+        text = entry["English-en"]
+      
+      label_parts = label.split('.')
+      is_array = len(label_parts) > 1
+      is_first = False
+      if label_parts[0] != main_labels[i]:
+        is_first = True
+        if comment:
+          segment += "\n;" + comment + "\n"
+        main_labels[i] = label_parts[0]
+        segment += (main_labels[i]+'::').ljust(42)
+      if is_array and not is_first:
+        segment += ' ' * 42
+      segment += 'DB "' + text + '", 0\n'
+      segments[i] = segment
+        
+  for i in range(numLanguages):
+    with open(f"{dir}{name}.{codes[i]}.asm", "w+", encoding='utf8') as file:    
+      file.write(segments[i])
 
 if __name__ == "__main__":
   main()

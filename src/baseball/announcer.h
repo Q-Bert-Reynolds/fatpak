@@ -49,7 +49,7 @@ extern unsigned char CurrentOrderInLineup();
 extern unsigned char AdvanceRunners(unsigned char num_bases, unsigned char batter);// batter is lineup order (1-9) to put on first or 0 if no batter on 1st
 extern unsigned int LocationFromDistSprayAngle(unsigned char distance, signed char spray);//returns xy
 extern unsigned int GetClosestFielderByLocation(unsigned int xy);//returns position number in a/c, distance in b
-extern unsigned char GetClosestFielderByAngle(unsigned char spray, unsigned char speed);//returns position number in b and time to ball in c
+extern unsigned int GetClosestFielderByAngle(unsigned char spray, unsigned char speed);//returns position number in b and time to ball in c
 extern PlayerData* GetCurrentBatter();
 extern PlayerData* GetPositionPlayerAndName(unsigned char position);//a = position number (1-9), returns position player in hl, name in [name_buffer]
 
