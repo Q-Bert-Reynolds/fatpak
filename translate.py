@@ -28,7 +28,7 @@ def main():
     with open(fileName, encoding='utf8') as file:
       dict_reader = csv.DictReader(file)
       name = os.path.splitext(os.path.basename(fileName))[0]
-      create_strings_file(dict_reader, name)
+      create_strings_files(dict_reader, name)
      
 def charMapReplace(text):
   # SDCC replaces unicode characters with their unicode values instead
@@ -40,25 +40,31 @@ def charMapReplace(text):
     text = text.replace(char, val)
   return text
 
-def create_strings_file(dict_reader, name):
+def create_strings_files(dict_reader, name):
   dir = "./data/strings/"
   if not os.path.exists(dir):
     os.mkdir(dir)
 
   languages = dict_reader.fieldnames[2:]
-  num = len(languages)
+  numLanguages = len(languages)
   segments = []
-  for i in range(num):
-    language, code = languages[i].split('-')
-    segment = '#' if i == 0 else '";\n\n#el'
-    segment += f'if defined(LANG_{code.upper()})//{language}\n'
-    segments.append(segment)
+  codes = []
+  with open(dir+name+".h", "w+", encoding='utf8') as file:    
+    for i in range(numLanguages):
+      language, code = languages[i].split('-')
+      segments.append(f"//\n// {name}.{code}.h\n//\n")
+      codes.append(code)
+      s = '#' if i == 0 else '#el'
+      s += f'if defined(LANG_{code.upper()})//{language}\n'
+      s += f'#include "{name}.{code}.h"\n'
+      file.write(s)
+    file.write("#endif\n")
 
-  main_labels = [""] * num
+  main_labels = [""] * numLanguages
   for entry in dict_reader:
     comment = entry["Comment"]
     label = entry["Label"]
-    for i in range(num):
+    for i in range(numLanguages):
       language = languages[i]
       segment = segments[i]
 
@@ -84,10 +90,9 @@ def create_strings_file(dict_reader, name):
       segment += '"' + text
       segments[i] = segment
         
-  with open(dir+name+".h", "w+", encoding='utf8') as file:    
-    for segment in segments:
-      file.write(segment)
-    file.write('";\n#endif\n')
+  for i in range(numLanguages):
+    with open(f"{dir}{name}.{codes[i]}.h", "w+", encoding='utf8') as file:    
+      file.write(segments[i]+'";\n')
 
 if __name__ == "__main__":
   main()
