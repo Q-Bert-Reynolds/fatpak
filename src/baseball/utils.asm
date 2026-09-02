@@ -532,10 +532,105 @@ SprayAngleToPositions::
 DistanceToPositions::
   DB 54, 10, 86, 132, 95, 130, 180, 209, 174
 _GetClosestFielderByAngle::
-GetClosestFielderByAngle::;a = angle, returns position number in a
-  xor a;TODO
-  ret
+GetClosestFielderByAngle::;a = spray angle, e = speed, returns time to ball in b and position number in 
+  push bc
+  ld b, a;spray angle
+  ld a, e
+  srl a;ball_dist = speed / 2
+  ld [_s], a;ball_dist
+  ld a, b;spray angle
+  ld [_a], a;spray angle
+  ld a, 255
+  ld [_t], a;min time to ball
+  xor a
+  ld [_i], a;index (0-8)
+  ld [_c], a;closest position index
+.loop
+    ld a, [_i]
+    ld b, 0
+    ld c, a
 
+    ;delta_angle = |spray - fielder_angle|
+    ld hl, SprayAngleToPositions
+    add hl, bc
+    ld a, [hl]
+    ld d, a;fielder_angle (signed)
+    ld a, [_a];spray (signed)
+    sub a, d;a = spray - fielder_angle (signed diff)
+    call math_Abs;|spray - fielder_angle|
+    ld d, a;delta_angle
+
+    ;delta_dist = |ball_dist - fielder_dist|
+    ld hl, DistanceToPositions
+    ld a, [_i]
+    ld b, 0
+    ld c, a
+    add hl, bc
+    ld a, [hl]
+    ld e, a;fielder_dist
+    ld a, [_s];ball_dist
+    sub a, e
+    call math_Abs;|ball_dist - fielder_dist|
+    ld e, a;delta_dist
+
+    ;fielder_to_ball = approx length(delta_angle, delta_dist)
+    call math_Length;de = (delta_angle, delta_dist), returns length in a
+    ld [_u], a;fielder_to_ball
+
+    ;get player speed
+    push af;fielder_to_ball
+    call IsUserFielding
+    ld a, [_i]
+    jr z, .userIsFielding
+  .opponentIsFielding
+    inc a;position 1-9
+    call GetOpposingPlayerByPosition
+    jr .gotPlayer
+  .userIsFielding
+    inc a;position 1-9
+    call GetUserPlayerByPosition
+  .gotPlayer
+    call GetPlayerSpeed;returns speed in hl
+    ld a, h;high byte of speed (meaningful unit)
+    ld [_v], a;save speed divisor
+    and a
+    jr z, .skipDivide;avoid divide by zero
+    pop bc;b = fielder_to_ball
+    ld a, b;fielder_to_ball
+    ld h, 0
+    ld l, a;numerator in hl
+    ld a, [_v]
+    ld c, a;divisor = player speed (high byte)
+    call math_Divide;hl (remainder a) = hl / c
+    ld a, l;time = fielder_to_ball / player_speed_hi
+    jr .compareTime
+  .skipDivide
+    pop af;fielder_to_ball (use raw dist as time if speed == 0)
+    ld a, [_u];fielder_to_ball
+  .compareTime
+    ld d, a;candidate time
+    ld a, [_t];min time so far
+    cp a, d
+    jr c, .notCloser
+  .closer;update minimum
+    ld a, d
+    ld [_t], a;new min time
+    ld a, [_i]
+    ld [_c], a;closest position index
+  .notCloser
+    ld a, [_i]
+    inc a
+    ld [_i], a
+    cp a, 9
+    jr nz, .loop
+
+  pop bc;restore caller's bc
+  ld a, [_t]
+  ld b, a;time to ball
+  ld a, [_c]
+  inc a;position 1-9
+  ld c, a;position
+  ret
 
 _IsUserFielding::  
 IsUserFielding::;nz = user is fielding, z = user is batting
