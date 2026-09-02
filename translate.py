@@ -22,7 +22,7 @@ def main():
         val =  "\\"+oct(int(val)).replace("0o","").zfill(3)
       charMap[char] = val
 
-  fileNames = glob.glob("./data/*_strings.*.csv")
+  fileNames = glob.glob("./data/strings/*_strings.*.csv")
   for fileName in fileNames:
     language_map = {}
     name,output = os.path.splitext(os.path.basename(fileName))[0].split('.')
