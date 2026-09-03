@@ -54,7 +54,7 @@ SECTION "Play Ball BANKED", ROMX, BANK[PLAY_BALL_BANK]
 
 DEF DISPLAY_PITCH_NAME_DELAY EQU 6
 
-INCLUDE "src/baseball/play_ball_strings.asm"
+INCLUDE "data/strings/play_ball_strings.asm"
 INCLUDE "src/baseball/ui.asm"
 INCLUDE "src/baseball/pitch_path.asm"
 
@@ -1150,7 +1150,7 @@ StartGame::
   xor a;0 balls, 0 strikes, 0 outs
   ld [balls_strikes_outs], a
   
-  ;ld bc, (9 << 8) | 5 ;9th batter on third, 5th batter on first
+  ;ld bc, 9 | (5 << 8) ;9th batter on third, 5th batter on first
   ld bc, 0; nobody on
   ld hl, runners_on_base
   ld a, b
@@ -1165,16 +1165,26 @@ StartGame::
   ld [away_score], a
   ld [current_batter], a
   
-  call GetCurrentOpponentPlayer
-  call GetPlayerNumber
-  ld [_a], a; player num
-
   ;clear the unsigned player game state flag to play a team
   ; ld a, [game_state]
   ; and a, ~GAME_STATE_UNSIGNED_PLAYER 
   ; ld [game_state], a
 
-  ; call ShowPlayBallIntro
+  ;get the player from the current team's data
+  ; call GetCurrentOpponentPlayer
+  ; call GetPlayerNumber
+  ; jr .loadPlayer
+
+  ;get a random player
+  call gbdk_Random
+  cp a, 151
+  jr c, .loadPlayer
+  sub a, 151
+
+.loadPlayer
+  ld [_a], a; player num
+
+  call ShowPlayBallIntro
   call SetupGameUI
 
   ; TRAMPOLINE _AnnounceTest

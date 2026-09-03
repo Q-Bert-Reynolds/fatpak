@@ -431,12 +431,33 @@ DrawPlayBallUI::
 
   call DrawCountOutsInning
 
+  xor a
+  ld bc, 0
   ld d, 9
   ld e, 14
-  ld h, 10
-  ld l, 3
-  ld bc, PlayMenuString
-  call gbdk_SetBkgTiles;set_bkg_tiles(9,14,10,3,
+  ld hl, PlayMenuPlayString
+  call DrawText
+
+  xor a
+  ld bc, 0
+  ld d, 15
+  ld e, 14
+  ld hl, PlayMenuTeamString
+  call DrawText
+
+  xor a
+  ld bc, 0
+  ld d, 9
+  ld e, 16
+  ld hl, PlayMenuItemString
+  call DrawText
+
+  xor a
+  ld bc, 0
+  ld d, 15
+  ld e, 16
+  ld hl, PlayMenuRunString
+  call DrawText
 
   DISPLAY_ON
   ret 

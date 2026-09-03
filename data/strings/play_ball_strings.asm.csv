@@ -1,0 +1,8 @@
+Label,Comment,English-en,Spanish-es,French-fr,Italian-it,Portuguese-pt,German-de,Japanese-ja
+PlayMenuPlayString,menu,PLAY,JUGA,JOU,GIOC,JOGA,SPIEL,プレイ
+PlayMenuTeamString,,TEAM,EQPO,EQPE,SQDA,EQPE,TEAM,チーム
+PlayMenuItemString,,ITEM,OBJ.,OBJ.,ROBA,ITEM,ITEM,アイテム
+PlayMenuRunString,,RUN,CORR,FUIR,FUGA,CORR,LAUF,逃げる
+QuittingIsNotAnOptionText,run selected,Quitting is\nnot an option!,¡Rendirse no\nes una opción!,Abandonner n'est\npas une option !,Rinunciare non\nè un'opzione!,Desistir não\né uma opção!,Aufgeben ist\nkeine Option!,諦めるという\n選択肢はない！
+TypeSlashText,play selected,TYPE/,TIPO/,TYPE/,TIPA/,TIPO/,TYP/,タイプ/
+BlankMoveText,,--------,--------,--------,--------,--------,--------,--------
