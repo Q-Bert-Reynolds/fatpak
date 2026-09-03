@@ -2,6 +2,11 @@
 ; play_ball_strings.de.asm
 ;
 
+;intro
+UnsignedPlayerAppearedText::              DB "Vertragsloser %s\nerschienen!", 0
+TeamChallengeText::                       DB " möchte \n%s Innings spielen.", 0
+PlayBallText::                            DB "Spiel Ball!", 0
+
 ;menu
 PlayMenuPlayString::                      DB "SPIEL", 0
 PlayMenuTeamString::                      DB "TEAM", 0

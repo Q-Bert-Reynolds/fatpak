@@ -8,6 +8,9 @@
 ;   str_Copy
 ;     Copy a string from hl to de
 ;     Entry: hl = src string, de = dest string
+;   str_FarCopy
+;     Copy a string from hl (an address in bank b) to de (an address in bank 0)
+;     Entry: b = current bank, c = bank of hl, hl = src string, de = dest string in bank 0
 ;   str_Length
 ;     Length of a string
 ;     Entry: hl = string
@@ -55,7 +58,46 @@ ENDM
 INCLUDE "src/math.asm"
   rev_Check_math_asm 1
 
+INCLUDE "src/hardware.inc"
+  rev_Check_hardware_inc 4
+
 SECTION "Strings Code", ROM0
+;***************************************************************************
+;
+; str_FarCopy - Copy a banked string
+;
+; input:
+;   b - current bank
+;   c - bank of string hl
+;   hl - src string in bank c
+;   de - dst string in bank 0
+;
+;***************************************************************************
+str_FarCopy::
+  ld a, c;bank of hl
+  ld [rROMB0], a;switch to bank of hl
+  call str_Copy;copy hl to de
+  ld a, b;previous bank
+  ld [rROMB0], a;switch back
+  ret
+
+MACRO STR_FAR_COPY ;src, dst
+  ld b, BANK(@)
+  ld c, BANK(\1)
+  ld hl, \1
+  ld de, \2
+  call str_FarCopy
+ENDM
+
+;C wrapper for str_Copy
+_str_Copy::;void str_Copy(char src[], char dest[])
+  ;compiler puts src in de, should be hl
+  ld h, d
+  ld l, e
+  ;compiler puts dest in bc, should be de
+  ld d, b
+  ld e, c
+
 ;***************************************************************************
 ;
 ; str_Copy - Copy a string
@@ -65,14 +107,6 @@ SECTION "Strings Code", ROM0
 ;   de - dst string
 ;
 ;***************************************************************************
-_str_Copy::;void str_Copy(char src[], char dest[])
-  ;compiler puts src in de, should be hl
-  ld h, d
-  ld l, e
-  ;compiler puts dest in bc, should be de
-  ld d, b
-  ld e, c
-
 str_Copy::
   ld   a, [hli]
   ld   [de], a
@@ -80,6 +114,7 @@ str_Copy::
   and  a
   jr   nz, str_Copy
   ret
+
 
 ;***************************************************************************
 ;
@@ -100,17 +135,7 @@ str_Length::
     inc de
     jr .loop
 
-;***************************************************************************
-;
-; str_FromArray - gets string by index
-;
-; input:
-;   bc - index
-;   hl - string array
-; output:
-;   hl - string at index bc
-;
-;***************************************************************************
+;C wrapper for str_FromArray
 _str_FromArray::;void str_FromArray(int index, char strings[])
   ;compiler puts array of strings in bc, should be in hl
   ld h, b
@@ -124,6 +149,17 @@ _str_FromArray::;void str_FromArray(int index, char strings[])
   ld c, l
   ret
 
+;***************************************************************************
+;
+; str_FromArray - gets string by index
+;
+; input:
+;   bc - index
+;   hl - string array
+; output:
+;   hl - string at index bc
+;
+;***************************************************************************
 str_FromArray::
   inc bc
   jr .test
@@ -212,16 +248,7 @@ str_AppendChar:
   ld [hl], a
   ret
 
-;***************************************************************************
-;
-; str_Replace - Replaces %s in src with bc, results in dest
-;
-; input:
-;   hl - src string
-;   de - dest string
-;   bc - replace data
-;
-;***************************************************************************
+;C wrapper for str_Replace
 _str_Replace::
   ld hl, sp+2
   ld a, [hli]
@@ -238,6 +265,17 @@ _str_Replace::
   pop	hl;get return address
 	pop	de;discard replacement text
 	jp hl
+
+;***************************************************************************
+;
+; str_Replace - Replaces %s in src with bc, results in dest
+;
+; input:
+;   hl - src string
+;   de - dest string
+;   bc - replace data (can be same as hl)
+;
+;***************************************************************************
 str_Replace::
   ld a, [hli]
   and a
@@ -265,6 +303,13 @@ str_Replace::
   ld [de], a
   ret
 
+;C wrapper for str_Number
+_str_Number::;extern void str_Number(unsigned long n);
+  ;n is debc, needs to be dehl
+  push bc
+  pop hl
+  ld bc, name_buffer
+  jr str_Number32
 
 ;***************************************************************************
 ;
@@ -275,12 +320,6 @@ str_Replace::
 ;   de - dest string
 ;
 ;***************************************************************************
-_str_Number::;extern void str_Number(unsigned long n);
-  ;n is debc, needs to be dehl
-  push bc
-  pop hl
-  ld bc, name_buffer
-  jr str_Number32
 str_Number::
   push bc
   push de;dest string

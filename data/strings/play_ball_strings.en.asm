@@ -2,6 +2,11 @@
 ; play_ball_strings.en.asm
 ;
 
+;intro
+UnsignedPlayerAppearedText::              DB "Unsigned %s\nappeared!", 0
+TeamChallengeText::                       DB " wants to \nplay %s innings.", 0
+PlayBallText::                            DB "Play ball!", 0
+
 ;menu
 PlayMenuPlayString::                      DB "PLAY", 0
 PlayMenuTeamString::                      DB "TEAM", 0

@@ -2,6 +2,11 @@
 ; play_ball_strings.ja.asm
 ;
 
+;intro
+UnsignedPlayerAppearedText::              DB "無所属の%sが\n現れた！", 0
+TeamChallengeText::                       DB "%sイニング\nプレイしたがっている！", 0
+PlayBallText::                            DB "プレイボール！", 0
+
 ;menu
 PlayMenuPlayString::                      DB "プレイ", 0
 PlayMenuTeamString::                      DB "チーム", 0

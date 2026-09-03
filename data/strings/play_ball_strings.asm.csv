@@ -1,4 +1,7 @@
 Label,Comment,English-en,Spanish-es,French-fr,Italian-it,Portuguese-pt,German-de,Japanese-ja
+UnsignedPlayerAppearedText,intro,Unsigned %s\nappeared!,¡Apareció %s\nsin firmar!,%s non signé\nest apparu!,%s non firmato\nè apparso!,%s sem contrato\napareceu!,Vertragsloser %s\nerschienen!,無所属の%sが\n現れた！
+TeamChallengeText,, wants to \nplay %s innings.,quiere \njugar %s entradas., veut jouer\n%s manches., vuole giocare \n%s riprese., quer \njogar %s entradas., möchte \n%s Innings spielen.,%sイニング\nプレイしたがっている！
+PlayBallText,,Play ball!,¡A jugar!,Au jeu !,Si gioca!,Jogue bola!,Spiel Ball!,プレイボール！
 PlayMenuPlayString,menu,PLAY,JUGA,JOU,GIOC,JOGA,SPIEL,プレイ
 PlayMenuTeamString,,TEAM,EQPO,EQPE,SQDA,EQPE,TEAM,チーム
 PlayMenuItemString,,ITEM,OBJ.,OBJ.,ROBA,ITEM,ITEM,アイテム

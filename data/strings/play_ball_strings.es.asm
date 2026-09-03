@@ -2,6 +2,11 @@
 ; play_ball_strings.es.asm
 ;
 
+;intro
+UnsignedPlayerAppearedText::              DB "¡Apareció %s\nsin firmar!", 0
+TeamChallengeText::                       DB "quiere \njugar %s entradas.", 0
+PlayBallText::                            DB "¡A jugar!", 0
+
 ;menu
 PlayMenuPlayString::                      DB "JUGA", 0
 PlayMenuTeamString::                      DB "EQPO", 0

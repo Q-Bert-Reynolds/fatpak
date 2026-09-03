@@ -4,11 +4,6 @@ INCLUDE "src/baseball/scale_tile_data_2x.asm"
 INCLUDE "img/coaches/calvin_back_2x.asm"
 INCLUDE "src/baseball/interrupts.asm"
 
-;strings
-UnsignedPlayerAppearedText::  DB "Unsigned %s\nappeared!",0
-TeamChallengeText::           DB " wants to \nplay %s innings.",0
-PlayBallText::                DB "Play ball!",0 
-
 SGBPlayBallIntroAttrBlk:
   ATTR_BLK 2
   ATTR_BLK_PACKET %001, 0,0,0, 0,12, 20,6 ;bottom UI
@@ -221,7 +216,9 @@ PlayBallIntro: ;[_a] = player num or coach id
 
   pop af;num
   call GetPlayerName
-  ld hl, UnsignedPlayerAppearedText
+  STR_FAR_COPY UnsignedPlayerAppearedText, tile_buffer
+  ld hl, tile_buffer
+  ; ld hl, UnsignedPlayerAppearedText
   ld de, str_buffer
   ld bc, name_buffer
   call str_Replace
@@ -238,7 +235,9 @@ PlayBallIntro: ;[_a] = player num or coach id
   ld hl, name_buffer
   ld de, str_buffer
   call str_Copy;coach name in str_buffer
-  ld hl, TeamChallengeText
+  STR_FAR_COPY TeamChallengeText, name_buffer
+  ld hl, name_buffer
+  ; ld hl, TeamChallengeText
   ld de, str_buffer
   call str_Append;coach name + "wants to play %s innings." in str_buffer
   ld hl, 3
@@ -274,7 +273,9 @@ PlayBallIntro: ;[_a] = player num or coach id
   ld [rSCX], a
   ld [rSCY], a
 
-  ld hl, PlayBallText
+  STR_FAR_COPY PlayBallText, str_buffer
+  ld hl, str_buffer
+  ; ld hl, PlayBallText
   call RevealTextAndWait
   HIDE_WIN
   ret
