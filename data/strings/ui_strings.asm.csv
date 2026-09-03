@@ -1,0 +1,19 @@
+Label,Comment,English-en,Spanish-es,French-fr,Italian-it,Portuguese-pt,German-de,Japanese-ja
+CoachStatText,User Stats,COACH,JEFE,ENTRAÎNEUR,ALLENATORE,TREINADOR,TRAINER,コーチ
+PennantsStatText,,PENNANTS,TROFEOS,FANIONS,GAGLIARDETTI,FLÂMULAS,WIMPEL,ペナント
+RoledexStatText,,ROLéDEX,ROLéDEX,ROLÉDEX,ROLéDEX,ROLéDEX,ROLODEX,ローレデックス
+TimeStatText,,TIME,TIEMPO,TEMPS,TEMPO,TEMPO,ZEIT,時間
+TextSpeedOptionTitle,Options Menu,TEXT SPEED,VELOCIDAD DE TEXTO,VITESSE DU TEXTE,VELOCITÀ TESTO,VELOCIDADE DO TEXTO,TEXTGESCHWINDIGKEIT,テキスト速度
+TextSpeedOptionSlowString,,SLOW,LENTO,LENT,LENTO,LENTO,LANGSAM,遅い
+TextSpeedOptionMediumString,,MEDIUM,MEDIO,MOYEN,MEDIO,MÉDIO,MITTEL,普通
+TextSpeedOptionFastString,,FAST,RÁPIDO,RAPIDE,VELOCE,RÁPIDO,SCHNELL,速い
+AnimationOptionTitle,,AT-BAT ANIMATIONS,ANIMACIONES AL BATE,ANIMATIONS AU BÂTON,ANIMAZIONI IN BATTUTA,ANIMAÇÕES DE REBATIDA,AT-BAT-ANIMATIONEN,打席アニメーション
+AnimationOptionOnString,,ON,ACTIVADO,ACTIVÉ,ATTIVATO,ATIVADO,EIN,オン
+AnimationOptionOffString,,OFF,DESACTIVADO,DÉSACTIVÉ,DISATTIVATO,DESLIGADO,AUS,オフ
+CoachingOptionTitle,,COACHING STYLE,ESTILO DE ENTRENAMIENTO,STYLE D'ENTRAÎNEMENT,STILE DI ALLENAMENTO,ESTILO DE TREINAMENTO,TRAINERSTIL,コーチングスタイル
+CoachingOptionShiftString,,SHIFT,CAMBIO,CHANGEMENT,CAMBIO,MUDANÇA,SHIFT,シフト
+CoachingOptionSetString,,SET,FIJO,FIXE,FISSO,FIXO,FEST,固定
+LowerCase,Text Entry,"abcdefghijklmnopqrstuvwxyz *():;[]#%-?!*+/.,↵","abcdefghijklmnopqrstuvwxyz *():;[]#%-?!*+/.,↵","abcdefghijklmnopqrstuvwxyz *():;[]#%-?!*+/.,↵","abcdefghijklmnopqrstuvwxyz *():;[]#%-?!*+/.,↵","abcdefghijklmnopqrstuvwxyz *():;[]#%-?!*+/.,↵","abcdefghijklmnopqrstuvwxyz *():;[]#%-?!*+/.,↵","abcdefghijklmnopqrstuvwxyz *():;[]#%-?!*+/.,↵"
+LowerCaseTitle,,lower case,minúsculas,minuscules,minuscole,minúsculas,kleinbuchstaben,小文字
+UpperCase,,"ABCDEFGHIJKLMNOPQRSTUVWXYZ *():;[]#%-?!*+/.,↵","ABCDEFGHIJKLMNOPQRSTUVWXYZ *():;[]#%-?!*+/.,↵","ABCDEFGHIJKLMNOPQRSTUVWXYZ *():;[]#%-?!*+/.,↵","ABCDEFGHIJKLMNOPQRSTUVWXYZ *():;[]#%-?!*+/.,↵","ABCDEFGHIJKLMNOPQRSTUVWXYZ *():;[]#%-?!*+/.,↵","ABCDEFGHIJKLMNOPQRSTUVWXYZ *():;[]#%-?!*+/.,↵","ABCDEFGHIJKLMNOPQRSTUVWXYZ *():;[]#%-?!*+/.,↵"
+UpperCaseTitle,,UPPER CASE,MAYÚSCULAS,MAJUSCULES,MAIUSCOLE,MAIÚSCULAS,GROSSBUCHSTABEN,大文字

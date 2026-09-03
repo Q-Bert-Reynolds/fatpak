@@ -238,6 +238,24 @@ DrawUIBox::;a=draw flags, bc = xy, de = wh
   call SetTiles
   ret
 
+MACRO DRAW_STRING ;x, y, text 
+  xor a
+  ld bc, 1
+  ld d, \1
+  ld e, \2
+  ld hl, \3
+  call DrawText
+ENDM
+
+MACRO DRAW_TEXT ;draw flags, max lines, x, y, text 
+  ld a, \1
+  ld bc, \2
+  ld d, \3
+  ld e, \4
+  ld hl, \5
+  call DrawText
+ENDM
+
 DrawText:: ;a = draw flags, hl = text, de = xy, bc = max lines
     push bc;max lines
     push af;draw flags
@@ -514,6 +532,7 @@ SECTION "UI", ROMX, BANK[UI_BANK]
 
 INCLUDE "img/ui_font.asm"
 INCLUDE "img/town_map.asm"
+INCLUDE "data/strings/ui_strings.asm"
 
 ;UILoadFontTiles
 ;UIDrawStateMap
@@ -524,31 +543,6 @@ INCLUDE "img/town_map.asm"
 ;UIShowListMenu - a = draw flags, bc = xy, de = wh, text = [str_buffer], title = [name_buff], returns choice in a
 ;UIShowNumberPicker - a = draw flags, bc = xy, de = wh, h = max number, returns number in a (0 = cancel)
 ;UIDrawSaveStats - a = draw flags, de = xy
-
-; User Stats
-CoachStatText:         DB "COACH"
-PennantsStatText:      DB "PENNANTS"
-RoledexStatText:       DB "ROLéDEX"
-TimeStatText:          DB "TIME"
-
-; Options
-TextSpeedOptionString: DB "TEXT SPEED        "
-                       DB "                  "
-                       DB " FAST  MEDIUM SLOW"
-
-AnimationOptionString: DB "AT-BAT ANIMATIONS "
-                       DB "                  "
-                       DB " ON       OFF     "
-
-CoachingOptionString:  DB "COACHING STYLE    "
-                       DB "                  "
-                       DB " SHIFT    SET     "
-
-; Text Entry
-LowerCase:             DB "abcdefghijklmnopqrstuvwxyz *():;[]#%-?!*+/.,↵", 0
-LowerCaseTitle:        DB "lower case", 0
-UpperCase:             DB "ABCDEFGHIJKLMNOPQRSTUVWXYZ *():;[]#%-?!*+/.,↵", 0
-UpperCaseTitle:        DB "UPPER CASE", 0
 
 UILoadFontTiles::
   ld hl, _UiFontTiles
@@ -968,6 +962,9 @@ UIShowOptions::
   ld [coaching_style], a
 .doneTestingStoreOptions
 
+  ;"TEXT SPEED        "
+  ;"                  "
+  ;" FAST  MEDIUM SLOW"
   xor a
   ld b, a
   ld c, a
@@ -977,17 +974,14 @@ UIShowOptions::
   ld e, a
   ld a, DRAW_FLAGS_BKG
   call DrawUIBox
-  ; set_bkg_tiles(1,1,18,3,
-  ;   "TEXT SPEED        "
-  ;   "                  "
-  ;   " FAST  MEDIUM SLOW"
-  ld d, 1
-  ld e, 1
-  ld h, 18
-  ld l, 3
-  ld bc, TextSpeedOptionString
-  call gbdk_SetBkgTiles
+  DRAW_STRING 1, 1, TextSpeedOptionTitle
+  DRAW_STRING 2, 3, TextSpeedOptionFastString
+  DRAW_STRING 8, 3, TextSpeedOptionMediumString
+  DRAW_STRING 15, 3, TextSpeedOptionSlowString
 
+  ;"AT-BAT ANIMATIONS "
+  ;"                  "
+  ;" ON       OFF     "
   xor a
   ld b, a
   ld a, 5
@@ -997,17 +991,13 @@ UIShowOptions::
   ld d, a
   ld a, DRAW_FLAGS_BKG
   call DrawUIBox
-  ; set_bkg_tiles(1,6,18,3,
-  ;   "AT-BAT ANIMATIONS "
-  ;   "                  "
-  ;   " ON       OFF     "
-  ld d, 1
-  ld e, 6
-  ld h, 18
-  ld l, 3
-  ld bc, AnimationOptionString
-  call gbdk_SetBkgTiles
-
+  DRAW_STRING 1, 6, AnimationOptionTitle
+  DRAW_STRING 2, 8, AnimationOptionOnString
+  DRAW_STRING 11, 8, AnimationOptionOffString
+  
+  ;"COACHING STYLE    "
+  ;"                  "
+  ;" SHIFT    SET     "
   xor a
   ld b, a
   ld a, 10
@@ -1018,25 +1008,11 @@ UIShowOptions::
   ld e, a
   ld a, DRAW_FLAGS_BKG
   call DrawUIBox
-  ; set_bkg_tiles(1,11,18,3,
-  ;   "COACHING STYLE    "
-  ;   "                  "
-  ;   " SHIFT    =     "
-  ld d, 1
-  ld e, 11
-  ld h, 18
-  ld l, 3
-  ld bc, CoachingOptionString
-  call gbdk_SetBkgTiles
+  DRAW_STRING 1, 11, CoachingOptionTitle
+  DRAW_STRING 2, 13, CoachingOptionShiftString
+  DRAW_STRING 11, 13, CoachingOptionSetString
 
-  ; set_bkg_tiles(2,16,6,1,
-  ;   "CANCEL"
-  ld d, 2
-  ld e, 16
-  ld h, 6
-  ld l, 1
-  ld bc, CancelString
-  call gbdk_SetBkgTiles
+  DRAW_STRING 2, 16, CancelString
 
   DISPLAY_ON
 

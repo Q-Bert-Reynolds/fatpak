@@ -296,32 +296,54 @@ UpdateRunners:
 
 InitRunners:
   ;TODO: set palettebased on player data
-  ; ;batter
-  ; ld a, HOME_PLATE_X+8;TODO: place based on handedness
-  ; ld [SimulationRunners0.pos_x], a
-  ; ld a, HOME_PLATE_Y+16
-  ; ld [SimulationRunners0.pos_y], a
 
-  ; ;runner on first
-  ; ld a, FIRST_BASE_X+8
-  ; ld [SimulationRunners1.pos_x], a
-  ; ld a, FIRST_BASE_Y
-  ; ld [SimulationRunners1.pos_y], a
+  ;batter
+  ld a, HOME_PLATE_X+8;TODO: place based on handedness
+  ld [SimulationRunners0.pos_x], a
+  ld a, HOME_PLATE_Y+16
+  ld [SimulationRunners0.pos_y], a
 
-  ; ;runner on second
-  ; ld a, SECOND_BASE_X-8
-  ; ld [SimulationRunners2.pos_x], a
-  ; ld a, SECOND_BASE_Y
-  ; ld [SimulationRunners2.pos_y], a
+  ;runner on first
+  ld bc, 0
+  ld a, [runners_on_base]
+  and a, $0F
+  jr z, .setFirstBaserRunner
+  ld b, FIRST_BASE_X+8
+  ld c, FIRST_BASE_Y
+.setFirstBaserRunner
+  ld a, b
+  ld [SimulationRunners1.pos_x], a
+  ld a, c
+  ld [SimulationRunners1.pos_y], a
 
-  ; ;runner on third
-  ; ld a, THIRD_BASE_X-8
-  ; ld [SimulationRunners3.pos_x], a
-  ; ld a, THIRD_BASE_Y+16
-  ; ld [SimulationRunners3.pos_y], a
+  ;runner on second
+  ld bc, 0
+  ld a, [runners_on_base]
+  swap a
+  and a, $0F
+  jr z, .setSecondBaserRunner
+  ld b, SECOND_BASE_X-8
+  ld c, SECOND_BASE_Y
+.setSecondBaserRunner
+  ld a, b
+  ld [SimulationRunners2.pos_x], a
+  ld a, c
+  ld [SimulationRunners2.pos_y], a
 
-  ; call DrawRunners
+  ;runner on third
+  ld bc, 0
+  ld a, [runners_on_base+1]
+  and a, $0F
+  jr z, .setThirdBaserRunner
+  ld b, THIRD_BASE_X-8
+  ld c, THIRD_BASE_Y+16
+.setThirdBaserRunner
+  ld a, b
+  ld [SimulationRunners3.pos_x], a
+  ld a, c
+  ld [SimulationRunners3.pos_y], a
 
+  call DrawRunners
   ret
 
 DrawRunners:

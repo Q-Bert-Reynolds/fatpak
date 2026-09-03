@@ -432,28 +432,28 @@ DrawPlayBallUI::
   call DrawCountOutsInning
 
   xor a
-  ld bc, 0
+  ld bc, 1
   ld d, 9
   ld e, 14
   ld hl, PlayMenuPlayString
   call DrawText
 
   xor a
-  ld bc, 0
+  ld bc, 1
   ld d, 15
   ld e, 14
   ld hl, PlayMenuTeamString
   call DrawText
 
   xor a
-  ld bc, 0
+  ld bc, 1
   ld d, 9
   ld e, 16
   ld hl, PlayMenuItemString
   call DrawText
 
   xor a
-  ld bc, 0
+  ld bc, 1
   ld d, 15
   ld e, 16
   ld hl, PlayMenuRunString
