@@ -280,6 +280,16 @@ ClearScreen:: ;a = tile, display should be off
   ld a, 143
   ld [rWY], a
   HIDE_ALL_SPRITES
+.checkGBC
+  ld a, [sys_info]
+  and a, SYS_INFO_GBC
+  ret z
+.clearColors
+  ld a, 1
+  ld [rVBK], a
+  xor a
+  call ClearTiles
+  ld [rVBK], a
   ret 
 
 SetTiles::;a = draw flags, hl=wh, de=xy, bc=firstTile

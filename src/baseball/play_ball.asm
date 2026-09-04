@@ -1108,6 +1108,29 @@ Transition:
     .skip
       call gbdk_SetWinTiles
 
+    .checkGBC
+      ld a, [sys_info]
+      and a, SYS_INFO_GBC
+      jr z, .wait
+
+      ld a, [rVBK]
+      bit 0, a
+      jr nz, .resetVRAMBank;if rVBK == 1, we've already set colors, so we're done
+
+      pop de
+      xor a
+      ld [tile_buffer+1], a
+      inc a
+      ld [rVBK], a
+      jp .columnLoop; otherwise, set rVBK to 1 and copy again
+
+    .resetVRAMBank
+      xor a
+      ld [rVBK], a
+      ld a, "◆"
+      ld [tile_buffer+1], a
+
+    .wait
       ld de, 10
       call gbdk_Delay
       pop de

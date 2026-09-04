@@ -503,7 +503,7 @@ CheckRandomEncounter:;TODO get available players and age range from grass in exp
   cp a, 151
   jr c, .setPlayerNum
   sub a, 151;essentially a %= 151
-  .setPlayerNum
+.setPlayerNum
   inc a;numbers should be 1-151, not 0-150
 
   ld b, a;player number in b
