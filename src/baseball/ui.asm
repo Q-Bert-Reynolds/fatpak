@@ -666,13 +666,32 @@ ShowMoveInfo::;[_d] = move mask
   ret
 
 SelectMoveMenuItem:: ;returns selection in a
+.copyTiles
   ld d, 0
   ld e, 8
   ld h, 20
   ld l, 10
   ld bc, bkg_buffer
-  call gbdk_GetBkgTiles;get_bkg_tiles(0,8,20,10,bkg_buff);
+  call gbdk_GetBkgTiles
 
+.checkGBC
+  ld a, [sys_info]
+  and a, SYS_INFO_GBC
+  jr z, .drawUI
+
+.copyColors
+  ld a, 1
+  ld [rVBK], a
+  ld d, 0
+  ld e, 8
+  ld h, 20
+  ld l, 10
+  ld bc, bkg_buffer+200
+  call gbdk_GetBkgTiles
+  xor a
+  ld [rVBK], a
+
+.drawUI
   ld b, 5
   ld c, 12
   ld d, 15
@@ -770,7 +789,7 @@ SelectMoveMenuItem:: ;returns selection in a
     jp z, .checkButtonB
     ld a, [move_choice]
     push af
-    jr .exit
+    jr .restoreTiles
 
 .checkButtonB;  else if (k & J_B) break;
     ld a, [button_state]
@@ -779,15 +798,32 @@ SelectMoveMenuItem:: ;returns selection in a
     ld a, -1
     push af
 
-.exit
-  call gbdk_WaitVBL
+.restoreTiles
   ld d, 0
   ld e, 8
   ld h, 20
   ld l, 10
   ld bc, bkg_buffer
-  call gbdk_SetBkgTiles;set_bkg_tiles(0,8,20,10,bkg_buff);
+  call gbdk_SetBkgTiles
 
+.checkGBCAgain
+  ld a, [sys_info]
+  and a, SYS_INFO_GBC
+  jr z, .exit
+
+.restoreColors
+  ld a, 1
+  ld [rVBK], a
+  ld d, 0
+  ld e, 8
+  ld h, 20
+  ld l, 10
+  ld bc, bkg_buffer+200
+  call gbdk_SetBkgTiles
+  xor a
+  ld [rVBK], a
+
+.exit
   pop af
   inc a
   ret
