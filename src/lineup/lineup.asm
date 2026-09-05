@@ -19,29 +19,8 @@ INCLUDE "src/lineup/stats.asm"
 
 INCLUDE "img/health_bar.asm"
 INCLUDE "img/lineup_sprites.asm"
+INCLUDE "data/strings/lineup_strings.asm"
 
-UnableText:                     DB "NOT "
-AbleText:                       DB "ABLE";must be defined directly after UnableText
-NotCompatibleWithText:          DB " is not\ncompatible with\n%s.",0
-TheyCantLearnText:              DB "They can't learn\n%s.",0
-TryingToLearnText:              DB " is\ntrying to learn\n%s!",0
-ButCantLearnMoreText:           DB "But, %s\ncan't learn more\nthan 4 moves.",0
-ForgetAMoveText:                DB "Forget an older\nmove to make room\nfor %s?",0
-AbandonLearningText:            DB "Abandon learning\n%s?",0
-DidNotLearnText:                DB "\ndid not learn\n%s!",0
-WhichMoveShouldBeForgottenText: DB "Which move should\nbe forgotten?",0
-OneTwoAndPoofText:              DB "1, 2 and... Poof!"
-PlayerForgotMoveText:           DB " forgot\n%s!",0
-AndElipsisText:                 DB "And...",0
-PlayerLearnedMoveText:          DB " learned\n%s!",0
-ItWontHaveAnyEffectText:        DB "It won't have any\neffect.",0
-StatusClearedText:              DB "Status cleared.",0
-PlayerUsedItemText:             DB " used\n%s.",0
-PlayerRecoveredByNumberText:    DB "\nrecovered by %s!",0
-WhatPlayerIsEvolvingText:       DB "What? %s\nis changing!",0
-PlayerEvolvedIntoText:          DB " is\nnow %s!",0
-FromWorldMenuText:              DB "STATS\nBAT ORDER\nPOSITION\nCANCEL",0
-FromGameMenuText:               DB "STATS\nPOSITION\nCANCEL",0
 
 SGBLineupPalSet: PAL_SET PALETTE_UI, PALETTE_SEPIA, PALETTE_WARNING, PALETTE_GOOD
 SGBLineupAttrBlk:
@@ -409,21 +388,24 @@ DrawLineupPlayer: ;hl = player, b = item id, _j is order on screen
   call CheckCanLearnMove
   jr z, .unable
 .able
-  ld bc, AbleText
-  ld h, 4
-  ld d, 16
+  ld hl, AbleText
   jr .drawText
 .unable
-  ld bc, UnableText
-  ld h, 8
-  ld d, 12
+  ld hl, UnableText
 .drawText
+  push hl;text
+  call str_Length
+  ld a, 20;width of screen
+  sub a, e;length
+  ld d, a;draw on right edge of screen
+  pop hl;text
   ld a, [_j]
   add a, a
   inc a
   ld e, a
-  ld l, 1
-  call gbdk_SetBkgTiles
+  xor a
+  ld bc, 1
+  call DrawText
   ret 
 
 .showStat; TODO: show batting average, ERA, or fielding percentage
