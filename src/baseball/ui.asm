@@ -666,30 +666,7 @@ ShowMoveInfo::;[_d] = move mask
   ret
 
 SelectMoveMenuItem:: ;returns selection in a
-.copyTiles
-  ld d, 0
-  ld e, 8
-  ld h, 20
-  ld l, 10
-  ld bc, bkg_buffer
-  call gbdk_GetBkgTiles
-
-.checkGBC
-  ld a, [sys_info]
-  and a, SYS_INFO_GBC
-  jr z, .drawUI
-
-.copyColors
-  ld a, 1
-  ld [rVBK], a
-  ld d, 0
-  ld e, 8
-  ld h, 20
-  ld l, 10
-  ld bc, bkg_buffer+200
-  call gbdk_GetBkgTiles
-  xor a
-  ld [rVBK], a
+  COPY_BKG_TO_BUFFER 0, 8, 20, 10
 
 .drawUI
   ld b, 5
@@ -799,31 +776,7 @@ SelectMoveMenuItem:: ;returns selection in a
     push af
 
 .restoreTiles
-  ld d, 0
-  ld e, 8
-  ld h, 20
-  ld l, 10
-  ld bc, bkg_buffer
-  call gbdk_SetBkgTiles
-
-.checkGBCAgain
-  ld a, [sys_info]
-  and a, SYS_INFO_GBC
-  jr z, .exit
-
-.restoreColors
-  ld a, 1
-  ld [rVBK], a
-  ld d, 0
-  ld e, 8
-  ld h, 20
-  ld l, 10
-  ld bc, bkg_buffer+200
-  call gbdk_SetBkgTiles
-  xor a
-  ld [rVBK], a
-
-.exit
+  COPY_BUFFER_TO_BKG 0, 8, 20, 10
   pop af
   inc a
   ret

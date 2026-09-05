@@ -14,6 +14,11 @@
 ;   CLEAR_SCREEN                          tile8
 ;   CLEAR_BKG_AREA                        x8, y8, w8, h8, tile8
 ;   CLEAR_WIN_AREA                        x8, y8, w8, h8, tile8
+;   COPY_BKG_TO_BUFFER                    x8, y8, w8, h8
+;   COPY_BUFFER_TO_BKG                    x8, y8, w8, h8
+;   COPY_WIN_TO_BUFFER                    x8, y8, w8, h8
+;   COPY_BUFFER_TO_WIN                    x8, y8, w8, h8
+;   COPY_SCREEN_TO_FROM_BUFFER            x8, y8, w8, h8, _buffer, gbdk_Func
 ;   UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS   JumpAddress, buttons8
 ;   JUMP_TO_IF_BUTTONS                    JumpAddress, buttons8
 ;   EXITABLE_DELAY                        JumpAddress, buttons8, frames8
@@ -174,6 +179,47 @@ MACRO CLEAR_WIN_AREA ;x, y, w, h, tile
   ld l, \4;h
   ld bc, tile_buffer
   call gbdk_SetWinTiles
+ENDM
+
+MACRO COPY_BKG_TO_BUFFER ;x, y, w, h
+  COPY_SCREEN_TO_FROM_BUFFER \1, \2, \3, \4, bkg_buffer, gbdk_GetBkgTiles
+ENDM
+
+MACRO COPY_BUFFER_TO_BKG ;x, y, w, h
+  COPY_SCREEN_TO_FROM_BUFFER \1, \2, \3, \4, bkg_buffer, gbdk_SetBkgTiles
+ENDM
+
+MACRO COPY_WIN_TO_BUFFER ;x, y, w, h
+  COPY_SCREEN_TO_FROM_BUFFER \1, \2, \3, \4, win_buffer, gbdk_GetWinTiles
+ENDM
+
+MACRO COPY_BUFFER_TO_WIN ;x, y, w, h
+  COPY_SCREEN_TO_FROM_BUFFER \1, \2, \3, \4, win_buffer, gbdk_SetWinTiles
+ENDM
+
+MACRO COPY_SCREEN_TO_FROM_BUFFER ;x, y, w, h, buffer, function
+  ld d, \1;x
+  ld e, \2;y
+  ld h, \3;w
+  ld l, \4;h
+  ld bc, \5;buffer
+  call \6
+
+  ld a, [sys_info]
+  and a, SYS_INFO_GBC
+  jr z, .skip\@
+
+  ld a, 1
+  ld [rVBK], a
+  ld d, \1;x
+  ld e, \2;y
+  ld h, \3;w
+  ld l, \4;h
+  ld bc, \3*\4+\5
+  call \6
+  xor a
+  ld [rVBK], a
+.skip\@
 ENDM
 
 MACRO UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS ; \1=address, \2=buttons

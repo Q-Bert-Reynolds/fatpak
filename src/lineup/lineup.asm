@@ -689,13 +689,8 @@ ShowPlayerMenu:
   ld a, [_j];selected player
   ld c, a
   push bc
+  COPY_BKG_TO_BUFFER 0, 0, 20, 18
 
-  ld de, 0
-  ld h, 20
-  ld l, 18
-  ld bc, bkg_buffer
-  call gbdk_GetBkgTiles
-  
 .showEmptyArrow
   ld a, "▷"
   ld hl, name_buffer
@@ -788,13 +783,8 @@ ShowPlayerMenu:
   ld a, [_j]
   ld c, a
   push bc
-.exit
-  ld de, 0
-  ld h, 20
-  ld l, 18
-  ld bc, bkg_buffer
-  call gbdk_SetBkgTiles
-
+.exit  
+  COPY_BUFFER_TO_BKG 0, 0, 20, 18
   ld hl, SGBLineupPalSet               
   call SetPalettesIndirect
   call GetHPBarColors
