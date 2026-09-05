@@ -149,6 +149,7 @@ Map System
 
 Items
 
+- list shrinks after selecting special item
 - change select arrow to empty after selecting item
 - hide play/item/team/run when item menu selected
 - use protein, carbos, etc.

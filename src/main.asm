@@ -134,6 +134,8 @@ Main::
   ld [rAUDVOL], a
   
 .setupDrawing
+  xor a
+  call ClearScreen
   CLEAR_SCREEN 0
   SET_DEFAULT_PALETTE
 

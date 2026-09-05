@@ -14,6 +14,7 @@ INCLUDE "maps/Houses.gbmap"
 INCLUDE "maps/Businesses.gbmap"
 
 SECTION "World Code", ROMX, BANK[WORLD_BANK]
+INCLUDE "data/strings/world_strings.asm"
 INCLUDE "src/world/computer.asm"
 INCLUDE "src/world/scripts.asm"
 INCLUDE "img/maps/world_sprites.asm"

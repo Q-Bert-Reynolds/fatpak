@@ -1,4 +1,3 @@
-HouseText: DB "%s'S\nHOUSE",0
 YourHouseSign:
   ld bc, user_name
   jr ShowHouseSignText
