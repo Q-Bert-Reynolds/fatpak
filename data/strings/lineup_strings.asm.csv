@@ -1,5 +1,5 @@
 Label,Comment,English-en,Spanish-es,French-fr,Italian-it,Portuguese-pt,German-de,Japanese-ja
-UnableText,,NOT ABLE,NO PUEDE,INAPTE,NON PUÒ,INCAPAZ,NICHT ERLERNBAR,おぼえられない
+UnableText,moves,NOT ABLE,NO PUEDE,INAPTE,NON PUÒ,INCAPAZ,NICHT ERLERNBAR,おぼえられない
 AbleText,,ABLE,PUEDE,APTE,PUÒ,CAPAZ,ERLERNBAR,おぼえられる
 NotCompatibleWithText,,is not\ncompatible with\n%s.,no es\ncompatible con\n%s.,n'est pas\ncompatible avec\n%s.,non è\ncompatibile con\n%s.,não é\ncompatível com\n%s.,ist nicht\nkompatibel mit\n%s.,%sとは\nつかえない！
 TheyCantLearnText,,They can't learn\n%s.,No puede aprender\n%s.,Impossible d'apprendre\n%s.,Non può imparare\n%s.,Não pode aprender\n%s.,Kann %s\nnicht erlernen.,%sは\nおぼえられない！
@@ -13,11 +13,18 @@ OneTwoAndPoofText,,"1, 2 and... Poof!","1, 2 y... ¡puf!","1, 2 et... Pouf !","1
 PlayerForgotMoveText,,forgot\n%s!,¡olvidó\n%s!,a oublié\n%s !,HA DIMENTICATO\n%s!,esqueceu\n%s!,hat\n%s vergessen!,%sを\nわすれた！
 AndElipsisText,,And...,Y...,Et...,E...,E...,Und...,そして…
 PlayerLearnedMoveText,,learned\n%s!,¡ha aprendido\n%s!,a appris\n%s!,ha imparato\n%s!,aprendeu\n%s!,hat\n%s erlernt!,おぼえた！
-ItWontHaveAnyEffectText,,It won't have any\neffect.,No tendrá ningún\nefecto.,Cela n'aura aucun\neffet.,Non avrà alcun\neffetto.,Não terá nenhum\nefeito.,Es hat keine\nWirkung.,こうかが ない！
+ItWontHaveAnyEffectText,items,It won't have any\neffect.,No tendrá ningún\nefecto.,Cela n'aura aucun\neffet.,Non avrà alcun\neffetto.,Não terá nenhum\nefeito.,Es hat keine\nWirkung.,こうかが ない！
 StatusClearedText,,Status cleared.,Estado curado.,Statut rétabli.,Stato guarito.,Status restaurado.,Status geheilt.,じょうたいが もとに もどった。
 PlayerUsedItemText,,used\n%s.,usó\n%s.,a utilisé\n%s.,ha usato\n%s.,usou\n%s.,setzte\n%s ein.,%sを\nつかった！
 PlayerRecoveredByNumberText,,\nrecovered by %s!,\n¡recuperó %s!,\na récupéré %s !,\nha recuperato %s PS!,\nrecuperou %s!,\num %s erholt!,\n%s かいふくした！
-WhatPlayerIsEvolvingText,,What? %s\nis changing!,¿Qué? ¡%s\nestá cambiando!,Quoi ? %s\névolue !,Cosa? %s\nsta cambiando!,O quê? %s\nestá mudando!,Hä? %s\nentwickelt sich!,おや？ %sの\nようすが…！
+WhatPlayerIsEvolvingText,evolution,What? %s\nis changing!,¿Qué? ¡%s\nestá cambiando!,Quoi ? %s\névolue !,Cosa? %s\nsta cambiando!,O quê? %s\nestá mudando!,Hä? %s\nentwickelt sich!,おや？ %sの\nようすが…！
 PlayerEvolvedIntoText,,is\nnow %s!,¡ahora es\n%s!,est\ndevenu %s !,è\nora %s!,agora é\n%s!,ist\njetzt %s!,%s に\nしんかした！
-FromWorldMenuText,,STATS\nBAT ORDER\nPOSITION\nCANCEL,DATOS\nORDEN\nCAMBIO\nCANCELAR,STATS\nORDRE COMBAT\nPOSITION\nANNULER,INFO\nORDINE\nSPOSTA\nESCI,DADOS\nORDEM\nPOSIÇÃO\nCANCELAR,STATUS\nREIHENFOLGE\nPOSITION\nZURÜCK,つよさ\nじゅんばん\nばしょ\nやめる
+FromWorldMenuText,menus,STATS\nBAT ORDER\nPOSITION\nCANCEL,DATOS\nORDEN\nCAMBIO\nCANCELAR,STATS\nORDRE COMBAT\nPOSITION\nANNULER,INFO\nORDINE\nSPOSTA\nESCI,DADOS\nORDEM\nPOSIÇÃO\nCANCELAR,STATUS\nREIHENFOLGE\nPOSITION\nZURÜCK,つよさ\nじゅんばん\nばしょ\nやめる
 FromGameMenuText,,STATS\nPOSITION\nCANCEL,DATOS\nPOSICIÓN\nCANCELAR,STATS\nPOSITION\nANNULER,STATS\nPOSIZIONE\nANNULLA,STATUS\nPOSIÇÃO\nCANCELAR,STATUS\nPOSITION\nZURÜCK,つよさをみる\nいれかえ\nやめる
+BatStatName,stats,BAT,BATEO,FRAPPE,BATT,REBATE,SCHLAG,打力
+FieldStatName,,FIELD,FILDEO,TERRAIN,DIFESA,CAMPO,FELD,守備
+SpeedStatName,,SPEED,VELO,VITESSE,VELO,VELO,TEMPO,スピード
+ThrowStatName,,THROW,LANZA,LANCER,LANCIO,ARREMESSO,WURF,かた
+StatScreenStatusText,,STATUS/,ESTADO/,STATUT/,STATO/,STATUS/,STATUS/,じょうたい/
+StatScreenTypeText,,TYPE,TIPO,TYPE,TIPO,TIPO,TYP,タイプ
+StatScreenPayText,,PAY/,PAGA/,PAYE/,PAGA/,PAGA/,GEHALT/,ねんほう/

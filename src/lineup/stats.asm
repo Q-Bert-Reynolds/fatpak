@@ -105,22 +105,6 @@ WaitForABStart:
   WAITPAD_UP
   ret
 
-StatNames:
-  DB "BAT  "
-  DB "     "
-  DB "FIELD"
-  DB "     "
-  DB "SPEED"
-  DB "     "
-  DB "THROW"
-
-StatScreenStatusText:
-  DB "STATUS/", 0
-StatScreenTypeText:
-  DB "TYPE", 0
-StatScreenPayText:
-  DB "PAY/", 0
-
 DrawPageOne:
   push hl;player
   call GetPlayerNumber
@@ -189,14 +173,14 @@ DrawPageOne:
   ld a, DRAW_FLAGS_BKG
   call DrawUIBox
 
+.drawBattingStat
+  xor a
+  ld bc, 1
   ld d, 1
   ld e, 9
-  ld h, 5
-  ld l, 7
-  ld bc, StatNames
-  call gbdk_SetBkgTiles
+  ld hl, BatStatName
+  call DrawText
 
-.drawBattingStat
   pop hl;player
   push hl
   call GetPlayerBat
@@ -214,6 +198,13 @@ DrawPageOne:
   call gbdk_SetBkgTiles
 
 .drawFieldingStat
+  xor a
+  ld bc, 1
+  ld d, 1
+  ld e, 11
+  ld hl, FieldStatName
+  call DrawText
+
   pop hl;player
   push hl
   call GetPlayerField
@@ -231,6 +222,13 @@ DrawPageOne:
   call gbdk_SetBkgTiles
 
 .drawSpeedStat
+  xor a
+  ld bc, 1
+  ld d, 1
+  ld e, 13
+  ld hl, SpeedStatName
+  call DrawText
+
   pop hl;player
   push hl
   call GetPlayerSpeed
@@ -248,6 +246,13 @@ DrawPageOne:
   call gbdk_SetBkgTiles
 
 .drawThrowingStat
+  xor a
+  ld bc, 1
+  ld d, 1
+  ld e, 15
+  ld hl, ThrowStatName
+  call DrawText
+
   pop hl;player
   push hl
   call GetPlayerThrow
