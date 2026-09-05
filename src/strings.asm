@@ -273,7 +273,7 @@ _str_Replace::
 ; input:
 ;   hl - src string
 ;   de - dest string
-;   bc - replace data (can be same as hl)
+;   bc - replace data
 ;
 ;***************************************************************************
 str_Replace::

@@ -36,7 +36,7 @@ INCLUDE "data/player_strings.asm"
 ; LoadUserPlayerBkgTiles
 ; LoadOpposingPlayerBkgTiles
 ; SetUserPlayerBkgTiles - a = frame
-; SetOpposingPlayerBkgTiles -  - a = frame
+; SetOpposingPlayerBkgTiles - a = frame
 
 
 SECTION "Roledex", ROM0

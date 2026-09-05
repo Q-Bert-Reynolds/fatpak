@@ -2,18 +2,7 @@ INCLUDE "src/beisbol.inc"
 
 SECTION "Roledex UI", ROMX, BANK[ROLEDEX_BANK]
 
-RoledexHeadingText:
-  DB "REPORTS"
-
-RoledexSeenSignText:
-  DB "SEEN    "
-  DB "    SIGN"
-
-RoledexMenuText:
-  DB "DATA    "
-  DB "CRY     "
-  DB "AREA    "
-  DB "QUIT"
+INCLUDE "data/strings/roledex_ui_strings.asm"
 
 SGBRoledexPalSet: PAL_SET PALETTE_UI, PALETTE_DARK, PALETTE_GREY, PALETTE_GREY
 SGBRoledexPlayerAttrBlk:
@@ -35,18 +24,18 @@ DrawRoledexBaseUI:
   call SetColorBlocks
 
 .drawHeading
+  ld a, DRAW_FLAGS_BKG
+  ld bc, 1
   ld de, $0101
-  ld hl, $0701
-  ld bc, RoledexHeadingText
-  ld a, DRAW_FLAGS_BKG
-  call SetTiles
+  ld hl, RoledexHeadingText
+  call DrawText
 
-.drawSeenSigned
-  ld de, $1002
-  ld hl, $0404
-  ld bc, RoledexSeenSignText
+.drawSeen
   ld a, DRAW_FLAGS_BKG
-  call SetTiles
+  ld bc, 1
+  ld de, $1002
+  ld hl, RoledexSeenText
+  call DrawText
 
   call GetSeenSignedCounts
   push de;seen,signed
@@ -66,6 +55,13 @@ DrawRoledexBaseUI:
   ld a, DRAW_FLAGS_BKG
   call SetTiles
 
+.drawSigned
+  ld a, DRAW_FLAGS_BKG
+  ld bc, 1
+  ld de, $1005
+  ld hl, RoledexSignText
+  call DrawText
+
   pop hl;seen,signed
   ld h, 0
   ld de, name_buffer
@@ -82,11 +78,29 @@ DrawRoledexBaseUI:
   call SetTiles
 
 .drawMenu
-  ld de, $100A
-  ld hl, $0407
-  ld bc, RoledexMenuText
   ld a, DRAW_FLAGS_BKG
-  call SetTiles
+  ld bc, 1
+  ld de, $100A
+  ld hl, RoledexMenuDataText
+  call DrawText
+
+  ld a, DRAW_FLAGS_BKG
+  ld bc, 1
+  ld de, $100C
+  ld hl, RoledexMenuCryText
+  call DrawText
+
+  ld a, DRAW_FLAGS_BKG
+  ld bc, 1
+  ld de, $100E
+  ld hl, RoledexMenuAreaText
+  call DrawText
+
+  ld a, DRAW_FLAGS_BKG
+  ld bc, 1
+  ld de, $1010
+  ld hl, RoledexMenuQuitText
+  call DrawText
 
   ld hl, tile_buffer
   ld a, "│"
@@ -233,9 +247,6 @@ ShowRoledexPage:
     jr nz, .loop
   ret
 
-HomeTownText:
-  DB "'s FIELDS",0
-
 ShowRoledexPlayerMap:; a = player number
   push af
   call DrawStateMap
@@ -243,13 +254,10 @@ ShowRoledexPlayerMap:; a = player number
   pop af
   call GetPlayerName
 
-  ld hl, name_buffer
-  ld de, str_buffer
-  call str_Copy
-
   ld hl, HomeTownText
-  ld de, str_buffer
-  call str_Append
+  ld de, str_buffer  
+  ld bc, name_buffer
+  call str_Replace
 
   ld hl, str_buffer
   call str_Length
@@ -580,9 +588,6 @@ ShowRoledexPlayerData:;a player num
 
   ret
 
-NoCryingText:
-  DB "There's no crying\nin baseball.",0
-
 ShowRoledexMenu:;returns exit code in a
   ld a, [_j];y
   push af;_j
@@ -662,7 +667,7 @@ ShowRoledexMenu:;returns exit code in a
 .checkShowCry
       cp 1
       jr nz, .checkShowMap
-      ld hl, NoCryingText
+      ld hl, CrySelectedText
       ld a, [_j]
       push af
       call RevealTextAndWait

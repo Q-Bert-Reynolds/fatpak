@@ -218,7 +218,6 @@ PlayBallIntro: ;[_a] = player num or coach id
   call GetPlayerName
   STR_FAR_COPY UnsignedPlayerAppearedText, tile_buffer
   ld hl, tile_buffer
-  ; ld hl, UnsignedPlayerAppearedText
   ld de, str_buffer
   ld bc, name_buffer
   call str_Replace
