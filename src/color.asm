@@ -315,51 +315,62 @@ PaletteStartLights::
 DEF PALETTE_START_LIGHTS EQU (PaletteStartLights-DefaultPalettes)/8
 
 ;Players
-PaletteBubbi::
+PaletteGreen::
   COLOR_ALMOST_WHITE
   COLOR_LIGHT_GREEN     
   COLOR_BROWN
   COLOR_BLACK
-DEF PALETTE_BUBBI EQU (PaletteBubbi-DefaultPalettes)/8
+DEF PALETTE_BUBBI EQU (PaletteGreen-DefaultPalettes)/8
 
-PaletteGinger::
+PaletteRed::
   COLOR_ALMOST_WHITE
   COLOR_PEACH
   COLOR_SALMON
   COLOR_BLACK 
-DEF PALETTE_GINGER EQU (PaletteGinger-DefaultPalettes)/8
+DEF PALETTE_GINGER EQU (PaletteRed-DefaultPalettes)/8
 
-PaletteSquirt::
+PaletteCyan::
   COLOR_ALMOST_WHITE
   COLOR_TAN
   COLOR_BLUE
   COLOR_DARK_BLUE
-DEF PALETTE_SQUIRT EQU (PaletteSquirt-DefaultPalettes)/8
+DEF PALETTE_SQUIRT EQU (PaletteCyan-DefaultPalettes)/8
 
-PaletteMacobb::
+PalettePurple::
   COLOR_ALMOST_WHITE
   COLOR_YELLOW
   COLOR_PURPLE_GREY
   COLOR_DEEP_PURPLE
-DEF PALETTE_MACOBB EQU (PaletteMacobb-DefaultPalettes)/8
+DEF PALETTE_MACOBB EQU (PalettePurple-DefaultPalettes)/8
 
-PalettePuff::
+PalettePink::
   COLOR_ALMOST_WHITE
   COLOR_PINK
   COLOR_RED
   COLOR_BLACK
-DEF PALETTE_PUFF EQU (PalettePuff-DefaultPalettes)/8
+DEF PALETTE_PUFF EQU (PalettePink-DefaultPalettes)/8
 
-PaletteMuchacho::
+PaletteSlate::
   COLOR_ALMOST_WHITE
   COLOR_PINK
   COLOR_PURPLE_GREY
   COLOR_BLACK
-DEF PALETTE_MUCHACHO EQU (PaletteMuchacho-DefaultPalettes)/8
+DEF PALETTE_MUCHACHO EQU (PaletteSlate-DefaultPalettes)/8
 
-PaletteElectric::
+PaletteYellow::
   COLOR_ALMOST_WHITE
   COLOR_YELLOW
   COLOR_TAN
   COLOR_DEEP_PURPLE
-DEF PALETTE_ELECTRIC EQU (PaletteElectric-DefaultPalettes)/8
+
+PaletteBlue::
+  COLOR_ALMOST_WHITE
+  COLOR_PEACH
+  COLOR_BLUE
+  COLOR_DEEP_PURPLE
+
+PaletteWarm::
+  COLOR_ALMOST_WHITE
+  COLOR_YELLOW
+  COLOR_PURPLE_GREY
+  COLOR_BLACK

@@ -25,6 +25,8 @@ C_SOURCES = $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/**/*.c) $(wildcard 
 
 all: clean assets assemble run
 
+code: assemble run
+
 $(C_SOURCES): 
 	@mkdir -p $(BUILD_DIR)
 	sdcc $@ -msm83 --asm=rgbds --opt-code-size --no-peep --peep-file peephole.def $(DEFINES) --disable-warning 218 -S -o $(patsubst %.c, $(dir $@)_%.asm, $(notdir $@))

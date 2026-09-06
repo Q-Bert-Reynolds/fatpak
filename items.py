@@ -31,9 +31,9 @@ def generate_item_data(items):
     item_data = ""
     for i in range(len(items)):
       item = items[i]
-      var_name = item["Name"].replace(" ","").replace(".","").replace("-","").replace("é","e") + "Item"
+      var_name = item["Name"].replace(" ","").replace(".","").replace("-","").replace("'","").replace("é","e") + "Item"
       var_names += "DW " + var_name + "\n"
-      constant = item["Name"].replace("é","e").upper().replace(" ","_").replace(".","").replace("-","_") + "_ITEM"
+      constant = item["Name"].replace("é","e").upper().replace(" ","_").replace(".","").replace("-","_").replace("'","") + "_ITEM"
       constants += "DEF " + constant + " EQU " + str(i+1) + "\n"
       item_data += "\n" + var_name + ":;" + item["Description"] + "\n"
       item_data += "DB " + constant + "\n"

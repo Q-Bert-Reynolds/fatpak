@@ -848,12 +848,13 @@ MakeOffer:;returns z if offer cancelled, result of offer in a (1 = accepted), ex
   xor a
   ret
 
-UseItem:;[item_data], a = index, returns exit code in a (-1 = close inventory)
+UseItem:;[item_data], a = index, returns exit code in a (-1 = close inventory, 0 = decrement item count)
   push af;index
   ld a, [game_state]
   and a, GAME_STATE_PLAY_BALL
   push af;play ball flag
   ld a, [item_data.type]
+
 .checkBaseballItem
   cp ITEM_TYPE_BASEBALL
   jr nz, .checkGameItem
@@ -928,7 +929,7 @@ UseItem:;[item_data], a = index, returns exit code in a (-1 = close inventory)
   call str_Replace
   ld hl, str_buffer
   call RevealItemTextAndWait
-  ld b, 0
+  ld b, 1
   jr .exit
 
 .used;TODO: this logic can be combined with the TossItem logic
@@ -974,7 +975,7 @@ UseSpecialItem:;[item_data], f = playball flag, returns z if can't use now
 .walkingAround
   cp TOWN_MAP_ITEM
   jr z, .useTownMap
-  cp HARMONICA_ITEM
+  cp WHISTLE_ITEM
   jr z, .playMusic
   cp OLD_ROD_ITEM
   jr z, .goFish
@@ -986,7 +987,7 @@ UseSpecialItem:;[item_data], f = playball flag, returns z if can't use now
   jr z, .showTokens
   jr .anywhere
 .playingBaseball
-  cp HARMONICA_ITEM
+  cp WHISTLE_ITEM
   jr z, .wakePlayer
   cp TOWN_MAP_ITEM
   ret z
@@ -1009,7 +1010,7 @@ UseSpecialItem:;[item_data], f = playball flag, returns z if can't use now
   ret z
   cp SS_TICKET_ITEM
   ret z
-  cp DREAM_SCOPE_ITEM
+  cp SAPHE_SCOPE_ITEM
   ret z
   cp EXP_ALL_ITEM
   ret z

@@ -20,7 +20,7 @@ DB "PIDGE", 0
 DB "GIO", 0
 DB "OT", 0
 DB "RAT TAIL", 0
-DB "CAIT", 0
+DB "MULLET", 0
 DB "STOOP", 0
 DB "CROW", 0
 DB "SNAKE", 0
@@ -34,7 +34,7 @@ DB "MUCHACHA", 0
 DB "REINA", 0
 DB "CHICO", 0
 DB "MUCHACHO", 0
-DB "RAY", 0
+DB "REY", 0
 DB "FAIRY", 0
 DB "FABLE", 0
 DB "VULFPEK", 0
@@ -42,43 +42,43 @@ DB "FOXY", 0
 DB "PUFF", 0
 DB "TUFF", 0
 DB "BATS", 0
-DB "GOLD BATS", 0
+DB "GOLDEN BAT", 0
 DB "ODDIE", 0
 DB "GLOOMY", 0
 DB "VILE", 0
 DB "PARIS", 0
 DB "PARIAH", 0
 DB "NATTY", 0
-DB "MOTHER", 0
+DB "MOUTH", 0
 DB "DIGGS", 0
 DB "DOUG", 0
 DB "MEOW", 0
 DB "PURR", 0
 DB "DUCK", 0
-DB "GOLD DUCK", 0
+DB "GOOSE", 0
 DB "MAN", 0
 DB "PRIMO", 0
-DB "LITHIUM", 0
+DB "LIT", 0
 DB "ARCANE", 0
 DB "POLLY", 0
-DB "SWIRL", 0
+DB "WHIRLY", 0
 DB "WRATH", 0
 DB "BRUH", 0
 DB "DAB", 0
-DB "KAZAA", 0
+DB "ZAM", 0
 DB "CHIP", 0
-DB "CHOKE", 0
+DB "CHUCK", 0
 DB "CHAMP", 0
 DB "SPROUT", 0
 DB "WEEPY", 0
 DB "VIC", 0
-DB "FONZ", 0
-DB "CRUEL", 0
+DB "JELLY", 0
+DB "JAM", 0
 DB "DUDE", 0
 DB "GRAVEL", 0
 DB "GOLEM", 0
 DB "PINTO", 0
-DB "MUSTANG", 0
+DB "UNICORN", 0
 DB "SLOWPOKE", 0
 DB "LAGGARD", 0
 DB "MAGNET", 0
@@ -89,7 +89,7 @@ DB "TREY", 0
 DB "SEAL", 0
 DB "SEALION", 0
 DB "GREASER", 0
-DB "YUCK", 0
+DB "MUCK", 0
 DB "CUP", 0
 DB "DISH", 0
 DB "GAS", 0
@@ -97,7 +97,7 @@ DB "MORTY", 0
 DB "MACOBB", 0
 DB "ONYX", 0
 DB "ZEE", 0
-DB "MEDIUM", 0
+DB "SOOTH", 0
 DB "DICK", 0
 DB "REX", 0
 DB "SPEEDBALL", 0
@@ -123,7 +123,7 @@ DB "SEEKER", 0
 DB "STARCHILD", 0
 DB "STARMAN", 0
 DB "MIME", 0
-DB "SCISSORS", 0
+DB "SCY", 0
 DB "JINX", 0
 DB "BUZZ", 0
 DB "MAGMA", 0
@@ -136,17 +136,17 @@ DB "YEAH-YEAH", 0
 DB "EVIE", 0
 DB "VAPOR", 0
 DB "JOLT", 0
-DB "FALRE", 0
+DB "FLARE", 0
 DB "POLYGON", 0
 DB "SPIRAL", 0
 DB "SPIRE", 0
-DB "HORSHOE", 0
+DB "CAP", 0
 DB "TOPPER", 0
-DB "ARROWHEAD", 0
+DB "BONEHEAD", 0
 DB "BEAR", 0
 DB "ART", 0
 DB "ZAPH", 0
-DB "ELTON", 0
+DB "FENIX", 0
 DB "DRATS", 0
 DB "AIRE", 0
 DB "DRAGON", 0
@@ -178,10 +178,10 @@ DB "A gym rat with a\npower mullet. They\napparently slow\ndown after a hair\ncu
 DB "Eats grounders in\ngrassy areas. They\nhave to move their\nshort legs at high\nspeed to steal\nbases.", 0
 DB "With their huge\nand magnificent\nswings, they hit\nfly balls that\nseem to disappear.", 0
 DB "Runs silently and\nstealthily. Runs\non pitchers, such\nas PIDGE and\nSTOOP, any time\nthey're on base.", 0
-DB "It is rumored that\nthe scarry looking\ntattoos on their\nfaces show their\nneighborhood\naffiliation", 0
+DB "It is rumored that\nthe scarry looking\ntattoos on their\nbodies show their\nneighborhood\naffiliation", 0
 DB "When several of\nthese PLAYERS play\ninflied, their\nelectricity turns\nlightning fast\ndouble plays.", 0
 DB "Their long stride\ncovers a lot of\nground to protect\nfrom high fly\nballs.", 0
-DB "Digs deep in the\nbox. It only\nswings at the\nright pitch.", 0
+DB "Digs deep in the\nbox. They only\nswing at the right\npitch.", 0
 DB "Sits back on\nspinning balls.\nAttacks when\nthreatened inside.\nThey can roll a\nbunt up the line.", 0
 DB "Although small,\ntheir venomous\nbunts render this\nPLAYER dangerous.\nThis girl has\nspeed.", 0
 DB "Quick around the\nhorn. A physical\nPLAYER. Good\nspeed. Controlled\nbunt.", 0
@@ -190,10 +190,10 @@ DB "Stiffens up when\nthey strike out\nbatters. The\nlarger its hands,\nthe more
 DB "An aggressive\nPLAYER that is\nquick to attack\nstrikes. On the\nmound they sling\nvenom", 0
 DB "It uses its\npowerful arms on\nthe mound to heave\nfastballs, spin\ncurves, and break\nthe break the\nbatter's ankles.", 0
 DB "Their magical and\ncute appeal has\nmany fans. They're\nrare and found\nonly in certain\nareas", 0
-DB "A timid fairy\nPLAYER that is\nrarely seen. They\nwill run and hide\nthe moment it\nsenses people", 0
+DB "A timid fairy\nPLAYER that is\nrarely seen. They\nwill run and hide\nthe moment they\nsense people.", 0
 DB "Rookie year, they\nhave just one\nponytail. Their\nhair splits at the\ntip as they grow\nolder", 0
 DB "Very smart and\nvery vengeful.\nSwinging one of\ntheir many bats\ncould result in a\n1000-year curse", 0
-DB "When their huge\neyes light up,\nthey sings a\nmysteriously\nsoothing melody\nthat lulls runners\nto sleep", 0
+DB "When their huge\neyes light up,\nthey sing a\nmysteriously\nsoothing melody\nthat lulls runners\nto sleep", 0
 DB "Their body is soft\nand rubbery. When\nbatting, they puff\nup their chest in\nan attempt to look\nbigger.", 0
 DB "A blind PLAYER.\nUses echo location\nto find the ball.", 0
 DB "Once it strikes\nout a batter, it\nwill not stop\ndraining energy\nfrom the other\nteam, even late in\nthe game.", 0
@@ -209,41 +209,41 @@ DB "The hard chopping\nmotion in their\nswing can trigger\nearthquakes 60\nmiles
 DB "Adores spherical\nobjects. Wanders\nthe streets on a\nnightly basis to\nlook for foul\nballs.", 0
 DB "Although their\ngame has many\nadmirers, they're\ntough to keep on a\nteam because of\ntheir fickle\nmeanness.", 0
 DB "While lulling the\nbatter with a\nvacant look, this\nwily PLAYER will\nuse psychokinetic\npowers", 0
-DB "Often seen swim-\nming elegantly by\nlake shores. It is\noften mistaken for\nthe Japanese\nmonster, Kappa", 0
-DB "Extremely quick to\nanger. It could be\ndocile one moment\nthen thrashing\naway the next\ninstant", 0
-DB "Always furious and\ntenacious to boot.\nIt will not\nabandon chasing\nits quarry until\nit is caught", 0
+DB "Often seen\npracticing their\nswing by lake\nshores. They are\noften mistaken for\nthe Japanese\noutfielder, Shemp", 0
+DB "Extremely quick to\nanger. They could\nbe fine one moment\nthen charging the\nmound the next", 0
+DB "Always angry and\nholds grudges.\nThey will not\nabandon chasing\nthe ball until it\nis caught", 0
 DB "Very protective of\ntheir strikezone.\nThey will pitch up\nand in to repel\nbatters from their\nplate.", 0
 DB "A PLAYER admired\nfor their\nbeautiful swing.\nRuns agilely as if\non wings", 0
 DB "Their newly grown\nlegs prevent them\nfrom running. They\nappear to prefer\nswinging for the\nfences than trying\nfor a base hit.", 0
 DB "Capable of batting\nleft or hight\nhanded. When out\nof the box, it\nsweats to keep its\nbody cool", 0
-DB "An adept swimmer\nat both the front\ncrawl and breast\nstroke. Easily\novertakes the best\nhuman swimmers", 0
+DB "An adept batter\nfrom both sides of\nthe plate. On the\nmound, they easily\noverpower even the\nbest hitters", 0
 DB "Using their\nability to read\nminds, they can\npredict what the\npitcher will\nthrow.", 0
-DB "It emits special\nalpha waves from\nits body that\ninduce headaches\njust by being\nclose by", 0
-DB "Their brains can\noutperform any\nadvanced analytics\nsoftware. Their\n#BOL knowledge is\nthe highest in the\nLEAGUE.", 0
-DB "Loves to build its\nmuscles. It trains\nin all styles of\nmartial arts to\nbecome even\nstronger", 0
-DB "Its muscular body\nis so powerful, it\nmust wear a power\nsave belt to be\nable to regulate\nits motions", 0
-DB "Using its heavy\nmuscles, it throws\npowerful punches\nthat can send the\nvictim clear over\nthe horizon", 0
-DB "A carnivorous\nPOKéMON that traps\nand eats bugs. It\nuses its root feet\nto soak up needed\nmoisture", 0
-DB "It spits out\nPOISONPOWDER to\nimmobilize the\nenemy and then\nfinishes it with a\nspray of ACID", 0
-DB "Said to live in\nhuge colonies deep\nin jungles,\nalthough no one\nhas ever returned\nfrom there", 0
-DB "Drifts in shallow\nseas. Anglers who\nhook them by\naccident are often\npunished by its\nstinging acid", 0
-DB "The tentacles are\nnormally kept\nshort. On hunts,\nthey are extended\nto ensnare and\nimmobilize prey", 0
-DB "Found in fields\nand mountains.\nMistaking them for\nboulders, people\noften step or trip\non them", 0
-DB "Rolls down slopes\nto move. It rolls\nover any obstacle\nwithout slowing or\nchanging its\ndirection", 0
-DB "Its boulder-like\nbody is extremely\nhard. It can\neasily withstand\ndynamite blasts\nwithout damage", 0
-DB "Its hooves are 10\ntimes harder than\ndiamonds. It can\ntrample anything\ncompletely flat in\nlittle time", 0
-DB "Very competitive,\nthis POKéMON will\nchase anything\nthat moves fast in\nthe hopes of\nracing it", 0
-DB "Incredibly slow\nand dopey. It\ntakes 5 seconds\nfor it to feel\npain when under\nattack", 0
-DB "The SHELLDER that\nis latched onto\nSLOWPOKE's tail is\nsaid to feed on\nthe host's left\nover scraps", 0
-DB "Uses anti-gravity\nto stay suspended.\nAppears without\nwarning and uses\nTHUNDER WAVE and\nsimilar moves", 0
-DB "Formed by several\nMAGNETs practicing\ntogether. They\nfrequently appear\nin the outfield\nspottings flares", 0
-DB "The sprig of green\nonions it holds is\nits weapon. It is\nused much like a\nmetal sword", 0
-DB "A bird that makes\nup for its poor\nflying with its\nfast foot speed.\nLeaves giant\nfootprints", 0
-DB "Uses its three\nbrains to execute\ncomplex plans.\nWhile two heads\nsleep, one head\nstays awake", 0
-DB "The protruding\nhorn on its head\nis very hard. It\nis used for\nbashing through\nthick ice", 0
-DB "Stores thermal\nenergy in its\nbody. Swims at a\nsteady 8 knots\neven in intensely\ncold waters", 0
+DB "Behind the plate,\nthey lean in and\nwhisper to the\nbatter. It gets in\ntheir heads.", 0
+DB "Their brains can\noutperform any\nadvanced analytics\nsoftware. Their\nBéiSBOL knowledge\nis the highest in\nthe LEAGUE.", 0
+DB "Love to build\ntheir muscles.\nThey lift all\nseason long to\nbecome even\nstronger.", 0
+DB "Their muscular\nbody is so\npowerful, they\nmust wear elastic\nbelts. Leather\nbelts snap when\nthey run.", 0
+DB "Using their heavy\nmuscles, they\nthrow powerful\n4-seamers that\nrise up and in,\nknocking batters\nout.", 0
+DB "A PLAYER that\ntraps and eats\ngrounders. They\nsoak it up when\nthe crowd's on\ntheir feet\nrooting.", 0
+DB "They sling a NASTY\nCURVE to\nimmobilize batters\nand then strikes\nthem out with some\nGAS.", 0
+DB "Said to train on\nhuge fields deep\nin jungles,\nalthough no one\nhas ever seen them", 0
+DB "Shifts to shallow\noutfield and\npitchers who hang\ncurves by accident\nare often punished\nby its stinging\nswing", 0
+DB "Their arm path is\nnormally kept\nshort. On long\nthrows, they\nextend to ensnare\nand eliminate\nrunners.", 0
+DB "Found in fields in\nmountains. It's\neasy to mistake\nthem for boulders.\nRunners are\nstopped dead in\ntheir tracks.", 0
+DB "Rolls through stop\nsigns at third.\nThey plow through\ncatchers without\nslowing or\nchanging direction", 0
+DB "Its boulder-like\nbody is extremely\ntough. It can\neasily withstand\nhard hits,\ncollisions, and\nbeanballs without\ndamage", 0
+DB "Their spikes make\nthem agile on the\ndiamond. They can\nfield anything hit\ntheir way in\nlittle time", 0
+DB "Very competitive,\nthis PLAYER will\nchase anything hit\ntheir way in the\nhopes of catching\nit", 0
+DB "Incredibly slow\nand dopey. It\ntakes 5 seconds\nfor them to react\nto a pop fly", 0
+DB "The CUP that is\nsmashed SLOWPOKE's\ncurve is said to\nbe the reason they\nscrapped that\npitch to lefties", 0
+DB "Throws gravity-\ndefying pitches.\nAppears in late\ninnings and throws\nTHUNDER BALL and\nsimilar pitches", 0
+DB "Formed by several\nMAGNETs practicing\ntogether. They\nfrequently appear\nin the outfield\ncatching flares", 0
+DB "The plant they\nchew on is said to\nenhance their\nperformance. It is\nused much like a\ndrug", 0
+DB "An outfielder that\nmakes up for its\npoor read with its\nfast foot speed.\nLeaves giant\nfootprints", 0
+DB "Uses its three\npersonas to\nexecute complex\npitch sequences.\nWhile two pitch,\none fields", 0
+DB "Their forehead is\nvery hard. They\nused it to bashing\nthrough catchers", 0
+DB "Stores potential\nenergy in their\nlegs. Throws at a\nsteady 98 MPH even\nin intensely long\noutings", 0
 DB "Lives in slums and\nabandoned houses.\nSurvives by\nselling the toxic\nsludge dumped by\nfactories on the\nblack market.", 0
-DB "Thickly covered\nwith a filthy,\nvile sludge. It is\nso toxic, even its\nfootprints contain\npoison", 0
+DB "Thickly built with\na filthy, vile\nslider. It's so\nsick, even their\ncatcher can't\ncontain it", 0
 DB "Its hard shell\nrepels any kind of\nattack. It is\nvulnerable only\nwhen its shell is\nopen", 0
 DB "When attacked, it\nlaunches its horns\nin quick volleys.\nIts innards have\nnever been seen", 0
 DB "Almost invisible,\nthis gaseous\nPLAYER cloaks the\ntarget and puts it\nto sleep without\nnotice", 0
@@ -264,15 +264,15 @@ DB "When in a hurry,\nits legs lengthen\nprogressively. It\nruns smoothly with\n
 DB "While apparently\ndoing nothing, it\nfires punches in\nlightning fast\nvolleys that are\nimpossible to see", 0
 DB "Its tongue can be\nextended like a\nchameleon's. It\nleaves a tingling\nsensation when it\nlicks enemies", 0
 DB "Because they\ninhale several\nkinds of toxic\ngases, they're\nprone to explosive\ndiarrhea.", 0
-DB "Where two kinds of\npoison gases meet,\n2 KOFFINGs can\nfuse into a\nWEEZING over many\nyears", 0
+DB "When the cancer\nsets in, 2 ASHes\ncan fuse into a\nSMOKEY over many\nyears of surgery", 0
 DB "Its massive bones\nare 1000 times\nharder than human\nbones. It can\neasily knock a\ntrailer flying", 0
 DB "Protected by an\narmor-like hide,\nit is capable of\nliving in molten\nlava of 3,600\ndegrees", 0
 DB "Genuinely cool.\nThe kind of PLAYER\neveryone wants on\ntheir TEAM. Can't\nhit or field the\nball.", 0
 DB "Their whole body\nstinks of sea salt\nand weed. Their\nbeards shake as\nthey walk.", 0
 DB "Wears a protective\npouch around her\nperpetually\npregnant belly.", 0
-DB "Known to down\nflying bugs with\nprecision blasts\nof ink from the\nsurface of the\nwater", 0
+DB "Known to down\nbatters with\nprecision pitches\nfrom the mound", 0
 DB "Capable of\nthrowing backwards\nby rapidly\nswinging their\nwing-like arms and\nstout legs", 0
-DB "Their golden locks\nbillow like an\nelegant ballroom\ndress, giving them\nthe nickname of\nthe Queen of\nDiamonds", 0
+DB "Their golden locks\nbillow like an\nelegant ballroom\ndress, giving them\nthe nickname of\nthe Dancing Queen", 0
 DB "In the post-\nseason, they can\nbe seen swimming\npowerfully up\nrivers and creeks\nto train", 0
 DB "An enigmatic\nPLAYER that can\neffortlessly\ngenerate a\ncheering crowd\neven when losing", 0
 DB "A core figure on\nany roster with a\nglow like the\nseven colors of\nthe rainbow. Some\nfans value their\npersonality above\ntheir skill", 0
@@ -293,7 +293,7 @@ DB "They accumulate\nnegative ions in\ntheir hair. It\ngives a little\nextra zip
 DB "In the moments\nbefore each pitch,\nthey get an\nadrenaline rush.", 0
 DB "A PLAYER who\nspends a lot of\ntime writing code.\nThey often run the\nteam website and\nkeep stats.", 0
 DB "Although long\nretired, in rare\ncases, these early\npioneers of\nbatting helmets\nwill play ball.", 0
-DB "A deadball era\nPLAYER that\nretired when the\nheavy equipment\nmade it impossible\nto catch a wild\npitch", 0
+DB "A deadball era\nPLAYER that\nretired when the\nheavy gear made it\nimpossible to\ncatch a wild pitch", 0
 DB "A PLAYER that was\nresurrected from a\ngrave in what was\nonce Elysian\nFields.", 0
 DB "Their sleek shape\nis perfect for\npitching. They\nstrike out batters\nwith a sharp curve\nand a fluid\nwindup.", 0
 DB "A relic of early\nBéiSBOL when\npitchers would\nthrow at your\ntemple if you\ncrowded the plate.", 0

@@ -30,13 +30,16 @@ def main():
   learned_moves = {}
   with open("./data/learned_moves.csv") as file:
     rows = csv.reader(file)
+    next(rows)#skip count
+    next(rows)#skip category
+    next(rows)#skip type
     moves = next(rows)
     max_learnset = 0
     player_with_largest = ""
     for row in rows:
-      player = row[0]
+      player = row[1]
       player_moves = []
-      for i in range(1, len(row)):
+      for i in range(2, len(row)):
         if (row[i]):
           player_moves.append((int(row[i]), moves[i]))
       if len(player_moves) > max_learnset:
@@ -141,7 +144,8 @@ def generate_player_strings(roledex):
       asm_file.write("DB \"{0}\", 0\n".format(player["Nickname"].upper()))
     asm_file.write("\n\nPlayerDescriptions::\n")
     for player in roledex:
-      lines = textwrap.wrap(player["Description"], 18)
+      #lines = textwrap.wrap(player["Description"], 18)
+      lines = textwrap.wrap(player["Pkmn Parody"], 18)
       description = "\\n".join(lines)
       asm_file.write("DB \"{0}\", 0\n".format(description))
     asm_file.write("\n")
@@ -157,43 +161,35 @@ def player_type_string(player):
   return s
 
 ev_items = {
-  "Fire":    "FIRE_GLOVE_ITEM",
-  "Thunder": "SPARK_GLOVE_ITEM",
-  "Water":   "WATER_GLOVE_ITEM",
-  "Leaf":    "LEAF_GLOVE_ITEM",
-  "Moon":    "MOON_GLOVE_ITEM"
+  "Fire Ball": "FIRE_BALL_ITEM",
+  "Thunder Bat": "THUNDER_BAT_ITEM",
+  "Water Glove": "WATER_GLOVE_ITEM",
+  "Grass Grip": "GRASS_GRIP_ITEM",
+  "Moon Shoes": "MOON_SHOES_ITEM"
 }
 def evolves_to_string(roledex, player):
   s = ";evolution\n"
-  if not player["EVTo"]:
+  has_ev = False
+  for p in roledex:
+    if player["#"] != p["EVFrom"]:
+      continue
+    
+    has_ev = True
+    ev_type = p["EVType"]
+    num = int(p["#"])
+    try:
+      age = int(ev_type)
+      s += f"DB EV_TYPE_AGE, {num}, {age}\n"
+    except:
+      if ev_type == "Trade":
+        s += f"DB EV_TYPE_TRADE, {num}, 0\n"
+      else:
+        item = ev_items[ev_type]
+        s += f"DB EV_TYPE_ITEM, {num}, {item}\n"
+
+  if not has_ev:
     s += "DB EV_TYPE_NONE\n"
     return s
-
-  ages = []
-  player_nums = []
-  types = []
-  try:
-    player_nums = [player["EVTo"]]
-    ages = [int(player["EVType"])]
-    types = ["EV_TYPE_AGE"]
-  except:
-    player_nums = player["EVTo"].split(" ")
-    types = player["EVType"].split(" ")
-    ages = [0] * len(types)
-  
-  for i in range(len(player_nums)):
-    num = str(int(player_nums[i]))
-    t = types[i]
-    extra = "0"
-    if (ages[i] > 0):
-      t = "EV_TYPE_AGE"
-      extra = str(ages[i])
-    elif types[i] == "Trade":
-      t = "EV_TYPE_TRADE"
-    else:
-      extra = ev_items[t]
-      t = "EV_TYPE_ITEM"
-    s += "DB " + t + ", " + num + ", " + extra + "\n"
 
   s += "DB 0\n"
   return s

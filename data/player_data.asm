@@ -17,7 +17,7 @@ DEF NUM_PIDGE EQU 16
 DEF NUM_GIO EQU 17
 DEF NUM_OT EQU 18
 DEF NUM_RAT_TAIL EQU 19
-DEF NUM_CAIT EQU 20
+DEF NUM_MULLET EQU 20
 DEF NUM_STOOP EQU 21
 DEF NUM_CROW EQU 22
 DEF NUM_SNAKE EQU 23
@@ -31,7 +31,7 @@ DEF NUM_MUCHACHA EQU 30
 DEF NUM_REINA EQU 31
 DEF NUM_CHICO EQU 32
 DEF NUM_MUCHACHO EQU 33
-DEF NUM_RAY EQU 34
+DEF NUM_REY EQU 34
 DEF NUM_FAIRY EQU 35
 DEF NUM_FABLE EQU 36
 DEF NUM_VULFPEK EQU 37
@@ -39,43 +39,43 @@ DEF NUM_FOXY EQU 38
 DEF NUM_PUFF EQU 39
 DEF NUM_TUFF EQU 40
 DEF NUM_BATS EQU 41
-DEF NUM_GOLD_BATS EQU 42
+DEF NUM_GOLDEN_BAT EQU 42
 DEF NUM_ODDIE EQU 43
 DEF NUM_GLOOMY EQU 44
 DEF NUM_VILE EQU 45
 DEF NUM_PARIS EQU 46
 DEF NUM_PARIAH EQU 47
 DEF NUM_NATTY EQU 48
-DEF NUM_MOTHER EQU 49
+DEF NUM_MOUTH EQU 49
 DEF NUM_DIGGS EQU 50
 DEF NUM_DOUG EQU 51
 DEF NUM_MEOW EQU 52
 DEF NUM_PURR EQU 53
 DEF NUM_DUCK EQU 54
-DEF NUM_GOLD_DUCK EQU 55
+DEF NUM_GOOSE EQU 55
 DEF NUM_MAN EQU 56
 DEF NUM_PRIMO EQU 57
-DEF NUM_LITHIUM EQU 58
+DEF NUM_LIT EQU 58
 DEF NUM_ARCANE EQU 59
 DEF NUM_POLLY EQU 60
-DEF NUM_SWIRL EQU 61
+DEF NUM_WHIRLY EQU 61
 DEF NUM_WRATH EQU 62
 DEF NUM_BRUH EQU 63
 DEF NUM_DAB EQU 64
-DEF NUM_KAZAA EQU 65
+DEF NUM_ZAM EQU 65
 DEF NUM_CHIP EQU 66
-DEF NUM_CHOKE EQU 67
+DEF NUM_CHUCK EQU 67
 DEF NUM_CHAMP EQU 68
 DEF NUM_SPROUT EQU 69
 DEF NUM_WEEPY EQU 70
 DEF NUM_VIC EQU 71
-DEF NUM_FONZ EQU 72
-DEF NUM_CRUEL EQU 73
+DEF NUM_JELLY EQU 72
+DEF NUM_JAM EQU 73
 DEF NUM_DUDE EQU 74
 DEF NUM_GRAVEL EQU 75
 DEF NUM_GOLEM EQU 76
 DEF NUM_PINTO EQU 77
-DEF NUM_MUSTANG EQU 78
+DEF NUM_UNICORN EQU 78
 DEF NUM_SLOWPOKE EQU 79
 DEF NUM_LAGGARD EQU 80
 DEF NUM_MAGNET EQU 81
@@ -86,7 +86,7 @@ DEF NUM_TREY EQU 85
 DEF NUM_SEAL EQU 86
 DEF NUM_SEALION EQU 87
 DEF NUM_GREASER EQU 88
-DEF NUM_YUCK EQU 89
+DEF NUM_MUCK EQU 89
 DEF NUM_CUP EQU 90
 DEF NUM_DISH EQU 91
 DEF NUM_GAS EQU 92
@@ -94,7 +94,7 @@ DEF NUM_MORTY EQU 93
 DEF NUM_MACOBB EQU 94
 DEF NUM_ONYX EQU 95
 DEF NUM_ZEE EQU 96
-DEF NUM_MEDIUM EQU 97
+DEF NUM_SOOTH EQU 97
 DEF NUM_DICK EQU 98
 DEF NUM_REX EQU 99
 DEF NUM_SPEEDBALL EQU 100
@@ -120,7 +120,7 @@ DEF NUM_SEEKER EQU 119
 DEF NUM_STARCHILD EQU 120
 DEF NUM_STARMAN EQU 121
 DEF NUM_MIME EQU 122
-DEF NUM_SCISSORS EQU 123
+DEF NUM_SCY EQU 123
 DEF NUM_JINX EQU 124
 DEF NUM_BUZZ EQU 125
 DEF NUM_MAGMA EQU 126
@@ -133,17 +133,17 @@ DEF NUM_YEAH_YEAH EQU 132
 DEF NUM_EVIE EQU 133
 DEF NUM_VAPOR EQU 134
 DEF NUM_JOLT EQU 135
-DEF NUM_FALRE EQU 136
+DEF NUM_FLARE EQU 136
 DEF NUM_POLYGON EQU 137
 DEF NUM_SPIRAL EQU 138
 DEF NUM_SPIRE EQU 139
-DEF NUM_HORSHOE EQU 140
+DEF NUM_CAP EQU 140
 DEF NUM_TOPPER EQU 141
-DEF NUM_ARROWHEAD EQU 142
+DEF NUM_BONEHEAD EQU 142
 DEF NUM_BEAR EQU 143
 DEF NUM_ART EQU 144
 DEF NUM_ZAPH EQU 145
-DEF NUM_ELTON EQU 146
+DEF NUM_FENIX EQU 146
 DEF NUM_DRATS EQU 147
 DEF NUM_AIRE EQU 148
 DEF NUM_DRAGON EQU 149
@@ -157,7 +157,7 @@ _001BubbiRoledex:
 DB 1
 DB GRASS
 DB POISON
-DB $40 ;height
+DB $41 ;height
 DW $002A ;weight
 DB 45 ;HP
 DB 49 ;Bat
@@ -168,7 +168,7 @@ DB 0 ;Lineup Body
 DB 0 ;Lineup Head
 DB 0 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteBubbi ;Color Palette
+DW PaletteGreen ;Color Palette
 ;animations
 DB BANK(_001BubbiLeftyBatterUserTiles)
 DW _001BubbiLeftyBatterUserTiles
@@ -213,8 +213,8 @@ _002IvyRoledex:
 DB 2
 DB GRASS
 DB POISON
-DB $50 ;height
-DW $006E ;weight
+DB $59 ;height
+DW $0084 ;weight
 DB 60 ;HP
 DB 62 ;Bat
 DB 63 ;Field
@@ -224,7 +224,7 @@ DB 1 ;Lineup Body
 DB 0 ;Lineup Head
 DB 4 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteBubbi ;Color Palette
+DW PaletteGreen ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -269,8 +269,8 @@ _003VenusRoledex:
 DB 3
 DB GRASS
 DB POISON
-DB $60 ;height
-DW $00A0 ;weight
+DB $61 ;height
+DW $00A5 ;weight
 DB 80 ;HP
 DB 82 ;Bat
 DB 83 ;Field
@@ -280,7 +280,7 @@ DB 2 ;Lineup Body
 DB 0 ;Lineup Head
 DB 4 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteBubbi ;Color Palette
+DW PaletteGreen ;Color Palette
 ;animations
 DB BANK(_003VenusLeftyBatterUserTiles)
 DW _003VenusLeftyBatterUserTiles
@@ -324,8 +324,8 @@ _004GingerRoledex:
 DB 4
 DB FIRE
 DB NONE
-DB $50 ;height
-DW $0050 ;weight
+DB $58 ;height
+DW $0063 ;weight
 DB 39 ;HP
 DB 52 ;Bat
 DB 43 ;Field
@@ -335,7 +335,7 @@ DB 1 ;Lineup Body
 DB 2 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteGinger ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -380,8 +380,8 @@ _005FrecklesRoledex:
 DB 5
 DB FIRE
 DB NONE
-DB $60 ;height
-DW $0082 ;weight
+DB $64 ;height
+DW $00BC ;weight
 DB 58 ;HP
 DB 64 ;Bat
 DB 58 ;Field
@@ -391,7 +391,7 @@ DB 2 ;Lineup Body
 DB 2 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteGinger ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -436,8 +436,8 @@ _006BigRedRoledex:
 DB 6
 DB FIRE
 DB FLYING
-DB $70 ;height
-DW $00D2 ;weight
+DB $6B ;height
+DW $0115 ;weight
 DB 78 ;HP
 DB 84 ;Bat
 DB 78 ;Field
@@ -447,7 +447,7 @@ DB 7 ;Lineup Body
 DB 2 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteGinger ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -491,7 +491,7 @@ _007SquirtRoledex:
 DB 7
 DB WATER
 DB NONE
-DB $40 ;height
+DB $3B ;height
 DW $0028 ;weight
 DB 44 ;HP
 DB 48 ;Bat
@@ -502,7 +502,7 @@ DB 0 ;Lineup Body
 DB 1 ;Lineup Head
 DB 3 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSquirt ;Color Palette
+DW PaletteCyan ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -547,8 +547,8 @@ _008PudgeRoledex:
 DB 8
 DB WATER
 DB NONE
-DB $50 ;height
-DW $00A5 ;weight
+DB $57 ;height
+DW $008C ;weight
 DB 59 ;HP
 DB 63 ;Bat
 DB 80 ;Field
@@ -558,7 +558,7 @@ DB 3 ;Lineup Body
 DB 1 ;Lineup Head
 DB 3 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSquirt ;Color Palette
+DW PaletteCyan ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -604,7 +604,7 @@ DB 9
 DB WATER
 DB NONE
 DB $60 ;height
-DW $0104 ;weight
+DW $00F0 ;weight
 DB 79 ;HP
 DB 83 ;Bat
 DB 100 ;Field
@@ -614,7 +614,7 @@ DB 7 ;Lineup Body
 DB 3 ;Lineup Head
 DB 3 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSquirt ;Color Palette
+DW PaletteCyan ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -669,7 +669,7 @@ DB 0 ;Lineup Body
 DB 1 ;Lineup Head
 DB 3 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteGreen ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -719,7 +719,7 @@ DB 1 ;Lineup Body
 DB 1 ;Lineup Head
 DB 3 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteGreen ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -769,7 +769,7 @@ DB 1 ;Lineup Body
 DB 5 ;Lineup Head
 DB 5 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteCyan ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -824,7 +824,7 @@ DB 0 ;Lineup Body
 DB 1 ;Lineup Head
 DB 3 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -874,7 +874,7 @@ DB 1 ;Lineup Body
 DB 4 ;Lineup Head
 DB 3 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -924,7 +924,7 @@ DB 2 ;Lineup Body
 DB 4 ;Lineup Head
 DB 3 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -966,8 +966,8 @@ _016PidgeRoledex:
 DB 16
 DB NORMAL
 DB FLYING
-DB $53 ;height
-DW $008C ;weight
+DB $45 ;height
+DW $0089 ;weight
 DB 40 ;HP
 DB 45 ;Bat
 DB 40 ;Field
@@ -1021,8 +1021,8 @@ _017GioRoledex:
 DB 17
 DB NORMAL
 DB FLYING
-DB $60 ;height
-DW $00D3 ;weight
+DB $51 ;height
+DW $009B ;weight
 DB 63 ;HP
 DB 60 ;Bat
 DB 55 ;Field
@@ -1076,8 +1076,8 @@ _018OTRoledex:
 DB 18
 DB NORMAL
 DB FLYING
-DB $65 ;height
-DW $0111 ;weight
+DB $51 ;height
+DW $00CC ;weight
 DB 83 ;HP
 DB 80 ;Bat
 DB 75 ;Field
@@ -1130,8 +1130,8 @@ _019RatTailRoledex:
 DB 19
 DB NORMAL
 DB NONE
-DB $40 ;height
-DW $003D ;weight
+DB $47 ;height
+DW $0049 ;weight
 DB 30 ;HP
 DB 56 ;Bat
 DB 35 ;Field
@@ -1141,7 +1141,7 @@ DB 0 ;Lineup Body
 DB 6 ;Lineup Head
 DB 3 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -1180,12 +1180,12 @@ DB 0
 DB EV_TYPE_AGE, 20, 20
 DB 0
 
-_020CaitRoledex:
+_020MulletRoledex:
 DB 20
 DB NORMAL
 DB NONE
 DB $59 ;height
-DW $00DC ;weight
+DW $00B1 ;weight
 DB 55 ;HP
 DB 81 ;Bat
 DB 60 ;Field
@@ -1195,7 +1195,7 @@ DB 4 ;Lineup Body
 DB 6 ;Lineup Head
 DB 1 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -1237,8 +1237,8 @@ _021StoopRoledex:
 DB 21
 DB NORMAL
 DB FLYING
-DB $50 ;height
-DW $006E ;weight
+DB $4B ;height
+DW $0054 ;weight
 DB 40 ;HP
 DB 60 ;Bat
 DB 30 ;Field
@@ -1292,7 +1292,7 @@ _022CrowRoledex:
 DB 22
 DB NORMAL
 DB FLYING
-DB $50 ;height
+DB $59 ;height
 DW $00AA ;weight
 DB 65 ;HP
 DB 90 ;Bat
@@ -1346,7 +1346,7 @@ _023SnakeRoledex:
 DB 23
 DB POISON
 DB NONE
-DB $50 ;height
+DB $58 ;height
 DW $005A ;weight
 DB 35 ;HP
 DB 60 ;Bat
@@ -1357,7 +1357,7 @@ DB 1 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePurple ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -1400,8 +1400,8 @@ _024CobraRoledex:
 DB 24
 DB POISON
 DB NONE
-DB $50 ;height
-DW $00EA ;weight
+DB $61 ;height
+DW $00B8 ;weight
 DB 60 ;HP
 DB 85 ;Bat
 DB 69 ;Field
@@ -1411,7 +1411,7 @@ DB 7 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePurple ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -1453,8 +1453,8 @@ _025ChuRoledex:
 DB 25
 DB ELECTRIC
 DB NONE
-DB $50 ;height
-DW $002E ;weight
+DB $47 ;height
+DW $0042 ;weight
 DB 35 ;HP
 DB 55 ;Bat
 DB 30 ;Field
@@ -1464,7 +1464,7 @@ DB 0 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteElectric ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -1501,15 +1501,15 @@ DB MEDITATE_MOVE, 33
 DB THUNDERSTICK_MOVE, 43
 DB 0
 ;evolution
-DB EV_TYPE_ITEM, 26, SPARK_GLOVE_ITEM
+DB EV_TYPE_ITEM, 26, THUNDER_BAT_ITEM
 DB 0
 
 _026RaiRoledex:
 DB 26
 DB ELECTRIC
 DB NONE
-DB $50 ;height
-DW $00B8 ;weight
+DB $5B ;height
+DW $00C2 ;weight
 DB 60 ;HP
 DB 90 ;Bat
 DB 55 ;Field
@@ -1519,7 +1519,7 @@ DB 4 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteElectric ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -1558,7 +1558,7 @@ _027ShrewRoledex:
 DB 27
 DB GROUND
 DB NONE
-DB $50 ;height
+DB $43 ;height
 DW $0032 ;weight
 DB 50 ;HP
 DB 75 ;Bat
@@ -1612,7 +1612,7 @@ _028SandyRoledex:
 DB 28
 DB GROUND
 DB NONE
-DB $50 ;height
+DB $57 ;height
 DW $0078 ;weight
 DB 75 ;HP
 DB 100 ;Bat
@@ -1665,8 +1665,8 @@ _029ChicaRoledex:
 DB 29
 DB POISON
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $54 ;height
+DW $005E ;weight
 DB 55 ;HP
 DB 47 ;Bat
 DB 52 ;Field
@@ -1676,7 +1676,7 @@ DB 0 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteBlue ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -1722,8 +1722,8 @@ _030MuchachaRoledex:
 DB 30
 DB POISON
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $59 ;height
+DW $0091 ;weight
 DB 70 ;HP
 DB 62 ;Bat
 DB 67 ;Field
@@ -1733,7 +1733,7 @@ DB 4 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteBlue ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -1772,15 +1772,15 @@ DB TWO_SEAM_MOVE, 41
 DB COMEBACKER_MOVE, 50
 DB 0
 ;evolution
-DB EV_TYPE_ITEM, 31, MOON_GLOVE_ITEM
+DB EV_TYPE_ITEM, 31, MOON_SHOES_ITEM
 DB 0
 
 _031ReinaRoledex:
 DB 31
 DB POISON
 DB GROUND
-DB $50 ;height
-DW $0064 ;weight
+DB $5B ;height
+DW $00B8 ;weight
 DB 90 ;HP
 DB 82 ;Bat
 DB 87 ;Field
@@ -1790,7 +1790,7 @@ DB 7 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteBlue ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -1832,8 +1832,8 @@ _032ChicoRoledex:
 DB 32
 DB POISON
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $54 ;height
+DW $0065 ;weight
 DB 46 ;HP
 DB 57 ;Bat
 DB 40 ;Field
@@ -1843,7 +1843,7 @@ DB 0 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePurple ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -1889,8 +1889,8 @@ _033MuchachoRoledex:
 DB 33
 DB POISON
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $5B ;height
+DW $00BB ;weight
 DB 61 ;HP
 DB 72 ;Bat
 DB 57 ;Field
@@ -1900,7 +1900,7 @@ DB 3 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePurple ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -1939,15 +1939,15 @@ DB CUTTER_MOVE, 41
 DB COMEBACKER_MOVE, 50
 DB 0
 ;evolution
-DB EV_TYPE_ITEM, 34, MOON_GLOVE_ITEM
+DB EV_TYPE_ITEM, 34, MOON_SHOES_ITEM
 DB 0
 
-_034RayRoledex:
+_034ReyRoledex:
 DB 34
 DB POISON
 DB GROUND
-DB $50 ;height
-DW $0064 ;weight
+DB $62 ;height
+DW $00EA ;weight
 DB 81 ;HP
 DB 92 ;Bat
 DB 77 ;Field
@@ -1957,7 +1957,7 @@ DB 7 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePurple ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -1999,8 +1999,8 @@ _035FairyRoledex:
 DB 35
 DB NORMAL
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $54 ;height
+DW $0078 ;weight
 DB 70 ;HP
 DB 45 ;Bat
 DB 48 ;Field
@@ -2010,7 +2010,7 @@ DB 3 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePink ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -2048,15 +2048,15 @@ DB FORKBALL_MOVE, 39
 DB KINESIS_MOVE, 48
 DB 0
 ;evolution
-DB EV_TYPE_ITEM, 36, MOON_GLOVE_ITEM
+DB EV_TYPE_ITEM, 36, MOON_SHOES_ITEM
 DB 0
 
 _036FableRoledex:
 DB 36
 DB NORMAL
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $59 ;height
+DW $00B9 ;weight
 DB 95 ;HP
 DB 70 ;Bat
 DB 73 ;Field
@@ -2066,7 +2066,7 @@ DB 4 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePink ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -2107,8 +2107,8 @@ _037VulfpekRoledex:
 DB 37
 DB FIRE
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $4B ;height
+DW $0042 ;weight
 DB 38 ;HP
 DB 41 ;Bat
 DB 40 ;Field
@@ -2118,7 +2118,7 @@ DB 0 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -2155,15 +2155,15 @@ DB FIREBALL_MOVE, 35
 DB HEATER_MOVE, 42
 DB 0
 ;evolution
-DB EV_TYPE_ITEM, 38, FIRE_GLOVE_ITEM
+DB EV_TYPE_ITEM, 38, FIRE_BALL_ITEM
 DB 0
 
 _038FoxyRoledex:
 DB 38
 DB FIRE
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $59 ;height
+DW $0095 ;weight
 DB 73 ;HP
 DB 76 ;Bat
 DB 75 ;Field
@@ -2173,7 +2173,7 @@ DB 3 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -2213,8 +2213,8 @@ _039PuffRoledex:
 DB 39
 DB NORMAL
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $39 ;height
+DW $0040 ;weight
 DB 115 ;HP
 DB 45 ;Bat
 DB 20 ;Field
@@ -2224,7 +2224,7 @@ DB 0 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePink ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -2264,15 +2264,15 @@ DB BOMB_MOVE, 34
 DB KNUCKLECURVE_MOVE, 39
 DB 0
 ;evolution
-DB EV_TYPE_ITEM, 40, MOON_GLOVE_ITEM
+DB EV_TYPE_ITEM, 40, MOON_SHOES_ITEM
 DB 0
 
 _040TuffRoledex:
 DB 40
 DB NORMAL
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $59 ;height
+DW $00BC ;weight
 DB 140 ;HP
 DB 70 ;Bat
 DB 45 ;Field
@@ -2282,7 +2282,7 @@ DB 3 ;Lineup Body
 DB 4 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePink ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -2322,8 +2322,8 @@ _041BatsRoledex:
 DB 41
 DB POISON
 DB FLYING
-DB $50 ;height
-DW $0064 ;weight
+DB $55 ;height
+DW $0063 ;weight
 DB 40 ;HP
 DB 45 ;Bat
 DB 35 ;Field
@@ -2333,7 +2333,7 @@ DB 1 ;Lineup Body
 DB 5 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteBlue ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -2372,12 +2372,12 @@ DB 0
 DB EV_TYPE_AGE, 42, 22
 DB 0
 
-_042GoldBatsRoledex:
+_042GoldenBatRoledex:
 DB 42
 DB POISON
 DB FLYING
-DB $50 ;height
-DW $0064 ;weight
+DB $61 ;height
+DW $00B4 ;weight
 DB 75 ;HP
 DB 80 ;Bat
 DB 70 ;Field
@@ -2387,7 +2387,7 @@ DB 3 ;Lineup Body
 DB 5 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteBlue ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -2430,8 +2430,8 @@ _043OddieRoledex:
 DB 43
 DB GRASS
 DB POISON
-DB $50 ;height
-DW $0064 ;weight
+DB $4B ;height
+DW $0046 ;weight
 DB 45 ;HP
 DB 50 ;Bat
 DB 55 ;Field
@@ -2441,7 +2441,7 @@ DB 0 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteGreen ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -2486,8 +2486,8 @@ _044GloomyRoledex:
 DB 44
 DB GRASS
 DB POISON
-DB $50 ;height
-DW $0064 ;weight
+DB $54 ;height
+DW $005C ;weight
 DB 60 ;HP
 DB 65 ;Bat
 DB 70 ;Field
@@ -2497,7 +2497,7 @@ DB 1 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -2535,15 +2535,15 @@ DB PLANT_N_TURN_MOVE, 38
 DB HARDWOOD_MOVE, 52
 DB 0
 ;evolution
-DB EV_TYPE_ITEM, 45, LEAF_GLOVE_ITEM
+DB EV_TYPE_ITEM, 45, GRASS_GRIP_ITEM
 DB 0
 
 _045VileRoledex:
 DB 45
 DB GRASS
 DB POISON
-DB $50 ;height
-DW $0064 ;weight
+DB $59 ;height
+DW $00A2 ;weight
 DB 75 ;HP
 DB 80 ;Bat
 DB 85 ;Field
@@ -2553,7 +2553,7 @@ DB 1 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -2594,8 +2594,8 @@ _046ParisRoledex:
 DB 46
 DB BUG
 DB GRASS
-DB $50 ;height
-DW $0064 ;weight
+DB $54 ;height
+DW $0073 ;weight
 DB 35 ;HP
 DB 70 ;Bat
 DB 55 ;Field
@@ -2605,7 +2605,7 @@ DB 1 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -2649,8 +2649,8 @@ _047PariahRoledex:
 DB 47
 DB BUG
 DB GRASS
-DB $50 ;height
-DW $0064 ;weight
+DB $69 ;height
+DW $0119 ;weight
 DB 60 ;HP
 DB 95 ;Bat
 DB 80 ;Field
@@ -2660,7 +2660,7 @@ DB 8 ;Lineup Body
 DB 4 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -2704,7 +2704,7 @@ DB 48
 DB BUG
 DB POISON
 DB $50 ;height
-DW $0064 ;weight
+DW $0053 ;weight
 DB 60 ;HP
 DB 55 ;Bat
 DB 50 ;Field
@@ -2714,7 +2714,7 @@ DB 0 ;Lineup Body
 DB 5 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePurple ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -2753,12 +2753,12 @@ DB 0
 DB EV_TYPE_AGE, 49, 31
 DB 0
 
-_049MotherRoledex:
+_049MouthRoledex:
 DB 49
 DB BUG
 DB POISON
-DB $50 ;height
-DW $0064 ;weight
+DB $54 ;height
+DW $00A6 ;weight
 DB 70 ;HP
 DB 65 ;Bat
 DB 60 ;Field
@@ -2768,7 +2768,7 @@ DB 2 ;Lineup Body
 DB 5 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePurple ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -2810,8 +2810,8 @@ _050DiggsRoledex:
 DB 50
 DB GROUND
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $55 ;height
+DW $0080 ;weight
 DB 10 ;HP
 DB 55 ;Bat
 DB 25 ;Field
@@ -2867,8 +2867,8 @@ _051DougRoledex:
 DB 51
 DB GROUND
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $63 ;height
+DW $0111 ;weight
 DB 35 ;HP
 DB 80 ;Bat
 DB 50 ;Field
@@ -2923,8 +2923,8 @@ _052MeowRoledex:
 DB 52
 DB NORMAL
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $41 ;height
+DW $0058 ;weight
 DB 40 ;HP
 DB 45 ;Bat
 DB 35 ;Field
@@ -2934,7 +2934,7 @@ DB 0 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -2978,8 +2978,8 @@ _053PurrRoledex:
 DB 53
 DB NORMAL
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $59 ;height
+DW $00A8 ;weight
 DB 65 ;HP
 DB 70 ;Bat
 DB 60 ;Field
@@ -2989,7 +2989,7 @@ DB 1 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -3034,8 +3034,8 @@ _054DuckRoledex:
 DB 54
 DB WATER
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $44 ;height
+DW $008C ;weight
 DB 50 ;HP
 DB 52 ;Bat
 DB 48 ;Field
@@ -3045,7 +3045,7 @@ DB 3 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -3085,12 +3085,12 @@ DB 0
 DB EV_TYPE_AGE, 55, 33
 DB 0
 
-_055GoldDuckRoledex:
+_055GooseRoledex:
 DB 55
 DB WATER
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $57 ;height
+DW $00D2 ;weight
 DB 80 ;HP
 DB 82 ;Bat
 DB 78 ;Field
@@ -3100,7 +3100,7 @@ DB 2 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteCyan ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -3143,8 +3143,8 @@ _056ManRoledex:
 DB 56
 DB FIGHTING
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $59 ;height
+DW $00AE ;weight
 DB 40 ;HP
 DB 80 ;Bat
 DB 35 ;Field
@@ -3200,8 +3200,8 @@ _057PrimoRoledex:
 DB 57
 DB FIGHTING
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $64 ;height
+DW $00D7 ;weight
 DB 65 ;HP
 DB 105 ;Bat
 DB 60 ;Field
@@ -3252,12 +3252,12 @@ DB 0
 ;evolution
 DB EV_TYPE_NONE
 
-_058LithiumRoledex:
+_058LitRoledex:
 DB 58
 DB FIRE
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $51 ;height
+DW $0071 ;weight
 DB 55 ;HP
 DB 70 ;Bat
 DB 45 ;Field
@@ -3267,7 +3267,7 @@ DB 1 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -3303,15 +3303,15 @@ DB KINESIS_MOVE, 39
 DB HEATER_MOVE, 50
 DB 0
 ;evolution
-DB EV_TYPE_ITEM, 59, FIRE_GLOVE_ITEM
+DB EV_TYPE_ITEM, 59, FIRE_BALL_ITEM
 DB 0
 
 _059ArcaneRoledex:
 DB 59
 DB FIRE
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $60 ;height
+DW $00B8 ;weight
 DB 90 ;HP
 DB 110 ;Bat
 DB 80 ;Field
@@ -3321,7 +3321,7 @@ DB 2 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -3361,8 +3361,8 @@ _060PollyRoledex:
 DB 60
 DB WATER
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $48 ;height
+DW $0051 ;weight
 DB 40 ;HP
 DB 50 ;Bat
 DB 40 ;Field
@@ -3372,7 +3372,7 @@ DB 0 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteBlue ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -3413,12 +3413,12 @@ DB 0
 DB EV_TYPE_AGE, 61, 25
 DB 0
 
-_061SwirlRoledex:
+_061WhirlyRoledex:
 DB 61
 DB WATER
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $57 ;height
+DW $0094 ;weight
 DB 65 ;HP
 DB 65 ;Bat
 DB 65 ;Field
@@ -3428,7 +3428,7 @@ DB 3 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteBlue ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -3473,8 +3473,8 @@ _062WrathRoledex:
 DB 62
 DB WATER
 DB FIGHTING
-DB $50 ;height
-DW $0064 ;weight
+DB $5B ;height
+DW $00C8 ;weight
 DB 90 ;HP
 DB 85 ;Bat
 DB 95 ;Field
@@ -3484,7 +3484,7 @@ DB 7 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteBlue ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -3526,8 +3526,8 @@ _063BruhRoledex:
 DB 63
 DB PSYCHIC
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $4B ;height
+DW $005C ;weight
 DB 25 ;HP
 DB 20 ;Bat
 DB 15 ;Field
@@ -3537,7 +3537,7 @@ DB 0 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -3576,8 +3576,8 @@ _064DabRoledex:
 DB 64
 DB PSYCHIC
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $5B ;height
+DW $00AC ;weight
 DB 40 ;HP
 DB 35 ;Bat
 DB 30 ;Field
@@ -3587,7 +3587,7 @@ DB 1 ;Lineup Body
 DB 4 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -3629,12 +3629,12 @@ DB 0
 DB EV_TYPE_TRADE, 65, 0
 DB 0
 
-_065KazaaRoledex:
+_065ZamRoledex:
 DB 65
 DB PSYCHIC
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $60 ;height
+DW $00BE ;weight
 DB 55 ;HP
 DB 50 ;Bat
 DB 45 ;Field
@@ -3644,7 +3644,7 @@ DB 2 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -3689,8 +3689,8 @@ _066ChipRoledex:
 DB 66
 DB FIGHTING
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $528 ;height
+DW $0080 ;weight
 DB 70 ;HP
 DB 80 ;Bat
 DB 50 ;Field
@@ -3700,7 +3700,7 @@ DB 2 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -3739,12 +3739,12 @@ DB 0
 DB EV_TYPE_AGE, 67, 28
 DB 0
 
-_067ChokeRoledex:
+_067ChuckRoledex:
 DB 67
 DB FIGHTING
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $67 ;height
+DW $00D7 ;weight
 DB 80 ;HP
 DB 100 ;Bat
 DB 70 ;Field
@@ -3754,7 +3754,7 @@ DB 3 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -3797,8 +3797,8 @@ _068ChampRoledex:
 DB 68
 DB FIGHTING
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $68 ;height
+DW $0107 ;weight
 DB 90 ;HP
 DB 130 ;Bat
 DB 80 ;Field
@@ -3808,7 +3808,7 @@ DB 4 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -3850,8 +3850,8 @@ _069SproutRoledex:
 DB 69
 DB GRASS
 DB POISON
-DB $50 ;height
-DW $0064 ;weight
+DB $48 ;height
+DW $0049 ;weight
 DB 50 ;HP
 DB 75 ;Bat
 DB 35 ;Field
@@ -3861,7 +3861,7 @@ DB 0 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteGreen ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -3907,8 +3907,8 @@ _070WeepyRoledex:
 DB 70
 DB GRASS
 DB POISON
-DB $50 ;height
-DW $0064 ;weight
+DB $61 ;height
+DW $009B ;weight
 DB 65 ;HP
 DB 90 ;Bat
 DB 50 ;Field
@@ -3918,7 +3918,7 @@ DB 1 ;Lineup Body
 DB 5 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteGreen ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -3957,15 +3957,15 @@ DB PLANT_N_TURN_MOVE, 38
 DB BOMB_MOVE, 49
 DB 0
 ;evolution
-DB EV_TYPE_ITEM, 71, LEAF_GLOVE_ITEM
+DB EV_TYPE_ITEM, 71, GRASS_GRIP_ITEM
 DB 0
 
 _071VicRoledex:
 DB 71
 DB GRASS
 DB POISON
-DB $50 ;height
-DW $0064 ;weight
+DB $61 ;height
+DW $00DF ;weight
 DB 80 ;HP
 DB 105 ;Bat
 DB 65 ;Field
@@ -3975,7 +3975,7 @@ DB 2 ;Lineup Body
 DB 4 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteGreen ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -4012,12 +4012,12 @@ DB 0
 ;evolution
 DB EV_TYPE_NONE
 
-_072FonzRoledex:
+_072JellyRoledex:
 DB 72
 DB WATER
 DB POISON
-DB $50 ;height
-DW $0064 ;weight
+DB $51 ;height
+DW $0054 ;weight
 DB 40 ;HP
 DB 40 ;Bat
 DB 35 ;Field
@@ -4027,7 +4027,7 @@ DB 1 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteCyan ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -4070,12 +4070,12 @@ DB 0
 DB EV_TYPE_AGE, 73, 30
 DB 0
 
-_073CruelRoledex:
+_073JamRoledex:
 DB 73
 DB WATER
 DB POISON
-DB $50 ;height
-DW $0064 ;weight
+DB $55 ;height
+DW $0085 ;weight
 DB 80 ;HP
 DB 70 ;Bat
 DB 65 ;Field
@@ -4085,7 +4085,7 @@ DB 2 ;Lineup Body
 DB 4 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteCyan ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -4132,7 +4132,7 @@ DB 74
 DB ROCK
 DB GROUND
 DB $50 ;height
-DW $0064 ;weight
+DW $0091 ;weight
 DB 40 ;HP
 DB 80 ;Bat
 DB 100 ;Field
@@ -4142,7 +4142,7 @@ DB 3 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -4187,8 +4187,8 @@ _075GravelRoledex:
 DB 75
 DB ROCK
 DB GROUND
-DB $50 ;height
-DW $0064 ;weight
+DB $61 ;height
+DW $00C3 ;weight
 DB 55 ;HP
 DB 95 ;Bat
 DB 115 ;Field
@@ -4198,7 +4198,7 @@ DB 4 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -4243,8 +4243,8 @@ _076GolemRoledex:
 DB 76
 DB ROCK
 DB GROUND
-DB $50 ;height
-DW $0064 ;weight
+DB $62 ;height
+DW $00FB ;weight
 DB 80 ;HP
 DB 110 ;Bat
 DB 130 ;Field
@@ -4254,7 +4254,7 @@ DB 5 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -4298,8 +4298,8 @@ _077PintoRoledex:
 DB 77
 DB FIRE
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $48 ;height
+DW $005E ;weight
 DB 50 ;HP
 DB 85 ;Bat
 DB 55 ;Field
@@ -4309,7 +4309,7 @@ DB 1 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -4350,12 +4350,12 @@ DB 0
 DB EV_TYPE_AGE, 78, 40
 DB 0
 
-_078MustangRoledex:
+_078UnicornRoledex:
 DB 78
 DB FIRE
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $59 ;height
+DW $00A6 ;weight
 DB 65 ;HP
 DB 100 ;Bat
 DB 70 ;Field
@@ -4365,7 +4365,7 @@ DB 2 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -4409,8 +4409,8 @@ _079SlowpokeRoledex:
 DB 79
 DB WATER
 DB PSYCHIC
-DB $50 ;height
-DW $0064 ;weight
+DB $57 ;height
+DW $00C7 ;weight
 DB 90 ;HP
 DB 65 ;Bat
 DB 65 ;Field
@@ -4420,7 +4420,7 @@ DB 3 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePink ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -4465,8 +4465,8 @@ _080LaggardRoledex:
 DB 80
 DB WATER
 DB PSYCHIC
-DB $50 ;height
-DW $0064 ;weight
+DB $5B ;height
+DW $00E0 ;weight
 DB 95 ;HP
 DB 75 ;Bat
 DB 110 ;Field
@@ -4476,7 +4476,7 @@ DB 5 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePink ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -4521,8 +4521,8 @@ _081MagnetRoledex:
 DB 81
 DB ELECTRIC
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $49 ;height
+DW $004E ;weight
 DB 25 ;HP
 DB 35 ;Bat
 DB 70 ;Field
@@ -4532,7 +4532,7 @@ DB 0 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -4565,7 +4565,7 @@ DB TOSS_MOVE, 1
 DB FASTBALL_MOVE, 21
 DB SHOCKER_MOVE, 25
 DB FOUR_SEAM_MOVE, 29
-DB LIGHTNINBOLT_MOVE, 35
+DB LIGHTNING_MOVE, 35
 DB SWAT_MOVE, 41
 DB SCREWBALL_MOVE, 47
 DB 0
@@ -4577,8 +4577,8 @@ _082TonRoledex:
 DB 82
 DB ELECTRIC
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $64 ;height
+DW $00EA ;weight
 DB 50 ;HP
 DB 60 ;Bat
 DB 95 ;Field
@@ -4588,7 +4588,7 @@ DB 5 ;Lineup Body
 DB 5 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -4621,7 +4621,7 @@ DB TOSS_MOVE, 1
 DB FASTBALL_MOVE, 21
 DB SHOCKER_MOVE, 25
 DB FOUR_SEAM_MOVE, 29
-DB LIGHTNINBOLT_MOVE, 38
+DB LIGHTNING_MOVE, 38
 DB SWAT_MOVE, 46
 DB SCREWBALL_MOVE, 54
 DB 0
@@ -4632,8 +4632,8 @@ _083DubiousRoledex:
 DB 83
 DB NORMAL
 DB FLYING
-DB $50 ;height
-DW $0064 ;weight
+DB $59 ;height
+DW $00B5 ;weight
 DB 52 ;HP
 DB 65 ;Bat
 DB 55 ;Field
@@ -4687,8 +4687,8 @@ _084DuceRoledex:
 DB 84
 DB NORMAL
 DB FLYING
-DB $50 ;height
-DW $0064 ;weight
+DB $49 ;height
+DW $0047 ;weight
 DB 35 ;HP
 DB 85 ;Bat
 DB 45 ;Field
@@ -4743,8 +4743,8 @@ _085TreyRoledex:
 DB 85
 DB NORMAL
 DB FLYING
-DB $50 ;height
-DW $0064 ;weight
+DB $61 ;height
+DW $00B6 ;weight
 DB 60 ;HP
 DB 110 ;Bat
 DB 70 ;Field
@@ -4792,8 +4792,8 @@ _086SealRoledex:
 DB 86
 DB WATER
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $53 ;height
+DW $0081 ;weight
 DB 65 ;HP
 DB 45 ;Bat
 DB 55 ;Field
@@ -4803,7 +4803,7 @@ DB 3 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteBlue ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -4847,8 +4847,8 @@ _087SealionRoledex:
 DB 87
 DB WATER
 DB ICE
-DB $50 ;height
-DW $0064 ;weight
+DB $5B ;height
+DW $00BC ;weight
 DB 90 ;HP
 DB 70 ;Bat
 DB 80 ;Field
@@ -4858,7 +4858,7 @@ DB 4 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteBlue ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -4900,8 +4900,8 @@ _088GreaserRoledex:
 DB 88
 DB POISON
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $55 ;height
+DW $00A6 ;weight
 DB 80 ;HP
 DB 80 ;Bat
 DB 50 ;Field
@@ -4911,7 +4911,7 @@ DB 3 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePurple ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -4952,12 +4952,12 @@ DB 0
 DB EV_TYPE_AGE, 89, 38
 DB 0
 
-_089YuckRoledex:
+_089MuckRoledex:
 DB 89
 DB POISON
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $62 ;height
+DW $0135 ;weight
 DB 105 ;HP
 DB 105 ;Bat
 DB 75 ;Field
@@ -4967,7 +4967,7 @@ DB 5 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePurple ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -5011,8 +5011,8 @@ _090CupRoledex:
 DB 90
 DB WATER
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $3B ;height
+DW $0042 ;weight
 DB 30 ;HP
 DB 65 ;Bat
 DB 100 ;Field
@@ -5022,7 +5022,7 @@ DB 0 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -5066,8 +5066,8 @@ _091DishRoledex:
 DB 91
 DB WATER
 DB ICE
-DB $50 ;height
-DW $0064 ;weight
+DB $63 ;height
+DW $0100 ;weight
 DB 50 ;HP
 DB 95 ;Bat
 DB 180 ;Field
@@ -5077,7 +5077,7 @@ DB 3 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -5118,8 +5118,8 @@ _092GasRoledex:
 DB 92
 DB GHOST
 DB POISON
-DB $50 ;height
-DW $0064 ;weight
+DB $39 ;height
+DW $002E ;weight
 DB 30 ;HP
 DB 35 ;Bat
 DB 30 ;Field
@@ -5129,7 +5129,7 @@ DB 0 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePurple ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -5171,8 +5171,8 @@ _093MortyRoledex:
 DB 93
 DB GHOST
 DB POISON
-DB $50 ;height
-DW $0064 ;weight
+DB $51 ;height
+DW $006E ;weight
 DB 45 ;HP
 DB 50 ;Bat
 DB 45 ;Field
@@ -5182,7 +5182,7 @@ DB 1 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePurple ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -5224,8 +5224,8 @@ _094MacobbRoledex:
 DB 94
 DB GHOST
 DB POISON
-DB $50 ;height
-DW $0064 ;weight
+DB $54 ;height
+DW $00B1 ;weight
 DB 60 ;HP
 DB 65 ;Bat
 DB 60 ;Field
@@ -5235,7 +5235,7 @@ DB 3 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePurple ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -5276,8 +5276,8 @@ _095OnyxRoledex:
 DB 95
 DB ROCK
 DB GROUND
-DB $50 ;height
-DW $0064 ;weight
+DB $7A ;height
+DW $011F ;weight
 DB 35 ;HP
 DB 45 ;Bat
 DB 160 ;Field
@@ -5287,7 +5287,7 @@ DB 7 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -5341,7 +5341,7 @@ DB 3 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -5383,7 +5383,7 @@ DB 0
 DB EV_TYPE_AGE, 97, 26
 DB 0
 
-_097MediumRoledex:
+_097SoothRoledex:
 DB 97
 DB PSYCHIC
 DB NONE
@@ -5398,7 +5398,7 @@ DB 4 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -5454,7 +5454,7 @@ DB 3 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -5509,7 +5509,7 @@ DB 5 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -5563,7 +5563,7 @@ DB 4 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -5618,7 +5618,7 @@ DB 5 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -5672,7 +5672,7 @@ DB 4 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePink ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -5710,7 +5710,7 @@ DB HARDWOOD_MOVE, 42
 DB SLEEPER_MOVE, 48
 DB 0
 ;evolution
-DB EV_TYPE_ITEM, 103, LEAF_GLOVE_ITEM
+DB EV_TYPE_ITEM, 103, GRASS_GRIP_ITEM
 DB 0
 
 _103EddRoledex:
@@ -5728,7 +5728,7 @@ DB 7 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteGreen ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -5778,7 +5778,7 @@ DB 0 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -5834,7 +5834,7 @@ DB 2 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -5998,7 +5998,7 @@ DB 3 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePink ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -6041,8 +6041,8 @@ _109AshRoledex:
 DB 109
 DB POISON
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $45 ;height
+DW $0061 ;weight
 DB 40 ;HP
 DB 65 ;Bat
 DB 95 ;Field
@@ -6052,7 +6052,7 @@ DB 3 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePurple ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -6096,8 +6096,8 @@ _110SmokeyRoledex:
 DB 110
 DB POISON
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $62 ;height
+DW $0112 ;weight
 DB 65 ;HP
 DB 90 ;Bat
 DB 120 ;Field
@@ -6107,7 +6107,7 @@ DB 4 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePurple ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -6150,8 +6150,8 @@ _111RhinoRoledex:
 DB 111
 DB GROUND
 DB ROCK
-DB $50 ;height
-DW $0064 ;weight
+DB $53 ;height
+DW $007A ;weight
 DB 80 ;HP
 DB 85 ;Bat
 DB 95 ;Field
@@ -6161,7 +6161,7 @@ DB 3 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -6206,8 +6206,8 @@ _112DonRoledex:
 DB 112
 DB GROUND
 DB ROCK
-DB $50 ;height
-DW $0064 ;weight
+DB $66 ;height
+DW $00FD ;weight
 DB 105 ;HP
 DB 130 ;Bat
 DB 120 ;Field
@@ -6217,7 +6217,7 @@ DB 4 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -6261,8 +6261,8 @@ _113ChanceRoledex:
 DB 113
 DB NORMAL
 DB NONE
-DB $50 ;height
-DW $0064 ;weight
+DB $67 ;height
+DW $01EB ;weight
 DB 250 ;HP
 DB 5 ;Bat
 DB 5 ;Field
@@ -6272,7 +6272,7 @@ DB 5 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePink ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -6327,7 +6327,7 @@ DB 1 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteBlue ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -6436,7 +6436,7 @@ DB 0 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteCyan ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -6491,7 +6491,7 @@ DB 1 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteCyan ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -6545,7 +6545,7 @@ DB 8 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -6602,7 +6602,7 @@ DB 8 ;Lineup Body
 DB 5 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -6658,7 +6658,7 @@ DB 0 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -6715,7 +6715,7 @@ DB 3 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -6766,7 +6766,7 @@ DB 1 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePink ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -6805,7 +6805,7 @@ DB 0
 ;evolution
 DB EV_TYPE_NONE
 
-_123ScissorsRoledex:
+_123ScyRoledex:
 DB 123
 DB BUG
 DB FLYING
@@ -6820,7 +6820,7 @@ DB 7 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteGreen ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -6875,7 +6875,7 @@ DB 3 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteWarm ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -6930,7 +6930,7 @@ DB 3 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -6985,7 +6985,7 @@ DB 3 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -7095,7 +7095,7 @@ DB 3 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -7149,7 +7149,7 @@ DB 1 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -7199,7 +7199,7 @@ DB 7 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteBlue ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -7253,7 +7253,7 @@ DB 3 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteCyan ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -7308,7 +7308,7 @@ DB 0 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -7357,7 +7357,7 @@ DB 1 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -7394,8 +7394,8 @@ DB SEPPUKUBALL_MOVE, 45
 DB 0
 ;evolution
 DB EV_TYPE_ITEM, 134, WATER_GLOVE_ITEM
-DB EV_TYPE_ITEM, 135, SPARK_GLOVE_ITEM
-DB EV_TYPE_ITEM, 136, FIRE_GLOVE_ITEM
+DB EV_TYPE_ITEM, 135, THUNDER_BAT_ITEM
+DB EV_TYPE_ITEM, 136, FIRE_BALL_ITEM
 DB 0
 
 _134VaporRoledex:
@@ -7413,7 +7413,7 @@ DB 2 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteCyan ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -7470,7 +7470,7 @@ DB 2 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -7513,7 +7513,7 @@ DB 0
 ;evolution
 DB EV_TYPE_NONE
 
-_136FalreRoledex:
+_136FlareRoledex:
 DB 136
 DB FIRE
 DB NONE
@@ -7528,7 +7528,7 @@ DB 3 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -7585,7 +7585,7 @@ DB 1 ;Lineup Body
 DB 5 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -7639,7 +7639,7 @@ DB 0 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteBlue ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -7693,7 +7693,7 @@ DB 3 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteBlue ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -7731,7 +7731,7 @@ DB 0
 ;evolution
 DB EV_TYPE_NONE
 
-_140HorshoeRoledex:
+_140CapRoledex:
 DB 140
 DB ROCK
 DB WATER
@@ -7838,7 +7838,7 @@ DB 0
 ;evolution
 DB EV_TYPE_NONE
 
-_142ArrowheadRoledex:
+_142BoneheadRoledex:
 DB 142
 DB ROCK
 DB FLYING
@@ -7853,7 +7853,7 @@ DB 7 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -7896,7 +7896,7 @@ DB 143
 DB NORMAL
 DB NONE
 DB $63 ;height
-DW $01A5 ;weight
+DW $021E ;weight
 DB 160 ;HP
 DB 110 ;Bat
 DB 65 ;Field
@@ -7906,7 +7906,7 @@ DB 5 ;Lineup Body
 DB 6 ;Lineup Head
 DB 7 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PalettePink ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -7960,7 +7960,7 @@ DB 7 ;Lineup Body
 DB 5 ;Lineup Head
 DB 7 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteBlue ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -8012,7 +8012,7 @@ DB 7 ;Lineup Body
 DB 4 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteYellow ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -8038,7 +8038,7 @@ DB _LEFTY_PITCHER_OPPONENT_TILE_COUNT
 DB BANK(_RightyPitcherOpponentTiles)
 DW _RightyPitcherOpponentTiles
 DB _RIGHTY_PITCHER_OPPONENT_TILE_COUNT
-DB $52, $A6, $10, $8C, $1E, $11, $C2 ;HM/TM bit field
+DB $4A, $A6, $10, $8C, $1E, $11, $C2 ;HM/TM bit field
 ;learnset
 DB BENDER_MOVE, 1
 DB THUNDERSTICK_MOVE, 1
@@ -8049,7 +8049,7 @@ DB 0
 ;evolution
 DB EV_TYPE_NONE
 
-_146EltonRoledex:
+_146FenixRoledex:
 DB 146
 DB FIRE
 DB FLYING
@@ -8064,7 +8064,7 @@ DB 7 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteRed ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -8116,7 +8116,7 @@ DB 0 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteSlate ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -8171,7 +8171,7 @@ DB 1 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 1 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteBlue ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -8280,7 +8280,7 @@ DB 7 ;Lineup Body
 DB 0 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteWarm ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -8335,7 +8335,7 @@ DB 0 ;Lineup Body
 DB 3 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
-DW PaletteSepia ;Color Palette
+DW PaletteWarm ;Color Palette
 ;animations
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
@@ -8392,7 +8392,7 @@ DW _016PidgeRoledex
 DW _017GioRoledex
 DW _018OTRoledex
 DW _019RatTailRoledex
-DW _020CaitRoledex
+DW _020MulletRoledex
 DW _021StoopRoledex
 DW _022CrowRoledex
 DW _023SnakeRoledex
@@ -8406,7 +8406,7 @@ DW _030MuchachaRoledex
 DW _031ReinaRoledex
 DW _032ChicoRoledex
 DW _033MuchachoRoledex
-DW _034RayRoledex
+DW _034ReyRoledex
 DW _035FairyRoledex
 DW _036FableRoledex
 DW _037VulfpekRoledex
@@ -8414,43 +8414,43 @@ DW _038FoxyRoledex
 DW _039PuffRoledex
 DW _040TuffRoledex
 DW _041BatsRoledex
-DW _042GoldBatsRoledex
+DW _042GoldenBatRoledex
 DW _043OddieRoledex
 DW _044GloomyRoledex
 DW _045VileRoledex
 DW _046ParisRoledex
 DW _047PariahRoledex
 DW _048NattyRoledex
-DW _049MotherRoledex
+DW _049MouthRoledex
 DW _050DiggsRoledex
 DW _051DougRoledex
 DW _052MeowRoledex
 DW _053PurrRoledex
 DW _054DuckRoledex
-DW _055GoldDuckRoledex
+DW _055GooseRoledex
 DW _056ManRoledex
 DW _057PrimoRoledex
-DW _058LithiumRoledex
+DW _058LitRoledex
 DW _059ArcaneRoledex
 DW _060PollyRoledex
-DW _061SwirlRoledex
+DW _061WhirlyRoledex
 DW _062WrathRoledex
 DW _063BruhRoledex
 DW _064DabRoledex
-DW _065KazaaRoledex
+DW _065ZamRoledex
 DW _066ChipRoledex
-DW _067ChokeRoledex
+DW _067ChuckRoledex
 DW _068ChampRoledex
 DW _069SproutRoledex
 DW _070WeepyRoledex
 DW _071VicRoledex
-DW _072FonzRoledex
-DW _073CruelRoledex
+DW _072JellyRoledex
+DW _073JamRoledex
 DW _074DudeRoledex
 DW _075GravelRoledex
 DW _076GolemRoledex
 DW _077PintoRoledex
-DW _078MustangRoledex
+DW _078UnicornRoledex
 DW _079SlowpokeRoledex
 DW _080LaggardRoledex
 DW _081MagnetRoledex
@@ -8461,7 +8461,7 @@ DW _085TreyRoledex
 DW _086SealRoledex
 DW _087SealionRoledex
 DW _088GreaserRoledex
-DW _089YuckRoledex
+DW _089MuckRoledex
 DW _090CupRoledex
 DW _091DishRoledex
 DW _092GasRoledex
@@ -8469,7 +8469,7 @@ DW _093MortyRoledex
 DW _094MacobbRoledex
 DW _095OnyxRoledex
 DW _096ZeeRoledex
-DW _097MediumRoledex
+DW _097SoothRoledex
 DW _098DickRoledex
 DW _099RexRoledex
 DW _100SpeedballRoledex
@@ -8495,7 +8495,7 @@ DW _119SeekerRoledex
 DW _120StarchildRoledex
 DW _121StarmanRoledex
 DW _122MimeRoledex
-DW _123ScissorsRoledex
+DW _123ScyRoledex
 DW _124JinxRoledex
 DW _125BuzzRoledex
 DW _126MagmaRoledex
@@ -8508,17 +8508,17 @@ DW _132YeahYeahRoledex
 DW _133EvieRoledex
 DW _134VaporRoledex
 DW _135JoltRoledex
-DW _136FalreRoledex
+DW _136FlareRoledex
 DW _137PolygonRoledex
 DW _138SpiralRoledex
 DW _139SpireRoledex
-DW _140HorshoeRoledex
+DW _140CapRoledex
 DW _141TopperRoledex
-DW _142ArrowheadRoledex
+DW _142BoneheadRoledex
 DW _143BearRoledex
 DW _144ArtRoledex
 DW _145ZaphRoledex
-DW _146EltonRoledex
+DW _146FenixRoledex
 DW _147DratsRoledex
 DW _148AireRoledex
 DW _149DragonRoledex
