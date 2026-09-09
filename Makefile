@@ -60,6 +60,7 @@ endif
 	$(PYTHON) moves.py
 	$(PYTHON) items.py
 	$(PYTHON) translate.py 
+	$(PYTHON) teams.py 
 
 clean:
 	@rm -rf $(BUILD_DIR)
