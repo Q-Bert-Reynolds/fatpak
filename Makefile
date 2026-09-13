@@ -54,6 +54,7 @@ ifeq ("$(wildcard $(MOD2GBT))","")
 	gcc -o $(MOD2GBT) mod2gbt.c
 endif
 
+	$(PYTHON) build.py 
 	$(PYTHON) mod2gbt.py
 	$(PYTHON) img2rgbds.py
 	$(PYTHON) roledex.py
