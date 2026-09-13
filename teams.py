@@ -86,6 +86,7 @@ class Team:
         if a.position == b.position:
           print(f'{a.name} and {b.name} both play {a.position} on the {self.city} {self.name}')
     
+    #TODO: check team name <= 8 chars
     #TODO: check for age restriction violations
     #TODO: check impossible evolutions (ie. Ton can't be 16)
     #TODO: check for moves that can't be learned

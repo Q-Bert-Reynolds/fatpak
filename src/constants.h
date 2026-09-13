@@ -1,3 +1,4 @@
+//TODO: generate this from constants.asm
 #ifndef CONSTANTS
 #define CONSTANTS
 
