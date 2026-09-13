@@ -4,10 +4,11 @@ import csv
 import textwrap
 import math
 import pathlib 
+from utils import *
 
-players_per_file = 27
-file_count = math.ceil(151 / players_per_file)
-print ("Generating " + str(file_count) + " player image banks.")
+players_per_bank = 27
+bank_count = math.ceil(151 / players_per_bank)
+print("Generating " + str(bank_count) + " player image banks.")
 
 anims = [
   "lefty_batter_user",
@@ -71,12 +72,12 @@ def main():
 
 def generate_img_bank(roledex):
   with open("./data/player_img.asm", "w+") as asm_file:
-    asm_file.write("DEF IMG_BANK_COUNT EQU " + str(file_count) + "\n")
-    asm_file.write("DEF PLAYERS_PER_BANK EQU (151 + (IMG_BANK_COUNT- 1)) / IMG_BANK_COUNT\n\n")
-    for bank in range(file_count):
-      player_count = players_per_file
-      if bank == file_count-1:
-        player_count = 151 - players_per_file * (file_count-1)
+    asm_file.write("DEF PLAYER_IMG_BANK_COUNT EQU " + str(bank_count) + "\n")
+    asm_file.write("DEF PLAYERS_PER_BANK EQU (151 + (PLAYER_IMG_BANK_COUNT- 1)) / PLAYER_IMG_BANK_COUNT\n\n")
+    for bank in range(bank_count):
+      player_count = players_per_bank
+      if bank == bank_count-1:
+        player_count = 151 - players_per_bank * (bank_count-1)
 
       asm_file.write("SECTION \"Player Images "+str(bank)+"\", ROMX, BANK[PLAYER_IMG_BANK+"+str(bank)+"]\n\n")
       
@@ -86,31 +87,31 @@ def generate_img_bank(roledex):
       asm_file.write("DW PlayerTileMaps"+str(bank)+"\n")
 
       for n in range(player_count):
-        player = roledex[bank*players_per_file+n]
+        player = roledex[bank*players_per_bank+n]
         name = player["#"] + player["Nickname"].replace(" ","").replace("-","")
         asm_file.write("INCLUDE \"img/players/"+name+".asm\"\n")
 
       asm_file.write("\nPlayerTiles"+str(bank)+"::\n")
       for n in range(player_count):
-        player = roledex[bank*players_per_file+n]
+        player = roledex[bank*players_per_bank+n]
         name = player["#"] + player["Nickname"].replace(" ","").replace("-","")
         asm_file.write("DW _"+name+"Tiles\n")
 
       asm_file.write("\nPlayerTileCounts"+str(bank)+"::\n")
       for n in range(player_count):
-        player = roledex[bank*players_per_file+n]
+        player = roledex[bank*players_per_bank+n]
         name = player["#"] + player["Nickname"].replace(" ","").replace("-","")
         asm_file.write("DB _"+name.upper()+"_TILE_COUNT\n")
 
       asm_file.write("\nPlayerColumns"+str(bank)+"::\n")
       for n in range(player_count):
-        player = roledex[bank*players_per_file+n]
+        player = roledex[bank*players_per_bank+n]
         name = player["#"] + player["Nickname"].replace(" ","").replace("-","")
         asm_file.write("DB _"+name.upper()+"_COLUMNS\n")
 
       asm_file.write("\nPlayerTileMaps"+str(bank)+"::\n")
       for n in range(player_count):
-        player = roledex[bank*players_per_file+n]
+        player = roledex[bank*players_per_bank+n]
         name = player["#"] + player["Nickname"].replace(" ","").replace("-","")
         asm_file.write("DW _"+name+"TileMap\n")
 
@@ -122,7 +123,7 @@ def generate_img_bank(roledex):
     index = 0
     while index < 151:
       if bytes_so_far == 0:
-        asm_file.write("SECTION \"Player Animations "+str(bank)+"\", ROMX, BANK[PLAYER_IMG_BANK+IMG_BANK_COUNT+"+str(bank)+"]\n\n")
+        asm_file.write("SECTION \"Player Animations "+str(bank)+"\", ROMX, BANK[PLAYER_IMG_BANK+PLAYER_IMG_BANK_COUNT+"+str(bank)+"]\n\n")
         asm_file.write("\n")
       player = roledex[index]
       name = player["#"] + player["Nickname"].replace(" ","").replace("-","")
@@ -261,14 +262,6 @@ def generate_player_data(roledex, learned_moves, taught_moves):
       asm_file.write(evolves_to_string(roledex, player))
       
     asm_file.write("\nRoledex:\n"+var_names)
-
-def PascalCase(name):
-  s = name.split("_")
-  for i in range(len(s)):
-    s[i] = s[i][0].upper() + s[i][1:]
-  s = "".join(s)
-  s.replace("-", "")
-  return s
 
 if __name__ == "__main__":
   main()

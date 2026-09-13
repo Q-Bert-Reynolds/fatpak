@@ -29,6 +29,7 @@
 from PIL import Image 
 from random import shuffle
 import os
+from utils import *
 
 def convert(im_path, outpath):
     base, ext = os.path.splitext(im_path)
@@ -281,14 +282,6 @@ def convert(im_path, outpath):
 
     with open(outpath, "w") as f:
         f.write(s)
-
-def PascalCase(name):
-  s = name.split("_")
-  for i in range(len(s)):
-    s[i] = s[i][0].upper() + s[i][1:]
-  s = "".join(s)
-  s.replace("-", "")
-  return s
         
 if __name__ == "__main__":
     import sys

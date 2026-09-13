@@ -3,6 +3,7 @@ import sys
 import math
 import colorsys
 import pathlib 
+from utils import *
 from PIL import Image
 from PIL import GifImagePlugin
 from sgb_border import convert as sgb_convert
@@ -384,14 +385,6 @@ def png_to_gb (path, base, name):
           bin_file.write(bytes.fromhex(hex_string))
 
       asm_file.write("ENDC\n")
-
-def PascalCase(name):
-  s = name.split("_")
-  for i in range(len(s)):
-    s[i] = s[i][0].upper() + s[i][1:]
-  s = "".join(s)
-  s.replace("-", "")
-  return s
 
 if __name__ == "__main__":
     if len(sys.argv) == 1: parse_all()

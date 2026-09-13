@@ -364,8 +364,7 @@ DrawTeamNames::
 .setOpposingTeamName
   ld hl, rival_name;TODO: get coach/team name
   ld de, name_buffer
-  ld bc, 8
-  call mem_Copy;memcpy(name_buff, rival_name, 8);
+  call str_Copy
 
 .drawOpposingName
   ld hl, name_buffer

@@ -4,7 +4,6 @@ INCLUDE "data/strings/core_strings.asm"
 ; GetTypeString                   a = type, string in name_buffer
 ; GetStatusString                 a = status mask, string in name_buffer
 ; CopyAddressStoredAtBCToBC       bc = address of address, returns address stored at bc in bc
-; SetBank                         a = bank ;TODO: handle more than 255 banks
 ; Trampoline                      b = bank, hl = address, can only use a, e, and RAM for args, can return in any register
 ; UpdateInput
 ; DrawStateMap
@@ -38,6 +37,7 @@ INCLUDE "data/strings/core_strings.asm"
 ; GBCSetPalette                   a = palette id, hl = colors
 ; CopyPalettesTo                  hl = destination
 ; CopyPalettesFrom                hl = source
+; SetTwoColorBGPalettes           b = first pal index, c = num palettes, hl = source
 
 GetTypeString:: ;a = type, string in name_buffer
   ld b, 0
@@ -1279,6 +1279,34 @@ GBCSetPalette::;a = palette id, hl = colors
     jr nz, .loopColors
   ret
 
+; TODO: handle SGB
+SetTwoColorBGPalettes::; b = first pal index, c = num palettes, hl = source
+  ld a, b
+  sla a
+  sla a
+  sla a
+  or a, BCPSF_AUTOINC
+  ldh [rBCPS], a
+.loop
+    ld a, [ColorWhite]
+    ldh [rBCPD], a
+    ld a, [ColorWhite+1]
+    ldh [rBCPD], a
+    ld a, [hli];light grey
+    ldh [rBCPD], a
+    ld a, [hli]
+    ldh [rBCPD], a
+    ld a, [hli];dark grey
+    ldh [rBCPD], a
+    ld a, [hli]
+    ldh [rBCPD], a
+    ld a, [ColorBlack]
+    ldh [rBCPD], a
+    ld a, [ColorBlack+1]
+    ldh [rBCPD], a
+    dec c
+    jr nz, .loop
+  ret
 ;----------------------------------------------------------------------
 ;
 ; SetColorBlocks - sets rectangles of color in screenspace

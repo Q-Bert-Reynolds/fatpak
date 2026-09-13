@@ -48,6 +48,7 @@
 #define SONG_BANK            15
 #define WORLD_BANK           20
 #define MAPS_BANK            WORLD_BANK+1
+#define COACH_IMG_BANK       45
 #define PLAYER_IMG_BANK      50
 #define SGB_BANK             62
 

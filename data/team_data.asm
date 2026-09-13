@@ -1,4 +1,12 @@
-BoulderCityRockersLineup:
+BoulderCityRockersTeam::
+.name: DB "Rockers",0
+.coach: DB "Coach Brick",0,0,0,0,0
+.money: D24 1000
+.restriction: DB -12
+.flag: DB ROCK_PENNANT_FLAG
+.item: DB TM34_ITEM
+.image: DB COACH_COACH_BRICK
+.lineup:
   DB NUM_GOLEM,       12, CATCHER,        THROW_RIGHT | BAT_RIGHT
   DB NUM_GRAVEL,      12, CENTER_FIELDER, THROW_RIGHT | BAT_RIGHT
   DB NUM_ONYX,        11, FIRST_BASEMAN,  THROW_LEFT  | BAT_LEFT
@@ -9,7 +17,15 @@ BoulderCityRockersLineup:
   DB NUM_DUDE,        11, SHORTSTOP,      THROW_RIGHT | BAT_RIGHT
   DB NUM_RHINO,       12, PITCHER,        THROW_LEFT  | BAT_LEFT
 
-InningCityLakeMonstersLineup:
+InningCityNessiesTeam::
+.name: DB "Nessies",0
+.coach: DB "Skip Rivers",0,0,0,0,0
+.money: D24 2500
+.restriction: DB -14
+.flag: DB LAPIS_PENNANT_FLAG
+.item: DB TM11_ITEM
+.image: DB COACH_SKIP_RIVERS
+.lineup:
   DB NUM_STARCHILD,   13, SHORTSTOP,      THROW_RIGHT | BAT_RIGHT
   DB NUM_POLLY,       11, SECOND_BASEMAN, THROW_RIGHT | BAT_RIGHT
   DB NUM_STARMAN,     14, CENTER_FIELDER, THROW_RIGHT | BAT_RIGHT
@@ -20,7 +36,15 @@ InningCityLakeMonstersLineup:
   DB NUM_GOLDIE,      12, CATCHER,        THROW_RIGHT | BAT_RIGHT
   DB NUM_DUCK,        14, PITCHER,        THROW_RIGHT | BAT_RIGHT
 
-PlateCitySurgeLineup:
+PlateCitySurgeTeam::
+.name: DB "Surge",0,0,0
+.coach: DB "Cap. Shreve",0,0,0,0,0
+.money: D24 5000
+.restriction: DB -16
+.flag: DB COOPER_PENNANT_FLAG
+.item: DB TM24_ITEM
+.image: DB COACH_CAPTAIN_SHREVE
+.lineup:
   DB NUM_CHU,         15, SECOND_BASEMAN, THROW_RIGHT | BAT_RIGHT
   DB NUM_SPEEDBALL,   16, THIRD_BASEMAN,  THROW_RIGHT | BAT_RIGHT
   DB NUM_TON,         16, FIRST_BASEMAN,  THROW_RIGHT | BAT_RIGHT
@@ -31,7 +55,15 @@ PlateCitySurgeLineup:
   DB NUM_MAGNET,       5, CENTER_FIELDER, THROW_RIGHT | BAT_RIGHT
   DB NUM_MAGNET,       5, RIGHT_FIELDER,  THROW_RIGHT | BAT_RIGHT
 
-GrandCityBloomersLineup:
+GrandCityBloomTeam::
+.name: DB "Bloom",0,0,0
+.coach: DB "Bella Donna",0,0,0,0,0
+.money: D24 10000
+.restriction: DB -18
+.flag: DB EARTH_PENNANT_FLAG
+.item: DB TM11_ITEM
+.image: DB COACH_BELLA_DONNA
+.lineup:
   DB NUM_ED,          18, RIGHT_FIELDER,  THROW_RIGHT | BAT_RIGHT
   DB NUM_VIC,         18, FIRST_BASEMAN,  THROW_RIGHT | BAT_RIGHT
   DB NUM_VILE,        17, PITCHER,        THROW_RIGHT | BAT_RIGHT
@@ -42,7 +74,15 @@ GrandCityBloomersLineup:
   DB NUM_BEEDIE,      18, SHORTSTOP,      THROW_RIGHT | BAT_RIGHT
   DB NUM_BUTTERFLY,   17, CENTER_FIELDER, THROW_RIGHT | BAT_RIGHT
 
-SaferunCitySupernatsLineup:
+SaferunCityNatsTeam::
+.name: DB "Nats",0,0,0,0
+.coach: DB "Great Zambino",0,0,0
+.money: D24 25000
+.restriction: DB 18
+.flag: DB BOG_PENNANT_FLAG
+.item: DB TM46_ITEM
+.image: DB COACH_GREAT_ZAMBINO
+.lineup:
   DB NUM_MOUTH,       19, SHORTSTOP,      THROW_RIGHT | BAT_RIGHT
   DB NUM_ZAM,         20, CATCHER,        THROW_RIGHT | BAT_RIGHT
   DB NUM_DAB,         20, THIRD_BASEMAN,  THROW_RIGHT | BAT_RIGHT
@@ -53,7 +93,15 @@ SaferunCitySupernatsLineup:
   DB NUM_ED,          18, RIGHT_FIELDER,  THROW_RIGHT | BAT_RIGHT
   DB NUM_LAGGARD,     27, FIRST_BASEMAN,  THROW_RIGHT | BAT_RIGHT
 
-FastballCityNinjasLineup:
+FastballCityNinjasTeam::
+.name: DB "Ninjas",0,0
+.coach: DB "Ralph Soto",0,0,0,0,0,0
+.money: D24 50000
+.restriction: DB 21
+.flag: DB RUBBER_PENNANT_FLAG
+.item: DB TM06_ITEM
+.image: DB COACH_RALPH_SOTO
+.lineup:
   DB NUM_ASH,         21, SECOND_BASEMAN, THROW_RIGHT | BAT_RIGHT
   DB NUM_MUCK,        32, LEFT_FIELDER,   THROW_RIGHT | BAT_RIGHT
   DB NUM_SMOKEY,      24, FIRST_BASEMAN,  THROW_RIGHT | BAT_RIGHT
@@ -64,7 +112,15 @@ FastballCityNinjasLineup:
   DB NUM_COBRA,       41, PITCHER,        THROW_RIGHT | BAT_RIGHT
   DB NUM_BEEDIE,      37, THIRD_BASEMAN,  THROW_RIGHT | BAT_RIGHT
 
-PepperCityBlazeLineup:
+PepperCityBlazeTeam::
+.name: DB "Blaze",0,0,0
+.coach: DB "Señor Cano",0,0,0,0,0,0
+.money: D24 100000
+.restriction: DB 30
+.flag: DB MANTLE_PENNANT_FLAG
+.item: DB TM06_ITEM
+.image: DB COACH_SENOR_CANO
+.lineup:
   DB NUM_PINTO,       30, SECOND_BASEMAN, THROW_RIGHT | BAT_RIGHT
   DB NUM_UNICORN,     36, LEFT_FIELDER,   THROW_RIGHT | BAT_RIGHT
   DB NUM_MAGMA,       41, FIRST_BASEMAN,  THROW_RIGHT | BAT_RIGHT
@@ -75,7 +131,15 @@ PepperCityBlazeLineup:
   DB NUM_PINTO,       33, PITCHER,        THROW_RIGHT | BAT_RIGHT
   DB NUM_LIT,         46, THIRD_BASEMAN,  THROW_RIGHT | BAT_RIGHT
 
-VeteranCityPadrinosLineup:
+VeteranCityPadresTeam::
+.name: DB "Padres",0,0
+.coach: DB "GM Gandil",0,0,0,0,0,0,0
+.money: D24 250000
+.restriction: DB 40
+.flag: DB DIAMOND_PENNANT_FLAG
+.item: DB TM38_ITEM
+.image: DB COACH_GM_GANDIL
+.lineup:
   DB NUM_RHINO,       47, SECOND_BASEMAN, THROW_RIGHT | BAT_RIGHT
   DB NUM_REINA,       41, LEFT_FIELDER,   THROW_RIGHT | BAT_RIGHT
   DB NUM_DON,         45, RIGHT_FIELDER,  THROW_RIGHT | BAT_RIGHT
@@ -86,7 +150,15 @@ VeteranCityPadrinosLineup:
   DB NUM_MARROW,      41, PITCHER,        THROW_RIGHT | BAT_RIGHT
   DB NUM_ONYX,        54, FIRST_BASEMAN,  THROW_LEFT  | BAT_LEFT
 
-IndiePlateauAvalanchesLineup:
+IndiePlateauFreezeTeam::
+.name: DB "Freeze",0,0
+.coach: DB "GM Elsa",0,0,0,0,0,0,0,0,0
+.money: D24 500000
+.restriction: DB 0
+.flag: DB 0
+.item: DB 0
+.image: DB COACH_GM_ELSA
+.lineup:
   DB NUM_SEALION,     27, SECOND_BASEMAN, THROW_RIGHT | BAT_RIGHT
   DB NUM_DISH,        29, LEFT_FIELDER,   THROW_RIGHT | BAT_RIGHT
   DB NUM_LAGGARD,     35, RIGHT_FIELDER,  THROW_RIGHT | BAT_RIGHT
@@ -97,7 +169,15 @@ IndiePlateauAvalanchesLineup:
   DB NUM_MIME,        21, PITCHER,        THROW_LEFT  | BAT_RIGHT
   DB NUM_STARMAN,     34, FIRST_BASEMAN,  THROW_RIGHT | BAT_RIGHT
 
-IndiePlateauFightersLineup:
+IndiePlateauBrutesTeam::
+.name: DB "Brutes",0,0
+.coach: DB "GM Wu",0,0,0,0,0,0,0,0,0,0,0
+.money: D24 500000
+.restriction: DB 0
+.flag: DB 0
+.item: DB 0
+.image: DB COACH_GM_WU
+.lineup:
   DB NUM_CHAMP,       30, CENTER_FIELDER, THROW_RIGHT | BAT_RIGHT
   DB NUM_ONYX,        29, FIRST_BASEMAN,  THROW_LEFT  | BAT_LEFT
   DB NUM_JACKIE,      24, SECOND_BASEMAN, THROW_RIGHT | BAT_RIGHT
@@ -108,7 +188,15 @@ IndiePlateauFightersLineup:
   DB NUM_CHUCK,       23, RIGHT_FIELDER,  THROW_RIGHT | BAT_RIGHT
   DB NUM_PRIMO,       34, THIRD_BASEMAN,  THROW_RIGHT | BAT_RIGHT
 
-IndiePlateauSpectresLineup:
+IndiePlateauGhostsTeam::
+.name: DB "Ghosts",0,0
+.coach: DB "GM Venkman",0,0,0,0,0,0
+.money: D24 500000
+.restriction: DB 0
+.flag: DB 0
+.item: DB 0
+.image: DB COACH_GM_VENKMAN
+.lineup:
   DB NUM_GOLDEN_BAT,  42, SECOND_BASEMAN, THROW_RIGHT | BAT_RIGHT
   DB NUM_MARROW,      33, CENTER_FIELDER, THROW_RIGHT | BAT_RIGHT
   DB NUM_MACOBB,     114, PITCHER,        THROW_RIGHT | BAT_RIGHT
@@ -119,7 +207,15 @@ IndiePlateauSpectresLineup:
   DB NUM_LICK,        25, RIGHT_FIELDER,  THROW_RIGHT | BAT_LEFT
   DB NUM_VILE,        21, LEFT_FIELDER,   THROW_RIGHT | BAT_RIGHT
 
-IndiePlateauDragonsLineup:
+IndiePlateauDragonsTeam::
+.name: DB "Dragons",0
+.coach: DB "GM Aragon",0,0,0,0,0,0,0
+.money: D24 500000
+.restriction: DB 0
+.flag: DB 0
+.item: DB 0
+.image: DB COACH_GM_ARAGON
+.lineup:
   DB NUM_BONEHEAD,    84, LEFT_FIELDER,   THROW_LEFT  | BAT_LEFT
   DB NUM_REINA,       29, SECOND_BASEMAN, THROW_RIGHT | BAT_SWITCH
   DB NUM_REY,         27, SHORTSTOP,      THROW_RIGHT | BAT_RIGHT
@@ -130,7 +226,15 @@ IndiePlateauDragonsLineup:
   DB NUM_DRAGON,      27, PITCHER,        THROW_RIGHT | BAT_RIGHT
   DB NUM_GAR,         30, RIGHT_FIELDER,  THROW_RIGHT | BAT_RIGHT
 
-IndiePlateauGreensLineup:
+IndiePlateauGreensTeam::
+.name: DB "Greens",0,0
+.coach: DB "Coach Nolan",0,0,0,0,0
+.money: D24 1000000
+.restriction: DB 0
+.flag: DB 0
+.item: DB 0
+.image: DB COACH_NOLAN2
+.lineup:
   DB NUM_CHAMP,       25, CENTER_FIELDER, THROW_RIGHT | BAT_RIGHT
   DB NUM_VENUS,       27, SHORTSTOP,      THROW_RIGHT | BAT_SWITCH
   DB NUM_GAR,         27, THIRD_BASEMAN,  THROW_RIGHT | BAT_RIGHT
@@ -141,7 +245,15 @@ IndiePlateauGreensLineup:
   DB NUM_DON,         28, LEFT_FIELDER,   THROW_RIGHT | BAT_RIGHT
   DB NUM_ZAM,         34, CATCHER,        THROW_RIGHT | BAT_RIGHT
 
-IndiePlateauBluesLineup:
+IndiePlateauBluesTeam::
+.name: DB "Blues",0,0,0
+.coach: DB "Coach Nolan",0,0,0,0,0
+.money: D24 1000000
+.restriction: DB 0
+.flag: DB 0
+.item: DB 0
+.image: DB COACH_NOLAN2
+.lineup:
   DB NUM_CHAMP,       25, CENTER_FIELDER, THROW_RIGHT | BAT_RIGHT
   DB NUM_YOGI,        27, CATCHER,        THROW_RIGHT | BAT_RIGHT
   DB NUM_ARCANE,      27, THIRD_BASEMAN,  THROW_RIGHT | BAT_RIGHT
@@ -152,7 +264,15 @@ IndiePlateauBluesLineup:
   DB NUM_DON,         28, LEFT_FIELDER,   THROW_RIGHT | BAT_RIGHT
   DB NUM_ZAM,         34, RIGHT_FIELDER,  THROW_RIGHT | BAT_RIGHT
 
-IndiePlateauRedsLineup:
+IndiePlateauRedsTeam::
+.name: DB "Reds",0,0,0,0
+.coach: DB "Coach Nolan",0,0,0,0,0
+.money: D24 1000000
+.restriction: DB 0
+.flag: DB 0
+.item: DB 0
+.image: DB COACH_NOLAN2
+.lineup:
   DB NUM_CHAMP,       25, CENTER_FIELDER, THROW_RIGHT | BAT_RIGHT
   DB NUM_BIG_RED,     27, PITCHER,        THROW_LEFT  | BAT_LEFT
   DB NUM_EDD,         27, THIRD_BASEMAN,  THROW_RIGHT | BAT_RIGHT

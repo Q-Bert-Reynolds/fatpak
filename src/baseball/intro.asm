@@ -229,14 +229,11 @@ PlayBallIntro: ;[_a] = player num or coach id
   ld a, [sgb_Pal23]
   call SetPalettesDirect
 
-  ld a, COACH_CALVIN;TODO: replace with actual opponent name
-  call GetCoachesName;coach name in name_buffer
-  ld hl, name_buffer
+  ld hl, rival_name;TODO: get coach/team name
   ld de, str_buffer
   call str_Copy;coach name in str_buffer
   STR_FAR_COPY TeamChallengeText, name_buffer
   ld hl, name_buffer
-  ; ld hl, TeamChallengeText
   ld de, str_buffer
   call str_Append;coach name + "wants to play %s innings." in str_buffer
   ld hl, 3

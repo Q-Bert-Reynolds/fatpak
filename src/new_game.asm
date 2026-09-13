@@ -416,8 +416,7 @@ ENDC
 .saveRivalName
   ld hl, name_buffer
   ld de, rival_name
-  ld bc, 8
-  call mem_Copy; memcpy(rival_name, name_buff, 8);
+  call str_Copy
 
 .showCalvinAgain
   DISPLAY_OFF
