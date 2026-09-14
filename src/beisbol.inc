@@ -24,6 +24,7 @@ INCLUDE "src/roledex/roledex.asm"
 INCLUDE "src/core.asm"
 INCLUDE "src/players.asm"
 INCLUDE "src/coaches.asm"
+INCLUDE "src/teams.asm"
 INCLUDE "src/map_loader.asm"
 
 ;TODO: Remove temp data and tests

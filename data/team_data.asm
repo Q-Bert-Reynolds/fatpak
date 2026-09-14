@@ -1,6 +1,7 @@
 BoulderCityRockersTeam::
 .name: DB "Rockers",0
 .coach: DB "Coach Brick",0,0,0,0,0
+.innings: DB 6
 .money: D24 1000
 .restriction: DB -12
 .flag: DB ROCK_PENNANT_FLAG
@@ -20,6 +21,7 @@ BoulderCityRockersTeam::
 InningCityNessiesTeam::
 .name: DB "Nessies",0
 .coach: DB "Skip Rivers",0,0,0,0,0
+.innings: DB 7
 .money: D24 2500
 .restriction: DB -14
 .flag: DB LAPIS_PENNANT_FLAG
@@ -39,6 +41,7 @@ InningCityNessiesTeam::
 PlateCitySurgeTeam::
 .name: DB "Surge",0,0,0
 .coach: DB "Cap. Shreve",0,0,0,0,0
+.innings: DB 7
 .money: D24 5000
 .restriction: DB -16
 .flag: DB COOPER_PENNANT_FLAG
@@ -58,6 +61,7 @@ PlateCitySurgeTeam::
 GrandCityBloomTeam::
 .name: DB "Bloom",0,0,0
 .coach: DB "Bella Donna",0,0,0,0,0
+.innings: DB 7
 .money: D24 10000
 .restriction: DB -18
 .flag: DB EARTH_PENNANT_FLAG
@@ -77,6 +81,7 @@ GrandCityBloomTeam::
 SaferunCityNatsTeam::
 .name: DB "Nats",0,0,0,0
 .coach: DB "Great Zambino",0,0,0
+.innings: DB 9
 .money: D24 25000
 .restriction: DB 18
 .flag: DB BOG_PENNANT_FLAG
@@ -96,6 +101,7 @@ SaferunCityNatsTeam::
 FastballCityNinjasTeam::
 .name: DB "Ninjas",0,0
 .coach: DB "Ralph Soto",0,0,0,0,0,0
+.innings: DB 9
 .money: D24 50000
 .restriction: DB 21
 .flag: DB RUBBER_PENNANT_FLAG
@@ -115,6 +121,7 @@ FastballCityNinjasTeam::
 PepperCityBlazeTeam::
 .name: DB "Blaze",0,0,0
 .coach: DB "Señor Cano",0,0,0,0,0,0
+.innings: DB 9
 .money: D24 100000
 .restriction: DB 30
 .flag: DB MANTLE_PENNANT_FLAG
@@ -134,6 +141,7 @@ PepperCityBlazeTeam::
 VeteranCityPadresTeam::
 .name: DB "Padres",0,0
 .coach: DB "GM Gandil",0,0,0,0,0,0,0
+.innings: DB 9
 .money: D24 250000
 .restriction: DB 40
 .flag: DB DIAMOND_PENNANT_FLAG
@@ -153,6 +161,7 @@ VeteranCityPadresTeam::
 IndiePlateauFreezeTeam::
 .name: DB "Freeze",0,0
 .coach: DB "GM Elsa",0,0,0,0,0,0,0,0,0
+.innings: DB 9
 .money: D24 500000
 .restriction: DB 0
 .flag: DB 0
@@ -172,6 +181,7 @@ IndiePlateauFreezeTeam::
 IndiePlateauBrutesTeam::
 .name: DB "Brutes",0,0
 .coach: DB "GM Wu",0,0,0,0,0,0,0,0,0,0,0
+.innings: DB 9
 .money: D24 500000
 .restriction: DB 0
 .flag: DB 0
@@ -191,6 +201,7 @@ IndiePlateauBrutesTeam::
 IndiePlateauGhostsTeam::
 .name: DB "Ghosts",0,0
 .coach: DB "GM Venkman",0,0,0,0,0,0
+.innings: DB 9
 .money: D24 500000
 .restriction: DB 0
 .flag: DB 0
@@ -210,6 +221,7 @@ IndiePlateauGhostsTeam::
 IndiePlateauDragonsTeam::
 .name: DB "Dragons",0
 .coach: DB "GM Aragon",0,0,0,0,0,0,0
+.innings: DB 9
 .money: D24 500000
 .restriction: DB 0
 .flag: DB 0
@@ -229,6 +241,7 @@ IndiePlateauDragonsTeam::
 IndiePlateauGreensTeam::
 .name: DB "Greens",0,0
 .coach: DB "Coach Nolan",0,0,0,0,0
+.innings: DB 9
 .money: D24 1000000
 .restriction: DB 0
 .flag: DB 0
@@ -248,6 +261,7 @@ IndiePlateauGreensTeam::
 IndiePlateauBluesTeam::
 .name: DB "Blues",0,0,0
 .coach: DB "Coach Nolan",0,0,0,0,0
+.innings: DB 9
 .money: D24 1000000
 .restriction: DB 0
 .flag: DB 0
@@ -267,6 +281,7 @@ IndiePlateauBluesTeam::
 IndiePlateauRedsTeam::
 .name: DB "Reds",0,0,0,0
 .coach: DB "Coach Nolan",0,0,0,0,0
+.innings: DB 9
 .money: D24 1000000
 .restriction: DB 0
 .flag: DB 0

@@ -38,6 +38,7 @@ INCLUDE "./img/coaches/swimmers.asm"
 INCLUDE "./img/coaches/fighters.asm"
 INCLUDE "./img/coaches/rockets.asm"
 INCLUDE "./img/coaches/birds.asm"
+INCLUDE "./img/coaches/nolan2.asm"
 INCLUDE "./img/coaches/gm_wu.asm"
 INCLUDE "./img/coaches/coach_brick.asm"
 INCLUDE "./img/coaches/fuzz.asm"
@@ -86,16 +87,17 @@ DEF COACH_SWIMMERS        EQU 32
 DEF COACH_FIGHTERS        EQU 33
 DEF COACH_ROCKETS         EQU 34
 DEF COACH_BIRDS           EQU 35
-DEF COACH_GM_WU           EQU 36
-DEF COACH_COACH_BRICK     EQU 37
-DEF COACH_FUZZ            EQU 38
-DEF COACH_KIDS            EQU 39
-DEF COACH_CAPTAIN_SHREVE  EQU 40
-DEF COACH_GM_ELSA         EQU 41
-DEF COACH_GM_VENKMAN      EQU 42
-DEF COACH_NOLAN1          EQU 43
-DEF COACH_BEASTS          EQU 44
-DEF COACHES_COUNT         EQU 45
+DEF COACH_NOLAN2          EQU 36
+DEF COACH_GM_WU           EQU 37
+DEF COACH_COACH_BRICK     EQU 38
+DEF COACH_FUZZ            EQU 39
+DEF COACH_KIDS            EQU 40
+DEF COACH_CAPTAIN_SHREVE  EQU 41
+DEF COACH_GM_ELSA         EQU 42
+DEF COACH_GM_VENKMAN      EQU 43
+DEF COACH_NOLAN1          EQU 44
+DEF COACH_BEASTS          EQU 45
+DEF COACHES_COUNT         EQU 46
 
 CoachTiles:
   DW _GmAragonTiles
@@ -134,6 +136,7 @@ CoachTiles:
   DW _FightersTiles
   DW _RocketsTiles
   DW _BirdsTiles
+  DW _Nolan2Tiles
   DW _GmWuTiles
   DW _CoachBrickTiles
   DW _FuzzTiles
@@ -181,6 +184,7 @@ CoachTileMaps:
   DW _FightersTileMap
   DW _RocketsTileMap
   DW _BirdsTileMap
+  DW _Nolan2TileMap
   DW _GmWuTileMap
   DW _CoachBrickTileMap
   DW _FuzzTileMap
@@ -228,6 +232,7 @@ CoachTileCounts:
   DB _FIGHTERS_TILE_COUNT
   DB _ROCKETS_TILE_COUNT
   DB _BIRDS_TILE_COUNT
+  DB _NOLAN2_TILE_COUNT
   DB _GM_WU_TILE_COUNT
   DB _COACH_BRICK_TILE_COUNT
   DB _FUZZ_TILE_COUNT
@@ -275,6 +280,7 @@ CoachColors:
   DW _FightersColors
   DW _RocketsColors
   DW _BirdsColors
+  DW _Nolan2Colors
   DW _GmWuColors
   DW _CoachBrickColors
   DW _FuzzColors
@@ -322,6 +328,7 @@ CoachPaletteMaps:
   DW _FightersPaletteMap
   DW _RocketsPaletteMap
   DW _BirdsPaletteMap
+  DW _Nolan2PaletteMap
   DW _GmWuPaletteMap
   DW _CoachBrickPaletteMap
   DW _FuzzPaletteMap
@@ -369,6 +376,7 @@ CoachPaletteCounts:
   DB _FIGHTERS_PALETTE_COUNT
   DB _ROCKETS_PALETTE_COUNT
   DB _BIRDS_PALETTE_COUNT
+  DB _NOLAN2_PALETTE_COUNT
   DB _GM_WU_PALETTE_COUNT
   DB _COACH_BRICK_PALETTE_COUNT
   DB _FUZZ_PALETTE_COUNT
@@ -416,6 +424,7 @@ CoachBanks:
   DB BANK(_FightersTiles)
   DB BANK(_RocketsTiles)
   DB BANK(_BirdsTiles)
+  DB BANK(_Nolan2Tiles)
   DB BANK(_GmWuTiles)
   DB BANK(_CoachBrickTiles)
   DB BANK(_FuzzTiles)

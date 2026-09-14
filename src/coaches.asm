@@ -3,6 +3,8 @@ INCLUDE "data/coach_img.asm"
 
 SECTION "Banked Coach Code", ROMX, BANK[COACHES_BANK]
 
+;TODO: coaching styles and strategies go here
+
 PreLoadCoachTiles:: ;a = coach id, de = vram address, returns bank in a, tiles in hl, vram address in de, byte count in bc
   push de;vram address
 .calcByteCount

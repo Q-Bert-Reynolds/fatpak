@@ -1,5 +1,7 @@
 Priority
 
+- only update .asm file when PNG, GIF, or MOD files change
+- remove manual ROMX assignments, let linker handle bank management instead
 - replace announcer mode with C code
 - baseball simulation
   - play random result text (after ball is hit in the field in sim mode) 
@@ -33,7 +35,6 @@ Bugs
 
 General
 
-- remove manual ROMX assignments, let linker handle bank management instead
 - link cable support!
 - give math subroutines more appropriate names
 - cut off sprites with the text box using an LCD interrupt (see https://gbdev.io/pandocs/LCDC.html#faux-layer-textboxstatus-bar)
@@ -63,12 +64,11 @@ Python scripts
 
 - handle translated player and item text
 - support these languages: en, es, fr, it, pt, de, jp
-- add colors and palette maps to player data
+- add colors and palette maps to player data?
 - roledex description parser should print warning when more than 6 lines
 - avatar directional maps should be organized into arrays
 - SGB borders should (optionally?) use PNG palettes directly
 - duplicate functionality (like the PascalCase function) should be moved to library file
-- only update .asm file when PNG, GIF, or MOD files change
 - handle 1bpp and rle images
 
 Start

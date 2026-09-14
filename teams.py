@@ -60,16 +60,18 @@ CITY_IDX = 0
 NAME_IDX = 1
 COACH_IDX = 2
 IMAGE_IDX = 3
-MONEY_IDX = 4
-RESTRICTION_IDX = 5
-FLAG_IDX = 6
-ITEM_IDX = 7
+INNINGS_IDX = 4
+MONEY_IDX = 5
+RESTRICTION_IDX = 6
+FLAG_IDX = 7
+ITEM_IDX = 8
 
 class Team:
   city = ""
   name = ""
   coach = ""
   image = ""
+  innings = 0
   money = 0
   restriction = 0
   flag = "0"
@@ -89,6 +91,8 @@ class Team:
       self.coach = data
     elif index == IMAGE_IDX:
       self.image = data
+    elif index == INNINGS_IDX:
+      self.innings = int(data)
     elif index == MONEY_IDX:
       self.money = int(data)
     elif index == RESTRICTION_IDX:
@@ -133,6 +137,7 @@ class Team:
     s  = f'{self.label()}Team::\n'
     s += f'.name: DB "{self.name}"{",0"*(8-len(self.name))}\n'
     s += f'.coach: DB "{self.coach}"{",0"*(16-len(self.coach))}\n'
+    s += f'.innings: DB {self.innings}\n'
     s += f'.money: D24 {self.money}\n'
     s += f'.restriction: DB {self.restriction}\n'
     s += f'.flag: DB {self.flag}\n'
@@ -168,13 +173,14 @@ def main():
   #TODO: write strings files
 
   coaches_per_bank = 27
-  coach_images = glob.glob("./img/coaches/*[!_2x].asm")
+  coach_images = [img for img in glob.glob("./img/coaches/*.asm") if not img.endswith("_2x.asm")]
   bank_count = math.ceil(len(coach_images) / coaches_per_bank)
   print("Generating " + str(bank_count) + " coach image banks.")
 
   with open(f"data/coach_img.asm", "w+", encoding='utf8') as file:    
 
     for i, img in enumerate(coach_images):
+      print(img)
       if i % coaches_per_bank == 0:
         bank = math.floor(i / coaches_per_bank)
         file.write(f'SECTION "Coach Images {bank}", ROMX, BANK[COACH_IMG_BANK+{bank}]\n\n')

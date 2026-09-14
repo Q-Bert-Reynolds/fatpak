@@ -483,7 +483,7 @@ INCLUDE "img/players/104Bones.asm"
 INCLUDE "img/players/105Marrow.asm"
 INCLUDE "img/players/106Bruce.asm"
 INCLUDE "img/players/107Jackie.asm"
-INCLUDE "img/players/108Tongue.asm"
+INCLUDE "img/players/108Lick.asm"
 
 PlayerTiles3::
 DW _082TonTiles
@@ -512,7 +512,7 @@ DW _104BonesTiles
 DW _105MarrowTiles
 DW _106BruceTiles
 DW _107JackieTiles
-DW _108TongueTiles
+DW _108LickTiles
 
 PlayerTileCounts3::
 DB _082TON_TILE_COUNT
@@ -541,7 +541,7 @@ DB _104BONES_TILE_COUNT
 DB _105MARROW_TILE_COUNT
 DB _106BRUCE_TILE_COUNT
 DB _107JACKIE_TILE_COUNT
-DB _108TONGUE_TILE_COUNT
+DB _108LICK_TILE_COUNT
 
 PlayerColumns3::
 DB _082TON_COLUMNS
@@ -570,7 +570,7 @@ DB _104BONES_COLUMNS
 DB _105MARROW_COLUMNS
 DB _106BRUCE_COLUMNS
 DB _107JACKIE_COLUMNS
-DB _108TONGUE_COLUMNS
+DB _108LICK_COLUMNS
 
 PlayerTileMaps3::
 DW _082TonTileMap
@@ -599,7 +599,7 @@ DW _104BonesTileMap
 DW _105MarrowTileMap
 DW _106BruceTileMap
 DW _107JackieTileMap
-DW _108TongueTileMap
+DW _108LickTileMap
 
 SECTION "Player Images 4", ROMX, BANK[PLAYER_IMG_BANK+4]
 
