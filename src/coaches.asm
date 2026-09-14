@@ -3,8 +3,9 @@ INCLUDE "data/coach_img.asm"
 
 SECTION "Banked Coach Code", ROMX, BANK[COACHES_BANK]
 
-PreLoadCoachTiles:: ;a = coach id, de = vram address, returns bank in a, tiles in hl, vram address in de
+PreLoadCoachTiles:: ;a = coach id, de = vram address, returns bank in a, tiles in hl, vram address in de, byte count in bc
   push de;vram address
+.calcByteCount
   push af;id
   ld b, 0
   ld c, a
@@ -15,39 +16,34 @@ PreLoadCoachTiles:: ;a = coach id, de = vram address, returns bank in a, tiles i
   call math_Multiply
   ld b, h
   ld c, l
-
   pop af;id
+  push bc;byte count
+.getTiles
   push af;id
-  add a, a
-  ld d, 0
-  ld e, a
-  ld hl, CoachTiles
+  ld h, 0
+  ld l, a
+  add hl, hl
+  ld de, CoachTiles
   add hl, de
   ld a, [hli]
   ld d, a
   ld a, [hl]
   ld h, a
   ld l, d
-  
   pop af;id
   push hl;tiles
+.getBank
   ld b, 0
   ld c, a
   ld hl, CoachBanks
   add hl, bc
-  ld a, [hl]
-
+  ld a, [hl];bank
   pop hl;tiles
+  pop bc;byte count
   pop de;vram address
   ret
 
 PreloadCoachPalettes:: ;a = coach id, h = first pal index, returns b = first pal index, c = num palettes, hl = source
-  ld b, a;coach
-  ld a, [sys_info]
-  and a, SYS_INFO_GBC | SYS_INFO_SGB
-  ret z;exit early if not color
- 
-  ld a, b;coach
   push af;coach id
   push hl;h = first pal index
   add a, a
@@ -83,119 +79,134 @@ PreloadCoachPalettes:: ;a = coach id, h = first pal index, returns b = first pal
   pop hl;colors
   ret
 
-PreSetCoachTiles:: ;a = coach, de=xy, h=offset
+PreSetCoachTiles:: ;a = coach, h=offset, returns tiles in bc, bank in a, offset in h
   push hl;offset
+  push af;id
 
-  add a, a
-  ld b, 0
-  ld c, a
-  ld hl, CoachTileMaps
+  ld h, 0
+  ld l, a
+  add hl, hl
+  ld bc, CoachTileMaps
   add hl, bc
   ld a, [hli]
   ld c, a
   ld a, [hl]
   ld b, a ;bc = tiles
 
-  pop hl;offset
-  ld a, h; a = offset
+  pop af;id
+  push bc;tiles
 
-  ;TODO... return tiles, offset, and bank; move SetBkg to SetCoachTiles
-  ld hl, $0707
-  call SetBkgTilesWithOffset
+  ld d, 0
+  ld e, a
+  ld hl, CoachBanks
+  add hl, de
+  ld a, [hl];bank
+
+  pop bc;tiles
+  pop hl;h = offset
   ret
 
-PreSetCoachPalettes:: ;a = coach, de=xy, h=offset
-  ld b, a;coach
-  ld a, [sys_info]
-  and a, SYS_INFO_GBC | SYS_INFO_SGB
-  ret z;exit early if not GBC
-  ld a, b;coach
-
+PreSetCoachPalettes:: ;a = coach, h=offset, sets VBK, returns pal map in bc, bank in a, offset in h
   push hl;offset
-  add a, a
-  ld b, 0
-  ld c, a
-  ld hl, CoachPaletteMaps
+  push af;id
+  ld h, 0
+  ld l, a
+  add hl, hl
+  ld bc, CoachPaletteMaps
   add hl, bc
   ld a, [hli]
   ld c, a
   ld a, [hl]
-  ld b, a ;bc = map
+  ld b, a ;bc = pal map
 
   ld a, 1
   ld [rVBK], a
-  pop hl;offset
-  ld a, h; a = offset
 
-  ;TODO... return map, offset, and bank; move SetBkg to SetCoachPalettes
-  ld hl, $0707
-  call SetBkgTilesWithOffset
-  xor a
-  ld [rVBK], a
+  pop af;id
+  push bc;pal map
+  ld d, 0
+  ld e, a
+  ld hl, CoachBanks
+  add hl, de
+  ld a, [hl];bank
+  pop bc;pal map
+
+  pop hl;h = offset
   ret
 
 SECTION "Coach Code", ROM0
 
 LoadCoachTiles:: ;a = coach id, de = vram address
-  push af
-  ld a, [loaded_bank]
-  ld b, a;bank
+  ld b, a;coach id
   ld a, COACHES_BANK
-  SET_BANK
+  ld [rROMB0], a
 
-  pop af
-  push bc;bank
+  ld a, b
   call PreLoadCoachTiles
   ld [rROMB0], a
   call mem_CopyVRAM
 
-  pop af;bank
-  SET_BANK
+  ld a, [loaded_bank]
+  ld [rROMB0], a
   ret
 
 LoadCoachPalettes:: ;a = coach id, h = offset
-  push af
-  ld a, [loaded_bank]
-  ld b, a;bank
-  ld a, COACHES_BANK
-  SET_BANK
+  ld b, a;coach
+  ld a, [sys_info]
+  and a, SYS_INFO_GBC | SYS_INFO_SGB
+  ret z;exit early if color not supported
 
-  pop af
-  push bc;bank
+  ld a, COACHES_BANK
+  ld [rROMB0], a
+
+  ld a, b;coach
   call PreloadCoachPalettes
   ld [rROMB0], a
   call SetTwoColorBGPalettes
 
-  pop af;bank
-  SET_BANK
+  ld a, [loaded_bank]
+  ld [rROMB0], a
   ret
 
 SetCoachTiles:: ;a = coach, de=xy, h=offset
-  push af
-  ld a, [loaded_bank]
-  ld b, a;bank
+  ld b, a;coach
   ld a, COACHES_BANK
-  SET_BANK
+  ld [rROMB0], a
 
-  pop af
-  push bc;bank
+  ld a, b;coach
+  push de;xy
   call PreSetCoachTiles
+  pop de;xy
+  ld [rROMB0], a
+  ld a, h;offset
+  ld hl, $0707
+  call SetBkgTilesWithOffset
 
-  pop af;bank
-  SET_BANK
+  ld a, [loaded_bank]
+  ld [rROMB0], a
   ret
 
 SetCoachPalettes:: ;a = coach, de=xy, h=offset
-  push af
-  ld a, [loaded_bank]
-  ld b, a;bank
+  ld b, a;coach
+  ld a, [sys_info]
+  and a, SYS_INFO_GBC | SYS_INFO_SGB
+  ret z;exit early if color not supported
+
   ld a, COACHES_BANK
-  SET_BANK
+  ld [rROMB0], a
 
-  pop af
-  push bc;bank
+  ld a, b;coach
+  push de;xy
   call PreSetCoachPalettes
+  ld [rROMB0], a
+  ld a, h;offset
+  pop de;xy
+  ld hl, $0707
+  call SetBkgTilesWithOffset
 
-  pop af;bank
-  SET_BANK
+  xor a
+  ld [rVBK], a
+
+  ld a, [loaded_bank]
+  ld [rROMB0], a
   ret
