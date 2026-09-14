@@ -8,6 +8,9 @@ from PIL import Image
 from PIL import GifImagePlugin
 from sgb_border import convert as sgb_convert
 
+py_change = os.path.getmtime("./img2rgbds.py")
+verbose = False #TODO: adds this as a cmd flag
+
 def parse_all():
   for root, folders, files in os.walk("./img"):
     parse_files(root, files)
@@ -115,25 +118,69 @@ def addTileGetFlipsIndex (tile, tileset):
   return ("00", tileset.index(tile))
 
 def folder_to_asm (root, files):
+  name = os.path.basename(root)
+
+  #update gifs and sgb borders first
+  for file in files:
+    path = os.path.join(root, file)
+    base, ext = os.path.splitext(path)
+    if ext == ".gif":
+      gif_to_asm(path, base)
+    elif ext == ".png" and  "sgb_border" in base:
+      png_to_sgb(path, base, name)
+
+  #check for changes in this folder 
+  asm_path = os.path.join(root, name.replace("demo_", "").replace("home_", "").replace("away_", "") + ".asm")
+  if os.path.isfile(asm_path):
+    asm_change = os.path.getmtime(asm_path)
+    has_changes = False
+    files_found = 0
+    for file in files:
+      path = os.path.join(root, file)
+      base, ext = os.path.splitext(path)
+
+      #only non-border pngs are considered for change checks
+      if ext != ".png" or "sgb_border" in base:
+        continue
+
+      files_found += 1
+      img_change = os.path.getmtime(path)
+      if img_change > asm_change or py_change > asm_change:
+        has_changes = True
+        break
+    
+    if files_found == 0:
+      return
+
+    if not has_changes:
+      with open(asm_path, encoding="utf8") as asm_file:
+        tilemap_count = 0
+        for line in asm_file:
+          if ".tilemap" in line:
+            tilemap_count += 1
+        if tilemap_count != files_found:
+          has_changes = True
+
+    if not has_changes:
+      if verbose:
+        print(f'Skipping "{path}". Generated assembly is up to date.')
+      return
+
+  #generate assembly file if it doesn't exist or changes are found 
   tileset = []
   tilemaps = {}
   dimensions = {}
   properties = {}
   palettemaps = {}
   colorset = {}
-
-  name = os.path.basename(root)
   for file in files:
     path = os.path.join(root, file)
     base, ext = os.path.splitext(path)
-    if ext == ".gif":
-      gif_to_asm(path, base)
+
+    #gifs and sgb borders already handled
+    if ext != ".png" or "sgb_border" in base:
       continue
-    elif ext != ".png":
-      continue
-    elif "sgb_border" in base:
-      png_to_sgb(path, base, name)
-      continue
+
     img = Image.open(path)
     img_name = os.path.basename(base)
     rows, cols, hex_vals, colors, palettemap = gb_encode(img)
@@ -220,17 +267,34 @@ def image_set_to_asm (root, name, tileset, tilemaps, dimensions, properties, pal
 
     asm_file.write("ENDC\n")
 
+def has_changes(path, base):
+  asm_path = f"{base}.asm"
+  if not os.path.isfile(asm_path):
+    return True
+  
+  img_change = os.path.getmtime(path)
+  asm_change = os.path.getmtime(asm_path)
+  if img_change > asm_change or py_change > asm_change:
+    return True
+
+  return False
+
 def img_to_asm (path):
   base, ext = os.path.splitext(path)
   if ext == ".png":
-    png_to_asm(path,base)
+    png_to_asm(path, base)
   elif ext == ".gif":
-    gif_to_asm(path,base)
+    gif_to_asm(path, base)
 
 def gif_to_asm (path, base):
   img = Image.open(path)
   name = os.path.basename(base)
   if not img.is_animated:
+    return
+
+  if not has_changes(path, base):
+    if verbose:
+      print(f'Skipping "{path}". Generated assembly is up to date.')
     return
 
   is_2x = "_2x" in name
@@ -292,11 +356,21 @@ def png_to_asm (path, base):
   return
 
 def png_to_sgb (path, base, name):
+  if not has_changes(path, base):
+    if verbose:
+      print(f'Skipping "{path}". Generated assembly is up to date.')
+    return
+
   print(path)
   sgb_convert(path, base + ".asm")
   return
   
 def png_to_gb (path, base, name):
+  if not has_changes(path, base):
+    if verbose:
+      print(f'Skipping "{path}". Generated assembly is up to date.')
+    return
+
   img = Image.open(path)
   rows, cols, hex_vals, colors, palettemap = gb_encode(img)
   tile_count = rows*cols

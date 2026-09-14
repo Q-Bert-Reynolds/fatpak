@@ -50,6 +50,7 @@
 #define PLAYER_STRINGS_BANK  9
 #define PLAYER_DATA_BANK     10
 #define COACHES_BANK         11
+#define TEAMS_BANK           COACHES_BANK
 #define ROLEDEX_BANK         12
 #define SIM_BANK             13
 #define SFX_BANK             14

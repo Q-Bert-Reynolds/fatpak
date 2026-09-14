@@ -1,6 +1,5 @@
 Priority
 
-- only update .asm file when PNG, GIF, or MOD files change
 - remove manual ROMX assignments, let linker handle bank management instead
 - replace announcer mode with C code
 - baseball simulation

@@ -180,7 +180,6 @@ def main():
   with open(f"data/coach_img.asm", "w+", encoding='utf8') as file:    
 
     for i, img in enumerate(coach_images):
-      print(img)
       if i % coaches_per_bank == 0:
         bank = math.floor(i / coaches_per_bank)
         file.write(f'SECTION "Coach Images {bank}", ROMX, BANK[COACH_IMG_BANK+{bank}]\n\n')
