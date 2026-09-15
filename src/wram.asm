@@ -37,6 +37,7 @@ map_x:: DB
 map_y:: DB
 game_event_flags::
 pc_flags:: DB ;Have you met Bill James? Gotten the Rolédex yet? Beaten the Elite Teams?
+pennant_flags:: DB ;which leagues have you won
 game_event_flags_end::
 
 ;drawing

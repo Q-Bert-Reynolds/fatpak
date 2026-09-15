@@ -1,13 +1,12 @@
 Priority
 
 - remove manual ROMX assignments, let linker handle bank management instead
-- replace announcer mode with C code
+- announcer mode
+  - double plays
+  - beat the throw
 - baseball simulation
-  - play random result text (after ball is hit in the field in sim mode) 
-  - play result text based on player that fields the ball
   - move a fielder to a position
   - move fielders to positions based on result
-  - end game, get experience, level up!!!
 - new sprite types
   - refactor player avatar animation subroutines so they can be used for all avatars
   - export items from map editor
@@ -17,6 +16,7 @@ Priority
   - Doc's PC
   - League PC
 - games against other coaches/teams
+- end game, get experience, level up!!!
 
 Bugs
 

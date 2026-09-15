@@ -74,7 +74,8 @@ class Team:
   innings = 0
   money = 0
   restriction = 0
-  flag = "0"
+  flag_bits = "0"
+  flag_index = "0"
   item = "0"
   lineup = []
   translations = []
@@ -103,7 +104,8 @@ class Team:
       else:
         self.restriction = 0
     elif index == FLAG_IDX:
-      self.flag = ConstString(data) + "_FLAG"
+      self.flag_bits = data
+      self.flag_index = data.split("_FLAG")[0] + "_FLAGS"
     elif index == ITEM_IDX:
       self.item = ConstString(data) + "_ITEM"
 
@@ -140,7 +142,8 @@ class Team:
     s += f'.innings: DB {self.innings}\n'
     s += f'.money: D24 {self.money}\n'
     s += f'.restriction: DB {self.restriction}\n'
-    s += f'.flag: DB {self.flag}\n'
+    s += f'.flag_index: DB {self.flag_index}\n'
+    s += f'.flag_bits: DB {self.flag_bits}\n'
     s += f'.item: DB {self.item}\n'
     s += f'.image: DB COACH_{self.image.upper()}\n'
     s += f'.lineup:\n'

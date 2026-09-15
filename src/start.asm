@@ -177,7 +177,7 @@ UpdateIntroSparks:
   ld c, 106;y
   ld h, 8;w
   ld l, 3;h
-  ld a, 1
+  ld a, 0
   call MoveSprites
 
   ret

@@ -4,7 +4,8 @@ BoulderCityRockersTeam::
 .innings: DB 6
 .money: D24 1000
 .restriction: DB -12
-.flag: DB ROCK_PENNANT_FLAG
+.flag_index: DB PENNANT_FLAGS
+.flag_bits: DB PENNANT_FLAG_ROCK
 .item: DB TM34_ITEM
 .image: DB COACH_COACH_BRICK
 .lineup:
@@ -24,7 +25,8 @@ InningCityNessiesTeam::
 .innings: DB 7
 .money: D24 2500
 .restriction: DB -14
-.flag: DB LAPIS_PENNANT_FLAG
+.flag_index: DB PENNANT_FLAGS
+.flag_bits: DB PENNANT_FLAG_LAPIS
 .item: DB TM11_ITEM
 .image: DB COACH_SKIP_RIVERS
 .lineup:
@@ -44,7 +46,8 @@ PlateCitySurgeTeam::
 .innings: DB 7
 .money: D24 5000
 .restriction: DB -16
-.flag: DB COOPER_PENNANT_FLAG
+.flag_index: DB PENNANT_FLAGS
+.flag_bits: DB PENNANT_FLAG_COOPER
 .item: DB TM24_ITEM
 .image: DB COACH_CAPTAIN_SHREVE
 .lineup:
@@ -64,7 +67,8 @@ GrandCityBloomTeam::
 .innings: DB 7
 .money: D24 10000
 .restriction: DB -18
-.flag: DB EARTH_PENNANT_FLAG
+.flag_index: DB PENNANT_FLAGS
+.flag_bits: DB PENNANT_FLAG_EARTH
 .item: DB TM11_ITEM
 .image: DB COACH_BELLA_DONNA
 .lineup:
@@ -84,7 +88,8 @@ SaferunCityNatsTeam::
 .innings: DB 9
 .money: D24 25000
 .restriction: DB 18
-.flag: DB BOG_PENNANT_FLAG
+.flag_index: DB PENNANT_FLAGS
+.flag_bits: DB PENNANT_FLAG_BOG
 .item: DB TM46_ITEM
 .image: DB COACH_GREAT_ZAMBINO
 .lineup:
@@ -104,7 +109,8 @@ FastballCityNinjasTeam::
 .innings: DB 9
 .money: D24 50000
 .restriction: DB 21
-.flag: DB RUBBER_PENNANT_FLAG
+.flag_index: DB PENNANT_FLAGS
+.flag_bits: DB PENNANT_FLAG_RUBBER
 .item: DB TM06_ITEM
 .image: DB COACH_RALPH_SOTO
 .lineup:
@@ -124,7 +130,8 @@ PepperCityBlazeTeam::
 .innings: DB 9
 .money: D24 100000
 .restriction: DB 30
-.flag: DB MANTLE_PENNANT_FLAG
+.flag_index: DB PENNANT_FLAGS
+.flag_bits: DB PENNANT_FLAG_MANTLE
 .item: DB TM06_ITEM
 .image: DB COACH_SENOR_CANO
 .lineup:
@@ -144,7 +151,8 @@ VeteranCityPadresTeam::
 .innings: DB 9
 .money: D24 250000
 .restriction: DB 40
-.flag: DB DIAMOND_PENNANT_FLAG
+.flag_index: DB PENNANT_FLAGS
+.flag_bits: DB PENNANT_FLAG_DIAMOND
 .item: DB TM38_ITEM
 .image: DB COACH_GM_GANDIL
 .lineup:
@@ -164,7 +172,8 @@ IndiePlateauFreezeTeam::
 .innings: DB 9
 .money: D24 500000
 .restriction: DB 0
-.flag: DB 0
+.flag_index: DB 0
+.flag_bits: DB 0
 .item: DB 0
 .image: DB COACH_GM_ELSA
 .lineup:
@@ -184,7 +193,8 @@ IndiePlateauBrutesTeam::
 .innings: DB 9
 .money: D24 500000
 .restriction: DB 0
-.flag: DB 0
+.flag_index: DB 0
+.flag_bits: DB 0
 .item: DB 0
 .image: DB COACH_GM_WU
 .lineup:
@@ -204,7 +214,8 @@ IndiePlateauGhostsTeam::
 .innings: DB 9
 .money: D24 500000
 .restriction: DB 0
-.flag: DB 0
+.flag_index: DB 0
+.flag_bits: DB 0
 .item: DB 0
 .image: DB COACH_GM_VENKMAN
 .lineup:
@@ -224,7 +235,8 @@ IndiePlateauDragonsTeam::
 .innings: DB 9
 .money: D24 500000
 .restriction: DB 0
-.flag: DB 0
+.flag_index: DB 0
+.flag_bits: DB 0
 .item: DB 0
 .image: DB COACH_GM_ARAGON
 .lineup:
@@ -244,7 +256,8 @@ IndiePlateauGreensTeam::
 .innings: DB 9
 .money: D24 1000000
 .restriction: DB 0
-.flag: DB 0
+.flag_index: DB 0
+.flag_bits: DB 0
 .item: DB 0
 .image: DB COACH_NOLAN2
 .lineup:
@@ -264,7 +277,8 @@ IndiePlateauBluesTeam::
 .innings: DB 9
 .money: D24 1000000
 .restriction: DB 0
-.flag: DB 0
+.flag_index: DB 0
+.flag_bits: DB 0
 .item: DB 0
 .image: DB COACH_NOLAN2
 .lineup:
@@ -284,7 +298,8 @@ IndiePlateauRedsTeam::
 .innings: DB 9
 .money: D24 1000000
 .restriction: DB 0
-.flag: DB 0
+.flag_index: DB 0
+.flag_bits: DB 0
 .item: DB 0
 .image: DB COACH_NOLAN2
 .lineup:
