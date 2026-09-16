@@ -656,6 +656,7 @@ GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, ob
     jp z, .blankTile
     cp a, MAP_OBJ_NONE_FILL
     jp z, .blankFill
+    ;fall through to .fill instead of comparing and jumping
     ; cp a, MAP_OBJ_STAMP_FILL
     ; jp z, .fill
     ; cp a, MAP_OBJ_TILE_FILL

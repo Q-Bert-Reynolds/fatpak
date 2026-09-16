@@ -214,24 +214,25 @@
 #define INVENTORY_MODE_SELL     5
 
 //maps
-#define MAP_OBJ_TYPE_MASK      0b00001111
-#define MAP_OBJ_NONE           0b00000000 //bg only
-#define MAP_OBJ_NONE_FILL      0b00000100 //bg only
-#define MAP_OBJ_TILE           0b00000001 //bg and sprites
-#define MAP_OBJ_TILE_FILL      0b00000101 //bg only
-#define MAP_OBJ_STAMP          0b00000010 //bg and sprites
-#define MAP_OBJ_STAMP_FILL     0b00000110 //bg only
-#define MAP_OBJ_AVATAR         0b00001000 //sprites only
-#define MAP_OBJ_ITEM           0b00001001 //sprites only
-#define MAP_COLLISION_MASK     0b11110000
-#define MAP_COLLISION_NONE     0b00000000
-#define MAP_COLLISION_SOLID    0b00010000
-#define MAP_COLLISION_WATER    0b00100000
-#define MAP_COLLISION_DOOR     0b00110000
-#define MAP_COLLISION_TEXT     0b01000000
-#define MAP_COLLISION_LEDGE    0b01010000
-#define MAP_COLLISION_GRASS    0b01100000
-#define MAP_COLLISION_SCRIPT   0b01110000
+#define MAP_OBJ_TYPE_MASK      0b00001111//up to 15 map object types
+#define MAP_OBJ_NONE           0 //bg only
+#define MAP_OBJ_NONE_FILL      1 //bg only
+#define MAP_OBJ_TILE           2 //bg and sprites
+#define MAP_OBJ_TILE_FILL      3 //bg only
+#define MAP_OBJ_STAMP          4 //bg and sprites
+#define MAP_OBJ_STAMP_FILL     5 //bg only
+#define MAP_OBJ_AVATAR         6 //sprites only
+#define MAP_OBJ_ITEM           7 //sprites only
+#define MAP_COLLISION_MASK     0b11110000//up to 15 map collision types
+#define MAP_COLLISION_NONE     0
+#define MAP_COLLISION_SOLID    1 << 4
+#define MAP_COLLISION_WATER    2 << 4
+#define MAP_COLLISION_DOOR     3 << 4
+#define MAP_COLLISION_TEXT     4 << 4
+#define MAP_COLLISION_LEDGE    5 << 4
+#define MAP_COLLISION_GRASS    6 << 4
+#define MAP_COLLISION_SCRIPT   7 << 4
+#define MAP_COLLISION_TEAM     8 << 4
 #define MAP_STEP_SIZE          16//2 tiles per step
 #define WALK_ANIM_FRAMES       4//TODO: should come from GBStampAnimation
 #define MAP_NORTH              2//skip tile & pal
@@ -245,6 +246,7 @@
 #define MAP_AVATAR_RIGHT       0b01000000
 #define MAP_AVATAR_UP          0b10000000
 #define MAP_AVATAR_DOWN        0b11000000
+#define MAP_AVATAR_EXTRA_DATA  0b00111111
 #define MAP_AVATAR_FRAME       0b00000111
 #define MAP_AVATAR_BEHAVIOUR   0b00111000
 #define MAP_AVATAR_STATIONARY  0b00000000
