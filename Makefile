@@ -62,6 +62,7 @@ endif
 	$(PYTHON) items.py
 	$(PYTHON) translate.py 
 	$(PYTHON) teams.py 
+	$(PYTHON) maps.py
 
 clean:
 	@rm -rf $(BUILD_DIR)

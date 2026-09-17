@@ -40,53 +40,7 @@ INCLUDE "maps/map_stamps.gbstamp";TODO: move this out of ROM0
 ; GetCurrentMap                returns address in hl, bank in a
 ; FixMapScroll                 HACK: called after moving right or down to solve off-by-one collision issues
 
-;TODO: the arrays and constants below should be exported from Unity
-DEF MAP_OVERWORLD   EQU 0
-DEF MAP_HOUSES      EQU 1
-DEF MAP_BUSINESSES  EQU 2
-DEF MAP_MOUNTAINS   EQU 3
-DEF MAP_VETERANPARK EQU 4
-MapBanks:
-  DB BANK(MapOverworld)
-  DB BANK(MapHouses)
-  DB BANK(MapBusinesses)
-  DB BANK(MapMountains)
-  DB BANK(MapVeteranPark)
-
-MapAddresses:
-  DW MapOverworld
-  DW MapHouses
-  DW MapBusinesses
-  DW MapMountains
-  DW MapVeteranPark
-
-MapTileBanks:
-  DB BANK(_OverworldTiles)
-  DB BANK(_HousesTiles)
-  DB BANK(_BusinessesTiles)
-  DB BANK(_OverworldTiles)
-  DB BANK(_ForestTiles)
-
-MapTileAddresses:
-  DW _OverworldTiles
-  DW _HousesTiles
-  DW _BusinessesTiles
-  DW _OverworldTiles
-  DW _ForestTiles
-
-MapSpriteTileBanks:
-  DB BANK(_WorldSpritesTiles)
-  DB BANK(_WorldSpritesTiles)
-  DB BANK(_WorldSpritesTiles)
-  DB BANK(_WorldSpritesTiles)
-  DB BANK(_WorldSpritesTiles)
-
-MapSpriteTileAddresses:
-  DW _WorldSpritesTiles
-  DW _WorldSpritesTiles
-  DW _WorldSpritesTiles
-  DW _WorldSpritesTiles
-  DW _WorldSpritesTiles
+INCLUDE "data/map_data.asm"
 
 GetMapText::;a = text index, returns text in str_buffer
   ld b, 0
@@ -1043,51 +997,49 @@ SetMapPalettes::
   ret
 
 SetMapTiles::
-  ld a, [loaded_bank]
-  push af
+  call GetCurrentMap
+  ld [rROMB0], a;map bank
+  push af;map bank
 
-  ld a, [map]
-  ld b, 0
-  ld c, a
-  ld hl, MapTileBanks
-  add hl, bc
-  ld a, [hl]
-  SET_BANK
-
-  ld hl, MapTileAddresses
-  add hl, bc
-  add hl, bc
+  ld bc, MAP_DATA_TILES
+  add hl, bc;current map address + tiles data offset
   ld a, [hli]
-  ld b, a
+  ld b, a;bg tiles bank
   ld a, [hli]
-  ld h, a
-  ld l, b
+  ld e, a
+  ld a, [hli]
+  ld d, a;bg tiles address in de
+  push hl;sprite tiles
+  
+  ld a, b
+  ld [rROMB0], a;bg tiles bank
+  ld h, d
+  ld l, e;bg tiles address in hl
   ld de, $8800
   ld bc, 128*16;tiles*bytes/tile
   call mem_CopyVRAM
 
-  ld a, [map]
-  ld b, 0
-  ld c, a
-  ld hl, MapSpriteTileBanks
-  add hl, bc
-  ld a, [hl]
-  SET_BANK
+  pop hl;sprite tiles
+  pop af;map bank
+  ld [rROMB0], a;restore map bank to read sprite tiles
 
-  ld hl, MapSpriteTileAddresses
-  add hl, bc
-  add hl, bc
   ld a, [hli]
-  ld b, a
+  ld b, a;sprite tiles bank
   ld a, [hli]
-  ld h, a
-  ld l, b
+  ld e, a
+  ld a, [hli]
+  ld d, a;sprite tiles address in de
+
+  ld a, b
+  ld [rROMB0], a;sprite tiles bank
+  ld h, d
+  ld l, e;sprite tiles address in hl
   ld de, $8000
   ld bc, 128*16;tiles*bytes/tile
   call mem_CopyVRAM
 
-  pop af
-  SET_BANK
+  ld a, [loaded_bank]
+  ld [rROMB0], a
   ret
 
 DrawMapLeftEdge:

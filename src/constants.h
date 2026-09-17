@@ -220,6 +220,7 @@
 #define MAP_DATA_DOORS         5
 #define MAP_DATA_CHUNKS        7
 #define MAP_DATA_ADDRESSES     9
+#define MAP_DATA_TILES         11
 #define MAP_OBJ_TYPE_MASK      0b00001111//up to 15 map object types
 #define MAP_OBJ_NONE           0 //bg only
 #define MAP_OBJ_NONE_FILL      1 //bg only

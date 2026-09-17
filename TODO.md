@@ -76,11 +76,11 @@ Start
 
 Play Ball
 
-- transition animation should also set tile palettes
 - offers accepted by unsigned players should end game
 - set contact power from move, player, and barrel
 - if opposing pitcher is ahead - throw more balls, behind - throw more strikes
 - pitches in the dirt should bounce
+- hit the batter with pitches
 - hide strikezone after pitcher sets
 - reduce pitching frames to 3, batting to 2, make trail fx a sprite
 - ball should go behind lefty user batter, righty opposing batter
@@ -126,7 +126,6 @@ Team Menu
 
 Map System
 
-- export map lists (ie. MapAddresses, MapTileAddresses) instead of writing by hand
 - regions should have their own music, palettes, tiles, etc
 - map scripts should optionally have collision check
 - sanitize maps before export (ie. objects with text should always have a collider and be on the text layer)
