@@ -14,7 +14,7 @@ void AnnounceTest() {
     //     AnnounceSwingContact(i, 20, 45);
     // }
 
-    for (char ang = -45; ang < 45; ang += 3)
+    for (signed char ang = -45; ang < 45; ang += 3)
     {
         unsigned int position_and_distance_from_ball = GetClosestFielderByAngle(ang, 100);
         unsigned char fielder_position = (char)(position_and_distance_from_ball & BALL_STATE_FIELDER);//position in first 4 bits of lower nibble

@@ -1,6 +1,5 @@
 Priority
 
-- remove manual ROMX assignments, let linker handle bank management instead
 - announcer mode
   - double plays
   - beat the throw
@@ -15,7 +14,6 @@ Priority
   - Bill's PC (will allow roster changes!!!)
   - Doc's PC
   - League PC
-- games against other coaches/teams
 - end game, get experience, level up!!!
 
 Bugs
@@ -34,6 +32,7 @@ Bugs
 
 General
 
+- remove manual ROMX assignments, let linker handle bank management instead
 - link cable support!
 - give math subroutines more appropriate names
 - cut off sprites with the text box using an LCD interrupt (see https://gbdev.io/pandocs/LCDC.html#faux-layer-textboxstatus-bar)
@@ -67,14 +66,13 @@ Python scripts
 - roledex description parser should print warning when more than 6 lines
 - avatar directional maps should be organized into arrays
 - SGB borders should (optionally?) use PNG palettes directly
-- duplicate functionality (like the PascalCase function) should be moved to library file
 - handle 1bpp and rle images
 
 Start
 
+- replace intro images, use full color
 - intro home version batter has too many tiles, is also ugly
 - make intro ball movement smooth
-- randomize(ish) scrolling players on title screen
 
 Play Ball
 

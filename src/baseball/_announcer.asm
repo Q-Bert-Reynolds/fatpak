@@ -179,19 +179,21 @@
 ; Function AnnounceTest
 ; ---------------------------------
 _AnnounceTest::
-	dec	sp
-;src/baseball/announcer.c:17: for (char ang = -45; ang < 45; ang += 3)
-	ld	hl, sp+0
-	ld	[hl], $D3
+;src/baseball/announcer.c:17: for (signed char ang = -45; ang < 45; ang += 3)
+	ld	l, $D3
+;	spillPairReg hl
+;	spillPairReg hl
 .l00103:
-	ld	hl, sp+0
-	ld	a, [hl]
-	sub	a, $2D
+	ld	a, l
+	xor	a, $80
+	sub	a, $AD
 	jp	NC, .l00105
 ;src/baseball/announcer.c:19: unsigned int position_and_distance_from_ball = GetClosestFielderByAngle(ang, 100);
+	push	hl
 	ld	e, $64
-	ld	a, [hl]
+	ld	a, l
 	call	_GetClosestFielderByAngle
+	pop	hl
 	ld	a, c
 ;src/baseball/announcer.c:20: unsigned char fielder_position = (char)(position_and_distance_from_ball & BALL_STATE_FIELDER);//position in first 4 bits of lower nibble
 	and	a, $0F
@@ -199,20 +201,22 @@ _AnnounceTest::
 	ld	bc, _PositionTexts
 	ld	e, a
 	ld	d, $00
+	push	hl
 	call	_str_FromArray
+	pop	hl
 ;src/baseball/announcer.c:23: RevealTextAndWait(position_text);
+	push	hl
 	ld	e, c
 	ld	d, b
 	call	_RevealTextAndWait
-;src/baseball/announcer.c:17: for (char ang = -45; ang < 45; ang += 3)
-	ld	hl, sp+0
-	ld	a, [hl]
-	add	a, $03
-	ld	[hl], a
+	pop	hl
+;src/baseball/announcer.c:17: for (signed char ang = -45; ang < 45; ang += 3)
+	inc	l
+	inc	l
+	inc	l
 	jp	.l00103
 .l00105:
 ;src/baseball/announcer.c:25: }
-	inc	sp
 	ret
 _PositionTexts:
 	DB "pitcher"

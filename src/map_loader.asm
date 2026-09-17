@@ -97,7 +97,7 @@ GetMapText::;a = text index, returns text in str_buffer
   call GetCurrentMap
   SET_BANK
 
-  ld bc, 3
+  ld bc, MAP_DATA_STRINGS
   add hl, bc;[hl] = lower byte of strings address
   ld a, [hli]
   ld b, a
@@ -122,7 +122,7 @@ EnterMapDoor::;a = door index
   call GetCurrentMap
   SET_BANK
   
-  ld bc, 5
+  ld bc, MAP_DATA_DOORS
   add hl, bc;[hl] = lower byte of doors address
   ld a, [hli]
   ld c, a
@@ -131,10 +131,10 @@ EnterMapDoor::;a = door index
   pop af;index
   push bc;doors address
 
-  ld de, 5
-  call math_Multiply
+  ld de, 5;bytes per door
+  call math_Multiply;index * bytes per door
   pop bc;doors address
-  add hl, bc
+  add hl, bc;door at index
   ld a, [hli]
   ld [map], a
   ld a, [hli]
@@ -153,27 +153,53 @@ EnterMapDoor::;a = door index
   
   pop af;previous bank
   SET_BANK
-
   ret
 
-RunMapScript::;a = script index
-  ld b, a;index
+PlayMapTeam:: ;team index in map_collision_data
   ld a, [loaded_bank]
   push af;current bank
-  push bc;index
+
+  call GetMapAddress;sets team bank, puts team address in hl
+  ld de, Opponent
+  ld bc, OpponentEnd-Opponent
+  call mem_Copy;team lineup in hl
+  ld de, OpponentLineup
+  ld bc, OpponentLineupPlayer2-OpponentLineupPlayer1;size of PLAYER_DATA + OPPONENT_PLAYER_DATA
+  call CreateLineup
+  TRAMPOLINE PlayTeam
+
+  pop af;previous bank
+  SET_BANK
+  ret
+
+RunMapScript:: ;script index in map_collision_data
+  ld a, [loaded_bank]
+  push af;current bank
+
+  call GetMapAddress;sets script bank, puts script address in hl
+  ld de, .return
+  push de
+  jp hl
+.return 
+
+  pop af;previous bank
+  SET_BANK
+  ret
+
+GetMapAddress: ;address index in map_collision_data, switches to bank of address and returns it in hl
   call GetCurrentMap
   SET_BANK
 
-  ld bc, 9
+  ld bc, MAP_DATA_ADDRESSES
   add hl, bc;[hl] = lower byte of scripts address
   ld a, [hli]
   ld c, a
   ld a, [hl]
   ld b, a
-  pop af;index
   push bc;scripts address
-
-  ld de, 3
+  
+  ld a, [map_collision_data]
+  ld de, 3;bank (1 byte) + address (2 bytes)
   call math_Multiply
   pop bc;scripts address
   add hl, bc
@@ -185,13 +211,6 @@ RunMapScript::;a = script index
   ld h, a
   ld l, c;hl = script address
   ld a, b;bank
-  SET_BANK
-  ld de, .return
-  push de
-  jp hl
-.return 
-
-  pop af;previous bank
   SET_BANK
   ret
 
@@ -664,7 +683,7 @@ GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, ob
   
   .fill
     inc hl;skip tile/char/stringID
-    inc hl;skip palete
+    inc hl;skip palette
   .blankFill
     ld a, [_x]
     cp a, d;x1
@@ -992,7 +1011,9 @@ SetMapPalettes::
   push af;current bank
   call GetCurrentMap
   SET_BANK
-  inc hl;[hl] = first byte of palette address
+  ; ld bc, MAP_DATA_PALETTES
+  ; add hl, bc;[hl] = lower byte of palette address
+  inc hl;[hl] = lower byte of palette address
   ld a, [hli]
   ld b, a
   ld a, [hl]

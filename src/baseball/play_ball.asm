@@ -1188,25 +1188,26 @@ StartGame::
   ld [away_score], a
   ld [current_batter], a
   
-  ;clear the unsigned player game state flag to play a team
-  ; ld a, [game_state]
-  ; and a, ~GAME_STATE_UNSIGNED_PLAYER 
-  ; ld [game_state], a
+.checkGameType
+  ld a, [game_state]
+  and a, GAME_STATE_UNSIGNED_PLAYER 
+  jr z, .loadTeam
 
-  ;get the player from the current team's data
-  ; call GetCurrentOpponentPlayer
-  ; call GetPlayerNumber
-  ; jr .loadPlayer
-
-  ;get a random player
+.loadRandom
+  ;TODO: should be based on map data
   call gbdk_Random
   cp a, 151
-  jr c, .loadPlayer
+  jr c, .showIntro
   sub a, 151
-
-.loadPlayer
+  jr .showIntro
+  
+.loadTeam
+  ;get the player from the current team's data
+  call GetCurrentOpponentPlayer
+  call GetPlayerNumber
+    
+.showIntro
   ld [_a], a; player num
-
   call ShowPlayBallIntro
   call SetupGameUI
 

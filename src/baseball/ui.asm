@@ -362,7 +362,7 @@ DrawTeamNames::
   jr .drawOpposingName
 
 .setOpposingTeamName
-  ld hl, rival_name;TODO: get coach/team name
+  ld hl, Opponent.name
   ld de, name_buffer
   call str_Copy
 

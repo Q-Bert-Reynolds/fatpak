@@ -225,7 +225,7 @@ ShowTitle:
   ld d, OAMF_PAL1 | 4
   call gbdk_SetSpriteProp
   ld c, 5
-  ld d, 94
+  ld d, 95
   ld e, 117
   call gbdk_MoveSprite
 
@@ -336,7 +336,7 @@ CyclePlayersLoop:
   ld a, [hl]
   add a, 103
   ld e, a
-  ld d, 94 ;x
+  ld d, 95 ;x
   ld c, 5 ;sprite id of ball
   call gbdk_MoveSprite
 .skipBallToss

@@ -1,6 +1,19 @@
 INCLUDE "src/beisbol.inc"
 INCLUDE "data/coach_img.asm"
 
+SECTION "Coaches RAM", WRAM0
+Opponent::
+.name: DS 8
+.coach: DS 16
+.innings: DB
+.money: DS 3
+.restriction: DB
+.flag_index: DB
+.flag_bits: DB
+.item: DB
+.image: DB
+OpponentEnd:
+
 SECTION "Banked Coach Code", ROMX, BANK[COACHES_BANK]
 
 ;TODO: coaching styles and strategies go here

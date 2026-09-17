@@ -58,7 +58,7 @@ PlayBallIntro: ;[_a] = player num or coach id
   jr .showCalvinHatSprites
 
 .loadOpposingCoach
-  ld a, COACH_NOLAN1 ;TODO: load opposing team coach
+  ld a, [Opponent.image]
   ld de, $8800 + 64*16
   call LoadCoachTiles
 
@@ -140,7 +140,7 @@ PlayBallIntro: ;[_a] = player num or coach id
 .showOpposingCoach
   ld d, 12
   ld e, 0
-  ld a, COACH_NOLAN1
+  ld a, [Opponent.image]
   ld h, _UI_FONT_TILE_COUNT+64
   call SetCoachTiles
 
@@ -229,14 +229,16 @@ PlayBallIntro: ;[_a] = player num or coach id
   ld a, [sgb_Pal23]
   call SetPalettesDirect
 
-  ld hl, rival_name;TODO: get coach/team name
+  ld hl, Opponent.coach
   ld de, str_buffer
   call str_Copy;coach name in str_buffer
   STR_FAR_COPY TeamChallengeText, name_buffer
   ld hl, name_buffer
   ld de, str_buffer
   call str_Append;coach name + "wants to play %s innings." in str_buffer
-  ld hl, 3
+  ld a, [Opponent.innings]
+  ld h, 0
+  ld l, a
   ld de, name_buffer
   call str_Number;puts number of innings in name_buffer
   ld hl, str_buffer
@@ -271,7 +273,6 @@ PlayBallIntro: ;[_a] = player num or coach id
 
   STR_FAR_COPY PlayBallText, str_buffer
   ld hl, str_buffer
-  ; ld hl, PlayBallText
   call RevealTextAndWait
   HIDE_WIN
   ret
