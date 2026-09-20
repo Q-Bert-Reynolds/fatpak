@@ -41,16 +41,6 @@ MACRO TRAMPOLINE ;\1 = jump address
   call Trampoline
 ENDM
 
-; declares a variable with a label as well as it's C equivalent
-;   C_DATA a_byte, db
-;   C_DATA a_word, dw
-;   C_DATA a_array, ds 10
-;   C_DATA a_string, "blah"
-MACRO C_DATA ;\1 = label, \2 = everything else
-_\1::
-\1:: \2
-ENDM
-
 MACRO PUSH_VAR ;\1 = WRAM address
   ld a, [\1]
   push af

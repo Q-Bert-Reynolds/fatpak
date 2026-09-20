@@ -2,7 +2,6 @@ SECTION "Gloval Vars", WRAM0
 
 ; labels that start with an underscore are available in C using extern (ie. _breakpoint, _i) 
 ; labels without the underscore are not available in C (ie. sys_info, text_speed)
-; the C_DATA macro makes a label and it's C equivalent (ie. game_state and _game_state)
 
 ;debug
 _breakpoint:: DB
@@ -11,7 +10,8 @@ _breakpoint:: DB
 sys_info:: DB
 
 ;game state
-  C_DATA game_state, DB
+_game_state::
+game_state:: DB
 
 ;UI
 list_selection:: DB
@@ -21,8 +21,10 @@ inventory_mode:: DB
 text_speed:: DB
 animation_style:: DB
 coaching_style:: DB
-  C_DATA user_name, DS NAME_LENGTH
-  C_DATA rival_name, DS NAME_LENGTH
+_user_name::
+user_name:: DS NAME_LENGTH
+_rival_name::
+rival_name:: DS NAME_LENGTH
 hours:: DW
 minutes:: DB
 seconds:: DB
@@ -147,14 +149,20 @@ item_data::
 
 ;Baseball
 balls_strikes_outs:: DB; XBBBSSOO
-  C_DATA runners_on_base, DW; lineup order of runners on base - SSSSFFFF HHHHTTTT (little-endian to make C code more readable)
-  C_DATA frame, DB
+_runners_on_base::
+runners_on_base:: DW; lineup order of runners on base - SSSSFFFF HHHHTTTT (little-endian to make C code more readable)
+_frame::
+frame:: DB
 current_batter:: DB;upper nibble is opponent, lower nibble is user
-  C_DATA home_team, DB;1 = user is home team
-  C_DATA home_score, DB
-  C_DATA away_score, DB
+_home_team::
+home_team:: DB;1 = user is home team
+_home_score::
+home_score:: DB
+_away_score::
+away_score:: DB
 move_choice:: DB
-  C_DATA pitch_move_id, DB
+_pitch_move_id::
+pitch_move_id:: DB
 swing_move_id:: DB
 play_menu_selection:: DB
 aim_x:: DB
@@ -171,7 +179,8 @@ ball_vel_x:: DB;same location used for velocity in simulation
 pitch_target_y::
 ball_vel_y:: DB
 ball_vel_z:: DB
-  C_DATA ball_state, DB;bits... 7 = caught, 6 = landed, 5 = fair, 4 = inPlay, 3..0 = position player holding ball
+_ball_state::
+ball_state:: DB;bits... 7 = caught, 6 = landed, 5 = fair, 4 = inPlay, 3..0 = position player holding ball
 
 SECTION "Stack", WRAM0
 stack_top: DS STACK_SIZE
@@ -179,10 +188,17 @@ stack_bottom:
 
 SECTION "Buffers", WRAMX
 ;buffers
-  C_DATA tile_buffer,       DS BUFFER_SIZE
-  C_DATA bkg_buffer,        DS BUFFER_SIZE
-  C_DATA win_buffer,        DS BUFFER_SIZE
-  C_DATA map_sprite_buffer, DS MAP_SPRITE_BUFFER_SIZE; bank, address, x, y, extra
-  C_DATA cmd_buffer,        DS BUFFER_SIZE/2
-  C_DATA str_buffer,        DS 64
-  C_DATA name_buffer,       DS 16
+_tile_buffer::
+tile_buffer::       DS BUFFER_SIZE
+_bkg_buffer::
+bkg_buffer::        DS BUFFER_SIZE
+_win_buffer::
+win_buffer::        DS BUFFER_SIZE
+_map_sprite_buffer::
+map_sprite_buffer:: DS MAP_SPRITE_BUFFER_SIZE; bank, address, x, y, extra
+_cmd_buffer::
+cmd_buffer::        DS BUFFER_SIZE/2
+_str_buffer::
+str_buffer::        DS 64
+_name_buffer::
+name_buffer::       DS 16

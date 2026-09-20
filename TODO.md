@@ -1,7 +1,5 @@
 Priority
 
-- map sprites
-  - set the item flag when picked up
 - announcer mode
   - double plays
   - beat the throw
@@ -17,7 +15,6 @@ Priority
 
 Bugs
 
-- C_DATA macro breaks text editor's ability to autocomplete labels
 - colliders with offscreen origins will fail to register hits
 - in Calvin's bedroom, when you first turn on the PC, the SGB console sprite sits on top of the text box
 - map sprite culling still has issues at times
