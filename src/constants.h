@@ -230,6 +230,7 @@
 #define MAP_OBJ_STAMP_FILL     5 //bg only
 #define MAP_OBJ_AVATAR         6 //sprites only
 #define MAP_OBJ_ITEM           7 //sprites only
+#define MAP_OBJ_META_SPRITE    8 //sprites only
 #define MAP_COLLISION_MASK     0b11110000//up to 15 map collision types
 #define MAP_COLLISION_NONE     0
 #define MAP_COLLISION_SOLID    1 << 4

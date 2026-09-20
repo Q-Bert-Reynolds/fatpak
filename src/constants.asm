@@ -227,6 +227,7 @@ DEF MAP_OBJ_STAMP          EQU 4 ;bg and sprites
 DEF MAP_OBJ_STAMP_FILL     EQU 5 ;bg only
 DEF MAP_OBJ_AVATAR         EQU 6 ;sprites only
 DEF MAP_OBJ_ITEM           EQU 7 ;sprites only
+DEF MAP_OBJ_META_SPRITE    EQU 8 ;sprites only
 DEF MAP_COLLISION_MASK     EQU %11110000;up to 15 map collision types
 DEF MAP_COLLISION_NONE     EQU 0
 DEF MAP_COLLISION_SOLID    EQU 1 << 4

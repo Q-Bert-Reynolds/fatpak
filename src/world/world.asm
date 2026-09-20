@@ -304,6 +304,7 @@ ShowPauseMenu::
   call SetMapPalettes
   call ShowPlayerAvatar
   call DrawMapToScreen
+  DISPLAY_ON
   POP_VAR list_selection
   jp .showPauseMenu
 .exit

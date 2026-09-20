@@ -1,30 +1,30 @@
 Priority
 
+- map sprites
+  - export items from map editor
+  - load items from map data
+  - set event flags
 - announcer mode
   - double plays
   - beat the throw
 - baseball simulation
   - move a fielder to a position
   - move fielders to positions based on result
-- new sprite types
-  - refactor player avatar animation subroutines so they can be used for all avatars
-  - export items from map editor
-  - load items from map data
 - using the computer
   - Bill's PC (will allow roster changes!!!)
   - Doc's PC
   - League PC
 - end game, get experience, level up!!!
+- generic animation system
 
 Bugs
 
+- colliders with offscreen origins will fail to register hits
 - in Calvin's bedroom, when you first turn on the PC, the SGB console sprite sits on top of the text box
 - map sprite culling still has issues at times
-- on GBC/SGB, player colors aren't reset after viewing the move list during a ballgame
 - on SGB, viewing a player on your team during a ballgame crashes the game
 - can't deposit special items
 - if holding more than one directional button, can't hop ledge
-- palettes broken when exiting lineup or roledex
 - color of version name incorrect after returning from new game/continue/options screen
 - USB keyboard sometimes freezes title screen
 - PS/2 keyboard causes flickering on LCDC interrupts

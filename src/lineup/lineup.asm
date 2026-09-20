@@ -1697,12 +1697,6 @@ _ShowLineup:;b = item id (0 = no item), returns item used in c (0 = not used, 1 
   push bc;b = item id
 
   DISPLAY_OFF
-  ld hl, SGBLineupPalSet               
-  call SetPalettesIndirect
-  call GetHPBarColors
-  ld b, DRAW_FLAGS_BKG
-  call SetColorBlocks
-
   ld hl, PaletteLineupA
   ld a, 4
   call GBCSetPalette
@@ -1732,6 +1726,12 @@ _ShowLineup:;b = item id (0 = no item), returns item used in c (0 = not used, 1 
   pop bc;item id, item used
   push bc
   call DrawLineupPlayers
+
+  ld hl, SGBLineupPalSet               
+  call SetPalettesIndirect
+  call GetHPBarColors
+  ld b, DRAW_FLAGS_BKG
+  call SetColorBlocks
 
   xor a
   ld [_j], a
@@ -1799,7 +1799,6 @@ _ShowLineup:;b = item id (0 = no item), returns item used in c (0 = not used, 1 
 
   CLEAR_SCREEN " "
   HIDE_WIN
-  DISPLAY_ON
 
   pop bc;b = item id, c = item used
   ret

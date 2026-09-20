@@ -1974,6 +1974,7 @@ DrawMapTile:;hl = tile data, de = xy, min/max XY in min_x,min_y,max_x,max_y
 SetCurrentMap::;a = map index, returns address in hl, bank in a
   ld [map], a
   ;fall through
+
 GetCurrentMap::;returns address in hl, bank in a
   push bc
   push de

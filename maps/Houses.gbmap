@@ -109,20 +109,20 @@ MapHousesChunkCalvinsRoom:
 .south:   DB MAP_HOUSES_CHUNK_CALVINS_ROOM
 .west:    DB MAP_HOUSES_CHUNK_CALVINS_ROOM
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (7)
-  DB 12;x1
-  DB 11;y1
-  DB 196;tile
-  DB 5;palette
-  DB 24;x2
-  DB 12;y2
-
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (8)
   DB 8;x1
   DB 11;y1
   DB 196;tile
   DB 5;palette
   DB 10;x2
+  DB 12;y2
+
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (7)
+  DB 12;x1
+  DB 11;y1
+  DB 196;tile
+  DB 5;palette
+  DB 24;x2
   DB 12;y2
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;GameObject (6)
@@ -351,18 +351,18 @@ MapHousesChunkCalvinsHouse:
   DB 16;y
   DW GBStampTable
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Rug (6)
-  DB 18;x1
-  DB 16;y1
-  DW GBStampStool
-  DB 20;x2
-  DB 20;y2
-
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Rug (7)
   DB 12;x1
   DB 16;y1
   DW GBStampStool
   DB 14;x2
+  DB 20;y2
+
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Rug (6)
+  DB 18;x1
+  DB 16;y1
+  DW GBStampStool
+  DB 20;x2
   DB 20;y2
 
   DB MAP_OBJ_STAMP | MAP_COLLISION_DOOR ;StairsUp
@@ -371,17 +371,17 @@ MapHousesChunkCalvinsHouse:
   DW GBStampStairsUp
   DB 1;door
 
+  DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;Rug (5)
+  DB 14;x
+  DB 9;y
+  DW GBStampBigTV
+
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Rug (3)
   DB 8;x1
   DB 9;y1
   DW GBStampShelf
   DB 12;x2
   DB 13;y2
-
-  DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;Rug (5)
-  DB 14;x
-  DB 9;y
-  DW GBStampBigTV
 
   DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;Desk (3)
   DB 12;x
@@ -433,20 +433,20 @@ MapHousesChunkNolansHouse:
   DB 24;x2
   DB 24;y2
 
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (13)
+  DB 18;x1
+  DB 24;y1
+  DB 252;tile
+  DB 5;palette
+  DB 24;x2
+  DB 25;y2
+
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (12)
   DB 8;x1
   DB 24;y1
   DB 252;tile
   DB 5;palette
   DB 14;x2
-  DB 25;y2
-
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (10)
-  DB 24;x1
-  DB 11;y1
-  DB 252;tile
-  DB 5;palette
-  DB 25;x2
   DB 25;y2
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (11)
@@ -457,12 +457,12 @@ MapHousesChunkNolansHouse:
   DB 8;x2
   DB 25;y2
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (13)
-  DB 18;x1
-  DB 24;y1
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (10)
+  DB 24;x1
+  DB 11;y1
   DB 252;tile
   DB 5;palette
-  DB 24;x2
+  DB 25;x2
   DB 25;y2
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (8)
@@ -487,17 +487,17 @@ MapHousesChunkNolansHouse:
   DW GBStampTrashCan
   DB MAP_HOUSES_TEXT_THIS_TRASH_CANIS_REALLY_BEAT_UP; This trash can\nis really beat up.
 
-  DB MAP_OBJ_STAMP | MAP_COLLISION_SOLID ;Rug (4)
-  DB 20;x
-  DB 16;y
-  DW GBStampTable
-
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Rug (7)
   DB 18;x1
   DB 16;y1
   DW GBStampStool
   DB 20;x2
   DB 20;y2
+
+  DB MAP_OBJ_STAMP | MAP_COLLISION_SOLID ;Rug (4)
+  DB 20;x
+  DB 16;y
+  DW GBStampTable
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Rug (8)
   DB 20;x1
@@ -506,17 +506,17 @@ MapHousesChunkNolansHouse:
   DB 24;x2
   DB 16;y2
 
-  DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;Rug (5)
-  DB 19;x
-  DB 9;y
-  DW GBStampBigTV
-
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Rug (3)
   DB 9;x1
   DB 9;y1
   DW GBStampShelf
   DB 13;x2
   DB 13;y2
+
+  DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;Rug (5)
+  DB 19;x
+  DB 9;y
+  DW GBStampBigTV
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Window
   DB 14;x1
