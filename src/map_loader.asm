@@ -132,8 +132,8 @@ PickUpMapItem:: ;item index in map_collision_data
   pop bc;items address
   add hl, bc
   ld a, [hli];item id
-  ld b, 0
-  ld c, a;item id in bc
+  ld b, a;item id
+  ld c, 1;num items to add
   ld a, [hli];flag index
   ld d, a
   ld a, [hli];flag bits

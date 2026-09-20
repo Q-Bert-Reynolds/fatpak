@@ -150,7 +150,6 @@ Items
 - use select to swap items in list
 - add town names and cursor to town map
 - status clearing items should have more specific messages (ie. "Chu is no longer paralyzed.")
-- support more than 256 items
  
 Rolédex
 

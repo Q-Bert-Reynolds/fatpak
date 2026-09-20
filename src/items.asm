@@ -118,10 +118,10 @@ SECTION "Item Bank X", ROMX, BANK[ITEM_BANK]
 
 INCLUDE "data/strings/items_ui_strings.asm"
 
-TryPickupItem::;bc = item id, de = flag index/bit
+TryPickupItem::;bc = item id/amount, de = flag index/bit
   push de;flag index/bit
-  push bc;item id
-  ld a, c
+  push bc;item id/amount
+  ld a, b
   call GetItemName
   ld bc, user_name
   ld hl, FoundItemText
@@ -133,6 +133,8 @@ TryPickupItem::;bc = item id, de = flag index/bit
   call str_Replace
   ld hl, tile_buffer
   call RevealTextAndWait
+  WAITPAD_UP
+  HIDE_WIN
 
 .addToBag
   pop bc;item id
@@ -161,11 +163,12 @@ TryPickupItem::;bc = item id, de = flag index/bit
 
 AddItemToList::;a = max items, hl = item list, bc = item id, amount, returns z if inventory full, new list length in e, bc = item id, amount added
   ld d, a;max items
+  push hl;item list
+  push de;d=max items
+  ld e, 0;list len
   ld a, [hl]
   and a
   jr z, .noMatch;inventory empty
-  push hl;item list
-  push de;d=max items
   push bc;id,amount
   push hl;item list
   ld c, d;max items
@@ -913,6 +916,9 @@ UseItem:;[item_data], a = index, returns exit code in a (-1 = close inventory, 0
   jr nz, .checkMoveItem
   pop af;play ball flag
   jr z, .notTheTime
+  ;TODO: apply item effects
+  ld b, -1;just close inventory for now
+  jp .exit
 
 .checkMoveItem
   cp ITEM_TYPE_MOVE
@@ -922,8 +928,8 @@ UseItem:;[item_data], a = index, returns exit code in a (-1 = close inventory, 0
   call TeachMove
   ld a, c
   and 1
-  jr nz, .used
-  jr .exit
+  jp nz, .used
+  jp .exit
   
 .checkSpecialItem
   cp ITEM_TYPE_SPECIAL
@@ -932,7 +938,7 @@ UseItem:;[item_data], a = index, returns exit code in a (-1 = close inventory, 0
   call UseSpecialItem
   jr z, .notTheTime
   ld b, 0
-  jr .exit
+  jp .exit
 
 .checkStatsItem
   cp ITEM_TYPE_STATS
@@ -957,7 +963,7 @@ UseItem:;[item_data], a = index, returns exit code in a (-1 = close inventory, 0
 
 .checkWorldItem
   cp ITEM_TYPE_WORLD
-  jr nz, .exit
+  jr nz, .popPlayBallFlagAndExit
   pop af;play ball flag
   jr z, .notTheTime
   ld b, 0
@@ -975,6 +981,7 @@ UseItem:;[item_data], a = index, returns exit code in a (-1 = close inventory, 0
 
 .used;TODO: this logic can be combined with the TossItem logic
   pop af;index
+  push af;index
   ld d, 0
   ld e, a
   call GetItemList
@@ -985,26 +992,28 @@ UseItem:;[item_data], a = index, returns exit code in a (-1 = close inventory, 0
   dec a
   jr z, .removeItemCompletely
   ld [hl], a
-  ld a, b;exit code
-  ret
+  ld b, 0;exit code
+  jr .exit
 
 .removeItemCompletely
-  push bc;exit code in b
+  pop bc;index
   inc hl
   ld d, h
   ld e, l
   dec de
   dec de
   ld a, MAX_ITEMS*BYTES_PER_ITEM
+  inc b
   sub a, b
   sub a, b
   ld b, 0
   ld c, a;items to move down
   call mem_Copy;copies hl to hl-2
-  pop bc;exit code in b
-  ld a, b
+  ld b, 0;exit code
   ret
 
+.popPlayBallFlagAndExit
+  pop af;discard play ball flag
 .exit
   pop af;index
   ld a, b;exit code
@@ -1242,6 +1251,7 @@ RemoveItems:;hl = item list, a = max list length, bc = index, toss count, return
   dec de
   pop af;max list length
   add a, a
+  inc b;index
   sub a, b
   sub a, b
   ld b, 0

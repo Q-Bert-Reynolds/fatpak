@@ -13,7 +13,6 @@ TempItems:
   DB TM31_ITEM,        1
   DB TM36_ITEM,        1
   DB TM32_ITEM,        1
-  DB TM37_ITEM,        1
   DB SUPER_POTION_ITEM,2
   DB STEROIDS_ITEM,    99
   DB TOWN_MAP_ITEM,    0
@@ -22,6 +21,7 @@ TempItems:
   DB EXP_ALL_ITEM,     0
   DB ANTIDOTE_ITEM,    7
   DB BICYCLE_ITEM,     0
+  DB FULL_HEAL_ITEM,   1
 EndTempItems:
   DS MAX_ITEMS*BYTES_PER_ITEM - (EndTempItems-TempItems)
 
