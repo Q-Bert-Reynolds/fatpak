@@ -118,7 +118,7 @@ SECTION "Item Bank X", ROMX, BANK[ITEM_BANK]
 
 INCLUDE "data/strings/items_ui_strings.asm"
 
-TryPickupItem::;bc = item id/amount, de = flag index/bit
+TryPickupItem::;bc = item id/amount, de = flag index/bit, returns z if inventory full
   push de;flag index/bit
   push bc;item id/amount
   ld a, b
@@ -151,6 +151,7 @@ TryPickupItem::;bc = item id/amount, de = flag index/bit
   ld b, a;current flags in b
   or a, e;current flags | flag bit
   ld [hl], a;update flags
+  and a
   ret
 
 .bagFull
@@ -159,6 +160,7 @@ TryPickupItem::;bc = item id/amount, de = flag index/bit
   call RevealTextAndWait
   WAITPAD_UP
   HIDE_WIN
+  xor a
   ret
 
 AddItemToList::;a = max items, hl = item list, bc = item id, amount, returns z if inventory full, new list length in e, bc = item id, amount added

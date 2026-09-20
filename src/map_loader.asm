@@ -109,10 +109,40 @@ EnterMapDoor::;a = door index
   SET_BANK
   ret
 
-PickUpMapItem:: ;item index in map_collision_data
+CheckMapItemFlags:: ;item index in [map_collision_data], returns z if flag not set
+  ld a, [loaded_bank]
+  push af;current bank
+  call GetMapItem
+  pop af;previous bank
+  SET_BANK
+
+  ld b, 0
+  ld c, d;flag index
+  ld hl, item_flags
+  add hl, bc;item flag to set
+  ld a, [hl];current flags
+  and a, e;check bit
+  ret
+
+PickUpMapItem:: ;item index in [map_collision_data]
   ld a, [loaded_bank]
   push af;current bank
 
+  call GetMapItem
+
+  ld a, ITEM_BANK
+  SET_BANK
+  call TryPickupItem;bc = item id, de = flag index/bits
+  jr z, .exit
+.clearSprites
+  call ClearMapSprites
+  call DrawMapToScreen
+.exit
+  pop af;previous bank
+  SET_BANK
+  ret
+
+GetMapItem:: ;item index in [map_collision_data], returns item id/count in bc, flag index/bits in de
   call GetCurrentMap
   SET_BANK
 
@@ -138,16 +168,9 @@ PickUpMapItem:: ;item index in map_collision_data
   ld d, a
   ld a, [hli];flag bits
   ld e, a
-
-  ld a, ITEM_BANK
-  SET_BANK
-  call TryPickupItem;bc = item id, de = flag index/bits
-
-  pop af;previous bank
-  SET_BANK
   ret
 
-PlayMapTeam:: ;team index in map_collision_data
+PlayMapTeam:: ;team index in [map_collision_data]
   ld a, [loaded_bank]
   push af;current bank
 
@@ -164,7 +187,7 @@ PlayMapTeam:: ;team index in map_collision_data
   SET_BANK
   ret
 
-RunMapScript:: ;script index in map_collision_data
+RunMapScript:: ;script index in [map_collision_data]
   ld a, [loaded_bank]
   push af;current bank
 
@@ -178,7 +201,7 @@ RunMapScript:: ;script index in map_collision_data
   SET_BANK
   ret
 
-GetMapAddress: ;address index in map_collision_data, switches to bank of address and returns it in hl
+GetMapAddress: ;address index in [map_collision_data], switches to bank of address and returns it in hl
   call GetCurrentMap
   SET_BANK
 
@@ -1441,16 +1464,30 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
     ld a, b
     and a, MAP_COLLISION_MASK
     ld [_c], a;collision type
+
+  .testItem
+    cp a, MAP_COLLISION_ITEM
+    jr nz, .testXY
     push hl; current address
+    ld de, 5
+    add hl, de
+    ld a, [hl]
+    ld [map_collision_data], a
+    call CheckMapItemFlags
+    pop hl; current address
+    jp z, .testXY
+    ld de, 6
+    add hl, de
+    jr .loadSpritesLoop
     
+  .testXY
+    push hl; current address
     inc hl
     ld a, [hli];x
     ld d, a
     ld a, [hli];y
     ld e, a
     push de;xy
-    
-  .testXY
     inc d
     srl d
     srl d
@@ -1550,15 +1587,8 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
     inc hl ;skip avatar extra data
   .checkSpriteCollisionData
     ld a, [_c]
-    cp a, MAP_COLLISION_TEXT
-    jp z, .spriteHasExtraData
-    cp a, MAP_COLLISION_SCRIPT
-    jp z, .spriteHasExtraData
-    cp a, MAP_COLLISION_LEDGE
-    jr z, .spriteHasExtraData
-    cp a, MAP_COLLISION_DOOR
-    jr z, .spriteHasExtraData
-    jp .loadSpritesLoop
+    cp a, MAP_COLLISION_WATER;everything but none and solid have extra data
+    jp c, .loadSpritesLoop
   .spriteHasExtraData
     inc hl
     jp .loadSpritesLoop
