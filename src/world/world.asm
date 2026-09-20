@@ -298,6 +298,7 @@ ShowPauseMenu::
   ld a, l
   ld [rSCY], a
 .returnToPauseMenu
+  DISPLAY_OFF
   call CopyBufferToWin
   call LoadAvatarSprites
   call SetMapTiles
