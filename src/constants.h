@@ -20,13 +20,14 @@
 #define PC_FLAG_BEAT_LEAGUE  0b00000100
 #define PENNANT_FLAGS        2
 #define PENNANT_FLAG_ROCK    0b00000001
-#define PENNANT_FLAG_LAPIS   0b00000010   
-#define PENNANT_FLAG_COOPER  0b00000100   
-#define PENNANT_FLAG_EARTH   0b00001000   
-#define PENNANT_FLAG_BOG     0b00010000 
-#define PENNANT_FLAG_RUBBER  0b00100000   
-#define PENNANT_FLAG_MANTLE  0b01000000   
-#define PENNANT_FLAG_DIAMOND 0b10000000     
+#define PENNANT_FLAG_LAPIS   0b00000010
+#define PENNANT_FLAG_COOPER  0b00000100
+#define PENNANT_FLAG_EARTH   0b00001000
+#define PENNANT_FLAG_BOG     0b00010000
+#define PENNANT_FLAG_RUBBER  0b00100000
+#define PENNANT_FLAG_MANTLE  0b01000000
+#define PENNANT_FLAG_DIAMOND 0b10000000
+#define ITEM_FLAGS           3
 
 // ball state masks
 #define BALL_STATE_CAUGHT  0b10000000
@@ -220,7 +221,8 @@
 #define MAP_DATA_DOORS         5
 #define MAP_DATA_CHUNKS        7
 #define MAP_DATA_ADDRESSES     9
-#define MAP_DATA_TILES         11
+#define MAP_DATA_ITEMS         11
+#define MAP_DATA_TILES         13
 #define MAP_OBJ_TYPE_MASK      0b00001111//up to 15 map object types
 #define MAP_OBJ_NONE           0 //bg only
 #define MAP_OBJ_NONE_FILL      1 //bg only
@@ -229,7 +231,6 @@
 #define MAP_OBJ_STAMP          4 //bg and sprites
 #define MAP_OBJ_STAMP_FILL     5 //bg only
 #define MAP_OBJ_AVATAR         6 //sprites only
-#define MAP_OBJ_ITEM           7 //sprites only
 #define MAP_OBJ_META_SPRITE    8 //sprites only
 #define MAP_COLLISION_MASK     0b11110000//up to 15 map collision types
 #define MAP_COLLISION_NONE     0
@@ -241,6 +242,7 @@
 #define MAP_COLLISION_GRASS    6 << 4
 #define MAP_COLLISION_SCRIPT   7 << 4
 #define MAP_COLLISION_TEAM     8 << 4
+#define MAP_COLLISION_ITEM     9 << 4
 #define MAP_STEP_SIZE          16//2 tiles per step
 #define WALK_ANIM_FRAMES       4//TODO: should come from GBStampAnimation
 #define MAP_NORTH              2//skip tile & pal
@@ -265,6 +267,7 @@
 #define MAX_ITEMS        20
 #define MAX_PC_ITEMS     50
 #define BYTES_PER_ITEM   2
+#define ITEM_FLAGS_SIZE  32//256 items flags
 #define MAX_MOVES        4
 #define NAME_LENGTH      8
 #define NICKNAME_LENGTH  12

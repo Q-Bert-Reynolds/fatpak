@@ -1,9 +1,7 @@
 Priority
 
 - map sprites
-  - export items from map editor
-  - load items from map data
-  - set event flags
+  - set the item flag when picked up
 - announcer mode
   - double plays
   - beat the throw

@@ -1,10 +1,11 @@
 MapBusinesses:: ;289 bytes total
   DB MAP_BUSINESSES
   DW MapBusinessesPalettes ;64 bytes
-  DW MapBusinessesText ;0
-  DW MapBusinessesDoors ;5
+  DW MapBusinessesText ;0 bytes
+  DW MapBusinessesDoors ;5 bytes
   DW MapBusinessesChunks ;216 bytes
   DW MapBusinessesAddresses ;6 bytes
+  DW MapBusinessesItems ;0 bytes
   DB BANK(_OverworldTiles)
   DW _OverworldTiles
   DB BANK(_WorldSpritesTiles)
@@ -118,8 +119,16 @@ MapBusinessesChunkVeteranCityClinic:
   DB 32;x2
   DB 24;y2
 
-  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (5)
-  DB 27;x1
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (4)
+  DB 18;x1
+  DB 9;y1
+  DB 148;tile
+  DB 1;palette
+  DB 24;x2
+  DB 10;y2
+
+  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (6)
+  DB 21;x1
   DB 9;y1
   DB 151;tile
   DB 1;palette
@@ -132,27 +141,11 @@ MapBusinessesChunkVeteranCityClinic:
   DB 32;x2
   DB 10;y2
 
-  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (6)
-  DB 21;x1
+  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (5)
+  DB 27;x1
   DB 9;y1
   DB 151;tile
   DB 1;palette
-
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (4)
-  DB 18;x1
-  DB 9;y1
-  DB 148;tile
-  DB 1;palette
-  DB 24;x2
-  DB 10;y2
-
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (3)
-  DB 18;x1
-  DB 8;y1
-  DB 132;tile
-  DB 1;palette
-  DB 24;x2
-  DB 9;y2
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (2)
   DB 26;x1
@@ -160,6 +153,14 @@ MapBusinessesChunkVeteranCityClinic:
   DB 132;tile
   DB 1;palette
   DB 32;x2
+  DB 9;y2
+
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (3)
+  DB 18;x1
+  DB 8;y1
+  DB 132;tile
+  DB 1;palette
+  DB 24;x2
   DB 9;y2
 
   DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;Couch
@@ -215,22 +216,14 @@ MapBusinessesChunkVeteranCityClinic1:
   DB 16;x2
   DB 24;y2
 
-  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (9)
-  DB 11;x1
+  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (7)
+  DB 0;x1
   DB 9;y1
   DB 151;tile
   DB 1;palette
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (3)
-  DB 0;x1
-  DB 9;y1
-  DB 148;tile
-  DB 1;palette
-  DB 8;x2
-  DB 10;y2
-
-  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (7)
-  DB 0;x1
+  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (9)
+  DB 11;x1
   DB 9;y1
   DB 151;tile
   DB 1;palette
@@ -248,6 +241,14 @@ MapBusinessesChunkVeteranCityClinic1:
   DB 9;y1
   DB 151;tile
   DB 1;palette
+
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (3)
+  DB 0;x1
+  DB 9;y1
+  DB 148;tile
+  DB 1;palette
+  DB 8;x2
+  DB 10;y2
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (4)
   DB 0;x1
@@ -311,4 +312,6 @@ MapBusinessesAddresses: ;6 bytes
   DW UsePublicComputer
   DB BANK(UsePublicComputer)
   DW UsePublicComputer
+
+MapBusinessesItems: ;0 bytes
 

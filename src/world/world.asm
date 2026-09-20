@@ -375,6 +375,8 @@ CheckPlayerCollision:;returns z if no collision
   jr z, .stay
   cp a, MAP_COLLISION_TEAM
   jr z, .stay
+  cp a, MAP_COLLISION_ITEM
+  jr z, .stay
 .checkWaterMove
   cp a, MAP_COLLISION_WATER
   jr z, .stay;TODO: add swimming
@@ -441,6 +443,8 @@ CheckActions:
   call CopyMapSpritesToOAMBuffer
 .checkCollisionType
   ld a, [map_collision_type]
+  cp a, MAP_COLLISION_ITEM
+  jp z, PickUpMapItem
   cp a, MAP_COLLISION_TEAM
   jp z, PlayMapTeam
   cp a, MAP_COLLISION_SCRIPT

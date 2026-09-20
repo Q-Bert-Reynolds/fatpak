@@ -19,6 +19,8 @@ sram_map_chunk: DB
 sram_map_x: DB
 sram_map_y: DB
 sram_pc_flags: DB
+sram_pennant_flags:: DB ;which leagues have you won
+sram_item_flags:: DS ITEM_FLAGS_SIZE
 sram_main_save_end:
 
 SECTION "Team Save", SRAM, BANK[TEAM_SRAM_BANK]

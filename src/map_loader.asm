@@ -109,6 +109,71 @@ EnterMapDoor::;a = door index
   SET_BANK
   ret
 
+PickUpMapItem:: ;item index in map_collision_data
+  ld a, [loaded_bank]
+  push af;current bank
+
+  call GetCurrentMap
+  SET_BANK
+
+  ld bc, MAP_DATA_ITEMS
+  add hl, bc;[hl] = lower byte of items address
+  ld a, [hli]
+  ld c, a
+  ld a, [hl]
+  ld b, a
+  push bc;items address
+  
+  ld a, [map_collision_data]
+  ld h, 0
+  ld l, a
+  ld de, 3;item id, flag index, flag bit
+  call math_Multiply
+  pop bc;items address
+  add hl, bc
+  ld a, [hli];item id
+  push hl;flag index address
+  push af;item id
+  call GetItemName
+  ;TODO: display "Found <item>"
+
+.addToBag
+  pop af;item id
+  ld b, a
+  ld c, 1
+  call AddItemToInventory
+  jr z, .bagFull
+  
+.setFlags
+  pop hl;flag index address
+  ld a, [hli];flag index
+  push hl;flag bit address
+  ld b, 0
+  ld c, a
+  ld hl, item_flags
+  add hl, bc;item flag to set
+  ld a, [hl]
+  ld b, a;current flags in b
+  pop de;flag bit address
+  ld a, [de];flag bit
+  or a, b;current flags | flag bit
+  ld [de], a;update flags
+  jr .exit
+
+.bagFull
+  pop hl;discard flags
+  ld a, ITEM_BANK
+  SET_BANK
+  ld hl, BagFullText
+  call RevealTextAndWait
+  WAITPAD_UP
+  HIDE_WIN
+
+.exit
+  pop af;previous bank
+  SET_BANK
+  ret
+
 PlayMapTeam:: ;team index in map_collision_data
   ld a, [loaded_bank]
   push af;current bank
