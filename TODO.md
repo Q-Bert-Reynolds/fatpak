@@ -17,6 +17,7 @@ Priority
 
 Bugs
 
+- C_DATA macro breaks text editor's ability to autocomplete labels
 - colliders with offscreen origins will fail to register hits
 - in Calvin's bedroom, when you first turn on the PC, the SGB console sprite sits on top of the text box
 - map sprite culling still has issues at times
@@ -152,6 +153,7 @@ Items
 - use select to swap items in list
 - add town names and cursor to town map
 - status clearing items should have more specific messages (ie. "Chu is no longer paralyzed.")
+- support more than 256 items
  
 Rolédex
 

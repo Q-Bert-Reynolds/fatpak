@@ -30,7 +30,7 @@
 ;     Appends a character to a string
 ;     Entry: a = character, hl = string
 ;   str_Replace
-;     Replaces string bc in source hl with string af in destination de
+;     Replaces first occurrance of %s in source (hl) with string (bc), puts result in de
 ;     Entry: hl = src string, de = dest string, bc = replace string, af = with string
 ;   str_Number
 ;     Converts number hl to string de, legacy code convenience wrapper for str_Number16
@@ -268,7 +268,7 @@ _str_Replace::
 
 ;***************************************************************************
 ;
-; str_Replace - Replaces %s in src with bc, results in dest
+; str_Replace - Replaces first occurrance of %s in src (hl) with string (bc), puts results in dest (de)
 ;
 ; input:
 ;   hl - src string

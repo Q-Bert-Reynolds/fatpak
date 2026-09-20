@@ -21,3 +21,4 @@ DepositedItemText::                       DB "どうぐを あずけた。", 0
 HowManyText::                             DB "いくつ？", 0
 BagFullText::                             DB "これいじょう　どうぐを\nもてない！", 0
 ItemStorageSystemFull::                   DB "どうぐの　あずかりシステムが\nいっぱいです！", 0
+FoundItemText::                           DB "%sは\n%sを　みつけた！", 0

@@ -19,3 +19,4 @@ DepositedItemText,,Deposited item.,Objeto depositado.,Objet déposé.,Strumento 
 HowManyText,,How many?,¿Cuántos?,Combien ?,Quanti?,Quantos?,Wie viele?,いくつ？
 BagFullText,,You can't hold\nany more items.,No puedes llevar\nmás objetos.,Vous ne pouvez plus\ntransporter d'objets.,Non puoi portare\naltri oggetti.,Você não pode carregar\nmais itens.,Du kannst nicht mehr\nItems tragen.,これいじょう　どうぐを\nもてない！
 ItemStorageSystemFull,,Item storage\nsystem full.,El almacén de objetos\nestá lleno.,Système de stockage\nd'objets plein.,Sistema deposito\noggetti pieno.,Sistema de\narmazenamento cheio.,Item-Speicher-\nsystem voll.,どうぐの　あずかりシステムが\nいっぱいです！
+FoundItemText,,%s found\n%s!,¡%s encontró\n%s!,%s a trouvé\n%s!,%s ha trovato\n%s!,%s encontrou\n%s!,%s hat\n%s\ngefunden!,%sは\n%sを　みつけた！

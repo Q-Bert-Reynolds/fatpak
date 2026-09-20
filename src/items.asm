@@ -118,6 +118,47 @@ SECTION "Item Bank X", ROMX, BANK[ITEM_BANK]
 
 INCLUDE "data/strings/items_ui_strings.asm"
 
+TryPickupItem::;bc = item id, de = flag index/bit
+  push de;flag index/bit
+  push bc;item id
+  ld a, c
+  call GetItemName
+  ld bc, user_name
+  ld hl, FoundItemText
+  ld de, str_buffer
+  call str_Replace
+  ld bc, name_buffer;item name
+  ld hl, str_buffer
+  ld de, tile_buffer
+  call str_Replace
+  ld hl, tile_buffer
+  call RevealTextAndWait
+
+.addToBag
+  pop bc;item id
+  call AddItemToInventory
+  jr z, .bagFull
+  
+.setFlags
+  pop de;flag index/bit
+  ld b, 0
+  ld c, d
+  ld hl, item_flags
+  add hl, bc;item flag to set
+  ld a, [hl];current flags
+  ld b, a;current flags in b
+  or a, e;current flags | flag bit
+  ld [hl], a;update flags
+  ret
+
+.bagFull
+  pop de;discard flag data
+  ld hl, BagFullText
+  call RevealTextAndWait
+  WAITPAD_UP
+  HIDE_WIN
+  ret
+
 AddItemToList::;a = max items, hl = item list, bc = item id, amount, returns z if inventory full, new list length in e, bc = item id, amount added
   ld d, a;max items
   ld a, [hl]

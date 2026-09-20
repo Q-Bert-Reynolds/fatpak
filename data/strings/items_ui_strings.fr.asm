@@ -21,3 +21,4 @@ DepositedItemText::                       DB "Objet déposé.", 0
 HowManyText::                             DB "Combien ?", 0
 BagFullText::                             DB "Vous ne pouvez plus\ntransporter d'objets.", 0
 ItemStorageSystemFull::                   DB "Système de stockage\nd'objets plein.", 0
+FoundItemText::                           DB "%s a trouvé\n%s!", 0

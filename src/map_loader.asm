@@ -132,44 +132,17 @@ PickUpMapItem:: ;item index in map_collision_data
   pop bc;items address
   add hl, bc
   ld a, [hli];item id
-  push hl;flag index address
-  push af;item id
-  call GetItemName
-  ;TODO: display "Found <item>"
-
-.addToBag
-  pop af;item id
-  ld b, a
-  ld c, 1
-  call AddItemToInventory
-  jr z, .bagFull
-  
-.setFlags
-  pop hl;flag index address
-  ld a, [hli];flag index
-  push hl;flag bit address
   ld b, 0
-  ld c, a
-  ld hl, item_flags
-  add hl, bc;item flag to set
-  ld a, [hl]
-  ld b, a;current flags in b
-  pop de;flag bit address
-  ld a, [de];flag bit
-  or a, b;current flags | flag bit
-  ld [de], a;update flags
-  jr .exit
+  ld c, a;item id in bc
+  ld a, [hli];flag index
+  ld d, a
+  ld a, [hli];flag bits
+  ld e, a
 
-.bagFull
-  pop hl;discard flags
   ld a, ITEM_BANK
   SET_BANK
-  ld hl, BagFullText
-  call RevealTextAndWait
-  WAITPAD_UP
-  HIDE_WIN
+  call TryPickupItem;bc = item id, de = flag index/bits
 
-.exit
   pop af;previous bank
   SET_BANK
   ret
