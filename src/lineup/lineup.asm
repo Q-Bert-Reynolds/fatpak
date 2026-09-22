@@ -67,7 +67,7 @@ SwapPositions: ;bc = player count, selected player
     ld a, [_k]
     cp b
     jr z, .checkA
-    ld a, "▷"
+    ld a, '▷'
     ld hl, name_buffer
     ld [hl], a
 
@@ -265,7 +265,7 @@ ReorderLineup: ;bc = player count, selected player
     ld a, [_k]
     cp b
     jr z, .checkA
-    ld a, "▷"
+    ld a, '▷'
     ld hl, name_buffer
     ld [hl], a
 
@@ -319,7 +319,7 @@ DrawLineupPlayer: ;hl = player, b = item id, _j is order on screen
   push bc;b = item id
   push hl;player
   ld hl, tile_buffer
-  ld a, " "
+  ld a, ' '
   ld bc, 40
   call mem_Set
 
@@ -336,7 +336,7 @@ DrawLineupPlayer: ;hl = player, b = item id, _j is order on screen
   ld de, tile_buffer+4
   call str_Copy
   dec de
-  ld a, " "
+  ld a, ' '
   ld [de], a
 
   pop de;player
@@ -416,7 +416,7 @@ DrawLineupPlayer: ;hl = player, b = item id, _j is order on screen
 .showNothing
   ld hl, name_buffer
   ld bc, 3
-  ld a, " "
+  ld a, ' '
   call mem_Set
   ld bc, name_buffer
   jr .draw
@@ -692,7 +692,7 @@ ShowPlayerMenu:
   COPY_BKG_TO_BUFFER 0, 0, 20, 18
 
 .showEmptyArrow
-  ld a, "▷"
+  ld a, '▷'
   ld hl, name_buffer
   ld [hl], a
 
@@ -1369,7 +1369,7 @@ Evolve:;hl = player, a = player num to evolve to
   ld de, _UI_FONT_TILE_COUNT
   call LoadPlayerBkgData
 
-  CLEAR_BKG_AREA 0, 0, 32, 18, " "
+  CLEAR_BKG_AREA 0, 0, 32, 18, ' '
   
   ;draw player on left
   pop hl;player
@@ -1494,11 +1494,11 @@ ShowOneTwoPoofForPlayer:;a = selected move, [_j] = selected player
   cp a, 6
   jr c, .clearBottom
 .clearTop
-  CLEAR_WIN_AREA 1, 1, 18, 4, " "
+  CLEAR_WIN_AREA 1, 1, 18, 4, ' '
   ld e, 2
   jr .ask
 .clearBottom
-  CLEAR_WIN_AREA 1, 13, 18, 4, " "
+  CLEAR_WIN_AREA 1, 13, 18, 4, ' '
   ld e, 14
 .ask
   ld hl, $0201
@@ -1576,7 +1576,7 @@ SelectMoveToForget:;[_j] = selected player, hl = player, returns selection in a 
     ld de, str_buffer
     call str_Append
     dec de
-    ld a, "\n"
+    ld a, '\n'
     ld [de], a
     inc de
     xor a
@@ -1714,7 +1714,7 @@ _ShowLineup:;b = item id (0 = no item), returns item used in c (0 = not used, 1 
   ld bc, _HEALTH_BAR_TILE_COUNT*16
   call mem_CopyVRAM
 
-  CLEAR_SCREEN " "
+  CLEAR_SCREEN ' '
 
   xor a
   ld [rSCX], a
@@ -1797,7 +1797,7 @@ _ShowLineup:;b = item id (0 = no item), returns item used in c (0 = not used, 1 
   ld bc, BUFFER_SIZE
   call mem_Set
 
-  CLEAR_SCREEN " "
+  CLEAR_SCREEN ' '
   HIDE_WIN
 
   pop bc;b = item id, c = item used

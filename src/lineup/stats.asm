@@ -48,7 +48,7 @@ SetStatScreenColors:;hl = player
 DrawStatScreen::;player in hl
   push hl;player
   DISPLAY_OFF
-  ld a, " "
+  ld a, ' '
   call ClearTiles
 
   ld a, 40
@@ -151,7 +151,7 @@ DrawPageOne:
   pop af;num
   call GetZeroPaddedNumber
 
-  ld a, "#"
+  ld a, '#'
   ld de, name_buffer
   ld [de], a
   inc de
@@ -301,7 +301,7 @@ DrawPageOne:
   call str_Number
 
   ld de, name_buffer
-  ld a, "/"
+  ld a, '/'
   ld [de], a
   inc de
   xor a
@@ -359,9 +359,9 @@ DrawPageOne:
   ld de, str_buffer
   call str_Copy
   ld hl, name_buffer
-  ld a, "1"
+  ld a, '1'
   ld [hli], a
-  ld a, "/"
+  ld a, '/'
   ld [hli], a
   xor a
   ld [hli], a
@@ -404,9 +404,9 @@ DrawPageOne:
   ld de, str_buffer
   call str_Copy
   ld hl, name_buffer
-  ld a, "2"
+  ld a, '2'
   ld [hli], a
-  ld a, "/"
+  ld a, '/'
   ld [hli], a
   xor a
   ld [hli], a
@@ -444,7 +444,7 @@ DrawPageOne:
   call gbdk_SetBkgTiles
 
   ld hl, name_buffer
-  ld a, "$"
+  ld a, '$'
   ld [hl], a
 
   pop hl;player
@@ -516,7 +516,7 @@ DrawPageTwo:
     call gbdk_SetBkgTiles
 
     ld bc, name_buffer
-    ld a, "<P>"
+    ld a, '<P>'
     ld [bc], a
     inc bc
     ld [bc], a

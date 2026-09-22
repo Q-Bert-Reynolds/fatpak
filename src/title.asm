@@ -411,7 +411,7 @@ ShowStartMenu: ; puts choice in a ... 0 = back, >0 = choice
   call GBCSetBkgPaletteMap
 
   call UpdateAudio
-  CLEAR_SCREEN " "
+  CLEAR_SCREEN ' '
   call LoadFontTiles
   DISPLAY_ON
 
@@ -461,7 +461,7 @@ ShowStartMenu: ; puts choice in a ... 0 = back, >0 = choice
     call gbdk_WaitVBL
     jr .showGameStatsLoop
 .backPressed
-  CLEAR_BKG_AREA 4,7,16,10," "
+  CLEAR_BKG_AREA 4,7,16,10,' '
   jp .newGameContinueLoop
 .returnY
   ld a, [_y]

@@ -14,7 +14,7 @@ SGBRoledexAttrBlk:
   ATTR_BLK_PACKET %001, 0,0,0, 0,0, 20,18 ;main UI
 
 DrawRoledexBaseUI:
-  CLEAR_BKG_AREA 0,0,20,18," "
+  CLEAR_BKG_AREA 0,0,20,18,' '
 
 .setPalettes
   ld hl, SGBRoledexPalSet               
@@ -103,13 +103,13 @@ DrawRoledexBaseUI:
   call DrawText
 
   ld hl, tile_buffer
-  ld a, "│"
+  ld a, '│'
   ld [hli], a
   ld c, 9
 .loop
-    ld a, "│"
+    ld a, '│'
     ld [hli], a
-    ld a, "┼"
+    ld a, '┼'
     ld [hli], a
     dec c
     jr nz, .loop
@@ -121,7 +121,7 @@ DrawRoledexBaseUI:
   call SetTiles
 
   ld hl, tile_buffer
-  ld a, "─"
+  ld a, '─'
   ld bc, 5
   call mem_Set
 
@@ -147,7 +147,7 @@ DrawRoledexListEntry:;a = number, de = xy
   call SetTiles
 
   ld hl, tile_buffer
-  ld a, " "
+  ld a, ' '
   ld bc, NICKNAME_LENGTH
   call mem_Set
 
@@ -174,7 +174,7 @@ DrawRoledexListEntry:;a = number, de = xy
   cp 2
   jr z, .setSigned
 
-  ld a, "-"
+  ld a, '-'
   ld hl, tile_buffer+1
   ld bc, 10
   call mem_Set
@@ -183,7 +183,7 @@ DrawRoledexListEntry:;a = number, de = xy
   jr .drawTiles
 
 .setSigned
-  ld a, "○"
+  ld a, '○'
   ld hl, tile_buffer
   ld [hl], a
 
@@ -341,7 +341,7 @@ ShowRoledexPlayerData:;a player num
   push af
   call GetZeroPaddedNumber
 
-  ld a, "#"
+  ld a, '#'
   ld de, name_buffer
   ld [de], a
   inc de
@@ -364,9 +364,9 @@ ShowRoledexPlayerData:;a player num
 
 .checkHeight
   ld hl, name_buffer
-  ld a, "H"
+  ld a, 'H'
   ld [hli], a
-  ld a, "T"
+  ld a, 'T'
   ld [hl], a
 
   pop af;signed
@@ -375,17 +375,17 @@ ShowRoledexPlayerData:;a player num
   jr z, .getHeight
 
   ld hl, name_buffer+2
-  ld a, " "
+  ld a, ' '
   ld [hli], a
   ld [hli], a
-  ld a, "?"
+  ld a, '?'
   ld [hli], a
-  ld a, "'"
+  ld a, '\''
   ld [hli], a
-  ld a, "?"
+  ld a, '?'
   ld [hli], a
   ld [hli], a
-  ld a, "\""
+  ld a, '\\'
   ld [hli], a
   xor a
   ld [hl], a
@@ -412,7 +412,7 @@ ShowRoledexPlayerData:;a player num
   ld l, a
   ld de, str_buffer
   call str_Number
-  ld a, "'"
+  ld a, '\''
   ld [de], a
   inc de
   pop af;ft,in
@@ -420,7 +420,7 @@ ShowRoledexPlayerData:;a player num
   ld h, 0
   ld l, a
   call str_Number
-  ld a, "\""
+  ld a, '\\'
   ld [de], a
   inc de
   xor a
@@ -442,9 +442,9 @@ ShowRoledexPlayerData:;a player num
   
 .checkWeight
   ld hl, name_buffer
-  ld a, "W"
+  ld a, 'W'
   ld [hli], a
-  ld a, "T"
+  ld a, 'T'
   ld [hl], a
 
   pop af;signed
@@ -453,15 +453,15 @@ ShowRoledexPlayerData:;a player num
   jr z, .getWeight
 
   ld hl, name_buffer+4
-  ld a, " "
+  ld a, ' '
   ld [hli], a
-  ld a, "?"
+  ld a, '?'
   ld [hli], a
   ld [hli], a
   ld [hli], a
-  ld a, "l"
+  ld a, 'l'
   ld [hli], a
-  ld a, "b"
+  ld a, 'b'
   ld [hli], a
   xor a
   ld [hl], a
@@ -491,7 +491,7 @@ ShowRoledexPlayerData:;a player num
   call str_Number
 
   ld hl, name_buffer
-  ld a, "."
+  ld a, '.'
   ld [hli], a
   xor a
   ld [hld], a
@@ -510,9 +510,9 @@ ShowRoledexPlayerData:;a player num
   call str_Append
 
   ld hl, name_buffer
-  ld a, "l"
+  ld a, 'l'
   ld [hli], a
-  ld a, "b"
+  ld a, 'b'
   ld [hli], a
   xor a
   ld [hl], a
@@ -537,9 +537,9 @@ ShowRoledexPlayerData:;a player num
 .drawDividingLine
   ld hl, tile_buffer+1
   ld bc, 18
-  ld a, "─"
+  ld a, '─'
   call mem_Set
-  ld a, "┼"
+  ld a, '┼'
   ld [hl], a
 
   ld de, $0009
@@ -567,7 +567,7 @@ ShowRoledexPlayerData:;a player num
   ld de, $1210
   call FlashNextArrow
 
-  CLEAR_BKG_AREA 1,10,18,7," "
+  CLEAR_BKG_AREA 1,10,18,7,' '
 
   pop hl
   ld bc, 3
@@ -614,7 +614,7 @@ ShowRoledexMenu:;returns exit code in a
   ld hl, $0101
   ld d, 0
   ld e, c
-  ld a, "▷"
+  ld a, '▷'
   ld bc, tile_buffer
   ld [bc], a
   ld a, DRAW_FLAGS_BKG

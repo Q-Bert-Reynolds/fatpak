@@ -280,10 +280,10 @@ str_Replace::
   ld a, [hli]
   and a
   jr z, .done
-  cp "%"
+  cp '%'
   jp nz, .copyToDest
   ld a, [hli]
-  cp "s"
+  cp 's'
   jr z, .stringReplace
   dec hl
   jr str_Replace
@@ -379,7 +379,7 @@ str_Number32::
   jr nz, .nonZero;if l != 0
   
 .returnZero
-  ld a, "0"
+  ld a, '0'
   ld [bc], a
   inc bc
   xor a
@@ -394,7 +394,7 @@ str_Number32::
 .divLoop
     ld c, 10
     call math_Divide32
-    add a, "0";convert num to string
+    add a, '0';convert num to string
 
     pop bc;dest string
     ld [bc], a

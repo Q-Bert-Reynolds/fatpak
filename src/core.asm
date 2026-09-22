@@ -799,7 +799,7 @@ SetHPBarTilesFromPct::;hl = address, de = health pct
 SetAgeTiles::;de = player, hl = address
   push hl;address
   push de;player
-  ld a, "<yr>"
+  ld a, '<yr>'
   ld [hl], a
 
   pop hl;player
@@ -812,7 +812,7 @@ SetAgeTiles::;de = player, hl = address
   inc de
 .age100
   call str_Number
-  ld a, " "
+  ld a, ' '
   ld [de], a
   ret
 
@@ -835,14 +835,14 @@ SetMovePPTiles::;a = move, b = move mask, de = player, hl = tile address
   ld de, str_buffer
   cp 10
   jr nc, .twoDigitPP
-  ld a, " "
+  ld a, ' '
   ld [de], a
   inc de
 .twoDigitPP
   call str_Number
 
   ld hl, name_buffer
-  ld a, "/"
+  ld a, '/'
   ld [hli], a
   xor a
   ld [hld], a
@@ -854,7 +854,7 @@ SetMovePPTiles::;a = move, b = move mask, de = player, hl = tile address
   ld de, name_buffer
   cp 10
   jr nc, .twoDigitMaxPP
-  ld a, " "
+  ld a, ' '
   ld [de], a
   inc de
 .twoDigitMaxPP
@@ -1116,7 +1116,7 @@ GetZeroPaddedNumber::;a = number, returns padded number in str_buffer, affects s
   call str_Number
 
   ld hl, str_buffer
-  ld a, "0"
+  ld a, '0'
   ld [hli], a
   ld [hli], a
   ld [hli], a

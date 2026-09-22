@@ -1066,7 +1066,7 @@ SetupGameUI:
   HIDE_WIN
   SHOW_SPRITES
   
-  CLEAR_BKG_AREA 12, 0, 7, 7, " "
+  CLEAR_BKG_AREA 12, 0, 7, 7, ' '
   ret
 
 Transition:
@@ -1079,7 +1079,7 @@ Transition:
   ld hl, tile_buffer
   xor a
   ld [hli], a
-  ld a, "◆"
+  ld a, '◆'
   ld [hli], a
   xor a
   ld [hli], a
@@ -1127,7 +1127,7 @@ Transition:
     .resetVRAMBank
       xor a
       ld [rVBK], a
-      ld a, "◆"
+      ld a, '◆'
       ld [tile_buffer+1], a
 
     .wait
@@ -1165,7 +1165,7 @@ StartGame::
   xor a
   ld [rSCX], a
   ld [rSCY], a
-  CLEAR_SCREEN " "
+  CLEAR_SCREEN ' '
   
   call SetPlayBallTiles
 

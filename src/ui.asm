@@ -78,7 +78,7 @@ FlashNextArrow:: ;a = draw flags, de = xy
   push de;xy
   push af;draw flags
   ld bc, tile_buffer
-  ld a, "▼"
+  ld a, '▼'
   ld [bc], a ;tile_buffer[0] = "▼";
   ld hl, $0101
   pop af;draw flags
@@ -95,7 +95,7 @@ FlashNextArrow:: ;a = draw flags, de = xy
     jp nz, .loop1
 
   ld bc, tile_buffer
-  ld a, " "
+  ld a, ' '
   ld [bc], a
   ld hl, $0101
   pop af;draw flags
@@ -140,14 +140,14 @@ GetUIBoxTiles: ;Entry: de = wh, Affects: hl, fills tile_buffer
       ld a, [_i]
       and a
       jr nz, .testUpperRight
-      ld a, "┌"
+      ld a, '┌'
       jp .setTile
     .testUpperRight ;else if (i == w-1) k = "┐";
       ld a, [_i]
       sub a, d
       inc a
       jr nz, .setHorizontal
-      ld a, "┐"
+      ld a, '┐'
       jp .setTile
     .testBottom ;else if (j == h-1) {
       ld a, [_j] 
@@ -158,14 +158,14 @@ GetUIBoxTiles: ;Entry: de = wh, Affects: hl, fills tile_buffer
       ld a, [_i]
       and a
       jr nz, .testLowerRight
-      ld a, "└"
+      ld a, '└'
       jp .setTile
     .testLowerRight ;else if (i == w-1) k = "┘";
       ld a, [_i]
       sub a, d
       inc a
       jr nz, .setHorizontal
-      ld a, "┘"
+      ld a, '┘'
       jp .setTile
     .testSides ;else if (i == 0 || i == w-1) k = "│";
       ld a, [_i]
@@ -175,13 +175,13 @@ GetUIBoxTiles: ;Entry: de = wh, Affects: hl, fills tile_buffer
       inc a
       jr z, .setVertical
     .setNone
-      ld a, " "
+      ld a, ' '
       jr .setTile
     .setVertical
-      ld a, "│"
+      ld a, '│'
       jr .setTile
     .setHorizontal
-      ld a, "─"
+      ld a, '─'
     .setTile
       ld [hli], a ;tiles[j*w+i] = k;
 
@@ -344,7 +344,7 @@ DrawListMenuArrow:: ;a = draw flags, de = xy, _j = current index, _c = count
   ld b, 0
   ld c, a
   ld hl, tile_buffer
-  ld a, " "
+  ld a, ' '
   call mem_Set
 
   pop af;draw flags
@@ -359,7 +359,7 @@ DrawListMenuArrow:: ;a = draw flags, de = xy, _j = current index, _c = count
   ld c, a
   ld hl, tile_buffer
   add hl, bc
-  ld a, "▶"
+  ld a, '▶'
   ld [hl], a
 
   ld a, 1
@@ -641,7 +641,7 @@ UIRevealText:: ;a = draw flags, hl = text, de = xy
     ld c, a
     add hl, bc;text[i]
     ld a, [hl]
-    cp "\n"
+    cp '\n'
     jp nz, .drawCharacter
 
     ld a, [_y]
@@ -693,7 +693,7 @@ UIRevealText:: ;a = draw flags, hl = text, de = xy
       inc hl
       dec a
       jr nz, .whiteSpaceLoop
-    ld a, " "
+    ld a, ' '
     call mem_Set
   .skipWhiteSpace
     pop de;xy
@@ -719,7 +719,7 @@ UIRevealText:: ;a = draw flags, hl = text, de = xy
 
     ld bc, 17
     ld hl, str_buffer
-    ld a, " "
+    ld a, ' '
     call mem_Set
     pop de;xy
     pop hl;text
@@ -841,20 +841,20 @@ UIRevealTextAndWait::
   ret
 
 MACRO SET_MOVE_OPTIONS_ARROW_TILE ;var, row, column
-  ld a, " "
+  ld a, ' '
   ld bc, tile_buffer
   ld [bc], a
   ld a, [\1]
   cp \3
   jr nz, .setTile\@
-  ld a, "▷"
+  ld a, '▷'
   ld bc, tile_buffer
   ld [bc], a
 .subY\@
   ld a, [_y]
   cp \2
   jr nz, .setTile\@
-  ld a, "▶"
+  ld a, '▶'
   ld bc, tile_buffer
   ld [bc], a
 .setTile\@
@@ -910,7 +910,7 @@ MoveOptionsArrow:
   SET_MOVE_OPTIONS_ARROW_TILE coaching_style, 2, 1
   call gbdk_SetBkgTiles; set_bkg_tiles(10,13,1,1,tile_buffer + (c==1 ? 2 : 0) - (y==2 ? 1 : 0));
 
-  ld a, "▶"
+  ld a, '▶'
   ld bc, tile_buffer
   ld [bc], a
   ld d, 1 ;x
@@ -920,7 +920,7 @@ MoveOptionsArrow:
   ld a, [_y]
   cp 3
   jr z, .setCancelTile
-  ld a, "▷"
+  ld a, '▷'
   ld [bc], a
 .setCancelTile
   call gbdk_SetBkgTiles; set_bkg_tiles(1,16,1,1,tile_buffer + (y==3 ? 1 : 2));
@@ -932,7 +932,7 @@ UIShowOptions::
   TRAMPOLINE DetectKeyboard
   call LoadOptions
   
-  CLEAR_BKG_AREA 0,0,20,18," "
+  CLEAR_BKG_AREA 0,0,20,18,' '
   ld a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .testTextSpeed
@@ -1163,7 +1163,7 @@ MoveTextEntryArrow: ; bc = from xy, de = to xy
   push de ;to xy
   call gbdk_WaitVBL
   ld hl, tile_buffer
-  ld a, " "
+  ld a, ' '
   ld [hl], a; tiles[0] = " ";
   ld a, c
   cp 5; if (from_y == 5) {
@@ -1194,7 +1194,7 @@ MoveTextEntryArrow: ; bc = from xy, de = to xy
   pop de ;to xy
   pop bc ;from xy  
   ld hl, tile_buffer
-  ld a, "▶"
+  ld a, '▶'
   ld [hl], a; tiles[0] = "▶";
   ld a, e
   cp 5; if (to_y == 5) {
@@ -1233,7 +1233,7 @@ UpdateTextEntryDisplay: ; hl = str, d = max_len
   push de; d = max_len
   push hl; str
 
-  ld a, " "
+  ld a, ' '
   ld hl, _SCRN1 + 2 * 32 + 10
   ld b, 0
   ld c, d
@@ -1263,7 +1263,7 @@ UpdateTextEntryDisplay: ; hl = str, d = max_len
   ld c, d ;c = max_len
   xor a
   ld b, a
-  ld a, "-"
+  ld a, '-'
   ld hl, tile_buffer
   call mem_Set
 
@@ -1272,7 +1272,7 @@ UpdateTextEntryDisplay: ; hl = str, d = max_len
   call str_Length; w = strlen(str);
   ld hl, tile_buffer
   add hl, de
-  ld a, "▲"
+  ld a, '▲'
   ld [hl], a
 
   ld d, 10;x
@@ -1344,11 +1344,11 @@ DrawTextEntryBox:
       ld a, [_j]
       sub a, b
       jr nz, .notArrowTile;(x==i && y==j) ?
-      ld a, "▶"
+      ld a, '▶'
       ld [hli], a;tiles[j*2*18+i*2] = "▶"
       jr .setCharTile
     .notArrowTile
-      ld a, " "
+      ld a, ' '
       ld [hli], a;tiles[j*2*18+i*2] = 0
     .setCharTile
       ld a, [de]
@@ -1372,7 +1372,7 @@ DrawTextEntryBox:
     ld hl, tile_buffer
     add hl, bc ;tiles[(j*2+1)*18]
   .collumnLoop2 ;for (i = 0; i < 9; ++i) {
-      ld a, " "
+      ld a, ' '
       ld [hli], a ;tiles[(j*2+1)*18+i*2]   = " ";
       ld [hli], a ;tiles[(j*2+1)*18+i*2+1] = " ";
     ld a, [_i]
@@ -1408,10 +1408,10 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
   push de;title
   DISPLAY_OFF
 
-  ld a, " "
+  ld a, ' '
   ld b, 0;b = 0, c = max_len
   call mem_Set; for (i = 0; i != max_len; ++i) str[i] = 0;
-  CLEAR_WIN_AREA 0,0,20,18," "
+  CLEAR_WIN_AREA 0,0,20,18,' '
   ld a, 7
   ld [rWX], a
   xor a
@@ -1567,7 +1567,7 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
       ld c, a
       add hl, bc ;str_buff[y*9+x]
       ld a, [hl]
-      cp "↵" ;0x1E
+      cp '↵' ;0x1E
       jp nz, .testLength
     .submitText
       ld a, [_l]
@@ -1742,7 +1742,7 @@ UIShowListMenu::; a = draw flags, bc = xy, de = wh, text = [str_buffer], title =
     push af ;draw flags
   .testNewLine; if (text[k] == '\n') {
     ld a, [hl] ;text
-    cp "\n"
+    cp '\n'
     jr nz, .testStringEnd
     pop af ;draw flags
     push af
@@ -1910,7 +1910,7 @@ UIShowNumberPicker::; a = draw flags, bc = xy, de = wh, hl = max/start nums, ret
   push af;draw flags
   call DrawUIBox
   TRAMPOLINE DetectKeyboard
-  ld a, "x"
+  ld a, 'x'
   ld [name_buffer], a
   pop af;draw flags
   pop de;xy
@@ -1945,7 +1945,7 @@ UIShowNumberPicker::; a = draw flags, bc = xy, de = wh, hl = max/start nums, ret
     ld hl, name_buffer
     ld a, [hli]
     ld [hld], a
-    ld a, "0"
+    ld a, '0'
     ld [hl], a
 
   .drawDigits
@@ -2104,7 +2104,7 @@ UIDrawSaveStats::;a = draw flags, de = xy
   ld h, 1
   ld l, 1
   ld bc, str_buffer
-  ld a, "0"
+  ld a, '0'
   ld [bc], a
   pop af;draw flags
   push af

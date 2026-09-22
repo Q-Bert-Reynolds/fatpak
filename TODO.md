@@ -1,7 +1,14 @@
 Priority
 
+- running out of room in ROM0, move stuff to other banks
+  - less than 1Kb left
+  - move colors.asm out of ROM0
+  - core.asm should not include core_strings.asm
+  - move collision response code (doors, items, etc.) from map_loader to world
+  - helper routines that don't take any args should use TRAMPOLINE instead
 - random encounters
 - doors jump to wrong place
+- load sprite colors with map
 - announcer mode
   - double plays
   - beat the throw
@@ -39,21 +46,16 @@ General
 Optimization
 
 - collision checks should only happen on first step, not every pixel!
-- running out of room in ROM0, move stuff to other banks
-  - data like strings and colors shouldn't be in ROM0
-  - helper routines that don't take any args should use TRAMPOLINE instead
 - if all sprite stamps are 2x2, remove data from export and simplify stamp drawing
 - COPY_TILE_BLOCK macro in GBDK.asm should be a subroutine, add HRAM vars to allow for this
 - utilize remaining HRAM (after DMA routine)
 - replace long chains of compares and jumps with jump tables
 - remove use of temp_bank in rolédex to free up RAM
-- move_data.id could be stored in upper 7 bits (since there are < 128 moves), move_data.use in LSB
 - player image data need to be compressed to fit more
 - 16 and 24 bit math and string functions are probably unnecessary, ditch in favor of 32 bit functions
 - SetSpriteTiles, SetSpriteTilesProps, and SetSpriteTilesXY can likely be merged
 - Load/Set User/Opposing PlayerBkgTiles subroutines share a ton of code
 - palette ids are at most 7, so two palettes could fit in a byte, cutting palette data in half
-- several routines that simply call their banked counterpart can likely be replaced with Trampoline
 - use halt and stop where appropriate (see https://gbdev.io/pandocs/Reducing_Power_Consumption.html)
 
 Python scripts

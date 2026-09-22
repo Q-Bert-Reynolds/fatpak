@@ -671,7 +671,7 @@ RunSimulation::;a = ball speed, b = spray angle, c = launch angle
   xor a
   ld [rSCX], a
   ld [rSCY], a
-  CLEAR_SCREEN " "
+  CLEAR_SCREEN ' '
   SHOW_WIN
   DISPLAY_ON
   ret

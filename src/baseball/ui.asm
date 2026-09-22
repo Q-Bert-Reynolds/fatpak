@@ -33,7 +33,7 @@ DrawPlayerUI:: ;a = team (0 = user, 1 = opponent)
   ld [_b], a;team is batting
 .teamIsPitching ;b = (team == home_team) != (frame % 2);
 
-  ld a, " "
+  ld a, ' '
   ld hl, tile_buffer
   ld [hli], a;tiles[0] = " ";
   inc hl
@@ -41,7 +41,7 @@ DrawPlayerUI:: ;a = team (0 = user, 1 = opponent)
   xor a
   ld [_i], a
 .nameBarLoop;for (i = 0; i < 10; i++) 
-    ld a, "─"
+    ld a, '─'
     ld [hli], a ;tiles[i+2] = "─";
     ld a, [_i]
     inc a
@@ -97,22 +97,22 @@ DrawPlayerUI:: ;a = team (0 = user, 1 = opponent)
   jr z, .isPitcher ;if (b) {
   ld hl, tile_buffer+1
   call CurrentOrderInLineup
-  add a, "1"
+  add a, '1'
   ld [hl], a ;tiles[1] = "1" + p->batting_order;
   ld hl, tile_buffer+15
-  ld a, "<BA>"
+  ld a, '<BA>'
   ld [hl], a ;tiles[15] = "<BA>";
   jr .doneWithPlayerStats
 .isPitcher ;else {
   ld hl, tile_buffer+1
-  ld a, "<P>"
+  ld a, '<P>'
   ld [hl], a ;tiles[1] = p->position;
   ld hl, tile_buffer+15
-  ld a, "<ERA>"
+  ld a, '<ERA>'
   ld [hl], a ;tiles[15] = "<ERA>";
 
 .doneWithPlayerStats
-  ld a, " "
+  ld a, ' '
   ld hl, tile_buffer+20 ;tiles[20] = " ";
   
   ld a, [_x]
@@ -133,7 +133,7 @@ DrawPlayerUI:: ;a = team (0 = user, 1 = opponent)
   ld de, 324
   call BattingAvgToString
   ld hl, str_buffer+4
-  ld a, " "
+  ld a, ' '
   ld [hl], a
   ld a, [_x]
   add a, 4
@@ -153,7 +153,7 @@ DrawPlayerUI:: ;a = team (0 = user, 1 = opponent)
   ld hl, 902
   call EarnedRunAvgToString
   ld hl, str_buffer+4
-  ld a, " "
+  ld a, ' '
   ld [hl], a
 
   ld a, [_x]
@@ -184,7 +184,7 @@ DrawPlayerUI:: ;a = team (0 = user, 1 = opponent)
   ret
 
 DrawBases::
-  ld a, " ";for (i = 0; i < 5; i+=2) tiles[i] = " ";
+  ld a, ' ';for (i = 0; i < 5; i+=2) tiles[i] = " ";
   ld hl, tile_buffer
   ld [hl], a
   ld hl, tile_buffer+2
@@ -193,35 +193,35 @@ DrawBases::
   ld [hl], a
 
   ld hl, tile_buffer+5 ;tiles[5] = (runners_on_base & FIRST_BASE_MASK) ? "◆" : "◇";
-  ld a, "◇"
+  ld a, '◇'
   ld [hl], a
   ld a, [runners_on_base]
   and a, FIRST_BASE_MASK
   and a
   jr z, .notOnFirst
-  ld a, "◆"
+  ld a, '◆'
   ld [hl], a
 .notOnFirst
 
   ld hl, tile_buffer+1 ;tiles[1] = (runners_on_base & SECOND_BASE_MASK) ? "◆" : "◇";
-  ld a, "◇"
+  ld a, '◇'
   ld [hl], a
   ld a, [runners_on_base]
   and a, SECOND_BASE_MASK
   and a
   jr z, .notOnSecond
-  ld a, "◆"
+  ld a, '◆'
   ld [hl], a
 .notOnSecond
   
   ld hl, tile_buffer+3 ;tiles[3] = (runners_on_base & THIRD_BASE_MASK) ? "◆" : "◇";
-  ld a, "◇"
+  ld a, '◇'
   ld [hl], a
   ld a, [runners_on_base+1]
   and a, THIRD_BASE_MASK >> 8
   and a
   jr z, .notOnThird
-  ld a, "◆"
+  ld a, '◆'
   ld [hl], a
 .notOnThird
 
@@ -236,19 +236,19 @@ DrawBases::
 DrawCountOutsInning::
   ld hl, tile_buffer
 .setBallsTiles
-  ld a, "B"
+  ld a, 'B'
   ld [hli], a
   xor a
   ld [_i], a
 .setBallsLoop
-    ld a, "◌"
+    ld a, '◌'
     ld [hl], a
     call GetBalls
     ld b, a
     ld a, [_i]
     cp b
     jr nc, .skipBall
-    ld a, "○"
+    ld a, '○'
     ld [hl], a
   .skipBall
     ld a, [_i]
@@ -259,19 +259,19 @@ DrawCountOutsInning::
     jr nz, .setBallsLoop
 
 .setStrikesTiles
-  ld a, "S"
+  ld a, 'S'
   ld [hli], a
   xor a
   ld [_i], a
 .setStrikesLoop
-    ld a, "◌"
+    ld a, '◌'
     ld [hl], a
     call GetStrikes
     ld b, a
     ld a, [_i]
     cp b
     jr nc, .skipStrike
-    ld a, "○"
+    ld a, '○'
     ld [hl], a
   .skipStrike
     ld a, [_i]
@@ -282,19 +282,19 @@ DrawCountOutsInning::
     jr nz, .setStrikesLoop
   
 .setOutsTiles
-  ld a, "O"
+  ld a, 'O'
   ld [hli], a
   xor a
   ld [_i], a
 .setOutsLoop
-    ld a, "◌"
+    ld a, '◌'
     ld [hl], a
     call GetOuts
     ld b, a
     ld a, [_i]
     cp b
     jr nc, .skipOut
-    ld a, "○"
+    ld a, '○'
     ld [hl], a
   .skipOut
     ld a, [_i]
@@ -305,11 +305,11 @@ DrawCountOutsInning::
     jr nz, .setOutsLoop
   
 .setInningFrameTiles
-  ld [hl], "▼"
+  ld [hl], '▼'
   ld a, [frame]
   bit 0, a
   jr nz, .skip ;tiles[0] = (frame % 2 == 0) ? "▲" : "▼";
-  ld [hl], "▲"
+  ld [hl], '▲'
 .skip
   inc hl
   ld d, h
@@ -469,7 +469,7 @@ MovePlayMenuArrow:
     ld [_j], a
   .rowLoop ;for (j = 0; j < 2; j++) {
       ld hl, tile_buffer
-      ld a, " "
+      ld a, ' '
       ld [hl], a
       ld a, [_x]
       ld b, a
@@ -481,7 +481,7 @@ MovePlayMenuArrow:
       ld a, [_j]
       cp b
       jr nz, .notArrow
-      ld a, "▶"
+      ld a, '▶'
       ld [hl], a
     .notArrow ;tiles[0] = (x==i && y==j) ? "▶" : " ";
       ld a, [_i]
@@ -596,10 +596,10 @@ MoveMoveMenuArrow:
     ld a, [move_choice]
     cp b
     jr z, .setArrow
-    ld a, " "
+    ld a, ' '
     jr .setTile
 .setArrow
-    ld a, "▶"
+    ld a, '▶'
 .setTile
     ld [hli], a;tiles[i] = (i == y) ? "▶" : 0;
     ld a, [_i]

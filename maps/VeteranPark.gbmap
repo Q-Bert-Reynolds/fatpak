@@ -58,6 +58,7 @@ DEF MAP_VETERANPARK_TEXT_WELCOME_TOTHE_JUNGLE EQU 1
 DEF MAP_VETERANPARK_TEXT_MORE_TEXT EQU 2
 DEF MAP_VETERANPARK_TEXT_EVEN_MORE_TEXT EQU 3
 DEF MAP_VETERANPARK_TEXT_BLAH EQU 4
+
 MapVeteranParkText: ;61 bytes
   DB "Fuck.",0
   DB "Welcome to\nthe Jungle.",0
@@ -146,20 +147,20 @@ MapVeteranParkChunkVeteranParkFieldEntrance:
   DW GBStampSignStamp
   DB MAP_VETERANPARK_TEXT_FUCK; Fuck.
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor (7)
-  DB 0;x1
-  DB 0;y1
-  DB 141;tile
-  DB 1;palette
-  DB 9;x2
-  DB 32;y2
-
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor (18)
   DB 28;x1
   DB 24;y1
   DB 141;tile
   DB 1;palette
   DB 30;x2
+  DB 32;y2
+
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor (7)
+  DB 0;x1
+  DB 0;y1
+  DB 141;tile
+  DB 1;palette
+  DB 9;x2
   DB 32;y2
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor (17)
@@ -186,14 +187,6 @@ MapVeteranParkChunkVeteranParkFieldEntrance:
   DB 30;x2
   DB 13;y2
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor (15)
-  DB 24;x1
-  DB 0;y1
-  DB 141;tile
-  DB 1;palette
-  DB 30;x2
-  DB 4;y2
-
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor (14)
   DB 14;x1
   DB 0;y1
@@ -202,18 +195,26 @@ MapVeteranParkChunkVeteranParkFieldEntrance:
   DB 20;x2
   DB 4;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (11)
-  DB 30;x1
-  DB 24;y1
-  DW GBStampTrunk
-  DB 32;x2
-  DB 32;y2
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor (15)
+  DB 24;x1
+  DB 0;y1
+  DB 141;tile
+  DB 1;palette
+  DB 30;x2
+  DB 4;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
   DB 12;x1
   DB 20;y1
   DW GBStampTree
   DB 24;x2
+  DB 32;y2
+
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (11)
+  DB 30;x1
+  DB 24;y1
+  DW GBStampTrunk
+  DB 32;x2
   DB 32;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (13)
@@ -350,17 +351,17 @@ MapVeteranParkChunkVeteranParkWestOfSouthEntrance:
   DB 32;x2
   DB 32;y2
 
+  DB MAP_OBJ_STAMP | MAP_COLLISION_SOLID ;Tree (1)
+  DB 0;x
+  DB 8;y
+  DW GBStampTree
+
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (12)
   DB 12;x1
   DB 4;y1
   DW GBStampTrunk
   DB 14;x2
   DB 12;y2
-
-  DB MAP_OBJ_STAMP | MAP_COLLISION_SOLID ;Tree (1)
-  DB 0;x
-  DB 8;y
-  DW GBStampTree
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
   DB 12;x1
@@ -420,11 +421,11 @@ MapVeteranParkChunkVeteranParkSouthEntrance:
   DB 32;x2
   DB 8;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (37)
-  DB 18;x1
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (38)
+  DB 8;x1
   DB 12;y1
   DW GBStampTrunk
-  DB 20;x2
+  DB 10;x2
   DB 32;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
@@ -434,11 +435,11 @@ MapVeteranParkChunkVeteranParkSouthEntrance:
   DB 8;x2
   DB 32;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (38)
-  DB 8;x1
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (37)
+  DB 18;x1
   DB 12;y1
   DW GBStampTrunk
-  DB 10;x2
+  DB 20;x2
   DB 32;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
@@ -467,18 +468,18 @@ MapVeteranParkChunkVeteranParkSouthEntrance:
   DB 28;x2
   DB 4;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (8)
-  DB 28;x1
-  DB 0;y1
-  DW GBStampTrunk
-  DB 30;x2
-  DB 4;y2
-
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (7)
   DB 18;x1
   DB 0;y1
   DW GBStampTrunk
   DB 20;x2
+  DB 4;y2
+
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (8)
+  DB 28;x1
+  DB 0;y1
+  DW GBStampTrunk
+  DB 30;x2
   DB 4;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree (7)
@@ -532,18 +533,18 @@ MapVeteranParkChunkVeteranParkEastOfSouthEntrance:
   DB 30;x2
   DB 18;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (36)
-  DB 14;x1
-  DB 4;y1
-  DW GBStampTrunk
-  DB 16;x2
-  DB 12;y2
-
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
   DB 16;x1
   DB 0;y1
   DW GBStampTree
   DB 32;x2
+  DB 12;y2
+
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (36)
+  DB 14;x1
+  DB 4;y1
+  DW GBStampTrunk
+  DB 16;x2
   DB 12;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
@@ -583,13 +584,6 @@ MapVeteranParkChunkVeteranParkMazeStart:
   DB 32;x2
   DB 32;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree (10)
-  DB 6;x1
-  DB 26;y1
-  DW GBStampForest
-  DB 14;x2
-  DB 30;y2
-
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree (6)
   DB 18;x1
   DB 2;y1
@@ -597,18 +591,25 @@ MapVeteranParkChunkVeteranParkMazeStart:
   DB 30;x2
   DB 30;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (35)
-  DB 14;x1
-  DB 0;y1
-  DW GBStampTrunk
-  DB 16;x2
-  DB 24;y2
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree (10)
+  DB 6;x1
+  DB 26;y1
+  DW GBStampForest
+  DB 14;x2
+  DB 30;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
   DB 16;x1
   DB 0;y1
   DW GBStampTree
   DB 32;x2
+  DB 24;y2
+
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (35)
+  DB 14;x1
+  DB 0;y1
+  DW GBStampTrunk
+  DB 16;x2
   DB 24;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (34)
@@ -737,18 +738,18 @@ MapVeteranParkChunkVeteranParkMazeBend:
   DB 12;x2
   DB 20;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (26)
-  DB 18;x1
-  DB 0;y1
-  DW GBStampTrunk
-  DB 20;x2
-  DB 4;y2
-
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
   DB 20;x1
   DB 0;y1
   DW GBStampTree
   DB 32;x2
+  DB 4;y2
+
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (26)
+  DB 18;x1
+  DB 0;y1
+  DW GBStampTrunk
+  DB 20;x2
   DB 4;y2
 
   DB 0;END VeteranParkMazeBend background objects, 116 bytes
@@ -781,19 +782,19 @@ MapVeteranParkChunkVeteranParkCentralSign:
   DB 32;y2
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor (3)
-  DB 16;x1
-  DB 20;y1
-  DB 141;tile
-  DB 1;palette
-  DB 18;x2
-  DB 32;y2
-
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor (3)
   DB 10;x1
   DB 24;y1
   DB 141;tile
   DB 1;palette
   DB 12;x2
+  DB 32;y2
+
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor (3)
+  DB 16;x1
+  DB 20;y1
+  DB 141;tile
+  DB 1;palette
+  DB 18;x2
   DB 32;y2
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor (4)
@@ -809,13 +810,6 @@ MapVeteranParkChunkVeteranParkCentralSign:
   DB 24;y1
   DW GBStampTrunk
   DB 10;x2
-  DB 32;y2
-
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (8)
-  DB 18;x1
-  DB 20;y1
-  DW GBStampTrunk
-  DB 20;x2
   DB 32;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (9)
@@ -837,6 +831,13 @@ MapVeteranParkChunkVeteranParkCentralSign:
   DB 24;y1
   DW GBStampTree
   DB 8;x2
+  DB 32;y2
+
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (8)
+  DB 18;x1
+  DB 20;y1
+  DW GBStampTrunk
+  DB 20;x2
   DB 32;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Couch (4)
@@ -925,23 +926,18 @@ MapVeteranParkChunkVeteranParkEastWall:
   DB 14;x2
   DB 24;y2
 
-  DB MAP_OBJ_STAMP | MAP_COLLISION_SOLID ;Tree
-  DB 4;x
-  DB 28;y
-  DW GBStampTree
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (29)
+  DB 14;x1
+  DB 0;y1
+  DW GBStampTrunk
+  DB 16;x2
+  DB 32;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (33)
   DB 8;x1
   DB 28;y1
   DW GBStampTrunk
   DB 10;x2
-  DB 32;y2
-
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (29)
-  DB 14;x1
-  DB 0;y1
-  DW GBStampTrunk
-  DB 16;x2
   DB 32;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
@@ -951,6 +947,11 @@ MapVeteranParkChunkVeteranParkEastWall:
   DB 32;x2
   DB 32;y2
 
+  DB MAP_OBJ_STAMP | MAP_COLLISION_SOLID ;Tree
+  DB 4;x
+  DB 28;y
+  DW GBStampTree
+
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree (5)
   DB 18;x1
   DB 2;y1
@@ -958,18 +959,18 @@ MapVeteranParkChunkVeteranParkEastWall:
   DB 30;x2
   DB 30;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
-  DB 4;x1
-  DB 8;y1
-  DW GBStampTree
-  DB 8;x2
-  DB 24;y2
-
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (32)
   DB 2;x1
   DB 8;y1
   DW GBStampTrunk
   DB 4;x2
+  DB 24;y2
+
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
+  DB 4;x1
+  DB 8;y1
+  DW GBStampTree
+  DB 8;x2
   DB 24;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (27)
@@ -1001,6 +1002,14 @@ MapVeteranParkChunkVeteranParkCenterFieldWall:
 .south:   DB MAP_VETERANPARK_CHUNK_VETERANPARKFIELDENTRANCE
 .west:    DB MAP_VETERANPARK_CHUNK_VETERANPARKCENTERFIELD
 
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor (5)
+  DB 0;x1
+  DB 5;y1
+  DB 141;tile
+  DB 1;palette
+  DB 7;x2
+  DB 32;y2
+
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor (12)
   DB 24;x1
   DB 0;y1
@@ -1025,14 +1034,6 @@ MapVeteranParkChunkVeteranParkCenterFieldWall:
   DB 9;x2
   DB 32;y2
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor (5)
-  DB 0;x1
-  DB 5;y1
-  DB 141;tile
-  DB 1;palette
-  DB 7;x2
-  DB 32;y2
-
   DB MAP_OBJ_TILE | MAP_COLLISION_NONE ;Floor (7)
   DB 7;x1
   DB 6;y1
@@ -1046,11 +1047,11 @@ MapVeteranParkChunkVeteranParkCenterFieldWall:
   DB 14;x2
   DB 32;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (39)
-  DB 18;x1
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
+  DB 20;x1
   DB 0;y1
-  DW GBStampTrunk
-  DB 20;x2
+  DW GBStampTree
+  DB 24;x2
   DB 32;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (17)
@@ -1060,11 +1061,11 @@ MapVeteranParkChunkVeteranParkCenterFieldWall:
   DB 32;x2
   DB 32;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
-  DB 20;x1
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (39)
+  DB 18;x1
   DB 0;y1
-  DW GBStampTree
-  DB 24;x2
+  DW GBStampTrunk
+  DB 20;x2
   DB 32;y2
 
   DB MAP_OBJ_STAMP | MAP_COLLISION_SOLID ;Couch (41)
@@ -1174,6 +1175,13 @@ MapVeteranParkChunkVeteranParkNorthWall:
   DB 32;x2
   DB 20;y2
 
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (16)
+  DB 0;x1
+  DB 28;y1
+  DW GBStampTrunk
+  DB 2;x2
+  DB 32;y2
+
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
   DB 8;x1
   DB 20;y1
@@ -1186,13 +1194,6 @@ MapVeteranParkChunkVeteranParkNorthWall:
   DB 28;y1
   DW GBStampTree
   DB 32;x2
-  DB 32;y2
-
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (16)
-  DB 0;x1
-  DB 28;y1
-  DW GBStampTrunk
-  DB 2;x2
   DB 32;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (25)
@@ -1209,18 +1210,18 @@ MapVeteranParkChunkVeteranParkNorthWall:
   DB 32;x2
   DB 28;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (19)
-  DB 0;x1
-  DB 20;y1
-  DW GBStampTrunk
-  DB 8;x2
-  DB 22;y2
-
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (20)
   DB 12;x1
   DB 20;y1
   DW GBStampTrunk
   DB 32;x2
+  DB 22;y2
+
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (19)
+  DB 0;x1
+  DB 20;y1
+  DW GBStampTrunk
+  DB 8;x2
   DB 22;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree (2)
@@ -1252,13 +1253,6 @@ MapVeteranParkChunkVeteranParkNECorner:
 .south:   DB MAP_VETERANPARK_CHUNK_VETERANPARKEASTWALL
 .west:    DB MAP_VETERANPARK_CHUNK_VETERANPARKNORTHWALL
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (28)
-  DB 8;x1
-  DB 28;y1
-  DW GBStampTrunk
-  DB 10;x2
-  DB 32;y2
-
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
   DB 16;x1
   DB 0;y1
@@ -1266,11 +1260,11 @@ MapVeteranParkChunkVeteranParkNECorner:
   DB 32;x2
   DB 32;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
-  DB 0;x1
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (28)
+  DB 8;x1
   DB 28;y1
-  DW GBStampTree
-  DB 8;x2
+  DW GBStampTrunk
+  DB 10;x2
   DB 32;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (24)
@@ -1278,6 +1272,13 @@ MapVeteranParkChunkVeteranParkNECorner:
   DB 22;y1
   DW GBStampTrunk
   DB 16;x2
+  DB 32;y2
+
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
+  DB 0;x1
+  DB 28;y1
+  DW GBStampTree
+  DB 8;x2
   DB 32;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (23)
@@ -1352,13 +1353,6 @@ MapVeteranParkChunkVeteranParkNorthEntrance:
   DB 32;x2
   DB 20;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (40)
-  DB 18;x1
-  DB 0;y1
-  DW GBStampTrunk
-  DB 20;x2
-  DB 32;y2
-
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (17)
   DB 30;x1
   DB 28;y1
@@ -1371,6 +1365,13 @@ MapVeteranParkChunkVeteranParkNorthEntrance:
   DB 20;y1
   DW GBStampTree
   DB 24;x2
+  DB 32;y2
+
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Couch (40)
+  DB 18;x1
+  DB 0;y1
+  DW GBStampTrunk
+  DB 20;x2
   DB 32;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SOLID ;Tree
@@ -1601,5 +1602,14 @@ MapVeteranParkAddresses: ;0 bytes
 
 MapVeteranParkItems: ;0 bytes
 
+
 MapVeteranParkAreas: ;0 bytes
 
+;Areas, 0 bytes
+
+MapVeteranParkEnd:
+
+DEF MAP_VETERANPARK_SIZE EQU MapVeteranParkEnd - MapVeteranPark
+IF MAP_VETERANPARK_SIZE != 1546
+  WARN "MapVeteranPark is {d:MAP_VETERANPARK_SIZE} bytes, expected 1546 bytes"
+ENDC

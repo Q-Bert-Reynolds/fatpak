@@ -2,10 +2,10 @@ DrawBinaryNumber::;b = number, hl = screen address
   ld c, 8
 .loop
     LCD_WAIT_VRAM
-    ld a, "1"
+    ld a, '1'
     sla b
     jr c, .setBuffer
-    ld a, "0"
+    ld a, '0'
   .setBuffer
     ld [hli], a
     dec c
@@ -61,14 +61,14 @@ DrawKeyboardDebugData::
   LCD_WAIT_VRAM
   ld a, [hl]
   ld [_SCRN1], a
-  ld a, "P"
+  ld a, 'P'
   ld [_SCRN1+2], a
   jr .drawScanCodeHex
 
 .drawIGASCII
   ld a, [kb_scan_code]
   ld [_SCRN1], a
-  ld a, "I"
+  ld a, 'I'
   ld [_SCRN1+2], a
 
 .drawScanCodeHex
@@ -100,7 +100,7 @@ DrawKeyboardDebugData::
   call DrawBinaryNumber
 
 .drawScanCodeBuffer
-  ld a, "S"
+  ld a, 'S'
   ld [_SCRN1+32], a
   ld hl, kb_scan_code_buffer
   ld a, 8
@@ -116,7 +116,7 @@ DrawKeyboardDebugData::
     jr nz, .drawScanCodeBufferLoop
 
 .drawErrorBuffer
-  ld a, "E"
+  ld a, 'E'
   ld [_SCRN1+32*2], a
   ld hl, kb_error_buffer
   ld a, 8
@@ -131,7 +131,7 @@ DrawKeyboardDebugData::
     dec a
     jr nz, .drawErrorBufferLoop
     
-  ld a, " "
+  ld a, ' '
   ld hl, str_buffer
   ld bc, 20
   call mem_Set
@@ -144,7 +144,7 @@ DrawKeyboardDebugData::
   add hl, bc
   inc hl
   inc hl
-  ld a, "<up arrow>"
+  ld a, '<up arrow>'
   ld [hl], a
 
   ld hl, str_buffer
@@ -187,55 +187,55 @@ DrawKeyboardDebugData::
 
 .testTimeoutError
   bit 5, b
-  ld a, "T"
+  ld a, 'T'
   jr nz, .drawTimeoutError
 .noTimeoutError
-  ld a, "_"
+  ld a, '_'
 .drawTimeoutError
   ld [hli], a
 
 .testUnknownCodeError
   bit 4, b
-  ld a, "U"
+  ld a, 'U'
   jr nz, .drawUnknownCodeError
 .noUnknownCodeError
-  ld a, "_"
+  ld a, '_'
 .drawUnknownCodeError
   ld [hli], a
 
 .testKeyboardError
   bit 3, b
-  ld a, "K"
+  ld a, 'K'
   jr nz, .drawKeyboardError
 .noKeyboardError
-  ld a, "_"
+  ld a, '_'
 .drawKeyboardError
   ld [hli], a
 
 .testStartBitError
   bit 2, b
-  ld a, "S"
+  ld a, 'S'
   jr nz, .drawStartBitError
 .noStartBitError
-  ld a, "_"
+  ld a, '_'
 .drawStartBitError
   ld [hli], a
 
 .testParityBitError
   bit 1, b
-  ld a, "P"
+  ld a, 'P'
   jr nz, .drawParityBitError
 .noParityBitError
-  ld a, "_"
+  ld a, '_'
 .drawParityBitError
   ld [hli], a
 
 .testFinishBitError
   bit 0, b
-  ld a, "F"
+  ld a, 'F'
   jr nz, .drawFinishBitError
 .noFinishBitError
-  ld a, "_"
+  ld a, '_'
 .drawFinishBitError
   ld [hli], a
 

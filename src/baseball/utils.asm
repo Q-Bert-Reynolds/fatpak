@@ -1018,9 +1018,9 @@ HealthPctToString:: ;a = health_pct, returns str_buff
   ld hl, str_buffer
   cp 100; if (a >= 100) strcpy(str_buff, "100");
   jr c, .lessThan100
-  ld a, "1"
+  ld a, '1'
   ld [hli], a
-  ld a, "0"
+  ld a, '0'
   ld [hli], a
   ld [hli], a
   ret
@@ -1028,12 +1028,12 @@ HealthPctToString:: ;a = health_pct, returns str_buff
   cp 10 ; if (a < 10) sprintf(str_buff, "0%d%c", a, '%');
   jr nc, .doubleDigits
   push af
-  ld a, " "
+  ld a, ' '
   ld [hli], a
   pop af
   add a, 48
   ld [hli], a
-  ld a, "%"
+  ld a, '%'
   ld [hl], a
   ret
 .doubleDigits; else sprintf(str_buff, "%d%c", a, '%');
@@ -1044,7 +1044,7 @@ HealthPctToString:: ;a = health_pct, returns str_buff
   ld h, a
   call str_Number
   ld hl, str_buffer+2
-  ld a, "%"
+  ld a, '%'
   ld [hl], a
   ret
 
@@ -1056,11 +1056,11 @@ BattingAvgToString:: ;de = batting average*1000, returns str_buff
   ld a, e
   cp $E8
   jr c, .not1000; if (a >= 1000) strcpy(str_buff, "1.000");
-    ld a, "1"
+    ld a, '1'
     ld [hli], a
-    ld a, "."
+    ld a, '.'
     ld [hli], a
-    ld a, "0"
+    ld a, '0'
     ld [hli], a
     ld [hli], a
     ld [hl], a
@@ -1073,7 +1073,7 @@ BattingAvgToString:: ;de = batting average*1000, returns str_buff
   cp 100
   jr c, .under100; else sprintf(str_buff, ".%d", a);
 .notUnder100
-    ld a, "."
+    ld a, '.'
     push de
     ld [hli], a
     ld d, h
@@ -1085,9 +1085,9 @@ BattingAvgToString:: ;de = batting average*1000, returns str_buff
   ld a, e
   cp 10
   jr c, .under10; else if (a < 100) sprintf(str_buff, ".0%d", a);
-    ld a, "."
+    ld a, '.'
     ld [hli], a
-    ld a, "0"
+    ld a, '0'
     ld [hli], a
     push de
     ld [hl], a
@@ -1097,9 +1097,9 @@ BattingAvgToString:: ;de = batting average*1000, returns str_buff
     call str_Number
     ret
 .under10; else if (a < 10) sprintf(str_buff, ".00%d", a);
-  ld a, "."
+  ld a, '.'
   ld [hli], a
-  ld a, "0"
+  ld a, '0'
   ld [hli], a
   ld [hli], a
   ld a, e
@@ -1128,7 +1128,7 @@ EarnedRunAvgToString:: ;hl = ERA*100, returns str_buff
   call str_Number
 
   ld hl, name_buffer
-  ld a, "."
+  ld a, '.'
   ld [hli], a
   xor a
   ld [hld], a
@@ -1145,7 +1145,7 @@ EarnedRunAvgToString:: ;hl = ERA*100, returns str_buff
   ld hl, name_buffer
   call str_Append
   dec de
-  ld a, " "
+  ld a, ' '
   ld [de], a
   ret
 
@@ -1235,13 +1235,13 @@ HidePitcher::
   jp HideUserPlayer
 
 HideUserPlayer::
-  CLEAR_BKG_AREA 8, 10, 12, 2, " "
-  CLEAR_BKG_AREA 0, 5, 8, 7, " "
+  CLEAR_BKG_AREA 8, 10, 12, 2, ' '
+  CLEAR_BKG_AREA 0, 5, 8, 7, ' '
   ret
 
 HideOpposingPlayer::
-  ; CLEAR_BKG_AREA 0, 2, 12, 2, " "
-  CLEAR_BKG_AREA 12, 0, 8, 7, " "
+  ; CLEAR_BKG_AREA 0, 2, 12, 2, ' '
+  CLEAR_BKG_AREA 12, 0, 8, 7, ' '
   ret
 
 ; Get Player Data

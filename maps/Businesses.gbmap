@@ -48,10 +48,11 @@ MapBusinessesPalettes: ;64 bytes
   RGB 7, 19, 27
   RGB 0, 0, 0
 
-  RGB 31, 31, 31
   RGB 20, 28, 31
   RGB 7, 19, 27
   RGB 0, 8, 15
+  RGB 0, 0, 0
+
 
 MapBusinessesText: ;0 bytes
 
@@ -80,20 +81,20 @@ MapBusinessesChunkVeteranCityClinic:
 .south:   DB MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC
 .west:    DB MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Border2
-  DB 24;x1
-  DB 24;y1
-  DB 0;tile
-  DB 0;palette
-  DB 32;x2
-  DB 25;y2
-
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Border3
   DB 17;x1
   DB 24;y1
   DB 0;tile
   DB 0;palette
   DB 20;x2
+  DB 25;y2
+
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Border2
+  DB 24;x1
+  DB 24;y1
+  DB 0;tile
+  DB 0;palette
+  DB 32;x2
   DB 25;y2
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Border
@@ -318,5 +319,14 @@ MapBusinessesAddresses: ;6 bytes
 
 MapBusinessesItems: ;0 bytes
 
+
 MapBusinessesAreas: ;0 bytes
 
+;Areas, 0 bytes
+
+MapBusinessesEnd:
+
+DEF MAP_BUSINESSES_SIZE EQU MapBusinessesEnd - MapBusinesses
+IF MAP_BUSINESSES_SIZE != 295
+  WARN "MapBusinesses is {d:MAP_BUSINESSES_SIZE} bytes, expected 295 bytes"
+ENDC

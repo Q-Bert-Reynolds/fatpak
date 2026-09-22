@@ -32,7 +32,7 @@ SelectNameOrTextEntry: ;assumes d > 0, bc = title
     ld a, [hl]
     and a
     jr z, .nextName
-    cp "\n"
+    cp '\n'
     jr z, .nextName
     ld a, [_d]
     and a
@@ -90,7 +90,7 @@ NewGame::
   ld de, $8800;_VRAM+$1000+_UI_FONT_TILE_COUNT*16
   ld a, COACH_DOC_HICKORY
   call LoadCoachTiles
-  CLEAR_SCREEN " "
+  CLEAR_SCREEN ' '
 
   ld d, 13
   ld e, 4
@@ -129,7 +129,7 @@ NewGame::
   call FadeOut
 
 .showMuchacho
-  CLEAR_SCREEN " "
+  CLEAR_SCREEN ' '
     
 .muchachoTiles
   ld a, NUM_MUCHACHO
@@ -190,7 +190,7 @@ NewGame::
   call FadeOut
 
 .showCalvin
-  CLEAR_SCREEN " "
+  CLEAR_SCREEN ' '
 
 .calvinTiles
   ld de, $8800;_VRAM+$1000+_UI_FONT_TILE_COUNT*16
@@ -285,7 +285,7 @@ ENDC
     jp z, .showUserNameListLoop
 
 .showTextEntry
-  CLEAR_BKG_AREA 0,0,12,12," "
+  CLEAR_BKG_AREA 0,0,12,12,' '
   ld bc, UserNameTextEntryTitle
   call SelectNameOrTextEntry
 
@@ -307,7 +307,7 @@ ENDC
 
 .showNolan
   DISPLAY_OFF
-  CLEAR_SCREEN " "
+  CLEAR_SCREEN ' '
 
 .nolanTiles
   ld de, $8800;_VRAM+$1000+_UI_FONT_TILE_COUNT*16
@@ -401,7 +401,7 @@ ENDC
     and a
     jp z, .showRivalNameListLoop
 
-  CLEAR_BKG_AREA 0,0,12,12," "
+  CLEAR_BKG_AREA 0,0,12,12,' '
   ld bc, RivalNameTextEntryTitle;"RIVAL's NAME?"
   call SelectNameOrTextEntry
   
@@ -420,7 +420,7 @@ ENDC
 
 .showCalvinAgain
   DISPLAY_OFF
-  CLEAR_SCREEN " "
+  CLEAR_SCREEN ' '
 
 .calvinTilesAgain
   ld de, $8800;_VRAM+$1000+_UI_FONT_TILE_COUNT*16
@@ -510,7 +510,7 @@ ENDC
   ld de, 500
   call gbdk_Delay
 
-  CLEAR_BKG_AREA 13, 4, 7, 7, " "
+  CLEAR_BKG_AREA 13, 4, 7, 7, ' '
 
   xor a
   ld [sprite_props], a

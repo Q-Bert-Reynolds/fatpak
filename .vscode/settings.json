@@ -38,7 +38,7 @@
         "**/*.tga": true,
         "**/*.tif": true,
         "**/*.tiff": true,
-        "build/": true,
+        // "build/": true,
         "bin/": true,
     },
 }

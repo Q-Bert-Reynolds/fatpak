@@ -281,10 +281,10 @@ _ShowInventory:
   .flashDownArrow
     ld a, [vbl_timer]
     cp a, 30
-    ld a, " "
+    ld a, ' '
     jr c, .drawDown
   .drawDownArrow
-    ld a, "▼"
+    ld a, '▼'
   .drawDown
     ld d, 18
     ld e, 11
@@ -325,7 +325,7 @@ _ShowInventory:
   ret
 
 DrawItems::
-  CLEAR_WIN_AREA 6,3,13,9," "
+  CLEAR_WIN_AREA 6,3,13,9,' '
   ld a, [_b]
   ld b, a
   ld a, [_s]
@@ -427,7 +427,7 @@ DrawInventoryEntry::;a = num, de = xy, bc = list len, draw count
   pop de;xy
   ld d, 14
   ld bc, name_buffer
-  ld a, "x"
+  ld a, 'x'
   ld [bc], a
   ld hl, $0101
   ld a, DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP
@@ -639,17 +639,17 @@ IncDecDigit: ;a = dir
   pop af;dir
   add a, b
   ld [hl], a
-  cp a, "0"
+  cp a, '0'
   jr c, .under
-  cp a, "9"+1
+  cp a, '9'+1
   jr z, .over
   ret
 .under
-  ld a, "9"
+  ld a, '9'
   ld [hl], a
   ret
 .over
-  ld a, "0"
+  ld a, '0'
   ld [hl], a
   ret
 
@@ -664,7 +664,7 @@ UpdateOffer:
   ld bc, str_buffer
   call gbdk_SetWinTiles
 
-  ld a, "▲"
+  ld a, '▲'
   ld [name_buffer], a
   ld a, [_x]
   add a, 8
@@ -674,7 +674,7 @@ UpdateOffer:
   ld hl, $0101
   call gbdk_SetWinTiles
 
-  ld a, "▼"
+  ld a, '▼'
   ld [name_buffer], a
   ld a, [_x]
   add a, 8
@@ -725,7 +725,7 @@ GetOfferFromText:;"$000000/week" in str_buffer, returns number in ehl
 .loopDigits
     ld a, [bc]
     inc bc
-    sub a, "0"
+    sub a, '0'
     jr z, .skip
     ld [_j], a
     push bc;character

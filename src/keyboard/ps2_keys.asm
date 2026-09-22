@@ -130,7 +130,7 @@ DEF PS2_KEY_PRINT_SCREEN_INIT    EQU $12
 DEF PS2_KEY_PRINT_SCREEN_SEND    EQU $7C;Print screen presses 12, presses 7C, releases 7C, releases 12
 
 ;$E1 prefix, CTRL, NUM LOCK, $E1 prefix, release CTRL, $E0 prefix, NUM LOCK
-DEF PS2_KEY_PAUSE_BREAK          EQU $E11477E1F014E077
+; DEF PS2_KEY_PAUSE_BREAK          EQU $E11477E1F014E077;NOTE: too large to be an integer constant
 
 ;******************************************************************************************************
 ; PS/2 Control Commands

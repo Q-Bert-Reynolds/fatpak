@@ -3,7 +3,7 @@ SECTION "Keyboard Demo", ROM0
 KeyboardDemo::
   DISPLAY_OFF
   call LoadFontTiles
-  ld a, " "
+  ld a, ' '
   call ClearScreen
 
   ld a, 1;cursor will be a 1 pixel vertical line
@@ -116,7 +116,7 @@ RemoveCharacter::
 .setX
   ld [_x], a
   cp a, %00000111
-  ld a, " "
+  ld a, ' '
   ld [tile_buffer], a
   ld a, [_y]
   ld e, a

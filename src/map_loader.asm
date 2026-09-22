@@ -18,7 +18,13 @@ INCLUDE "maps/map_stamps.gbstamp";TODO: move this out of ROM0
 ; SetMapTiles
 ; DrawMapToScreen              draws map to visible background
 ; EnterMapDoor                 a = door index
-; RunMapScript                 a = script index
+; CheckMapItemFlags            item index in [map_collision_data], returns z if flag not set
+; PickUpMapItem                item index in [map_collision_data]
+; GetMapItem                   item index in [map_collision_data], returns item id/count in bc, flag index/bits in de
+; PlayMapTeam                  team index in [map_collision_data]
+; RunMapScript                 script index in [map_collision_data]
+; GetMapAddress                address index in [map_collision_data], switches to bank of address and returns it in hl
+; GetMapArea                   returns address of current chunk's area in hl
 ; ClearMapSprites              removes map sprites from screen and buffer
 ; CopyMapSpritesToOAMBuffer    iterates through map sprites, copying values to oam_buffer
 
@@ -226,6 +232,32 @@ GetMapAddress: ;address index in [map_collision_data], switches to bank of addre
   ld h, a
   ld l, c;hl = script address
   ld a, b;bank
+  SET_BANK
+  ret
+
+GetMapArea:: ;returns address of current chunk's area in hl
+  ld a, [loaded_bank]
+  push af;current bank
+  call GetCurrentMap
+  SET_BANK
+  push hl;map address
+
+  call GetCurrentMapChunk
+  ld bc, MAP_CHUNK_AREA
+  add hl, bc
+  ld a, [hl];area index
+
+  pop hl;map address
+  push af;area index
+  ld bc, MAP_DATA_AREAS
+  add hl, bc;;areas jump table
+  pop af;area index
+  ld b, 0
+  ld c, a;area index
+  add hl, bc
+  add hl, bc;area address
+  
+  pop af;previous bank
   SET_BANK
   ret
 
@@ -2093,7 +2125,7 @@ GetMapChunk:;a = jump table index, returns chunk in hl, index in a
   push bc
   push af;index
   call GetCurrentMap;should already be in correct bank
-  ld bc, 7
+  ld bc, MAP_DATA_CHUNKS
   add hl, bc;[hl] = lower byte of chunk jump table
   ld a, [hli]
   ld b, a

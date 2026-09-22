@@ -11,7 +11,7 @@ MACRO RUN_TESTS
   call KeyboardDemo
   DISPLAY_OFF
   call LoadFontTiles
-  ld a, " "
+  ld a, ' '
   call ClearScreen
   DISPLAY_ON
   SHOW_WIN

@@ -143,7 +143,7 @@ GetTimePlayedString::;puts time in [str_buffer] in HHH:MM format
   call str_Number
 
   ld hl, name_buffer
-  ld a, ":"
+  ld a, ':'
   ld [hli], a
   xor a
   ld [hld], a
@@ -156,7 +156,7 @@ GetTimePlayedString::;puts time in [str_buffer] in HHH:MM format
   ld l, a
   cp a, 10
   jr nc, .skipTensDigit
-  ld a, "0"
+  ld a, '0'
   ld [de], a
   inc de
 .skipTensDigit
