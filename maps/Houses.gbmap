@@ -1,4 +1,4 @@
-MapHouses:: ;670 bytes total
+MapHouses:: ;673 bytes total
   DB MAP_HOUSES
   DW MapHousesPalettes ;64 bytes
   DW MapHousesText ;169 bytes
@@ -6,6 +6,7 @@ MapHouses:: ;670 bytes total
   DW MapHousesChunks ;413 bytes
   DW MapHousesAddresses ;3 bytes
   DW MapHousesItems ;0 bytes
+  DW MapHousesAreas ;0 bytes
   DB BANK(_HousesTiles)
   DW _HousesTiles
   DB BANK(_WorldSpritesTiles)
@@ -105,6 +106,7 @@ MapHousesChunks: ;6 bytes
 MapHousesChunkCalvinsRoom:
 .tile:    DB 252
 .palette: DB 1
+.area:    DB 0
 .north:   DB MAP_HOUSES_CHUNK_CALVINS_HOUSE
 .east:    DB MAP_HOUSES_CHUNK_CALVINS_ROOM
 .south:   DB MAP_HOUSES_CHUNK_CALVINS_ROOM
@@ -142,20 +144,20 @@ MapHousesChunkCalvinsRoom:
   DB 25;x2
   DB 25;y2
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (16)
-  DB 8;x1
-  DB 24;y1
-  DB 252;tile
-  DB 5;palette
-  DB 24;x2
-  DB 25;y2
-
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (15)
   DB 7;x1
   DB 9;y1
   DB 252;tile
   DB 5;palette
   DB 8;x2
+  DB 25;y2
+
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (16)
+  DB 8;x1
+  DB 24;y1
+  DB 252;tile
+  DB 5;palette
+  DB 24;x2
   DB 25;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Floor
@@ -282,6 +284,7 @@ MapHousesSpritesCalvinsRoom:
 MapHousesChunkCalvinsHouse:
 .tile:    DB 252
 .palette: DB 1
+.area:    DB 0
 .north:   DB MAP_HOUSES_CHUNK_CALVINS_HOUSE
 .east:    DB MAP_HOUSES_CHUNK_CALVINS_HOUSE
 .south:   DB MAP_HOUSES_CHUNK_CALVINS_ROOM
@@ -302,20 +305,20 @@ MapHousesChunkCalvinsHouse:
   DB 25;x2
   DB 25;y2
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (13)
-  DB 18;x1
-  DB 24;y1
-  DB 252;tile
-  DB 5;palette
-  DB 24;x2
-  DB 25;y2
-
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (12)
   DB 8;x1
   DB 24;y1
   DB 252;tile
   DB 5;palette
   DB 14;x2
+  DB 25;y2
+
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (13)
+  DB 18;x1
+  DB 24;y1
+  DB 252;tile
+  DB 5;palette
+  DB 24;x2
   DB 25;y2
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (11)
@@ -347,10 +350,12 @@ MapHousesChunkCalvinsHouse:
   DB 20;y
   DW GBStampPlant
 
-  DB MAP_OBJ_STAMP | MAP_COLLISION_SOLID ;Rug (4)
-  DB 14;x
-  DB 16;y
-  DW GBStampTable
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Rug (7)
+  DB 12;x1
+  DB 16;y1
+  DW GBStampStool
+  DB 14;x2
+  DB 20;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Rug (6)
   DB 18;x1
@@ -359,23 +364,16 @@ MapHousesChunkCalvinsHouse:
   DB 20;x2
   DB 20;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Rug (7)
-  DB 12;x1
-  DB 16;y1
-  DW GBStampStool
-  DB 14;x2
-  DB 20;y2
+  DB MAP_OBJ_STAMP | MAP_COLLISION_SOLID ;Rug (4)
+  DB 14;x
+  DB 16;y
+  DW GBStampTable
 
   DB MAP_OBJ_STAMP | MAP_COLLISION_DOOR ;StairsUp
   DB 22;x
   DB 10;y
   DW GBStampStairsUp
   DB 1;door
-
-  DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;Rug (5)
-  DB 14;x
-  DB 9;y
-  DW GBStampBigTV
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Rug (3)
   DB 8;x1
@@ -384,13 +382,18 @@ MapHousesChunkCalvinsHouse:
   DB 12;x2
   DB 13;y2
 
-  DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;Desk (4)
-  DB 19;x
+  DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;Rug (5)
+  DB 14;x
   DB 9;y
-  DW GBStampWindow
+  DW GBStampBigTV
 
   DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;Desk (3)
   DB 12;x
+  DB 9;y
+  DW GBStampWindow
+
+  DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;Desk (4)
+  DB 19;x
   DB 9;y
   DW GBStampWindow
 
@@ -422,6 +425,7 @@ MapHousesSpritesCalvinsHouse:
 MapHousesChunkNolansHouse:
 .tile:    DB 252
 .palette: DB 1
+.area:    DB 0
 .north:   DB MAP_HOUSES_CHUNK_NOLANS_HOUSE
 .east:    DB MAP_HOUSES_CHUNK_NOLANS_HOUSE
 .south:   DB MAP_HOUSES_CHUNK_NOLANS_HOUSE
@@ -433,22 +437,6 @@ MapHousesChunkNolansHouse:
   DW GBStampFloor
   DB 24;x2
   DB 24;y2
-
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (13)
-  DB 18;x1
-  DB 24;y1
-  DB 252;tile
-  DB 5;palette
-  DB 24;x2
-  DB 25;y2
-
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (10)
-  DB 24;x1
-  DB 11;y1
-  DB 252;tile
-  DB 5;palette
-  DB 25;x2
-  DB 25;y2
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (12)
   DB 8;x1
@@ -464,6 +452,22 @@ MapHousesChunkNolansHouse:
   DB 252;tile
   DB 5;palette
   DB 8;x2
+  DB 25;y2
+
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (10)
+  DB 24;x1
+  DB 11;y1
+  DB 252;tile
+  DB 5;palette
+  DB 25;x2
+  DB 25;y2
+
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (13)
+  DB 18;x1
+  DB 24;y1
+  DB 252;tile
+  DB 5;palette
+  DB 24;x2
   DB 25;y2
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (8)
@@ -548,4 +552,6 @@ MapHousesAddresses: ;3 bytes
   DW UseMyComputer
 
 MapHousesItems: ;0 bytes
+
+MapHousesAreas: ;0 bytes
 

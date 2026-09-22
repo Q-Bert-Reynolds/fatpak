@@ -222,7 +222,8 @@
 #define MAP_DATA_CHUNKS        7
 #define MAP_DATA_ADDRESSES     9
 #define MAP_DATA_ITEMS         11
-#define MAP_DATA_TILES         13
+#define MAP_DATA_AREAS         13
+#define MAP_DATA_TILES         15
 #define MAP_OBJ_TYPE_MASK      0b00001111//up to 15 map object types
 #define MAP_OBJ_NONE           0 //bg only
 #define MAP_OBJ_NONE_FILL      1 //bg only
@@ -245,10 +246,14 @@
 #define MAP_COLLISION_ITEM     9 << 4
 #define MAP_STEP_SIZE          16//2 tiles per step
 #define WALK_ANIM_FRAMES       4//TODO: should come from GBStampAnimation
-#define MAP_NORTH              2//skip tile & pal
-#define MAP_EAST               3
-#define MAP_SOUTH              4
-#define MAP_WEST               5
+#define MAP_CHUNK_TILE         0
+#define MAP_CHUNK_PALETTE      1
+#define MAP_CHUNK_AREA         2
+#define MAP_CHUNK_NORTH        3
+#define MAP_CHUNK_EAST         4
+#define MAP_CHUNK_SOUTH        5
+#define MAP_CHUNK_WEST         6
+#define MAP_CHUNK_DATA         7
 #define MAP_SPRITE_SIZE        6//bytes... bank, address(2), x, y, extra
 #define MAP_SPRITE_BUFFER_SIZE 36 * MAP_SPRITE_SIZE//max 40 sprites - 4 sprites used by user avatar
 #define MAP_AVATAR_DIRECTION   0b11000000

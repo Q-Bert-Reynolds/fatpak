@@ -1,4 +1,4 @@
-MapBusinesses:: ;289 bytes total
+MapBusinesses:: ;295 bytes total
   DB MAP_BUSINESSES
   DW MapBusinessesPalettes ;64 bytes
   DW MapBusinessesText ;0 bytes
@@ -6,6 +6,7 @@ MapBusinesses:: ;289 bytes total
   DW MapBusinessesChunks ;216 bytes
   DW MapBusinessesAddresses ;6 bytes
   DW MapBusinessesItems ;0 bytes
+  DW MapBusinessesAreas ;0 bytes
   DB BANK(_OverworldTiles)
   DW _OverworldTiles
   DB BANK(_WorldSpritesTiles)
@@ -73,6 +74,7 @@ MapBusinessesChunks: ;4 bytes
 MapBusinessesChunkVeteranCityClinic:
 .tile:    DB 0
 .palette: DB 1
+.area:    DB 0
 .north:   DB MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC
 .east:    DB MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_1
 .south:   DB MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC
@@ -187,6 +189,7 @@ MapBusinessesSpritesVeteranCityClinic:
 MapBusinessesChunkVeteranCityClinic1:
 .tile:    DB 0
 .palette: DB 1
+.area:    DB 0
 .north:   DB MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_1
 .east:    DB MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_1
 .south:   DB MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_1
@@ -314,4 +317,6 @@ MapBusinessesAddresses: ;6 bytes
   DW UsePublicComputer
 
 MapBusinessesItems: ;0 bytes
+
+MapBusinessesAreas: ;0 bytes
 

@@ -661,7 +661,7 @@ GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, ob
   ld a, e
   srl a
   ld [_y], a
-  ld hl, 6;tile(1)+pal(1)+neighbors(4)
+  ld hl, MAP_CHUNK_DATA
   add hl, bc
 .loop
     ld a, [hli];map object type and collision
@@ -905,7 +905,7 @@ MoveMapLeft::
   push af;new scx
   ld d, a
   jr nc, .noChunkChangeWest
-  ld a, MAP_WEST
+  ld a, MAP_CHUNK_WEST
   call GetCurrentMapChunkNeighbor
   call SetCurrentMapChunk
 .noChunkChangeWest
@@ -937,7 +937,7 @@ MoveMapRight::
   push af
   ld d, a
   jr nc, .noChunkChangeEast
-  ld a, MAP_EAST
+  ld a, MAP_CHUNK_EAST
   call GetCurrentMapChunkNeighbor
   call SetCurrentMapChunk
 .noChunkChangeEast
@@ -969,7 +969,7 @@ MoveMapUp::
   push af
   ld e, a
   jr nc, .noChunkChangeNorth
-  ld a, MAP_NORTH
+  ld a, MAP_CHUNK_NORTH
   call GetCurrentMapChunkNeighbor
   call SetCurrentMapChunk
 .noChunkChangeNorth
@@ -1001,7 +1001,7 @@ MoveMapDown::
   push af
   ld e, a
   jr nc, .noChunkChangeSouth
-  ld a, MAP_SOUTH
+  ld a, MAP_CHUNK_SOUTH
   call GetCurrentMapChunkNeighbor
   call SetCurrentMapChunk
 .noChunkChangeSouth
@@ -1131,7 +1131,7 @@ DrawMapLeftEdge:
   ld a, 19;full h
   sub a, c;19-h
   ld c, a;h=19-h
-  ld a, MAP_SOUTH
+  ld a, MAP_CHUNK_SOUTH
   call GetCurrentMapChunkNeighbor
   call DrawMapChunk
   ret
@@ -1148,7 +1148,7 @@ DrawMapRightEdge:
   sub a, 32
   jr c, .testY
   ld d, a
-  ld a, MAP_EAST
+  ld a, MAP_CHUNK_EAST
   call GetMapChunkNeighbor
 .testY
   ld a, e;y
@@ -1174,7 +1174,7 @@ DrawMapRightEdge:
   ld a, 19;full h
   sub a, c;19-h
   ld c, a;h=19-h
-  ld a, MAP_SOUTH
+  ld a, MAP_CHUNK_SOUTH
   call GetMapChunkNeighbor
   call DrawMapChunk
   ret
@@ -1208,7 +1208,7 @@ DrawMapTopEdge:
   ld a, 21;full w
   sub a, b;21-w
   ld b, a;w=21-w
-  ld a, MAP_EAST
+  ld a, MAP_CHUNK_EAST
   call GetCurrentMapChunkNeighbor
   call DrawMapChunk
   ret
@@ -1225,7 +1225,7 @@ DrawMapBottomEdge:
   sub a, 32
   jr c, .testX
   ld e, a
-  ld a, MAP_SOUTH
+  ld a, MAP_CHUNK_SOUTH
   call GetMapChunkNeighbor
 .testX
   ld a, d;x
@@ -1251,7 +1251,7 @@ DrawMapBottomEdge:
   ld a, 21;full w
   sub a, b;21-w
   ld b, a;w=21-w
-  ld a, MAP_EAST
+  ld a, MAP_CHUNK_EAST
   call GetMapChunkNeighbor
   call DrawMapChunk
   ret
@@ -1307,7 +1307,7 @@ DrawMapToScreen::
   ld a, 21;full w
   sub a, b;21-w
   ld b, a;w=21-w
-  ld a, MAP_EAST
+  ld a, MAP_CHUNK_EAST
   call GetCurrentMapChunkNeighbor
   call DrawMapChunk
   pop de;xy
@@ -1323,7 +1323,7 @@ DrawMapToScreen::
   ld c, a;h=19-h
   push bc;wh
   push de;xy
-  ld a, MAP_SOUTH
+  ld a, MAP_CHUNK_SOUTH
   call GetCurrentMapChunkNeighbor
   call DrawMapChunk
   pop de;xy
@@ -1337,9 +1337,9 @@ DrawMapToScreen::
   ld a, 21;full w
   sub a, b;21-w
   ld b, a;w=21-w
-  ld a, MAP_SOUTH
+  ld a, MAP_CHUNK_SOUTH
   call GetCurrentMapChunkNeighbor
-  ld a, MAP_EAST
+  ld a, MAP_CHUNK_EAST
   call GetMapChunkNeighbor
   call DrawMapChunk
 .finish
@@ -1395,8 +1395,8 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
   xor a
   ld [rVBK], a
 .drawMapObjects
-  ld bc, 5;pal(1)+neighbors(4)
-  add hl, bc;skip pal, neighboring chunks, and collision
+  ld bc, MAP_CHUNK_DATA-1;already skipped tile
+  add hl, bc;skip pal, neighboring chunks, area, and collision
 .drawTilesLoop
     ld a, [hli];map object type and collision
     and a
@@ -2085,7 +2085,6 @@ GetMapChunkNeighbor:;a = direction, hl = map chunk, returns chunk in hl, index i
   ld c, a
   add hl, bc
   ld a, [hl];jump table index
-  ld hl, MapOverworldChunks;TODO: this should be the beginning of the current map bank
   call GetMapChunk
   pop bc
   ret
@@ -2128,11 +2127,11 @@ GetMapChunkForOffset::;bc = xy pixel offset (-127,127), returns chunk in hl, til
   cp a, 128
   jr c, .east
 .west
-  ld a, MAP_WEST
+  ld a, MAP_CHUNK_WEST
   call GetMapChunkNeighbor
   jr .testY
 .east
-  ld a, MAP_EAST
+  ld a, MAP_CHUNK_EAST
   call GetMapChunkNeighbor
   ;fall through to testY
 .testY
@@ -2145,11 +2144,11 @@ GetMapChunkForOffset::;bc = xy pixel offset (-127,127), returns chunk in hl, til
   cp a, 128
   jr c, .south
 .north
-  ld a, MAP_NORTH
+  ld a, MAP_CHUNK_NORTH
   call GetMapChunkNeighbor
   jr .finish
 .south
-  ld a, MAP_SOUTH
+  ld a, MAP_CHUNK_SOUTH
   call GetMapChunkNeighbor
 .finish
   srl d

@@ -1,5 +1,7 @@
 Priority
 
+- random encounters
+- doors jump to wrong place
 - announcer mode
   - double plays
   - beat the throw

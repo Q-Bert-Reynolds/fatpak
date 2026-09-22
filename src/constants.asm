@@ -219,7 +219,8 @@ DEF MAP_DATA_DOORS         EQU 5
 DEF MAP_DATA_CHUNKS        EQU 7
 DEF MAP_DATA_ADDRESSES     EQU 9
 DEF MAP_DATA_ITEMS         EQU 11
-DEF MAP_DATA_TILES         EQU 13
+DEF MAP_DATA_AREAS         EQU 13
+DEF MAP_DATA_TILES         EQU 15
 DEF MAP_OBJ_TYPE_MASK      EQU %00001111;up to 15 map object types
 DEF MAP_OBJ_NONE           EQU 0 ;bg only
 DEF MAP_OBJ_NONE_FILL      EQU 1 ;bg only
@@ -242,10 +243,14 @@ DEF MAP_COLLISION_TEAM     EQU 8 << 4
 DEF MAP_COLLISION_ITEM     EQU 9 << 4
 DEF MAP_STEP_SIZE          EQU 16;2 tiles per step
 DEF WALK_ANIM_FRAMES       EQU 4;TODO: should come from GBStampAnimation
-DEF MAP_NORTH              EQU 2;skip tile & pal
-DEF MAP_EAST               EQU 3
-DEF MAP_SOUTH              EQU 4
-DEF MAP_WEST               EQU 5
+DEF MAP_CHUNK_TILE         EQU 0
+DEF MAP_CHUNK_PALETTE      EQU 1
+DEF MAP_CHUNK_AREA         EQU 2
+DEF MAP_CHUNK_NORTH        EQU 3
+DEF MAP_CHUNK_EAST         EQU 4
+DEF MAP_CHUNK_SOUTH        EQU 5
+DEF MAP_CHUNK_WEST         EQU 6
+DEF MAP_CHUNK_DATA         EQU 7
 DEF MAP_SPRITE_SIZE        EQU 6;bytes... bank, address(2), x, y, extra
 DEF MAP_SPRITE_BUFFER_SIZE EQU 36 * MAP_SPRITE_SIZE;max 40 sprites - 4 sprites used by user avatar
 DEF MAP_AVATAR_DIRECTION   EQU %11000000
