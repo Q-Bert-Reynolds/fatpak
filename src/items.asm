@@ -948,6 +948,7 @@ UseItem:;[item_data], a = index, returns exit code in a (-1 = close inventory, 0
   pop af;play ball flag, not used here
   ld a, [item_data.id] 
   ld b, a
+  ld c, 1
   call ShowLineup
   ld b, -1
   ld a, c
@@ -994,7 +995,7 @@ UseItem:;[item_data], a = index, returns exit code in a (-1 = close inventory, 0
   dec a
   jr z, .removeItemCompletely
   ld [hl], a
-  ld b, 0;exit code
+  ld b, -1;exit code
   jr .exit
 
 .removeItemCompletely
@@ -1145,6 +1146,7 @@ TeachMove:;[item_data], returns exit code in b (-1 = exit inventory), item used 
   
   ld a, [item_data.id] 
   ld b, a
+  ld c, 1
   call ShowLineup
   ld b, -1
   ret 

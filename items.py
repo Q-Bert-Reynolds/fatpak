@@ -38,7 +38,7 @@ def generate_item_data(items):
       item_data += "\n" + var_name + ":;" + item["Description"] + "\n"
       item_data += "DB " + constant + "\n"
       item_data += "DB ITEM_TYPE_" + item["Type"].upper().replace(" ","_").replace(".","").replace("-","_") + "\n"
-      item_data += "DW "
+      item_data += "D32 "
       if item["Cost"]:
         item_data += item["Cost"] + " ;cost\n"
       else:

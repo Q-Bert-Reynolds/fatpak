@@ -256,7 +256,7 @@ ShowPauseMenu::
 .lineup
   cp 2
   jr nz, .item
-  ld b, 0
+  ld bc, 0
   call ShowLineup
   jr .returnToPauseMenu
 .item

@@ -288,6 +288,13 @@ MACRO D24 ;\1 = 24 bit number
   DB (\1 & $0000FF)
 ENDM
 
+MACRO D32 ;\1 = 32 bit number 
+  DB (\1 & $FF000000) >> 24
+  DB (\1 & $00FF0000) >> 16
+  DB (\1 & $0000FF00) >> 8
+  DB (\1 & $000000FF)
+ENDM
+
 MACRO BETWEEN; if \1 <= a < \2
 IF \1 > \2
   PRINT "ERROR: LOWER BOUND CAN'T BE HIGHER THAN UPPER BOUND."

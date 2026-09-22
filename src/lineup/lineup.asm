@@ -1,7 +1,18 @@
 INCLUDE "src/beisbol.inc"
 
 SECTION "Lineup Bank 0", ROM0
-ShowLineup::;b = item id (0 = no item), returns item used in c (0 = not used, 1 = used)
+;-------------------------------------------------------------------------
+;
+; ShowLineup - display's the ineup screen, optionally restore background
+;
+;   input: 
+;     b = item id (0 = no item)
+;     c = restore bg (0 = no, screen off)
+;   returns: 
+;     item used in c (0 = not used, 1 = used)
+;
+;-------------------------------------------------------------------------
+ShowLineup::
   ld a, [loaded_bank]
   push af
   ld a, LINEUP_BANK
@@ -1692,7 +1703,9 @@ RevealTextForPlayer:;[_j] = selected player, hl = text
 
   ret
 
-_ShowLineup:;b = item id (0 = no item), returns item used in c (0 = not used, 1 = used)
+_ShowLineup:;b = item id, c = restore bg, returns item used in c (0 = not used, 1 = used)
+  ld a, c;restore bg
+  push af
   ld c, 0;0
   push bc;b = item id
 
@@ -1787,18 +1800,27 @@ _ShowLineup:;b = item id (0 = no item), returns item used in c (0 = not used, 1 
     call DrawLineupPlayerSprites
     jr .loop
 .exit
-
   DISPLAY_OFF
   ld hl, rOBP1
   ld [hl], DMG_PAL_DLWW
-  
+
+  pop bc;b = item id, c = item used
+  pop af;display state
+  push bc;b = item id, c = item used
+  and a
+  jr z, .clearBG
+
+.restoreBG
+  DISPLAY_ON
+  pop bc;b = item id, c = item used
+  ret
+
+.clearBG
   xor a
   ld hl, bkg_buffer
   ld bc, BUFFER_SIZE
   call mem_Set
-
   CLEAR_SCREEN ' '
   HIDE_WIN
-
   pop bc;b = item id, c = item used
   ret

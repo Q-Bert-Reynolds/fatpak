@@ -143,7 +143,7 @@ move_data::
 item_data::
 .id::    DB
 .type::  DB
-.cost::  DW
+.cost::  DS 4
 .extra:: DS 2
 .end::
 

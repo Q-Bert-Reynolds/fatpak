@@ -1238,7 +1238,7 @@ ENDC
     jr nz, .itemMenuItemSelected
     call GetUserPitcherOrder
     push af
-    ld b, 0
+    ld bc, 0
     call ShowLineup
     call GetUserPitcherOrder
     push af;current pitcher
@@ -1271,7 +1271,7 @@ ENDC
     call SetupGameUI
     call ShowPitcher
     call ShowBatter
-    jr .playBallLoop
+    jp .playBallLoop
   .runMenuItemSelected
     cp 3
     jp nz, .playBallLoop
