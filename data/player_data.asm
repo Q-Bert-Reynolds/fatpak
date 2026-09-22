@@ -3689,7 +3689,7 @@ _066ChipRoledex:
 DB 66
 DB FIGHTING
 DB NONE
-DB $528 ;height
+DB $54 ;height
 DW $0080 ;weight
 DB 70 ;HP
 DB 80 ;Bat

@@ -240,7 +240,7 @@ DB 120 ;Power
 DB 70 ;Accuracy
 DB 15 ;Launch Angle
 DB 10 ;Spray
-DB -900 ;Pull
+DB -20 ;Pull
 
 SparkMove:;If base reached safely, the next swing has 100% contact rate and doubles power.
 DB SPARK_MOVE
@@ -525,7 +525,7 @@ DB 90 ;Power
 DB 100 ;Accuracy
 DB 5 ;Launch Angle
 DB 5 ;Spray
-DB 2025 ;Pull
+DB 45 ;Pull
 
 LickMove:;Has a ~30% chance to paralyze the fielder. This move fails against Psychic-type pitches.
 DB LICK_MOVE
@@ -579,7 +579,7 @@ DB 120 ;Power
 DB 100 ;Accuracy
 DB 0 ;Launch Angle
 DB 30 ;Spray
-DB -900 ;Pull
+DB -20 ;Pull
 
 HardwoodMove:;A hard swing with a big stick.
 DB HARDWOOD_MOVE
@@ -601,7 +601,7 @@ DB 55 ;Power
 DB 95 ;Accuracy
 DB 15 ;Launch Angle
 DB 10 ;Spray
-DB 1350 ;Pull
+DB 30 ;Pull
 
 SleeperMove:;Takes a pitch. Lulls the pitcher to sleep. 
 DB SLEEPER_MOVE
@@ -654,7 +654,7 @@ DB 250 ;Power
 DB 30 ;Accuracy
 DB 15 ;Launch Angle
 DB 30 ;Spray
-DB 900 ;Pull
+DB 20 ;Pull
 
 DigInMove:;On the first pitch, the batter digs in. On the second pitch, the batter attacks anything close.
 DB DIG_IN_MOVE
@@ -1469,7 +1469,7 @@ DB 40 ;Power
 DB 100 ;Accuracy
 DB 25 ;Launch Angle
 DB 10 ;Spray
-DB -900 ;Pull
+DB -20 ;Pull
 
 WallMove:;Tame wild pitches with ease
 DB WALL_MOVE

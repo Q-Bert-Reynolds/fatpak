@@ -48,7 +48,7 @@ def generate_move_data(moves):
       if move["Spray"]:
         move_data += "DB " + str(move["Spray"]) + " ;Spray\n"
       if move["Pull"]:
-        move_data += "DB " + str(int(float(move["Pull"])*45)) + " ;Pull\n"
+        move_data += "DB " + str(move["Pull"]) + " ;Pull\n"
       if move["Path"]:
         move_data += "DB PITCH_PATH_" + move["Path"].upper() + " ;Path\n"
 
