@@ -1,13 +1,12 @@
 Priority
 
+- random encounters
 - running out of room in ROM0, move stuff to other banks
   - less than 1Kb left
   - move colors.asm out of ROM0
   - core.asm should not include core_strings.asm
   - move collision response code (doors, items, etc.) from map_loader to world
   - helper routines that don't take any args should use TRAMPOLINE instead
-- random encounters
-- doors jump to wrong place
 - load sprite colors with map
 - announcer mode
   - double plays

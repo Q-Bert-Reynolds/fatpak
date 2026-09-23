@@ -150,10 +150,9 @@ GetPlayerDescription:: ; a = number, returns description in str_buffer
 
 CheckSeenSigned:: ;a = number, returns seen/signed in a (1=seen,2=signed)
   dec a
-  ld h, 0
-  ld l, a
+  ld h, a
   ld c, 8
-  call math_Divide
+  call math_Divide8
   ld d, a
   ld a, 7
   sub a, d
@@ -301,10 +300,9 @@ PutPlayerAddressInHL: ;hl = address
 
 SwitchPlayerImageBank: ; a = number (1-151), return adjusted number in a (0-PLAYERS_PER_BANK)
   dec a
-  ld h, 0
-  ld l, a
+  ld h, a
   ld c, PLAYERS_PER_BANK+1
-  call math_Divide
+  call math_Divide8
   push af
 
   ld a, [loaded_bank]

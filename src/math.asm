@@ -14,10 +14,11 @@
 ; Library Subroutines:
 ;   math_Multiply                hl = de * a
 ;   math_Multiply16              bcde = de * hl
-;   math_Divide                  hl (remainder a) = hl / c
-;   math_Divide16                de (remainder hl) = hl / bc
+;   math_Divide8                 l (remainder a) = h / c
+;   math_Divide16                hl (remainder a) = hl / c
 ;   math_Divide24                ehl (remainder a) = ehl / d
 ;   math_Divide32                dehl (remainder a) = dehl / c
+;   math_Divide16_16             de (remainder hl) = hl / bc
 ;   math_Subtract16              hl = hl - bc
 ;   math_Subtract24              ehl = ehl - bcd
 ;   math_CountBits               a = byte, returns count in a
@@ -166,7 +167,7 @@ _math_Divide::
 	inc	sp
 	jp	hl
 
-math_Divide16:: ;de (remainder hl) = hl / bc
+math_Divide16_16:: ;de (remainder hl) = hl / bc
   ld de, 0 ;quotient
 .loop ;while remainder >= denominator
     inc de
@@ -176,22 +177,41 @@ math_Divide16:: ;de (remainder hl) = hl / bc
   dec de
   ret
 
-math_Divide:: ; hl (remainder a) = hl / c
+math_Divide8:: ;l (remainder a) = h / c
   xor a
-  ld e, a
+  ld l, a
+  ld b, 8
+  jr math_Divide16.loop
 
-math_Divide24:: ; ehl (remainder a) = ehl / c
+math_Divide16:: ;hl (remainder a) = hl / c
+  xor a
+  ld b, 16
+.loop:
+    add hl, hl
+    rla
+    jr c, .skip
+    cp c
+    jr c, .skip
+    sub c
+    inc l
+  .skip:
+    dec b
+    jr nz, .loop
+  ret
+
+math_Divide24:: ;ehl (remainder a) = ehl / c
   xor a
   ld d, a
-
-math_Divide32::; dehl (remainder a) = dehl / c
+  ld b, 24
+  jr math_Divide32.loop
+math_Divide32:: ;dehl (remainder a) = dehl / c
   xor	a
   ld	b, 32
 .loop:
     add	hl, hl
     rl e
     rl d
-    rl a
+    rla
     jr c, .skip
     cp c
     jr c, .skip
@@ -200,6 +220,15 @@ math_Divide32::; dehl (remainder a) = dehl / c
   .skip
     dec b
     jr nz, .loop
+  ret
+
+math_Modulo:: ; a = a % b
+  cp b
+  jr c, .found
+.loop
+  sub a, b
+  jr nc, .loop  
+.found
   ret
 
 math_Add_EHL_BCD:: ;ehl = ehl + bcd
@@ -366,7 +395,7 @@ math_Length:: ;de = xy, returns length in a
   ld d, 0
   ld e, a
   call math_Multiply;a*a
-  call math_Divide;a*a/b
+  call math_Divide16;a*a/b
   srl l;0.5*a*a/b
   pop bc
   ld a, c;b
@@ -383,7 +412,7 @@ math_Normalize:: ;de = xy, returns |xy| in de
   ld l, 0
   ld b, 0
   ld c, a
-  call math_Divide16
+  call math_Divide16_16
   ld l, e
   pop af;len
   pop de;xy
@@ -393,7 +422,7 @@ math_Normalize:: ;de = xy, returns |xy| in de
   ld l, 0
   ld b, 0
   ld c, a
-  call math_Divide16
+  call math_Divide16_16
   ld l, e
   pop de;x/len,y
   ld e, l;y/len
@@ -452,7 +481,7 @@ _Lerp:
   pop de
   add hl, de;a*(100-c)+b*c
   ld c, 100
-  call math_Divide
+  call math_Divide16
   ld a, l
   ret
 

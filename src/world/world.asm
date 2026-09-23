@@ -489,7 +489,26 @@ CheckRandomEncounter:;TODO get available players and age range from grass in exp
   ld a, [map_collision_type]
   and a, MAP_COLLISION_GRASS
   ret z;not on the grass
+
+.seedRandom
+  ld a, [rand_hi]
+  ld h, a
+  ld a, [rand_lo]
+  ld l, a
+  ld a, [map_x]
+  ld b, a
+  ld a, [map_y]
+  ld c, a
+  add hl, bc;random + xy
+  ld a, [seconds]
+  ld b, a
+  ld a, [vbl_timer]
+  ld c, a
+  add hl, bc;random + xy + time
+  call gbdk_Seed
   call gbdk_Random
+
+.checkTryout
   ld a, d
   and a, e
   and a, %10000000
@@ -514,6 +533,7 @@ CheckRandomEncounter:;TODO get available players and age range from grass in exp
   sub a, 151;essentially a %= 151
 .setPlayerNum
   inc a;numbers should be 1-151, not 0-150
+; call GetMapEncounter
 
   ld b, a;player number in b
   ld c, PITCHER

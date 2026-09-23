@@ -403,7 +403,7 @@ SetStatsFromAge:: ;hl = player
   ld a, [player_base.hp]
   call math_Multiply;base_hp * 2 * age
   ld c, 100
-  call math_Divide;(base_hp * 2 * age)/100
+  call math_Divide16;(base_hp * 2 * age)/100
   pop af;age
   push af;age
   add a, 10;age+10
@@ -471,7 +471,7 @@ SetStatsFromAge:: ;hl = player
     push hl;lineup stat address
     call math_Multiply;base * 2 * age
     ld c, 100
-    call math_Divide;(base_hp * 2 * age)/100
+    call math_Divide16;(base_hp * 2 * age)/100
     ld de, 5
     add hl, de
     ld d, h

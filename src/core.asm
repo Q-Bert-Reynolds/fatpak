@@ -704,7 +704,7 @@ GetHealthPct::;hl = player, returns HP * 96 / maxHP in de
   ld c, l;maxHP
   ld h, d
   ld l, e;hp*96
-  call math_Divide16;de (remainder hl) = hl / bc
+  call math_Divide16_16;de (remainder hl) = hl / bc
   ret;de = HP * 96 / maxHP
 
 AnimateHealth::;[_j] = selected player, b=start pct, c=end pct

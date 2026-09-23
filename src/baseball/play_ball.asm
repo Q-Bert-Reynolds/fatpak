@@ -58,9 +58,10 @@ INCLUDE "data/strings/play_ball_strings.asm"
 INCLUDE "src/baseball/ui.asm"
 INCLUDE "src/baseball/pitch_path.asm"
 
-ShowAimCircle: ;hl = size
+ShowAimCircle: ;a = size
+  ld h, a
   ld c, 8
-  call math_Divide ; hl (remainder a) = hl / c
+  call math_Divide8 ; l (remainder a) = h / c
   add a, _BASEBALL_TILE_COUNT
   ld [_i], a;i = (size%8)+_BASEBALL_TILE_COUNT;
 
@@ -237,10 +238,9 @@ MovePitch: ;a = show projection, b = pitch path, c = z[0,100], de = start xy, hl
   push hl;offset
 
   ;TODO: baseball animation should be based on move
-  ld h, 0
-  ld l, a
+  ld h, a
   ld c, 10
-  call math_Divide;i/10
+  call math_Divide8;i/10
   ld a, l
   and a, %00000011;(i/10)%4
   add a, 6;6+(i/10)%4
@@ -354,8 +354,6 @@ Pitch:
   srl a
   srl a
   srl a
-  ld h, 0
-  ld l, a
   call ShowAimCircle
 
 .setPitchPath
@@ -700,8 +698,6 @@ Bat:
   ld l, a
   ld a, 255
   sub a, l
-  ld h, 0
-  ld l, a
   call ShowAimCircle
   
   call StrikeZonePosition

@@ -812,10 +812,10 @@ ShowPlayerMenu:
 CheckCanLearnMove:;[item data], [player_base], returns z if unable
   ld a, [item_data.id]
   sub a, HM01_ITEM;move index
-  ld h, 0
-  ld l, a
+  ld h, a
   ld c, 8
-  call math_Divide
+  call math_Divide8; l (remainder a) = h / c
+  ld h, 0
   ld bc, player_base.tm_hm
   add hl, bc
   ld d, a

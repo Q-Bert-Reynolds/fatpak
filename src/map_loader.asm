@@ -18,13 +18,10 @@ INCLUDE "maps/map_stamps.gbstamp";TODO: move this out of ROM0
 ; SetMapTiles
 ; DrawMapToScreen              draws map to visible background
 ; EnterMapDoor                 a = door index
-; CheckMapItemFlags            item index in [map_collision_data], returns z if flag not set
-; PickUpMapItem                item index in [map_collision_data]
-; GetMapItem                   item index in [map_collision_data], returns item id/count in bc, flag index/bits in de
+; CheckMapItemFlags            item index in a, returns z if flag not set
+; PickUpMapItem                item index in a
 ; PlayMapTeam                  team index in [map_collision_data]
 ; RunMapScript                 script index in [map_collision_data]
-; GetMapAddress                address index in [map_collision_data], switches to bank of address and returns it in hl
-; GetMapArea                   returns address of current chunk's area in hl
 ; ClearMapSprites              removes map sprites from screen and buffer
 ; CopyMapSpritesToOAMBuffer    iterates through map sprites, copying values to oam_buffer
 
@@ -40,6 +37,9 @@ INCLUDE "maps/map_stamps.gbstamp";TODO: move this out of ROM0
 ; GetMapChunkNeighbor          a = direction, hl = map chunk, returns chunk in hl, index in a
 ; GetMapChunk                  a = jump table index, returns chunk in hl, index in a
 ; GetMapChunkForOffset         de = xy pixel offset, returns chunk in hl, tile xy in de
+; GetMapAddress                address index in [map_collision_data], switches to bank of address and returns it in hl
+; GetMapArea                   sets bank to current map, returns address of current chunk's area in hl
+; GetMapItem                   item index in a, returns item id/count in bc, flag index/bits in de
 
 ; ROUTINES THAT DO NOT REQUIRE BANK SWITCHING
 ; SetCurrentMap                a = map index, returns address in hl, bank in a
@@ -236,9 +236,21 @@ GetMapAddress: ;address index in [map_collision_data], switches to bank of addre
   SET_BANK
   ret
 
-GetMapArea:: ;returns address of current chunk's area in hl
+GetMapEncounter::;returns age in b, player id in c
   ld a, [loaded_bank]
   push af;current bank
+
+  call GetMapArea
+  ld a, [hli];num encounters
+  ld b, a;num encounters
+  ld a, [rand_lo]
+
+  
+  pop af;previous bank
+  SET_BANK
+  ret
+
+GetMapArea:: ;sets bank to current map, returns address of current chunk's area in hl
   call GetCurrentMap
   SET_BANK
   push hl;map address
@@ -257,9 +269,6 @@ GetMapArea:: ;returns address of current chunk's area in hl
   ld c, a;area index
   add hl, bc
   add hl, bc;area address
-  
-  pop af;previous bank
-  SET_BANK
   ret
 
 ClearMapSprites::

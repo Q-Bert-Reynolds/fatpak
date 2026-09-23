@@ -48,10 +48,9 @@ KBHandleCharacter::;a = character in ASCII
 
 .charFound
   pop af;discard old _c
-  ld h, 0
-  ld l, c
+  ld h, c
   ld c, 9
-  call math_Divide
+  call math_Divide8;l (remainder a) = h / c
   ld [_x], a
   ld a, l
   ld [_y], a

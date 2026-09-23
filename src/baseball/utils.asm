@@ -597,11 +597,10 @@ GetClosestFielderByAngle::;a = spray angle, e = speed, returns time to ball in b
     jr z, .skipDivide;avoid divide by zero
     pop bc;b = fielder_to_ball
     ld a, b;fielder_to_ball
-    ld h, 0
-    ld l, a;numerator in hl
+    ld h, a;numerator in hh
     ld a, [_v]
     ld c, a;divisor = player speed (high byte)
-    call math_Divide;hl (remainder a) = hl / c
+    call math_Divide8;l (remainder a) = h / c
     ld a, l;time = fielder_to_ball / player_speed_hi
     jr .compareTime
   .skipDivide
@@ -835,7 +834,7 @@ PitchAI::;returns pitch_move_id
   ld h, a
   ld a, [rand_hi]
   ld l, a
-  call math_Divide; rand % move_count
+  call math_Divide16; rand % move_count
 
   pop hl;pitcher
   ld d, PITCHING_MOVES
@@ -918,7 +917,7 @@ SwingAI:: ;returns [_w] = swing/no swing, [_x][_y][_z] = swing timing/location, 
   ld h, a
   ld a, [rand_hi]
   ld l, a
-  call math_Divide; rand % move_count
+  call math_Divide16; rand % move_count
 
   pop hl;batter
   ld d, BATTING_MOVES
@@ -1110,7 +1109,7 @@ BattingAvgToString:: ;de = batting average*1000, returns str_buff
 ;TODO: fix this broken function
 EarnedRunAvgToString:: ;hl = ERA*100, returns str_buff
   ld a, 100
-  call math_Divide; hl = hl/100, a = hl%100
+  call math_Divide16; hl = hl/100, a = hl%100
   push af
 
   ld de, str_buffer
