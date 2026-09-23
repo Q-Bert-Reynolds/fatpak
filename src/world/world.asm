@@ -527,21 +527,14 @@ CheckRandomEncounter:;TODO get available players and age range from grass in exp
   ld [home_team], a
 
 .randomizeUnsignedPlayer
-  ld a, [rand_lo]
-  cp a, 151
-  jr c, .setPlayerNum
-  sub a, 151;essentially a %= 151
-.setPlayerNum
-  inc a;numbers should be 1-151, not 0-150
-; call GetMapEncounter
-
-  ld b, a;player number in b
-  ld c, PITCHER
+  call GetMapEncounter;age in b, player num in c
+  ld d, PITCHER
   ld hl, OpponentLineupPlayer1
 .fillLineupWithPlayerLoop
-    push bc;player num, position
-    ld a, b;player num
-    ld b, 23;age
+    push bc;age/player num
+    push de;position in d
+    ld a, c;player num in a
+    ld c, d;position in c
     ld d, BAT_SWITCH | THROW_RIGHT;handedness
     push hl;lineup address
     call CreatePlayer;a = num, b = age, c = pos, d = handedness, hl = address to write player, all registers restored
@@ -549,10 +542,11 @@ CheckRandomEncounter:;TODO get available players and age range from grass in exp
     ld b, 0
     ld c, OpponentLineupPlayer2 - OpponentLineupPlayer1
     add hl, bc
-    pop bc;player num, position
-    inc c;next position
+    pop de;position in d
+    pop bc;age/player num
+    inc d;next position
     ld a, 10
-    cp a, c
+    cp a, d
     jr nz, .fillLineupWithPlayerLoop
   ld a, 1
   and 1

@@ -1,6 +1,6 @@
 Priority
 
-- random encounters
+- include chance and handedness in encounter data
 - running out of room in ROM0, move stuff to other banks
   - less than 1Kb left
   - move colors.asm out of ROM0

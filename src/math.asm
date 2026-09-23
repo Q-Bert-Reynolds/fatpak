@@ -1,5 +1,6 @@
 ; math.asm by Nolan Baker
 ; a math library for GameBoy
+;        23 Sep 2026 : separate loops divide8/16 and divide24/32
 ;        11 Sep 2022 : divide and divide24 fall through to divide32 now -NB
 ;        10 Sep 2022 : divide a 32-bit number by an 8-bit number -NB
 ;        29 Nov 2020 : adds signed multiply and signed sin/cos routines -NB

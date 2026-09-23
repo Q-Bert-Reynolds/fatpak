@@ -22,6 +22,7 @@ INCLUDE "maps/map_stamps.gbstamp";TODO: move this out of ROM0
 ; PickUpMapItem                item index in a
 ; PlayMapTeam                  team index in [map_collision_data]
 ; RunMapScript                 script index in [map_collision_data]
+; GetMapEncounter              returns age in b, player num in c
 ; ClearMapSprites              removes map sprites from screen and buffer
 ; CopyMapSpritesToOAMBuffer    iterates through map sprites, copying values to oam_buffer
 
@@ -236,21 +237,35 @@ GetMapAddress: ;address index in [map_collision_data], switches to bank of addre
   SET_BANK
   ret
 
-GetMapEncounter::;returns age in b, player id in c
+GetMapEncounter::;returns age in b, player num in c
   ld a, [loaded_bank]
   push af;current bank
 
-  call GetMapArea
-  ld a, [hli];num encounters
-  ld b, a;num encounters
+  call GetMapArea;switches to map bank, returns area address in hl
+  ld a, [hli];num encounters in a, encounter list address in hl
+  ld c, a;num encounters
+  push hl;encounter list address
+    
   ld a, [rand_lo]
-
+  ld h, a
+  ld a, [rand_hi]
+  ld l, a
+  call math_Divide16;a (encounter id) = random % c
+  add a, a;there will never be 128 possible encounters in an area
+  ld b, 0
+  ld c, a
+  pop hl
+  add hl, bc;encounter address
+  ld a, [hli]
+  ld b, a;age
+  ld a, [hli]
+  ld c, a;player num
   
   pop af;previous bank
   SET_BANK
   ret
 
-GetMapArea:: ;sets bank to current map, returns address of current chunk's area in hl
+GetMapArea:: ;sets bank to current map, returns current chunk's area in hl
   call GetCurrentMap
   SET_BANK
   push hl;map address
@@ -263,12 +278,24 @@ GetMapArea:: ;sets bank to current map, returns address of current chunk's area 
   pop hl;map address
   push af;area index
   ld bc, MAP_DATA_AREAS
-  add hl, bc;;areas jump table
+  add hl, bc;areas jump table address
+  ld a, [hli];lower byte of table address
+  ld c, a
+  ld a, [hli];upper byte of table address
+  ld h, a
+  ld l, c;areas jump table
+
   pop af;area index
   ld b, 0
   ld c, a;area index
   add hl, bc
   add hl, bc;area address
+  ld a, [hli];lower byte of area address
+  ld c, a
+  ld a, [hli];upper byte of area address
+  ld h, a
+  ld l, c;area in hl
+
   ret
 
 ClearMapSprites::
