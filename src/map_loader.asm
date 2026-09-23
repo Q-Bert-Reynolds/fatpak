@@ -115,7 +115,7 @@ EnterMapDoor::;a = door index
   SET_BANK
   ret
 
-CheckMapItemFlags:: ;item index in [map_collision_data], returns z if flag not set
+CheckMapItemFlags:: ;item index in b, returns z if flag not set
   ld a, [loaded_bank]
   push af;current bank
   call GetMapItem
@@ -130,7 +130,7 @@ CheckMapItemFlags:: ;item index in [map_collision_data], returns z if flag not s
   and a, e;check bit
   ret
 
-PickUpMapItem:: ;item index in [map_collision_data]
+PickUpMapItem:: ;item index in b
   ld a, [loaded_bank]
   push af;current bank
 
@@ -148,19 +148,20 @@ PickUpMapItem:: ;item index in [map_collision_data]
   SET_BANK
   ret
 
-GetMapItem:: ;item index in [map_collision_data], returns item id/count in bc, flag index/bits in de
+GetMapItem:: ;item index in b, returns item id/count in bc, flag index/bits in de
   call GetCurrentMap
   SET_BANK
 
+  push bc;item index in b
   ld bc, MAP_DATA_ITEMS
   add hl, bc;[hl] = lower byte of items address
   ld a, [hli]
   ld c, a
   ld a, [hl]
   ld b, a
+  pop af;item index in a
   push bc;items address
   
-  ld a, [map_collision_data]
   ld h, 0
   ld l, a
   ld de, 3;item id, flag index, flag bit
@@ -1504,7 +1505,7 @@ DrawMapChunk:; hl = chunk address, de=xy, bc=wh
     ld de, 5
     add hl, de
     ld a, [hl]
-    ld [map_collision_data], a
+    ld b, a;item index
     call CheckMapItemFlags
     pop hl; current address
     jp z, .testXY

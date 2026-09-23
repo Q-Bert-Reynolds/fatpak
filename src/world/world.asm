@@ -368,6 +368,8 @@ CheckPlayerCollision:;returns z if no collision
   ret z
   cp a, MAP_COLLISION_DOOR
   ret z
+  cp a, MAP_COLLISION_ITEM
+  ret z
   cp a, MAP_COLLISION_SOLID
   jr z, .stay
   cp a, MAP_COLLISION_TEXT
@@ -375,8 +377,6 @@ CheckPlayerCollision:;returns z if no collision
   cp a, MAP_COLLISION_SCRIPT
   jr z, .stay
   cp a, MAP_COLLISION_TEAM
-  jr z, .stay
-  cp a, MAP_COLLISION_ITEM
   jr z, .stay
 .checkWaterMove
   cp a, MAP_COLLISION_WATER
@@ -444,6 +444,7 @@ CheckActions:
   call CopyMapSpritesToOAMBuffer
 .checkCollisionType
   ld a, [map_collision_type]
+  ld b, a;item index
   cp a, MAP_COLLISION_ITEM
   jp z, PickUpMapItem
   cp a, MAP_COLLISION_TEAM

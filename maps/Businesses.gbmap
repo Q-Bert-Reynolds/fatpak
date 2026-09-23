@@ -1,14 +1,14 @@
-MapBusinesses:: ;295 bytes total
+MapBusinesses:: ;306 bytes total
   DB MAP_BUSINESSES
   DW MapBusinessesPalettes ;64 bytes
   DW MapBusinessesText ;0 bytes
   DW MapBusinessesDoors ;5 bytes
-  DW MapBusinessesChunks ;216 bytes
+  DW MapBusinessesChunks ;210 bytes
   DW MapBusinessesAddresses ;6 bytes
   DW MapBusinessesItems ;0 bytes
   DW MapBusinessesAreas ;0 bytes
-  DB BANK(_OverworldTiles)
-  DW _OverworldTiles
+  DB BANK(_BusinessesTiles)
+  DW _BusinessesTiles
   DB BANK(_WorldSpritesTiles)
   DW _WorldSpritesTiles
 
@@ -60,8 +60,8 @@ MapBusinessesDoors: ;5 bytes
 .doorExit
   DB MAP_OVERWORLD
   DB MAP_OVERWORLD_CHUNK_VETERANCITYCLINICANDSHOP
-  DB 2;x=12
-  DB 8;y=18
+  DB 2;x=10
+  DB 8;y=16
   DB 128;direction
 
 DEF MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC EQU 0
@@ -71,8 +71,8 @@ MapBusinessesChunks: ;4 bytes
   DW MapBusinessesChunkVeteranCityClinic
   DW MapBusinessesChunkVeteranCityClinic1
 
-;Map Chunks, 212 bytes
-MapBusinessesChunkVeteranCityClinic:
+;Map Chunks, 206 bytes
+MapBusinessesChunkVeteranCityClinic: ;98 bytes
 .tile:    DB 0
 .palette: DB 1
 .area:    DB 0
@@ -81,15 +81,9 @@ MapBusinessesChunkVeteranCityClinic:
 .south:   DB MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC
 .west:    DB MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Border3
-  DB 17;x1
-  DB 24;y1
-  DB 0;tile
-  DB 0;palette
-  DB 20;x2
-  DB 25;y2
+MapBusinessesChunkVeteranCityClinicBackground: ;90 bytes
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Border2
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Border2, 7 bytes
   DB 24;x1
   DB 24;y1
   DB 0;tile
@@ -97,7 +91,15 @@ MapBusinessesChunkVeteranCityClinic:
   DB 32;x2
   DB 25;y2
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Border
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Border3, 7 bytes
+  DB 17;x1
+  DB 24;y1
+  DB 0;tile
+  DB 0;palette
+  DB 20;x2
+  DB 25;y2
+
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Border, 7 bytes
   DB 17;x1
   DB 10;y1
   DB 0;tile
@@ -105,7 +107,7 @@ MapBusinessesChunkVeteranCityClinic:
   DB 18;x2
   DB 24;y2
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_DOOR ;Exit
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_DOOR ;Exit, 8 bytes
   DB 20;x1
   DB 24;y1
   DB 130;tile
@@ -114,7 +116,7 @@ MapBusinessesChunkVeteranCityClinic:
   DB 25;y2
   DB 0;door
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor, 7 bytes
   DB 18;x1
   DB 10;y1
   DB 130;tile
@@ -122,21 +124,21 @@ MapBusinessesChunkVeteranCityClinic:
   DB 32;x2
   DB 24;y2
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (4)
-  DB 18;x1
-  DB 9;y1
-  DB 148;tile
-  DB 1;palette
-  DB 24;x2
-  DB 10;y2
-
-  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (6)
+  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (6), 5 bytes
   DB 21;x1
   DB 9;y1
   DB 151;tile
   DB 1;palette
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (1)
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (4), 7 bytes
+  DB 18;x1
+  DB 9;y1
+  DB 148;tile
+  DB 1;palette
+  DB 24;x2
+  DB 10;y2
+
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (1), 7 bytes
   DB 26;x1
   DB 9;y1
   DB 148;tile
@@ -144,21 +146,13 @@ MapBusinessesChunkVeteranCityClinic:
   DB 32;x2
   DB 10;y2
 
-  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (5)
+  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (5), 5 bytes
   DB 27;x1
   DB 9;y1
   DB 151;tile
   DB 1;palette
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (2)
-  DB 26;x1
-  DB 8;y1
-  DB 132;tile
-  DB 1;palette
-  DB 32;x2
-  DB 9;y2
-
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (3)
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (3), 7 bytes
   DB 18;x1
   DB 8;y1
   DB 132;tile
@@ -166,28 +160,53 @@ MapBusinessesChunkVeteranCityClinic:
   DB 24;x2
   DB 9;y2
 
-  DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;Couch
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (2), 7 bytes
+  DB 26;x1
+  DB 8;y1
+  DB 132;tile
+  DB 1;palette
+  DB 32;x2
+  DB 9;y2
+
+  DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;Couch, 5 bytes
   DB 18;x
   DB 16;y
   DW GBStampCouchVert
 
-  DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;Couch2
+  DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;Couch2, 5 bytes
   DB 27;x
   DB 14;y
   DW GBStampCouchHoriz
 
-  DB MAP_OBJ_STAMP | MAP_COLLISION_SOLID ;PublicComputer (3)
+  DB MAP_OBJ_STAMP | MAP_COLLISION_SOLID ;PublicComputer (3), 5 bytes
   DB 24;x
   DB 8;y
   DW GBStampBusinessDoor
 
-  DB 0;END VeteranCityClinic background objects, 100 bytes
+  DB 0;terminator
 
-MapBusinessesSpritesVeteranCityClinic:
+MapBusinessesChunkVeteranCityClinicBackgroundEnd:
+DEF MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_BG_SIZE EQU MapBusinessesChunkVeteranCityClinicBackgroundEnd - MapBusinessesChunkVeteranCityClinicBackground
+IF MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_BG_SIZE != 90
+  WARN "MapBusinessesChunkVeteranCityClinicBackground is {d:MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_BG_SIZE} bytes, expected 90 bytes"
+ENDC
 
-  DB 0;END VeteranCityClinic sprite objects, 1 bytes
+MapBusinessesChunkVeteranCityClinicSprites: ;1 bytes
+  DB 0;empty
+MapBusinessesChunkVeteranCityClinicSpritesEnd:
+DEF MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_SPRITES_SIZE EQU MapBusinessesChunkVeteranCityClinicSpritesEnd - MapBusinessesChunkVeteranCityClinicSprites
+IF MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_SPRITES_SIZE != 1
+  WARN "MapBusinessesChunkVeteranCityClinicSprites is {d:MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_SPRITES_SIZE} bytes, expected 1 bytes"
+ENDC
 
-MapBusinessesChunkVeteranCityClinic1:
+MapBusinessesChunkVeteranCityClinicEnd:
+
+DEF MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_SIZE EQU MapBusinessesChunkVeteranCityClinicEnd - MapBusinessesChunkVeteranCityClinic
+IF MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_SIZE != 98
+  WARN "MapBusinessesChunkVeteranCityClinic is {d:MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_SIZE} bytes, expected 98 bytes"
+ENDC
+
+MapBusinessesChunkVeteranCityClinic1: ;108 bytes
 .tile:    DB 0
 .palette: DB 1
 .area:    DB 0
@@ -196,7 +215,9 @@ MapBusinessesChunkVeteranCityClinic1:
 .south:   DB MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_1
 .west:    DB MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (5)
+MapBusinessesChunkVeteranCityClinic1Background: ;100 bytes
+
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (5), 7 bytes
   DB 0;x1
   DB 24;y1
   DB 0;tile
@@ -204,7 +225,7 @@ MapBusinessesChunkVeteranCityClinic1:
   DB 16;x2
   DB 25;y2
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (5)
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (5), 7 bytes
   DB 16;x1
   DB 10;y1
   DB 0;tile
@@ -212,7 +233,7 @@ MapBusinessesChunkVeteranCityClinic1:
   DB 17;x2
   DB 24;y2
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor (1)
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor (1), 7 bytes
   DB 0;x1
   DB 10;y1
   DB 130;tile
@@ -220,19 +241,19 @@ MapBusinessesChunkVeteranCityClinic1:
   DB 16;x2
   DB 24;y2
 
-  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (7)
-  DB 0;x1
-  DB 9;y1
-  DB 151;tile
-  DB 1;palette
-
-  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (9)
+  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (9), 5 bytes
   DB 11;x1
   DB 9;y1
   DB 151;tile
   DB 1;palette
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (6)
+  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (7), 5 bytes
+  DB 0;x1
+  DB 9;y1
+  DB 151;tile
+  DB 1;palette
+
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (6), 7 bytes
   DB 10;x1
   DB 9;y1
   DB 148;tile
@@ -240,13 +261,13 @@ MapBusinessesChunkVeteranCityClinic1:
   DB 16;x2
   DB 10;y2
 
-  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (8)
+  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (8), 5 bytes
   DB 5;x1
   DB 9;y1
   DB 151;tile
   DB 1;palette
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (3)
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (3), 7 bytes
   DB 0;x1
   DB 9;y1
   DB 148;tile
@@ -254,15 +275,7 @@ MapBusinessesChunkVeteranCityClinic1:
   DB 8;x2
   DB 10;y2
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (4)
-  DB 0;x1
-  DB 8;y1
-  DB 132;tile
-  DB 1;palette
-  DB 8;x2
-  DB 9;y2
-
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (5)
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (5), 7 bytes
   DB 10;x1
   DB 8;y1
   DB 132;tile
@@ -270,14 +283,22 @@ MapBusinessesChunkVeteranCityClinic1:
   DB 16;x2
   DB 9;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Couch2 (2)
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (4), 7 bytes
+  DB 0;x1
+  DB 8;y1
+  DB 132;tile
+  DB 1;palette
+  DB 8;x2
+  DB 9;y2
+
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Couch2 (2), 7 bytes
   DB 8;x1
   DB 22;y1
   DW GBStampComputerStand
   DB 16;x2
   DB 23;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SCRIPT ;PublicComputer
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SCRIPT ;PublicComputer, 8 bytes
   DB 8;x1
   DB 20;y1
   DW GBStampPublicComputer
@@ -285,14 +306,14 @@ MapBusinessesChunkVeteranCityClinic1:
   DB 22;y2
   DB 0;UsePublicComputer
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Couch2 (1)
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Couch2 (1), 7 bytes
   DB 8;x1
   DB 18;y1
   DW GBStampComputerStand
   DB 16;x2
   DB 19;y2
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SCRIPT ;PublicComputer (1)
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_SCRIPT ;PublicComputer (1), 8 bytes
   DB 8;x1
   DB 16;y1
   DW GBStampPublicComputer
@@ -300,16 +321,33 @@ MapBusinessesChunkVeteranCityClinic1:
   DB 18;y2
   DB 1;UsePublicComputer
 
-  DB MAP_OBJ_STAMP | MAP_COLLISION_SOLID ;PublicComputer (2)
+  DB MAP_OBJ_STAMP | MAP_COLLISION_SOLID ;PublicComputer (2), 5 bytes
   DB 8;x
   DB 8;y
   DW GBStampBusinessDoor
 
-  DB 0;END VeteranCityClinic1 background objects, 110 bytes
+  DB 0;terminator
 
-MapBusinessesSpritesVeteranCityClinic1:
+MapBusinessesChunkVeteranCityClinic1BackgroundEnd:
+DEF MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_1_BG_SIZE EQU MapBusinessesChunkVeteranCityClinic1BackgroundEnd - MapBusinessesChunkVeteranCityClinic1Background
+IF MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_1_BG_SIZE != 100
+  WARN "MapBusinessesChunkVeteranCityClinic1Background is {d:MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_1_BG_SIZE} bytes, expected 100 bytes"
+ENDC
 
-  DB 0;END VeteranCityClinic1 sprite objects, 1 bytes
+MapBusinessesChunkVeteranCityClinic1Sprites: ;1 bytes
+  DB 0;empty
+MapBusinessesChunkVeteranCityClinic1SpritesEnd:
+DEF MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_1_SPRITES_SIZE EQU MapBusinessesChunkVeteranCityClinic1SpritesEnd - MapBusinessesChunkVeteranCityClinic1Sprites
+IF MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_1_SPRITES_SIZE != 1
+  WARN "MapBusinessesChunkVeteranCityClinic1Sprites is {d:MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_1_SPRITES_SIZE} bytes, expected 1 bytes"
+ENDC
+
+MapBusinessesChunkVeteranCityClinic1End:
+
+DEF MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_1_SIZE EQU MapBusinessesChunkVeteranCityClinic1End - MapBusinessesChunkVeteranCityClinic1
+IF MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_1_SIZE != 108
+  WARN "MapBusinessesChunkVeteranCityClinic1 is {d:MAP_BUSINESSES_CHUNK_VETERANCITYCLINIC_1_SIZE} bytes, expected 108 bytes"
+ENDC
 
 MapBusinessesAddresses: ;6 bytes
   DB BANK(UsePublicComputer)
@@ -325,8 +363,8 @@ MapBusinessesAreas: ;0 bytes
 ;Areas, 0 bytes
 
 MapBusinessesEnd:
-
 DEF MAP_BUSINESSES_SIZE EQU MapBusinessesEnd - MapBusinesses
-IF MAP_BUSINESSES_SIZE != 295
-  WARN "MapBusinesses is {d:MAP_BUSINESSES_SIZE} bytes, expected 295 bytes"
+IF MAP_BUSINESSES_SIZE != 306
+  WARN "MapBusinesses is {d:MAP_BUSINESSES_SIZE} bytes, expected 306 bytes"
 ENDC
+
