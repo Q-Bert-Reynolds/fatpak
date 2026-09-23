@@ -9,7 +9,7 @@ SGBPlayBallIntroAttrBlk:
   ATTR_BLK_PACKET %001, 0,0,0, 0,12, 20,6 ;bottom UI
   ATTR_BLK_PACKET %001, 1,1,1, 0,0, 20,12 ;upper Dark
 
-PlayBallIntro: ;[_a] = player num or coach id
+PlayBallIntro:
   ld hl, SGBPlayBallIntroAttrBlk
   call sgb_PacketTransfer
 
@@ -52,7 +52,7 @@ PlayBallIntro: ;[_a] = player num or coach id
   jr z, .loadOpposingCoach
 
 .loadUnsignedPlayer
-  ld a, [_a];player num
+  ld a, [OpponentLineup];player num
   ld de, _UI_FONT_TILE_COUNT+64
   call LoadPlayerBkgData
   jr .showCalvinHatSprites
@@ -120,7 +120,7 @@ PlayBallIntro: ;[_a] = player num or coach id
   jr z, .showOpposingCoach
 
 .showUnsignedPlayer
-  ld a, [_a];player num
+  ld a, [OpponentLineup];player num
   push af;player num
   call GetPlayerImgColumns
   ld c, a
@@ -201,7 +201,7 @@ PlayBallIntro: ;[_a] = player num or coach id
   jr z, .showTeamText
 
 .showUnsignedText
-  ld a, [_a];player num
+  ld a, [OpponentLineup];player num
   push af;num
 
   call LoadPlayerBaseData
