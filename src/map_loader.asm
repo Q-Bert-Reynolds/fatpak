@@ -37,7 +37,7 @@ INCLUDE "maps/map_stamps.gbstamp";TODO: move this out of ROM0
 ; GetCurrentMapChunkNeighbor   a = direction, returns chunk in hl, index in a
 ; GetMapChunkNeighbor          a = direction, hl = map chunk, returns chunk in hl, index in a
 ; GetMapChunk                  a = jump table index, returns chunk in hl, index in a
-; GetMapChunkForOffset         de = xy pixel offset, returns chunk in hl, tile xy in de
+; GetMapChunkForOffset         bc = xy pixel offset, returns chunk in hl, tile xy in de
 ; GetMapAddress                address index in [map_collision_data], switches to bank of address and returns it in hl
 ; GetMapArea                   sets bank to current map, returns address of current chunk's area in hl
 ; GetMapItem                   item index in a, returns item id/count in bc, flag index/bits in de
@@ -150,10 +150,10 @@ PickUpMapItem:: ;item index in b
   ret
 
 GetMapItem:: ;item index in b, returns item id/count in bc, flag index/bits in de
+  push bc;item index in b
   call GetCurrentMap
   SET_BANK
 
-  push bc;item index in b
   ld bc, MAP_DATA_ITEMS
   add hl, bc;[hl] = lower byte of items address
   ld a, [hli]
@@ -704,8 +704,10 @@ AnimateAvatar::;a = frame(<52), hl = animation, b = OAM index
 GetScreenCollision::;bc = xy pixel offset (-127,127), returns z if no collision, obj/collision type in a, extra data in b, map sprite index or -1 in c
   ld a, [loaded_bank]
   push af;current bank
+  push bc;xy offset
   call GetCurrentMap
   SET_BANK
+  pop bc;xy offset
   call GetMapChunkForOffset
   call GetMapChunkCollision
   pop de;previous bank
@@ -2113,8 +2115,6 @@ SetCurrentMap::;a = map index, returns address in hl, bank in a
   ;fall through
 
 GetCurrentMap::;returns address in hl, bank in a
-  push bc
-  push de
   ld a, [map]
   ld b, 0
   ld c, a
@@ -2130,8 +2130,6 @@ GetCurrentMap::;returns address in hl, bank in a
   ld a, [hl]
   ld h, d
   ld l, e
-  pop de
-  pop bc
   ret
 
 GetCurrentMapChunk:;returns chunk address in hl, index in a
@@ -2159,6 +2157,7 @@ GetMapChunkNeighbor:;a = direction, hl = map chunk, returns chunk in hl, index i
   ret
 
 GetMapChunk:;a = jump table index, returns chunk in hl, index in a
+  push de
   push bc
   push af;index
   call GetCurrentMap;should already be in correct bank
@@ -2182,6 +2181,7 @@ GetMapChunk:;a = jump table index, returns chunk in hl, index in a
   ld l, b
   pop af;index
   pop bc
+  pop de
   ret
 
 GetMapChunkForOffset::;bc = xy pixel offset (-127,127), returns chunk in hl, tile xy in de

@@ -366,7 +366,8 @@ CheckPlayerCollision:;returns z if no collision
   cp a, MAP_COLLISION_DOOR
   ret z
   cp a, MAP_COLLISION_ITEM
-  ret z
+  ; ret z
+  jr z, .stay
   cp a, MAP_COLLISION_SOLID
   jr z, .stay
   cp a, MAP_COLLISION_TEXT
@@ -440,8 +441,9 @@ CheckActions:
   ld [hl], a
   call CopyMapSpritesToOAMBuffer
 .checkCollisionType
+  ld a, [map_collision_data]
+  ld b, a
   ld a, [map_collision_type]
-  ld b, a;item index
   cp a, MAP_COLLISION_ITEM
   jp z, PickUpMapItem
   cp a, MAP_COLLISION_TEAM
@@ -451,7 +453,7 @@ CheckActions:
   cp a, MAP_COLLISION_TEXT
   ret nz
 .displayText
-  ld a, [map_collision_data]
+  ld a, b
   call GetMapText
   call RevealTextAndWait
   HIDE_WIN
