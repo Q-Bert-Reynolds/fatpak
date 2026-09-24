@@ -2,6 +2,9 @@
 ; world_strings.it.asm
 ;
 
+;pause
+StartMenuText::                           DB "ROLéDEX\nSQUADRA\nSTRUMENTI\n%s\nSALVA\nOPZIONI\nESCI", 0
+
 ;computer
 TurnedOnComputerText::                    DB "%s ha acceso\nil PC.", 0
 AccessedSomeonesPCText::                  DB "Accesso al PC\ndi qualcuno.", 0

@@ -1,4 +1,5 @@
 Label,Comment,English-en,Spanish-es,French-fr,Italian-it,Portuguese-pt,German-de,Japanese-ja
+StartMenuText,pause,ROLéDEX\nLINEUP\nITEM\n%s\nSAVE\nOPTIONS\nEXIT,ROLéDEX\nEQUIPO\nOBJETOS\n%s\nGUARDAR\nOPCIONES\nSALIR,ROLéDEX\néQUIPE\nOBJET\n%s\nSAUVER\nOPTIONS\nRETOUR,ROLéDEX\nSQUADRA\nSTRUMENTI\n%s\nSALVA\nOPZIONI\nESCI,ROLéDEX\nEQUIPE\nITEM\n%s\nSALVAR\nOPÇÕES\nSAIR,ROLéDEX\nTEAM\nITEM\n%s\nSPEICHERN\nOPTIONEN\nBEENDEN,ずかん\nてもち\nどうぐ\n%s\nレポート\nせってい\nやめる
 TurnedOnComputerText,computer,%s turned on\nthe PC.,%s encendió\nel PC.,%s a allumé\nle PC.,%s ha acceso\nil PC.,%s ligou\no PC.,%s hat den\nPC eingeschaltet.,%sは パソコンの\nスイッチを いれた！
 AccessedSomeonesPCText,,Accessed someone's\nPC.,Accedió al PC\nde alguien.,PC de quelqu’un\naccès effectué.,Accesso al PC\ndi qualcuno.,Acessou o PC\nde alguém.,Zugriff auf\nJEMANDS PC.,だれかの パソコンに\nアクセスした！
 AccessedBillsPCText,,Accessed BILL's\nPC.,Accedió al PC\nde BILL.,Accès au PC\nde BILL.,Accesso al PC\ndi BILL.,Acessou o PC\ndo BILL.,Zugriff auf BILLs\nPC.,マサキの パソコンに\nアクセスした！

@@ -2,6 +2,9 @@
 ; world_strings.fr.asm
 ;
 
+;pause
+StartMenuText::                           DB "ROLéDEX\néQUIPE\nOBJET\n%s\nSAUVER\nOPTIONS\nRETOUR", 0
+
 ;computer
 TurnedOnComputerText::                    DB "%s a allumé\nle PC.", 0
 AccessedSomeonesPCText::                  DB "PC de quelqu’un\naccès effectué.", 0

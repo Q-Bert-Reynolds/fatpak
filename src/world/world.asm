@@ -213,9 +213,6 @@ EnterDoor::
   TRAMPOLINE FadeIn
   ret
 
-StartMenuText:
-  DB "ROLéDEX\nLINEUP\nITEM\n%s\nSAVE\nOPTIONS\nEXIT", 0
-
 ShowPauseMenu::
   call CopyBkgToWin
 

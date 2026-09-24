@@ -2,6 +2,9 @@
 ; world_strings.pt.asm
 ;
 
+;pause
+StartMenuText::                           DB "ROLéDEX\nEQUIPE\nITEM\n%s\nSALVAR\nOPÇÕES\nSAIR", 0
+
 ;computer
 TurnedOnComputerText::                    DB "%s ligou\no PC.", 0
 AccessedSomeonesPCText::                  DB "Acessou o PC\nde alguém.", 0

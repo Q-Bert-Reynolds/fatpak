@@ -335,6 +335,7 @@ DisplayText:: ;a = draw flags, hl = text
 
 DrawListMenuArrow:: ;a = draw flags, de = xy, _j = current index, _c = count
   push af;draw flags
+  push de;xy
   and a, DRAW_FLAGS_NO_SPACE
   ld a, [_c]
   jr nz, .skip
@@ -347,6 +348,7 @@ DrawListMenuArrow:: ;a = draw flags, de = xy, _j = current index, _c = count
   ld a, ' '
   call mem_Set
 
+  pop de;xy
   pop af;draw flags
   push af;draw flags
   and a, DRAW_FLAGS_NO_SPACE

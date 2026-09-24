@@ -2,6 +2,9 @@
 ; world_strings.en.asm
 ;
 
+;pause
+StartMenuText::                           DB "ROLéDEX\nLINEUP\nITEM\n%s\nSAVE\nOPTIONS\nEXIT", 0
+
 ;computer
 TurnedOnComputerText::                    DB "%s turned on\nthe PC.", 0
 AccessedSomeonesPCText::                  DB "Accessed someone's\nPC.", 0

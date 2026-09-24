@@ -86,10 +86,31 @@ math_Multiply:: ; hl = de * a where 0 <= a <= 255
   ld hl, 0
   and a
   ret z
+  cp a, 16
+  jr nc, math_ShiftMultiply
 .loop
     add hl, de
     dec a
     jr nz, .loop
+  ret
+
+math_ShiftMultiply: ; hl = de * a where 0 <= a <= 255
+  ld hl, 0
+  and a
+  ret z
+.shiftAdd
+  add a, a
+  jr nc, .skipMSB
+  add hl, de
+.skipMSB:
+
+REPT 7
+  add hl, hl
+  add a, a
+  jr nc, .skip\@
+  add hl, de
+.skip\@:
+ENDR
   ret
 
 math_SignedMultiply:: ; hl = de * a where -127 <= a <= 127, -32385 <= de <= 32385

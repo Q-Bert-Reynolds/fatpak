@@ -2,6 +2,9 @@
 ; world_strings.de.asm
 ;
 
+;pause
+StartMenuText::                           DB "ROLéDEX\nTEAM\nITEM\n%s\nSPEICHERN\nOPTIONEN\nBEENDEN", 0
+
 ;computer
 TurnedOnComputerText::                    DB "%s hat den\nPC eingeschaltet.", 0
 AccessedSomeonesPCText::                  DB "Zugriff auf\nJEMANDS PC.", 0

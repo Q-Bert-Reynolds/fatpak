@@ -18,7 +18,7 @@
 ;   mem_Copy
 ;     Copy a memory region.
 ;     Entry: hl = src address, de = dst address, bc = length
-;   mem_CopyMono
+;   mem_CopyMono (unused, commented out for space)
 ;     Copy a monochrome font from ROM to RAM
 ;     Entry: hl = src address, de = dst address, bc = src length
 ;   mem_SetVRAM
@@ -35,6 +35,10 @@
 IF !DEF(MEMORY1_ASM)
 DEF MEMORY1_ASM EQU 1
 
+DEF MEM_UNROLL_STEPS EQU 3
+DEF MEM_UNROLL_POW EQU 1 << MEM_UNROLL_STEPS
+DEF MEM_UNROLL_MASK EQU MEM_UNROLL_POW-1
+
 MACRO rev_Check_memory1_asm
   IF \1 > 1.2
     WARN "Version \1 or later of 'memory1.asm' is required."
@@ -46,9 +50,82 @@ INCLUDE "src/hardware.inc"
 
 ; Macro that pauses until VRAM available.
 MACRO LCD_WAIT_VRAM
-  ldh  a,[rSTAT]  ; <---+
-  and  STATF_BUSY ;     |
-  jr   nz,@-4     ; ----+
+.loop\@
+  ldh a, [rSTAT]
+  and STATF_BUSY
+  jr nz, .loop\@
+ENDM
+
+MACRO MEM_SET
+  ld [hli],a
+ENDM
+
+MACRO MEM_SET_VRAM
+  di
+  push af
+  LCD_WAIT_VRAM
+  pop  af
+  MEM_SET
+  ei
+ENDM
+
+MACRO MEM_COPY
+  ld a, [hli]
+  ld [de], a
+  inc de
+ENDM
+
+MACRO MEM_COPY_VRAM
+  di
+  LCD_WAIT_VRAM
+  MEM_COPY
+  ei
+ENDM
+
+MACRO MEM_LOOP; \1 = set/copy macro
+  inc b
+  inc c
+  jr .skip\@
+.loop\@
+  \1
+  .skip\@
+    dec c
+    jr nz, .loop\@
+    dec b
+    jr nz, .loop\@
+  ret
+ENDM
+
+MACRO MEM_UNROLL; \1 = set/copy macro
+  ld a, b
+  or a, c
+  ret z;no bytes to copy
+  ld a, c
+  and a, MEM_UNROLL_MASK
+  jr z, .chunks\@
+.remainder\@
+  \1;set/copy macro
+  dec bc
+  ld a, c
+  and a, MEM_UNROLL_MASK
+  jr nz, .remainder\@
+.chunks\@
+  ld a, b
+  or a, c
+  ret z
+.loop\@
+  REPT MEM_UNROLL_POW
+    \1;set/copy macro
+    dec bc
+  ENDR
+    ld a, b
+    or a, c
+  IF MEM_UNROLL_STEPS > 3
+    jp nz, .loop\@
+  ELSE
+    jr nz, .loop\@
+  ENDC
+  ret
 ENDM
 
 SECTION "Memory1 Code", ROM0
@@ -63,17 +140,47 @@ SECTION "Memory1 Code", ROM0
 ;
 ;***************************************************************************
 mem_Set::
-  inc  b
-  inc  c
-  jr   .skip
-.loop
-  ld   [hl+],a
-.skip
-  dec  c
-  jr   nz, .loop
-  dec  b
-  jr   nz, .loop
+IF MEM_UNROLL_STEPS == 0;use basic mem_Set
+  MEM_LOOP MEM_SET
+ELSE;use unrolled mem_Set if MEM_UNROLL_STEPS > 0
+  ld d, a;value to set
+  ld a, c
+  and a, MEM_UNROLL_MASK
+  jr z, .calc
+  
+.remainder:
+  ld a, d
+  ld [hli], a
+  dec c
+  ld a, c
+  and MEM_UNROLL_MASK
+  jr nz, .remainder
+
+.calc:
+REPT MEM_UNROLL_STEPS
+  srl b
+  rr c
+ENDR
+  ld a, b
+  or a, c
+  ret z
+  
+  ld a, d;value to set
+  inc b
+  inc c
+  jr .skip
+.loop:
+REPT MEM_UNROLL_POW
+    ld [hli], a
+ENDR
+  .skip:
+    dec c
+    jr nz, .loop
+    dec b
+    jr nz, .loop
   ret
+
+ENDC
 
 ;***************************************************************************
 ;
@@ -86,19 +193,11 @@ mem_Set::
 ;
 ;***************************************************************************
 mem_Copy::
-  inc  b
-  inc  c
-  jr   .skip
-.loop 
-  ld   a,[hl+]
-  ld   [de],a
-  inc  de
-.skip 
-  dec  c
-  jr   nz, .loop
-  dec  b
-  jr   nz, .loop
-  ret
+IF MEM_UNROLL_STEPS == 0
+  MEM_LOOP MEM_COPY  
+ELSE
+  MEM_UNROLL MEM_COPY
+ENDC
 
 ;***************************************************************************
 ;
@@ -110,22 +209,22 @@ mem_Copy::
 ;   bc - bytecount of Source
 ;
 ;***************************************************************************
-mem_CopyMono::
-  inc  b
-  inc  c
-  jr   .skip
-.loop  
-  ld   a,[hl+]
-  ld   [de],a
-  inc  de
-  ld   [de],a
-  inc  de
-.skip 
-  dec  c
-  jr   nz, .loop
-  dec  b
-  jr   nz, .loop
-  ret
+; mem_CopyMono::
+;   inc  b
+;   inc  c
+;   jr   .skip
+; .loop  
+;   ld   a,[hl+]
+;   ld   [de],a
+;   inc  de
+;   ld   [de],a
+;   inc  de
+; .skip 
+;   dec  c
+;   jr   nz, .loop
+;   dec  b
+;   jr   nz, .loop
+;   ret
 
 
 ;***************************************************************************
@@ -139,22 +238,7 @@ mem_CopyMono::
 ;
 ;***************************************************************************
 mem_SetVRAM::
-  inc  b
-  inc  c
-  jr   .skip
-.loop
-  push af
-  di
-  LCD_WAIT_VRAM
-  pop  af
-  ld   [hl+],a
-  ei
-.skip
-  dec  c
-  jr   nz,.loop
-  dec  b
-  jr   nz,.loop
-  ret
+  MEM_LOOP MEM_SET_VRAM
 
 ;***************************************************************************
 ;
@@ -167,22 +251,11 @@ mem_SetVRAM::
 ;
 ;***************************************************************************
 mem_CopyVRAM::
-  inc b
-  inc c
-  jr  .skip
-.loop
-  di
-  LCD_WAIT_VRAM
-  ld  a,[hl+]
-  ld  [de],a
-  ei
-  inc de
-.skip
-  dec c
-  jr  nz,.loop
-  dec b
-  jr  nz,.loop
-  ret
+IF MEM_UNROLL_STEPS == 0
+  MEM_LOOP MEM_COPY_VRAM  
+ELSE
+  MEM_UNROLL MEM_COPY_VRAM
+ENDC
 
 ;***************************************************************************
 ;
@@ -200,23 +273,23 @@ mem_CopyToTileData::
   inc c
   jr  .skip
 .loop
-  ld a, $98
-  cp a, d
-  jr nz, .noWrap
-  sub $10
-  ld d, a
-.noWrap
-  di
-  LCD_WAIT_VRAM
-  ld  a,[hl+]
-  ld  [de],a
-  ei
-  inc de
-.skip
-  dec c
-  jr  nz,.loop
-  dec b
-  jr  nz,.loop
+    ld a, $98
+    cp a, d
+    jr nz, .noWrap
+    sub $10
+    ld d, a
+  .noWrap
+    di
+    LCD_WAIT_VRAM
+    ld  a,[hl+]
+    ld  [de],a
+    ei
+    inc de
+  .skip
+    dec c
+    jr  nz,.loop
+    dec b
+    jr  nz,.loop
   ret
 
 ENDC ;MEMORY1_ASM

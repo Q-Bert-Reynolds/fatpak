@@ -15,6 +15,7 @@ Priority
   - move a fielder to a position
   - move fielders to positions based on result
 - using the computer
+  - bedroom PC is not working anymore
   - Bill's PC (will allow roster changes!!!)
   - Doc's PC
   - League PC

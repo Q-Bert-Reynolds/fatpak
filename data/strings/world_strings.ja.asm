@@ -2,6 +2,9 @@
 ; world_strings.ja.asm
 ;
 
+;pause
+StartMenuText::                           DB "ずかん\nてもち\nどうぐ\n%s\nレポート\nせってい\nやめる", 0
+
 ;computer
 TurnedOnComputerText::                    DB "%sは パソコンの\nスイッチを いれた！", 0
 AccessedSomeonesPCText::                  DB "だれかの パソコンに\nアクセスした！", 0
