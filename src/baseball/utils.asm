@@ -1213,7 +1213,7 @@ ShowUserPlayer::
 ShowOpposingPlayer::
   ld a, [game_state]
   and a, GAME_STATE_UNSIGNED_PLAYER
-  jr nz, .setPlayerColors
+  ; jr nz, .setPlayerColors
 .drawPlayerUI
   ld a, 1
   call DrawPlayerUI

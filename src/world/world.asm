@@ -63,6 +63,9 @@ MACRO MOVE_PLAYER;\1 = animation address, \2 = map move routine, \3 = map draw r
     dec a
     jr nz, .loop
   call FixMapScroll
+  ld a, [map_steps]
+  inc a
+  ld [map_steps], a
   call CopyMapSpritesToOAMBuffer
 IF !ISCONST(\3)
   call GetCurrentMap
@@ -79,81 +82,70 @@ MoveLeft: MOVE_PLAYER GBStampAnimationCalvinWalkLeft, MoveMapLeft, 0
 MoveRight: MOVE_PLAYER GBStampAnimationCalvinWalkRight, MoveMapRight, DrawMapRightEdge
 
 Look:;a = button_state
-  push af
+  ld [_a], a
   xor a
-  ld [anim_frame], a
+  ld [map_anim_frame], a
 .checkUp
-  pop af
-  push af
+  ld a, [_a]
   and a, PADF_UP
   jr z, .checkDown
   ld hl, GBStampAnimationCalvinWalkUp
   call AnimatePlayerAvatar
-  jr .exit
+  ret
 .checkDown
-  pop af
-  push af
+  ld a, [_a]
   and a, PADF_DOWN
   jr z, .checkRight
   ld hl, GBStampAnimationCalvinWalkDown
   call AnimatePlayerAvatar
-  jr .exit
+  ret
 .checkRight
-  pop af
-  push af
+  ld a, [_a]
   and a, PADF_RIGHT
   jr z, .checkLeft
   ld hl, GBStampAnimationCalvinWalkRight
   call AnimatePlayerAvatar
-  jr .exit
+  ret
 .checkLeft
-  pop af
-  push af
+  ld a, [_a]
   and a, PADF_LEFT
-  jr z, .exit
+  ret z
   ld b, 1;flip
   ld hl, GBStampAnimationCalvinWalkLeft
   call AnimatePlayerAvatar
-.exit
-  pop af
   ret 
 
 Move:;a = button_state
+  ld [_a], a
 .checkUp
-  push af
   and a, PADF_UP
   jr z, .checkDown
   call MoveUp
-  jr .exit
+  ret
 .checkDown
-  pop af
-  push af
+  ld a, [_a]
   and a, PADF_DOWN
   jr z, .checkRight
   call MoveDown
-  jr .exit
+  ret
 .checkRight
-  pop af
-  push af
+  ld a, [_a]
   and a, PADF_RIGHT
   jr z, .checkLeft
   call MoveRight
-  jr .exit
+  ret
 .checkLeft
-  pop af
-  push af
+  ld a, [_a]
   and a, PADF_LEFT
-  jr z, .exit
+  ret z
   call MoveLeft
-.exit
-  pop af
   ret 
   
 AnimatePlayerAvatar:;hl = animation
-  ld a, [anim_frame]
+  ld a, [map_anim_frame]
   ld b, 0
   call AnimateAvatar
-  ld [anim_frame], a
+  ld [map_anim_frame], a
 
   ;TODO: player palette should be index 0, remove code below 
   ld a, 4
@@ -484,30 +476,17 @@ LoadAvatarSprites:;NOTE: this should be done BEFORE setting GBC map palettes
   ret
 
 CheckRandomEncounter:;TODO get available players and age range from grass in exported object
+  ld a, [map_steps]
+  and a
+  ret z;hasn't made a step yet
+
   call CheckPlayerCollision.center
   ld a, [map_collision_type]
   and a, MAP_COLLISION_GRASS
   ret z;not on the grass
 
-.seedRandom
-  ld a, [rand_hi]
-  ld h, a
-  ld a, [rand_lo]
-  ld l, a
-  ld a, [map_x]
-  ld b, a
-  ld a, [map_y]
-  ld c, a
-  add hl, bc;random + xy
-  ld a, [seconds]
-  ld b, a
-  ld a, [vbl_timer]
-  ld c, a
-  add hl, bc;random + xy + time
-  call gbdk_Seed
-  call gbdk_Random
-
 .checkTryout
+  call gbdk_Random
   ld a, d
   and a, e
   and a, %10000000
@@ -526,26 +505,25 @@ CheckRandomEncounter:;TODO get available players and age range from grass in exp
   ld [home_team], a
 
 .randomizeUnsignedPlayer
-  call GetMapEncounter;age in b, player num in c
-  ld d, PITCHER
+  call GetMapEncounter;age in b, player num in c, props in d
+  ld e, PITCHER
   ld hl, OpponentLineupPlayer1
 .fillLineupWithPlayerLoop
     push bc;age/player num
-    push de;position in d
+    push de;props/position
     ld a, c;player num in a
-    ld c, d;position in c
-    ld d, BAT_SWITCH | THROW_RIGHT;handedness
+    ld c, e;position in c
     push hl;lineup address
-    call CreatePlayer;a = num, b = age, c = pos, d = handedness, hl = address to write player, all registers restored
+    call CreatePlayer;a = num, b = age, c = pos, d = props, hl = address to write player, all registers restored
     pop hl;lineup address
     ld b, 0
     ld c, OpponentLineupPlayer2 - OpponentLineupPlayer1
     add hl, bc
-    pop de;position in d
+    pop de;props/position
     pop bc;age/player num
-    inc d;next position
+    inc e;next position
     ld a, 10
-    cp a, d
+    cp a, e
     jr nz, .fillLineupWithPlayerLoop
   ld a, 1
   and 1
@@ -553,6 +531,7 @@ CheckRandomEncounter:;TODO get available players and age range from grass in exp
 
 Overworld::
   DISPLAY_OFF
+  DISABLE_LCD_INTERRUPT
   SET_DEFAULT_PALETTE
 
   call LoadFontTiles
@@ -569,6 +548,7 @@ Overworld::
   ld [map_scroll_speed], a
   xor a
   ld [list_selection], a
+  ld [map_steps], a
 
   call FixMapScroll
   call DrawMapToScreen

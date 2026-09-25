@@ -237,30 +237,30 @@ GetMapAddress: ;address index in [map_collision_data], switches to bank of addre
   SET_BANK
   ret
 
-GetMapEncounter::;returns age in b, player num in c
+;TODO: handle water vs grass
+GetMapEncounter::;returns age in b, player num in c, props in d
   ld a, [loaded_bank]
   push af;current bank
 
+  call gbdk_Random
   call GetMapArea;switches to map bank, returns area address in hl
   ld a, [hli];num encounters in a, encounter list address in hl
   ld c, a;num encounters
-  push hl;encounter list address
-    
-  ld a, [rand_lo]
-  ld h, a
   ld a, [rand_hi]
-  ld l, a
-  call math_Divide16;a (encounter id) = random % c
-  add a, a;there will never be 128 possible encounters in an area
-  ld b, 0
-  ld c, a
-  pop hl
-  add hl, bc;encounter address
-  ld a, [hli]
-  ld b, a;age
-  ld a, [hli]
-  ld c, a;player num
-  
+  ld e, a
+.loop
+    ld a, [hli];player num
+    and a
+    jr z, .exit
+    ld c, a
+    ld a, [hli];age
+    ld b, a
+    ld a, [hli];props
+    ld d, a
+    ld a, [hli];chance
+    cp a, e
+    jr c, .loop
+.exit 
   pop af;previous bank
   SET_BANK
   ret

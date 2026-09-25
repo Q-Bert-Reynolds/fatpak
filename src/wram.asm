@@ -55,7 +55,8 @@ vbl_timer:: DB ;counts to 60
 
 ;map
 last_map_button_state:: DB
-anim_frame:: DW
+map_anim_frame:: DB
+map_steps:: DB
 map_obj_type:: DB
 map_collision_type:: DB
 map_collision_data:: DB
