@@ -5,7 +5,6 @@
 ; V1.0 - 30-Dec-19 : Original Release - NB, based on GBDK 2.96
 ;
 ; Macros:
-;   SETUP_DMA_TRANSFER
 ;   DISPLAY_ON
 ;   DISPLAY_OFF
 ;   SHOW_BKG
@@ -24,23 +23,23 @@
 ;   SET_TILES
 ;
 ; Library Subroutines:
-;   gbdk_MoveSprite    - moves sprite c, de=xy
-;   gbdk_SetSpriteTile - set sprite c to tile d
-;   gbdk_SetSpriteProp - Set properties of sprite c to d
-;   gbdk_DisplayOff    - turns off screen
-;   gbdk_WaitVBL       - halts until v-blank
-;   gbdk_SetWinTiles   - sets window tiles, hl=wh, de=xy, bc=source
-;   gbdk_SetBkgTiles   - sets background tiles, hl=wh, de=xy, bc=source
-;   gbdk_CopyTilesTo   - jump only, stack=(return,wh), bc=src, hl=dst, de=xy
-;   gbdk_GetWinTiles   - gets window tiles, hl=wh, de=xy, bc=source
-;   gbdk_GetBkgTiles   - gets background tiles, hl=wh, de=xy, bc=source
-;   gbdk_CopyTilesFrom - jump only, stack=(return,wh), bc=dest, hl=src, de=xy
-;   gbdk_Delay         - pauses for de miliseconds
-;   gbdk_CPUSlow       - sets GBC CPU speed to DMG 
-;   gbdk_CPUFast       - sets GBC CPU speed to 2x
-;   gbdk_Random        - returns a random value to DE
-;   gbdk_Seed          - seeds Random function
-;
+;   gbdk_MoveSprite       - moves sprite c, de=xy
+;   gbdk_SetSpriteTile    - set sprite c to tile d
+;   gbdk_SetSpriteProp    - Set properties of sprite c to d
+;   gbdk_DisplayOff       - turns off screen
+;   gbdk_WaitVBL          - halts until v-blank
+;   gbdk_SetWinTiles      - sets window tiles, hl=wh, de=xy, bc=source
+;   gbdk_SetBkgTiles      - sets background tiles, hl=wh, de=xy, bc=source
+;   gbdk_CopyTilesTo      - jump only, stack=(return,wh), bc=src, hl=dst, de=xy
+;   gbdk_GetWinTiles      - gets window tiles, hl=wh, de=xy, bc=source
+;   gbdk_GetBkgTiles      - gets background tiles, hl=wh, de=xy, bc=source
+;   gbdk_CopyTilesFrom    - jump only, stack=(return,wh), bc=dest, hl=src, de=xy
+;   gbdk_Delay            - pauses for de miliseconds
+;   gbdk_CPUSlow          - sets GBC CPU speed to DMG 
+;   gbdk_CPUFast          - sets GBC CPU speed to 2x
+;   gbdk_Random           - returns a random value to DE
+;   gbdk_Seed             - seeds Random function
+;   gbdk_SetupDMATransfer - loads DMA routine into HRAM
 
 IF !DEF(GBDK_ASM)
 DEF GBDK_ASM EQU 1
@@ -184,29 +183,39 @@ DEF WAIT_VRAM    EQU 1
 ;   de - x pos, y pos
 ;   bc - source
 MACRO COPY_TILE_BLOCK; \1 = operation, \2 = wait VRAM?
-  push bc ; store source
-  xor a
-  or e
-  jr z, .initX\@
-  ld bc, 32 ; one line is 32 tiles
-.initY\@
-  add hl,bc
-  dec e
-  jr nz, .initY\@
-.initX\@
-  ld b,0
-  ld c,d
-  add hl,bc
+  push bc ;source
 
-    pop bc ; bc = source
-    pop de ; de = wh
+  ;y fits in 5 bits and y*32 is the same as y<<5
+  ;because of this, we can rotate in place
+  ;high nybble of y becomes low byte of y*32 
+  ;low nybble of y becomes high byte of y*32 
+  swap e;YYYY000Y
+  rlc e;YYY000YY
+  ld a, e
+  and %00000011 ;high byte of y*32
+  add a, h
+  ld h, a
+  ld a, %11100000
+  and a, e ;low byte of y*32 
+  add a, d ;low byte of y*32+x
+  ld l, a
+
+  pop bc ;source
+  pop de ;wh
+IF \1 == OP_SET_TO
+  ld a, b ;tile id
+ENDC
+
 .rowLoop\@
-    push de ; store wh
+    push de ;wh
   .columnLoop\@
 IF \2 == WAIT_VRAM
       ldh a,[rSTAT]
       and STATF_BUSY
       jr nz, .columnLoop\@
+  IF \1 == OP_SET_TO
+      ld a, b ;tile id
+  ENDC
 ENDC
 
 IF \1 == OP_COPY_TO
@@ -218,19 +227,18 @@ ELIF \1 == OP_COPY_FROM
       ld [bc], a
       inc bc
 ELIF \1 == OP_SET_TO
-      ld a, b; tile id
       ld [hli], a
 ENDC
 
       dec d
       jr nz, .columnLoop\@
       
-    pop de ;restore wh
+    pop de ;wh
     dec e
     ret z
 
     ld a, 32
-    sub d 
+    sub a, d 
     add a, l
     ld l, a
     jr nc, .rowLoop\@
