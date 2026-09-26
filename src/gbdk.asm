@@ -263,16 +263,14 @@ SECTION "GBDK Code", ROM0
 ;
 ;***************************************************************************
 gbdk_MoveSprite::
-  ld hl, oam_buffer ;calculate origin of sprite info
-  sla c ;multiply c by 4
-  sla c
-  ld b, 0
-  add hl, bc
-  ld a,e  ;set y
-  ld [hl], a
+  ld a, c
+  add a, a ;c*2
+  add a, a ;c*4
+  ld l, a
+  ld h, HIGH(oam_buffer);buffer is page aligned to $XX00
+  ld [hl], e ;y
   inc l
-  ld a,d  ;set x
-  ld [hl], a
+  ld [hl], d ;x
   ret
 
 ;***************************************************************************
@@ -285,13 +283,13 @@ gbdk_MoveSprite::
 ;
 ;***************************************************************************
 gbdk_SetSpriteTile::
-  ld hl, oam_buffer+2 ;calculate origin of sprite info
-  sla c ;multiply c by 4
-  sla c
-  ld b, 0
-  add hl, bc
-  ld a, d ;set sprite number
-  ld [hl], a
+  ld a, c
+  add a, a;c*2
+  add a, a;c*4
+  add a, 2;c*4+2 (tile id offset)
+  ld l, a
+  ld h, HIGH(oam_buffer);buffer is page aligned to $XX00
+  ld [hl], d;tile id
   ret
 
 ;***************************************************************************
@@ -304,15 +302,14 @@ gbdk_SetSpriteTile::
 ;
 ;***************************************************************************
 gbdk_SetSpriteProp::
-  ld hl, oam_buffer+3 ; calculate origin of sprite info
-  sla c ;multiply c by 4
-  sla c
-  ld b, 0
-  add hl, bc
-  ld a, d ;set sprite properties
-  ld [hl], a
+  ld a, c
+  add a, a;c*2
+  add a, a;c*4
+  add a, 3;c*4+3 (props offset)
+  ld l, a
+  ld h, HIGH(oam_buffer);buffer is page aligned to $XX00
+  ld [hl], d;props
   ret
-
 ;***************************************************************************
 ;
 ; gbdk_DisplayOff - Waits for VBlank and turns off the LCD
