@@ -44,8 +44,7 @@ GetTypeString:: ;a = type, string in name_buffer
   ld hl, TypeStrings
   call str_FromArray
   ld de, name_buffer
-  call str_Copy
-  ret
+  jp str_Copy
 
 GetStatusString:: ;a = status mask, string in name_buffer
   ld bc, 0
@@ -63,8 +62,7 @@ GetStatusString:: ;a = status mask, string in name_buffer
   ld de, name_buffer
   call str_FromArray
   ld de, name_buffer
-  call str_Copy
-  ret
+  jp str_Copy
   
 Trampoline:: ;b = bank, hl = address, can use a,e, and RAM for args, can return in any register
   ld d, a;store arg a
@@ -234,8 +232,7 @@ InitializeGameData::
   
   ld hl, game_event_flags
   ld bc, game_event_flags_end-game_event_flags
-  call mem_Set
-  ret
+  jp mem_Set
 
 DrawStateMap::;a = draw flags
   ld b, a;draw flags
@@ -254,8 +251,7 @@ DrawStateMap::;a = draw flags
 ClearTiles:: ;a = tile, display should be off
   ld bc, 32*32+20*18
   ld hl, _SCRN0
-  call mem_Set
-  ret
+  jp mem_Set
 
 ClearScreen:: ;a = tile, display should be off
   call ClearTiles
@@ -278,12 +274,8 @@ ClearScreen:: ;a = tile, display should be off
 
 SetTiles::;a = draw flags, hl=wh, de=xy, bc=firstTile
   and a, DRAW_FLAGS_WIN
-  jr z, .skip
-  call gbdk_SetWinTiles
-  ret
-.skip
-  call gbdk_SetBkgTiles
-  ret
+  jp z, gbdk_SetBkgTiles
+  jp gbdk_SetWinTiles
 
 CopyToTileBuffer::;hl=wh, de=xy, bc=firstTile
   push hl;wh
@@ -342,14 +334,12 @@ CopyToTileBufferWithOffset: ;hl=wh, de=xy, bc=in_tiles, a=offset
 SetBkgTilesWithOffset:: ;hl=wh, de=xy, bc=in_tiles, a=offset
   call CopyToTileBufferWithOffset
   ld bc, tile_buffer
-  call gbdk_SetBkgTiles
-  ret
+  jp gbdk_SetBkgTiles
   
 SetWinTilesWithOffset:: ;hl=wh, de=xy, bc=in_tiles, a=offset
   call CopyToTileBufferWithOffset
   ld bc, tile_buffer
-  call gbdk_SetWinTiles
-  ret
+  jp gbdk_SetWinTiles
 
 DrawSaveStats::;draw flags, de = xy
   push af;draw flags
@@ -852,9 +842,7 @@ SetMovePPTiles::;a = move, b = move mask, de = player, hl = tile address
 
   ld hl, str_buffer
   pop de; address
-  call str_Copy
-
-  ret
+  jp str_Copy
 
 ;TODO: This is only ever used in CopyBkgToWin. Should be inlined. 
 ScrollXYToTileXY::;returns xy in de
@@ -888,10 +876,8 @@ DistanceToScreenOrVRAMEdge::;tile xy in de, returns wh in hl
   ld l, a ; h
   ld a, 18
   cp l
-  jr nc, .skipHeight
+  ret nc;skip height
   ld l, a
-.skipHeight
-
   ret 
 
 CopyBkgToWin::
@@ -1093,8 +1079,7 @@ ShowSaveGame::
   
   ld de, $1210
   ld a, DRAW_FLAGS_PAD_TOP | DRAW_FLAGS_WIN
-  call FlashNextArrow
-  ret
+  jp FlashNextArrow
 
 GetZeroPaddedNumber::;a = number, returns padded number in str_buffer, affects str_buffer, all registers
   ld h, 0
@@ -1118,8 +1103,7 @@ GetZeroPaddedNumber::;a = number, returns padded number in str_buffer, affects s
   ld d, h
   ld e, l
   ld hl, name_buffer
-  call str_Copy
-  ret
+  jp str_Copy
 
 SignedRandom:: ;a = bitmask, returns signed random bytes in d and e
   push af
