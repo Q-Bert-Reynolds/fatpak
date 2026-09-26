@@ -24,17 +24,19 @@ INCLUDE "maps/map_avatars.gbavatar"
 MACRO MOVE_PLAYER;\1 = animation address, \2 = map move routine, \3 = map draw routine
   ld hl, \1
   call AnimatePlayerAvatar
-  call CheckPlayerCollision
   call SetupAvatarAnimation
 .loop
     push af;steps left
-    push bc;c = collision
+    push bc;collision found/type
     cp a, MAP_STEP_SIZE/2
     jr nz, .checkCollision
     ld hl, \1
     call AnimatePlayerAvatar
   .checkCollision
-    call CheckPlayerCollision
+    pop bc;collision found/type
+    push bc
+    ld a, b
+    and a
     jr nz, .collisionResponse
     call \2
   .collisionResponse
@@ -155,7 +157,9 @@ AnimatePlayerAvatar:;hl = animation
     jr nz, .colorProps
   ret
 
-SetupAvatarAnimation:;returns step count in a, collision type in c
+SetupAvatarAnimation:;returns step count in a, collision found in b, type in c
+  call CheckPlayerCollision
+  ld b, a
   ld a, [map_collision_type]
   ld c, a
   cp a, MAP_COLLISION_LEDGE
@@ -295,7 +299,7 @@ ShowPauseMenu::
   POP_VAR list_selection
   ret
 
-CheckPlayerCollision:;returns z if no collision
+CheckPlayerCollision:;returns z if no collision (also in a)
   ld a, [last_map_button_state]
   and a, PADF_UP
   jr nz, .up
