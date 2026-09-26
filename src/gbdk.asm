@@ -311,7 +311,7 @@ gbdk_SetSpriteProp::
   add hl, bc
   ld a, d ;set sprite properties
   ld [hl], a
-  reti
+  ret
 
 ;***************************************************************************
 ;
@@ -535,7 +535,7 @@ shift_speed:
   ld a,$01
   ldh [rKEY1], a
 
-  nop
+  stop
 
   pop af
   ldh [rIE], a
