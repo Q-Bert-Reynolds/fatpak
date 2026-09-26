@@ -148,36 +148,20 @@ BallYSeq:
   DB 56,52,48,44,40,36,32,26
 
 UpdateIntroSparks:
-  ld a, [_IntroSparksTileMap]
-  ld hl, tile_buffer
-  ld bc, 24
-  call mem_Set
-
-  ld hl, tile_buffer+24
-  ld a, 24
+  ld c, 24
 .loop
-    push af
-    push hl
     call gbdk_Random
     ld a, d
     or a, OAMF_PRI
-    pop hl
-    ld [hli], a
-    pop af
-    dec a
+    call gbdk_SetSpriteProp
+    dec c
     jr nz, .loop
-
-  ld hl, tile_buffer
-  ld de, tile_buffer+24
-  ld b, 0
-  ld c, 24
-  call SetSpriteTilesProps
 
   ld b, 56;x
   ld c, 106;y
   ld h, 8;w
   ld l, 3;h
-  ld a, 0
+  ld a, 1
   call MoveSprites
 
   ret

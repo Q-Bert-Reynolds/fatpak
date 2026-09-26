@@ -17,7 +17,6 @@ INCLUDE "data/strings/core_strings.asm"
 ; LoadSimulation                  a = ball speed b = spray angle c = launch angle
 ; ShowPlayBallIntro               a = unsigned player(0) or team(1), [_a] = player num or coach id
 ; SetSpriteTiles                  bc = count, hl = map, de = offset\props
-; SetSpriteTilesProps             bc = offset\count, hl = tilemap, de = propmap
 ; MoveSprites                     bc = xy in screen space, hl = wh in tiles, a = first sprite index
 ; SetSpriteTilesXY                bc = xy in screen space, hl = wh in tiles, de = tilemap, a = VRAM offset
 ; SetHPBarTiles                   de = player, hl = address
@@ -418,38 +417,6 @@ SetSpriteTiles:: ;bc = count, hl = map, de = offset\props
     dec bc
     ld a, b
     or c
-    jr nz, .loop
-  ret
-
-SetSpriteTilesProps:: ;bc = offset\count, hl = tilemap, de = propmap
-  xor a
-  ld [_i], a
-.loop
-    push bc;offset\count
-    ld a, [_i]
-    add a, b
-    ld c, a
-    ld a, [hli]
-    push hl;tilemap index
-    add a, b;offset
-    push de;propmap
-    ld d, a ;tile
-    push bc;offset & sprite/prop num
-    call gbdk_SetSpriteTile
-    pop bc;offset & sprite/prop num
-    pop de;propmap
-    ld a, [de]
-    inc de
-    push de;propmap
-    ld d, a
-    call gbdk_SetSpriteProp
-    pop de;propmap
-    pop hl;tilemap
-    ld a, [_i]
-    inc a
-    ld [_i], a
-    pop bc; count
-    dec c
     jr nz, .loop
   ret
 
