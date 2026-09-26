@@ -312,6 +312,7 @@ CheckPlayerCollision:;returns z if no collision (also in a)
   ld a, [last_map_button_state]
   and a, PADF_RIGHT
   jr nz, .right
+.noCollision
   xor a
   ret
 .up
@@ -347,25 +348,24 @@ CheckPlayerCollision:;returns z if no collision (also in a)
   ld [map_collision_data], a
   ld a, [map_collision_type]
   cp a, MAP_COLLISION_GRASS
-  ret z
+  jr z, .noCollision
   cp a, MAP_COLLISION_NONE
-  ret z
+  jr z, .noCollision
   cp a, MAP_COLLISION_DOOR
-  ret z
+  jr z, .noCollision
   cp a, MAP_COLLISION_ITEM
-  ; ret z
-  jr z, .stay
+  jr z, .solid
   cp a, MAP_COLLISION_SOLID
-  jr z, .stay
+  jr z, .solid
   cp a, MAP_COLLISION_TEXT
-  jr z, .stay
+  jr z, .solid
   cp a, MAP_COLLISION_SCRIPT
-  jr z, .stay
+  jr z, .solid
   cp a, MAP_COLLISION_TEAM
-  jr z, .stay
+  jr z, .solid
 .checkWaterMove
   cp a, MAP_COLLISION_WATER
-  jr z, .stay;TODO: add swimming
+  jr z, .solid;TODO: add swimming
 .checkLedgeMove;all other collision types already handled
   ld a, [map_collision_data];directions allowed
   cpl;flip bits
@@ -376,7 +376,7 @@ CheckPlayerCollision:;returns z if no collision (also in a)
   ld a, MAP_COLLISION_SOLID
   ld [map_collision_type], a
   ret
-.stay
+.solid
   ld a, 1
   or a
   ret
