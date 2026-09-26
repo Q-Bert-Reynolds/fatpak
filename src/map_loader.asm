@@ -433,23 +433,46 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
   dec de;[upper map sprite address]
   dec de;[lower map sprite address]
   dec de;[bank], sprite to be removed
-.removeLoop
-    ld hl, MAP_SPRITE_SIZE
-    ld bc, MAP_SPRITE_SIZE
-    add hl, de;next sprite
-    push hl;next sprite
-    call mem_Copy
-    pop de;last sprite
-    ld a, [de]
-    and a
-    jr nz, .removeLoop
   ld a, [map_sprite_count]
   dec a
   ld [map_sprite_count], a
+  jr z, .empty
+.moveLastToRemovedAddress;map_sprite_buffer + (map_sprite_count * MAP_SPRITE_SIZE)
+  push de;removed sprite address
+  ld c, a;map_sprite_count
+  ld b, 0
+  
+IF MAP_SPRITE_SIZE != 6
+  FAIL "ERROR: MAP_SPRITE_SIZE == {MAP_SPRITE_SIZE}. Fast multiplication assumes 6."
+ENDC
+  ; Fast c * 6 calculation: (c * 4) + (c * 2)
+  ld h, b
+  ld l, c   ;hl = count
+  add hl, hl;hl = count * 2
+  ld e, l
+  ld d, h   ;de = count * 2
+  add hl, hl;hl = count * 4
+  add hl, de;hl = count * 6
+  
+  ld de, map_sprite_buffer
+  add hl, de;last sprite address
+  pop de;removed sprite address
+  push de
+
+REPT MAP_SPRITE_SIZE
+  ld a, [hli]
+  ld [de], a
+  inc de
+ENDR
+  pop de;removed sprite address
   pop hl;OAM
   pop af;sprites left
   dec a
   jp nz, .loopMapSprites
+  jp .clearRemainingOAM
+.empty
+  pop hl;OAM
+  pop af;discard sprites left
   jp .clearRemainingOAM
 
 CopySpriteStampToOAMBuffer:;a = count, bc = stamp, hl = OAM buffer, [_x][_y] = position, returns count in a, sets z if count is 0
