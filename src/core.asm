@@ -22,8 +22,6 @@ INCLUDE "data/strings/core_strings.asm"
 ; SetHPBarTiles                   de = player, hl = address
 ; SetAgeTiles                     de = player, hl = address
 ; SetMovePPTiles                  a = move, de = player, hl = tile address
-; ScrollXYToTileXY                returns xy in de
-; DistanceToScreenOrVRAMEdge      tile xy in de, returns wh in hl
 ; CopyBkgToWin
 ; CopyWinToBuffer
 ; CopyBufferToWin
@@ -728,8 +726,6 @@ SetHPBarTilesFromPct::;hl = address, de = health pct
     ld c, a
     
     dec b
-    ld a, b
-    and a
     jr nz, .loop  
 
   ld a, 138
@@ -811,8 +807,8 @@ SetMovePPTiles::;a = move, b = move mask, de = player, hl = tile address
   pop de; address
   jp str_Copy
 
-;TODO: This is only ever used in CopyBkgToWin. Should be inlined. 
-ScrollXYToTileXY::;returns xy in de
+CopyBkgToWin::
+.scrollXYToTileXY;returns xy in de
   ld e, %00011111
   ldh a, [rSCX]
   rra;x/2
@@ -826,30 +822,22 @@ ScrollXYToTileXY::;returns xy in de
   rra;x/8
   and a, e;clear carry bits
   ld e, a ;y
-  ret
-
-DistanceToScreenOrVRAMEdge::;tile xy in de, returns wh in hl
+  
+.distanceToScreenOrVRAMEdge;tile xy in de, returns wh in hl
   ld a, 32
   sub a, d
-  ld h, a ; w
+  cp a, 20
+  jr c, .skipWidth
   ld a, 20
-  cp h
-  jr nc, .skipWidth
-  ld h, a
 .skipWidth
-
+  ld h, a
   ld a, 32
   sub a, e
-  ld l, a ; h
+  cp a, 18
+  jr c, .skipHeight
   ld a, 18
-  cp l
-  ret nc;skip height
+.skipHeight
   ld l, a
-  ret 
-
-CopyBkgToWin::
-  call ScrollXYToTileXY;de
-  call DistanceToScreenOrVRAMEdge;hl
   
 .upperLeft
   push hl;wh
@@ -1083,8 +1071,8 @@ SignedRandom:: ;a = bitmask, returns signed random bytes in d and e
   and %10000000
   jr z, .skipD
   ld a, b
-  xor a, $FF
-  add a, 1
+  cpl
+  inc a
   ld b, a
 .skipD
   ld d, b
@@ -1096,12 +1084,11 @@ SignedRandom:: ;a = bitmask, returns signed random bytes in d and e
   and %10000000
   jr z, .skipE
   ld a, b
-  xor a, $FF
-  add a, 1
+  cpl
+  inc a
   ld b, a
 .skipE
   ld e, b
-
   ret
 
 ;----------------------------------------------------------------------
