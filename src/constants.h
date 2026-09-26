@@ -274,6 +274,7 @@
 #define BYTES_PER_ITEM   2
 #define ITEM_FLAGS_SIZE  32//256 items flags
 #define MAX_MOVES        4
+#define MAX_INNINGS      15
 #define NAME_LENGTH      8
 #define NICKNAME_LENGTH  12
 #define BUFFER_SIZE      1024//32x32 tiles

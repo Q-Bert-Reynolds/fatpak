@@ -157,10 +157,13 @@ frame:: DB
 current_batter:: DB;upper nibble is opponent, lower nibble is user
 _home_team::
 home_team:: DB;1 = user is home team
+frame_runs:: DS MAX_INNINGS*2
 _home_score::
 home_score:: DB
+home_hits:: DB
 _away_score::
 away_score:: DB
+away_hits:: DB
 move_choice:: DB
 _pitch_move_id::
 pitch_move_id:: DB

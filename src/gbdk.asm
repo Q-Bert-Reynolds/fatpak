@@ -54,35 +54,6 @@ ENDM
 INCLUDE "src/memory1.asm"
   rev_Check_memory1_asm 1.2
 
-MACRO SETUP_DMA_TRANSFER
-  ld c, _HRAM % $100
-  ld b, .DMATransferEnd - .DMATransfer
-  ld hl, .DMATransfer
-.copy
-  ld a, [hli]
-  ld [$ff00+c], a
-  inc c
-  dec b
-  jr nz, .copy
-  jp .DMATransferEnd
-
-.DMATransfer
-  ld a, oam_buffer / $100
-  ld [rDMA], a
-  ld a, $28
-.wait
-  dec a
-  jr nz, .wait
-  ret
-.DMATransferEnd
-
-DEF HRAM_START EQU _HRAM + (.DMATransferEnd - .DMATransfer)
-DEF HRAM_LEFT EQU $FFFE - HRAM_START
-PRINT "\nDMA Transfer routine setup.\n"
-PRINT "  {HRAM_LEFT} bytes of HRAM left.\n"
-PRINT "  HRAM variables can start at {HRAM_START}\n\n"
-ENDM
-
 MACRO DISPLAY_ON
   ld a, [rLCDC]
   or LCDCF_ON
@@ -267,10 +238,9 @@ ENDC
     jr .rowLoop\@
 ENDM
 
-SECTION "GBDK Vars", WRAM0[_RAM]
+SECTION "GBDK WRAM Vars", WRAM0[_RAM]
 ;ensure OAM buffer starts at $XX00 and is not in switchable WRAM, see SETUP_DMA_TRANSFER macro
 oam_buffer:: DS 4*40
-vbl_done:: DB;TODO: place in HRAM?
 rand_hi:: DB
 rand_lo:: DB
 
@@ -357,17 +327,17 @@ gbdk_DisplayOff::
 ;***************************************************************************
 gbdk_WaitVBL::
   ldh a, [rLCDC]
-  add a
-  ret nc; return if screen is off
+  and a, LCDCF_ON
+  ret z; return if screen is off
+  xor a
+  ldh [vbl_done], a;clear stale data
 .loop
     halt; wait for any interrupt
     nop; halt sometimes skips the next instruction
-    ld a, [vbl_done]  ; was it a vblank interrupt?
+    ldh a, [vbl_done]  ; was it a vblank interrupt?
     ;; warning: we may lose a vblank interrupt, if it occurs now
-    or a
-    jr z, .loop ; no: back to sleep!
-  xor a
-  ld [vbl_done], a
+    and a
+    jr z, .loop; no: back to sleep!
   ret
 
 ;***************************************************************************
@@ -686,5 +656,41 @@ gbdk_Seed::
  ld a, l
  ld [rand_hi], a
  ret
+
+
+;***************************************************************************
+;
+; gbdk_SetupDMATransfer - loads DMA routine into HRAM
+;
+;***************************************************************************
+gbdk_SetupDMATransfer::
+  ld c, _HRAM % $100
+  ld b, .DMATransferEnd - .DMATransfer
+  ld hl, .DMATransfer
+.copy
+  ld a, [hli]
+  ld [$ff00+c], a
+  inc c
+  dec b
+  jr nz, .copy
+  ret
+
+.DMATransfer
+  ld a, oam_buffer / $100
+  ld [rDMA], a
+  ld a, $28
+.wait
+  dec a
+  jr nz, .wait
+  ret
+.DMATransferEnd
+
+SECTION "GBDK HRAM Vars", HRAM[_HRAM]
+DMATransfer:: DS (gbdk_SetupDMATransfer.DMATransferEnd - gbdk_SetupDMATransfer.DMATransfer)
+vbl_done:: DB
+_HRAMEnd:
+
+DEF HRAM_LEFT EQU ($FFFE - _HRAMEnd)
+PRINT "\n{d:HRAM_LEFT} bytes of HRAM left.\n"
 
 ENDC ;GBDK_ASM

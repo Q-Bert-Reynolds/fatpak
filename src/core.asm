@@ -133,11 +133,11 @@ VBLInterrupt::
   push bc
   push de
   push hl
-  call _HRAM
+  call DMATransfer
   call UpdateTime
   call UpdateAudio
   ld a, 1
-  ld [vbl_done], a
+  ldh [vbl_done], a
   pop hl 
   pop de
   pop bc

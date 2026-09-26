@@ -44,7 +44,7 @@ MACRO MOVE_PLAYER;\1 = animation address, \2 = map move routine, \3 = map draw r
     cp a, MAP_COLLISION_LEDGE
     jr z, .jump
     cp a, MAP_COLLISION_DOOR
-    jr nz, .waitVBL
+    jr nz, .copySprites
   .door
     pop bc
     pop af;steps left
@@ -55,31 +55,23 @@ MACRO MOVE_PLAYER;\1 = animation address, \2 = map move routine, \3 = map draw r
     push af
     push bc;c = collision
     call AnimateJump
-  .waitVBL
+  .copySprites
     call CopyMapSpritesToOAMBuffer
     call gbdk_WaitVBL
     pop bc;c = collision
     pop af;steps left
     dec a
     jr nz, .loop
-  call FixMapScroll
   ld a, [map_steps]
   inc a
   ld [map_steps], a
-  call CopyMapSpritesToOAMBuffer
-IF !ISCONST(\3)
-  call GetCurrentMap
-  ld b, a
-  ld hl, \3
-  call Trampoline
-ENDC
   ret
 ENDM
 
-MoveUp: MOVE_PLAYER GBStampAnimationCalvinWalkUp, MoveMapUp, 0
-MoveDown: MOVE_PLAYER GBStampAnimationCalvinWalkDown, MoveMapDown, DrawMapBottomEdge
-MoveLeft: MOVE_PLAYER GBStampAnimationCalvinWalkLeft, MoveMapLeft, 0
-MoveRight: MOVE_PLAYER GBStampAnimationCalvinWalkRight, MoveMapRight, DrawMapRightEdge
+MoveUp: MOVE_PLAYER GBStampAnimationCalvinWalkUp, MoveMapUp
+MoveDown: MOVE_PLAYER GBStampAnimationCalvinWalkDown, MoveMapDown
+MoveLeft: MOVE_PLAYER GBStampAnimationCalvinWalkLeft, MoveMapLeft
+MoveRight: MOVE_PLAYER GBStampAnimationCalvinWalkRight, MoveMapRight
 
 Look:;a = button_state
   ld [_a], a
@@ -200,7 +192,6 @@ EnterDoor::
   call GBCSetPalette
   ld a, [map_collision_data]
   call EnterMapDoor
-  call FixMapScroll
   call ShowPlayerAvatar
   TRAMPOLINE FadeIn
   ret
@@ -550,7 +541,6 @@ Overworld::
   ld [list_selection], a
   ld [map_steps], a
 
-  call FixMapScroll
   call DrawMapToScreen
 
   SHOW_BKG

@@ -1,7 +1,5 @@
 Priority
 
-- reduce stack thrashing in favor of repeated loading from WRAM 
-- include chance and handedness in encounter data
 - running out of room in ROM0, move stuff to other banks
   - less than 1Kb left
   - move colors.asm out of ROM0
@@ -46,6 +44,7 @@ General
 
 Optimization
 
+- reduce stack thrashing in favor of repeated loading from WRAM 
 - collision checks should only happen on first step, not every pixel!
 - if all sprite stamps are 2x2, remove data from export and simplify stamp drawing
 - COPY_TILE_BLOCK macro in GBDK.asm should be a subroutine, add HRAM vars to allow for this
@@ -159,7 +158,7 @@ Items
 Rolédex
 
 - update seen/signed after games, transformations, and signings
-- finish player descriptions (some show placeholder pokemon text)
+- update player descriptions
 - fix player descriptions that are longer than 6 lines
 - if player descriptions only span 1 page, garbage text is drawn on the next
 - create tileset specific to dex

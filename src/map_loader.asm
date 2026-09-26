@@ -935,35 +935,6 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, obj/collision type
   ld a, b;return obj/collision type
   ret
 
-;HACK: rounds rSCX and rSCY to nearest multiple of 8
-;  Walking around often results in off-by-one collision errors.
-;  Visually, it's not noticable, but results in crashes when pausing.
-;  This should really be corrected in the collision routine, but it's easier here.
-FixMapScroll::
-.fixX
-  ld a, [rSCX]
-  and a, %00000111
-  jr z, .fixY
-  ld a, [rSCX]
-  inc a
-  ld [rSCX], a
-  srl a
-  srl a
-  srl a
-  ld [map_x], a
-.fixY
-  ld a, [rSCY]
-  and a, %00000111
-  ret z
-  ld a, [rSCY]
-  inc a
-  ld [rSCY], a
-  srl a
-  srl a
-  srl a
-  ld [map_y], a
-  ret
-
 MoveMapLeft::
   ld a, [loaded_bank]
   push af;current bank
@@ -1419,7 +1390,7 @@ DrawMapToScreen::
   call CopyMapSpritesToOAMBuffer
   ret
 
-DrawMapChunk:; hl = chunk address, de=xy, bc=wh
+DrawMapChunk::; hl = chunk address, de=xy, bc=wh
 .testWidth
   ld a, b;w
   and a

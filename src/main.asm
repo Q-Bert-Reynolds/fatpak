@@ -111,7 +111,7 @@ Main::
   ld [rSCY], a
   ld [rWX], a
   ld [rWY], a
-  SETUP_DMA_TRANSFER
+  call gbdk_SetupDMATransfer
 
 .initializeRAM
   ld hl, _RAM
