@@ -357,15 +357,13 @@ gbdk_WaitVBL::
 ;
 ;***************************************************************************
 gbdk_SetWinTiles::
-  push  hl    ; store wh
-  ldh  a,[rLCDC]
-  bit  6, a
-  jr  nz,.innerLoop
-  ld  hl, _SCRN0  ; hl = origin
-  jr  gbdk_CopyTilesTo
-.innerLoop:
-  ld  hl,_SCRN1  ; hl = origin
-  jr  gbdk_CopyTilesTo
+  push hl ;wh
+  ldh a, [rLCDC]
+  bit LCDCB_WIN9C00, a
+  ld hl, _SCRN0
+  jr z, gbdk_CopyTilesTo
+  ld hl,_SCRN1
+  jr gbdk_CopyTilesTo
 
 
 ;***************************************************************************
@@ -380,14 +378,12 @@ gbdk_SetWinTiles::
 ;
 ;***************************************************************************
 gbdk_SetBkgTiles::
-  push hl ; store wh
-  ldh a,[rLCDC]
-  bit 3, a
-  jr nz, .skip
-  ld hl, _SCRN0 ; hl = origin
-  jr gbdk_CopyTilesTo
-.skip
-  ld hl, _SCRN1 ; hl = origin
+  push hl ;wh
+  ldh a, [rLCDC]
+  bit LCDCB_BG9C00, a
+  ld hl, _SCRN0
+  jr z, gbdk_CopyTilesTo
+  ld hl, _SCRN1
   ;falls through to gbdk_CopyTilesTo
 
 ;***************************************************************************
@@ -435,14 +431,12 @@ gbdk_SetTilesTo::
 ;
 ;***************************************************************************
 gbdk_GetWinTiles::
-  push hl ; store wh
+  push hl ;wh
   ldh a, [rLCDC]
-  bit 6, a
-  jr nz, .skip
-  ld hl, _SCRN0 ; hl = origin
-  jr gbdk_CopyTilesFrom
-.skip
-  ld hl, _SCRN1 ; hl = origin
+  bit LCDCB_WIN9C00, a
+  ld hl, _SCRN0
+  jr z, gbdk_CopyTilesFrom
+  ld hl,_SCRN1
   jr gbdk_CopyTilesFrom
 
 ;***************************************************************************
@@ -459,12 +453,10 @@ gbdk_GetWinTiles::
 gbdk_GetBkgTiles::
   push hl  ; store wh
   ldh a, [rLCDC]
-  bit 3, a
-  jr nz, .skip
-  ld hl, _SCRN0 ; hl = origin
-  jr gbdk_CopyTilesFrom
-.skip
-  ld hl, _SCRN1 ; hl = origin
+  bit LCDCB_BG9C00, a
+  ld hl, _SCRN0
+  jr z, gbdk_CopyTilesFrom
+  ld hl, _SCRN1
   ;falls through to gbdk_CopyTilesFrom
 
 ;***************************************************************************
