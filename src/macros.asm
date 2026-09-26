@@ -81,12 +81,12 @@ MACRO SET_LCD_INTERRUPT ;\1 = interrupt address
   di
 
   ld b, ~IEF_STAT
-  ld a, [rIE]
+  ldh a, [rIE]
   and a, b
-  ld [rIE], a
+  ldh [rIE], a
 
   xor a
-  ld [rSTAT], a
+  ldh [rSTAT], a
 
   ld hl, rLCDInterrupt
   ld bc, \1
@@ -96,12 +96,12 @@ MACRO SET_LCD_INTERRUPT ;\1 = interrupt address
   ld [hl], a
 
   ld b, IEF_STAT
-  ld a, [rIE]
+  ldh a, [rIE]
   or a, b
-  ld [rIE], a
+  ldh [rIE], a
 
   ld a, STATF_LYC
-  ld [rSTAT], a
+  ldh [rSTAT], a
   
   ei
 ENDM
@@ -110,12 +110,12 @@ MACRO DISABLE_LCD_INTERRUPT
   di
     
   ld b, ~IEF_STAT
-  ld a, [rIE]
+  ldh a, [rIE]
   and a, b
-  ld [rIE], a
+  ldh [rIE], a
 
   xor a
-  ld [rSTAT], a
+  ldh [rSTAT], a
 
   ld hl, rLCDInterrupt
   ld bc, EndLCDInterrupt
@@ -200,7 +200,7 @@ MACRO COPY_SCREEN_TO_FROM_BUFFER ;x, y, w, h, buffer, function
   jr z, .skip\@
 
   ld a, 1
-  ld [rVBK], a
+  ldh [rVBK], a
   ld d, \1;x
   ld e, \2;y
   ld h, \3;w
@@ -208,7 +208,7 @@ MACRO COPY_SCREEN_TO_FROM_BUFFER ;x, y, w, h, buffer, function
   ld bc, \3*\4+\5
   call \6
   xor a
-  ld [rVBK], a
+  ldh [rVBK], a
 .skip\@
 ENDM
 

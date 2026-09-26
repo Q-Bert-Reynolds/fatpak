@@ -190,24 +190,24 @@ sgb_Check:
   call  _sgb_PacketTransfer
   ei
   ld a, P1F_4 | P1F_5
-  ld [rP1], a                    ; We disable key and pad reading to read the joypad id
-  ld a, [rP1]
-  ld a, [rP1]
-  ld a, [rP1]
-  ld a, [rP1]                    ; Many readings to avoid the "bouncing" of values
+  ldh [rP1], a                    ; We disable key and pad reading to read the joypad id
+  ldh a, [rP1]
+  ldh a, [rP1]
+  ldh a, [rP1]
+  ldh a, [rP1]                    ; Many readings to avoid the "bouncing" of values
   ld b, a                        ; We store the id of the first joypad
   
   ; Joypad reading simulation
   ld a, P1F_5
-  ld [rP1], a                    ; Pad reading activated
+  ldh [rP1], a                    ; Pad reading activated
   ld a, P1F_4
-  ld [rP1], a                    ; Key reading activated
+  ldh [rP1], a                    ; Key reading activated
   ld a, P1F_4 | P1F_5
-  ld [rP1], a                    ; We disable key and pad reading to read the next joypad id
-  ld a, [rP1]
-  ld a, [rP1]
-  ld a, [rP1]
-  ld a, [rP1]
+  ldh [rP1], a                    ; We disable key and pad reading to read the next joypad id
+  ldh a, [rP1]
+  ldh a, [rP1]
+  ldh a, [rP1]
+  ldh a, [rP1]
   cp b                           ; If the id is the same then there has not been reply to the two-
   jr nz, check_sgb_0             ; player mode request, and therefore we are not in a Super Game Boy
   and a                          ; We lower the carry flag
@@ -415,23 +415,23 @@ sgb_VRAMTransfer::
   ret z
 _sgb_VRAMTransfer:
   ; store screen state
-  ld a, [rLCDC]
+  ldh a, [rLCDC]
   push af
-  ld a, [rSCX]
+  ldh a, [rSCX]
   push af
-  ld a, [rSCY]
+  ldh a, [rSCY]
   push af
-  ld a, [rBGP]
+  ldh a, [rBGP]
   push af
 
   di
   push de                     ; packet data
   DISPLAY_OFF                 ; We disble interruptions and turn off the LCD because we are going to modify the VRAM data
   xor a
-  ld [rSCX], a
-  ld [rSCY], a
+  ldh [rSCX], a
+  ldh [rSCY], a
   ld a, %11100100
-  ld [rBGP], a                ; VRAM-transfer background palette value
+  ldh [rBGP], a                ; VRAM-transfer background palette value
   ld de, _VRAM + 2048
   ld bc, 4096
   call mem_CopyVRAM           ; We copy to the Game Boy VRAM the 4KB data that is going to be transferred to the SNES RAM
@@ -456,20 +456,20 @@ _sgb_VRAMTransfer:
     jr nz, .rowLoop
 
   ld a, LCDCF_ON | LCDCF_BGON
-  ld [rLCDC], a
+  ldh [rLCDC], a
 
   pop hl                      ; Packet data
   call _sgb_PacketTransfer     ; We send the packet that will produce the transfer
 
   ;restore screen state
   pop af
-  ld [rBGP], a
+  ldh [rBGP], a
   pop af
-  ld [rSCX], a
+  ldh [rSCX], a
   pop af
-  ld [rSCY], a
+  ldh [rSCY], a
   pop af
-  ld [rLCDC], a
+  ldh [rLCDC], a
   ret
 
 ; Super Game Boy packet transfer
@@ -486,9 +486,9 @@ _sgb_PacketTransfer:
 .sendPacketsLoop:
     push bc
     xor a
-    ld [rP1], a               ; Initial pulse (Start write). P14 = LOW and P15 = LOW
+    ldh [rP1], a               ; Initial pulse (Start write). P14 = LOW and P15 = LOW
     ld a, P1F_4 | P1F_5
-    ld [rP1], a               ; P14 = HIGH and P15 = HIGH between pulses
+    ldh [rP1], a               ; P14 = HIGH and P15 = HIGH between pulses
     ld b, 16                  ; Number of bytes per packet
   .sendBytesLoop:
       ld e, 8                 ; Bits per byte
@@ -500,18 +500,18 @@ _sgb_PacketTransfer:
         jr nz, .skip
         ld a, P1F_5           ; P14 = LOW and P15 = HIGH (Write 0)
       .skip:
-        ld [rP1], a           ; We send one bit
+        ldh [rP1], a           ; We send one bit
         ld a, P1F_4 | P1F_5
-        ld [rP1], a           ; P14 = HIGH and P15 = HIGH between pulses
+        ldh [rP1], a           ; P14 = HIGH and P15 = HIGH between pulses
         rr d                  ; We rotate the register so that the next bit goes to position 0
         dec e
         jr nz, .sendBitsLoop  ; We jump while there are bits left to be sent
       dec b
       jr nz, .sendBytesLoop   ; We jump while there are bytes left to be sent
     ld a, P1F_5
-    ld [rP1], a               ; Bit 129, stop bit (Write 0)
+    ldh [rP1], a               ; Bit 129, stop bit (Write 0)
     ld a, P1F_4 | P1F_5
-    ld [rP1], a               ; P14 = HIGH and P15 = HIGH between pulses
+    ldh [rP1], a               ; P14 = HIGH and P15 = HIGH between pulses
 
     ; 280048 clock cycles are consumed (66.768646240234375 milliseconds) at 4.194304 mhz | 24 cycles
     ld de, 7000               ; 12 cycles

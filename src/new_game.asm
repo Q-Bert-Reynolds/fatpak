@@ -11,7 +11,7 @@ SelectNameOrTextEntry: ;assumes d > 0, bc = title
   dec a
   jp nz, .nameSelected
   ld a, 48
-  ld [rSCX], a
+  ldh [rSCX], a
   ld de, name_buffer
   ld a, 7
   ld l, a
@@ -66,7 +66,7 @@ SelectNameOrTextEntry: ;assumes d > 0, bc = title
     call gbdk_WaitVBL
     ld a, [_i]
     add a, 2
-    ld [rSCX], a
+    ldh [rSCX], a
     ld [_i], a
     sub a, 48
     jp nz, .moveImageBackLoop
@@ -79,9 +79,9 @@ NewGame::
 .showDoc
   DISPLAY_OFF
   xor a
-  ld [rSCY], a
+  ldh [rSCY], a
   ld a, 48
-  ld [rSCX], a
+  ldh [rSCX], a
 
   call LoadFontTiles
 
@@ -162,7 +162,7 @@ NewGame::
   call SetPalettesDirect
 
   ld a, 1
-  ld [rVBK], a
+  ldh [rVBK], a
   xor a
   call ClearTiles
   ld d, 13
@@ -172,7 +172,7 @@ NewGame::
   ld hl, _SCRN0
   call gbdk_SetTilesTo
   xor a
-  ld [rVBK], a
+  ldh [rVBK], a
 
 .fadeInMuchacho
   call FadeIn
@@ -224,12 +224,12 @@ NewGame::
 
 .slideInCalvin
   ld a, DMG_PAL_BDLW
-  ld [rBGP], a
-  ld [rOBP0], a
+  ldh [rBGP], a
+  ldh [rOBP0], a
   ld a, -56
-  ld [rSCX], a
+  ldh [rSCX], a
   xor a
-  ld [rSCY], a
+  ldh [rSCY], a
 
   DISPLAY_ON
 
@@ -238,7 +238,7 @@ NewGame::
     push af
     call gbdk_WaitVBL
     pop af
-    ld [rSCX], a
+    ldh [rSCX], a
     add a, 4
     cp 48
     jp nz, .slideInCalvinLoop
@@ -252,7 +252,7 @@ NewGame::
     call gbdk_WaitVBL
     pop af
     sub a, 2
-    ld [rSCX], a
+    ldh [rSCX], a
     jr nz, .slideOverCalvinLoop
 
 ;ask for user's name
@@ -341,10 +341,10 @@ ENDC
 
 .slideInNolan
   ld a, DMG_PAL_BDLW
-  ld [rBGP], a
-  ld [rOBP0], a
+  ldh [rBGP], a
+  ldh [rOBP0], a
   ld a, -56
-  ld [rSCX], a
+  ldh [rSCX], a
   DISPLAY_ON
 
   ld a, -56
@@ -353,7 +353,7 @@ ENDC
     call gbdk_WaitVBL
     pop af
     add a, 4
-    ld [rSCX], a
+    ldh [rSCX], a
     cp 48
     jp nz, .slideInNolanLoop
 
@@ -369,7 +369,7 @@ ENDC
     call gbdk_WaitVBL
     pop af
     sub a, 2
-    ld [rSCX], a
+    ldh [rSCX], a
     jp nz, .slideOverNolanLoop
   
 ;ask for rival's name

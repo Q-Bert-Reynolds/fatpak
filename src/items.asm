@@ -1086,14 +1086,14 @@ UseSpecialItem:;[item_data], f = playball flag, returns z if can't use now
 
 ShowTownMap:
   HIDE_WIN
-  ld a, [rSCX]
+  ldh a, [rSCX]
   ld h, a
-  ld a, [rSCY]
+  ldh a, [rSCY]
   ld l, a
   push hl;screen offset
   xor a
-  ld [rSCX], a
-  ld [rSCY], a
+  ldh [rSCX], a
+  ldh [rSCY], a
   call DrawStateMap
 
 .loop
@@ -1103,9 +1103,9 @@ ShowTownMap:
 
   pop hl;screen offset
   ld a, h
-  ld [rSCX], a
+  ldh [rSCX], a
   ld a, l
-  ld [rSCY], a
+  ldh [rSCY], a
   SHOW_WIN
   ret
 

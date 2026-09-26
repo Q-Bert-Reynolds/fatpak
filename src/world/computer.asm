@@ -9,9 +9,9 @@ UsePublicComputer:
 .showOptions
     call CopyBkgToWin
     ld a, 7
-    ld [rWX], a
+    ldh [rWX], a
     xor a
-    ld [rWY], a
+    ldh [rWY], a
     HIDE_ALL_SPRITES
     SHOW_WIN
 
@@ -186,9 +186,9 @@ AccessPlayerStorageSystem:
 
 AccessItemStorageSystem:
   ld a, 7
-  ld [rWX], a
+  ldh [rWX], a
   xor a
-  ld [rWY], a
+  ldh [rWY], a
   SHOW_WIN
   HIDE_ALL_SPRITES
   xor a

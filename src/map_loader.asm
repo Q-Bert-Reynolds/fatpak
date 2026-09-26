@@ -330,7 +330,7 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     ld b, a
     inc de
     push bc;map sprite address
-    ld a, [rSCX]
+    ldh a, [rSCX]
     ld b, a;bg scroll x
     ld a, [de];x
     add a, 8;x+8
@@ -339,7 +339,7 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     BETWEEN 192, 224
     jp nz, .removeSprite
     inc de
-    ld a, [rSCY]
+    ldh a, [rSCY]
     ld c, a;bg scroll y
     ld a, [de];y
     add a, 10;y+10... why isn't this 8? exporter?
@@ -975,7 +975,7 @@ MoveMapLeft::
   SET_BANK
   ld a, [map_scroll_speed]
   ld b, a
-  ld a, [rSCX]
+  ldh a, [rSCX]
   sub a, b
   push af;new scx
   ld d, a
@@ -995,7 +995,7 @@ MoveMapLeft::
   call DrawMapLeftEdge
 .move
   pop af;new scx
-  ld [rSCX], a
+  ldh [rSCX], a
   pop af;previous bank
   SET_BANK
   ret
@@ -1007,7 +1007,7 @@ MoveMapRight::
   SET_BANK
   ld a, [map_scroll_speed]
   ld b, a
-  ld a, [rSCX]
+  ldh a, [rSCX]
   add a, b
   push af
   ld d, a
@@ -1027,7 +1027,7 @@ MoveMapRight::
   call DrawMapRightEdge
 .move
   pop af
-  ld [rSCX], a
+  ldh [rSCX], a
   pop af;previous bank
   SET_BANK
   ret
@@ -1039,7 +1039,7 @@ MoveMapUp::
   SET_BANK
   ld a, [map_scroll_speed]
   ld b, a
-  ld a, [rSCY]
+  ldh a, [rSCY]
   sub a, b
   push af
   ld e, a
@@ -1059,7 +1059,7 @@ MoveMapUp::
   call DrawMapTopEdge
 .move
   pop af
-  ld [rSCY], a
+  ldh [rSCY], a
   pop af;previous bank
   SET_BANK
   ret
@@ -1071,7 +1071,7 @@ MoveMapDown::
   SET_BANK
   ld a, [map_scroll_speed]
   ld b, a
-  ld a, [rSCY]
+  ldh a, [rSCY]
   add a, b
   push af
   ld e, a
@@ -1091,7 +1091,7 @@ MoveMapDown::
   call DrawMapBottomEdge
 .move
   pop af
-  ld [rSCY], a
+  ldh [rSCY], a
   pop af;previous bank
   SET_BANK
   ret
@@ -1342,13 +1342,13 @@ DrawMapToScreen::
   sla a
   sla a
   sla a
-  ld [rSCX], a
+  ldh [rSCX], a
   ld a, [map_y]
   ld e, a
   sla a
   sla a
   sla a
-  ld [rSCY], a
+  ldh [rSCY], a
   ld bc, $1513;w+1,h+1
 .testX
   ld a, d;x
@@ -1445,7 +1445,7 @@ DrawMapChunk::; hl = chunk address, de=xy, bc=wh
   add a, e;y+h
   ld [max_y], a;maxY
   xor a
-  ld [rVBK], a
+  ldh [rVBK], a
 .setChunkTile
   ld a, [hli];tile
   push hl;palette address
@@ -1461,14 +1461,14 @@ DrawMapChunk::; hl = chunk address, de=xy, bc=wh
   and a, SYS_INFO_GBC
   jr z, .drawMapObjects
   ld a, 1
-  ld [rVBK], a
+  ldh [rVBK], a
   ld a, [hl];pal, no increment since this section can be skipped
   push hl
   ld hl, _SCRN0
   call gbdk_SetTilesTo
   pop hl
   xor a
-  ld [rVBK], a
+  ldh [rVBK], a
 .drawMapObjects
   ld bc, MAP_CHUNK_DATA-1;already skipped tile
   add hl, bc;skip pal, neighboring chunks, area, and collision
@@ -1822,12 +1822,12 @@ DrawMapTileFill:;a = map obj type, hl = tile fill data, de = xy, min/max XY in m
   and a, SYS_INFO_GBC
   jr z, .nextMapObject
   ld a, 1
-  ld [rVBK], a
+  ldh [rVBK], a
   ld a, [_b];palette
   ld hl, _SCRN0
   call gbdk_SetTilesTo
   xor a
-  ld [rVBK], a
+  ldh [rVBK], a
 .nextMapObject
   pop hl;next map object
   ret
@@ -1873,9 +1873,9 @@ DrawMapStamp:;hl = stamp data, de = xy, min/max XY in min_x,min_y,max_x,max_y, r
   and a, SYS_INFO_GBC
   jp z, .nextMapObject
   ld a, 1
-  ld [rVBK], a
+  ldh [rVBK], a
   ld a, 2
-  ld [rSVBK], a
+  ldh [rSVBK], a
   ld bc, tile_buffer
   ld a, [bc]
   bit 7, a
@@ -1891,8 +1891,8 @@ DrawMapStamp:;hl = stamp data, de = xy, min/max XY in min_x,min_y,max_x,max_y, r
   call gbdk_SetBkgTiles
 .finishPal
   xor a
-  ld [rVBK], a
-  ld [rSVBK], a
+  ldh [rVBK], a
+  ldh [rSVBK], a
 .nextMapObject
   pop hl
   ret
@@ -2007,7 +2007,7 @@ ClipStamp:
 
 .copyPaletteToBuffer
   ld a, 2
-  ld [rSVBK], a
+  ldh [rSVBK], a
   pop af;full height
   call math_Multiply
   ld b, h
@@ -2047,7 +2047,7 @@ ClipStamp:
 
 .finishPalette
   xor a
-  ld [rSVBK], a
+  ldh [rSVBK], a
 
 .done
   pop de;xy
@@ -2099,13 +2099,13 @@ DrawMapTile:;hl = tile data, de = xy, min/max XY in min_x,min_y,max_x,max_y
   and a, SYS_INFO_GBC
   jp z, .nextMapObject
   ld a, 1
-  ld [rVBK], a
+  ldh [rVBK], a
   ld a, b;palette
   ld bc, $0101
   ld hl, _SCRN0
   call gbdk_SetTilesTo
   xor a
-  ld [rVBK], a
+  ldh [rVBK], a
 .nextMapObject
   pop hl;next map object
   ret
@@ -2191,7 +2191,7 @@ GetMapChunk:;a = jump table index, returns chunk in hl, index in a
 GetMapChunkForOffset::;bc = xy pixel offset (-127,127), returns chunk in hl, tile xy in de
   call GetCurrentMapChunk
 .testX
-  ld a, [rSCX]
+  ldh a, [rSCX]
   add a, b;x+rSCX
   ld d, a;x+rSCX
   jr nc, .testY
@@ -2208,7 +2208,7 @@ GetMapChunkForOffset::;bc = xy pixel offset (-127,127), returns chunk in hl, til
   call GetMapChunkNeighbor
   ;fall through to testY
 .testY
-  ld a, [rSCY]
+  ldh a, [rSCY]
   add a, c;y+rSCY
   ld e, a;y+rSCY
   jr nc, .finish

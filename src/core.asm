@@ -255,9 +255,9 @@ ClearTiles:: ;a = tile, display should be off
 ClearScreen:: ;a = tile, display should be off
   call ClearTiles
   ld a, 166
-  ld [rWX], a
+  ldh [rWX], a
   ld a, 143
-  ld [rWY], a
+  ldh [rWY], a
   HIDE_ALL_SPRITES
 .checkGBC
   ld a, [sys_info]
@@ -265,10 +265,10 @@ ClearScreen:: ;a = tile, display should be off
   ret z
 .clearColors
   ld a, 1
-  ld [rVBK], a
+  ldh [rVBK], a
   xor a
   call ClearTiles
-  ld [rVBK], a
+  ldh [rVBK], a
   ret 
 
 SetTiles::;a = draw flags, hl=wh, de=xy, bc=firstTile
@@ -814,13 +814,13 @@ SetMovePPTiles::;a = move, b = move mask, de = player, hl = tile address
 ;TODO: This is only ever used in CopyBkgToWin. Should be inlined. 
 ScrollXYToTileXY::;returns xy in de
   ld e, %00011111
-  ld a, [rSCX]
+  ldh a, [rSCX]
   rra;x/2
   rra;x/4
   rra;x/8
   and a, e;clear carry bits
   ld d, a ;x
-  ld a, [rSCY]
+  ldh a, [rSCY]
   rra;x/2
   rra;x/4
   rra;x/8
@@ -954,17 +954,17 @@ CopyBkgToWin::
   and a, SYS_INFO_GBC
   ret z
 
-  ld a, [rVBK]
+  ldh a, [rVBK]
   bit 0, a
   jr nz, .resetVRAMBank;if rVBK == 1, we've already set colors, so we're done
 
   ld a, 1
-  ld [rVBK], a
+  ldh [rVBK], a
   jp CopyBkgToWin; otherwise, set rVBK to 1 and copy again
 
 .resetVRAMBank
   xor a
-  ld [rVBK], a
+  ldh [rVBK], a
   ret
 
 CopyWinToBuffer::
@@ -976,16 +976,16 @@ CopyWinToBuffer::
   and a, SYS_INFO_GBC
   ret z
   ld a, 2
-  ld [rSVBK], a
+  ldh [rSVBK], a
   dec a
-  ld [rVBK], a
+  ldh [rVBK], a
   ld hl, $1412;20,18
   ld de, 0
   ld bc, win_buffer
   call gbdk_GetWinTiles
   xor a
-  ld [rSVBK], a
-  ld [rVBK], a
+  ldh [rSVBK], a
+  ldh [rVBK], a
   ret
 
 CopyBufferToWin::
@@ -997,16 +997,16 @@ CopyBufferToWin::
   and a, SYS_INFO_GBC
   ret z
   ld a, 2
-  ld [rSVBK], a
+  ldh [rSVBK], a
   dec a
-  ld [rVBK], a
+  ldh [rVBK], a
   ld hl, $1412;20,18
   ld de, 0
   ld bc, win_buffer
   call gbdk_SetWinTiles
   xor a
-  ld [rSVBK], a
-  ld [rVBK], a
+  ldh [rSVBK], a
+  ldh [rVBK], a
   ret
 
 ShowSaveGame::
@@ -1123,8 +1123,8 @@ SetPalettesIndirect::;hl = palettes in PAL_SET (SGB) fromat
   push hl;palettes
   inc hl;first palette index
   ld a, BCPSF_AUTOINC
-  ld [rBCPS], a
-  ld [rOCPS], a
+  ldh [rBCPS], a
+  ldh [rOCPS], a
 
   xor a
 .loopPalettes
@@ -1337,10 +1337,10 @@ GBCSetBkgPaletteMap::;hl = wh, de = xy, bc = firstTile
   and a, SYS_INFO_GBC
   ret z
   ld a, 1
-  ld [rVBK], a
+  ldh [rVBK], a
   call gbdk_SetBkgTiles
   xor a
-  ld [rVBK], a
+  ldh [rVBK], a
   ret
 
 GBCSetWinPaletteMap::;hl = wh, de = xy, bc = firstTile
@@ -1348,10 +1348,10 @@ GBCSetWinPaletteMap::;hl = wh, de = xy, bc = firstTile
   and a, SYS_INFO_GBC
   ret z
   ld a, 1
-  ld [rVBK], a
+  ldh [rVBK], a
   call gbdk_SetWinTiles
   xor a
-  ld [rVBK], a
+  ldh [rVBK], a
   ret
 
 CopyPalettesTo::;hl = dest

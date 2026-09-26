@@ -24,10 +24,10 @@ _ShowUserInfo:
   and a, SYS_INFO_GBC
   jr z, .loadTiles
   ld a, 1
-  ld [rVBK], a
+  ldh [rVBK], a
   CLEAR_WIN_AREA 0,0,20,18,0
   xor a
-  ld [rVBK], a
+  ldh [rVBK], a
 .loadTiles
   ld hl, _UserInfoTiles
   ld de, $8800;_VRAM+$1000+_UI_FONT_TILE_COUNT*16
@@ -120,9 +120,9 @@ _ShowUserInfo:
 .show
   HIDE_SPRITES
   ld a, 7
-  ld [rWX], a
+  ldh [rWX], a
   xor a
-  ld [rWY], a
+  ldh [rWY], a
   SHOW_WIN
   DISPLAY_ON
 

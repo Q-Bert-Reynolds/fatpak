@@ -34,9 +34,9 @@ ShowField:
   call mem_CopyVRAM
 
   ld a, 20
-  ld [rSCX], a
+  ldh [rSCX], a
   ld a, 84
-  ld [rSCY], a
+  ldh [rSCY], a
   DISPLAY_ON
   ret
 
@@ -217,15 +217,15 @@ UpdateBall:
   cp 191
   jr nc, .moveToBottom
   sub a, 80
-  ld [rSCY], a
+  ldh [rSCY], a
   jr .updateCameraX
 .moveToTop
   xor a
-  ld [rSCY], a
+  ldh [rSCY], a
   jr .updateCameraX
 .moveToBottom
   ld a, 112
-  ld [rSCY], a
+  ldh [rSCY], a
 
 .updateCameraX
   ld a, [ball_pos_x]
@@ -234,19 +234,19 @@ UpdateBall:
   cp 179
   jr nc, .moveToRight
   sub a, 84
-  ld [rSCX], a
+  ldh [rSCX], a
   jr .drawBall
 .moveToLeft
   xor a
-  ld [rSCX], a
+  ldh [rSCX], a
   jr .drawBall
 .moveToRight
   ld a, 96
-  ld [rSCX], a
+  ldh [rSCX], a
 
 .drawBall
   ld hl, oam_buffer+38*4;ball and shadow are second to last sprites
-  ld a, [rSCY]
+  ldh a, [rSCY]
   ld b, a
   ld a, [ball_pos_y]
   sub a, b
@@ -257,7 +257,7 @@ UpdateBall:
   ld a, b
   sub a, c
   ld [hli], a;y
-  ld a, [rSCX]
+  ldh a, [rSCX]
   ld b, a
   ld a, [ball_pos_x]
   sub a, b
@@ -270,13 +270,13 @@ UpdateBall:
   ld [hli], a;prop
 
 .drawShadow
-  ld a, [rSCY]
+  ldh a, [rSCY]
   ld b, a
   ld a, [ball_pos_y]
   sub a, b
   inc a
   ld [hli], a
-  ld a, [rSCX]
+  ldh a, [rSCX]
   ld b, a
   ld a, [ball_pos_x]
   sub a, b
@@ -354,14 +354,14 @@ DrawRunners:
 .loop
     push af;players left
 
-    ld a, [rSCY]
+    ldh a, [rSCY]
     ld b, a
     ld a, [hli];y
     sub a, b
     ld [de], a
     inc de
     inc hl
-    ld a, [rSCX]
+    ldh a, [rSCX]
     ld b, a
     ld a, [hld];x
     sub a, b
@@ -374,7 +374,7 @@ DrawRunners:
     ld a, OAMF_PAL1
     ld [de], a;prop
     inc de
-    ld a, [rSCY]
+    ldh a, [rSCY]
     ld b, a
     ld a, [hli];y
     sub a, b
@@ -382,7 +382,7 @@ DrawRunners:
     ld [de], a
     inc de
     inc hl
-    ld a, [rSCX]
+    ldh a, [rSCX]
     ld b, a
     ld a, [hli];x
     sub a, b
@@ -473,14 +473,14 @@ DrawFielders:
 .loop
     push af;players left
 
-    ld a, [rSCY]
+    ldh a, [rSCY]
     ld b, a
     ld a, [hli];y
     sub a, b
     ld [de], a
     inc de
     inc hl
-    ld a, [rSCX]
+    ldh a, [rSCX]
     ld b, a
     ld a, [hld];x
     sub a, b
@@ -493,7 +493,7 @@ DrawFielders:
     xor a
     ld [de], a;prop
     inc de
-    ld a, [rSCY]
+    ldh a, [rSCY]
     ld b, a
     ld a, [hli];y
     sub a, b
@@ -501,7 +501,7 @@ DrawFielders:
     ld [de], a
     inc de
     inc hl
-    ld a, [rSCX]
+    ldh a, [rSCX]
     ld b, a
     ld a, [hli];x
     sub a, b
@@ -669,8 +669,8 @@ RunSimulation::;a = ball speed, b = spray angle, c = launch angle
 
   DISPLAY_OFF
   xor a
-  ld [rSCX], a
-  ld [rSCY], a
+  ldh [rSCX], a
+  ldh [rSCY], a
   CLEAR_SCREEN ' '
   SHOW_WIN
   DISPLAY_ON

@@ -59,7 +59,7 @@ MACRO MOVE_PLAYER;\1 = animation address, \2 = map move routine, \3 = map draw r
     call AnimateJump
   .copySprites
     call CopyMapSpritesToOAMBuffer
-    call gbdk_WaitVBL
+    ; call gbdk_WaitVBL
     pop bc;c = collision
     pop af;steps left
     dec a
@@ -205,9 +205,9 @@ ShowPauseMenu::
 
 .showPauseMenu
   ld a, 7
-  ld [rWX], a
+  ldh [rWX], a
   xor a
-  ld [rWY], a
+  ldh [rWY], a
   SHOW_WIN
   ld hl, StartMenuText
   ld de, str_buffer
@@ -267,20 +267,20 @@ ShowPauseMenu::
   jr nz, .exit
   HIDE_WIN
   HIDE_ALL_SPRITES
-  ld a, [rSCX]
+  ldh a, [rSCX]
   ld h, a
-  ld a, [rSCY]
+  ldh a, [rSCY]
   ld l, a
   push hl
   xor a
-  ld [rSCX], a
-  ld [rSCY], a
+  ldh [rSCX], a
+  ldh [rSCY], a
   call ShowOptions
   pop hl
   ld a, h
-  ld [rSCX], a
+  ldh [rSCX], a
   ld a, l
-  ld [rSCY], a
+  ldh [rSCY], a
 .returnToPauseMenu
   DISPLAY_OFF
   call CopyBufferToWin
@@ -392,7 +392,7 @@ CheckActions:
   call math_Multiply;hl = map sprite index * map sprite size
   ld de, map_sprite_buffer+3
   add hl, de;hl = map sprite x address
-  ld a, [rSCX]
+  ldh a, [rSCX]
   ld b, a
   ld a, [hli];x
   sub a, b
@@ -400,7 +400,7 @@ CheckActions:
   jr c, .lookRight
   cp a, 80
   jr nc, .lookLeft
-  ld a, [rSCY]
+  ldh a, [rSCY]
   ld b, a
   ld a, [hl];y
   sub a, b 

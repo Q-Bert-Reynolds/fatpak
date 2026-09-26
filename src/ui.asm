@@ -211,7 +211,7 @@ DrawUIBox::;a=draw flags, bc = xy, de = wh
   jr z, .setTiles
 .isGBC
   ld a, 1
-  ld [rVBK], a
+  ldh [rVBK], a
   pop bc ;wh
   pop de ;xy
   pop af;draw flags
@@ -229,7 +229,7 @@ DrawUIBox::;a=draw flags, bc = xy, de = wh
   xor a
   call gbdk_SetTilesTo
   xor a
-  ld [rVBK], a
+  ldh [rVBK], a
 .setTiles
   pop hl ;wh
   pop de ;xy
@@ -327,9 +327,9 @@ DisplayText:: ;a = draw flags, hl = text
   and a, DRAW_FLAGS_WIN
   ret z;no reason to show win if not drawing on win
   ld a, 7
-  ld [rWX], a
+  ldh [rWX], a
   ld a, 96
-  ld [rWY], a
+  ldh [rWY], a
   SHOW_WIN
   ret
 
@@ -828,9 +828,9 @@ UIRevealText:: ;a = draw flags, hl = text, de = xy
 
 UIRevealTextAndWait::
   ld a, 7
-  ld [rWX], a
+  ldh [rWX], a
   ld a, 96
-  ld [rWY], a; move_win(7,96);
+  ldh [rWY], a; move_win(7,96);
   
   ld de, 0
   ld a, DRAW_FLAGS_PAD_TOP | DRAW_FLAGS_WIN
@@ -939,10 +939,10 @@ UIShowOptions::
   and a, SYS_INFO_GBC
   jr z, .testTextSpeed
   ld a, 1
-  ld [rVBK], a
+  ldh [rVBK], a
   CLEAR_BKG_AREA 0,0,20,18,0
   xor a
-  ld [rVBK], a
+  ldh [rVBK], a
 
 .testTextSpeed; if (a > 2) a = 0;
   ld a, [text_speed]
@@ -1415,9 +1415,9 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
   call mem_Set; for (i = 0; i != max_len; ++i) str[i] = 0;
   CLEAR_WIN_AREA 0,0,20,18,' '
   ld a, 7
-  ld [rWX], a
+  ldh [rWX], a
   xor a
-  ld [rWY], a; move_win(7,0);
+  ldh [rWY], a; move_win(7,0);
 
   TRAMPOLINE DetectKeyboard
   ld a, KB_MODE_TYPING

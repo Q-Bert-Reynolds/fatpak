@@ -125,27 +125,27 @@ IGKBHandleArrowKey:
   cp a, b
   jr z, .downPressed
 .rightPressed
-  ld a,[rWX]
+  ldh a,[rWX]
   add a, 8
-  ld [rWX],a
+  ldh [rWX],a
   ld a, PADF_RIGHT
   jp KBHandleArrowKey
 .leftPressed
-  ld a,[rWX]
+  ldh a,[rWX]
   sub a, 8
-  ld [rWX],a
+  ldh [rWX],a
   ld a, PADF_LEFT
   jp KBHandleArrowKey
 .upPressed
-  ld a,[rWY]
+  ldh a,[rWY]
   sub a, 8
-  ld [rWY],a
+  ldh [rWY],a
   ld a, PADF_UP
   jp KBHandleArrowKey
 .downPressed
-  ld a,[rWY]
+  ldh a,[rWY]
   add a, 8
-  ld [rWY],a
+  ldh [rWY],a
   ld a, PADF_DOWN
   jp KBHandleArrowKey
 

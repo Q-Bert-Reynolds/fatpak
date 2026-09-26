@@ -1010,9 +1010,9 @@ UseItemOnPlayer:;b = item id, returns item used in c (0 = not used, 1 = used)
 
   call CopyBkgToWin
   ld a, 7
-  ld [rWX], a
+  ldh [rWX], a
   xor a
-  ld [rWY], a
+  ldh [rWY], a
 
   ld a, [item_data.type]
   cp a, ITEM_TYPE_STATS
@@ -1413,15 +1413,15 @@ Evolve:;hl = player, a = player num to evolve to
   call DisplayText
 
   ld a, 7
-  ld [rWX], a
+  ldh [rWX], a
   ld a, 96
-  ld [rWY], a; move_win(7,96);
+  ldh [rWY], a; move_win(7,96);
   DISPLAY_ON
   
   ;darken palette
 
   xor a
-  ld [rSCX], a
+  ldh [rSCX], a
   ld de, 2000
   call gbdk_Delay
 
@@ -1431,13 +1431,13 @@ Evolve:;hl = player, a = player num to evolve to
 
     call gbdk_WaitVBL
     ld a, 128
-    ld [rSCX], a
+    ldh [rSCX], a
     ld de, 50
     call gbdk_Delay
 
     call gbdk_WaitVBL
     xor a
-    ld [rSCX], a
+    ldh [rSCX], a
     ld de, 500
     call gbdk_Delay
 
@@ -1449,9 +1449,9 @@ Evolve:;hl = player, a = player num to evolve to
 .loop2
     call gbdk_WaitVBL
     call gbdk_WaitVBL
-    ld a, [rSCX]
+    ldh a, [rSCX]
     add a, 128
-    ld [rSCX], a
+    ldh [rSCX], a
 
     dec de
     xor a
@@ -1730,8 +1730,8 @@ _ShowLineup:;b = item id, c = restore bg, returns item used in c (0 = not used, 
   CLEAR_SCREEN ' '
 
   xor a
-  ld [rSCX], a
-  ld [rSCY], a
+  ldh [rSCX], a
+  ldh [rSCY], a
 
   ld hl, rOBP1
   ld [hl], %11111000
@@ -1752,9 +1752,9 @@ _ShowLineup:;b = item id, c = restore bg, returns item used in c (0 = not used, 
   ld a, DRAW_FLAGS_BKG | DRAW_FLAGS_PAD_TOP
   call DrawListMenuArrow
 
-  ld a, [rLCDC]
+  ldh a, [rLCDC]
   or LCDCF_BGON | LCDCF_OBJON | LCDCF_ON
-  ld [rLCDC], a
+  ldh [rLCDC], a
   WAITPAD_UP
 .loop
     call UpdateInput

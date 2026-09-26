@@ -1,13 +1,13 @@
 
 MoveCoach:
   xor a
-  ld [rLYC], a
+  ldh [rLYC], a
 
   ld a, [_x]
   ld b, a
   xor a
   sub a, b
-  ld [rSCX], a; SCX_REG = 256-x;
+  ldh [rSCX], a; SCX_REG = 256-x;
   
   xor a
   ld [_j], a
@@ -53,13 +53,13 @@ MoveCoach:
   ret
 
 SlideInLCDInterrupt::
-  ld a, [rLY]
+  ldh a, [rLY]
   cp 56
   jr nc, .checkMoveCoach; if (LY_REG == 0){
     ld a, 56
-    ld [rLYC], a
+    ldh [rLYC], a
     ld a, [_x]
-    ld [rSCX], a
+    ldh [rSCX], a
     ret
 .checkMoveCoach; else if (LY_REG == 56) move_coach();
   ret nz
@@ -67,13 +67,13 @@ SlideInLCDInterrupt::
   ret
 
 SlideOutLCDInterrupt::
-  ld a, [rLY]
+  ldh a, [rLY]
   cp 56
   jr nc, .checkMoveCoach; if (LY_REG == 0){
     ld a, 56
-    ld [rLYC], a
+    ldh [rLYC], a
     xor a
-    ld [rSCX], a
+    ldh [rSCX], a
     ret
 .checkMoveCoach; else if (LY_REG == 56) move_coach();
   ret nz

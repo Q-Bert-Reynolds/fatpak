@@ -723,14 +723,14 @@ ShowRoledexMenu:;returns exit code in a
   ret
 
 ShowRoledexUI::
-  ld a, [rSCX]
+  ldh a, [rSCX]
   ld h, a
-  ld a, [rSCY]
+  ldh a, [rSCY]
   ld l, a
   push hl
   xor a
-  ld [rSCX], a
-  ld [rSCY], a
+  ldh [rSCX], a
+  ldh [rSCY], a
   HIDE_ALL_SPRITES
   HIDE_WIN
   call DrawRoledexBaseUI
@@ -812,7 +812,7 @@ ShowRoledexUI::
   SHOW_WIN
   pop hl
   ld a, h
-  ld [rSCX], a
+  ldh [rSCX], a
   ld a, l
-  ld [rSCY], a
+  ldh [rSCY], a
   ret

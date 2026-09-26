@@ -12,17 +12,17 @@ KeyboardDemo::
   call mem_SetVRAM
 
   ld a, DMG_PAL_BLWW
-  ld [rOBP0], a;normal
+  ldh [rOBP0], a;normal
   ld a, DMG_PAL_WLBW
-  ld [rOBP1], a;highlighted
+  ldh [rOBP1], a;highlighted
 
   DISPLAY_ON
 
 .setupMenu
   ld a, 7
-  ld [rWX], a
+  ldh [rWX], a
   ld a, 104
-  ld [rWY], a
+  ldh [rWY], a
   SHOW_WIN
   
   xor a
@@ -30,7 +30,7 @@ KeyboardDemo::
   ld [_x], a
   ld [_y], a
   ld [kb_scan_code], a
-  ld [rSB], a
+  ldh [rSB], a
   
   TRAMPOLINE DetectKeyboard
 .loop
@@ -51,11 +51,11 @@ KeyboardDemo::
     jr nz, .hideDebug
   .showDebug
     ld a, 104
-    ld [rWY], a
+    ldh [rWY], a
     jp .testBButton
   .hideDebug
     ld a, 144
-    ld [rWY], a
+    ldh [rWY], a
 
   .testBButton
     ld a, [button_state]
@@ -129,7 +129,7 @@ RemoveCharacter::
 
 ToggleKBMode::
   xor a
-  ld [rSC], a;stop transfer
+  ldh [rSC], a;stop transfer
   ld a, [kb_type]
   and a, %0000001
   inc a
@@ -138,5 +138,5 @@ ToggleKBMode::
   cp a, KB_TYPE_PS2
   ret nz
   ld a, SCF_START
-  ld [rSC], a ;ask for more bits using keyboard clock   
+  ldh [rSC], a ;ask for more bits using keyboard clock   
   ret

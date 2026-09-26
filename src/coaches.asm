@@ -135,7 +135,7 @@ PreSetCoachPalettes:: ;a = coach, h=offset, sets VBK, returns pal map in bc, ban
   ld b, a ;bc = pal map
 
   ld a, 1
-  ld [rVBK], a
+  ldh [rVBK], a
 
   pop af;id
   push bc;pal map
@@ -220,7 +220,7 @@ SetCoachPalettes:: ;a = coach, de=xy, h=offset
   call SetBkgTilesWithOffset
 
   xor a
-  ld [rVBK], a
+  ldh [rVBK], a
 
   ld a, [loaded_bank]
   ld [rROMB0], a

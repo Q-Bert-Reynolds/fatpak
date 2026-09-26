@@ -56,25 +56,25 @@ FinishSFX:
   bit 0, a
   jr z, .testChannel2
   xor a
-  ld [rNR12], a ; volume 0
+  ldh [rNR12], a ; volume 0
 .testChannel2
   ld a, [sfx_disable_mask]
   bit 1, a
   jr z, .testChannel3
   xor a
-  ld [rNR22], a ; volume 0
+  ldh [rNR22], a ; volume 0
 .testChannel3
   ld a, [sfx_disable_mask]
   bit 2, a
   jr z, .testChannel4
   xor a
-  ld [rNR32], a ; volume 0
+  ldh [rNR32], a ; volume 0
 .testChannel4
   ld a, [sfx_disable_mask]
   bit 3, a
   ret z
   xor a
-  ld [rNR42], a ; volume 0
+  ldh [rNR42], a ; volume 0
   ret
 
 UpdateSFX:
@@ -137,7 +137,7 @@ REPT 4
 ENDR
 
   ld a, AUDENA_ON
-  ld [rAUDENA], a
+  ldh [rAUDENA], a
   
   ld a, [hl]
   or AUDHIGH_RESTART
@@ -183,10 +183,10 @@ PlaySFX:: ; a = bank, hl = sfx address
   SET_BANK
 
   ld a, AUDENA_ON
-  ld [rAUDENA], a
+  ldh [rAUDENA], a
   ld a,$FF
-  ld [rAUDVOL], a
-  ld [rAUDTERM], a
+  ldh [rAUDVOL], a
+  ldh [rAUDTERM], a
   
   ei
   ret

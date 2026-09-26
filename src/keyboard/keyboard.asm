@@ -73,9 +73,9 @@ DetectKeyboard::
   ld a, KB_TYPE_PS2
   ld [kb_type], a;assume PS2 keyboard connected
   xor a
-  ld [rSB], a
+  ldh [rSB], a
   ld a, SCF_START | SCF_SOURCE
-  ld [rSC], a ;ask for byte using gb clock
+  ldh [rSC], a ;ask for byte using gb clock
   ld de, 5
   call gbdk_Delay
   ld a, [kb_error]
@@ -86,7 +86,7 @@ DetectKeyboard::
   ret
 .usePS2Clock
   ld a, SCF_START
-  ld [rSC], a;ask for bits using keyboard clock 
+  ldh [rSC], a;ask for bits using keyboard clock 
   ret
 
 ProcessKeyCodes::
@@ -104,12 +104,12 @@ ProcessKeyCodes::
 
 ProcessIGKeyCodes:
   xor a
-  ld [rSB], a
+  ldh [rSB], a
   ld a, SCF_START | SCF_SOURCE
-  ld [rSC], a ;ask for byte using gb clock
+  ldh [rSC], a ;ask for byte using gb clock
   ld de, 5
   call gbdk_Delay
-  ld a, [rSB]
+  ldh a, [rSB]
   and a
   ret z
   cp a, $FF

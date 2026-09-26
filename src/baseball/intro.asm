@@ -23,9 +23,9 @@ PlayBallIntro:
   call DrawUIBox
 
   ld a, 7
-  ld [rWX], a
+  ldh [rWX], a
   ld a, 96
-  ld [rWY], a
+  ldh [rWY], a
   SHOW_WIN
 
 .loadCalvin
@@ -146,13 +146,13 @@ PlayBallIntro:
 
 .setupSlideInLoop
   ld a, 160
-  ld [rSCX], a
+  ldh [rSCX], a
   xor a
-  ld [rSCY], a
-  ld [rVBK], a
+  ldh [rSCY], a
+  ldh [rVBK], a
 
   xor a
-  ld [rLYC], a
+  ldh [rLYC], a
   SET_LCD_INTERRUPT SlideInLCDInterrupt
   DISPLAY_ON
 
@@ -268,8 +268,8 @@ PlayBallIntro:
   HIDE_ALL_SPRITES
   call gbdk_WaitVBL
   xor a
-  ld [rSCX], a
-  ld [rSCY], a
+  ldh [rSCX], a
+  ldh [rSCY], a
 
   STR_FAR_COPY PlayBallText, str_buffer
   ld hl, str_buffer

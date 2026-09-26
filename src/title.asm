@@ -22,70 +22,70 @@ ENDC
 DEF PLAYER_INDEX EQU _TITLE_TILE_COUNT+_VERSION_TILE_COUNT
 
 ShowTitleLCDInterrupt::
-  ld a, [rLY]
+  ldh a, [rLY]
   cp 63
   jr c, .dropInTitle
   cp 255
   jr nz, .slideVersion
 .dropInTitle
   ld a, 63
-  ld [rLYC], a
+  ldh [rLYC], a
   xor a
-  ld [rSCX], a
+  ldh [rSCX], a
   ld a, [_y]
-  ld [rSCY], a
+  ldh [rSCY], a
   ret
 .slideVersion
-  ld a, [rLY]
+  ldh a, [rLY]
   cp 63
   jr nz, .scrollPlayers
   ld a, 72
-  ld [rLYC], a
+  ldh [rLYC], a
   ld a, [_x]
-  ld [rSCX], a
+  ldh [rSCX], a
   xor a
-  ld [rSCY], a
+  ldh [rSCY], a
   ret
 .scrollPlayers
-  ld a, [rLY]
+  ldh a, [rLY]
   cp 72
   jr nz, .screenBottom
   ld a, 135
-  ld [rLYC], a
+  ldh [rLYC], a
   ld a, 128
-  ld [rSCX], a
+  ldh [rSCX], a
   xor a
-  ld [rSCY], a
+  ldh [rSCY], a
   ret
 .screenBottom
-  ld a, [rLY]
+  ldh a, [rLY]
   cp 135
   ret nz
   xor a
-  ld [rLYC], a
-  ld [rSCX], a
-  ld [rSCY], a
+  ldh [rLYC], a
+  ldh [rSCX], a
+  ldh [rSCY], a
   ret
 
 CyclePlayersLCDInterrupt::
-  ld a, [rLY]
+  ldh a, [rLY]
   and a
   jr z, .noScroll
   cp 72
   jr nz, .noScroll
   ld a,  135
-  ld [rLYC], a
+  ldh [rLYC], a
   ld a, [_x]
-  ld [rSCX], a
+  ldh [rSCX], a
   ret
 .noScroll
-  ld a, [rLY]
+  ldh a, [rLY]
   cp 135
   ret nz
   ld a, 72
-  ld [rLYC], a
+  ldh [rLYC], a
   xor a
-  ld [rSCX], a
+  ldh [rSCX], a
   ret
 
 ShowPlayer: ;de = player number
@@ -126,7 +126,7 @@ ShowPlayer: ;de = player number
   call SetPalettesDirect
 
   ld a, 72
-  ld [rLYC], a
+  ldh [rLYC], a
   SET_LCD_INTERRUPT CyclePlayersLCDInterrupt
   ret
 
@@ -309,7 +309,7 @@ ShowTitle:
   call SetBkgTilesWithOffset
 
   ld a, 72
-  ld [rLYC], a
+  ldh [rLYC], a
   SET_LCD_INTERRUPT CyclePlayersLCDInterrupt
 
   ld a, 128
@@ -501,7 +501,7 @@ ShowStartMenu: ; puts choice in a ... 0 = back, >0 = choice
 
 Title:: ; puts (c-d-1) in a
   xor a
-  ld [rSCX], a
+  ldh [rSCX], a
 
   DISABLE_LCD_INTERRUPT
 

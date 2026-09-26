@@ -54,9 +54,9 @@ INCLUDE "src/memory1.asm"
   rev_Check_memory1_asm 1.2
 
 MACRO DISPLAY_ON
-  ld a, [rLCDC]
+  ldh a, [rLCDC]
   or LCDCF_ON
-  ld [rLCDC], a
+  ldh [rLCDC], a
 ENDM
 
 MACRO DISPLAY_OFF
@@ -64,51 +64,51 @@ MACRO DISPLAY_OFF
 ENDM
 
 MACRO SHOW_BKG
-  ld a, [rLCDC]
+  ldh a, [rLCDC]
   or LCDCF_BGON
-  ld [rLCDC], a
+  ldh [rLCDC], a
 ENDM
 
 MACRO HIDE_BKG
-  ld a, [rLCDC]
+  ldh a, [rLCDC]
   and ~LCDCF_BGON
-  ld [rLCDC], a
+  ldh [rLCDC], a
 ENDM
 
 MACRO SHOW_WIN
-  ld a, [rLCDC]
+  ldh a, [rLCDC]
   or LCDCF_WINON
-  ld [rLCDC], a
+  ldh [rLCDC], a
 ENDM
 
 MACRO HIDE_WIN
-  ld a, [rLCDC]
+  ldh a, [rLCDC]
   and ~LCDCF_WINON
-  ld [rLCDC], a
+  ldh [rLCDC], a
 ENDM
 
 MACRO SHOW_SPRITES
-  ld a, [rLCDC]
+  ldh a, [rLCDC]
   or LCDCF_OBJON
-  ld [rLCDC], a
+  ldh [rLCDC], a
 ENDM
 
 MACRO HIDE_SPRITES
-  ld a, [rLCDC]
+  ldh a, [rLCDC]
   and ~LCDCF_OBJON
-  ld [rLCDC], a
+  ldh [rLCDC], a
 ENDM
 
 MACRO SPRITES_8x16
-  ld a, [rLCDC]
+  ldh a, [rLCDC]
   or LCDCF_OBJ16
-  ld [rLCDC], a
+  ldh [rLCDC], a
 ENDM
 
 MACRO SPRITES_8x8
-  ld a, [rLCDC]
+  ldh a, [rLCDC]
   and ~LCDCF_OBJ16
-  ld [rLCDC], a
+  ldh [rLCDC], a
 ENDM
 
 ; MBC5
@@ -619,7 +619,7 @@ gbdk_SetupDMATransfer::
 
 .DMATransfer
   ld a, oam_buffer / $100
-  ld [rDMA], a
+  ldh [rDMA], a
   ld a, $28
 .wait
   dec a

@@ -10,18 +10,18 @@ FadeIn::
   
 .fadeInDMG
   ld a, $40
-  ld [rBGP], a
-  ld [rOBP0], a
+  ldh [rBGP], a
+  ldh [rOBP0], a
   ld de, 200
   call gbdk_Delay
   ld a, $90
-  ld [rBGP], a
-  ld [rOBP0], a
+  ldh [rBGP], a
+  ldh [rOBP0], a
   ld de, 200
   call gbdk_Delay
   ld a, DMG_PAL_BDLW
-  ld [rBGP], a
-  ld [rOBP0], a
+  ldh [rBGP], a
+  ldh [rOBP0], a
   ld de, 200
   call gbdk_Delay
   ret
@@ -195,12 +195,12 @@ FadeOut::
 .fadeOutDMGLoop
     sla a
     sla a
-    ld [rBGP], a
-    ld [rOBP0], a
+    ldh [rBGP], a
+    ldh [rOBP0], a
   .delayDMG
     ld de, 200
     call gbdk_Delay
-    ld a, [rBGP]
+    ldh a, [rBGP]
     and a
     jr nz, .fadeOutDMGLoop
   jp .finish

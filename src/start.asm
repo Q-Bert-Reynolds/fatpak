@@ -184,7 +184,7 @@ Start::
   call gbdk_SetBkgTiles
 
   ld a, LCDCF_ON | LCDCF_BLK21 | LCDCF_OBJ8 | LCDCF_OBJOFF | LCDCF_BGON
-  ld [rLCDC], a
+  ldh [rLCDC], a
 
   ld de, 2000
   call gbdk_Delay
@@ -231,7 +231,7 @@ Start::
   call mem_CopyVRAM
 
   ld a, LCDCF_ON | LCDCF_WIN9C00 | LCDCF_BLK21 | LCDCF_OBJ8 | LCDCF_OBJON | LCDCF_BGON
-  ld [rLCDC], a
+  ldh [rLCDC], a
   
   xor a
   ld c, a
@@ -312,7 +312,7 @@ Start::
     UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS .pitchSequence, (PADF_START | PADF_A)
     call gbdk_WaitVBL
     ld a, [hli]
-    ld [rBGP], a
+    ldh [rBGP], a
     ld a, [_y]
     add a, 4
     ld [_y], a
@@ -370,7 +370,7 @@ Start::
     ld a, [_k]
     ld b, a
     add a, 33
-    ld [rSCX], a
+    ldh [rSCX], a
 
     push af
 .setPalette
@@ -493,7 +493,7 @@ Start::
     add hl, bc
     ld a, [hl]
     add a, 160
-    ld [rSCX], a
+    ldh [rSCX], a
 
 .updatePitchingTiles
     pop bc;index

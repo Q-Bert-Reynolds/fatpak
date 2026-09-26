@@ -107,10 +107,10 @@ Main::
   DISPLAY_OFF
   DISABLE_LCD_INTERRUPT
   xor a
-  ld [rSCX], a
-  ld [rSCY], a
-  ld [rWX], a
-  ld [rWY], a
+  ldh [rSCX], a
+  ldh [rSCY], a
+  ldh [rWX], a
+  ldh [rWY], a
   call gbdk_SetupDMATransfer
 
 .initializeRAM
@@ -130,8 +130,8 @@ Main::
   ld hl, rAUDENA
   ld [hl], AUDENA_OFF
   ld a, $FF
-  ld [rAUDTERM], a
-  ld [rAUDVOL], a
+  ldh [rAUDTERM], a
+  ldh [rAUDVOL], a
   
 .setupDrawing
   xor a
@@ -140,7 +140,7 @@ Main::
   SET_DEFAULT_PALETTE
 
   ld a, LCDCF_OFF | LCDCF_WIN9C00 | LCDCF_BLK21 | LCDCF_OBJ8 | LCDCF_OBJON | LCDCF_BGON
-  ld [rLCDC], a
+  ldh [rLCDC], a
 
 .setupSuperGameBoy
   ld a, SGB_BANK
@@ -150,7 +150,7 @@ Main::
 
 .setupInterrupts
   ld a, IEF_VBLANK | IEF_SERIAL
-  ld [rIE], a
+  ldh [rIE], a
   ei
   TRAMPOLINE DetectKeyboard
 
@@ -172,12 +172,12 @@ IF TESTS_ENABLED == 1
   RUN_TESTS
   DISPLAY_OFF
   ld a, 1
-  ld [rVBK], a
+  ldh [rVBK], a
   CLEAR_SCREEN 0
   xor a
-  ld [rSCX], a
-  ld [rSCY], a
-  ld [rVBK], a
+  ldh [rSCX], a
+  ldh [rSCY], a
+  ldh [rVBK], a
 ENDC
 
 .start ;show intro credits, batting animation

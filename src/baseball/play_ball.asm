@@ -1068,9 +1068,9 @@ SetupGameUI:
 Transition:
   call CopyBkgToWin
   ld a, 7
-  ld [rWX], a
+  ldh [rWX], a
   xor a
-  ld [rWY], a
+  ldh [rWY], a
   SHOW_WIN
   ld hl, tile_buffer
   xor a
@@ -1109,7 +1109,7 @@ Transition:
       and a, SYS_INFO_GBC
       jr z, .wait
 
-      ld a, [rVBK]
+      ldh a, [rVBK]
       bit 0, a
       jr nz, .resetVRAMBank;if rVBK == 1, we've already set colors, so we're done
 
@@ -1117,12 +1117,12 @@ Transition:
       xor a
       ld [tile_buffer+1], a
       inc a
-      ld [rVBK], a
+      ldh [rVBK], a
       jp .columnLoop; otherwise, set rVBK to 1 and copy again
 
     .resetVRAMBank
       xor a
-      ld [rVBK], a
+      ldh [rVBK], a
       ld a, '◆'
       ld [tile_buffer+1], a
 
@@ -1159,8 +1159,8 @@ StartGame::
   call SetPalettesIndirect
 
   xor a
-  ld [rSCX], a
-  ld [rSCY], a
+  ldh [rSCX], a
+  ldh [rSCY], a
   CLEAR_SCREEN ' '
   
   call SetPlayBallTiles
@@ -1256,9 +1256,9 @@ ENDC
     jr nz, .runMenuItemSelected
     call CopyBkgToWin
     ld a, 7
-    ld [rWX], a
+    ldh [rWX], a
     xor a
-    ld [rWY], a
+    ldh [rWY], a
     SHOW_WIN
     ld a, INVENTORY_MODE_USE
     ld [inventory_mode], a
