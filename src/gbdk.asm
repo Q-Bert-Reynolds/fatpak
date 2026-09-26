@@ -486,66 +486,22 @@ gbdk_CopyTilesFrom::
 ; input:
 ;   de - number of milliseconds to delay (1 to 65536, 0 = 65536)
 ;
-; registers used: af, de
+; registers used: af, bc, de
 ;***************************************************************************
 DEF _CPMS EQU 4194/4  ; 4.194304 MHz
 gbdk_Delay::
-.delay               ; 6 cycles for the call
-  push bc            ; 4 cycles
-  call .dly          ; 12 cycles to return from .dly (6+1+5)
-  ld b, (_CPMS/20)-2 ; 2 cycles
-; =========
-; 24 cycles
+  ld bc, _CPMS/7         ; 3 cycles
+.loop
+    dec bc                 ; 2 cycles
+    ld a, b                ; 1 cycle
+    or c                   ; 1 cycle
+    jr nz, .loop           ; 3 cycles (2 when false)
 
-.ldlp  jr .ldlp1 ; 3 cycles
-.ldlp1 jr .ldlp2 ; 3 cycles
-.ldlp2 jr .ldlp3 ; 3 cycles
-.ldlp3 jr .ldlp4 ; 3 cycles
-.ldlp4 jr .ldlp5 ; 3 cycles
-.ldlp5 dec b     ; 1 cycle
-     jp nz, .ldlp ; 3 cycles (if true: 4 cycles)
-     nop          ; 1 cycle
-; =========
-; 20 cycles
-
-; exit in 16 cycles
-       pop bc    ; 3 cycles
-       jr .ldlp6 ; 3 cycles
-.ldlp6 jr .ldlp7 ; 3 cycles
-.ldlp7 jr .ldlp8 ; 3 cycles
-.ldlp8 ret       ; 4 cycles
-; =========
-; 16 cycles
-
-; delay all but last millisecond
-.dly
-  dec de             ; 2 cycles
-  ld a,e             ; 1 cycle
-  or d               ; 1 cycle
-  ret z              ; 2 cycles (upon return: 5 cycles)
-  ld b, (_CPMS/20)-1 ; 2 cycles
-; =========
-; 8 cycles
-
-.dlp  jr .dlp1     ; 3 cycles
-.dlp1 jr .dlp2     ; 3 cycles
-.dlp2 jr .dlp3     ; 3 cycles
-.dlp3 jr .dlp4     ; 3 cycles
-.dlp4 jr .dlp5     ; 3 cycles
-.dlp5 dec  b       ; 1 cycle
-      jp nz, .dlp  ; 3 cycles (if true: 4 cycles)
-      nop          ; 1 cycle
-; =========
-; 20 cycles
-  
-; exit in 15 cycles
-      jr .dlp6 ; 3 cycles
-.dlp6 jr .dlp7 ; 3 cycles
-.dlp7 jr .dlp8 ; 3 cycles
-.dlp8 jr .dly  ; 3 cycles
-; =========
-; 12 cycles
-ret
+  dec de                 ; 2 cycles
+  ld a, d                ; 1 cycle
+  or e                   ; 1 cycle
+  jr nz, gbdk_Delay      ; 3 cycles
+  ret                    ; 4 cycles
 
 ;***************************************************************************
 ;

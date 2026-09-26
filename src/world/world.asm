@@ -349,10 +349,10 @@ CheckPlayerCollision:;returns z if no collision (also in a)
   ld a, [map_collision_type]
   cp a, MAP_COLLISION_GRASS
   jr z, .noCollision
-  cp a, MAP_COLLISION_NONE
-  jr z, .noCollision
   cp a, MAP_COLLISION_DOOR
   jr z, .noCollision
+  cp a, MAP_COLLISION_NONE
+  ret z
   cp a, MAP_COLLISION_ITEM
   jr z, .solid
   cp a, MAP_COLLISION_SOLID
