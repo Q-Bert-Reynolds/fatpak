@@ -3,7 +3,6 @@ SECTION "Core", ROM0
 INCLUDE "data/strings/core_strings.asm"
 ; GetTypeString                   a = type, string in name_buffer
 ; GetStatusString                 a = status mask, string in name_buffer
-; CopyAddressStoredAtBCToBC       bc = address of address, returns address stored at bc in bc
 ; Trampoline                      b = bank, hl = address, can only use a, e, and RAM for args, can return in any register
 ; UpdateInput
 ; DrawStateMap
@@ -65,17 +64,6 @@ GetStatusString:: ;a = status mask, string in name_buffer
   call str_FromArray
   ld de, name_buffer
   call str_Copy
-  ret
-
-;TODO: perhaps this should be a macro instead
-CopyAddressStoredAtBCToBC::;bc = address of address, returns address stored at bc in bc, uses a
-  ld a, [bc];lower byte
-  inc bc
-  push af;lower byte
-  ld a, [bc];upper byte
-  ld b, a
-  pop af;lower byte
-  ld c, a
   ret
   
 Trampoline:: ;b = bank, hl = address, can use a,e, and RAM for args, can return in any register
@@ -177,15 +165,11 @@ UpdateTime::
 .incrementHours
   xor a
   ld [minutes], a
-  ld a, [hours]
-  ld h, a
-  ld a, [hours+1]
-  ld l, a
-  inc hl
-  ld a, h
-  ld [hours], a
-  ld a, l
-  ld [hours+1], a
+  ld hl, hours+1 ;low byte
+  inc [hl] ;increment low byte inplace
+  ret nz ;done if no overflow
+  dec hl ;high byte
+  inc [hl]
   ret
  
 UpdateInput::;https://gbdev.io/pandocs/Joypad_Input.html
@@ -872,18 +856,21 @@ SetMovePPTiles::;a = move, b = move mask, de = player, hl = tile address
 
   ret
 
+;TODO: This is only ever used in CopyBkgToWin. Should be inlined. 
 ScrollXYToTileXY::;returns xy in de
+  ld e, %00011111
   ld a, [rSCX]
   rra;x/2
   rra;x/4
   rra;x/8
-  ld d, a ; x
-  
+  and a, e;clear carry bits
+  ld d, a ;x
   ld a, [rSCY]
   rra;x/2
   rra;x/4
   rra;x/8
-  ld e, a ; y
+  and a, e;clear carry bits
+  ld e, a ;y
   ret
 
 DistanceToScreenOrVRAMEdge::;tile xy in de, returns wh in hl
@@ -1261,12 +1248,12 @@ SetPalettesDirect::;a = SGB packet header, bc = paletteA, de = paletteB
 
 ;TODO: SGB palette matching should be handled better than this
 GBCSetPalette::;a = palette id, hl = colors
-  sla a
-  sla a
-  sla a
+  add a, a
+  add a, a
+  add a, a
   or a, BCPSF_AUTOINC
-  ld [rBCPS], a
-  ld [rOCPS], a
+  ldh [rBCPS], a
+  ldh [rOCPS], a
   ld a, 8;4 colors, 2 bytes each
 .loopColors
     push af

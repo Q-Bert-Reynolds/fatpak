@@ -376,7 +376,12 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     jr .clearRemainingOAM
   .spriteAvatar
     push de;map sprite buffer
-    call CopyAddressStoredAtBCToBC;bc = avatar address
+    ld a, [bc];lower byte
+    ld d, a;lower byte
+    inc bc
+    ld a, [bc];upper byte
+    ld b, a
+    ld c, d
     ld a, [_a];extra data
     ld d, a
     call CopyMapAvatarToOAMBuffer
@@ -386,8 +391,13 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     jp nz, .loopMapSprites
     jr .clearRemainingOAM
   .spriteStamp
-    call CopyAddressStoredAtBCToBC;bc = stamp address
     push de;map sprite buffer
+    ld a, [bc];lower byte
+    ld d, a;lower byte
+    inc bc
+    ld a, [bc];upper byte
+    ld b, a
+    ld c, d
     call CopySpriteStampToOAMBuffer;bc = stamp, hl = OAM buffer, returns next OAM buffer slot in hl
     pop de;map sprite buffer
     pop af;count
