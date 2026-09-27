@@ -64,9 +64,9 @@ MACRO MOVE_PLAYER;\1 = animation address, \2 = map move routine, \3 = map draw r
     pop af;steps left
     dec a
     jr nz, .loop
-  ld a, [map_steps]
+  ldh a, [map_steps]
   inc a
-  ld [map_steps], a
+  ldh [map_steps], a
   ret
 ENDM
 
@@ -78,7 +78,7 @@ MoveRight: MOVE_PLAYER GBStampAnimationCalvinWalkRight, MoveMapRight
 Look:;a = button_state
   ld [_a], a
   xor a
-  ld [map_anim_frame], a
+  ldh [map_anim_frame], a
 .checkUp
   ld a, [_a]
   and a, PADF_UP
@@ -136,10 +136,10 @@ Move:;a = button_state
   ret 
   
 AnimatePlayerAvatar:;hl = animation
-  ld a, [map_anim_frame]
+  ldh a, [map_anim_frame]
   ld b, 0
   call AnimateAvatar
-  ld [map_anim_frame], a
+  ldh [map_anim_frame], a
 
   ;TODO: player palette should be index 0, remove code below 
   ld a, 4
@@ -160,7 +160,7 @@ AnimatePlayerAvatar:;hl = animation
 SetupAvatarAnimation:;returns step count in a, collision found in b, type in c
   call CheckPlayerCollision
   ld b, a
-  ld a, [map_collision_type]
+  ldh a, [map_collision_type]
   ld c, a
   cp a, MAP_COLLISION_LEDGE
   ld a, MAP_STEP_SIZE
@@ -194,7 +194,7 @@ EnterDoor::
   ld hl, PaletteCalvin
   ld a, 7
   call GBCSetPalette
-  ld a, [map_collision_data]
+  ldh a, [map_collision_data]
   call EnterMapDoor
   call ShowPlayerAvatar
   TRAMPOLINE FadeIn
@@ -300,16 +300,16 @@ ShowPauseMenu::
   ret
 
 CheckPlayerCollision:;returns z if no collision (also in a)
-  ld a, [last_map_button_state]
+  ldh a, [map_last_button_state]
   and a, PADF_UP
   jr nz, .up
-  ld a, [last_map_button_state]
+  ldh a, [map_last_button_state]
   and a, PADF_DOWN
   jr nz, .down
-  ld a, [last_map_button_state]
+  ldh a, [map_last_button_state]
   and a, PADF_LEFT
   jr nz, .left
-  ld a, [last_map_button_state]
+  ldh a, [map_last_button_state]
   and a, PADF_RIGHT
   jr nz, .right
 .noCollision
@@ -338,15 +338,15 @@ CheckPlayerCollision:;returns z if no collision (also in a)
   call GetScreenCollision
   push af
   and a, MAP_OBJ_TYPE_MASK
-  ld [map_obj_type], a
+  ldh [map_obj_type], a
   ld a, c
-  ld [map_sprite_collision_index], a
+  ldh [map_sprite_collision_index], a
   pop af
   and a, MAP_COLLISION_MASK
-  ld [map_collision_type], a
+  ldh [map_collision_type], a
   ld a, b
-  ld [map_collision_data], a
-  ld a, [map_collision_type]
+  ldh [map_collision_data], a
+  ldh a, [map_collision_type]
   cp a, MAP_COLLISION_GRASS
   jr z, .noCollision
   cp a, MAP_COLLISION_DOOR
@@ -367,14 +367,14 @@ CheckPlayerCollision:;returns z if no collision (also in a)
   cp a, MAP_COLLISION_WATER
   jr z, .solid;TODO: add swimming
 .checkLedgeMove;all other collision types already handled
-  ld a, [map_collision_data];directions allowed
+  ldh a, [map_collision_data];directions allowed
   cpl;flip bits
   ld b, a;directions stopped
-  ld a, [last_map_button_state]
+  ldh a, [map_last_button_state]
   and a, b
   ret z
   ld a, MAP_COLLISION_SOLID
-  ld [map_collision_type], a
+  ldh [map_collision_type], a
   ret
 .solid
   ld a, 1
@@ -383,11 +383,11 @@ CheckPlayerCollision:;returns z if no collision (also in a)
 
 CheckActions:
   call CheckPlayerCollision
-  ld a, [map_obj_type]
+  ldh a, [map_obj_type]
   cp a, MAP_OBJ_AVATAR
   jr nz, .checkCollisionType
 .foundAvatar
-  ld a, [map_sprite_collision_index]
+  ldh a, [map_sprite_collision_index]
   ld de, MAP_SPRITE_SIZE
   call math_Multiply;hl = map sprite index * map sprite size
   ld de, map_sprite_buffer+3
@@ -428,9 +428,9 @@ CheckActions:
   ld [hl], a
   call CopyMapSpritesToOAMBuffer
 .checkCollisionType
-  ld a, [map_collision_data]
+  ldh a, [map_collision_data]
   ld b, a
-  ld a, [map_collision_type]
+  ldh a, [map_collision_type]
   cp a, MAP_COLLISION_ITEM
   jp z, PickUpMapItem
   cp a, MAP_COLLISION_TEAM
@@ -454,7 +454,7 @@ ShowPlayerAvatar:
   ld l, 2
   ld a, 0
   call MoveSprites ;bc = xy in screen space, hl = wh in tiles, a = first sprite index
-  ld a, [last_map_button_state]
+  ldh a, [map_last_button_state]
   call Look
   SHOW_SPRITES
   ret 
@@ -471,12 +471,12 @@ LoadAvatarSprites:;NOTE: this should be done BEFORE setting GBC map palettes
   ret
 
 CheckRandomEncounter:;TODO get available players and age range from grass in exported object
-  ld a, [map_steps]
+  ldh a, [map_steps]
   and a
   ret z;hasn't made a step yet
 
   call CheckPlayerCollision.center
-  ld a, [map_collision_type]
+  ldh a, [map_collision_type]
   and a, MAP_COLLISION_GRASS
   ret z;not on the grass
 
@@ -540,10 +540,10 @@ Overworld::
   PLAY_SONG hurrah_for_our_national_game_data, 1
   
   ld a, 1
-  ld [map_scroll_speed], a
+  ldh [map_scroll_speed], a
   xor a
   ld [list_selection], a
-  ld [map_steps], a
+  ldh [map_steps], a
 
   call DrawMapToScreen
 
@@ -556,7 +556,7 @@ Overworld::
     ld a, [button_state]
     and a, PADF_UP | PADF_DOWN | PADF_LEFT | PADF_RIGHT
     jr z, .checkStart
-    ld [last_map_button_state], a
+    ldh [map_last_button_state], a
   .checkStart
     ld a, [button_state]
     and a, PADF_START

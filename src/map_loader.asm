@@ -3,7 +3,32 @@ DEF MAP_LOADER EQU 1
 
 INCLUDE "src/beisbol.inc"
 
-SECTION "Map Loader", ROM0
+
+SECTION "Map Loader HRAM", HRAM
+map_last_button_state:: DB
+map_anim_frame:: DB
+map_steps:: DB
+map_obj_type:: DB
+map_collision_type:: DB
+map_collision_data:: DB
+map_sprite_collision_index:: DB
+map_scroll_speed:: DB
+map_sprite_count:: DB
+map_min_x:: DB
+map_min_y:: DB
+map_max_x:: DB
+map_max_y:: DB
+map_temp_a: DB
+map_temp_b: DB
+map_temp_c: DB
+map_temp_d: DB
+map_temp_type: DB
+map_temp_height: DB
+map_temp_width: DB
+map_temp_x: DB
+map_temp_y: DB
+
+SECTION "Map Loader Code", ROM0
 INCLUDE "maps/map_stamps.gbstamp";TODO: move this out of ROM0
 
 ; ROUTINES THAT SWITCH TO A BANK, DO SOME WORK, AND SWITCH BACK
@@ -105,7 +130,7 @@ EnterMapDoor::;a = door index
   ld a, [hli]
   ld [map_y], a
   ld a, [hl]
-  ld [last_map_button_state], a
+  ldh [map_last_button_state], a
 
   call SetMapTiles
   call SetMapPalettes
@@ -221,7 +246,7 @@ GetMapAddress: ;address index in [map_collision_data], switches to bank of addre
   ld b, a
   push bc;scripts address
   
-  ld a, [map_collision_data]
+  ldh a, [map_collision_data]
   ld de, 3;bank (1 byte) + address (2 bytes)
   call math_Multiply
   pop bc;scripts address
@@ -300,7 +325,7 @@ GetMapArea:: ;sets bank to current map, returns current chunk's area in hl
 
 ClearMapSprites::
   xor a
-  ld [map_sprite_count], a
+  ldh [map_sprite_count], a
   ld hl, oam_buffer+4*4
   ld bc, 36*4
   call mem_Set
@@ -315,7 +340,7 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
   push af;current bank
   ld hl, oam_buffer+16;4 sprites for user avatar * 4 bytes per sprite
   ld de, map_sprite_buffer
-  ld a, [map_sprite_count]
+  ldh a, [map_sprite_count]
   and a
   jp z, .clearRemainingOAM
 .loopMapSprites
@@ -348,12 +373,12 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     BETWEEN 192, 224
     ld a, c
     jp nz, .offScreenY
-    ld [_y], a
+    ldh [map_temp_y], a
     ld a, b;x
-    ld [_x], a
+    ldh [map_temp_x], a
     inc de
     ld a, [de];extra data
-    ld [_a], a;extra data
+    ldh [map_temp_a], a;extra data
     inc de;next map sprite
     pop bc;map sprite address
     ld a, [bc];map object type/collision flags
@@ -382,7 +407,7 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     ld a, [bc];upper byte
     ld b, a
     ld c, d
-    ld a, [_a];extra data
+    ldh a, [map_temp_a];extra data
     ld d, a
     call CopyMapAvatarToOAMBuffer
     pop de;map sprite buffer
@@ -405,9 +430,9 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     jp nz, .loopMapSprites
     jr .clearRemainingOAM
   .spriteTile
-    ld a, [_y]
+    ldh a, [map_temp_y]
     ld [hli], a;y
-    ld a, [_x]
+    ldh a, [map_temp_x]
     ld [hli], a;x
     ld a, [bc];tile
     ld [hli], a;tile
@@ -443,9 +468,9 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
   dec de;[upper map sprite address]
   dec de;[lower map sprite address]
   dec de;[bank], sprite to be removed
-  ld a, [map_sprite_count]
+  ldh a, [map_sprite_count]
   dec a
-  ld [map_sprite_count], a
+  ldh [map_sprite_count], a
   jr z, .empty
 .moveLastToRemovedAddress;map_sprite_buffer + (map_sprite_count * MAP_SPRITE_SIZE)
   push de;removed sprite address
@@ -485,34 +510,34 @@ ENDR
   pop af;discard sprites left
   jp .clearRemainingOAM
 
-CopySpriteStampToOAMBuffer:;a = count, bc = stamp, hl = OAM buffer, [_x][_y] = position, returns count in a, sets z if count is 0
+CopySpriteStampToOAMBuffer:;a = count, bc = stamp, hl = OAM buffer, [map_temp_x][map_temp_y] = position, returns count in a, sets z if count is 0
   ld a, [bc];stamp width
-  ld [_w], a
+  ldh [map_temp_width], a
   sla a
   sla a;8px * width / 2
   ld d, a
-  ld a, [_x];x
+  ldh a, [map_temp_x];x
   sub a, d
   add a, 8
   ld d, a
   inc bc
 
   ld a, [bc];stamp height
-  ld [_v], a
+  ldh [map_temp_height], a
   sla a
   sla a;8px * height / 2
   ld e, a
-  ld a, [_y];y
+  ldh a, [map_temp_y];y
   sub a, e
   ld e, a
   inc bc
 
   push hl;OAM buffer
-  ld a, [_v];height
+  ldh a, [map_temp_height]
 .loopTilesY
     push af;height
     push de;xy
-    ld a, [_w];width
+    ldh a, [map_temp_width]
   .loopTilesX
       push af;width
       push de;xy
@@ -540,10 +565,10 @@ CopySpriteStampToOAMBuffer:;a = count, bc = stamp, hl = OAM buffer, [_x][_y] = p
     jr nz, .loopTilesY
 
   pop hl;OAM buffer
-  ld a, [_v];height
+  ldh a, [map_temp_height]
 .loopPropsY
     push af;height
-    ld a, [_w];width
+    ldh a, [map_temp_width]
   .loopPropsX
       push af;width
       inc hl;skip y
@@ -592,13 +617,13 @@ CopyMapAvatarToOAMBuffer::;hl = oam buffer address, bc = avatar address, d = ext
   pop hl;oam address
 .moveToPosition
   ld d, 8
-  ld a, [_x];x
+  ldh a, [map_temp_x];x
   sub a, d
   add a, 8
   ld d, a
 
   ld e, 8
-  ld a, [_y];y
+  ldh a, [map_temp_y];y
   sub a, e
   ld e, a
   
@@ -761,10 +786,10 @@ GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, ob
   pop bc;chunk address
   ld a, d
   srl a
-  ld [_x], a
+  ldh [map_temp_x], a
   ld a, e
   srl a
-  ld [_y], a
+  ldh [map_temp_y], a
   ld hl, MAP_CHUNK_DATA
   add hl, bc
 .loop
@@ -804,10 +829,10 @@ GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, ob
     inc hl;skip tile/char/stringID
     inc hl;skip palette
   .blankFill
-    ld a, [_x]
+    ldh a, [map_temp_x]
     cp a, d;x1
     jr c, .skip2Bytes
-    ld a, [_y]
+    ldh a, [map_temp_y]
     cp a, e;y1
     jr c, .skip2Bytes
     ld a, [hli];x2
@@ -818,10 +843,10 @@ GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, ob
     inc a
     srl a
     ld e, a
-    ld a, [_x]
+    ldh a, [map_temp_x]
     cp a, d;x2
     jp nc, .checkExtraData
-    ld a, [_y]
+    ldh a, [map_temp_y]
     cp a, e;y2
     jp c, .collisonFound
     jp .checkExtraData
@@ -830,19 +855,19 @@ GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, ob
     inc hl;skip tile or stamp lower address
     inc hl;skip palete or stamp upper address
   .blankTile
-    ld a, [_x]
+    ldh a, [map_temp_x]
     cp a, d;x
     jp nz, .checkExtraData
-    ld a, [_y]
+    ldh a, [map_temp_y]
     cp a, e;y
     jp z, .collisonFound
     jp .checkExtraData
 
   .stamp
-    ld a, [_x]
+    ldh a, [map_temp_x]
     cp a, d;x
     jr c, .skip2Bytes
-    ld a, [_y]
+    ldh a, [map_temp_y]
     cp a, e;y
     jr c, .skip2Bytes
     ld a, [hli];stamp lower address
@@ -855,7 +880,7 @@ GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, ob
     inc bc
     add a, d;x+width
     ld d, a;x2
-    ld a, [_x]
+    ldh a, [map_temp_x]
     cp a, d;x2
     jp nc, .checkExtraData
     ld a, [bc];height
@@ -863,7 +888,7 @@ GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, ob
     srl a
     add a, e;y+height
     ld e, a;y2
-    ld a, [_y]
+    ldh a, [map_temp_y]
     cp a, e;y2
     jp c, .collisonFound
     jp .checkExtraData
@@ -903,7 +928,7 @@ GetMapChunkCollision:;hl = chunk address, de = xy, returns z if no collision, ob
 
 GetSpriteCollision::;de = tile xy, returns z if no collision, obj/collision type in a, extra data in [hl], map sprite index or -1 in c
   ld c, -1
-  ld a, [map_sprite_count]
+  ldh a, [map_sprite_count]
   and a
   ret z;done if no sprites in buffer
   
@@ -915,7 +940,7 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, obj/collision type
 
   PUSH_VAR loaded_bank
   ld hl, map_sprite_buffer
-  ld a, [map_sprite_count]
+  ldh a, [map_sprite_count]
 .loop
     push af;count
     ld a, [hli];bank
@@ -958,7 +983,7 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, obj/collision type
 .finish
   pop af;count
   ld c, a
-  ld a, [map_sprite_count]
+  ldh a, [map_sprite_count]
   sub a, c
   ld c, a;sprite index
   POP_VAR loaded_bank
@@ -973,7 +998,7 @@ MoveMapLeft::
   push af;current bank
   call GetCurrentMap
   SET_BANK
-  ld a, [map_scroll_speed]
+  ldh a, [map_scroll_speed]
   ld b, a
   ldh a, [rSCX]
   sub a, b
@@ -1005,7 +1030,7 @@ MoveMapRight::
   push af;current bank
   call GetCurrentMap
   SET_BANK
-  ld a, [map_scroll_speed]
+  ldh a, [map_scroll_speed]
   ld b, a
   ldh a, [rSCX]
   add a, b
@@ -1037,7 +1062,7 @@ MoveMapUp::
   push af;current bank
   call GetCurrentMap
   SET_BANK
-  ld a, [map_scroll_speed]
+  ldh a, [map_scroll_speed]
   ld b, a
   ldh a, [rSCY]
   sub a, b
@@ -1069,7 +1094,7 @@ MoveMapDown::
   push af;current bank
   call GetCurrentMap
   SET_BANK
-  ld a, [map_scroll_speed]
+  ldh a, [map_scroll_speed]
   ld b, a
   ldh a, [rSCY]
   add a, b
@@ -1435,15 +1460,15 @@ DrawMapChunk::; hl = chunk address, de=xy, bc=wh
 
 .storeMinMax
   ld a, d
-  ld [min_x], a;minX
+  ldh [map_min_x], a;minX
   ld a, e
-  ld [min_y], a;minY
+  ldh [map_min_y], a;minY
   ld a, b
   add a, d;x+w
-  ld [max_x], a;maxX
+  ldh [map_max_x], a;maxX
   ld a, c
   add a, e;y+h
-  ld [max_y], a;maxY
+  ldh [map_max_y], a;maxY
   xor a
   ldh [rVBK], a
 .setChunkTile
@@ -1535,10 +1560,10 @@ DrawMapChunk::; hl = chunk address, de=xy, bc=wh
     ret z
     ld b, a
     and a, MAP_OBJ_TYPE_MASK
-    ld [_t], a
+    ldh [map_temp_type], a
     ld a, b
     and a, MAP_COLLISION_MASK
-    ld [_c], a;collision type
+    ldh [map_temp_c], a;collision type
 
   .testItem
     cp a, MAP_COLLISION_ITEM
@@ -1587,7 +1612,7 @@ DrawMapChunk::; hl = chunk address, de=xy, bc=wh
     ld hl, map_sprite_buffer
     ld a, [loaded_bank]
     ld b, a;bank
-    ld a, [map_sprite_count]
+    ldh a, [map_sprite_count]
     and a
     jr z, .addSpritesToBuffer
     pop de;current sprite address
@@ -1616,9 +1641,9 @@ DrawMapChunk::; hl = chunk address, de=xy, bc=wh
       jr nz, .loopMapSprites
 
   .addSpritesToBuffer;hl = next map sprite address
-    ld a, [map_sprite_count]
+    ldh a, [map_sprite_count]
     inc a
-    ld [map_sprite_count], a
+    ldh [map_sprite_count], a
     pop de;current sprite address
     ld a, [loaded_bank]
     ld [hli], a;bank
@@ -1635,7 +1660,7 @@ DrawMapChunk::; hl = chunk address, de=xy, bc=wh
     inc de;tile or stamp lower
     inc de;pal or stamp upper
     inc de;next (or extra data)
-    ld a, [_t]
+    ldh a, [map_temp_type]
     cp a, MAP_OBJ_AVATAR
     jr nz, .initMapSpriteExtraData
     ld a, [de]
@@ -1656,12 +1681,12 @@ DrawMapChunk::; hl = chunk address, de=xy, bc=wh
     inc hl;skip tile or stamp lower
     inc hl;skip palette or stamp upper
   .checkExtraSpriteData
-    ld a, [_t]
+    ldh a, [map_temp_type]
     cp a, MAP_OBJ_AVATAR
     jr nz, .checkSpriteCollisionData
     inc hl ;skip avatar extra data
   .checkSpriteCollisionData
-    ld a, [_c]
+    ldh a, [map_temp_c]
     cp a, MAP_COLLISION_WATER;everything but none and solid have extra data
     jp c, .loadSpritesLoop
   .spriteHasExtraData
@@ -1670,12 +1695,12 @@ DrawMapChunk::; hl = chunk address, de=xy, bc=wh
 
 TestMapObjectMinXY:; de = xy, max XY in max_x,max_y, returns xy in de, sets z if out of range
 .testMinX
-  ld a, [max_x];chunk maxX
+  ldh a, [map_max_x];chunk maxX
   cp a, d;stamp minX
   jr c, .outOfRange;chunk maxX < stamp minX
   ret z;.outOfRange;chunk maxX == stamp minX
 .testMinY
-  ld a, [max_y];chunk maxY
+  ldh a, [map_max_y];chunk maxY
   cp a, e;stamp minY
   jr c, .outOfRange;chunk maxY < stamp minY
   ret z;.outOfRange;chunk maxY == stamp minY
@@ -1687,12 +1712,12 @@ TestMapObjectMinXY:; de = xy, max XY in max_x,max_y, returns xy in de, sets z if
 
 TestMapObjectMaxXY:; hl = xy, min XY in min_x,min_y, returns xy in hl, sets z if out of range
 .testMaxX
-  ld a, [min_x];chunk minX
+  ldh a, [map_min_x];chunk minX
   cp a, h;stamp maxX
   ret z;.outOfRange;chunk minX == stamp maxX
   jp nc, .outOfRange;chunk minX > stamp maxX
 .testMaxY
-  ld a, [min_y];chunk minX
+  ldh a, [map_min_y];chunk minX
   cp a, l;stamp maxy
   ret z;.outOfRange;chunk minY == stamp maxY
   jp nc, .outOfRange;chunk minY > stamp maxY
@@ -1759,41 +1784,41 @@ DrawMapStampFill:;hl = stamp fill data, de = xy, min/max XY in min_x,min_y,max_x
   ret
 
 DrawMapTileFill:;a = map obj type, hl = tile fill data, de = xy, min/max XY in min_x,min_y,max_x,max_y
-  ld [_c], a;map obj type
+  ldh [map_temp_c], a;map obj type
   ld bc, 0
 .testX
-  ld a, [max_x];maxX
+  ldh a, [map_max_x];maxX
   cp a, d;x
   jp c, .outOfRange;maxX < x
   jp z, .outOfRange;maxX == x
-  ld a, [min_x];minX
+  ldh a, [map_min_x];minX
   cp a, d
   jr c, .testY
   ld d, a
 .testY
-  ld a, [max_y];maxY
+  ldh a, [map_max_y];maxY
   cp a, e;y
   jp c, .outOfRange;maxY < y
   jp z, .outOfRange;maxY == y
-  ld a, [min_y];minY
+  ldh a, [map_min_y];minY
   cp a, e
   jr c, .draw
   ld e, a
 .draw
   ld a, [hli];tile/char/string
-  ld [_a], a
+  ldh [map_temp_a], a
   ld a, [hli];palette
-  ld [_b], a
+  ldh [map_temp_b], a
   ld a, [hli];fill maxX
   ld b, a;fill maxX
-  ld a, [max_x];chunk maxX
+  ldh a, [map_max_x];chunk maxX
   cp a, b
   jr nc, .skipMaxXTruncate;chunk maxX >= fill maxX
   ld b, a;fill maxX = chunk maxX
 .skipMaxXTruncate
   ld a, [hli];fill maxY
   ld c, a;fill maxY
-  ld a, [max_y];chunk maxY
+  ldh a, [map_max_y];chunk maxY
   cp a, c
   jr nc, .skipMaxYTruncate;chunk maxY >= fill maxY
   ld c, a;fill maxY = chunk maxY
@@ -1809,7 +1834,7 @@ DrawMapTileFill:;a = map obj type, hl = tile fill data, de = xy, min/max XY in m
   ret z;if height==0
   ld c, a
   push hl;next map object
-  ld a, [_a];tile
+  ldh a, [map_temp_a];tile
   push de;xy
   push bc;wh
 .singleTile
@@ -1823,7 +1848,7 @@ DrawMapTileFill:;a = map obj type, hl = tile fill data, de = xy, min/max XY in m
   jr z, .nextMapObject
   ld a, 1
   ldh [rVBK], a
-  ld a, [_b];palette
+  ldh a, [map_temp_b];palette
   ld hl, _SCRN0
   call gbdk_SetTilesTo
   xor a
@@ -1909,39 +1934,39 @@ ClipStamp:
   push de;xy
   push bc;stamp tiles
 
-  ld a, [min_x];chunk minX
+  ldh a, [map_min_x];chunk minX
   sub a, d;stamp minX
   jr nc, .setMinX
   xor a
 .setMinX
-  ld [_a], a;x offset
+  ldh [map_temp_a], a;x offset
   ld b, a
 
-  ld a, [min_y];chunk minY
+  ldh a, [map_min_y];chunk minY
   sub a, e;stamp minY
   jr nc, .setMinY
   xor a
 .setMinY
-  ld [_b], a;y offset
+  ldh [map_temp_b], a;y offset
   ld c, a
 
-  ld a, [max_x];chunk maxX
+  ldh a, [map_max_x];chunk maxX
   cp a, h;stamp maxX
   jr c, .setClippedWidth;chunk maxX >= stamp maxX
   ld a, h;maxX
 .setClippedWidth
   sub a, d;maxX - stamp minX
   sub a, b;maxX - stamp minX - x offset
-  ld [_c], a;clipped width
+  ldh [map_temp_c], a;clipped width
 
-  ld a, [max_y];chunk maxY
+  ldh a, [map_max_y];chunk maxY
   cp a, l;stamp maxY
   jr c, .setClippedHeight;chunk maxY >= stamp maxY
   ld a, l;maxY
 .setClippedHeight
   sub a, e;maxY - stamp minY
   sub a, c;maxY - stamp minY - y offset
-  ld [_d], a;clipped height
+  ldh [map_temp_d], a;clipped height
 
 .setFullWidthHeight;in hl
   ld a, h
@@ -1953,7 +1978,7 @@ ClipStamp:
 
 .copyTilesToBuffer
   push de;wh
-  ld a, [_b];clip y
+  ldh a, [map_temp_b];clip y
   ld e, a
   ld a, d;full width
   ld d, 0;de = clip y
@@ -1965,7 +1990,7 @@ ClipStamp:
   push hl;stamp tiles start
   add hl, bc;stamp tiles + y clip * width
   ld b, 0
-  ld a, [_a];x
+  ldh a, [map_temp_a];x
   ld c, a
   add hl, bc;stamp tiles + y clip * width + x clip
   pop bc;stamp tiles
@@ -1976,11 +2001,11 @@ ClipStamp:
   ld e, d
   ld d, 0;de = full width
   push af;full height
-  ld a, [_d];clip height
+  ldh a, [map_temp_d];clip height
 .loopTilemapRows
     push af;rows left
     push hl;stamp tiles
-    ld a, [_c];clip width
+    ldh a, [map_temp_c];clip width
   .loopTilemapColumns
       push af;columns left
       ld a, [hli]
@@ -2026,11 +2051,11 @@ ClipStamp:
   pop hl;stamp tiles+offset
   add hl, bc;palette start + offset = stamp tiles + offset + full width * full height
   ld bc, tile_buffer
-  ld a, [_d];clip height
+  ldh a, [map_temp_d];clip height
 .loopPalettemapRows
     push af;rows left
     push hl;stamp tiles
-    ld a, [_c];clip width
+    ldh a, [map_temp_c];clip width
   .loopPalettemapColumns
       push af;columns left
       ld a, [hli]
@@ -2051,34 +2076,34 @@ ClipStamp:
 
 .done
   pop de;xy
-  ld a, [_a]
+  ldh a, [map_temp_a]
   add a, d
   ld d, a;x
-  ld a, [_b]
+  ldh a, [map_temp_b]
   add a, e
   ld e, a;y
-  ld a, [_c]
+  ldh a, [map_temp_c]
   ld h, a;w
-  ld a, [_d]
+  ldh a, [map_temp_d]
   ld l, a;h
   ret
 
 DrawMapTile:;hl = tile data, de = xy, min/max XY in min_x,min_y,max_x,max_y
 .testX
-  ld a, [max_x];maxX
+  ldh a, [map_max_x];maxX
   cp a, d;x
   jr c, .tileOutOfRange;maxX < x
   jr z, .tileOutOfRange;maxX == x
-  ld a, [min_x];minX
+  ldh a, [map_min_x];minX
   cp a, d;x
   jr z, .testY;minX == x
   jr nc, .tileOutOfRange;minX > x
 .testY
-  ld a, [max_y];maxY
+  ldh a, [map_max_y];maxY
   cp a, e;y
   jr c, .tileOutOfRange;maxY < y
   jr z, .tileOutOfRange;maxY == y
-  ld a, [min_y];minY
+  ldh a, [map_min_y];minY
   cp a, e;y
   jr z, .draw;minY == y
   jr nc, .tileOutOfRange;minY > y

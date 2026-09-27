@@ -1,5 +1,5 @@
 UsePublicComputer:
-  ld a, [last_map_button_state]
+  ldh a, [map_last_button_state]
   and a, PADF_UP
   ret z
   call ShowTurnedOnComputerText
@@ -118,7 +118,7 @@ GetPCOptions:;returns options in str_buffer, option count in a
   ret
 
 UseMyComputer:
-  ld a, [last_map_button_state]
+  ldh a, [map_last_button_state]
   and a, PADF_UP
   ret z
   call ShowTurnedOnComputerText

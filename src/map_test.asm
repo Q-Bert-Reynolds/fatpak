@@ -22,7 +22,7 @@ TestMap::
   DISPLAY_ON
 
   ld a, 4
-  ld [map_scroll_speed], a
+  ldh [map_scroll_speed], a
 
 .loop
     call UpdateInput

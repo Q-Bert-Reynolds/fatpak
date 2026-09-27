@@ -1,7 +1,7 @@
 DEF TESTS_ENABLED    EQU 0
-DEF INTRO_ENABLED    EQU 1
-DEF TITLE_ENABLED    EQU 1
-DEF NEW_GAME_ENABLED EQU 1
+DEF INTRO_ENABLED    EQU 0
+DEF TITLE_ENABLED    EQU 0
+DEF NEW_GAME_ENABLED EQU 0
 DEF WORLD_ENABLED    EQU 1
 DEF PLAY_ENABLED     EQU 1
 
@@ -165,7 +165,7 @@ Main::
   jp z, .finishLoading
   call LoadGame
   ld a, PADF_DOWN
-  ld [last_map_button_state], a
+  ldh [map_last_button_state], a
 .finishLoading
 
 IF TESTS_ENABLED == 1

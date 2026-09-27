@@ -53,21 +53,6 @@ sprite_first_tile:: DB
 ;timers
 vbl_timer:: DB ;counts to 60
 
-;map
-last_map_button_state:: DB
-map_anim_frame:: DB
-map_steps:: DB
-map_obj_type:: DB
-map_collision_type:: DB
-map_collision_data:: DB
-map_sprite_collision_index:: DB
-map_scroll_speed:: DB
-map_sprite_count:: DB
-min_x:: DB
-min_y:: DB
-max_x:: DB
-max_y:: DB
-
 ;banking
 temp_bank:: DB;TODO: only roledex.asm still uses this, should use stack instead
 loaded_bank:: DB
