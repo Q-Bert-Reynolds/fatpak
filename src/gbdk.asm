@@ -487,7 +487,11 @@ gbdk_CopyTilesFrom::
 ;***************************************************************************
 DEF _CPMS EQU 4194/4  ; 4.194304 MHz
 gbdk_Delay::
+  ldh a,[rKEY1]          ; 3 cycles
+  and a, KEY1F_DBLSPEED  ; 1 cycle
   ld bc, _CPMS/7         ; 3 cycles
+  jr z, .loop            ; 3 cycles
+  ld bc, 2*_CPMS/7       ; 3 cycles
 .loop
     dec bc                 ; 2 cycles
     ld a, b                ; 1 cycle
@@ -507,21 +511,21 @@ gbdk_Delay::
 ;***************************************************************************
 gbdk_CPUSlow::
   ldh a,[rKEY1]
-  and $80  ; is gbc in double speed mode?
-  ret z  ; no, already in single speed
+  and a, KEY1F_DBLSPEED
+  ret z
 
 shift_speed:
   ldh a,[rIE]
   push af
 
-  xor a  ; a = 0
-  ldh [rIE], a  ; disable interrupts
+  xor a
+  ldh [rIE], a
   ldh [rIF], a
 
-  ld a,$30
+  ld a, P1F_GET_NONE
   ldh [rP1], a
 
-  ld a,$01
+  ld a, KEY1F_PREPARE
   ldh [rKEY1], a
 
   stop
@@ -537,9 +541,9 @@ shift_speed:
 ;
 ;***************************************************************************
 gbdk_CPUFast::
-  ldh a,[rKEY1]
-  and $80  ; is gbc in double speed mode?
-  ret nz  ; yes, exit
+  ldh a, [rKEY1]
+  and KEY1F_DBLSPEED
+  ret nz
   jr shift_speed
 
 
@@ -630,9 +634,5 @@ gbdk_SetupDMATransfer::
 SECTION "GBDK HRAM Vars", HRAM[_HRAM]
 DMATransfer:: DS (gbdk_SetupDMATransfer.DMATransferEnd - gbdk_SetupDMATransfer.DMATransfer)
 vbl_done:: DB
-_HRAMEnd:
-
-DEF HRAM_LEFT EQU ($FFFE - _HRAMEnd)
-PRINT "\n{d:HRAM_LEFT} bytes of HRAM left.\n"
 
 ENDC ;GBDK_ASM
