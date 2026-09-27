@@ -40,7 +40,7 @@ INCLUDE "src/sfx.asm"
 SECTION "Audio", ROM0
 
 UpdateAudio::
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af
   
   call UpdateSFX
@@ -114,7 +114,7 @@ UpdateSFX:
   ld l, a
   add hl, bc;current step
 
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af
   
   ld a, [current_sfx_bank]
@@ -168,7 +168,7 @@ PlaySFX:: ; a = bank, hl = sfx address
   ld a, 1
   ld [sfx_ticks], a
 
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;bank
 
   ld a, [current_sfx_bank]
@@ -197,7 +197,7 @@ PlaySong:: ; a = bank, hl = song address
   ld b, 0
   ld c, a ;data bank
 
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;bank
 
   ld a, 1 ;song speed

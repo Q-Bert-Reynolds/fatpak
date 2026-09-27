@@ -13,7 +13,7 @@ SECTION "Lineup Bank 0", ROM0
 ;
 ;-------------------------------------------------------------------------
 ShowLineup::
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af
   ld a, LINEUP_BANK
   SET_BANK

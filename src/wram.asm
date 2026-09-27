@@ -53,12 +53,7 @@ sprite_first_tile:: DB
 ;timers
 vbl_timer:: DB ;counts to 60
 
-;banking
-temp_bank:: DB;TODO: only roledex.asm still uses this, should use stack instead
-loaded_bank:: DB
-
 ;temp vars
-_temp:: DB
 _a:: DB
 _b:: DB
 _c:: DB

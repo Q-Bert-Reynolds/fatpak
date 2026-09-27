@@ -21,7 +21,7 @@ GetItemList:;depending on inventory_mode, returns inventory or pc_items in hl, m
   ret 
 
 ShowInventory::
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af
   ld a, ITEM_BANK
   SET_BANK
@@ -44,7 +44,7 @@ GetItemData::;a = item id, returns [item data]
   push de
   push bc
   ld b, a;item id
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;bank
   ld a, ITEM_BANK
   SET_BANK
@@ -74,7 +74,7 @@ GetItemName::;a = item id, returns item name in [name_buffer]
   ld b, 0
   ld c, a
 
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;bank
   ld a, ITEM_BANK
   SET_BANK
@@ -89,7 +89,7 @@ GetItemName::;a = item id, returns item name in [name_buffer]
   ret 
 
 AddItemToInventory::;bc = item id, amount, returns z if inventory full, new list length in e, bc = item id, amount added
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;current bank
   ld a, ITEM_BANK
   SET_BANK
@@ -102,7 +102,7 @@ AddItemToInventory::;bc = item id, amount, returns z if inventory full, new list
   ret
 
 AddItemToPC::;bc = item id, amount, returns z if inventory full, new list length in e, bc = item id, amount added
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;current bank
   ld a, ITEM_BANK
   SET_BANK

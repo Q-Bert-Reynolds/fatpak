@@ -263,7 +263,7 @@ sgb_SetBorder:: ;a = bank, hl = tiles, de = tile map
   ret z
 
   di
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;old bank
   ld a, b;new bank
   push de;tile map

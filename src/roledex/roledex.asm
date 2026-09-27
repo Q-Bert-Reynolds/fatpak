@@ -51,8 +51,8 @@ GetMoveName:: ; a = move number, returns name in name_buffer
   dec a
   ld b, 0
   ld c, a;number
-  ld a, [loaded_bank]
-  ld [temp_bank], a
+  ldh a, [loaded_bank]
+  ldh [temp_bank], a
   ld a, PLAYER_STRINGS_BANK
   SET_BANK
 
@@ -61,7 +61,7 @@ GetMoveName:: ; a = move number, returns name in name_buffer
   ld de, name_buffer
   call str_Copy
 
-  ld a, [temp_bank]
+  ldh a, [temp_bank]
   SET_BANK
   ret 
 
@@ -79,8 +79,8 @@ GetMove:: ; a = move number, returns move_data
   add hl, hl
   ld b, h
   ld c, l
-  ld a, [loaded_bank]
-  ld [temp_bank], a
+  ldh a, [loaded_bank]
+  ldh [temp_bank], a
   ld a, PLAYER_DATA_BANK
   SET_BANK
 
@@ -95,7 +95,7 @@ GetMove:: ; a = move number, returns move_data
   ld bc, move_data.end - move_data
   call mem_Copy
 
-  ld a, [temp_bank]
+  ldh a, [temp_bank]
   SET_BANK
 .exit
   pop hl
@@ -107,7 +107,7 @@ _GetPlayerName::
 GetPlayerName:: ; a = number, returns name in name_buffer
   dec a
   ld c, a;number
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;bank
   ld a, PLAYER_STRINGS_BANK
   SET_BANK
@@ -129,8 +129,8 @@ GetPlayerName:: ; a = number, returns name in name_buffer
 GetPlayerDescription:: ; a = number, returns description in str_buffer
   dec a
   ld c, a;number
-  ld a, [loaded_bank]
-  ld [temp_bank], a
+  ldh a, [loaded_bank]
+  ldh [temp_bank], a
   ld a, PLAYER_STRINGS_BANK
   SET_BANK
 
@@ -144,7 +144,7 @@ GetPlayerDescription:: ; a = number, returns description in str_buffer
   ld de, str_buffer
   call str_Copy
 
-  ld a, [temp_bank]
+  ldh a, [temp_bank]
   SET_BANK
   ret 
 
@@ -245,8 +245,8 @@ LoadPlayerBaseData:: ; a = number
   dec a
   ld b, 0
   ld c, a;number
-  ld a, [loaded_bank]
-  ld [temp_bank], a
+  ldh a, [loaded_bank]
+  ldh [temp_bank], a
   ld a, PLAYER_DATA_BANK
   SET_BANK
 
@@ -262,7 +262,7 @@ LoadPlayerBaseData:: ; a = number
   ld bc, player_base.end - player_base
   call mem_Copy
 
-  ld a, [temp_bank]
+  ldh a, [temp_bank]
   SET_BANK
   ret
 
@@ -305,8 +305,8 @@ SwitchPlayerImageBank: ; a = number (1-151), return adjusted number in a (0-PLAY
   call math_Divide8
   push af
 
-  ld a, [loaded_bank]
-  ld [temp_bank], a
+  ldh a, [loaded_bank]
+  ldh [temp_bank], a
   ld a, l
   add a, PLAYER_IMG_BANK
   SET_BANK
@@ -365,7 +365,7 @@ PreLoadPlayerBkgData: ;a = number, de = vram offset
 LoadPlayerBkgData:: ; a = number, de = vram_offset
   call PreLoadPlayerBkgData
   call mem_CopyToTileData
-  ld a, [temp_bank]
+  ldh a, [temp_bank]
   SET_BANK
   ret 
 
@@ -397,7 +397,7 @@ CopyToTileDataFlipped:
 LoadPlayerBkgDataXFlipped:: ; a = number, de = vram_offset
   call PreLoadPlayerBkgData
   call CopyToTileDataFlipped
-  ld a, [temp_bank]
+  ldh a, [temp_bank]
   SET_BANK
   ret 
 
@@ -410,7 +410,7 @@ GetPlayerImgColumns:: ; a = number, returns num columns of img in a
   ld a, [hl]
   push af ;columns
 
-  ld a, [temp_bank]
+  ldh a, [temp_bank]
   SET_BANK
   
   pop af ;columns
@@ -452,7 +452,7 @@ SetPlayerBkgTiles:: ; a = number, bc = xy, de = vram_offset
   call PreSetPlayerBkgTiles
   call SetBkgTilesWithOffset
 
-  ld a, [temp_bank]
+  ldh a, [temp_bank]
   SET_BANK
   ret
 
@@ -469,7 +469,7 @@ SetPlayerBkgTilesFlipped:: ; a = number, bc = xy, de = vram_offset
   ld bc, str_buffer;because SetBkgTilesWithOffset uses tile buffer
   call SetBkgTilesWithOffset;hl=wh, de=xy, bc=in_tiles, a=offset
 
-  ld a, [temp_bank]
+  ldh a, [temp_bank]
   SET_BANK
   ret
 
@@ -482,8 +482,8 @@ LoadUserPlayerBkgTiles::
   call GetPlayerHandedness
   ld [_v], a;handedness
 
-  ld a, [loaded_bank]
-  ld [temp_bank], a
+  ldh a, [loaded_bank]
+  ldh [temp_bank], a
   call IsUserFielding
   jr nz, .userIsPitching
 .userIsBatting
@@ -532,7 +532,7 @@ LoadUserPlayerBkgTiles::
 
   call mem_CopyVRAM
   
-  ld a, [temp_bank]
+  ldh a, [temp_bank]
   SET_BANK
   
   ret 
@@ -546,8 +546,8 @@ LoadOpposingPlayerBkgTiles::
   call GetPlayerHandedness
   ld [_v], a;handedness
 
-  ld a, [loaded_bank]
-  ld [temp_bank], a
+  ldh a, [loaded_bank]
+  ldh [temp_bank], a
   call IsUserFielding
  jr nz, .opponentIsBatting 
 .opponentIsPitching
@@ -595,7 +595,7 @@ LoadOpposingPlayerBkgTiles::
   ld de, $8800+64*16
   call mem_CopyToTileData
 
-  ld a, [temp_bank]
+  ldh a, [temp_bank]
   SET_BANK
   
   ret  
@@ -613,8 +613,8 @@ SetUserPlayerBkgTiles:: ;a = frame
   call GetPlayerHandedness
   ld [_v], a;handedness
 
-  ld a, [loaded_bank]
-  ld [temp_bank], a
+  ldh a, [loaded_bank]
+  ldh [temp_bank], a
   call IsUserFielding
   jr nz, .userIsPitching
 .userIsBatting
@@ -670,7 +670,7 @@ SetUserPlayerBkgTiles:: ;a = frame
   ld a, _UI_FONT_TILE_COUNT
   call SetBkgTilesWithOffset
 
-  ld a, [temp_bank]
+  ldh a, [temp_bank]
   SET_BANK
   ret
 
@@ -686,8 +686,8 @@ SetOpposingPlayerBkgTiles:: ;a = frame
   call GetPlayerHandedness
   ld [_v], a;handedness
 
-  ld a, [loaded_bank]
-  ld [temp_bank], a
+  ldh a, [loaded_bank]
+  ldh [temp_bank], a
   call IsUserFielding
   jr nz, .opponentIsBatting
 .opponentIsPitching
@@ -743,7 +743,7 @@ SetOpposingPlayerBkgTiles:: ;a = frame
   ld a, _UI_FONT_TILE_COUNT+64
   call SetBkgTilesWithOffset
 
-  ld a, [temp_bank]
+  ldh a, [temp_bank]
   SET_BANK
   
   ret 

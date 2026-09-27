@@ -1,6 +1,12 @@
-SECTION "Core", ROM0
+SECTION "Core HRAM", HRAM
+loaded_bank:: DB
+temp_bank:: DB;TODO: only roledex.asm still uses this, should use stack instead
+temp_a_reg:: DB
+
+SECTION "Core ROM0", ROM0
 
 INCLUDE "data/strings/core_strings.asm"
+
 ; GetTypeString                   a = type, string in name_buffer
 ; GetStatusString                 a = status mask, string in name_buffer
 ; Trampoline                      b = bank, hl = address, can only use a, e, and RAM for args, can return in any register
@@ -59,22 +65,22 @@ GetStatusString:: ;a = status mask, string in name_buffer
   call str_FromArray
   ld de, name_buffer
   jp str_Copy
-  
-Trampoline:: ;b = bank, hl = address, can use a,e, and RAM for args, can return in any register
-  ld d, a;store arg a
-  ld a, [loaded_bank]
+
+Trampoline:: ;b = bank, hl = address, can use a, de, and RAM for args, can return in any register
+  ldh [temp_a_reg], a
+  ldh a, [loaded_bank]
   push af;old bank
   ld a, b;new bank
   SET_BANK
+  ldh a, [temp_a_reg]
   ld bc, .bounceBack
   push bc ;put return addres on stack before jumping
-  ld a, d;restore arg a
   jp hl
 .bounceBack
-  ld [_temp], a
+  ldh [temp_a_reg], a
   pop af;old bank
   SET_BANK
-  ld a, [_temp]
+  ldh a, [temp_a_reg]
   ret
 
 SerialInterrupt::
@@ -115,7 +121,7 @@ VBLInterrupt::
   push bc
   push de
   push hl
-  call DMATransfer
+  call gbdk_DMATransfer
   call UpdateTime
   call UpdateAudio
   ld a, 1
@@ -326,7 +332,7 @@ SetWinTilesWithOffset:: ;hl=wh, de=xy, bc=in_tiles, a=offset
 DrawSaveStats::;draw flags, de = xy
   push af;draw flags
   push de;xy
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   ld b, a;old bank
   ld a, BANK(UIDrawSaveStats)
   SET_BANK

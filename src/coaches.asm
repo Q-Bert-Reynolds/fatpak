@@ -161,7 +161,7 @@ LoadCoachTiles:: ;a = coach id, de = vram address
   ld [rROMB0], a
   call mem_CopyVRAM
 
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   ld [rROMB0], a
   ret
 
@@ -179,7 +179,7 @@ LoadCoachPalettes:: ;a = coach id, h = offset
   ld [rROMB0], a
   call SetTwoColorBGPalettes
 
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   ld [rROMB0], a
   ret
 
@@ -197,7 +197,7 @@ SetCoachTiles:: ;a = coach, de=xy, h=offset
   ld hl, $0707
   call SetBkgTilesWithOffset
 
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   ld [rROMB0], a
   ret
 
@@ -222,6 +222,6 @@ SetCoachPalettes:: ;a = coach, de=xy, h=offset
   xor a
   ldh [rVBK], a
 
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   ld [rROMB0], a
   ret

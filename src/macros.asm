@@ -31,7 +31,7 @@
 ;   ADD_USER_PLAYER_DATA                  PlayerAddress, "nickname", pay24 
 
 MACRO SET_BANK
-  ld [loaded_bank], a
+  ldh [loaded_bank], a
   ld [rROMB0], a
 ENDM
 

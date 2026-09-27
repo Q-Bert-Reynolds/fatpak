@@ -40,6 +40,7 @@
 ;   gbdk_Random           - returns a random value to DE
 ;   gbdk_Seed             - seeds Random function
 ;   gbdk_SetupDMATransfer - loads DMA routine into HRAM
+;   gbdk_DMATransfer      - executes DMA routine in HRAM
 
 IF !DEF(GBDK_ASM)
 DEF GBDK_ASM EQU 1
@@ -52,6 +53,19 @@ ENDM
 
 INCLUDE "src/memory1.asm"
   rev_Check_memory1_asm 1.2
+
+MACRO COPY_TO_HRAM; \1 = dest address in HRAM, \2 = first address to copy, \3 = last address to copy
+  ld c, LOW(\1)
+  ld b, (\3 - \2)
+  ld hl, \2
+.copy
+  ld a, [hli]
+  ld [$ff00+c], a
+  inc c
+  dec b
+  jr nz, .copy
+  jp \3
+ENDM
 
 MACRO DISPLAY_ON
   ldh a, [rLCDC]
@@ -610,21 +624,12 @@ gbdk_Seed::
 ;
 ;***************************************************************************
 gbdk_SetupDMATransfer::
-  ld c, _HRAM % $100
-  ld b, .DMATransferEnd - .DMATransfer
-  ld hl, .DMATransfer
-.copy
-  ld a, [hli]
-  ld [$ff00+c], a
-  inc c
-  dec b
-  jr nz, .copy
-  ret
+  COPY_TO_HRAM gbdk_DMATransfer, .DMATransfer, .DMATransferEnd
 
 .DMATransfer
   ld a, oam_buffer / $100
   ldh [rDMA], a
-  ld a, $28
+  ld a, OAM_COUNT
 .wait
   dec a
   jr nz, .wait
@@ -633,8 +638,8 @@ gbdk_SetupDMATransfer::
 
 DEF DMA_SIZE EQU (.DMATransferEnd - .DMATransfer)
 
-SECTION "GBDK HRAM Vars", HRAM[_HRAM]
-DMATransfer:: DS DMA_SIZE
+SECTION "GBDK HRAM Vars", HRAM
+gbdk_DMATransfer:: DS DMA_SIZE
 vbl_done:: DB
 
 ENDC ;GBDK_ASM

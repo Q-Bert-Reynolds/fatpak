@@ -26,7 +26,7 @@ RevealTextAndWait:: ;hl = text
   ld de, str_buffer
   call str_Copy
 
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;bank
   ld a, BANK(UIRevealTextAndWait)
   SET_BANK
@@ -41,7 +41,7 @@ RevealTextAndWait:: ;hl = text
 
 RevealText:: ;a = draw flags, de = xy, hl = text
   ld b, a;draw flags
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;bank
   push bc;draw flags
   push de;xy
@@ -428,7 +428,7 @@ MoveListMenuArrow:: ;a = draw flags, de = xy, _j = current index, _c = count, mu
 
 ShowListMenu:: ;a = draw flags, bc = xy, de = wh, [list_selection] = initial selection, [str_buffer] = text, [name_buffer] = title, returns choice in a (0 = cancel)
   ld h, a;draw flags
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;bank
   push hl;draw flags
   ld a, BANK(UIShowListMenu)
@@ -461,7 +461,7 @@ AskYesNo::;a = draw flags, bc = xy, returns choice in a (0 = cancel, 1 = yes, 2 
   ret
 
 ShowTextEntry:: ;bc = title, de = str, l = max_len -> puts text in name_buffer
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af ;bank
   push hl ;max_len
   push de ;str
@@ -488,7 +488,7 @@ ShowTextEntry:: ;bc = title, de = str, l = max_len -> puts text in name_buffer
 
 ShowNumberPicker::; a = draw flags, bc = xy, de = wh, h = max number, returns number in a (0 = cancel)
   ld l, a;draw flags
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;bank
   ld a, BANK(UIShowNumberPicker)
   SET_BANK

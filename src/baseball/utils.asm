@@ -221,7 +221,7 @@ CheckStrike:: ;returns ball (z) or strike (nz)
 _GetPositionPlayerAndName::;unsigned int GetPositionPlayerAndName(unsigned char position)
 GetPositionPlayerAndName::
   ld b, a;position number
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;bank
   ld a, PLAY_BALL_BANK
   SET_BANK
@@ -653,7 +653,7 @@ CurrentOrderInLineup::;returns order in a
   ret
 
 GetPitchBreak:: ;b = path, c = z, returns xy offset in de
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af
   ld a, BANK(GetPitchBreakBanked)
   SET_BANK
@@ -663,7 +663,7 @@ GetPitchBreak:: ;b = path, c = z, returns xy offset in de
   ret
 
 _GetCurrentBatter::
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af
   ld a, BANK(GetCurrentBatter)
   SET_BANK

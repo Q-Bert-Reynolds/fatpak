@@ -76,7 +76,7 @@ INCLUDE "data/map_data.asm"
 GetMapText::;a = text index, returns text in str_buffer
   ld b, 0
   ld c, a
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;current bank
   push bc;index
   call GetCurrentMap
@@ -101,7 +101,7 @@ GetMapText::;a = text index, returns text in str_buffer
 
 EnterMapDoor::;a = door index
   ld b, a;index
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;current bank
   push bc;index
   call GetCurrentMap
@@ -141,7 +141,7 @@ EnterMapDoor::;a = door index
   ret
 
 CheckMapItemFlags:: ;item index in b, returns z if flag not set
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;current bank
   call GetMapItem
   pop af;previous bank
@@ -156,7 +156,7 @@ CheckMapItemFlags:: ;item index in b, returns z if flag not set
   ret
 
 PickUpMapItem:: ;item index in b
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;current bank
 
   call GetMapItem
@@ -203,7 +203,7 @@ GetMapItem:: ;item index in b, returns item id/count in bc, flag index/bits in d
   ret
 
 PlayMapTeam:: ;team index in [map_collision_data]
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;current bank
 
   call GetMapAddress;sets team bank, puts team address in hl
@@ -220,7 +220,7 @@ PlayMapTeam:: ;team index in [map_collision_data]
   ret
 
 RunMapScript:: ;script index in [map_collision_data]
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;current bank
 
   call GetMapAddress;sets script bank, puts script address in hl
@@ -263,7 +263,7 @@ GetMapAddress: ;address index in [map_collision_data], switches to bank of addre
 
 ;TODO: handle water vs grass
 GetMapEncounter::;returns age in b, player num in c, props in d
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;current bank
 
   call gbdk_Random
@@ -335,7 +335,7 @@ ClearMapSprites::
   ret
 
 CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_buffer
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;current bank
   ld hl, oam_buffer+16;4 sprites for user avatar * 4 bytes per sprite
   ld de, map_sprite_buffer
@@ -586,7 +586,7 @@ CopySpriteStampToOAMBuffer:;a = count, bc = stamp, hl = OAM buffer, [map_temp_x]
 
 CopyMapAvatarToOAMBuffer::;hl = oam buffer address, bc = avatar address, d = extra data, returns new extra data in d
   push de;d = extra data
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;loaded bank
   ld a, BANK(Overworld)
   SET_BANK;assumes all map avatars and animations are in the same bank as Overworld
@@ -759,7 +759,7 @@ AnimateAvatar::;a = frame(<52), hl = animation, b = OAM index
   ret
 
 GetScreenCollision::;bc = xy pixel offset (-127,127), returns z if no collision, obj/collision type in a, extra data in b, map sprite index or -1 in c
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;current bank
   push bc;xy offset
   call GetCurrentMap
@@ -993,7 +993,7 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, obj/collision type
   ret
 
 MoveMapLeft::
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;current bank
   call GetCurrentMap
   SET_BANK
@@ -1025,7 +1025,7 @@ MoveMapLeft::
   ret
 
 MoveMapRight::
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;current bank
   call GetCurrentMap
   SET_BANK
@@ -1057,7 +1057,7 @@ MoveMapRight::
   ret
 
 MoveMapUp::
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;current bank
   call GetCurrentMap
   SET_BANK
@@ -1089,7 +1089,7 @@ MoveMapUp::
   ret
 
 MoveMapDown::
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;current bank
   call GetCurrentMap
   SET_BANK
@@ -1121,7 +1121,7 @@ MoveMapDown::
   ret
 
 SetMapPalettes::
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;current bank
   call GetCurrentMap
   SET_BANK
@@ -1198,7 +1198,7 @@ SetMapTiles::
   ld bc, 128*16;tiles*bytes/tile
   call mem_CopyVRAM
 
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   ld [rROMB0], a
   ret
 
@@ -1356,7 +1356,7 @@ DrawMapBottomEdge:
   ret
   
 DrawMapToScreen::
-  ld a, [loaded_bank]
+  ldh a, [loaded_bank]
   push af;current bank
   call GetCurrentMap
   SET_BANK
@@ -1609,7 +1609,7 @@ DrawMapChunk::; hl = chunk address, de=xy, bc=wh
     pop de;xy
   .testBankAndAddress
     ld hl, map_sprite_buffer
-    ld a, [loaded_bank]
+    ldh a, [loaded_bank]
     ld b, a;bank
     ldh a, [map_sprite_count]
     and a
@@ -1644,7 +1644,7 @@ DrawMapChunk::; hl = chunk address, de=xy, bc=wh
     inc a
     ldh [map_sprite_count], a
     pop de;current sprite address
-    ld a, [loaded_bank]
+    ldh a, [loaded_bank]
     ld [hli], a;bank
     ld a, e
     ld [hli], a;lower byte
