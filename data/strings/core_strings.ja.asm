@@ -3,7 +3,7 @@
 ;
 
 ;types ordered by type id
-TypeStrings::                             DB " ", 0
+TypeStrings::                             DB "", 0
                                           DB "ベーシック", 0
                                           DB "熱い", 0
                                           DB "流体", 0
@@ -34,3 +34,12 @@ YesNoText::                               DB "はい\nいいえ", 0
 SaveGameText::                            DB "ゲームを\nセーブしますか？", 0
 NowSavingText::                           DB "セーブ中...", 0
 SavedTheGameText::                        DB "%sは\nゲームをセーブした。", 0
+
+;replace strings
+PlayerReplaceText::                       DB "プレイヤー", 0
+
+;title menu
+ContinueMenuText::                        DB "つづきから\n", 0
+NewGameMenuText::                         DB "はじめから", 0
+OptionsMenuText::                         DB "\nオプション", 0
+ExhibitionMenuText::                      DB "\nエキシビション", 0

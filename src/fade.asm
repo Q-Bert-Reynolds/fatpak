@@ -1,6 +1,6 @@
 INCLUDE "src/beisbol.inc"
 
-SECTION "Fade", ROMX, BANK[START_BANK]
+SECTION "Fade", ROMX
 
 FadeIn::
   DISPLAY_ON

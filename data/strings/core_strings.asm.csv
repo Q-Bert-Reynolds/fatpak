@@ -1,5 +1,5 @@
 Label,Comment,English-en,Spanish-es,French-fr,Italian-it,Portuguese-pt,German-de,Japanese-ja
-TypeStrings.None,types ordered by type id, , , , , , , 
+TypeStrings.None,types ordered by type id,,,,,,,
 TypeStrings.Normal,,Basic,Básico,Basique,Basico,Básico,Basis,ベーシック
 TypeStrings.Fire,,Hot,Caliente,Chaud,Caldo,Quente,Heiß,熱い
 TypeStrings.Water,,Fluid,Fluido,Fluide,Fluido,Fluido,Flüssig,流体
@@ -26,3 +26,8 @@ YesNoText,,YES\nNO,SÍ\nNO,OUI\nNON,SÌ\nNO,SIM\nNÃO,JA\nNEIN,はい\nいいえ
 SaveGameText,,Would you like to\nSAVE the game?,¿Quieres GUARDAR\nla partida?,Voulez-vous\nSAUVEGARDER?,Vuoi SALVARE\nla partita?,Deseja\nSALVAR o jogo?,Möchtest du das\nSpiel SPEICHERN?,ゲームを\nセーブしますか？
 NowSavingText,,Now saving...,Guardando...,Sauvegarde en cours...,Salvataggio in corso...,Salvando agora...,Wird gespeichert...,セーブ中...
 SavedTheGameText,,%s saved\nthe game.,%s guardó\nla partida.,%s a sauvegardé\nla partie.,%s ha salvato\nla partita.,%s salvou\no jogo.,%s hat das Spiel\ngespeichert.,%sは\nゲームをセーブした。
+PlayerReplaceText,replace strings,PLAYER,PELOTERO,JOUEUR,GIOCATORE,JOGADOR,SPIELER,プレイヤー
+ContinueMenuText,title menu,CONTINUE\n,CONTINUAR\n,CONTINUER\n,CONTINUA\n,CONTINUAR\n,WEITER\n,つづきから\n
+NewGameMenuText,,NEW GAME,NUEVA PARTIDA,NOUVELLE PARTIE,NUOVA PARTITA,NOVO JOGO,NEUES SPIEL,はじめから
+OptionsMenuText,,\nOPTIONS,\nOPCIONES,\nOPTIONS,\nOPZIONI,\nOPÇÕES,\nOPTIONEN,\nオプション
+ExhibitionMenuText,,\nEXHIBITION,\nEXHIBICIÓN,\nEXPOSITION,\nESIBIZIONE,\nEXIBIÇÃO,\nSCHAUKAMPF,\nエキシビション

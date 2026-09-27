@@ -1,6 +1,6 @@
 INCLUDE "src/beisbol.inc"
 
-SECTION "Start", ROMX, BANK[START_BANK]
+SECTION "Start", ROMX
 
 INCLUDE "img/title/copyrights/copyrights.asm"
 INCLUDE "img/title/intro/intro.asm"

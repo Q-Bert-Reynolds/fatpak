@@ -1,6 +1,6 @@
 INCLUDE "src/beisbol.inc"
 
-SECTION "New Game", ROMX, BANK[NEW_GAME_BANK]
+SECTION "New Game", ROMX
 
 INCLUDE "img/new_game/new_game.asm"
 INCLUDE "img/new_game/new_game_sprites/new_game_sprites.asm"
@@ -119,14 +119,14 @@ NewGame::
 
 .fadeInDoc
   PLAY_SONG hurrah_for_our_national_game_data, 1
-  call FadeIn
+  TRAMPOLINE FadeIn
   
   ld hl, HelloThereString
   call RevealTextAndWait
 
   ld hl, MyNameIsDocString
   call RevealTextAndWait
-  call FadeOut
+  TRAMPOLINE FadeOut
 
 .showMuchacho
   CLEAR_SCREEN ' '
@@ -175,7 +175,7 @@ NewGame::
   ldh [rVBK], a
 
 .fadeInMuchacho
-  call FadeIn
+  TRAMPOLINE FadeIn
   ld hl, ThisWorldIsString
   call RevealTextAndWait
 
@@ -187,7 +187,7 @@ NewGame::
 
   ld hl, IStudyBeisbolString
   call RevealTextAndWait
-  call FadeOut
+  TRAMPOLINE FadeOut
 
 .showCalvin
   CLEAR_SCREEN ' '
@@ -297,7 +297,7 @@ ENDC
   ld hl, str_buffer
   call RevealTextAndWait
 
-  call FadeOut
+  TRAMPOLINE FadeOut
 
 .saveUserName
   ld hl, name_buffer
@@ -411,7 +411,7 @@ ENDC
   call str_Replace
   ld hl, str_buffer
   call RevealTextAndWait
-  call FadeOut
+  TRAMPOLINE FadeOut
 
 .saveRivalName
   ld hl, name_buffer
@@ -463,7 +463,7 @@ ENDC
   call SetCoachPalettes
 
 .fadeInCalvin
-  call FadeIn
+  TRAMPOLINE FadeIn
 
 ;transition to game
   ld hl, user_name
@@ -525,7 +525,7 @@ ENDC
   ld de, 500
   call gbdk_Delay
 
-  call FadeOut
+  TRAMPOLINE FadeOut
   call InitializeGameData
   ret
 

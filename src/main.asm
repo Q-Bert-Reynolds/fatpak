@@ -1,5 +1,5 @@
 DEF TESTS_ENABLED    EQU 0
-DEF INTRO_ENABLED    EQU 0
+DEF INTRO_ENABLED    EQU 1
 DEF TITLE_ENABLED    EQU 1
 DEF NEW_GAME_ENABLED EQU 1
 DEF WORLD_ENABLED    EQU 1
@@ -188,7 +188,7 @@ ENDC
 
 IF TITLE_ENABLED == 1
 .title ;show title drop, version slide, cycle of players, new game/continue screen
-  ld a, TITLE_BANK
+  ld a, BANK(Title)
   SET_BANK
   call Title ;sets z if new game pressed
   jr nz, .startClock

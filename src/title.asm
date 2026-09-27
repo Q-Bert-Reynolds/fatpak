@@ -1,6 +1,6 @@
 INCLUDE "src/beisbol.inc"
 
-SECTION "Title", ROMX, BANK[TITLE_BANK]
+SECTION "Title", ROMX
 
 INCLUDE "img/title/title/title.asm"
 INCLUDE "img/title/title/title_sprites/title_sprites.asm"
@@ -95,13 +95,12 @@ ShowPlayer: ;de = player number
   ld a, [hl]
   push af ;player num
   ld de, PLAYER_INDEX
-  call LoadPlayerBkgData; load_player_bkg_data(intro_player_nums[p], PLAYER_INDEX, TITLE_BANK);
+  call LoadPlayerBkgData
   CLEAR_BKG_AREA 20,10,7,7,0
 
   pop af
   push af
-  call GetPlayerImgColumns; a = 7-get_player_img_columns (intro_player_nums[p], TITLE_BANK);
-
+  call GetPlayerImgColumns
   ld d, a
   ld a, 27
   sub a, d
@@ -112,7 +111,7 @@ ShowPlayer: ;de = player number
   pop af ;player num
   push af ;player num
   ld de, PLAYER_INDEX
-  call SetPlayerBkgTiles; set_player_bkg_tiles(20+a, 10+a, intro_player_nums[p], PLAYER_INDEX, TITLE_BANK);
+  call SetPlayerBkgTiles
 
   pop af;player num
   call LoadPlayerBaseData
@@ -381,14 +380,6 @@ SGBStartMenuAttrBlk:
   ATTR_BLK 1
   ATTR_BLK_PACKET %111, 0,0,0, 0,0, 20,18 ;UI
 
-NewGameContinueMenuText:
-  db "CONTINUE\n";falls through
-NewGameMenuText:
-  db "NEW GAME",0
-OptionsMenuText:
-  db "\nOPTIONS", 0
-ExhibitionMenuText:
-  db "\nEXHIBITION",0
 ShowStartMenu: ; puts choice in a ... 0 = back, >0 = choice
   DISABLE_LCD_INTERRUPT
   DISPLAY_OFF
@@ -424,9 +415,12 @@ ShowStartMenu: ; puts choice in a ... 0 = back, >0 = choice
   xor a
   ld hl, name_buffer
   ld [hl], a
-  ld hl, NewGameContinueMenuText
+  ld hl, ContinueMenuText
   ld de, str_buffer
   call str_Copy
+  ld hl, NewGameMenuText
+  ld de, str_buffer
+  call str_Append
 ; IF DEF(_DEMO)
 ;   ld hl, ExhibitionMenuText
 ;   ld de, str_buffer
@@ -443,9 +437,9 @@ ShowStartMenu: ; puts choice in a ... 0 = back, >0 = choice
   ld e, 8 ;height
 ; ENDC
   ld a, DRAW_FLAGS_BKG | DRAW_FLAGS_PAD_TOP
-  call ShowListMenu ;y = show_list_menu(0,0,15,8,"","CONTINUE\nNEW GAME\nOPTION",TITLE_BANK);
-  cp 1 ;if (y == 1) {
-  ret nz ;else return y;
+  call ShowListMenu
+  cp 1
+  ret nz
   ld [_y], a
   call gbdk_WaitVBL
 
@@ -455,9 +449,9 @@ ShowStartMenu: ; puts choice in a ... 0 = back, >0 = choice
   call DrawSaveStats
 
   WAITPAD_UP
-.showGameStatsLoop ;while (1) {
-    UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS .returnY, PADF_A ;if (joypad() & J_A) return y;
-    JUMP_TO_IF_BUTTONS .backPressed, PADF_B; else if (joypad() & J_B) {
+.showGameStatsLoop
+    UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS .returnY, PADF_A
+    JUMP_TO_IF_BUTTONS .backPressed, PADF_B
     call gbdk_WaitVBL
     jr .showGameStatsLoop
 .backPressed
@@ -496,7 +490,7 @@ ShowStartMenu: ; puts choice in a ... 0 = back, >0 = choice
   ld e, 6 ;height
 ; ENDC
   ld a, DRAW_FLAGS_BKG | DRAW_FLAGS_PAD_TOP
-  call ShowListMenu; return show_list_menu(0,0,15,6,"","NEW GAME\nOPTION",TITLE_BANK);
+  call ShowListMenu
   ret
 
 Title:: ; puts (c-d-1) in a
@@ -507,7 +501,7 @@ Title:: ; puts (c-d-1) in a
 
   xor a
   ld [_d], a
-.showTitleAndNewGameMenuLoop ; while (d == 0 || d == c)
+.showTitleAndNewGameMenuLoop
   ld a, [_d]
   and a
   jr nz, .checkOptions
@@ -526,7 +520,7 @@ Title:: ; puts (c-d-1) in a
   ld [_d], a
 .showStartMenu
   call ShowStartMenu ;puts choice in a
-  ld [_d], a;d = show_start_menu();
+  ld [_d], a
 
   ld a, [_d]
   and a ;d==0

@@ -3,7 +3,7 @@
 ;
 
 ;types ordered by type id
-TypeStrings::                             DB " ", 0
+TypeStrings::                             DB "", 0
                                           DB "Basis", 0
                                           DB "Heiß", 0
                                           DB "Flüssig", 0
@@ -34,3 +34,12 @@ YesNoText::                               DB "JA\nNEIN", 0
 SaveGameText::                            DB "Möchtest du das\nSpiel SPEICHERN?", 0
 NowSavingText::                           DB "Wird gespeichert...", 0
 SavedTheGameText::                        DB "%s hat das Spiel\ngespeichert.", 0
+
+;replace strings
+PlayerReplaceText::                       DB "SPIELER", 0
+
+;title menu
+ContinueMenuText::                        DB "WEITER\n", 0
+NewGameMenuText::                         DB "NEUES SPIEL", 0
+OptionsMenuText::                         DB "\nOPTIONEN", 0
+ExhibitionMenuText::                      DB "\nSCHAUKAMPF", 0
