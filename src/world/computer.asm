@@ -221,7 +221,7 @@ AccessItemStorageSystem:
     jr nz, .deposit
     ld a, INVENTORY_MODE_WITHDRAW
     ld [inventory_mode], a
-    call ShowInventory
+    TRAMPOLINE ShowInventory
     jp .showItemStorageSystemMenu
 
   .deposit
@@ -229,7 +229,7 @@ AccessItemStorageSystem:
     jr nz, .toss
     ld a, INVENTORY_MODE_DEPOSIT
     ld [inventory_mode], a
-    call ShowInventory
+    TRAMPOLINE ShowInventory
     jp .showItemStorageSystemMenu
 
   .toss
@@ -237,7 +237,7 @@ AccessItemStorageSystem:
     jp nz, .showItemStorageSystemMenu
     ld a, INVENTORY_MODE_TOSS
     ld [inventory_mode], a
-    call ShowInventory
+    TRAMPOLINE ShowInventory
     jp .showItemStorageSystemMenu
 
 AccessPlayerRatingSystem:

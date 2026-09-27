@@ -1,4 +1,4 @@
-SECTION "Move Strings", ROMX, BANK[PLAYER_STRINGS_BANK]
+SECTION "Move Strings", ROMX
 
 MoveNames::
 DB "Silky Swing", 0

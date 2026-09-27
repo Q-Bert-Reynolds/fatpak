@@ -181,15 +181,16 @@ def main():
   print("Generating " + str(bank_count) + " coach image banks.")
 
   with open(f"data/coach_img.asm", "w+", encoding='utf8') as file:    
-
     for i, img in enumerate(coach_images):
       if i % coaches_per_bank == 0:
         bank = math.floor(i / coaches_per_bank)
-        file.write(f'SECTION "Coach Images {bank}", ROMX, BANK[COACH_IMG_BANK+{bank}]\n\n')
+        if bank != 0:
+          file.write("\n")
+        file.write(f'SECTION "Coach Images {bank}", ROMX\n\n')
       file.write(f'INCLUDE "{img}"\n')
     file.write("\n")
 
-    file.write('SECTION "Coach Data", ROMX, BANK[COACHES_BANK]\n\n')
+  with open(f"data/coach_data.asm", "w+", encoding='utf8') as file:    
     for i, img in enumerate(coach_images):
       name = os.path.basename(img).replace(".asm", "")
       coach_images[i] = name

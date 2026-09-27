@@ -1,8 +1,5 @@
 INCLUDE "src/beisbol.inc"
 
-INCLUDE "data/item_data.asm"
-INCLUDE "data/item_strings.asm"
-
 SECTION "Item Bank 0", ROM0
 GetItemList:;depending on inventory_mode, returns inventory or pc_items in hl, max items in a
   ld a, [inventory_mode]
@@ -18,16 +15,6 @@ GetItemList:;depending on inventory_mode, returns inventory or pc_items in hl, m
   ld hl, inventory
   ld a, MAX_ITEMS
 .done
-  ret 
-
-ShowInventory::
-  ldh a, [loaded_bank]
-  push af
-  ld a, ITEM_BANK
-  SET_BANK
-  call _ShowInventory
-  pop af
-  SET_BANK
   ret
 
 GetItemListID::; hl = item list, a = index of item in list, returns item id in a, item count in [hl]
@@ -46,7 +33,7 @@ GetItemData::;a = item id, returns [item data]
   ld b, a;item id
   ldh a, [loaded_bank]
   push af;bank
-  ld a, ITEM_BANK
+  ld a, BANK(ItemList)
   SET_BANK
   ld a, b;item id
   dec a
@@ -76,7 +63,7 @@ GetItemName::;a = item id, returns item name in [name_buffer]
 
   ldh a, [loaded_bank]
   push af;bank
-  ld a, ITEM_BANK
+  ld a, BANK(ItemNames)
   SET_BANK
 
   ld hl, ItemNames
@@ -91,7 +78,7 @@ GetItemName::;a = item id, returns item name in [name_buffer]
 AddItemToInventory::;bc = item id, amount, returns z if inventory full, new list length in e, bc = item id, amount added
   ldh a, [loaded_bank]
   push af;current bank
-  ld a, ITEM_BANK
+  ld a, BANK(AddItemToList)
   SET_BANK
   ld hl, inventory
   ld a, MAX_ITEMS
@@ -104,7 +91,7 @@ AddItemToInventory::;bc = item id, amount, returns z if inventory full, new list
 AddItemToPC::;bc = item id, amount, returns z if inventory full, new list length in e, bc = item id, amount added
   ldh a, [loaded_bank]
   push af;current bank
-  ld a, ITEM_BANK
+  ld a, BANK(AddItemToList)
   SET_BANK
   ld hl, pc_items
   ld a, MAX_PC_ITEMS
@@ -114,8 +101,10 @@ AddItemToPC::;bc = item id, amount, returns z if inventory full, new list length
   SET_BANK
   ret
 
-SECTION "Item Bank X", ROMX, BANK[ITEM_BANK]
+SECTION "Item Bank X", ROMX
 
+INCLUDE "data/item_data.asm"
+INCLUDE "data/item_strings.asm"
 INCLUDE "data/strings/items_ui_strings.asm"
 
 TryPickupItem::;bc = item id/amount, de = flag index/bit, returns z if inventory full
@@ -230,7 +219,7 @@ AddItemToList::;a = max items, hl = item list, bc = item id, amount, returns z i
   or a
   ret
   
-_ShowInventory:
+ShowInventory:
   ld bc, $0402
   ld de, $100B
   ld a, DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP
@@ -947,9 +936,9 @@ UseItem:;[item_data], a = index, returns exit code in a (-1 = close inventory, 0
   jr nz, .checkSellItem
   pop af;play ball flag, not used here
   ld a, [item_data.id] 
-  ld b, a
-  ld c, 1
-  call ShowLineup
+  ld d, a
+  ld e, 0
+  TRAMPOLINE ShowLineup
   ld b, -1
   ld a, c
   and 1
@@ -1145,9 +1134,9 @@ TeachMove:;[item_data], returns exit code in b (-1 = exit inventory), item used 
   ret nz
   
   ld a, [item_data.id] 
-  ld b, a
-  ld c, 1
-  call ShowLineup
+  ld d, a
+  ld e, 1
+  TRAMPOLINE ShowLineup
   ld b, -1
   ret 
 

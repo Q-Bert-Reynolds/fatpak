@@ -1,4 +1,4 @@
-SECTION "User Info Bank X", ROMX, BANK[ITEM_BANK]
+SECTION "User Info Bank X", ROMX
 
 INCLUDE "img/user_info.asm"
 

@@ -139,7 +139,7 @@ def generate_img_bank(roledex):
 
 def generate_player_strings(roledex):
   with open("./data/player_strings.asm", "w+") as asm_file:
-    asm_file.write("SECTION \"Player Strings\", ROMX, BANK[PLAYER_STRINGS_BANK]\n")
+    asm_file.write("SECTION \"Player Strings\", ROMX\n")
     asm_file.write("\nPlayerNames::\n")
     for player in roledex:
       asm_file.write("DB \"{0}\", 0\n".format(player["Nickname"].upper()))
@@ -212,7 +212,7 @@ def generate_player_data(roledex, learned_moves, taught_moves):
     for player in roledex:
       asm_file.write("DEF NUM_"+player["Nickname"].upper().replace(" ","_").replace("-","_")+" EQU "+str(int(player["#"]))+"\n")
 
-    asm_file.write("SECTION \"Player Data\", ROMX, BANK[PLAYER_DATA_BANK]\n")
+    asm_file.write("\nSECTION \"Player Data\", ROMX\n")
     asm_file.write(";weight format: DDDDLLLL LLLLLLLL where D is decimal and L is lbs\n")
     asm_file.write(";height format: FFFFIIII where F is feet and I is inches\n")
 

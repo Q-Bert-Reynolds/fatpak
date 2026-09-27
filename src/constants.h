@@ -38,23 +38,9 @@
 
 // rom banks
 #define MAX_ROM_BANKS        64//1MB
-#define TEMP_BANK            MAX_ROM_BANKS-1
 #define GBT_PLAYER_BANK      1
-#define PLAY_BALL_BANK       4
-#define ITEM_BANK            7
-#define USER_BANK            ITEM_BANK
-#define LINEUP_BANK          8
-#define PLAYER_STRINGS_BANK  9
-#define PLAYER_DATA_BANK     10
-#define COACHES_BANK         11
-#define TEAMS_BANK           COACHES_BANK
-#define ROLEDEX_BANK         12
-#define SIM_BANK             13
-#define SFX_BANK             14
-#define SONG_BANK            15
-#define COACH_IMG_BANK       48
-#define PLAYER_IMG_BANK      50
-#define SGB_BANK             62
+#define PLAY_BALL_BANK       2
+#define PLAYER_IMG_BANK      3
 
 // ram banks 
 #define MAX_RAM_BANKS  4//32KB

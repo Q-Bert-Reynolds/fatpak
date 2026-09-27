@@ -14,7 +14,9 @@ Opponent::
 .image: DB
 OpponentEnd:
 
-SECTION "Banked Coach Code", ROMX, BANK[COACHES_BANK]
+SECTION "Banked Coach Code/Data", ROMX
+
+INCLUDE "data/coach_data.asm"
 
 ;TODO: coaching styles and strategies go here
 
@@ -58,7 +60,7 @@ PreLoadCoachTiles:: ;a = coach id, de = vram address, returns bank in a, tiles i
   pop de;vram address
   ret
 
-PreloadCoachPalettes:: ;a = coach id, h = first pal index, returns b = first pal index, c = num palettes, hl = source
+PreloadCoachPalettes:: ;a = coach id, h = first pal index, returns a = bank, b = first pal index, c = num palettes, hl = source
   push af;coach id
   push hl;h = first pal index
   add a, a
@@ -152,12 +154,7 @@ PreSetCoachPalettes:: ;a = coach, h=offset, sets VBK, returns pal map in bc, ban
 SECTION "Coach Code", ROM0
 
 LoadCoachTiles:: ;a = coach id, de = vram address
-  ld b, a;coach id
-  ld a, COACHES_BANK
-  ld [rROMB0], a
-
-  ld a, b
-  call PreLoadCoachTiles
+  TRAMPOLINE PreLoadCoachTiles
   ld [rROMB0], a
   call mem_CopyVRAM
 
@@ -171,7 +168,7 @@ LoadCoachPalettes:: ;a = coach id, h = offset
   and a, SYS_INFO_GBC | SYS_INFO_SGB
   ret z;exit early if color not supported
 
-  ld a, COACHES_BANK
+  ld a, BANK(PreloadCoachPalettes)
   ld [rROMB0], a
 
   ld a, b;coach
@@ -185,7 +182,7 @@ LoadCoachPalettes:: ;a = coach id, h = offset
 
 SetCoachTiles:: ;a = coach, de=xy, h=offset
   ld b, a;coach
-  ld a, COACHES_BANK
+  ld a, BANK(PreSetCoachTiles)
   ld [rROMB0], a
 
   ld a, b;coach
@@ -207,7 +204,7 @@ SetCoachPalettes:: ;a = coach, de=xy, h=offset
   and a, SYS_INFO_GBC | SYS_INFO_SGB
   ret z;exit early if color not supported
 
-  ld a, COACHES_BANK
+  ld a, BANK(PreSetCoachPalettes)
   ld [rROMB0], a
 
   ld a, b;coach

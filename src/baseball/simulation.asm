@@ -1,6 +1,6 @@
 INCLUDE "src/beisbol.inc"
 
-SECTION "Simulation", ROMX, BANK[SIM_BANK]
+SECTION "Simulation", ROMX
 
 INCLUDE "img/field.asm"
 INCLUDE "img/simulation.asm"

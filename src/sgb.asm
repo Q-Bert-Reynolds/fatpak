@@ -7,12 +7,12 @@
 INCLUDE "src/hardware.inc"
 INCLUDE "src/memory1.asm"
 
-; Bank SGB_BANK Subroutines:
+; ROMX Subroutines:
 ;   sgb_Init
 ;     Checks to see if game is running on SGB, and updates sys_info.
 ;     Sends initialization packet to SNES. Sets default palette and border.
 
-; Bank 0 Subroutines:
+; ROM0 Subroutines:
 ;   sgb_SetDefaultBorder
 ;     Sets the default Super Game Boy border.
 ;   sgb_SetBorder
@@ -120,7 +120,7 @@ MACRO SGB_SOUND
   DS 10
 ENDM
 
-SECTION "Super GameBoy Banked", ROMX, BANK[SGB_BANK]
+SECTION "Super GameBoy Banked", ROMX
 
 IF DEF(_HOME)
 INCLUDE "img/home_version/home_version_sgb_border.asm"
@@ -253,7 +253,7 @@ sgb_MaskEnFreeze: MASK_EN 1
 sgb_MaskEnCancel: MASK_EN 0
 
 sgb_SetDefaultBorder::
-  ld a, SGB_BANK
+  ld a, BANK(VersionSgbBorderTiles)
   ld hl, VersionSgbBorderTiles
   ld de, VersionSgbBorderTileMap
 sgb_SetBorder:: ;a = bank, hl = tiles, de = tile map

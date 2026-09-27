@@ -143,9 +143,7 @@ Main::
   ldh [rLCDC], a
 
 .setupSuperGameBoy
-  ld a, SGB_BANK
-  SET_BANK
-  call sgb_Init
+  TRAMPOLINE sgb_Init
   SET_DEFAULT_PALETTE
 
 .setupInterrupts
@@ -155,9 +153,7 @@ Main::
   TRAMPOLINE DetectKeyboard
 
 .seed ;load temp data
-  ld a, TEMP_BANK
-  SET_BANK
-  call Seed
+  TRAMPOLINE Seed
   
 .loadGame
   call LoadOptions

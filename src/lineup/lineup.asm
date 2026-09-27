@@ -1,30 +1,6 @@
 INCLUDE "src/beisbol.inc"
 
-SECTION "Lineup Bank 0", ROM0
-;-------------------------------------------------------------------------
-;
-; ShowLineup - display's the ineup screen, optionally restore background
-;
-;   input: 
-;     b = item id (0 = no item)
-;     c = restore bg (0 = no, screen off)
-;   returns: 
-;     item used in c (0 = not used, 1 = used)
-;
-;-------------------------------------------------------------------------
-ShowLineup::
-  ldh a, [loaded_bank]
-  push af
-  ld a, LINEUP_BANK
-  SET_BANK
-
-  call _ShowLineup
-
-  pop af
-  SET_BANK
-  ret
-
-SECTION "Lineup", ROMX, BANK[LINEUP_BANK]
+SECTION "Lineup", ROMX
 
 INCLUDE "src/lineup/stats.asm"
 
@@ -1703,11 +1679,23 @@ RevealTextForPlayer:;[_j] = selected player, hl = text
 
   ret
 
-_ShowLineup:;b = item id, c = restore bg, returns item used in c (0 = not used, 1 = used)
-  ld a, c;restore bg
+
+;-------------------------------------------------------------------------
+;
+; ShowLineup - display's the ineup screen, optionally restore background
+;
+;   input: 
+;     d = item id (0 = no item)
+;     e = restore bg (0 = no, screen off)
+;   returns: 
+;     item used in c (0 = not used, 1 = used)
+;
+;-------------------------------------------------------------------------
+ShowLineup::
+  ld a, e;restore bg
   push af
   ld c, 0;0
-  push bc;b = item id
+  push de;d = item id
 
   DISPLAY_OFF
   ld hl, PaletteLineupA

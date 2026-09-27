@@ -53,7 +53,7 @@ GetMoveName:: ; a = move number, returns name in name_buffer
   ld c, a;number
   ldh a, [loaded_bank]
   ldh [temp_bank], a
-  ld a, PLAYER_STRINGS_BANK
+  ld a, BANK(MoveNames)
   SET_BANK
 
   ld hl, MoveNames
@@ -81,7 +81,7 @@ GetMove:: ; a = move number, returns move_data
   ld c, l
   ldh a, [loaded_bank]
   ldh [temp_bank], a
-  ld a, PLAYER_DATA_BANK
+  ld a, BANK(MoveList)
   SET_BANK
 
   ld hl, MoveList
@@ -109,7 +109,7 @@ GetPlayerName:: ; a = number, returns name in name_buffer
   ld c, a;number
   ldh a, [loaded_bank]
   push af;bank
-  ld a, PLAYER_STRINGS_BANK
+  ld a, BANK(PlayerNames)
   SET_BANK
 
   ld hl, PlayerNames
@@ -131,7 +131,7 @@ GetPlayerDescription:: ; a = number, returns description in str_buffer
   ld c, a;number
   ldh a, [loaded_bank]
   ldh [temp_bank], a
-  ld a, PLAYER_STRINGS_BANK
+  ld a, BANK(PlayerDescriptions)
   SET_BANK
 
   ld hl, PlayerDescriptions
@@ -247,7 +247,7 @@ LoadPlayerBaseData:: ; a = number
   ld c, a;number
   ldh a, [loaded_bank]
   ldh [temp_bank], a
-  ld a, PLAYER_DATA_BANK
+  ld a, BANK(Roledex)
   SET_BANK
 
   ld hl, Roledex

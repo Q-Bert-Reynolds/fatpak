@@ -11,9 +11,7 @@ def main():
   generate_item_strings(items)
 
 def generate_item_strings(items):
-  with open("./data/item_strings.asm", "w+", encoding='utf8') as c_file:
-    c_file.write("SECTION \"Item Strings\", ROMX, BANK[ITEM_BANK]\n")
-    
+  with open("./data/item_strings.asm", "w+", encoding='utf8') as c_file:    
     c_file.write("\nItemNames::\n")
     for item in items:
       if (len(item["Name"]) > 12):
@@ -24,8 +22,6 @@ def generate_item_data(items):
   status_changes = ["Poison","Burn","Freeze","Sleep","Paralyze","Conditions"]
   status_symbol_map = ["PSN","BRN","FRZ","SLP","PAR","ALL"]
   with open("./data/item_data.asm", "w+") as c_file:
-    c_file.write("SECTION \"Item Data\", ROMX, BANK[ITEM_BANK]\n")
-
     constants = ""
     var_names = ""
     item_data = ""

@@ -1,6 +1,6 @@
 INCLUDE "src/beisbol.inc"
 
-SECTION "Temp Data", ROMX, BANK[TEMP_BANK]
+SECTION "Temp Data", ROMX
 TempItems:
   DB POTION_ITEM,      12
   DB BASEBALL_ITEM,    10

@@ -12,7 +12,7 @@ def main():
 
 def generate_move_strings(moves):
   with open("./data/move_strings.asm", "w+") as c_file:
-    c_file.write("SECTION \"Move Strings\", ROMX, BANK[PLAYER_STRINGS_BANK]\n")
+    c_file.write("SECTION \"Move Strings\", ROMX\n")
     
     c_file.write("\nMoveNames::\n")
     for move in moves:
@@ -22,7 +22,7 @@ def generate_move_strings(moves):
 
 def generate_move_data(moves):
   with open("./data/move_data.asm", "w+") as c_file:
-    c_file.write("SECTION \"Move Data\", ROMX, BANK[PLAYER_DATA_BANK]\n")
+    c_file.write("SECTION \"Move Data\", ROMX\n")
 
     constants = ""
     var_names = ""

@@ -1,6 +1,6 @@
 INCLUDE "src/beisbol.inc"
 
-SECTION "Roledex UI", ROMX, BANK[ROLEDEX_BANK]
+SECTION "Roledex UI", ROMX
 
 INCLUDE "data/strings/roledex_ui_strings.asm"
 

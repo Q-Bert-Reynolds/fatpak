@@ -1,6 +1,5 @@
 Priority
 
-- remove manual ROMX assignments, let linker handle bank management instead
 - running out of room in ROM0, move stuff to other banks
   - less than 1Kb left
   - move map_stamps out of ROM0
@@ -40,6 +39,7 @@ General
 - give math subroutines more appropriate names
 - cut off sprites with the text box using an LCD interrupt (see https://gbdev.io/pandocs/LCDC.html#faux-layer-textboxstatus-bar)
 - use GB Printer to print stats, records, rolédex, baseball cards
+- remove the last few manual ROMX assignments, let linker handle bank management instead
 
 Optimization
 

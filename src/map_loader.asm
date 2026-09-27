@@ -161,7 +161,7 @@ PickUpMapItem:: ;item index in b
 
   call GetMapItem
 
-  ld a, ITEM_BANK
+  ld a, BANK(TryPickupItem)
   SET_BANK
   call TryPickupItem;bc = item id, de = flag index/bits
   jr z, .exit

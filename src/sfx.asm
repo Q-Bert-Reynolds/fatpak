@@ -1,4 +1,4 @@
-SECTION "SFX", ROMX, BANK[SFX_BANK]
+SECTION "SFX", ROMX
 
 SelectSound::
   DB 3;steps

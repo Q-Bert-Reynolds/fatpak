@@ -1,4 +1,3 @@
-SECTION "Item Strings", ROMX, BANK[ITEM_BANK]
 
 ItemNames::
 DB "BASEBALL", 0

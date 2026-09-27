@@ -18,7 +18,6 @@ INCLUDE "data/strings/core_strings.asm"
 ; SetBkgTilesWithOffset           hl=wh, de=xy, bc=in_tiles, a=offset
 ; SetWinTilesWithOffset           hl=wh, de=xy, bc=in_tiles, a=offset
 ; DrawSaveStats                   draw flags, de = xy
-; ShowRoledex
 ; SetSpriteTiles                  bc = count, hl = map, de = offset\props
 ; MoveSprites                     bc = xy in screen space, hl = wh in tiles, a = first sprite index
 ; SetSpriteTilesXY                bc = xy in screen space, hl = wh in tiles, de = tilemap, a = VRAM offset

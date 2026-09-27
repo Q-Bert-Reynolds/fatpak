@@ -1,4 +1,4 @@
-SECTION "Player Strings", ROMX, BANK[PLAYER_STRINGS_BANK]
+SECTION "Player Strings", ROMX
 
 PlayerNames::
 DB "BUBBI", 0

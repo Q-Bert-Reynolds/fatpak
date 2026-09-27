@@ -244,15 +244,15 @@ ShowPauseMenu::
 .lineup
   cp 2
   jr nz, .item
-  ld bc, 0
-  call ShowLineup
+  ld de, 0
+  TRAMPOLINE ShowLineup
   jr .returnToPauseMenu
 .item
   cp 3
   jr nz, .user
   ld a, INVENTORY_MODE_USE
   ld [inventory_mode], a
-  call ShowInventory
+  TRAMPOLINE ShowInventory
   jr .returnToPauseMenu
 .user
   cp 4

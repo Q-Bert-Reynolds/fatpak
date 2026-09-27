@@ -5,7 +5,7 @@ INCLUDE "src/baseball/utils.asm"
 ;include compiled assemblies last
 INCLUDE "src/baseball/_announcer.asm"
 
-SECTION "Play Ball SGB", ROMX, BANK[SGB_BANK+1]
+SECTION "Play Ball SGB", ROMX
 INCLUDE "img/play/play_ball_sgb_border.asm"
 
 SECTION "Play Ball HOME", ROM0
@@ -1219,8 +1219,8 @@ ENDC
     jr nz, .itemMenuItemSelected
     call GetUserPitcherOrder
     push af
-    ld bc, 0
-    call ShowLineup
+    ld de, 0
+    TRAMPOLINE ShowLineup
     call GetUserPitcherOrder
     push af;current pitcher
     call SetupGameUI
@@ -1247,7 +1247,7 @@ ENDC
     SHOW_WIN
     ld a, INVENTORY_MODE_USE
     ld [inventory_mode], a
-    call ShowInventory
+    TRAMPOLINE ShowInventory
     HIDE_WIN
     call SetupGameUI
     call ShowPitcher

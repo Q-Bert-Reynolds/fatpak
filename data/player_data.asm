@@ -149,7 +149,8 @@ DEF NUM_AIRE EQU 148
 DEF NUM_DRAGON EQU 149
 DEF NUM_MIKE EQU 150
 DEF NUM_MICK EQU 151
-SECTION "Player Data", ROMX, BANK[PLAYER_DATA_BANK]
+
+SECTION "Player Data", ROMX
 ;weight format: DDDDLLLL LLLLLLLL where D is decimal and L is lbs
 ;height format: FFFFIIII where F is feet and I is inches
 

@@ -1,4 +1,4 @@
-SECTION "Teams", ROMX, BANK[TEAMS_BANK]
+SECTION "Teams", ROMX
 
 INCLUDE "data/team_data.asm"
 
