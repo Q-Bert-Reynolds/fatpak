@@ -2,20 +2,6 @@ IF !DEF(_003VENUS_TILE_COUNT)
 DEF _003VENUS_TILE_COUNT EQU 40
 DEF _003VENUS_ROWS EQU 7
 DEF _003VENUS_COLUMNS EQU 7
-DEF _003VENUS_PALETTE_COUNT EQU 2
-_003VenusColors:
-  RGB 24, 24, 13
-  RGB  5,  7,  5
-  RGB 22,  6,  7
-  RGB  0,  5,  5
-_003VenusPaletteMap:
-  DB 0,0,0,0,0,0,0
-  DB 0,0,0,0,1,0,0
-  DB 0,0,0,0,0,0,0
-  DB 0,0,0,0,0,0,0
-  DB 0,0,0,0,0,0,0
-  DB 0,0,0,0,0,1,0
-  DB 0,0,0,0,0,0,0
 _003VenusTiles: INCBIN "img/players/003Venus.tiles"
 _003VenusTileMap: INCBIN "img/players/003Venus.tilemap"
 ENDC

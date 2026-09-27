@@ -434,7 +434,7 @@ def png_to_gb (path, base, name):
         asm_file.write("DEF _" + name.upper() + "_ROWS EQU " + str(rows) + "\n")
         asm_file.write("DEF _" + name.upper() + "_COLUMNS EQU " + str(cols) + "\n")
 
-      if colors:
+      if colors and "players" not in path:
         asm_file.write("DEF _" + name.upper() + "_PALETTE_COUNT EQU " + str(len(colors)) + "\n")
         asm_file.write("_"+PascalCase(name)+"Colors:\n"+"".join(colors))
         asm_file.write("_"+PascalCase(name)+"PaletteMap:\n"+palettemap)

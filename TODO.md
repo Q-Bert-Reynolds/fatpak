@@ -1,12 +1,5 @@
 Priority
 
-- running out of room in ROM0, move stuff to other banks
-  - less than 1Kb left
-  - move map_stamps out of ROM0
-  - move colors.asm out of ROM0
-  - core.asm should not include core_strings.asm
-  - move collision response code (doors, items, etc.) from map_loader to world
-  - helper routines that don't take any args should use TRAMPOLINE instead
 - generic animation system
 - load sprite colors with map
 - announcer mode
@@ -43,7 +36,6 @@ General
 
 Optimization
 
-- put Trampoline and loaded_bank in HRAM
 - reduce stack thrashing in favor of repeated loading from WRAM 
 - if all sprite stamps are 2x2, remove data from export and simplify stamp drawing
 - COPY_TILE_BLOCK macro in GBDK.asm should be a subroutine, add HRAM vars to allow for this
@@ -56,6 +48,12 @@ Optimization
 - Load/Set User/Opposing PlayerBkgTiles subroutines share a ton of code
 - palette ids are at most 7, so two palettes could fit in a byte, cutting palette data in half
 - use halt and stop where appropriate (see https://gbdev.io/pandocs/Reducing_Power_Consumption.html)
+- running out of room in ROM0, move stuff to other banks
+  - move map_stamps out of ROM0
+  - move colors.asm out of ROM0
+  - core.asm should not include core_strings.asm
+  - move collision response code (doors, items, etc.) from map_loader to world
+  - helper routines that don't take any args should use TRAMPOLINE instead
 
 Python scripts
 
