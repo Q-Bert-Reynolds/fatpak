@@ -5,7 +5,6 @@ INCLUDE "data/strings/core_strings.asm"
 ; GetStatusString                 a = status mask, string in name_buffer
 ; Trampoline                      b = bank, hl = address, can only use a, e, and RAM for args, can return in any register
 ; UpdateInput
-; DrawStateMap
 ; ClearTiles                      a = clear tile, display should be off
 ; ClearScreen                     a = clear tile, display should be off
 ; SetTiles                        a = draw flags, hl=wh, de=xy, bc=firstTile
@@ -231,20 +230,6 @@ InitializeGameData::
   ld bc, game_event_flags_end-game_event_flags
   jp mem_Set
 
-DrawStateMap::;a = draw flags
-  ld b, a;draw flags
-  ld a, [loaded_bank]
-  push af;bank
-  ld a, UI_BANK
-  SET_BANK
-
-  ld a, b;draw flags
-  call UIDrawStateMap
-
-  pop af;bank
-  SET_BANK
-  ret
-
 ClearTiles:: ;a = tile, display should be off
   ld bc, 32*32+20*18
   ld hl, _SCRN0
@@ -343,7 +328,7 @@ DrawSaveStats::;draw flags, de = xy
   push de;xy
   ld a, [loaded_bank]
   ld b, a;old bank
-  ld a, UI_BANK
+  ld a, BANK(UIDrawSaveStats)
   SET_BANK
 
   pop de;xy

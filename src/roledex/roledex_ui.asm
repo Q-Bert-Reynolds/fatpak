@@ -249,7 +249,7 @@ ShowRoledexPage:
 
 ShowRoledexPlayerMap:; a = player number
   push af
-  call DrawStateMap
+  TRAMPOLINE UIDrawStateMap
 
   pop af
   call GetPlayerName

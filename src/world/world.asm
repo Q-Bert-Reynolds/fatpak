@@ -279,7 +279,7 @@ ShowPauseMenu::
   xor a
   ldh [rSCX], a
   ldh [rSCY], a
-  call ShowOptions
+  TRAMPOLINE UIShowOptions
   pop hl
   ld a, h
   ldh [rSCX], a
@@ -533,7 +533,7 @@ Overworld::
   DISABLE_LCD_INTERRUPT
   SET_DEFAULT_PALETTE
 
-  call LoadFontTiles
+  TRAMPOLINE UILoadFontTiles
   call LoadAvatarSprites
   call ShowPlayerAvatar
   call ClearMapSprites

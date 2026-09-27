@@ -1094,7 +1094,7 @@ ShowTownMap:
   xor a
   ldh [rSCX], a
   ldh [rSCY], a
-  call DrawStateMap
+  TRAMPOLINE UIDrawStateMap
 
 .loop
   UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS .exit, PADF_A | PADF_B | PADF_START

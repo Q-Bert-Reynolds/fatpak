@@ -83,7 +83,7 @@ NewGame::
   ld a, 48
   ldh [rSCX], a
 
-  call LoadFontTiles
+  TRAMPOLINE UILoadFontTiles
 
 .docTiles
   ; since font takes up $9000 to $9800, no need to wrap around with mem_CopyToTileData

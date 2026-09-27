@@ -6,7 +6,7 @@ TestMap::
   DISPLAY_OFF
   PLAY_SONG tessie_data, 1
   SET_DEFAULT_PALETTE
-  call LoadFontTiles
+  TRAMPOLINE UILoadFontTiles
   ld a, MAP_OVERWORLD
   ld [map], a
   call SetMapTiles

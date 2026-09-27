@@ -412,7 +412,7 @@ ShowStartMenu: ; puts choice in a ... 0 = back, >0 = choice
 
   call UpdateAudio
   CLEAR_SCREEN ' '
-  call LoadFontTiles
+  TRAMPOLINE UILoadFontTiles
   DISPLAY_ON
 
   call CheckSave
@@ -521,7 +521,7 @@ Title:: ; puts (c-d-1) in a
   ld a, [_c]
   and a, d
   jp z, .showStartMenu
-  call ShowOptions
+  TRAMPOLINE UIShowOptions
   xor a
   ld [_d], a
 .showStartMenu

@@ -2,7 +2,6 @@ INCLUDE "src/beisbol.inc"
 
 SECTION "UI Bank 0", ROM0
 
-; LoadFontTiles
 ; RevealTextAndWait   hl = text
 ; RevealText          a = draw flags, de = xy hl = text
 ; FlashNextArrow      a = draw flags, de = xy
@@ -14,24 +13,11 @@ SECTION "UI Bank 0", ROM0
 ; ShowListMenu        a = draw flags, bc = xy, de = wh, [list_selection] = initial selection, [str_buffer] = text, [name_buffer] = title, returns choice in a (0 = cancel)
 ; AskYesNo            a = draw flags, bc = xy, returns choice in a (0 = cancel, 1 = yes, 2 = no)
 ; ShowTextEntry       bc = title, de = str, l = max_len -> puts text in name_buffer
-; ShowOptions
 ; ShowNumberPicker    a = draw flags, bc = xy, de = wh, h = max number, returns number in a (0 = cancel)
 
 ; SDCC extern:
 ; _RevealTextAndWait  de = text
 ; _DisplayText        a = draw flags, de = text
-
-LoadFontTiles::
-  ld a, [loaded_bank]
-  push af;bank
-  ld a, UI_BANK
-  SET_BANK
-
-  call UILoadFontTiles
-
-  pop af;bank
-  SET_BANK
-  ret
 
 _RevealTextAndWait:: ;extern void RevealTextAndWait(char text[]);
   ld h, d;compiler puts text in de
@@ -42,7 +28,7 @@ RevealTextAndWait:: ;hl = text
 
   ld a, [loaded_bank]
   push af;bank
-  ld a, UI_BANK
+  ld a, BANK(UIRevealTextAndWait)
   SET_BANK
 
   ld hl, str_buffer
@@ -62,7 +48,7 @@ RevealText:: ;a = draw flags, de = xy, hl = text
   ld de, str_buffer
   call str_Copy
 
-  ld a, UI_BANK
+  ld a, BANK(UIRevealText)
   SET_BANK
 
   pop de;xy
@@ -445,7 +431,7 @@ ShowListMenu:: ;a = draw flags, bc = xy, de = wh, [list_selection] = initial sel
   ld a, [loaded_bank]
   push af;bank
   push hl;draw flags
-  ld a, UI_BANK
+  ld a, BANK(UIShowListMenu)
   SET_BANK
   
   pop af;draw flags
@@ -488,7 +474,7 @@ ShowTextEntry:: ;bc = title, de = str, l = max_len -> puts text in name_buffer
   ld de, name_buffer
   call str_Copy
 
-  ld a, UI_BANK
+  ld a, BANK(UIShowTextEntry)
   SET_BANK
   
   ld de, str_buffer
@@ -500,23 +486,11 @@ ShowTextEntry:: ;bc = title, de = str, l = max_len -> puts text in name_buffer
   SET_BANK
   ret
 
-ShowOptions::
-  ld a, [loaded_bank]
-  push af;bank
-  ld a, UI_BANK
-  SET_BANK
-
-  call UIShowOptions
-
-  pop af;bank
-  SET_BANK
-  ret
-
 ShowNumberPicker::; a = draw flags, bc = xy, de = wh, h = max number, returns number in a (0 = cancel)
   ld l, a;draw flags
   ld a, [loaded_bank]
   push af;bank
-  ld a, UI_BANK
+  ld a, BANK(UIShowNumberPicker)
   SET_BANK
   
   ld a, l;draw flags
@@ -530,7 +504,7 @@ ShowNumberPicker::; a = draw flags, bc = xy, de = wh, h = max number, returns nu
   ret
 
 
-SECTION "UI", ROMX, BANK[UI_BANK]
+SECTION "UI", ROMX
 
 INCLUDE "img/ui_font.asm"
 INCLUDE "img/town_map.asm"

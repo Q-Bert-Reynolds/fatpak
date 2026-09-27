@@ -40,7 +40,6 @@
 #define MAX_ROM_BANKS        64//1MB
 #define TEMP_BANK            MAX_ROM_BANKS-1
 #define GBT_PLAYER_BANK      1
-#define UI_BANK              2
 #define START_BANK           3
 #define TITLE_BANK           START_BANK
 #define NEW_GAME_BANK        START_BANK

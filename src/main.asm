@@ -10,7 +10,7 @@ INCLUDE "src/beisbol.inc"
 MACRO RUN_TESTS
   call KeyboardDemo
   DISPLAY_OFF
-  call LoadFontTiles
+  TRAMPOLINE UILoadFontTiles
   ld a, ' '
   call ClearScreen
   DISPLAY_ON

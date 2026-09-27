@@ -1143,7 +1143,7 @@ Transition:
 
 StartGame::
   PLAY_SONG tessie_data, 1
-  call LoadFontTiles
+  TRAMPOLINE UILoadFontTiles
   call Transition
 
 .loadBaseball

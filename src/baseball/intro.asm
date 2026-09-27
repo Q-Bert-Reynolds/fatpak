@@ -13,7 +13,7 @@ PlayBallIntro:
   ld hl, SGBPlayBallIntroAttrBlk
   call sgb_PacketTransfer
 
-  call LoadFontTiles
+  TRAMPOLINE UILoadFontTiles
 
 .showPlayBallWindow
   ld bc, 0
