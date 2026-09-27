@@ -1,4 +1,4 @@
-SECTION "Play Ball Intro", ROMX, BANK[PLAY_BALL_INTRO_BANK]
+SECTION "Play Ball Intro", ROMX
 
 INCLUDE "src/baseball/scale_tile_data_2x.asm"
 INCLUDE "img/coaches/calvin_back_2x.asm"
@@ -248,7 +248,7 @@ PlayBallIntro:
 
 .revealText
   ld hl, str_buffer
-  call RevealTextAndWait ;reveal_text(str_buff, PLAY_BALL_BANK);
+  call RevealTextAndWait
 
   SET_LCD_INTERRUPT SlideOutLCDInterrupt
 

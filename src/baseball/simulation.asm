@@ -602,9 +602,9 @@ SGBSimulationAttrBlk:
   ATTR_BLK 1
   ATTR_BLK_PACKET %001, 3,3,3, 0,0, 20,18
   
-RunSimulation::;a = ball speed, b = spray angle, c = launch angle
+RunSimulation::;a = ball speed, d = spray angle, e = launch angle
   push af;ball speed
-  push bc;spray/launch angle
+  push de;spray/launch angle
   
   HIDE_WIN
   HIDE_ALL_SPRITES

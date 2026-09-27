@@ -220,12 +220,7 @@ CheckStrike:: ;returns ball (z) or strike (nz)
 ;----------------------------------------------------------------------
 _GetPositionPlayerAndName::;unsigned int GetPositionPlayerAndName(unsigned char position)
 GetPositionPlayerAndName::
-  ld b, a;position number
-  ldh a, [loaded_bank]
-  push af;bank
-  ld a, PLAY_BALL_BANK
-  SET_BANK
-  push bc;position number
+  push af;position number
   call IsUserFielding
   jr nz, .userIsFielding
 .opponentIsFielding
@@ -242,8 +237,6 @@ GetPositionPlayerAndName::
   call GetUserPlayerName
 .exit
   pop bc;player
-  pop af;bank
-  SET_BANK
   ret
 
 ;----------------------------------------------------------------------

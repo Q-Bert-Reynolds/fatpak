@@ -19,8 +19,6 @@ INCLUDE "data/strings/core_strings.asm"
 ; SetWinTilesWithOffset           hl=wh, de=xy, bc=in_tiles, a=offset
 ; DrawSaveStats                   draw flags, de = xy
 ; ShowRoledex
-; LoadSimulation                  a = ball speed b = spray angle c = launch angle
-; ShowPlayBallIntro               a = unsigned player(0) or team(1), [_a] = player num or coach id
 ; SetSpriteTiles                  bc = count, hl = map, de = offset\props
 ; MoveSprites                     bc = xy in screen space, hl = wh in tiles, a = first sprite index
 ; SetSpriteTilesXY                bc = xy in screen space, hl = wh in tiles, de = tilemap, a = VRAM offset
@@ -343,28 +341,6 @@ DrawSaveStats::;draw flags, de = xy
   call UIDrawSaveStats
 
   pop af;old bank
-  SET_BANK
-  ret
-
-LoadSimulation::;a = ball speed b = spray angle c = launch angle
-  push af;ball speed
-  ld a, SIM_BANK
-  SET_BANK
-
-  pop af;ball speed
-  call RunSimulation
-  
-  ld a, PLAY_BALL_BANK
-  SET_BANK
-  ret
-
-ShowPlayBallIntro:: ;[_a] = player num or coach id
-  ld a, PLAY_BALL_INTRO_BANK
-  SET_BANK
-
-  call PlayBallIntro
-
-  ld a, PLAY_BALL_BANK
   SET_BANK
   ret
 

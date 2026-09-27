@@ -11,30 +11,34 @@ INCLUDE "img/play/play_ball_sgb_border.asm"
 SECTION "Play Ball HOME", ROM0
 ;TODO: Figure out how banking works in C so these can go in announcer.c
 AnnounceDisplayText:: ;hl = text address
-  ld a, ANNOUNCER_BANK
+  ldh a, [loaded_bank]
+  push af
+  ld a, BANK(_PositionTexts)
   SET_BANK
   
   ld a, DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP
   call DisplayText
 
-  ld a, PLAY_BALL_BANK
+  pop af
   SET_BANK
   ret
 
-AnnounceSwingContact:: ; a = speed, b = spray angle, c = launch angle
-  push af;speed
+AnnounceSwingContact:: ; a = speed, d = spray angle, e = launch angle
+  ld b, e;launch
+  ld e, d;spray
+  ld d, a;speed
+
+  ldh a, [loaded_bank]
+  push af
   ld a, BANK(_AnnounceSwingContact)
   SET_BANK
-  pop af;speed
 
-  ld e, b;spray
-  ld b, c;launch
+  ld a, d;speed
   push bc;b = launch
   inc sp
-
   call _AnnounceSwingContact; a = speed, e = spray, [sp+2] = launch angle
 
-  ld a, PLAY_BALL_BANK
+  pop af
   SET_BANK
   ret
 
@@ -885,9 +889,9 @@ HitBall:
   ld a, [animation_style]
   and a
   jr nz, .announceContact
-.loadSimulation
+.runSimulation
   pop af;exit velocity
-  call LoadSimulation;a = exit velocity b = spray angle c = launch angle
+  TRAMPOLINE RunSimulation;a = exit velocity, d = spray angle, e = launch angle
   call SetupGameUI
   call ShowPitcher
   call ShowBatter
@@ -914,7 +918,7 @@ FinishPitch:
   call gbdk_Delay
   ret
 
-GetExitVelocityAndAngle:;returns velocity in a, spray in b, launch in c  
+GetExitVelocityAndAngle:;returns velocity in a, spray in d, launch in e 
   ld a, [swing_move_id]
   call GetMove
 
@@ -973,7 +977,7 @@ GetExitVelocityAndAngle:;returns velocity in a, spray in b, launch in c
   add a, 127
   sub a, d;reduce power by swing diff
 
-  pop bc;spray,launch
+  pop de;spray,launch
   ret
 
 PlayBall:; a = selected move
@@ -1183,28 +1187,9 @@ StartGame::
   ld [home_score], a
   ld [away_score], a
   ld [current_batter], a
-  
-.checkGameType
-  ld a, [game_state]
-  and a, GAME_STATE_UNSIGNED_PLAYER 
-  jr z, .loadTeam
 
-.loadRandom
-  ;TODO: should be based on map data
-  call gbdk_Random
-  cp a, 151
-  jr c, .showIntro
-  sub a, 151
-  jr .showIntro
-  
-.loadTeam
-  ;get the player from the current team's data
-  call GetCurrentOpponentPlayer
-  call GetPlayerNumber
-    
 .showIntro
-  ld [_a], a; player num
-  call ShowPlayBallIntro
+  TRAMPOLINE PlayBallIntro
   call SetupGameUI
 
 IF TESTS_ENABLED == 1
