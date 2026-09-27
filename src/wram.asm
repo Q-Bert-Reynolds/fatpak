@@ -176,7 +176,6 @@ stack_top: DS STACK_SIZE
 stack_bottom:
 
 SECTION "Buffers", WRAMX
-;buffers
 _tile_buffer::
 tile_buffer::       DS BUFFER_SIZE
 _bkg_buffer::

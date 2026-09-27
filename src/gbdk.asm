@@ -631,8 +631,10 @@ gbdk_SetupDMATransfer::
   ret
 .DMATransferEnd
 
+DEF DMA_SIZE EQU (.DMATransferEnd - .DMATransfer)
+
 SECTION "GBDK HRAM Vars", HRAM[_HRAM]
-DMATransfer:: DS (gbdk_SetupDMATransfer.DMATransferEnd - gbdk_SetupDMATransfer.DMATransfer)
+DMATransfer:: DS DMA_SIZE
 vbl_done:: DB
 
 ENDC ;GBDK_ASM

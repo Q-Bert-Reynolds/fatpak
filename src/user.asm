@@ -1,14 +1,3 @@
-SECTION "User Info Bank 0", ROM0
-ShowUserInfo::
-  ld a, USER_BANK
-  SET_BANK
-
-  call _ShowUserInfo
-
-  ld a, WORLD_BANK
-  SET_BANK
-  ret
-
 SECTION "User Info Bank X", ROMX, BANK[ITEM_BANK]
 
 INCLUDE "img/user_info.asm"
@@ -18,7 +7,7 @@ MoneyText: DB "MONEY/$",0
 TimeText:  DB "TIME/"
 PennantsText: DB "○PENNANTS○"
 
-_ShowUserInfo:
+ShowUserInfo:
   DISPLAY_OFF
   ld a, [sys_info]
   and a, SYS_INFO_GBC

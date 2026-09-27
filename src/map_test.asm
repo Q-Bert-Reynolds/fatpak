@@ -1,6 +1,6 @@
 INCLUDE "src/beisbol.inc"
 
-SECTION "Map Test", ROMX, BANK[WORLD_BANK]
+SECTION "Map Test", ROMX
 
 TestMap::
   DISPLAY_OFF

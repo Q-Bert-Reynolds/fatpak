@@ -1,19 +1,19 @@
 INCLUDE "src/beisbol.inc"
 
-Section "Overworld Map", ROMX, BANK[WORLD_BANK+1]
+Section "Overworld Map", ROMX
 INCLUDE "img/maps/overworld.asm"
 INCLUDE "img/maps/forest.asm"
 INCLUDE "maps/Mountains.gbmap"
 INCLUDE "maps/Overworld.gbmap"
 INCLUDE "maps/VeteranPark.gbmap"
 
-Section "Indoor Maps", ROMX, BANK[WORLD_BANK+2]
+Section "Indoor Maps", ROMX
 INCLUDE "img/maps/houses.asm"
 INCLUDE "img/maps/businesses.asm"
 INCLUDE "maps/Houses.gbmap"
 INCLUDE "maps/Businesses.gbmap"
 
-SECTION "World Code", ROMX, BANK[WORLD_BANK]
+SECTION "World Code", ROMX
 INCLUDE "data/strings/world_strings.asm"
 INCLUDE "src/world/computer.asm"
 INCLUDE "src/world/scripts.asm"
@@ -59,7 +59,11 @@ MACRO MOVE_PLAYER;\1 = animation address, \2 = map move routine, \3 = map draw r
     call AnimateJump
   .copySprites
     call CopyMapSpritesToOAMBuffer
-    ; call gbdk_WaitVBL
+    ld a, [button_state]
+    and a, PADF_B
+    jr nz, .skipVBL
+    call gbdk_WaitVBL
+  .skipVBL
     pop bc;c = collision
     pop af;steps left
     dec a
@@ -235,7 +239,7 @@ ShowPauseMenu::
 .roledex
   cp 1
   jr nz, .lineup
-  call ShowRoledex
+  TRAMPOLINE ShowRoledex
   jr .returnToPauseMenu
 .lineup
   cp 2
@@ -253,7 +257,7 @@ ShowPauseMenu::
 .user
   cp 4
   jr nz, .save
-  call ShowUserInfo
+  TRAMPOLINE ShowUserInfo
   jr .returnToPauseMenu
 .save
   cp 5
@@ -532,6 +536,7 @@ Overworld::
   call LoadFontTiles
   call LoadAvatarSprites
   call ShowPlayerAvatar
+  call ClearMapSprites
 
   call SetMapTiles
   call SetMapPalettes

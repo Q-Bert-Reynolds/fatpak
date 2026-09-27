@@ -355,16 +355,6 @@ DrawSaveStats::;draw flags, de = xy
   SET_BANK
   ret
 
-ShowRoledex::
-  ld a, ROLEDEX_BANK
-  SET_BANK
-
-  call ShowRoledexUI
-  
-  ld a, WORLD_BANK
-  SET_BANK
-  ret
-
 LoadSimulation::;a = ball speed b = spray angle c = launch angle
   push af;ball speed
   ld a, SIM_BANK

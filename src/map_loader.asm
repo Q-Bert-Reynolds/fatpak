@@ -3,7 +3,6 @@ DEF MAP_LOADER EQU 1
 
 INCLUDE "src/beisbol.inc"
 
-
 SECTION "Map Loader HRAM", HRAM
 map_last_button_state:: DB
 map_anim_frame:: DB
@@ -589,8 +588,8 @@ CopyMapAvatarToOAMBuffer::;hl = oam buffer address, bc = avatar address, d = ext
   push de;d = extra data
   ld a, [loaded_bank]
   push af;loaded bank
-  ld a, WORLD_BANK
-  SET_BANK;assumes all map avatars and animations are in WORLD_BANK
+  ld a, BANK(Overworld)
+  SET_BANK;assumes all map avatars and animations are in the same bank as Overworld
   ld a, d;extra data
   and a, MAP_AVATAR_DIRECTION
   rlc a

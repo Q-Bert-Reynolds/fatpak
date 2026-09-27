@@ -722,7 +722,7 @@ ShowRoledexMenu:;returns exit code in a
   pop af;exit code
   ret
 
-ShowRoledexUI::
+ShowRoledex::
   ldh a, [rSCX]
   ld h, a
   ldh a, [rSCY]

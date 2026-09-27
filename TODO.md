@@ -1,11 +1,14 @@
 Priority
 
+- remove manual ROMX assignments, let linker handle bank management instead
 - running out of room in ROM0, move stuff to other banks
   - less than 1Kb left
+  - move map_stamps out of ROM0
   - move colors.asm out of ROM0
   - core.asm should not include core_strings.asm
   - move collision response code (doors, items, etc.) from map_loader to world
   - helper routines that don't take any args should use TRAMPOLINE instead
+- generic animation system
 - load sprite colors with map
 - announcer mode
   - double plays
@@ -19,13 +22,10 @@ Priority
   - Doc's PC
   - League PC
 - end game, get experience, level up!!!
-- generic animation system
 
 Bugs
 
-- colliders with offscreen origins will fail to register hits
 - in Calvin's bedroom, when you first turn on the PC, the SGB console sprite sits on top of the text box
-- map sprite culling still has issues at times
 - on SGB, viewing a player on your team during a ballgame crashes the game
 - can't deposit special items
 - if holding more than one directional button, can't hop ledge
@@ -36,7 +36,6 @@ Bugs
 
 General
 
-- remove manual ROMX assignments, let linker handle bank management instead
 - link cable support!
 - give math subroutines more appropriate names
 - cut off sprites with the text box using an LCD interrupt (see https://gbdev.io/pandocs/LCDC.html#faux-layer-textboxstatus-bar)
