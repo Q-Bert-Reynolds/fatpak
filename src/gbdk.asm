@@ -499,8 +499,8 @@ gbdk_CopyTilesFrom::
 ;
 ; registers used: af, bc, de
 ;***************************************************************************
-DEF _CPMS EQU 4194/4  ; 4.194304 MHz
 gbdk_Delay::
+  DEF _CPMS EQU 4194/4  ; 4.194304 MHz
   ldh a,[rKEY1]          ; 3 cycles
   and a, KEY1F_DBLSPEED  ; 1 cycle
   ld bc, _CPMS/7         ; 3 cycles
@@ -627,7 +627,7 @@ gbdk_SetupDMATransfer::
   COPY_TO_HRAM gbdk_DMATransfer, .DMATransfer, .DMATransferEnd
 
 .DMATransfer
-  ld a, oam_buffer / $100
+  ld a, HIGH(oam_buffer)
   ldh [rDMA], a
   ld a, OAM_COUNT
 .wait

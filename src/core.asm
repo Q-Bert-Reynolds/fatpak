@@ -81,22 +81,13 @@ Trampoline:: ;b = bank, hl = address, can use a, de, and RAM for args, can retur
   ret
 
 SerialInterrupt::
-  push af
-  push bc
-  push de
-  push hl
+  PUSH_ALL
   call PS2KeyboardInterrupt
-  pop hl 
-  pop de
-  pop bc
-  pop af
+  POP_ALL
   reti
 
 LCDInterrupt::
-  push af
-  push bc
-  push de
-  push hl
+  PUSH_ALL
   ld hl, rLCDInterrupt
   ld a, [hli]
   ld b, a
@@ -107,26 +98,17 @@ LCDInterrupt::
   push bc ;put return address on stack before jumping
   jp hl
 EndLCDInterrupt::
-  pop hl 
-  pop de
-  pop bc
-  pop af
+  POP_ALL
   reti
 
 VBLInterrupt::
-  push af
-  push bc
-  push de
-  push hl
+  PUSH_ALL
   call gbdk_DMATransfer
   call UpdateTime
   call UpdateAudio
   ld a, 1
   ldh [vbl_done], a
-  pop hl 
-  pop de
-  pop bc
-  pop af
+  POP_ALL
   reti
 
 UpdateTime::
@@ -170,10 +152,7 @@ UpdateTime::
   ret
  
 UpdateInput::;https://gbdev.io/pandocs/Joypad_Input.html
-  push af
-  push bc
-  push de
-  push hl
+  PUSH_ALL
 
   ;copy button_state to last_button_state
   ld a, [button_state]
@@ -203,11 +182,7 @@ ENDR
   ld [hl], a
 
   TRAMPOLINE ProcessKeyCodes
-
-  pop hl
-  pop de
-  pop bc
-  pop af
+  POP_ALL
   ret
 
 InitializeGameData::

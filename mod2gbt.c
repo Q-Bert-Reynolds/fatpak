@@ -1,35 +1,16 @@
 /*
- * mod2gbt v3.1 (Part of GBT Player)
+ * mod2gbt v3.1.0 (Part of GBT Player)
  *
- * Copyright (c) 2009-2018, Antonio Niño Díaz <antonio_nd@outlook.com>
- * All rights reserved.
+ * SPDX-License-Identifier: MIT
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * * Redistributions of source code must retain the above copyright notice, this
- *  list of conditions and the following disclaimer.
- *
- * * Redistributions in binary form must reproduce the above copyright notice,
- *   this list of conditions and the following disclaimer in the documentation
- *   and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES * LOSS OF USE, DATA, OR PROFITS * OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Copyright (c) 2009-2022 Antonio Niño Díaz
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+int export_to_gba = 0;
 int perform_speed_convertion = 1;
 typedef unsigned char u8;
 typedef signed   char s8;
@@ -211,7 +192,10 @@ void out_write_dec(u8 number)
 
 void out_write_hex(u8 number)
 {
-    fprintf(output_file, "%02X", number);
+    if (export_to_gba)
+        fprintf(output_file, "0x%02X", number);
+    else
+        fprintf(output_file, "$%02X", number);
 }
 
 void out_close(void)
@@ -258,20 +242,44 @@ int volume_mod_to_gb_ch3(int v) // Channel 3
 {
     int vol = volume_mod_to_gb(v);
 
-    switch (vol)
+    if (export_to_gba)
     {
-        case 0: case 1: case 2: case 3:
-            return 0;
+        switch (vol)
+        {
+            case 0: case 1: case 2: case 3:
+                return 0; // 0%
 
-        case 4: case 5: case 6: case 7:
-            return 3;
+            case 4: case 5: case 6:
+                return 3; // 25%
 
-        case 8: case 9: case 10: case 11:
-            return 2;
+            case 7: case 8: case 9:
+                return 2; // 50%
 
-        default:
-        case 12: case 13: case 14: case 15:
-            return 1;
+            case 10: case 11: case 12:
+                return 4; // 75%
+
+            default:
+            case 13: case 14: case 15:
+                return 1; // 100%
+        }
+    }
+    else
+    {
+        switch (vol)
+        {
+            case 0: case 1: case 2: case 3:
+                return 0; // 0%
+
+            case 4: case 5: case 6: case 7:
+                return 3; // 25%
+
+            case 8: case 9: case 10: case 11:
+                return 2; // 50%
+
+            default:
+            case 12: case 13: case 14: case 15:
+                return 1; // 100%
+        }
     }
 
     return 0;
@@ -478,17 +486,16 @@ void convert_channel1(u8 pattern_number, u8 step_number, u8 note_index,
         }
     }
 
-    out_write_str("$");
     out_write_hex(result[0]);
 
     if (command_len > 1)
     {
-        out_write_str(",$");
+        out_write_str(", ");
         out_write_hex(result[1]);
 
         if (command_len > 2)
         {
-            out_write_str(",$");
+            out_write_str(", ");
             out_write_hex(result[2]);
         }
     }
@@ -581,17 +588,16 @@ void convert_channel2(u8 pattern_number, u8 step_number, u8 note_index,
         }
     }
 
-    out_write_str("$");
     out_write_hex(result[0]);
 
     if (command_len > 1)
     {
-        out_write_str(",$");
+        out_write_str(", ");
         out_write_hex(result[1]);
 
         if (command_len > 2)
         {
-            out_write_str(",$");
+            out_write_str(", ");
             out_write_hex(result[2]);
         }
     }
@@ -694,17 +700,16 @@ void convert_channel3(u8 pattern_number, u8 step_number, u8 note_index,
         }
     }
 
-    out_write_str("$");
     out_write_hex(result[0]);
 
     if (command_len > 1)
     {
-        out_write_str(",$");
+        out_write_str(", ");
         out_write_hex(result[1]);
 
         if (command_len > 2)
         {
-            out_write_str(",$");
+            out_write_str(", ");
             out_write_hex(result[2]);
         }
     }
@@ -797,17 +802,16 @@ void convert_channel4(u8 pattern_number, u8 step_number, u8 note_index,
         }
     }
 
-    out_write_str("$");
     out_write_hex(result[0]);
 
     if (command_len > 1)
     {
-        out_write_str(",$");
+        out_write_str(", ");
         out_write_hex(result[1]);
 
         if (command_len > 2)
         {
-            out_write_str(",$");
+            out_write_str(", ");
             out_write_hex(result[2]);
         }
     }
@@ -815,21 +819,39 @@ void convert_channel4(u8 pattern_number, u8 step_number, u8 note_index,
 
 void convert_pattern(_pattern_t *pattern, u8 number)
 {
-    out_write_str("    SECTION \"");
-    out_write_str(label_name);
-    out_write_str("_");
-    out_write_dec(number);
-    out_write_str("\", ROMX\n");
+    if (export_to_gba)
+    {
+        out_write_str("static const uint8_t ");
+        out_write_str(label_name);
+        out_write_str("_");
+        out_write_dec(number);
+        out_write_str("[] = {\n");
+    }
+    else
+    {
+        out_write_str("    SECTION \"");
+        out_write_str(label_name);
+        out_write_str("_");
+        out_write_dec(number);
+        out_write_str("\", ROMX\n");
 
-    out_write_str(label_name);
-    out_write_str("_");
-    out_write_dec(number);
-    out_write_str(":\n");
+        out_write_str(label_name);
+        out_write_str("_");
+        out_write_dec(number);
+        out_write_str(":\n");
+    }
 
     int step;
     for (step = 0; step < 64; step++)
     {
-        out_write_str("    DB  ");
+        if (export_to_gba)
+        {
+            out_write_str("    ");
+        }
+        else
+        {
+            out_write_str("    DB  ");
+        }
 
         u8 data[4]; // Packed data
 
@@ -870,10 +892,21 @@ void convert_pattern(_pattern_t *pattern, u8 number)
         convert_channel4(number, step, note_index, samplenum, effectnum,
                          effectparams);
 
-        out_write_str("\n");
+        if (export_to_gba)
+            out_write_str(",\n");
+        else
+            out_write_str("\n");
     }
 
-    out_write_str("\n");
+    if (export_to_gba)
+    {
+        out_write_str("};\n");
+        out_write_str("\n");
+    }
+    else
+    {
+        out_write_str("\n");
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -884,7 +917,8 @@ void convert_pattern(_pattern_t *pattern, u8 number)
 
 void print_usage(void)
 {
-    printf("Usage: mod2gbt modfile.mod song_name [-speed] [-512-banks]\n\n");
+    printf("Usage: mod2gbt modfile.mod song_name [-speed] [-512-banks] [-gba]\n\n");
+    printf("       -gba        Export to GBA files.\n");
     printf("       -speed      Don't convert speed from 50 Hz to 60 Hz.\n");
     printf("       -512-banks  Prepare for a ROM with more than 256 banks.\n");
     printf("\n\n");
@@ -896,13 +930,12 @@ int main(int argc, char *argv[])
 
     int i;
 
-    printf("mod2gbt v3.1 (part of GBT Player)\n");
-    printf("Copyright (c) 2009-2018 Antonio Niño Díaz "
-           "<antonio_nd@outlook.com>\n");
+    printf("mod2gbt v3.1.0 (part of GBT Player)\n");
+    printf("Copyright (c) 2009-2022 Antonio Niño Díaz\n");
     printf("All rights reserved\n");
     printf("\n");
 
-    if ((argc < 3) || (argc > 5))
+    if (argc < 3)
     {
         print_usage();
         return -1;
@@ -921,6 +954,11 @@ int main(int argc, char *argv[])
         {
             more_than_256_banks = 1;
             printf("Output for a ROM with more than 256 banks.\n\n");
+        }
+        else if (strcmp(argv[i], "-gba") == 0)
+        {
+            export_to_gba = 1;
+            printf("Export to GBA files.\n\n");
         }
         else
         {
@@ -963,19 +1001,28 @@ int main(int argc, char *argv[])
 
     printf("Number of patterns: %d\n", num_patterns);
 
-    char *filename = malloc(strlen(label_name) + strlen(".asm"));
-    if (filename)
+    const char *extension = export_to_gba ? ".c" : ".asm";
+
+    char *filename = malloc(strlen(label_name) + strlen(extension) + 1);
+    if (filename == NULL)
     {
-        sprintf(filename, "%s.asm", label_name);
-        out_open(filename);
-        free(filename);
+        printf("Can't allocate memory for file name\n");
+        return -4;
+    }
+
+    sprintf(filename, "%s%s", label_name, extension);
+    out_open(filename);
+    free(filename);
+
+    if (export_to_gba)
+    {
+        out_write_str("\n// File created by mod2gbt\n\n"
+                      "#include <stddef.h>\n#include <stdint.h>\n\n");
     }
     else
     {
-        out_open("output.asm");
+        out_write_str("\n; File created by mod2gbt\n\n");
     }
-
-    out_write_str("\n; File created by mod2gbt\n\n");
 
     printf("\nConverting patterns...\n");
     for (i = 0; i < num_patterns; i++)
@@ -986,44 +1033,64 @@ int main(int argc, char *argv[])
 
     printf("\n\nPattern order...\n");
 
-    out_write_str("  SECTION \"");
-    out_write_str(label_name);
-    out_write_str("_data\", ROMX\n");
-
-    out_write_str(label_name);
-    out_write_str("_data::\n");
-
-    if (more_than_256_banks)
+    if (export_to_gba)
     {
+        out_write_str("const uint8_t *");
+        out_write_str(label_name);
+        out_write_str("_data[] = {\n");
+
         for (i = 0; i < modfile->song_length; i++)
         {
-            out_write_str("    DW  BANK(");
+            out_write_str("    ");
             out_write_str(label_name);
             out_write_str("_");
             out_write_dec(modfile->pattern_table[i]);
-            out_write_str("), ");
-            out_write_str(label_name);
-            out_write_str("_");
-            out_write_dec(modfile->pattern_table[i]);
-            out_write_str("\n");
+            out_write_str(",\n");
         }
-        out_write_str("    DW  $0000, $0000\n\n");
+        out_write_str("    NULL\n");
+        out_write_str("};");
     }
     else
     {
-        for (i = 0; i < modfile->song_length; i++)
+        out_write_str("  SECTION \"");
+        out_write_str(label_name);
+        out_write_str("_data\", ROMX\n");
+
+        out_write_str(label_name);
+        out_write_str("_data::\n");
+
+        if (more_than_256_banks)
         {
-            out_write_str("    DB  BANK(");
-            out_write_str(label_name);
-            out_write_str("_");
-            out_write_dec(modfile->pattern_table[i]);
-            out_write_str(")\n    DW  ");
-            out_write_str(label_name);
-            out_write_str("_");
-            out_write_dec(modfile->pattern_table[i]);
-            out_write_str("\n");
+            for (i = 0; i < modfile->song_length; i++)
+            {
+                out_write_str("    DW  BANK(");
+                out_write_str(label_name);
+                out_write_str("_");
+                out_write_dec(modfile->pattern_table[i]);
+                out_write_str("), ");
+                out_write_str(label_name);
+                out_write_str("_");
+                out_write_dec(modfile->pattern_table[i]);
+                out_write_str("\n");
+            }
+            out_write_str("    DW  $0000, $0000\n\n");
         }
-        out_write_str("    DB  $00\n    DW  $0000\n\n");
+        else
+        {
+            for (i = 0; i < modfile->song_length; i++)
+            {
+                out_write_str("    DB  BANK(");
+                out_write_str(label_name);
+                out_write_str("_");
+                out_write_dec(modfile->pattern_table[i]);
+                out_write_str(")\n    DW  ");
+                out_write_str(label_name);
+                out_write_str("_");
+                out_write_dec(modfile->pattern_table[i]);
+                out_write_str("\n");
+            }
+            out_write_str("    DB  $00\n    DW  $0000\n\n");
+        }
     }
 
     out_close();

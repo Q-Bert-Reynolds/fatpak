@@ -1,16 +1,15 @@
 ;###############################################################################
 ;
-; GBT Player v3.0.8
+; GBT Player v3.1.0
 ;
 ; SPDX-License-Identifier: MIT
 ;
-; Copyright (c) 2009-2020, Antonio Niño Díaz <antonio_nd@outlook.com>
+; Copyright (c) 2009-2020, Antonio Niño Díaz
 ;
 ;###############################################################################
 
-
     IF !DEF(GBT_PLAYER_INC)
-DEF GBT_PLAYER_INC EQU 1
+    DEF GBT_PLAYER_INC = 1
 
 ;###############################################################################
 
@@ -21,7 +20,7 @@ DEF GBT_PLAYER_INC EQU 1
                      ; THIS WILL CHANGE ROM BANK!!!
 
     EXPORT  gbt_pause ; Pauses or unpauses the song.
-                      ; a = 0 to unpause, anything else to pause.
+                      ; a = 0 to pause, anything else to unpause.
 
     EXPORT  gbt_loop ; Enables/disables looping at the end of the song.
                      ; a = 0 to stop at the end, anything else to loop
@@ -44,7 +43,7 @@ DEF GBT_PLAYER_INC EQU 1
 ; - If it's commented, only 256 banks are allowed, it's a little bit faster
 ;   and saves a few bytes. MBC1, MBC3 and MBC5 (and others).
 
-;GBT_USE_MBC5_512BANKS = 1
+;    DEF GBT_USE_MBC5_512BANKS = 1
 
 ;###############################################################################
 

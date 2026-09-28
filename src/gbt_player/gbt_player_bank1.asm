@@ -1,10 +1,10 @@
 ;###############################################################################
 ;
-; GBT Player v3.0.8
+; GBT Player v3.1.0
 ;
 ; SPDX-License-Identifier: MIT
 ;
-; Copyright (c) 2009-2020, Antonio Niño Díaz <antonio_nd@outlook.com>
+; Copyright (c) 2009-2020 Antonio Niño Díaz
 ;
 ;###############################################################################
 
@@ -356,8 +356,8 @@ gbt_channel_1_set_effect: ; a = effect, de = pointer to data.
 .gbt_ch1_pan:
     and     a,$11
     ld      [gbt_pan+0],a
-    ld      a,1
-    ret ; ret 1
+    xor     a,a
+    ret ; ret 0 do not update registers, only NR51 at end.
 
 .gbt_ch1_arpeggio:
     ld      b,a ; b = params
@@ -689,8 +689,8 @@ gbt_channel_2_set_effect: ; a = effect, de = pointer to data
 .gbt_ch2_pan:
     and     a,$22
     ld      [gbt_pan+1],a
-    ld      a,1
-    ret ; ret 1
+    xor     a,a
+    ret ; ret 0 do not update registers, only NR51 at end.
 
 .gbt_ch2_arpeggio:
     ld      b,a ; b = params
@@ -1049,8 +1049,8 @@ gbt_channel_3_set_effect: ; a = effect, de = pointer to data
 .gbt_ch3_pan:
     and     a,$44
     ld      [gbt_pan+2],a
-    ld      a,1
-    ret ; ret 1
+    xor     a,a
+    ret ; ret 0 do not update registers, only NR51 at end.
 
 .gbt_ch3_arpeggio:
     ld      b,a ; b = params
@@ -1169,7 +1169,7 @@ gbt_channel_4_handle:: ; de = info
 
     ; Has instrument
 
-    and     a,$1F
+    and     a,$0F
     ld      hl,gbt_noise
     ld      c,a
     ld      b,0
@@ -1288,8 +1288,8 @@ gbt_channel_4_set_effect: ; a = effect, de = pointer to data
 .gbt_ch4_pan:
     and     a,$88
     ld      [gbt_pan+3],a
-    ld      a,1
-    ret ; ret 1
+    xor     a,a
+    ret ; ret 0 do not update registers, only NR51 at end.
 
 .gbt_ch4_cut_note:
     ld      [gbt_cut_note_tick+3],a
@@ -1319,18 +1319,11 @@ gbt_ch1234_jump_pattern:
 gbt_ch1234_jump_position:
     ld      [gbt_current_step],a
     ld      hl,gbt_current_pattern
-    inc [hl]
-    ld a, [hl]
-    call gbt_get_pattern_ptr ;check to see if jump puts us past end of song
-    ld hl, gbt_current_step_data_ptr
-    ld a, [hli]
-    ld b, a
-    ld a, [hl]
-    or a, b
-    jr nz, .dont_loop
-    xor a
-    ld [gbt_current_pattern], a
-.dont_loop
+    inc     [hl]
+
+    ; Check to see if jump puts us past end of song
+    ld      a,[hl]
+    call    gbt_get_pattern_ptr_banked
     ld      a,1
     ld      [gbt_update_pattern_pointers],a
     xor     a,a ;ret 0

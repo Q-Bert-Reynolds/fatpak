@@ -51,6 +51,20 @@ MACRO POP_VAR ;\1 = WRAM address
   ld [\1], a
 ENDM
 
+MACRO PUSH_ALL
+  push af
+  push bc
+  push de
+  push hl
+ENDM
+
+MACRO POP_ALL
+  pop hl
+  pop de
+  pop bc
+  pop af
+ENDM
+
 ;Debug messages can contain expressions between %%. 
 ;When enabled in the settings, whenever a debug message is encountered in the code, it will be logged to the debug messages window or log file.
 ;Debug messages also support ternary operators in the form: "%boolean expression%text if true;text if false;".

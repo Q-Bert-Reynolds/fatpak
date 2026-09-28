@@ -95,10 +95,10 @@ UpdateSFX:
   cp a, b;step count
   jr nz, .notDone
 
-    call FinishSFX
-    ld a, %1111
-    ld [gbt_channels_enabled], a
-    ret
+  call FinishSFX
+  ld a, %1111
+  ld [gbt_channels_enabled], a
+  ret
 
 .notDone
   ld de, 8
@@ -146,7 +146,7 @@ ENDR
   pop af;restore bank
   SET_BANK
 
-  reti
+  ret
 
 PlaySFX:: ; a = bank, hl = sfx address
   di
@@ -188,8 +188,7 @@ PlaySFX:: ; a = bank, hl = sfx address
   ldh [rAUDVOL], a
   ldh [rAUDTERM], a
   
-  ei
-  ret
+  reti
 
 PlaySong:: ; a = bank, hl = song address
   ld d, h

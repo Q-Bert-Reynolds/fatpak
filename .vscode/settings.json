@@ -39,6 +39,6 @@
         "**/*.tif": true,
         "**/*.tiff": true,
         // "build/": true,
-        "bin/": true,
+        // "bin/": true,
     },
 }
