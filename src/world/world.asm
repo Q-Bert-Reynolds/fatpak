@@ -1,18 +1,5 @@
 INCLUDE "src/beisbol.inc"
 
-Section "Overworld Map", ROMX
-INCLUDE "img/maps/overworld.asm"
-INCLUDE "img/maps/forest.asm"
-INCLUDE "maps/Mountains.gbmap"
-INCLUDE "maps/Overworld.gbmap"
-INCLUDE "maps/VeteranPark.gbmap"
-
-Section "Indoor Maps", ROMX
-INCLUDE "img/maps/houses.asm"
-INCLUDE "img/maps/businesses.asm"
-INCLUDE "maps/Houses.gbmap"
-INCLUDE "maps/Businesses.gbmap"
-
 SECTION "World Code", ROMX
 INCLUDE "data/strings/world_strings.asm"
 INCLUDE "src/world/computer.asm"

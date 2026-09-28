@@ -2,6 +2,7 @@ IF !DEF(MAP_LOADER)
 DEF MAP_LOADER EQU 1
 
 INCLUDE "src/beisbol.inc"
+INCLUDE "data/map_data.asm"
 
 SECTION "Map Loader HRAM", HRAM
 map_last_button_state:: DB
@@ -70,8 +71,6 @@ INCLUDE "maps/map_stamps.gbstamp";TODO: move this out of ROM0
 ; SetCurrentMap                a = map index, returns address in hl, bank in a
 ; GetCurrentMap                returns address in hl, bank in a
 ; FixMapScroll                 HACK: called after moving right or down to solve off-by-one collision issues
-
-INCLUDE "data/map_data.asm"
 
 GetMapText::;a = text index, returns text in str_buffer
   ld b, 0
@@ -1133,23 +1132,46 @@ SetMapPalettes::
   ld a, [hl]
   ld h, a
   ld l, b;hl = palette address
-  push hl;palette address
   ld a, BCPSF_AUTOINC
   ldh [rBCPS], a
-  ld c, 8*2*4;8 palettes * 2B / color * 4 colors / palette
+  ld c, 8;TODO: only load last 7 palettes, first should be UI
 .bgLoop
     ld a, [hli]
     ldh [rBCPD], a
+    ld a, [hli]
+    ldh [rBCPD], a;color 1
+    ld a, [hli]
+    ldh [rBCPD], a
+    ld a, [hli]
+    ldh [rBCPD], a;color 2
+    ld a, [hli]
+    ldh [rBCPD], a
+    ld a, [hli]
+    ldh [rBCPD], a;color 3
+    xor a
+    ldh [rBCPD], a
+    ldh [rBCPD], a;color 4 always black
     dec c
     jr nz, .bgLoop
 
-  pop hl;palette address
   ld a, OCPSF_AUTOINC
   ldh [rOCPS], a
-  ld c, 7*2*4;7 palettes * 2B / color * 4 colors / palette
+  ld c, 7;last palette is skipped, always the player's colors
 .spriteLoop
+    ldh [rOCPD], a;don't load from hl
+    ldh [rOCPD], a;first color isn't used
     ld a, [hli]
     ldh [rOCPD], a
+    ld a, [hli]
+    ldh [rOCPD], a;color 2
+    ld a, [hli]
+    ldh [rOCPD], a
+    ld a, [hli]
+    ldh [rOCPD], a;color 3
+    ld a, [hli]
+    ldh [rOCPD], a
+    ld a, [hli]
+    ldh [rOCPD], a;color 4
     dec c
     jr nz, .spriteLoop
   pop af;previous bank

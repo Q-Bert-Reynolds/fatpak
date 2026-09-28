@@ -1,7 +1,6 @@
 Priority
 
 - generic animation system
-- load sprite colors with map
 - announcer mode
   - double plays
   - beat the throw

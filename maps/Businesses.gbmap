@@ -1,6 +1,6 @@
-MapBusinesses:: ;306 bytes total
+MapBusinesses:: ;338 bytes total
   DB MAP_BUSINESSES
-  DW MapBusinessesPalettes ;64 bytes
+  DW MapBusinessesPalettes ;96 bytes
   DW MapBusinessesText ;0 bytes
   DW MapBusinessesDoors ;5 bytes
   DW MapBusinessesChunks ;210 bytes
@@ -12,45 +12,71 @@ MapBusinesses:: ;306 bytes total
   DB BANK(_WorldSpritesTiles)
   DW _WorldSpritesTiles
 
-MapBusinessesPalettes: ;64 bytes
+MapBusinessesPalettes: ;96 bytes total
+.background ;48 bytes
   RGB 31, 31, 31
   RGB 30, 28, 19
   RGB 18, 7, 9
-  RGB 0, 0, 0
 
   RGB 30, 28, 19
   RGB 16, 23, 13
   RGB 6, 13, 10
-  RGB 0, 0, 0
 
   RGB 30, 28, 19
   RGB 19, 15, 8
   RGB 11, 7, 6
-  RGB 0, 0, 0
 
   RGB 30, 28, 19
   RGB 20, 28, 31
   RGB 18, 7, 9
-  RGB 0, 0, 0
 
   RGB 31, 31, 31
   RGB 20, 28, 31
   RGB 18, 7, 9
-  RGB 0, 0, 0
 
   RGB 31, 31, 31
   RGB 19, 15, 8
   RGB 6, 13, 10
-  RGB 0, 0, 0
 
   RGB 31, 31, 31
   RGB 30, 28, 19
   RGB 7, 19, 27
-  RGB 0, 0, 0
 
   RGB 20, 28, 31
   RGB 7, 19, 27
   RGB 0, 8, 15
+
+.sprites ;48 bytes
+  RGB 30, 25, 25
+  RGB 26, 18, 13
+  RGB 0, 0, 0
+
+  RGB 31, 31, 31
+  RGB 15, 0, 2
+  RGB 6, 5, 3
+
+  RGB 31, 30, 24
+  RGB 22, 20, 14
+  RGB 7, 0, 1
+
+  RGB 31, 29, 17
+  RGB 28, 28, 0
+  RGB 0, 0, 0
+
+  RGB 14, 20, 15
+  RGB 3, 12, 8
+  RGB 0, 0, 0
+
+  RGB 15, 19, 25
+  RGB 0, 8, 21
+  RGB 0, 0, 0
+
+  RGB 17, 14, 20
+  RGB 8, 3, 12
+  RGB 0, 0, 0
+
+  RGB 25, 25, 26
+  RGB 10, 7, 5
   RGB 0, 0, 0
 
 
@@ -364,7 +390,7 @@ MapBusinessesAreas: ;0 bytes
 
 MapBusinessesEnd:
 DEF MAP_BUSINESSES_SIZE EQU MapBusinessesEnd - MapBusinesses
-IF MAP_BUSINESSES_SIZE != 306
-  WARN "MapBusinesses is {d:MAP_BUSINESSES_SIZE} bytes, expected 306 bytes"
+IF MAP_BUSINESSES_SIZE != 338
+  WARN "MapBusinesses is {d:MAP_BUSINESSES_SIZE} bytes, expected 338 bytes"
 ENDC
 
