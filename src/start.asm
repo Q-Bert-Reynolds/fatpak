@@ -531,5 +531,5 @@ Start::
 .fadeOutAndExit
   ld hl, SGBFadeOutAttrBlk
   call sgb_PacketTransfer
-  call FadeOut
+  TRAMPOLINE FadeOut
   ret
