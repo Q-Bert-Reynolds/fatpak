@@ -29,7 +29,9 @@ map_temp_x: DB
 map_temp_y: DB
 
 SECTION "Map Loader Code", ROM0
-INCLUDE "maps/map_stamps.gbstamp";TODO: move this out of ROM0
+;TODO: move stamps and meta sprites out of ROM0
+INCLUDE "maps/map_stamps.gbstamp"
+INCLUDE "maps/map_meta_sprites.gbms"
 
 ; ROUTINES THAT SWITCH TO A BANK, DO SOME WORK, AND SWITCH BACK
 ; GetScreenCollision           bc = xy pixel offset (-127,127), returns z if no collision, obj/collision type in a, extra data in b, map sprite index or -1 in c
@@ -390,10 +392,26 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     jr z, .spriteStamp
     cp a, MAP_OBJ_AVATAR
     jr z, .spriteAvatar
+    cp a, MAP_OBJ_META_SPRITE
+    jr z, .metaSprite
   .spriteError ;We should never get here. Why are we?
     ld bc, 4
     add hl, bc
     pop af
+    dec a
+    jp nz, .loopMapSprites
+    jr .clearRemainingOAM
+  .metaSprite
+    push de;map sprite buffer
+    ld a, [bc];lower byte
+    ld d, a;lower byte
+    inc bc
+    ld a, [bc];upper byte
+    ld b, a
+    ld c, d
+    call CopyMetaSpriteToOAMBuffer
+    pop de;map sprite buffer
+    pop af;count
     dec a
     jp nz, .loopMapSprites
     jr .clearRemainingOAM
@@ -508,7 +526,7 @@ ENDR
   pop af;discard sprites left
   jp .clearRemainingOAM
 
-CopySpriteStampToOAMBuffer:;a = count, bc = stamp, hl = OAM buffer, [map_temp_x][map_temp_y] = position, returns count in a, sets z if count is 0
+CopySpriteStampToOAMBuffer:;bc = stamp, hl = OAM buffer, [map_temp_x][map_temp_y] = position, returns count in a, sets z if count is 0
   ld a, [bc];stamp width
   ldh [map_temp_width], a
   sla a
@@ -583,12 +601,55 @@ CopySpriteStampToOAMBuffer:;a = count, bc = stamp, hl = OAM buffer, [map_temp_x]
     jr nz, .loopPropsY
   ret
 
+CopyMetaSpriteToOAMBuffer::;a = count, bc = meta sprite, hl = OAM buffer, [map_temp_x][map_temp_y] = position, returns count in a, sets z if count is 0
+  ldh a, [loaded_bank]
+  push af;loaded bank
+  ld a, BANK(GBMetaSprites)
+  SET_BANK
+  inc bc;skip width
+  inc bc;skip height
+  ld a, [bc];sprite count
+  inc bc;first sprite
+  push af;count
+  ld e, a
+.loop
+    ldh a, [map_temp_y]
+    ld d, a
+    ld a, [bc];y
+    add a, d
+    ld [hli], a
+    inc bc
+
+    ldh a, [map_temp_x]
+    ld d, a
+    ld a, [bc];x
+    add a, d
+    ld [hli], a
+    inc bc
+
+    ld a, [bc];tile
+    ld [hli], a
+    inc bc
+
+    ld a, [bc];props
+    ld [hli], a
+    inc bc
+
+    dec e
+    jr nz, .loop
+
+  pop bc;sprite count in b
+  pop af;previously loaded bank
+  SET_BANK
+  ld a, b;sprite count
+  ret 
+
 CopyMapAvatarToOAMBuffer::;hl = oam buffer address, bc = avatar address, d = extra data, returns new extra data in d
   push de;d = extra data
   ldh a, [loaded_bank]
   push af;loaded bank
-  ld a, BANK(Overworld)
-  SET_BANK;assumes all map avatars and animations are in the same bank as Overworld
+  ld a, BANK(GBAvatars)
+  SET_BANK;assumes all map avatars and animations are in the same bank
   ld a, d;extra data
   and a, MAP_AVATAR_DIRECTION
   rlc a
@@ -615,13 +676,13 @@ CopyMapAvatarToOAMBuffer::;hl = oam buffer address, bc = avatar address, d = ext
   pop hl;oam address
 .moveToPosition
   ld d, 8
-  ldh a, [map_temp_x];x
+  ldh a, [map_temp_x]
   sub a, d
   add a, 8
   ld d, a
 
   ld e, 8
-  ldh a, [map_temp_y];y
+  ldh a, [map_temp_y]
   sub a, e
   ld e, a
   
@@ -1678,8 +1739,8 @@ DrawMapChunk::; hl = chunk address, de=xy, bc=wh
     inc de
     ld a, [de];y
     ld [hli], a;y
-    inc de;tile or stamp lower
-    inc de;pal or stamp upper
+    inc de;tile or address lower
+    inc de;pal or address upper
     inc de;next (or extra data)
     ldh a, [map_temp_type]
     cp a, MAP_OBJ_AVATAR

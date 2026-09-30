@@ -5,7 +5,6 @@ INCLUDE "data/strings/world_strings.asm"
 INCLUDE "src/world/computer.asm"
 INCLUDE "src/world/scripts.asm"
 INCLUDE "img/maps/world_sprites.asm"
-INCLUDE "maps/map_animations.gbanim"
 INCLUDE "maps/map_avatars.gbavatar"
 
 MACRO MOVE_PLAYER;\1 = animation address, \2 = map move routine, \3 = map draw routine

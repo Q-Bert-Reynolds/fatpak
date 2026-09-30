@@ -1,0 +1,23 @@
+GBMetaSprites:: ;46 bytes
+GBMetaSpriteMetaSpriteTest:;23 bytes
+  DB 2;width
+  DB 2;height
+  DB 5;sprite count
+.pose
+  DB -2, 5, 64, 5;Ball
+  DB -4, -5, 16, 2;Ball (1)
+  DB -4, 3, 17, 2;Ball (2)
+  DB -12, -5, 0, 1;Ball (3)
+  DB -12, 3, 1, 1;Ball (4)
+
+GBMetaSpriteMetaSpriteTest1:;23 bytes
+  DB 2;width
+  DB 2;height
+  DB 5;sprite count
+.pose
+  DB -2, 5, 64, 1;Ball
+  DB -4, -5, 16, 2;Ball (1)
+  DB -4, 3, 17, 2;Ball (2)
+  DB -12, -5, 0, 1;Ball (3)
+  DB -12, 3, 1, 1;Ball (4)
+
