@@ -210,7 +210,7 @@
 #define MAP_OBJ_STAMP          4 //bg and sprites
 #define MAP_OBJ_STAMP_FILL     5 //bg only
 #define MAP_OBJ_AVATAR         6 //sprites only
-#define MAP_OBJ_META_SPRITE    8 //sprites only
+#define MAP_OBJ_META_SPRITE    7 //sprites only
 #define MAP_COLLISION_MASK     0b11110000//up to 15 map collision types
 #define MAP_COLLISION_NONE     0
 #define MAP_COLLISION_SOLID    1 << 4
@@ -232,8 +232,6 @@
 #define MAP_CHUNK_SOUTH        5
 #define MAP_CHUNK_WEST         6
 #define MAP_CHUNK_DATA         7
-#define MAP_SPRITE_SIZE        6//bytes... bank, address(2), x, y, extra
-#define MAP_SPRITE_BUFFER_SIZE 36 * MAP_SPRITE_SIZE//max 40 sprites - 4 sprites used by user avatar
 #define MAP_AVATAR_DIRECTION   0b11000000
 #define MAP_AVATAR_LEFT        0b00000000
 #define MAP_AVATAR_RIGHT       0b01000000
@@ -244,6 +242,12 @@
 #define MAP_AVATAR_BEHAVIOUR   0b00111000
 #define MAP_AVATAR_STATIONARY  0b00000000
 #define MAP_AVATAR_WANDER      0b00001000
+
+//sprite objects
+#define SPRITE_OBJ_SIZE        6//bytes... bank, address(2), x, y, extra
+#define SPRITE_OBJ_MAX_COUNT   OAM_COUNT-4//4 sprites reserved for player avatar
+#define SPRITE_OBJ_BUFFER_SIZE SPRITE_OBJ_MAX_COUNT * SPRITE_OBJ_SIZE
+#define ANIM_SAMPLE_RATE       12
 
 //sizes
 #define STACK_SIZE       128

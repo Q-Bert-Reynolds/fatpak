@@ -378,9 +378,9 @@ CheckActions:
   jr nz, .checkCollisionType
 .foundAvatar
   ldh a, [map_sprite_collision_index]
-  ld de, MAP_SPRITE_SIZE
+  ld de, SPRITE_OBJ_SIZE
   call math_Multiply;hl = map sprite index * map sprite size
-  ld de, map_sprite_buffer+3
+  ld de, sprite_obj_buffer+3
   add hl, de;hl = map sprite x address
   ldh a, [rSCX]
   ld b, a
@@ -416,7 +416,6 @@ CheckActions:
   and a, MAP_AVATAR_EXTRA_DATA
   or a, c
   ld [hl], a
-  call CopyMapSpritesToOAMBuffer
 .checkCollisionType
   ldh a, [map_collision_data]
   ld b, a
@@ -542,6 +541,7 @@ Overworld::
   HIDE_WIN
   DISPLAY_ON
   .moveLoop
+    call CopyMapSpritesToOAMBuffer
     call gbdk_WaitVBL
     call UpdateInput
     ld a, [button_state]

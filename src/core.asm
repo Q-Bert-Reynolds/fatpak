@@ -106,6 +106,7 @@ VBLInterrupt::
   call gbdk_DMATransfer
   call UpdateTime
   call UpdateAudio
+  call UpdateSpriteObjects
   ld a, 1
   ldh [vbl_done], a
   POP_ALL
@@ -150,7 +151,7 @@ UpdateTime::
   dec hl ;high byte
   inc [hl]
   ret
- 
+
 UpdateInput::;https://gbdev.io/pandocs/Joypad_Input.html
   PUSH_ALL
 
@@ -183,6 +184,49 @@ ENDR
 
   TRAMPOLINE ProcessKeyCodes
   POP_ALL
+  ret
+
+UpdateSpriteObjects::
+  ld a, [anim_timer]
+  inc a
+  ld [anim_timer], a
+  cp a, ANIM_SAMPLE_RATE
+  ret c
+  xor a
+  ld [anim_timer], a
+
+  ld hl, sprite_obj_buffer
+  ldh a, [map_sprite_count]
+  and a
+  ret z
+
+  cp a, SPRITE_OBJ_MAX_COUNT
+  jr c, .loop
+  ld a, SPRITE_OBJ_MAX_COUNT
+.loop
+    push af
+    ld a, [hli];bank
+    ld [rROMB0], a
+    ld a, [hli];lower address
+    ld c, a
+    ld a, [hli];upper address
+    ld b, a
+    inc hl;x
+    inc hl;y
+    ld a, [bc];map object type/collision flags
+    and a, MAP_OBJ_TYPE_MASK
+    cp a, MAP_OBJ_META_SPRITE
+    ld a, [hl];extra data
+    jr nz, .next;only step frame if it's a metasprite
+    inc a;step frame
+    ld [hl], a;
+  .next
+    inc hl
+    pop af
+    dec a
+    jr nz, .loop
+  ld a, [loaded_bank]
+  ld [rROMB0], a
   ret
 
 InitializeGameData::

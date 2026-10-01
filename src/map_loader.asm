@@ -330,8 +330,8 @@ ClearMapSprites::
   ld bc, 36*4
   call mem_Set
   xor a
-  ld hl, map_sprite_buffer
-  ld bc, MAP_SPRITE_BUFFER_SIZE
+  ld hl, sprite_obj_buffer
+  ld bc, SPRITE_OBJ_BUFFER_SIZE
   call mem_Set
   ret
 
@@ -339,7 +339,7 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
   ldh a, [loaded_bank]
   push af;current bank
   ld hl, oam_buffer+16;4 sprites for user avatar * 4 bytes per sprite
-  ld de, map_sprite_buffer
+  ld de, sprite_obj_buffer
   ldh a, [map_sprite_count]
   and a
   jp z, .clearRemainingOAM
@@ -409,6 +409,9 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
     ld a, [bc];upper byte
     ld b, a
     ld c, d
+    pop de;map sprite buffer
+    push de
+    dec de;location of current frame
     call CopyMetaSpriteToOAMBuffer
     pop de;map sprite buffer
     pop af;count
@@ -488,13 +491,13 @@ CopyMapSpritesToOAMBuffer::;iterates through map sprites, copying values to oam_
   dec a
   ldh [map_sprite_count], a
   jr z, .empty
-.moveLastToRemovedAddress;map_sprite_buffer + (map_sprite_count * MAP_SPRITE_SIZE)
+.moveLastToRemovedAddress;sprite_obj_buffer + (map_sprite_count * SPRITE_OBJ_SIZE)
   push de;removed sprite address
   ld c, a;map_sprite_count
   ld b, 0
   
-IF MAP_SPRITE_SIZE != 6
-  FAIL "ERROR: MAP_SPRITE_SIZE == {MAP_SPRITE_SIZE}. Fast multiplication assumes 6."
+IF SPRITE_OBJ_SIZE != 6
+  FAIL "ERROR: SPRITE_OBJ_SIZE == {SPRITE_OBJ_SIZE}. Fast multiplication assumes 6."
 ENDC
   ; Fast c * 6 calculation: (c * 4) + (c * 2)
   ld h, b
@@ -505,12 +508,12 @@ ENDC
   add hl, hl;hl = count * 4
   add hl, de;hl = count * 6
   
-  ld de, map_sprite_buffer
+  ld de, sprite_obj_buffer
   add hl, de;last sprite address
   pop de;removed sprite address
   push de
 
-REPT MAP_SPRITE_SIZE
+REPT SPRITE_OBJ_SIZE
   ld a, [hli]
   ld [de], a
   inc de
@@ -601,16 +604,41 @@ CopySpriteStampToOAMBuffer:;bc = stamp, hl = OAM buffer, [map_temp_x][map_temp_y
     jr nz, .loopPropsY
   ret
 
-CopyMetaSpriteToOAMBuffer::;a = count, bc = meta sprite, hl = OAM buffer, [map_temp_x][map_temp_y] = position, returns count in a, sets z if count is 0
+CopyMetaSpriteToOAMBuffer::;bc = meta sprite, de = location of current frame, hl = OAM buffer, [map_temp_x][map_temp_y] = position, returns count in a
   ldh a, [loaded_bank]
   push af;loaded bank
   ld a, BANK(GBMetaSprites)
   SET_BANK
   inc bc;skip width
   inc bc;skip height
+  ld a, [bc];frame count
+  inc bc
+  push de;location of current frame
+  ld d, a;frame count
+  ld a, [map_temp_a];current frame
+  cp a, d
+  pop de
+  jr c, .calcOffset;if current frame < frame count
+  xor a
+  ld [de], a;reset to frame zero
+.calcOffset
+  ld d, 0
+  ld e, a;current frame
   ld a, [bc];sprite count
   inc bc;first sprite
-  push af;count
+  push hl;oam
+  push bc;first sprite
+  push af;sprite count
+  call math_Multiply
+  add hl, hl;*2
+  add hl, hl;*4
+  pop af;sprite count
+  pop bc;first sprite
+  add hl, bc;first sprite of frame
+  ld b, h
+  ld c, l;first sprite of frame in bc
+  pop hl;oam
+  push af;sprite count
   ld e, a
 .loop
     ldh a, [map_temp_y]
@@ -998,7 +1026,7 @@ GetSpriteCollision::;de = tile xy, returns z if no collision, obj/collision type
   swap e
 
   PUSH_VAR loaded_bank
-  ld hl, map_sprite_buffer
+  ld hl, sprite_obj_buffer
   ldh a, [map_sprite_count]
 .loop
     push af;count
@@ -1527,7 +1555,6 @@ DrawMapToScreen::
 .finish
   pop af;previous bank
   SET_BANK
-  call CopyMapSpritesToOAMBuffer
   ret
 
 DrawMapChunk::; hl = chunk address, de=xy, bc=wh
@@ -1691,7 +1718,7 @@ DrawMapChunk::; hl = chunk address, de=xy, bc=wh
 
     pop de;xy
   .testBankAndAddress
-    ld hl, map_sprite_buffer
+    ld hl, sprite_obj_buffer
     ldh a, [loaded_bank]
     ld b, a;bank
     ldh a, [map_sprite_count]
@@ -1744,10 +1771,14 @@ DrawMapChunk::; hl = chunk address, de=xy, bc=wh
     inc de;next (or extra data)
     ldh a, [map_temp_type]
     cp a, MAP_OBJ_AVATAR
-    jr nz, .initMapSpriteExtraData
+    jr z, .getAvatarExtraData
+    ; xor a
+    ld a, 2
+    jr .initMapSpriteExtraData
+  .getAvatarExtraData
     ld a, [de]
   .initMapSpriteExtraData
-    ld [hli], a;extra data (garbage data if not an avatar)
+    ld [hli], a;extra data (zero if not an avatar)
     ld h, d
     ld l, e
     jr .checkExtraSpriteData
@@ -1807,7 +1838,7 @@ TestMapObjectMaxXY:; hl = xy, min XY in min_x,min_y, returns xy in hl, sets z if
   ret
 .outOfRange
   xor a
-  ret 
+  ret
     
 DrawMapStampFill:;hl = stamp fill data, de = xy, min/max XY in min_x,min_y,max_x,max_y
   call TestMapObjectMinXY

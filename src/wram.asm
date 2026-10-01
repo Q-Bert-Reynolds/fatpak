@@ -52,6 +52,7 @@ sprite_first_tile:: DB
 
 ;timers
 vbl_timer:: DB ;counts to 60
+anim_timer:: DB ;counts to ANIM_SAMPLE_RATE
 
 ;temp vars
 _a:: DB
@@ -177,8 +178,8 @@ _bkg_buffer::
 bkg_buffer::        DS BUFFER_SIZE
 _win_buffer::
 win_buffer::        DS BUFFER_SIZE
-_map_sprite_buffer::
-map_sprite_buffer:: DS MAP_SPRITE_BUFFER_SIZE; bank, address, x, y, extra
+_sprite_obj_buffer::
+sprite_obj_buffer:: DS SPRITE_OBJ_BUFFER_SIZE; bank, address, x, y, extra
 _cmd_buffer::
 cmd_buffer::        DS BUFFER_SIZE/2
 _str_buffer::

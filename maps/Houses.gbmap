@@ -141,18 +141,18 @@ MapHousesChunkPlayersRoom: ;154 bytes
 
 MapHousesChunkPlayersRoomBackground: ;135 bytes
 
+  DB MAP_OBJ_NONE_FILL | MAP_COLLISION_SOLID ;GameObject (8), 5 bytes
+  DB 8;x1
+  DB 11;y1
+  DB 10;x2
+  DB 12;y2
+
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (7), 7 bytes
   DB 12;x1
   DB 11;y1
   DB 196;tile
   DB 5;palette
   DB 22;x2
-  DB 12;y2
-
-  DB MAP_OBJ_NONE_FILL | MAP_COLLISION_SOLID ;GameObject (8), 5 bytes
-  DB 8;x1
-  DB 11;y1
-  DB 10;x2
   DB 12;y2
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;GameObject (6), 7 bytes
@@ -163,12 +163,12 @@ MapHousesChunkPlayersRoomBackground: ;135 bytes
   DB 24;x2
   DB 11;y2
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (16), 7 bytes
-  DB 8;x1
-  DB 24;y1
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (14), 7 bytes
+  DB 24;x1
+  DB 9;y1
   DB 252;tile
   DB 5;palette
-  DB 24;x2
+  DB 25;x2
   DB 25;y2
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (15), 7 bytes
@@ -179,12 +179,12 @@ MapHousesChunkPlayersRoomBackground: ;135 bytes
   DB 8;x2
   DB 25;y2
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (14), 7 bytes
-  DB 24;x1
-  DB 9;y1
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (16), 7 bytes
+  DB 8;x1
+  DB 24;y1
   DB 252;tile
   DB 5;palette
-  DB 25;x2
+  DB 24;x2
   DB 25;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Floor, 7 bytes
@@ -345,20 +345,20 @@ MapHousesChunkPlayersHouseBackground: ;113 bytes
   DB 24;x2
   DB 24;y2
 
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (12), 7 bytes
+  DB 8;x1
+  DB 24;y1
+  DB 252;tile
+  DB 5;palette
+  DB 11;x2
+  DB 25;y2
+
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (13), 7 bytes
   DB 15;x1
   DB 24;y1
   DB 252;tile
   DB 5;palette
   DB 24;x2
-  DB 25;y2
-
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (11), 7 bytes
-  DB 7;x1
-  DB 11;y1
-  DB 252;tile
-  DB 5;palette
-  DB 8;x2
   DB 25;y2
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (10), 7 bytes
@@ -369,12 +369,12 @@ MapHousesChunkPlayersHouseBackground: ;113 bytes
   DB 25;x2
   DB 25;y2
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (12), 7 bytes
-  DB 8;x1
-  DB 24;y1
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (11), 7 bytes
+  DB 7;x1
+  DB 11;y1
   DB 252;tile
   DB 5;palette
-  DB 11;x2
+  DB 8;x2
   DB 25;y2
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (8), 7 bytes
@@ -398,13 +398,6 @@ MapHousesChunkPlayersHouseBackground: ;113 bytes
   DB 20;y
   DW GBStampPlant
 
-  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Rug (7), 7 bytes
-  DB 12;x1
-  DB 16;y1
-  DW GBStampStool
-  DB 14;x2
-  DB 20;y2
-
   DB MAP_OBJ_STAMP | MAP_COLLISION_SOLID ;Rug (4), 5 bytes
   DB 14;x
   DB 16;y
@@ -417,16 +410,18 @@ MapHousesChunkPlayersHouseBackground: ;113 bytes
   DB 20;x2
   DB 20;y2
 
+  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Rug (7), 7 bytes
+  DB 12;x1
+  DB 16;y1
+  DW GBStampStool
+  DB 14;x2
+  DB 20;y2
+
   DB MAP_OBJ_STAMP | MAP_COLLISION_DOOR ;StairsUp, 6 bytes
   DB 22;x
   DB 10;y
   DW GBStampStairsUp
   DB 1;door
-
-  DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;BigTV, 5 bytes
-  DB 14;x
-  DB 9;y
-  DW GBStampBigTV
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Shelves, 7 bytes
   DB 8;x1
@@ -434,6 +429,11 @@ MapHousesChunkPlayersHouseBackground: ;113 bytes
   DW GBStampShelf
   DB 12;x2
   DB 13;y2
+
+  DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;BigTV, 5 bytes
+  DB 14;x
+  DB 9;y
+  DW GBStampBigTV
 
   DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;Desk (4), 5 bytes
   DB 19;x
@@ -515,20 +515,20 @@ MapHousesChunkRivalsHouseBackground: ;105 bytes
   DB 24;x2
   DB 25;y2
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (11), 7 bytes
-  DB 7;x1
-  DB 11;y1
-  DB 252;tile
-  DB 5;palette
-  DB 8;x2
-  DB 25;y2
-
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (10), 7 bytes
   DB 24;x1
   DB 11;y1
   DB 252;tile
   DB 5;palette
   DB 25;x2
+  DB 25;y2
+
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (11), 7 bytes
+  DB 7;x1
+  DB 11;y1
+  DB 252;tile
+  DB 5;palette
+  DB 8;x2
   DB 25;y2
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;GameObject (12), 7 bytes
@@ -561,17 +561,17 @@ MapHousesChunkRivalsHouseBackground: ;105 bytes
   DW GBStampTrashCan
   DB MAP_HOUSES_TEXT_THIS_TRASH_CANIS_REALLY_BEAT_UP; This trash can\nis really beat up.
 
+  DB MAP_OBJ_STAMP | MAP_COLLISION_SOLID ;Rug (4), 5 bytes
+  DB 20;x
+  DB 16;y
+  DW GBStampTable
+
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Rug (7), 7 bytes
   DB 18;x1
   DB 16;y1
   DW GBStampStool
   DB 20;x2
   DB 20;y2
-
-  DB MAP_OBJ_STAMP | MAP_COLLISION_SOLID ;Rug (4), 5 bytes
-  DB 20;x
-  DB 16;y
-  DW GBStampTable
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Rug (8), 7 bytes
   DB 20;x1

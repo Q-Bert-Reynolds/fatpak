@@ -261,7 +261,7 @@ ENDC
 ENDM
 
 SECTION "GBDK WRAM Vars", WRAM0[_RAM]
-;ensure OAM buffer starts at $XX00 and is not in switchable WRAM, see SETUP_DMA_TRANSFER macro
+;ensure OAM buffer starts at $XX00 and is not in switchable WRAM, see gbdk_SetupDMATransfer
 oam_buffer:: DS 4*40
 rand_hi:: DB
 rand_lo:: DB
