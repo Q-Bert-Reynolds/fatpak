@@ -150,12 +150,6 @@ MapBusinessesChunkVeteranCityClinicBackground: ;90 bytes
   DB 32;x2
   DB 24;y2
 
-  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (5), 5 bytes
-  DB 27;x1
-  DB 9;y1
-  DB 151;tile
-  DB 1;palette
-
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (4), 7 bytes
   DB 18;x1
   DB 9;y1
@@ -163,12 +157,6 @@ MapBusinessesChunkVeteranCityClinicBackground: ;90 bytes
   DB 1;palette
   DB 24;x2
   DB 10;y2
-
-  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (6), 5 bytes
-  DB 21;x1
-  DB 9;y1
-  DB 151;tile
-  DB 1;palette
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (1), 7 bytes
   DB 26;x1
@@ -178,13 +166,17 @@ MapBusinessesChunkVeteranCityClinicBackground: ;90 bytes
   DB 32;x2
   DB 10;y2
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (3), 7 bytes
-  DB 18;x1
-  DB 8;y1
-  DB 132;tile
+  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (5), 5 bytes
+  DB 27;x1
+  DB 9;y1
+  DB 151;tile
   DB 1;palette
-  DB 24;x2
-  DB 9;y2
+
+  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (6), 5 bytes
+  DB 21;x1
+  DB 9;y1
+  DB 151;tile
+  DB 1;palette
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (2), 7 bytes
   DB 26;x1
@@ -192,6 +184,14 @@ MapBusinessesChunkVeteranCityClinicBackground: ;90 bytes
   DB 132;tile
   DB 1;palette
   DB 32;x2
+  DB 9;y2
+
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (3), 7 bytes
+  DB 18;x1
+  DB 8;y1
+  DB 132;tile
+  DB 1;palette
+  DB 24;x2
   DB 9;y2
 
   DB MAP_OBJ_STAMP | MAP_COLLISION_NONE ;Couch, 5 bytes
@@ -267,25 +267,23 @@ MapBusinessesChunkVeteranCityClinic1Background: ;100 bytes
   DB 16;x2
   DB 24;y2
 
-  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (8), 5 bytes
-  DB 5;x1
-  DB 9;y1
-  DB 151;tile
-  DB 1;palette
-
   DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (7), 5 bytes
   DB 0;x1
   DB 9;y1
   DB 151;tile
   DB 1;palette
 
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (6), 7 bytes
-  DB 10;x1
+  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (9), 5 bytes
+  DB 11;x1
   DB 9;y1
-  DB 148;tile
+  DB 151;tile
   DB 1;palette
-  DB 16;x2
-  DB 10;y2
+
+  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (8), 5 bytes
+  DB 5;x1
+  DB 9;y1
+  DB 151;tile
+  DB 1;palette
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (3), 7 bytes
   DB 0;x1
@@ -295,19 +293,13 @@ MapBusinessesChunkVeteranCityClinic1Background: ;100 bytes
   DB 8;x2
   DB 10;y2
 
-  DB MAP_OBJ_TILE | MAP_COLLISION_SOLID ;Floor (9), 5 bytes
-  DB 11;x1
-  DB 9;y1
-  DB 151;tile
-  DB 1;palette
-
-  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (5), 7 bytes
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (6), 7 bytes
   DB 10;x1
-  DB 8;y1
-  DB 132;tile
+  DB 9;y1
+  DB 148;tile
   DB 1;palette
   DB 16;x2
-  DB 9;y2
+  DB 10;y2
 
   DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (4), 7 bytes
   DB 0;x1
@@ -315,6 +307,14 @@ MapBusinessesChunkVeteranCityClinic1Background: ;100 bytes
   DB 132;tile
   DB 1;palette
   DB 8;x2
+  DB 9;y2
+
+  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_SOLID ;Floor (5), 7 bytes
+  DB 10;x1
+  DB 8;y1
+  DB 132;tile
+  DB 1;palette
+  DB 16;x2
   DB 9;y2
 
   DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE ;Couch2 (2), 7 bytes

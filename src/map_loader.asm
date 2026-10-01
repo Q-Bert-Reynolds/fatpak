@@ -31,7 +31,11 @@ map_temp_y: DB
 SECTION "Map Loader Code", ROM0
 ;TODO: move stamps and meta sprites out of ROM0
 INCLUDE "maps/map_stamps.gbstamp"
+IF ANIM_DATA_INCREMENTAL
+INCLUDE "maps/map_meta_sprites.incremental.gbms"
+ELSE
 INCLUDE "maps/map_meta_sprites.gbms"
+ENDC
 
 ; ROUTINES THAT SWITCH TO A BANK, DO SOME WORK, AND SWITCH BACK
 ; GetScreenCollision           bc = xy pixel offset (-127,127), returns z if no collision, obj/collision type in a, extra data in b, map sprite index or -1 in c
@@ -609,24 +613,75 @@ CopyMetaSpriteToOAMBuffer::;bc = meta sprite, de = location of current frame, hl
   push af;loaded bank
   ld a, BANK(GBMetaSprites)
   SET_BANK
+  push de;location of current frame
   inc bc;skip width
   inc bc;skip height
   ld a, [bc];frame count
   inc bc
-  push de;location of current frame
+  cp a, 1
+  jr z, .frameZero;frame count == 1
   ld d, a;frame count
   ld a, [map_temp_a];current frame
-  cp a, d
-  pop de
-  jr c, .calcOffset;if current frame < frame count
+  and a
+  jr z, .frameZero
+  cp a, d;compare current frame to frame count
+  jr c, .calcFrame;if current frame >= frame count
+
+.frameZero
+  pop de;address of current frame
   xor a
   ld [de], a;reset to frame zero
-.calcOffset
+  ld a, [bc];sprite count
+  inc bc;first sprite address
+  jr .copyToOAM;no need to calculate frame if frame zero
+
+.calcFrame
+  pop de;discard address of current frame
+  push hl;oam
+IF ANIM_DATA_INCREMENTAL == 1
+  push af;current frame
+  ld a, [bc];sprite count
+  push af;sprite count
+  ld h, 0
+  ld l, a;sprite count
+  add hl, hl;sprite count * 2
+  add hl, hl;sprite count * 4 (bytes per sprite)
+  inc bc;first sprite address
+  push bc
+  ld b, h
+  ld c, l;byte count
+  ld de, tile_buffer
+  pop hl;first sprite address
+  call mem_Copy;puts frame 0 data in tile buffer, frame 1 address in hl
+  pop af;sprite count
+  ld b, a
+  pop af;current frame
+  ld d, a
+  push bc;sprite count
+.copyFramesLoop
+    ld a, [hli];change count
+    and a
+    jr z, .nextFrame
+    ld e, a
+  .copyChangesLoop
+      ld bc, tile_buffer
+      ld a, [hli];byte offset
+      add a, c
+      ld c, a;no need to check carry, tile buffer is at beginning of WRAMX
+      ld a, [hli];new data
+      ld [bc], a
+      dec e
+      jr nz, .copyChangesLoop
+  .nextFrame
+    dec d
+    jr nz, .copyFramesLoop
+  pop af;sprite count
+  ld bc, tile_buffer
+ELSE;ANIM_DATA_INCREMENTAL == 0
   ld d, 0
   ld e, a;current frame
   ld a, [bc];sprite count
   inc bc;first sprite
-  push hl;oam
   push bc;first sprite
   push af;sprite count
   call math_Multiply
@@ -637,7 +692,10 @@ CopyMetaSpriteToOAMBuffer::;bc = meta sprite, de = location of current frame, hl
   add hl, bc;first sprite of frame
   ld b, h
   ld c, l;first sprite of frame in bc
+ENDC
   pop hl;oam
+
+.copyToOAM
   push af;sprite count
   ld e, a
 .loop
