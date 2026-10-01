@@ -190,7 +190,7 @@ UpdateSpriteObjects::
   ld a, [anim_timer]
   inc a
   ld [anim_timer], a
-  cp a, ANIM_SAMPLE_RATE
+  cp a, ANIM_FRAME_STEP
   ret c
   xor a
   ld [anim_timer], a

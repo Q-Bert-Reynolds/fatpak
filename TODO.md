@@ -1,6 +1,5 @@
 Priority
 
-- generic animation system
 - announcer mode
   - double plays
   - beat the throw

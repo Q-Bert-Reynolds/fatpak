@@ -23,103 +23,103 @@ GBMetaSpriteMetaSpriteTest:;363 bytes
   DB -12, -5, 0, 1;Ball (3)
   DB -12, 3, 1, 1;Ball (4)
 .frame1
-  DB -12, -7, 64, 6;Ball
+  DB -2, 5, 64, 5;Ball
   DB -4, -5, 16, 2;Ball (1)
   DB -4, 3, 17, 2;Ball (2)
   DB -12, -5, 0, 1;Ball (3)
   DB -12, 3, 1, 1;Ball (4)
 .frame2
-  DB -12, -7, 64, 6;Ball
+  DB -3, 6, 64, 5;Ball
   DB -4, -5, 16, 2;Ball (1)
   DB -4, 3, 17, 2;Ball (2)
   DB -12, -5, 0, 1;Ball (3)
   DB -12, 3, 1, 1;Ball (4)
 .frame3
-  DB -12, -7, 64, 6;Ball
+  DB -4, 6, 64, 4;Ball
   DB -4, -5, 16, 2;Ball (1)
   DB -4, 3, 17, 2;Ball (2)
   DB -12, -5, 0, 1;Ball (3)
   DB -12, 3, 1, 1;Ball (4)
 .frame4
-  DB -12, -7, 64, 6;Ball
+  DB -5, 6, 64, 4;Ball
   DB -4, -5, 16, 2;Ball (1)
   DB -4, 3, 17, 2;Ball (2)
   DB -12, -5, 0, 1;Ball (3)
   DB -12, 3, 1, 1;Ball (4)
 .frame5
-  DB -12, -7, 64, 6;Ball
+  DB -6, 6, 64, 4;Ball
   DB -4, -5, 16, 2;Ball (1)
   DB -4, 3, 17, 2;Ball (2)
   DB -12, -5, 0, 1;Ball (3)
   DB -12, 3, 1, 1;Ball (4)
 .frame6
-  DB -12, -7, 64, 6;Ball
+  DB -6, 6, 64, 4;Ball
   DB -4, -5, 16, 2;Ball (1)
   DB -4, 3, 17, 2;Ball (2)
   DB -12, -5, 0, 1;Ball (3)
   DB -12, 3, 1, 1;Ball (4)
 .frame7
-  DB -12, -7, 64, 6;Ball
+  DB -7, 6, 64, 3;Ball
   DB -4, -5, 16, 2;Ball (1)
   DB -4, 3, 17, 2;Ball (2)
   DB -12, -5, 0, 1;Ball (3)
   DB -12, 3, 1, 1;Ball (4)
 .frame8
-  DB -12, -7, 64, 6;Ball
+  DB -8, 6, 64, 3;Ball
   DB -4, -5, 16, 2;Ball (1)
   DB -4, 3, 17, 2;Ball (2)
   DB -12, -5, 0, 1;Ball (3)
   DB -12, 3, 1, 1;Ball (4)
 .frame9
-  DB -12, -7, 64, 6;Ball
+  DB -9, 6, 64, 3;Ball
   DB -4, -5, 16, 2;Ball (1)
   DB -4, 3, 17, 2;Ball (2)
   DB -12, -5, 0, 1;Ball (3)
   DB -12, 3, 1, 1;Ball (4)
 .frame10
-  DB -12, -7, 64, 6;Ball
+  DB -9, 6, 64, 2;Ball
   DB -4, -5, 16, 2;Ball (1)
   DB -4, 3, 17, 2;Ball (2)
   DB -12, -5, 0, 1;Ball (3)
   DB -12, 3, 1, 1;Ball (4)
 .frame11
-  DB -12, -7, 64, 6;Ball
+  DB -10, 5, 64, 2;Ball
   DB -4, -5, 16, 2;Ball (1)
   DB -4, 3, 17, 2;Ball (2)
   DB -12, -5, 0, 1;Ball (3)
   DB -12, 3, 1, 1;Ball (4)
 .frame12
-  DB -12, -7, 64, 6;Ball
+  DB -11, 5, 64, 1;Ball
   DB -4, -5, 16, 2;Ball (1)
   DB -4, 3, 17, 2;Ball (2)
   DB -12, -5, 0, 1;Ball (3)
   DB -12, 3, 1, 1;Ball (4)
 .frame13
-  DB -12, -7, 64, 6;Ball
+  DB -11, 4, 64, 1;Ball
   DB -4, -5, 16, 2;Ball (1)
   DB -4, 3, 17, 2;Ball (2)
   DB -12, -5, 0, 1;Ball (3)
   DB -12, 3, 1, 1;Ball (4)
 .frame14
-  DB -12, -7, 64, 6;Ball
+  DB -12, 3, 64, 0;Ball
   DB -4, -5, 16, 2;Ball (1)
   DB -4, 3, 17, 2;Ball (2)
   DB -12, -5, 0, 1;Ball (3)
   DB -12, 3, 1, 1;Ball (4)
 .frame15
-  DB -12, -7, 64, 6;Ball
+  DB -12, 0, 64, 2;Ball
   DB -4, -5, 16, 2;Ball (1)
   DB -4, 3, 17, 2;Ball (2)
   DB -12, -5, 0, 1;Ball (3)
   DB -12, 3, 1, 1;Ball (4)
 .frame16
-  DB -12, -7, 64, 6;Ball
+  DB -12, -3, 64, 3;Ball
   DB -4, -5, 16, 2;Ball (1)
   DB -4, 3, 17, 2;Ball (2)
   DB -12, -5, 0, 1;Ball (3)
   DB -12, 3, 1, 1;Ball (4)
 .frame17
-  DB -12, -7, 64, 6;Ball
+  DB -12, -6, 64, 4;Ball
   DB -4, -5, 16, 2;Ball (1)
   DB -4, 3, 17, 2;Ball (2)
   DB -12, -5, 0, 1;Ball (3)
