@@ -22,7 +22,7 @@ PlayBallIntro:
   ld a, DRAW_FLAGS_WIN
   call DrawUIBox
 
-  ld a, 7
+  ld a, WX_OFS
   ldh [rWX], a
   ld a, 96
   ldh [rWY], a

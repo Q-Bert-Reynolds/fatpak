@@ -16,7 +16,6 @@ Priority
 
 Bugs
 
-- in Calvin's bedroom, when you first turn on the PC, the SGB console sprite sits on top of the text box
 - on SGB, viewing a player on your team during a ballgame crashes the game
 - can't deposit special items
 - if holding more than one directional button, can't hop ledge

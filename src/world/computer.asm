@@ -8,7 +8,7 @@ UsePublicComputer:
   ld [list_selection], a
 .showOptions
     call CopyBkgToWin
-    ld a, 7
+    ld a, WX_OFS
     ldh [rWX], a
     xor a
     ldh [rWY], a
@@ -185,7 +185,7 @@ AccessPlayerStorageSystem:
   ret
 
 AccessItemStorageSystem:
-  ld a, 7
+  ld a, WX_OFS
   ldh [rWX], a
   xor a
   ldh [rWY], a

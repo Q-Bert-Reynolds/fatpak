@@ -222,10 +222,45 @@ DrawUIBox::;a=draw flags, bc = xy, de = wh
   pop af;draw flags
   push hl ;wh
   push de ;xy
+  push af;draw flags
   ld bc, tile_buffer
   call SetTiles
+.checkOffset
+  pop af;draw flags
+  and a, DRAW_FLAGS_WIN
+  jr nz, .offsetWin
+  ld a, [rSCX]
+  srl a
+  srl a
+  srl a
+  ld b, a
+  ld a, [rSCY]
+  srl a
+  srl a
+  srl a
+  ld c, a
+  pop hl;xy
+  add hl, bc;xy + offset
+  ld d, h
+  ld e, l;xy + offset in de
+  jr .hideSprites
+.offsetWin
+  ld a, [rWX]
+  sub a, WX_OFS
+  srl a
+  srl a
+  srl a
+  ld b, a
+  ld a, [rWY]
+  srl a
+  srl a
+  srl a
+  ld c, a
+  pop hl;xy
+  add hl, bc;xy + offset
+  ld d, h
+  ld e, l;xy + offset in de
 .hideSprites
-  pop de;xy
   pop hl;wh
   call HideSpritesInRect
   ret
@@ -318,7 +353,7 @@ DisplayText:: ;a = draw flags, hl = text
 .show
   and a, DRAW_FLAGS_WIN
   ret z;no reason to show win if not drawing on win
-  ld a, 7
+  ld a, WX_OFS
   ldh [rWX], a
   ld a, 96
   ldh [rWY], a
@@ -807,7 +842,7 @@ UIRevealText:: ;a = draw flags, hl = text, de = xy
   ret
 
 UIRevealTextAndWait::
-  ld a, 7
+  ld a, WX_OFS
   ldh [rWX], a
   ld a, 96
   ldh [rWY], a; move_win(7,96);
@@ -1394,7 +1429,7 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
   ld b, 0;b = 0, c = max_len
   call mem_Set; for (i = 0; i != max_len; ++i) str[i] = 0;
   CLEAR_WIN_AREA 0,0,20,18,' '
-  ld a, 7
+  ld a, WX_OFS
   ldh [rWX], a
   xor a
   ldh [rWY], a; move_win(7,0);

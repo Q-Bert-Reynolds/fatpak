@@ -985,7 +985,7 @@ UseItemOnPlayer:;b = item id, returns item used in c (0 = not used, 1 = used)
   call LoadPlayerBaseData
 
   call CopyBkgToWin
-  ld a, 7
+  ld a, WX_OFS
   ldh [rWX], a
   xor a
   ldh [rWY], a
@@ -1388,7 +1388,7 @@ Evolve:;hl = player, a = player num to evolve to
   ld a, DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP
   call DisplayText
 
-  ld a, 7
+  ld a, WX_OFS
   ldh [rWX], a
   ld a, 96
   ldh [rWY], a; move_win(7,96);

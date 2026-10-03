@@ -19,7 +19,7 @@ KeyboardDemo::
   DISPLAY_ON
 
 .setupMenu
-  ld a, 7
+  ld a, WX_OFS
   ldh [rWX], a
   ld a, 104
   ldh [rWY], a

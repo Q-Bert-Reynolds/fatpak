@@ -196,7 +196,7 @@ ShowPauseMenu::
   ld [game_state], a
   call CopyBkgToWin
 .showPauseMenu
-  ld a, 7
+  ld a, WX_OFS
   ldh [rWX], a
   xor a
   ldh [rWY], a

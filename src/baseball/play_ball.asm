@@ -1071,7 +1071,7 @@ SetupGameUI:
 
 Transition:
   call CopyBkgToWin
-  ld a, 7
+  ld a, WX_OFS
   ldh [rWX], a
   xor a
   ldh [rWY], a
@@ -1240,7 +1240,7 @@ ENDC
     cp 2
     jr nz, .runMenuItemSelected
     call CopyBkgToWin
-    ld a, 7
+    ld a, WX_OFS
     ldh [rWX], a
     xor a
     ldh [rWY], a
