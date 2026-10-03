@@ -1271,9 +1271,7 @@ SetMapPalettes::
   push af;current bank
   call GetCurrentMap
   SET_BANK
-  ; ld bc, MAP_DATA_PALETTES
-  ; add hl, bc;[hl] = lower byte of palette address
-  inc hl;[hl] = lower byte of palette address
+  inc hl;[hl] = lower byte of palette address (MAP_DATA_PALETTES == 1)
   ld a, [hli]
   ld b, a
   ld a, [hl]

@@ -501,11 +501,8 @@ gbdk_CopyTilesFrom::
 ;***************************************************************************
 gbdk_Delay::
   DEF _CPMS EQU 4194/4  ; 4.194304 MHz
-  ldh a,[rKEY1]          ; 3 cycles
-  and a, KEY1F_DBLSPEED  ; 1 cycle
+  call gbdk_CPUSlow
   ld bc, _CPMS/7         ; 3 cycles
-  jr z, .loop            ; 3 cycles
-  ld bc, 2*_CPMS/7       ; 3 cycles
 .loop
     dec bc                 ; 2 cycles
     ld a, b                ; 1 cycle
@@ -516,6 +513,7 @@ gbdk_Delay::
   ld a, d                ; 1 cycle
   or e                   ; 1 cycle
   jr nz, gbdk_Delay      ; 3 cycles
+  call gbdk_CPUFast
   ret                    ; 4 cycles
 
 ;***************************************************************************

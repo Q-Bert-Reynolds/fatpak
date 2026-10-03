@@ -1,5 +1,6 @@
 Priority
 
+- transition to ballgame slow on dmg
 - add batting/pitching animations for Rattail, Pidge, and Chica
 - announcer mode
   - double plays
@@ -13,16 +14,9 @@ Priority
   - Doc's PC
   - League PC
 - end game, get experience, level up!!!
-
-Bugs
-
-- on SGB, viewing a player on your team during a ballgame crashes the game
 - can't deposit special items
 - if holding more than one directional button, can't hop ledge
 - color of version name incorrect after returning from new game/continue/options screen
-- USB keyboard sometimes freezes title screen
-- PS/2 keyboard causes flickering on LCDC interrupts
-- SGB sound test doesn't seem to work, test on hardware
 
 General
 
@@ -173,6 +167,11 @@ Animation
 
 Super GameBoy
 
+- colors not restored correctly when returning to world
+- lineup players hidden until selected when returning from stats
+- user player tiles flash grey when drawing opponent stats
+- draws garbage when returning to world from ballgame
+- sound test doesn't seem to work, test on hardware
 - set tiles to palette 0 when drawing UI boxes (currently only works on GBC)
 - GBCSetPalette (used to match SGB and GBC palettes) can cause problems with GBC specific palettes
 - use color palette data
@@ -181,10 +180,12 @@ Super GameBoy
 - borders for different fields
 - extra music voices
 - fix LCD interrupt flickering when sending packets
-- use second controller?
+- use second controller
 
 Keyboard
 
+- USB keyboard sometimes freezes title screen
+- PS/2 keyboard causes flickering on LCDC interrupts
 - add shortcut keys
   - F1 for help (ie. pull up Rolédex page of opposing player)
   - F2 to rename a player that has been selected in the lineup
