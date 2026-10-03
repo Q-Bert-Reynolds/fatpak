@@ -51,20 +51,7 @@ DrawStatScreen::;player in hl
   ld a, ' '
   call ClearTiles
 
-  ld a, 40
-  ld [_i], a
-  ld bc, 4
-  ld hl, oam_buffer+1
-.hideSpritesLoop
-    ld a, [hl]
-    add a, 160; move off screen
-    ld [hl], a
-    add hl, bc
-    ld a, [_i]
-    dec a
-    ld [_i], a
-    and a
-    jr nz, .hideSpritesLoop
+  HIDE_ALL_SPRITES
 
   pop hl;player
   push hl;player
@@ -80,20 +67,7 @@ DrawStatScreen::;player in hl
   call DrawPageTwo
   call WaitForABStart
 
-  ld a, 40
-  ld [_i], a
-  ld bc, 4
-  ld hl, oam_buffer+1
-.showSpritesLoop
-    ld a, [hl]
-    sub a, 160; move on screen
-    ld [hl], a
-    add hl, bc
-    ld a, [_i]
-    dec a
-    ld [_i], a
-    and a
-    jr nz, .showSpritesLoop
+  HIDE_ALL_SPRITES
   ret 
 
 WaitForABStart:

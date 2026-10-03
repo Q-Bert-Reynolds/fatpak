@@ -11,8 +11,14 @@ INCLUDE "data/strings/core_strings.asm"
 ; GetStatusString                 a = status mask, string in name_buffer
 ; Trampoline                      b = bank, hl = address, can only use a, e, and RAM for args, can return in any register
 ; UpdateInput
+; SerialInterrupt
+; LCDInterrupt
+; VBLInterrupt
+; UpdateTime
+; UpdateSpriteObjects
 ; ClearTiles                      a = clear tile, display should be off
 ; ClearScreen                     a = clear tile, display should be off
+; HideSpritesInRect               hl = wh, de = xy(left/top)
 ; SetTiles                        a = draw flags, hl=wh, de=xy, bc=firstTile
 ; CopyToTileBuffer                hl=wh, de=xy, bc=firstTile
 ; SetBkgTilesWithOffset           hl=wh, de=xy, bc=in_tiles, a=offset
@@ -187,6 +193,10 @@ ENDR
   ret
 
 UpdateSpriteObjects::
+  ld a, [game_state]
+  and a, GAME_STATE_PAUSED
+  ret nz
+
   ld a, [anim_timer]
   inc a
   ld [anim_timer], a
@@ -275,6 +285,49 @@ ClearScreen:: ;a = tile, display should be off
   call ClearTiles
   ldh [rVBK], a
   ret 
+
+HideSpritesInRect::;hl=wh, de=xy(left/top)
+  add hl, de;hl = right/bottom
+  ld a, OAM_COUNT
+  ld bc, oam_buffer
+.loop
+    push af
+    ld a, [bc];y
+    srl a
+    srl a
+    srl a
+    cp a, e
+    jr c, .next;above the top
+    jr z, .next
+    dec a
+    cp a, l
+    jr nc, .next;below the bottom
+    inc bc
+    ld a, [bc];x
+    dec bc
+    srl a
+    srl a
+    srl a
+    cp a, d
+    jr c, .next;left of left
+    jr z, .next
+    dec a
+    cp a, h
+    jr nc, .next;right of right
+    xor a
+    ld [bc], a;clear y
+    inc bc
+    ld [bc], a;clear x
+    dec bc
+  .next
+    inc bc
+    inc bc
+    inc bc
+    inc bc
+    pop af
+    dec a
+    jr nz, .loop
+  ret
 
 SetTiles::;a = draw flags, hl=wh, de=xy, bc=firstTile
   and a, DRAW_FLAGS_WIN
@@ -468,7 +521,7 @@ SetSpriteTilesXY:: ;bc = xy in screen space, hl = wh in tiles, de = tilemap, a =
       jr z, .skip
     .noSkip
       ld a, [_a]
-      cp a, 40
+      cp a, OAM_COUNT
       jr nc, .skip
       push de;tilemap
       

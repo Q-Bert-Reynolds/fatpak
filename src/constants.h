@@ -12,6 +12,7 @@
 #define GAME_STATE_CLOCK_STARTED   0b00000001
 #define GAME_STATE_PLAY_BALL       0b00000010
 #define GAME_STATE_UNSIGNED_PLAYER 0b00000100
+#define GAME_STATE_PAUSED          0b00001000
 
 // game progress flags
 #define PC_FLAGS             1

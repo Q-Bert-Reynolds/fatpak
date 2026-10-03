@@ -191,8 +191,10 @@ EnterDoor::
   ret
 
 ShowPauseMenu::
+  ld a, [game_state]
+  or a, GAME_STATE_PAUSED
+  ld [game_state], a
   call CopyBkgToWin
-
 .showPauseMenu
   ld a, 7
   ldh [rWX], a
@@ -283,6 +285,9 @@ ShowPauseMenu::
   POP_VAR list_selection
   jp .showPauseMenu
 .exit
+  ld a, [game_state]
+  and a, ~GAME_STATE_PAUSED
+  ld [game_state], a
   HIDE_WIN
   call DrawMapToScreen
   WAITPAD_UP

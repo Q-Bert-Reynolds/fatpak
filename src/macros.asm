@@ -2,7 +2,6 @@
 ; Macro                                 Arguments
 ;   SET_BANK
 ;   TRAMPOLINE                            AddressInAnotherBank
-;   C_DATA                                AddressWithCInterface, *
 ;   PUSH_VAR                              WRAMAddressToStore
 ;   POP_VAR                               WRAMAddressToRestore
 ;   DEBUG_LOG_STRING                      "string"
@@ -143,7 +142,7 @@ ENDM
 
 MACRO HIDE_ALL_SPRITES
   xor a
-  ld b, 40
+  ld b, OAM_COUNT
   ld hl, oam_buffer
 .loop\@
   ld [hli], a

@@ -220,8 +220,14 @@ DrawUIBox::;a=draw flags, bc = xy, de = wh
   pop hl ;wh
   pop de ;xy
   pop af;draw flags
+  push hl ;wh
+  push de ;xy
   ld bc, tile_buffer
   call SetTiles
+.hideSprites
+  pop de;xy
+  pop hl;wh
+  call HideSpritesInRect
   ret
 
 MACRO DRAW_STRING ;x, y, text 
