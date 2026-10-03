@@ -263,13 +263,12 @@ PlayBallIntro:
     jr nz, .slideOutLoop
 
   CLEAR_BKG_AREA 1, 16-_CALVIN_BACK_2X_ROWS, _CALVIN_BACK_2X_COLUMNS, _CALVIN_BACK_2X_ROWS-4, ' '
-  DISABLE_LCD_INTERRUPT
-
   HIDE_ALL_SPRITES
   call gbdk_WaitVBL
   xor a
   ldh [rSCX], a
   ldh [rSCY], a
+  DISABLE_LCD_INTERRUPT
 
   STR_FAR_COPY PlayBallText, str_buffer
   ld hl, str_buffer

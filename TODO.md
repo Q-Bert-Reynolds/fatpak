@@ -1,5 +1,6 @@
 Priority
 
+- add batting/pitching animations for Rattail, Pidge, and Chica
 - announcer mode
   - double plays
   - beat the throw
@@ -71,12 +72,15 @@ Start
 
 Play Ball
 
+- fix swing timing
+- add swing/pitch fx
 - offers accepted by unsigned players should end game
 - set contact power from move, player, and barrel
 - if opposing pitcher is ahead - throw more balls, behind - throw more strikes
 - pitches in the dirt should bounce
 - hit the batter with pitches
 - hide strikezone after pitcher sets
+- different sized strike zones for each player
 - reduce pitching frames to 3, batting to 2, make trail fx a sprite
 - ball should go behind lefty user batter, righty opposing batter
 - ball should fly off screen after contact
@@ -105,8 +109,7 @@ Simulation
 - catching throwing
 - implement basic rules
 - iterative landing spot calc slightly off, direct method often way off
-- field should probably be bigger than 32x32
-- runners are commented out (ie. ghost runners), turn on/off based on runnes actual positions
+- field should use map system
 - runners have wrong palette
 - reuse the lineup sprites on the field
 
@@ -163,6 +166,11 @@ Audio
 
 - pitch, hit, wiff, catch SFX
 - on/off PC SFX
+
+Animation
+
+- different sample rate/steps for world vs baseball
+- handle looped vs once animations
 
 Super GameBoy
 

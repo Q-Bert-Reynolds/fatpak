@@ -1156,9 +1156,9 @@ DB _LEFTY_PITCHER_USER_TILE_COUNT
 DB BANK(_RightyPitcherUserTiles)
 DW _RightyPitcherUserTiles
 DB _RIGHTY_PITCHER_USER_TILE_COUNT
-DB BANK(_LeftyBatterOpponentTiles)
-DW _LeftyBatterOpponentTiles
-DB _LEFTY_BATTER_OPPONENT_TILE_COUNT
+DB BANK(_019RatTailLeftyBatterOpponentTiles)
+DW _019RatTailLeftyBatterOpponentTiles
+DB _019RATTAIL_LEFTY_BATTER_OPPONENT_TILE_COUNT
 DB BANK(_RightyBatterOpponentTiles)
 DW _RightyBatterOpponentTiles
 DB _RIGHTY_BATTER_OPPONENT_TILE_COUNT

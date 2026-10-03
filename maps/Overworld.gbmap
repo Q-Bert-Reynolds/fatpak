@@ -9082,7 +9082,7 @@ MapOverworldBilletTown:;Billet Town, 14 bytes
   DB 3;num encounters
 .encounters; age, player, props, chance
   DB NUM_PIDGE,    3, THROW_RIGHT | BAT_RIGHT | SEX_MALE, 108
-  DB NUM_RAT_TAIL, 3, THROW_RIGHT | BAT_RIGHT | SEX_MALE, 216
+  DB NUM_RAT_TAIL, 3, THROW_LEFT | BAT_LEFT | SEX_MALE, 216
   DB NUM_CHICA,    3, THROW_RIGHT | BAT_LEFT | SEX_FEMALE, 253
   DB 0;END
 
