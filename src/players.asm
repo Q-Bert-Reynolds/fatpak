@@ -166,6 +166,20 @@ SECTION "Player Utils", ROM0
 ;GetOpposingPlayerByPosition  - a = position(1-9), returns player in hl
 ;GetUserPlayerByPosition      - a = position(1-9), returns player in hl
 
+CreateUserLineupFromBank::;b = bank, hl = src
+  ld a, [loaded_bank]
+  push af;loaded bank
+  ld a, b
+  SET_BANK
+
+  ld de, UserLineup
+  ld bc, UserLineupPlayer2-UserLineupPlayer1
+  call CreateLineup
+
+  pop af;loaded bank
+  SET_BANK
+  ret
+
 CreateLineup:: ;hl = src lineup data, de = destination lineup address, bc = player size
   xor a
 .loop

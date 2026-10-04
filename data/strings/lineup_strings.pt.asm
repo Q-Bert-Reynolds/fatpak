@@ -20,7 +20,7 @@ PlayerLearnedMoveText::                   DB "aprendeu\n%s!", 0
 
 ;items
 ItWontHaveAnyEffectText::                 DB "Não terá nenhum\nefeito.", 0
-StatusClearedText::                       DB "Status restaurado.", 0
+StatusClearedText::                       DB "Status\nrestaurado.", 0
 PlayerUsedItemText::                      DB "usou\n%s.", 0
 PlayerRecoveredByNumberText::             DB "\nrecuperou %s!", 0
 

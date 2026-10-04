@@ -9,9 +9,9 @@ const char PositionTexts[] =              "lanzador\0"
                                           "intermedista\0"
                                           "antesalista\0"
                                           "campocorto\0"
-                                          "jardinero izquierdo\0"
-                                          "jardinero central\0"
-                                          "jardinero derecho";
+                                          "jardinero\200izquierdo\0"
+                                          "jardinero\200central\0"
+                                          "jardinero\200derecho";
 
 //ordinal numbers for innings
 const char InningTexts[] =                "1er\0"
@@ -54,9 +54,9 @@ const char SwingAndMissText[] =           "Abanica.";
 const char HitBarrelText[] =              "Realmente tengo\200el barrel en ese.";
 
 //hit to outfield - append outfield location
-const char HitDeepFlyBallText[] =         "Bola de mosca profunda";
+const char HitDeepFlyBallText[] =         "Bola de mosca\200profunda";
 const char HitFlyBallText[] =             "Pelota voladora";
-const char HitShallowFlyBallText[] =      "Mosca poco profunda";
+const char HitShallowFlyBallText[] =      "Mosca poco\200profunda";
 const char HitPopFlyText[] =              "Mosca";
 
 //outfield location by angle
@@ -91,7 +91,7 @@ const char InfieldLocationTexts[] =       "abajo\200del <3B> l<i`>nea\0"
 const char ToThePositionText[] =          "al\200%s.";
 
 //fielded, replace %s with player name
-const char CaughtByText[] =               "%s hace la captura.";
+const char CaughtByText[] =               "%s hace la\200captura.";
 const char LeapingCatchByText[] =         "%s salta\200 y lo engancha.";
 const char DivingCatchByText[] =          "%s con\200la barrida";
 const char FieldedByText[] =              "Filentado por\200%s.";
@@ -121,21 +121,21 @@ const char WalkText[] =                   "%s en la base\200 con una caminata.";
 const char PassedBallText[] =             "<!>Pasb<o`>l!";
 const char WildPitchText[] =              "<!>Lanzamiento\200salvaje!";
 const char HitByPitchText[] =             "Eso lo golpe<o`>, por lo que\200%s est<a`> en <1B>.";
-const char BenchesClearText[] =           "Y los bancos despejados.";
+const char BenchesClearText[] =           "Y los bancos\200despejados.";
 
 //runners on
 const char RunnersOnBaseTexts[] =         "Nadie en la base.\0"
-                                          "Runner en primero.\0"
-                                          "Corredor en segundo.\0"
-                                          "Corredores en el primer segundo.\0"
-                                          "Corredor en tercero.\0"
+                                          "Runner en\200primero.\0"
+                                          "Corredor en\200segundo.\0"
+                                          "Corredores en el\200primer segundo.\0"
+                                          "Corredor en\200tercero.\0"
                                           "Corredores en el primer\200y tercero.\0"
                                           "Corredores en el segundo\200y tercero.\0"
                                           "Bases cargadas.";
 
 //tagging up
-const char TaggingFromTexts[] =           "%s etiquetas desde primero.\0"
-                                          "%s ser<a`> de segundo.\0"
+const char TaggingFromTexts[] =           "%s etiquetas\200desde primero.\0"
+                                          "%s ser<a`> de\200segundo.\0"
                                           "Etiquetado de tercero\200is %s.";
 
 //safe/out
@@ -146,7 +146,7 @@ const char TriplePlayText[] =             "<!>Juego triple!";
 
 //foul
 const char HitFoulTipText[] =             "Consejo sucio.";
-const char HitFoulBackText[] =            "Flolled de regreso.";
+const char HitFoulBackText[] =            "Flolled de\200regreso.";
 const char HitFoulBallText[] =            "<!>Bola de falta!";
 const char InFoulTerritoryText[] =        "en el territorio de\200foul.";
 
@@ -156,12 +156,12 @@ const char HitDoubleText[] =              "<!>Doble!";
 const char HitTripleText[] =              "<!>Triple!";
 const char HitHomeRunText[] =             "<!>Jonr<o`>n!";
 const char HitGrandSlamText[] =           "<!>Jonr<o`>n con las\200bases llenas!";
-const char CriticalHitText[] =            "<!>Impacto cr<i`>tico!";
+const char CriticalHitText[] =            "<!>Impacto\200cr<i`>tico!";
 
 //score
 const char PlayerScoresText[] =           " puntuaciones.";
 const char TwoPlayersScoreText[] =        " y puntaje\200%s.";
-const char BasesClearedScoreText[] =      "Y eso borra las bases.";
+const char BasesClearedScoreText[] =      "Y eso borra las\200bases.";
 
 //end of frame
 const char BottomOfTheText[] =            "Inferior de\200t %s.";

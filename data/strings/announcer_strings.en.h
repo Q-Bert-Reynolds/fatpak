@@ -121,7 +121,7 @@ const char WalkText[] =                   "%s on base\200with a walk.";
 const char PassedBallText[] =             "Passed ball!";
 const char WildPitchText[] =              "Wild pitch!";
 const char HitByPitchText[] =             "That hit 'em, so\200%s is on <1B>.";
-const char BenchesClearText[] =           "And the benches clear.";
+const char BenchesClearText[] =           "And the benches\200clear.";
 
 //runners on
 const char RunnersOnBaseTexts[] =         "Nobody on base.\0"
@@ -134,7 +134,7 @@ const char RunnersOnBaseTexts[] =         "Nobody on base.\0"
                                           "Bases loaded.";
 
 //tagging up
-const char TaggingFromTexts[] =           "%s tags from first.\0"
+const char TaggingFromTexts[] =           "%s tags from\200first.\0"
                                           "%s will\200tag from second.\0"
                                           "Tagging from third\200is %s.";
 

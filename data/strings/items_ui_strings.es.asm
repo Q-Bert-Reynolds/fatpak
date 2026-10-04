@@ -17,7 +17,7 @@ PlayerRejectsOfferText::                  DB "%s no está\ninteresado.", 0
 PlayerAcceptsOfferText::                  DB "%s\n¡acepta!", 0
 GivePlayerANicknameText::                 DB "¿Ponerle un mote\na %s?", 0
 WithrewItemText::                         DB "Objeto retirado.", 0
-DepositedItemText::                       DB "Objeto depositado.", 0
+DepositedItemText::                       DB "Objeto\ndepositado.", 0
 HowManyText::                             DB "¿Cuántos?", 0
 BagFullText::                             DB "No puedes llevar\nmás objetos.", 0
 ItemStorageSystemFull::                   DB "El almacén de objetos\nestá lleno.", 0

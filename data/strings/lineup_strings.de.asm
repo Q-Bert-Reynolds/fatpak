@@ -13,7 +13,7 @@ ForgetAMoveText::                         DB "Soll eine ältere\nAttacke vergess
 AbandonLearningText::                     DB "Erlernen von\n%s abbrechen?", 0
 DidNotLearnText::                         DB "\nhat %s\nnicht gelernt!", 0
 WhichMoveShouldBeForgottenText::          DB "Welche Attacke soll\nvergessen werden?", 0
-OneTwoAndPoofText::                       DB "1, 2 und... Schwups!", 0
+OneTwoAndPoofText::                       DB "1, 2 und...\nSchwups!", 0
 PlayerForgotMoveText::                    DB "hat\n%s vergessen!", 0
 AndElipsisText::                          DB "Und...", 0
 PlayerLearnedMoveText::                   DB "hat\n%s erlernt!", 0

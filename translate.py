@@ -43,6 +43,26 @@ def charMapReplace(text):
     text = text.replace(char, val)
   return text
 
+def wrapLines(text):
+  if "\\n" in text:
+    return text
+  words = text.split(" ")
+  length = len(words[0])
+  text = words[0]
+  for word in words[1:]:
+    if word == "%s":
+      length += 8
+    else:
+      length += len(word)
+    
+    if (length >= 16):
+      length = len(word)
+      text += "\\n"
+    else:
+      text += " "
+    text += word
+  return text
+
 def create_c_strings_files(dict_reader, name):
   dir = "./data/strings/"
   if not os.path.exists(dir):
@@ -74,6 +94,7 @@ def create_c_strings_files(dict_reader, name):
       text = entry[language]
       if not text:
         text = entry["English-en"]
+      text = wrapLines(text)
       text = charMapReplace(text)
       
       label_parts = label.split('.')
@@ -128,7 +149,8 @@ def create_asm_strings_files(dict_reader, name):
       text = entry[language]
       if not text:
         text = entry["English-en"]
-      
+      text = wrapLines(text)
+
       label_parts = label.split('.')
       is_array = len(label_parts) > 1
       is_first = False

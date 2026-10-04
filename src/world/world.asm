@@ -1,5 +1,8 @@
 INCLUDE "src/beisbol.inc"
 
+SECTION "Billet Town", ROMX
+INCLUDE "data/strings/billet_town_strings.asm"
+
 SECTION "World Code", ROMX
 INCLUDE "data/strings/world_strings.asm"
 INCLUDE "src/world/computer.asm"

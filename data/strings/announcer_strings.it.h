@@ -48,7 +48,7 @@ const char AndThePitchText[] =            "E il lancio.";
 const char ThrewAPitchText[] =            "\200Un %s.";
 
 //after pitch
-const char EarlySwingText[] =             "Swing anticipato.";
+const char EarlySwingText[] =             "Swing\200anticipato.";
 const char LateSwingText[] =              "Swing in ritardo.";
 const char SwingAndMissText[] =           "Swing a vuoto";
 const char HitBarrelText[] =              "Ha davvero preso\200il centro della mazza.";
@@ -121,20 +121,20 @@ const char WalkText[] =                   "%s in base\200con una base su ball.";
 const char PassedBallText[] =             "Palla passata!";
 const char WildPitchText[] =              "Lancio pazzo!";
 const char HitByPitchText[] =             "L'ha colpito, quindi\200%s è in <1B>.";
-const char BenchesClearText[] =           "E le panchine si svuotano.";
+const char BenchesClearText[] =           "E le panchine si\200svuotano.";
 
 //runners on
 const char RunnersOnBaseTexts[] =         "Nessuno in base.\0"
-                                          "Corridore in prima.\0"
-                                          "Corridore in seconda.\0"
+                                          "Corridore in\200prima.\0"
+                                          "Corridore in\200seconda.\0"
                                           "Corridori in prima\200e seconda.\0"
-                                          "Corritore in terza.\0"
+                                          "Corritore in\200terza.\0"
                                           "Corridori in prima\200e terza.\0"
                                           "Corridori in seconda\200e terza.\0"
                                           "Basi piene";
 
 //tagging up
-const char TaggingFromTexts[] =           "%s parte dalla prima.\0"
+const char TaggingFromTexts[] =           "%s parte dalla\200prima.\0"
                                           "%s ripartirà\200dalla seconda.\0"
                                           "Pesta da terza\200è %s.";
 
@@ -146,7 +146,7 @@ const char TriplePlayText[] =             "Triplo gioco!";
 
 //foul
 const char HitFoulTipText[] =             "Foul tip";
-const char HitFoulBackText[] =            "Fallo all'indietro.";
+const char HitFoulBackText[] =            "Fallo\200all'indietro.";
 const char HitFoulBallText[] =            "Palla foul!";
 const char InFoulTerritoryText[] =        "in\200territorio foul.";
 

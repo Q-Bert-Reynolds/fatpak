@@ -1,4 +1,4 @@
-GBStamps:: ;1090 bytes
+GBStamps:: ;1120 bytes
 GBStampBusinessDoor: ;7 bytes
   DB 2;width
   DB 2;height
@@ -106,6 +106,16 @@ GBStampFloor: ;19 bytes
   DB 240, 242, 240, 241
   DB 242, 240, 241, 240
   DB 241, 240, 240, 242
+.palette
+  DB 130
+
+GBStampLongTable: ;21 bytes
+  DB 6;width
+  DB 3;height
+.tiles
+  DB 130, 132, 132, 132, 132, 131
+  DB 146, 254, 254, 254, 254, 147
+  DB 162, 148, 148, 148, 148, 163
 .palette
   DB 130
 
@@ -484,17 +494,17 @@ GBStampWildFlowers: ;14 bytes
   DB 3, 3, 1
   DB 1, 2, 2
 
-GBStampBaseball: ;7 bytes
+GBStampBaseball: ;10 bytes
   DB 2;width
   DB 2;height
 .tiles
   DB   0,   1
   DB  16,  17
 .props
-  DB 0, 0
-  DB 0, 0
+  DB 1, 1
+  DB 2, 2
 
-GBStampCalvinIdleDown:: ;10 bytes
+GBStampCalvinIdleDown: ;10 bytes
   DB 2;width
   DB 2;height
 .tiles
@@ -504,7 +514,7 @@ GBStampCalvinIdleDown:: ;10 bytes
   DB 0, 32
   DB 0, 32
 
-GBStampCalvinIdleRight: ;7 bytes
+GBStampCalvinIdleRight: ;10 bytes
   DB 2;width
   DB 2;height
 .tiles
@@ -534,7 +544,7 @@ GBStampCalvinWalkDown: ;10 bytes
   DB 0, 32
   DB 0, 0
 
-GBStampCalvinWalkRight: ;7 bytes
+GBStampCalvinWalkRight: ;10 bytes
   DB 2;width
   DB 2;height
 .tiles

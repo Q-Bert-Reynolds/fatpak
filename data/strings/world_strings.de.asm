@@ -13,7 +13,7 @@ AccessedPlayerFarmSystemText::            DB "Zugriff auf das\nSPIELER-Lagersyst
 WhatText::                                DB "Was?", 0
 PlayerFarmSystemMenuText::                DB "RUFEN\nFREILASSEN\nFARM WECHSELN\nTSCHÜSS!", 0
 FarmTexts::                               DB "AAAA\nAAA\nAA\nHigh A\nLow A\nRookie\nKlasse B\nKlasse C", 0
-AccessedMyComputerText::                  DB "Auf meinen PC zugegriffen.", 0
+AccessedMyComputerText::                  DB "Auf meinen PC\nzugegriffen.", 0
 AccessedItemStorageSystemText::           DB "Zugriff auf das\nItem-Ablagesystem.", 0
 WhatDoYouWantToDoText::                   DB "Was möchtest du\ntun?", 0
 ItemStorageSystemMenuText::               DB "ITEM NEHMEN\nITEM ABLEGEN\nITEM WEGWERFEN\nBEENDEN", 0

@@ -18,6 +18,7 @@ list_selection:: DB
 inventory_mode:: DB
 
 ;main save data
+main_save::
 text_speed:: DB
 animation_style:: DB
 coaching_style:: DB
@@ -38,10 +39,12 @@ map_chunk:: DB
 map_x:: DB
 map_y:: DB
 game_event_flags::
+team_flags:: DB ;have you picked a team and which one? 
 pc_flags:: DB ;Have you met Bill James? Gotten the Rolédex yet? Beaten the Elite Teams?
 pennant_flags:: DB ;which leagues have you won
 item_flags:: DS ITEM_FLAGS_SIZE
 game_event_flags_end::
+main_save_end::
 
 ;drawing
 sprite_props:: DB

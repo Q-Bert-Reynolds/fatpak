@@ -39,7 +39,7 @@ const char WalksToThePlateText[] =        "%s tritt\200an den Schlag.";
 
 //move selected
 const char BatterStepsIntoTheBoxText[] =  "%s tritt\200in die Box.";
-const char PitcherSetsText[] =            "%s macht sich bereit.";
+const char PitcherSetsText[] =            "%s macht sich\200bereit.";
 
 //beginning of play
 const char AndThePitchText[] =            "Und der Wurf.";
@@ -50,7 +50,7 @@ const char ThrewAPitchText[] =            "\200Ein %s.";
 //after pitch
 const char EarlySwingText[] =             "Fr<u:>her Schwung.";
 const char LateSwingText[] =              "Später Schwung.";
-const char SwingAndMissText[] =           "Schwung und Fehlschlag.";
+const char SwingAndMissText[] =           "Schwung und\200Fehlschlag.";
 const char HitBarrelText[] =              "Den Ball richtig\200gut getroffen.";
 
 //hit to outfield - append outfield location
@@ -70,7 +70,7 @@ const char OutfieldLocationTexts[] =      "Entlang der\200<LF>-Linie.\0"
 
 //hit to infield - append infield location or "to the" position text
 const char HitLineDriveText[] =           "Line Drive";
-const char HitSoftLinerText[] =           "Weicher Line Drive";
+const char HitSoftLinerText[] =           "Weicher Line\200Drive";
 const char HitGroundBallText[] =          "Groundball";
 const char HitChopperText[] =             "Ein Hopper";
 const char HitPopUpText[] =               "Hoch geschlagen";
@@ -121,20 +121,20 @@ const char WalkText[] =                   "%s mit einem Walk\200auf Base.";
 const char PassedBallText[] =             "Passed Ball!";
 const char WildPitchText[] =              "Wild Pitch!";
 const char HitByPitchText[] =             "Das hat ihn getroffen,\200also ist %s auf <1B>.";
-const char BenchesClearText[] =           "Und die Bänke leeren sich.";
+const char BenchesClearText[] =           "Und die Bänke\200leeren sich.";
 
 //runners on
 const char RunnersOnBaseTexts[] =         "Niemand auf Base.\0"
-                                          "Läufer auf der ersten Base.\0"
-                                          "Läufer auf der zweiten Base.\0"
+                                          "Läufer auf der\200ersten Base.\0"
+                                          "Läufer auf der\200zweiten Base.\0"
                                           "Läufer auf der ersten\200und zweiten Base.\0"
-                                          "Läufer auf der dritten Base.\0"
+                                          "Läufer auf der\200dritten Base.\0"
                                           "Läufer auf 1.\200und 3. Base.\0"
                                           "Läufer auf der zweiten\200und dritten Base.\0"
-                                          "Alle Bases besetzt.";
+                                          "Alle Bases\200besetzt.";
 
 //tagging up
-const char TaggingFromTexts[] =           "%s r<u:>ckt von First nach.\0"
+const char TaggingFromTexts[] =           "%s r<u:>ckt von First\200nach.\0"
                                           "%s r<u:>ckt von\200zweiter Base auf.\0"
                                           "Taggt von der dritten\200ist %s.";
 
@@ -156,10 +156,10 @@ const char HitDoubleText[] =              "Double!";
 const char HitTripleText[] =              "Triple!";
 const char HitHomeRunText[] =             "HOMERUN!";
 const char HitGrandSlamText[] =           "GRAND SLAM!";
-const char CriticalHitText[] =            "Kritischer Treffer!";
+const char CriticalHitText[] =            "Kritischer\200Treffer!";
 
 //score
-const char PlayerScoresText[] =           "erzielt einen Run.";
+const char PlayerScoresText[] =           "erzielt einen\200Run.";
 const char TwoPlayersScoreText[] =        "und\200%s punkten.";
 const char BasesClearedScoreText[] =      "Und das räumt\200die Bases ab.";
 

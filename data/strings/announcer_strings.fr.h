@@ -7,11 +7,11 @@ const char PositionTexts[] =              "lanceur\0"
                                           "receveur\0"
                                           "premier but\0"
                                           "deuxième but\0"
-                                          "joueur de troisième base\0"
+                                          "joueur de\200troisième base\0"
                                           "arrêt-court\0"
-                                          "voltigeur de gauche\0"
-                                          "voltigeur de centre\0"
-                                          "voltigeur de droite";
+                                          "voltigeur de\200gauche\0"
+                                          "voltigeur de\200centre\0"
+                                          "voltigeur de\200droite";
 
 //ordinal numbers for innings
 const char InningTexts[] =                "1er\0"
@@ -54,7 +54,7 @@ const char SwingAndMissText[] =           "Élan et rat<e`>.";
 const char HitBarrelText[] =              "Vraiment mis le\200centre de la batte.";
 
 //hit to outfield - append outfield location
-const char HitDeepFlyBallText[] =         "Balle haute profonde";
+const char HitDeepFlyBallText[] =         "Balle haute\200profonde";
 const char HitFlyBallText[] =             "Balle volante";
 const char HitShallowFlyBallText[] =      "Ballon court";
 const char HitPopFlyText[] =              "Chandelle";
@@ -121,20 +121,20 @@ const char WalkText[] =                   "%s sur base\200avec un but sur balles
 const char PassedBallText[] =             "Balle pass<e`>e !";
 const char WildPitchText[] =              "Mauvais lancer !";
 const char HitByPitchText[] =             "Ça l'a touch<e`>, donc\200%s est sur la <1B>.";
-const char BenchesClearText[] =           "Et les bancs se vident.";
+const char BenchesClearText[] =           "Et les bancs se\200vident.";
 
 //runners on
-const char RunnersOnBaseTexts[] =         "Personne sur les buts.\0"
-                                          "Coureur en première base.\0"
-                                          "Coureur au deuxième.\0"
+const char RunnersOnBaseTexts[] =         "Personne sur les\200buts.\0"
+                                          "Coureur en\200première base.\0"
+                                          "Coureur au\200deuxième.\0"
                                           "Coureurs au premier\200et au deuxième.\0"
-                                          "Coureur au troisième.\0"
+                                          "Coureur au\200troisième.\0"
                                           "Coureurs au premier\200et au troisième.\0"
                                           "Coureurs aux deuxième\200et troisième.\0"
                                           "Bases pleines.";
 
 //tagging up
-const char TaggingFromTexts[] =           "%s repart du premier.\0"
+const char TaggingFromTexts[] =           "%s repart du\200premier.\0"
                                           "%s va\200repartir du deuxième.\0"
                                           "S'<e`>lance du troisième\200est %s.";
 
@@ -146,7 +146,7 @@ const char TriplePlayText[] =             "Triple jeu !";
 
 //foul
 const char HitFoulTipText[] =             "Foul tip.";
-const char HitFoulBackText[] =            "Foul ball vers l'arrière.";
+const char HitFoulBackText[] =            "Foul ball vers\200l'arrière.";
 const char HitFoulBallText[] =            "Balle fausse !";
 const char InFoulTerritoryText[] =        "en\200territoire des fausses balles.";
 

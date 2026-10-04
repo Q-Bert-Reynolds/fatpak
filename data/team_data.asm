@@ -47,7 +47,7 @@ PlateCitySurgeTeam::
 .money: D24 5000
 .restriction: DB -16
 .flag_index: DB PENNANT_FLAGS
-.flag_bits: DB PENNANT_FLAG_COOPER
+.flag_bits: DB PENNANT_FLAG_COPPER
 .item: DB TM24_ITEM
 .image: DB COACH_CAPTAIN_SHREVE
 .lineup:
@@ -312,4 +312,67 @@ IndiePlateauRedsTeam::
   DB NUM_SMOKEY,      30, RIGHT_FIELDER,  THROW_LEFT  | BAT_RIGHT
   DB NUM_DON,         28, LEFT_FIELDER,   THROW_RIGHT | BAT_RIGHT
   DB NUM_ZAM,         34, CATCHER,        THROW_RIGHT | BAT_RIGHT
+
+BilletTownGreensTeam::
+.name: DB "Greens",0,0
+.coach: DB "Coach Nolan",0,0,0,0,0
+.innings: DB 3
+.money: D24 50
+.restriction: DB 0
+.flag_index: DB 0
+.flag_bits: DB 0
+.item: DB 0
+.image: DB COACH_NOLAN0
+.lineup:
+  DB NUM_BUBBI,        5, SHORTSTOP,      THROW_RIGHT | BAT_SWITCH
+  DB NUM_PIDGE,        3, CENTER_FIELDER, THROW_RIGHT | BAT_RIGHT
+  DB NUM_PIDGE,        3, THIRD_BASEMAN,  THROW_RIGHT | BAT_RIGHT
+  DB NUM_RAT_TAIL,     3, FIRST_BASEMAN,  THROW_LEFT  | BAT_LEFT
+  DB NUM_PIDGE,        2, RIGHT_FIELDER,  THROW_RIGHT | BAT_RIGHT
+  DB NUM_PIDGE,        3, SECOND_BASEMAN, THROW_RIGHT | BAT_RIGHT
+  DB NUM_CHICA,        3, PITCHER,        THROW_RIGHT | BAT_LEFT
+  DB NUM_PIDGE,        2, LEFT_FIELDER,   THROW_RIGHT | BAT_RIGHT
+  DB NUM_PIDGE,        3, CATCHER,        THROW_RIGHT | BAT_RIGHT
+
+BilletTownBluesTeam::
+.name: DB "Blues",0,0,0
+.coach: DB "Coach Nolan",0,0,0,0,0
+.innings: DB 3
+.money: D24 50
+.restriction: DB 0
+.flag_index: DB 0
+.flag_bits: DB 0
+.item: DB 0
+.image: DB COACH_NOLAN0
+.lineup:
+  DB NUM_SQUIRT,       5, CATCHER,        THROW_RIGHT | BAT_RIGHT
+  DB NUM_PIDGE,        3, CENTER_FIELDER, THROW_RIGHT | BAT_RIGHT
+  DB NUM_PIDGE,        3, THIRD_BASEMAN,  THROW_RIGHT | BAT_RIGHT
+  DB NUM_PIDGE,        3, FIRST_BASEMAN,  THROW_RIGHT | BAT_RIGHT
+  DB NUM_PIDGE,        3, SECOND_BASEMAN, THROW_RIGHT | BAT_RIGHT
+  DB NUM_CHICO,        3, SHORTSTOP,      THROW_RIGHT | BAT_RIGHT
+  DB NUM_CHICA,        3, PITCHER,        THROW_RIGHT | BAT_LEFT
+  DB NUM_PIDGE,        2, LEFT_FIELDER,   THROW_RIGHT | BAT_RIGHT
+  DB NUM_PIDGE,        2, RIGHT_FIELDER,  THROW_RIGHT | BAT_RIGHT
+
+BilletTownRedsTeam::
+.name: DB "Reds",0,0,0,0
+.coach: DB "Coach Nolan",0,0,0,0,0
+.innings: DB 3
+.money: D24 50
+.restriction: DB 0
+.flag_index: DB 0
+.flag_bits: DB 0
+.item: DB 0
+.image: DB COACH_NOLAN0
+.lineup:
+  DB NUM_GINGER,       5, PITCHER,        THROW_LEFT  | BAT_LEFT
+  DB NUM_RAT_TAIL,     3, CENTER_FIELDER, THROW_LEFT  | BAT_LEFT
+  DB NUM_PIDGE,        3, THIRD_BASEMAN,  THROW_RIGHT | BAT_RIGHT
+  DB NUM_CHICO,        3, FIRST_BASEMAN,  THROW_LEFT  | BAT_RIGHT
+  DB NUM_PIDGE,        3, SECOND_BASEMAN, THROW_RIGHT | BAT_RIGHT
+  DB NUM_PIDGE,        3, SHORTSTOP,      THROW_RIGHT | BAT_RIGHT
+  DB NUM_PIDGE,        2, RIGHT_FIELDER,  THROW_RIGHT | BAT_RIGHT
+  DB NUM_PIDGE,        2, LEFT_FIELDER,   THROW_RIGHT | BAT_RIGHT
+  DB NUM_PIDGE,        3, CATCHER,        THROW_RIGHT | BAT_RIGHT
 

@@ -9,9 +9,9 @@ const char PositionTexts[] =              "arremessador\0"
                                           "segunda-base\0"
                                           "terceiro-base\0"
                                           "interbase\0"
-                                          "jardinheiro esquerdo\0"
-                                          "jardineiro central\0"
-                                          "jardineiro direito";
+                                          "jardinheiro\200esquerdo\0"
+                                          "jardineiro\200central\0"
+                                          "jardineiro\200direito";
 
 //ordinal numbers for innings
 const char InningTexts[] =                "1º\0"
@@ -54,7 +54,7 @@ const char SwingAndMissText[] =           "Swing e errou.";
 const char HitBarrelText[] =              "Pegou em cheio\200na bola.";
 
 //hit to outfield - append outfield location
-const char HitDeepFlyBallText[] =         "Bola alta e profunda";
+const char HitDeepFlyBallText[] =         "Bola alta e\200profunda";
 const char HitFlyBallText[] =             "Bola alta";
 const char HitShallowFlyBallText[] =      "Fly curto";
 const char HitPopFlyText[] =              "Pop fly";
@@ -102,7 +102,7 @@ const char BobbledByText[] =              "Bobeado por\200%s.";
 const char BadThrowByText[] =             "Um mau arremesso\200de %s.";
 
 //throw, replace %s with player name, append base thrown to
-const char ThrowsToText[] =               "Arremessa para %s.";
+const char ThrowsToText[] =               "Arremessa para\200%s.";
 
 //tag, replace %s with player name
 const char PlacesTheTagText[] =           "%s\200aplica o tag.";
@@ -121,20 +121,20 @@ const char WalkText[] =                   "%s na base\200com um walk.";
 const char PassedBallText[] =             "Bola passada!";
 const char WildPitchText[] =              "Lançamento\200descontrolado!";
 const char HitByPitchText[] =             "Acertou nele, então\200%s est<a`> na <1B>.";
-const char BenchesClearText[] =           "E os bancos se esvaziam.";
+const char BenchesClearText[] =           "E os bancos se\200esvaziam.";
 
 //runners on
-const char RunnersOnBaseTexts[] =         "Ningu<e`>m nas bases.\0"
-                                          "Corredor na primeira.\0"
-                                          "Corredor na segunda.\0"
+const char RunnersOnBaseTexts[] =         "Ningu<e`>m nas\200bases.\0"
+                                          "Corredor na\200primeira.\0"
+                                          "Corredor na\200segunda.\0"
                                           "Corredores na primeira\200e segunda.\0"
-                                          "Corredor na terceira.\0"
+                                          "Corredor na\200terceira.\0"
                                           "Corredores na primeira\200e terceira.\0"
                                           "Corredores na segunda\200e terceira.\0"
                                           "Bases lotadas.";
 
 //tagging up
-const char TaggingFromTexts[] =           "%s pisa e corre da primeira.\0"
+const char TaggingFromTexts[] =           "%s pisa e corre da\200primeira.\0"
                                           "%s vai\200correr da segunda.\0"
                                           "Avançando da terceira\200<e`> %s.";
 

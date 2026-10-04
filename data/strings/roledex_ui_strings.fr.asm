@@ -9,4 +9,4 @@ RoledexMenuCryText::                      DB "CRI", 0
 RoledexMenuAreaText::                     DB "ZONE", 0
 RoledexMenuQuitText::                     DB "QUIT", 0
 CrySelectedText::                         DB "Il n'y a pas de pleurs\nau baseball.", 0
-HomeTownText::                            DB "CHAMPS DE %s", 0
+HomeTownText::                            DB "CHAMPS DE\n%s", 0

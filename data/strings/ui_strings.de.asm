@@ -21,7 +21,7 @@ CoachingOptionShiftString::               DB "SHIFT", 0
 CoachingOptionSetString::                 DB "FEST", 0
 
 ;Text Entry
-LowerCase::                               DB "abcdefghijklmnopqrstuvwxyz *():;[]#%-?!*+/.,↵", 0
+LowerCase::                               DB "abcdefghijklmnopqrstuvwxyz\n*():;[]#%-?!*+/.,↵", 0
 LowerCaseTitle::                          DB "kleinbuchstaben", 0
-UpperCase::                               DB "ABCDEFGHIJKLMNOPQRSTUVWXYZ *():;[]#%-?!*+/.,↵", 0
+UpperCase::                               DB "ABCDEFGHIJKLMNOPQRSTUVWXYZ\n*():;[]#%-?!*+/.,↵", 0
 UpperCaseTitle::                          DB "GROSSBUCHSTABEN", 0

@@ -4,6 +4,7 @@ sram_animation_style: DB
 sram_coaching_style: DB
 
 SECTION "Main Save", SRAM, BANK[MAIN_SRAM_BANK]
+sram_main_save:
 sram_user_name: DS NAME_LENGTH
 sram_rival_name: DS NAME_LENGTH
 sram_hours: DW
@@ -18,6 +19,7 @@ sram_map: DB
 sram_map_chunk: DB
 sram_map_x: DB
 sram_map_y: DB
+sram_team_flags: DB
 sram_pc_flags: DB
 sram_pennant_flags:: DB ;which leagues have you won
 sram_item_flags:: DS ITEM_FLAGS_SIZE
@@ -67,9 +69,9 @@ LoadGame::
 
   ;load user and rival names
   SWITCH_RAM_MBC5 MAIN_SRAM_BANK
-  ld hl, sram_user_name
-  ld de, user_name
-  ld bc, sram_main_save_end - sram_user_name
+  ld hl, sram_main_save
+  ld de, main_save
+  ld bc, sram_main_save_end - sram_main_save
   call mem_Copy
 
   ;load user's lineup
@@ -124,11 +126,11 @@ SaveGame::
   di
   ENABLE_RAM_MBC5
 
-  ;save user and rival names
+  ;save user and rival names, time, items, money, location, roledex, game flags
   SWITCH_RAM_MBC5 MAIN_SRAM_BANK
-  ld hl, user_name
-  ld de, sram_user_name
-  ld bc, sram_main_save_end - sram_user_name
+  ld hl, main_save
+  ld de, sram_main_save
+  ld bc, sram_main_save_end - sram_main_save
   call mem_Copy
 
   ;save user's lineup

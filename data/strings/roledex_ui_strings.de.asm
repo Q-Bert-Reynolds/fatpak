@@ -9,4 +9,4 @@ RoledexMenuCryText::                      DB "RUF", 0
 RoledexMenuAreaText::                     DB "GEBI", 0
 RoledexMenuQuitText::                     DB "ENDE", 0
 CrySelectedText::                         DB "Beim Baseball wird\nnicht geweint.", 0
-HomeTownText::                            DB "FELDER VON %s", 0
+HomeTownText::                            DB "FELDER VON\n%s", 0

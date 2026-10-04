@@ -21,7 +21,7 @@ CoachingOptionShiftString::               DB "シフト", 0
 CoachingOptionSetString::                 DB "固定", 0
 
 ;Text Entry
-LowerCase::                               DB "abcdefghijklmnopqrstuvwxyz *():;[]#%-?!*+/.,↵", 0
+LowerCase::                               DB "abcdefghijklmnopqrstuvwxyz\n*():;[]#%-?!*+/.,↵", 0
 LowerCaseTitle::                          DB "小文字", 0
-UpperCase::                               DB "ABCDEFGHIJKLMNOPQRSTUVWXYZ *():;[]#%-?!*+/.,↵", 0
+UpperCase::                               DB "ABCDEFGHIJKLMNOPQRSTUVWXYZ\n*():;[]#%-?!*+/.,↵", 0
 UpperCaseTitle::                          DB "大文字", 0

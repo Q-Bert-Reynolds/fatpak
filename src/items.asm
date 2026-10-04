@@ -1015,7 +1015,7 @@ UseSpecialItem:;[item_data], f = playball flag, returns z if can't use now
   ld a, [item_data.id]
   jr nz, .playingBaseball
 .walkingAround
-  cp TOWN_MAP_ITEM
+  cp GPS_ITEM
   jr z, .useTownMap
   cp WHISTLE_ITEM
   jr z, .playMusic
@@ -1031,7 +1031,7 @@ UseSpecialItem:;[item_data], f = playball flag, returns z if can't use now
 .playingBaseball
   cp WHISTLE_ITEM
   jr z, .wakePlayer
-  cp TOWN_MAP_ITEM
+  cp GPS_ITEM
   ret z
   cp OLD_ROD_ITEM
   ret z

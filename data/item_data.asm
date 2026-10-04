@@ -78,7 +78,7 @@ DEF NUGGET_ITEM EQU 76
 DEF HELIX_JERSEY_ITEM EQU 77
 DEF DOME_HELMET_ITEM EQU 78
 DEF OLD_HAT_ITEM EQU 79
-DEF TOWN_MAP_ITEM EQU 80
+DEF GPS_ITEM EQU 80
 DEF GOLD_TEETH_ITEM EQU 81
 DEF SS_TICKET_ITEM EQU 82
 DEF SAPHE_SCOPE_ITEM EQU 83
@@ -602,8 +602,8 @@ DB OLD_HAT_ITEM
 DB ITEM_TYPE_DNA
 D32 0 ;can't be sold
 
-TownMapItem:;This map will help you navigate the world of Baseball.
-DB TOWN_MAP_ITEM
+GPSItem:;This map will help you navigate the world of Baseball.
+DB GPS_ITEM
 DB ITEM_TYPE_SPECIAL
 D32 0 ;can't be sold
 
@@ -960,7 +960,7 @@ DW NuggetItem
 DW HelixJerseyItem
 DW DomeHelmetItem
 DW OldHatItem
-DW TownMapItem
+DW GPSItem
 DW GoldTeethItem
 DW SSTicketItem
 DW SapheScopeItem

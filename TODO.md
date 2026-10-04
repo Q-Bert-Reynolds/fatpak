@@ -1,6 +1,7 @@
 Priority
 
-- transition to ballgame slow on dmg
+- lineup players hidden until selected when returning from stats
+- pick your team
 - add batting/pitching animations for Rattail, Pidge, and Chica
 - announcer mode
   - double plays
@@ -40,6 +41,7 @@ Optimization
 - Load/Set User/Opposing PlayerBkgTiles subroutines share a ton of code
 - palette ids are at most 7, so two palettes could fit in a byte, cutting palette data in half
 - use halt and stop where appropriate (see https://gbdev.io/pandocs/Reducing_Power_Consumption.html)
+- use HDMA transfers on GBC (see https://gbdev.io/pandocs/CGB_Registers.html#lcd-vram-dma-transfers)
 - running out of room in ROM0, move stuff to other banks
   - move map_stamps out of ROM0
   - move colors.asm out of ROM0
@@ -168,7 +170,6 @@ Animation
 Super GameBoy
 
 - colors not restored correctly when returning to world
-- lineup players hidden until selected when returning from stats
 - user player tiles flash grey when drawing opponent stats
 - draws garbage when returning to world from ballgame
 - sound test doesn't seem to work, test on hardware

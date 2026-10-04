@@ -32,7 +32,7 @@ StatusStrings::                           DB "OK", 0
 CancelString::                            DB "ABBRECHEN", 0
 YesNoText::                               DB "JA\nNEIN", 0
 SaveGameText::                            DB "Möchtest du das\nSpiel SPEICHERN?", 0
-NowSavingText::                           DB "Wird gespeichert...", 0
+NowSavingText::                           DB "Wird\ngespeichert...", 0
 SavedTheGameText::                        DB "%s hat das Spiel\ngespeichert.", 0
 
 ;replace strings

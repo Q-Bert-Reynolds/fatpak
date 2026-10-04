@@ -6,7 +6,7 @@
 HomeNames::                               DB "NUEVO NOMBRE\nROJO\nCALVIN\nHOMERO", 0
 AwayNames::                               DB "NUEVO NOMBRE\nAZUL\nNOLAN\nPONCHE", 0
 UserNameTitle::                           DB "NOMBRE", 0
-RivalNameTextEntryTitle::                 DB "¿NOMBRE DEL RIVAL?", 0
+RivalNameTextEntryTitle::                 DB "¿NOMBRE DEL\nRIVAL?", 0
 UserNameTextEntryTitle::                  DB "¿TU NOMBRE?", 0
 
 ;welcome

@@ -9,4 +9,4 @@ RoledexMenuCryText::                      DB "GRIT", 0
 RoledexMenuAreaText::                     DB "ÁREA", 0
 RoledexMenuQuitText::                     DB "SALA", 0
 CrySelectedText::                         DB "No se llora\nen el béisbol.", 0
-HomeTownText::                            DB "CAMPOS DE %s", 0
+HomeTownText::                            DB "CAMPOS DE\n%s", 0
