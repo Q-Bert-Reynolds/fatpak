@@ -49,9 +49,7 @@ DrawStatScreen::;player in hl
   push hl;player
   DISPLAY_OFF
   ld a, ' '
-  call ClearTiles
-
-  HIDE_ALL_SPRITES
+  call ClearScreen
 
   pop hl;player
   push hl;player
@@ -66,8 +64,7 @@ DrawStatScreen::;player in hl
   pop hl;player
   call DrawPageTwo
   call WaitForABStart
-
-  HIDE_ALL_SPRITES
+  call HideAllSprites
   ret 
 
 WaitForABStart:

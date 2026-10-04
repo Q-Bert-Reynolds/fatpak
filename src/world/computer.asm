@@ -12,7 +12,7 @@ UsePublicComputer:
     ldh [rWX], a
     xor a
     ldh [rWY], a
-    HIDE_ALL_SPRITES
+    call HideAllSprites
     SHOW_WIN
 
     call GetPCOptions
@@ -190,7 +190,7 @@ AccessItemStorageSystem:
   xor a
   ldh [rWY], a
   SHOW_WIN
-  HIDE_ALL_SPRITES
+  call HideAllSprites
   xor a
   ld [list_selection], a
 .showItemStorageSystemMenu

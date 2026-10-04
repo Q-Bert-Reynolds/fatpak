@@ -180,6 +180,39 @@ CreateUserLineupFromBank::;b = bank, hl = src
   SET_BANK
   ret
 
+ClearUserPlayerData:: ;hl = player address, bcd = pay 
+  push hl;player address
+  push bc
+  push de;bcd = pay
+  ld bc, UserLineupPlayer1.nickname - UserLineupPlayer1
+  add hl, bc;player's nickname
+  xor a
+  ld bc, NICKNAME_LENGTH
+  call mem_Set
+  pop de
+  pop bc;bcd = pay
+  pop hl;player address
+  push hl
+  call SetUserPlayerPay
+  pop hl;player address
+  push hl
+  ld bc, UserLineupPlayer1.xp - UserLineupPlayer1
+  add hl, bc
+  xor a
+  ld [hli], a;xp
+  ld [hli], a
+  ld [hli], a
+  pop hl;player address
+  push hl
+  call GetPlayerMaxHP
+  ld d, h
+  ld e, l
+  pop hl;player address
+  push hl
+  call SetPlayerHP
+  pop hl;player address
+ret
+
 CreateLineup:: ;hl = src lineup data, de = destination lineup address, bc = player size
   xor a
 .loop

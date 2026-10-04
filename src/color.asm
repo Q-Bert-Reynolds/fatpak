@@ -231,43 +231,47 @@ ELSE;DEMO
 ENDC
 DEF PALETTE_CALVIN EQU (PaletteCalvin-DefaultPalettes)/8
 
-PaletteLineupA::
-IF DEF(_HOME)
+PaletteLineupRedA::
   COLOR_ALMOST_WHITE
   COLOR_TAN
   COLOR_RED
   COLOR_BLACK
-ELIF DEF(_AWAY)
+DEF PALETTE_LINEUP_RED_A EQU (PaletteLineupRedA-DefaultPalettes)/8
+
+PaletteLineupBlueA::
   COLOR_ALMOST_WHITE
   COLOR_TAN
   COLOR_BLUE
   COLOR_BLACK
-ELSE;DEMO
+DEF PALETTE_LINEUP_BLUE_A EQU (PaletteLineupBlueA-DefaultPalettes)/8
+
+PaletteLineupGreenA::
   COLOR_ALMOST_WHITE
   COLOR_TAN
   COLOR_GREEN
   COLOR_BLACK
-ENDC
-DEF PALETTE_LINEUP_A EQU (PaletteLineupA-DefaultPalettes)/8
+DEF PALETTE_LINEUP_GREEN_A EQU (PaletteLineupGreenA-DefaultPalettes)/8
 
-PaletteLineupB::
-IF DEF(_HOME)
+PaletteLineupRedB::
   COLOR_ALMOST_WHITE
   COLOR_BROWN
   COLOR_RED
   COLOR_BLACK
-ELIF DEF(_AWAY)
+DEF PALETTE_LINEUP_RED_B EQU (PaletteLineupRedB-DefaultPalettes)/8
+
+PaletteLineupBlueB::
   COLOR_ALMOST_WHITE
   COLOR_BROWN
   COLOR_BLUE
   COLOR_BLACK
-ELSE;DEMO
+DEF PALETTE_LINEUP_BLUE_B EQU (PaletteLineupBlueB-DefaultPalettes)/8
+
+PaletteLineupGreenB::
   COLOR_ALMOST_WHITE
   COLOR_BROWN
   COLOR_BLACK
   COLOR_BLACK
-ENDC
-DEF PALETTE_LINEUP_B EQU (PaletteLineupB-DefaultPalettes)/8
+DEF PALETTE_LINEUP_GREEN_B EQU (PaletteLineupGreenB-DefaultPalettes)/8
 
 PaletteVersion::
 IF DEF(_HOME)

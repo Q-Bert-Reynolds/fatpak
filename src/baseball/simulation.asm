@@ -607,7 +607,7 @@ RunSimulation::;a = ball speed, d = spray angle, e = launch angle
   push de;spray/launch angle
   
   HIDE_WIN
-  HIDE_ALL_SPRITES
+  call HideAllSprites
 
 .setPalettes
   ld hl, rOBP0

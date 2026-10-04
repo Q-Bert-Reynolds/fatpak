@@ -273,7 +273,7 @@ ClearScreen:: ;a = tile, display should be off
   ldh [rWX], a
   ld a, 143
   ldh [rWY], a
-  HIDE_ALL_SPRITES
+  call HideAllSprites
 .checkGBC
   ld a, [sys_info]
   and a, SYS_INFO_GBC
@@ -285,6 +285,19 @@ ClearScreen:: ;a = tile, display should be off
   call ClearTiles
   ldh [rVBK], a
   ret 
+
+HideAllSprites::
+  xor a
+  ld b, OAM_COUNT
+  ld hl, oam_buffer
+.loop
+    ld [hli], a
+    ld [hli], a
+    inc hl
+    inc hl
+    dec b
+    jr nz, .loop
+  ret
 
 HideSpritesInRect::;hl=wh, de=xy(left/top)
   add hl, de;hl = right/bottom

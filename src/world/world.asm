@@ -261,7 +261,7 @@ ShowPauseMenu::
   cp 6
   jr nz, .exit
   HIDE_WIN
-  HIDE_ALL_SPRITES
+  call HideAllSprites
   ldh a, [rSCX]
   ld h, a
   ldh a, [rSCY]
@@ -521,7 +521,7 @@ CheckRandomEncounter:;TODO get available players and age range from grass in exp
   and 1
   ret
 
-Overworld::
+InitMap::
   DISPLAY_OFF
   DISABLE_LCD_INTERRUPT
   SET_DEFAULT_PALETTE
@@ -544,10 +544,15 @@ Overworld::
   ldh [map_steps], a
 
   call DrawMapToScreen
+  call CopyMapSpritesToOAMBuffer
 
   SHOW_BKG
   HIDE_WIN
   DISPLAY_ON
+  ret
+
+Overworld::
+  call InitMap
   .moveLoop
     call CopyMapSpritesToOAMBuffer
     call gbdk_WaitVBL

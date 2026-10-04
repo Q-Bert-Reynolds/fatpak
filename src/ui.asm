@@ -2038,7 +2038,7 @@ UIShowNumberPicker::; a = draw flags, bc = xy, de = wh, hl = max/start nums, ret
 UIDrawSaveStats::;a = draw flags, de = xy
   push de;xy
   push af;draw flags
-  HIDE_ALL_SPRITES
+  call HideAllSprites
 
   pop af;draw flags
   pop de;xy

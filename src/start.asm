@@ -333,14 +333,14 @@ Start::
     ld [_c], a
     jr nz, .sparksAfterHitLoop
 
-  HIDE_ALL_SPRITES
+  call HideAllSprites
   EXITABLE_DELAY .fadeOutAndExit, (PADF_START | PADF_A), 60
 
 .pitchSequence
   ld hl, SGBStartBattleSlideAttrBlk
   call sgb_PacketTransfer
 
-  HIDE_ALL_SPRITES
+  call HideAllSprites
   PLAY_SONG charge_fanfare_data, 0
   ld d, 0 ; x
   ld e, 0 ; y

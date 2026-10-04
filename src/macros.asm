@@ -140,19 +140,6 @@ MACRO DISABLE_LCD_INTERRUPT
   ei
 ENDM
 
-MACRO HIDE_ALL_SPRITES
-  xor a
-  ld b, OAM_COUNT
-  ld hl, oam_buffer
-.loop\@
-  ld [hli], a
-  ld [hli], a
-  inc hl
-  inc hl
-  dec b
-  jr nz, .loop\@
-ENDM
-
 MACRO CLEAR_SCREEN ;\1 = tile
   ld a, \1;tile
   call ClearScreen
@@ -335,6 +322,14 @@ ENDC
   ld a, 1
   and a
 .end\@
+ENDM
+
+MACRO CLEAR_USER_PLAYER_DATA ;\1 = player address, \2 = pay 
+  ld b, (\2 & $FF0000) >> 16
+  ld c, (\2 & $00FF00) >> 8
+  ld d, (\2 & $0000FF)
+  ld hl, \1
+  call ClearUserPlayerData
 ENDM
 
 MACRO ADD_USER_PLAYER_DATA ;\1 = player address, \2 = nickname, \3 = pay 

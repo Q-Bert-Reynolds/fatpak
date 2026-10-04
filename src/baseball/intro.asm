@@ -263,7 +263,7 @@ PlayBallIntro:
     jr nz, .slideOutLoop
 
   CLEAR_BKG_AREA 1, 16-_CALVIN_BACK_2X_ROWS, _CALVIN_BACK_2X_COLUMNS, _CALVIN_BACK_2X_ROWS-4, ' '
-  HIDE_ALL_SPRITES
+  call HideAllSprites
   call gbdk_WaitVBL
   xor a
   ldh [rSCX], a

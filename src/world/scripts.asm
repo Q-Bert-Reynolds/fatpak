@@ -37,8 +37,20 @@ PickTeam:
   push de;team name
   push bc;team bank
   call CreateUserLineupFromBank
-  ; call ShowLineup;TODO: make stats the only available option
-  
+  CLEAR_USER_PLAYER_DATA UserLineupPlayer1, 100
+  CLEAR_USER_PLAYER_DATA UserLineupPlayer2, 10
+  CLEAR_USER_PLAYER_DATA UserLineupPlayer3, 10
+  CLEAR_USER_PLAYER_DATA UserLineupPlayer4, 10
+  CLEAR_USER_PLAYER_DATA UserLineupPlayer5, 10
+  CLEAR_USER_PLAYER_DATA UserLineupPlayer6, 10
+  CLEAR_USER_PLAYER_DATA UserLineupPlayer7, 10
+  CLEAR_USER_PLAYER_DATA UserLineupPlayer8, 10
+  CLEAR_USER_PLAYER_DATA UserLineupPlayer9, 10
+  COPY_BKG_TO_BUFFER 0,0,20,18
+  ld de, 0;no item, leave display off
+  TRAMPOLINE ShowLineup;TODO: make stats the only available option
+  call InitMap
+
   ;ask if you want to manage the selected team
   pop bc;team bank
   ld c, b
@@ -52,6 +64,7 @@ PickTeam:
   ld de, tile_buffer;dest
   call str_Replace
 
+  ;show yes/no
   call CopyBkgToWin
   SHOW_WIN
   ld a, WX_OFS
@@ -68,7 +81,14 @@ PickTeam:
   ld a, DRAW_FLAGS_WIN
   call AskYesNo
   cp a, 1
-  jr z, .done
+  jr nz, .teamNotPicked
+.teamPicked
+  ld d, 8
+  ld e, 6
+  ld h, 2
+  ld l, 2
+  call HideSpritesInRect
+  jr .done
 .teamNotPicked
   xor a
   ld [team_flags], a

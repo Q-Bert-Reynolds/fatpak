@@ -179,7 +179,7 @@ ENDC
 .start ;show intro credits, batting animation
 IF INTRO_ENABLED == 1
   TRAMPOLINE Start
-  HIDE_ALL_SPRITES
+  call HideAllSprites
 ENDC
 
 IF TITLE_ENABLED == 1

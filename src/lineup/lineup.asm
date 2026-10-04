@@ -1698,12 +1698,32 @@ ShowLineup::
   push de;d = item id
 
   DISPLAY_OFF
-  ld hl, PaletteLineupA
+  ld a, [team_flags]
+  and a, TEAM_FLAG_ANY
+  cp a, TEAM_FLAG_RED
+  jr z, .red
+  cp a, TEAM_FLAG_GREEN
+  jr z, .green
+  cp a, TEAM_FLAG_BLUE
+  jr z, .blue
+.red
+  ld hl, PaletteLineupRedA
+  ld de, PaletteLineupRedB
+  jr .setColors
+.green
+  ld hl, PaletteLineupGreenA
+  ld de, PaletteLineupGreenB
+  jr .setColors
+.blue
+  ld hl, PaletteLineupBlueA
+  ld de, PaletteLineupBlueB
+.setColors
+  push de;palette B
   ld a, 4
-  call GBCSetPalette
-  ld hl, PaletteLineupB
+  call GBCSetPalette;set palette A
+  pop hl;palette B
   ld a, 5
-  call GBCSetPalette
+  call GBCSetPalette;set palette B
 
   ld hl, _LineupSpritesTiles
   ld de, $8000

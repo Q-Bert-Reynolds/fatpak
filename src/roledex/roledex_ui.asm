@@ -731,7 +731,7 @@ ShowRoledex::
   xor a
   ldh [rSCX], a
   ldh [rSCY], a
-  HIDE_ALL_SPRITES
+  call HideAllSprites
   HIDE_WIN
   call DrawRoledexBaseUI
 
