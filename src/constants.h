@@ -16,6 +16,7 @@
 
 // game progress flags
 #define TEAM_FLAGS           0
+#define TEAM_FLAG_HAS_PICKED 0b00001000
 #define TEAM_FLAG_ANY        0b00000111
 #define TEAM_FLAG_RED        0b00000001
 #define TEAM_FLAG_GREEN      0b00000010

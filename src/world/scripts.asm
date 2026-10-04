@@ -83,6 +83,9 @@ PickTeam:
   cp a, 1
   jr nz, .teamNotPicked
 .teamPicked
+  ld a, [team_flags]
+  or a, TEAM_FLAG_HAS_PICKED
+  ld [team_flags], a
   ld d, 8
   ld e, 6
   ld h, 2

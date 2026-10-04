@@ -670,6 +670,26 @@ DrawLineupPlayerSprites:;hl = player, [_u] = x offset
 
   ret
 
+ShowPlayerStats:
+  COPY_BKG_TO_BUFFER 0, 0, 20, 18
+  ld a, [_c];number of players
+  ld b, a
+  ld a, [_j];selected player
+  ld c, a
+  ld a, c
+  ld de, UserLineupPlayer2 - UserLineupPlayer1
+  call math_Multiply
+  ld bc, UserLineup
+  add hl, bc
+  call DrawStatScreen
+  COPY_BUFFER_TO_BKG 0, 0, 20, 18
+  ld hl, SGBLineupPalSet               
+  call SetPalettesIndirect
+  call GetHPBarColors
+  ld b, DRAW_FLAGS_BKG
+  call SetColorBlocks
+  ret
+
 ShowPlayerMenu:
   ld a, [_c];number of players
   ld b, a
@@ -1682,7 +1702,7 @@ RevealTextForPlayer:;[_j] = selected player, hl = text
 
 ;-------------------------------------------------------------------------
 ;
-; ShowLineup - display's the ineup screen, optionally restore background
+; ShowLineup - display's the lineup screen, optionally restore background
 ;
 ;   input: 
 ;     d = item id (0 = no item)
@@ -1769,15 +1789,15 @@ ShowLineup::
     ld de, 0
     ld a, DRAW_FLAGS_BKG | DRAW_FLAGS_PAD_TOP
     call MoveListMenuArrow
-.testStartOrA
+  .testStartOrA
     ld a, [button_state]
     and a, PADF_A | PADF_START
-    jr z, .testBButton
+    jp z, .testBButton
     pop bc;b = item id
     push bc
     xor a
     cp a, b;
-    jr z, .showPlayerMenu;no item
+    jr z, .playerSelected;no item
     pop bc;b = item id
     push bc;b = item id
     call UseItemOnPlayer
@@ -1789,15 +1809,23 @@ ShowLineup::
     push bc;b = item id, c = item used
     jr z, .animateSelectedPlayer;item not used
     jr .exit;item used
-.showPlayerMenu
+  .playerSelected
+    ld a, [team_flags]
+    and a, TEAM_FLAG_HAS_PICKED
+    jr nz, .showPlayerMenu
+  .showPlayerStats
+    call ShowPlayerStats
+    jr .waitForNoInput
+  .showPlayerMenu
     call ShowPlayerMenu
+  .waitForNoInput
     WAITPAD_UP
     jr .animateSelectedPlayer
-.testBButton
+  .testBButton
     ld a, [button_state]
     and a, PADF_B
     jr nz, .exit
-.animateSelectedPlayer
+  .animateSelectedPlayer
     call gbdk_WaitVBL
     ld a, [vbl_timer]
     swap a
