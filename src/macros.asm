@@ -150,10 +150,8 @@ MACRO CLEAR_BKG_AREA ;x, y, w, h, tile
   ld bc, \3 * \4;width * height
   ld hl, tile_buffer
   call mem_Set
-  ld d, \1;x
-  ld e, \2;y
-  ld h, \3;w
-  ld l, \4;h
+  ld de, ((\1<<8)|\2);xy
+  ld hl, ((\3<<8)|\4);wh
   ld bc, tile_buffer
   call gbdk_SetBkgTiles
 ENDM
@@ -163,10 +161,8 @@ MACRO CLEAR_WIN_AREA ;x, y, w, h, tile
   ld bc, \3 * \4;width * height
   ld hl, tile_buffer
   call mem_Set
-  ld d, \1;x
-  ld e, \2;y
-  ld h, \3;w
-  ld l, \4;h
+  ld de, ((\1<<8)|\2);xy
+  ld hl, ((\3<<8)|\4);wh
   ld bc, tile_buffer
   call gbdk_SetWinTiles
 ENDM
@@ -188,10 +184,8 @@ MACRO COPY_BUFFER_TO_WIN ;x, y, w, h
 ENDM
 
 MACRO COPY_SCREEN_TO_FROM_BUFFER ;x, y, w, h, buffer, function
-  ld d, \1;x
-  ld e, \2;y
-  ld h, \3;w
-  ld l, \4;h
+  ld de, ((\1<<8)|\2);xy
+  ld hl, ((\3<<8)|\4);wh
   ld bc, \5;buffer
   call \6
 
@@ -201,10 +195,8 @@ MACRO COPY_SCREEN_TO_FROM_BUFFER ;x, y, w, h, buffer, function
 
   ld a, 1
   ldh [rVBK], a
-  ld d, \1;x
-  ld e, \2;y
-  ld h, \3;w
-  ld l, \4;h
+  ld de, ((\1<<8)|\2);xy
+  ld hl, ((\3<<8)|\4);wh
   ld bc, \3*\4+\5
   call \6
   xor a

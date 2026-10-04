@@ -1674,7 +1674,7 @@ DB 52 ;Field
 DB 41 ;Speed
 DB 40 ;Throw
 DB 0 ;Lineup Body
-DB 0 ;Lineup Head
+DB 11 ;Lineup Head
 DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
 DW PaletteBlue ;Color Palette

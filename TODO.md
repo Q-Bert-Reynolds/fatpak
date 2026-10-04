@@ -1,6 +1,5 @@
 Priority
 
-- lineup players hidden until selected when returning from stats
 - add batting/pitching animations for Rattail, Pidge, and Chica
 - announcer mode
   - double plays

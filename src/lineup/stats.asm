@@ -65,6 +65,10 @@ DrawStatScreen::;player in hl
   call DrawPageTwo
   call WaitForABStart
   call HideAllSprites
+
+  ld a, [_b]
+  ld b, a
+  call DrawLineupPlayers
   ret 
 
 WaitForABStart:

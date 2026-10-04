@@ -484,7 +484,7 @@ HeadPartsLookup:;maps head ID to other head part offset or 0
   DB 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0
 
 HeadHeightLookup:;maps head ID to height
-  DB 6, 5, 5, 4, 4, 4, 4, 0, 4, 5, 5, 4
+  DB 6, 5, 5, 4, 4, 4, 4, 0, 4, 5, 5, 6
 
 HatPartsLookup:;maps hat ID to other hat part offset or 0
   DB 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0
@@ -672,11 +672,8 @@ DrawLineupPlayerSprites:;hl = player, [_u] = x offset
 
 ShowPlayerStats:
   COPY_BKG_TO_BUFFER 0, 0, 20, 18
-  ld a, [_c];number of players
-  ld b, a
   ld a, [_j];selected player
-  ld c, a
-  ld a, c
+  PUSH_VAR _j
   ld de, UserLineupPlayer2 - UserLineupPlayer1
   call math_Multiply
   ld bc, UserLineup
@@ -688,6 +685,11 @@ ShowPlayerStats:
   call GetHPBarColors
   ld b, DRAW_FLAGS_BKG
   call SetColorBlocks
+
+  POP_VAR _j
+  ld de, 0
+  ld a, DRAW_FLAGS_BKG | DRAW_FLAGS_PAD_TOP
+  call DrawListMenuArrow
   ret
 
 ShowPlayerMenu:
@@ -870,7 +872,7 @@ LearnMove:;hl = player, a = move id, returns exit code in c
   ld hl, str_buffer
   call RevealTextForPlayer
 
-  ld a, [_b]
+  ld a, [_b];move id
   call GetMoveName
   ld hl, ForgetAMoveText
   ld de, str_buffer
@@ -885,7 +887,7 @@ LearnMove:;hl = player, a = move id, returns exit code in c
 .cancel
   call gbdk_WaitVBL
   call CopyBkgToWin
-  ld a, [_b]
+  ld a, [_b];move id
   call GetMoveName
   ld hl, AbandonLearningText
   ld de, str_buffer
@@ -908,7 +910,7 @@ LearnMove:;hl = player, a = move id, returns exit code in c
   ld hl, DidNotLearnText
   ld de, str_buffer
   call str_Append
-  ld a, [_b]
+  ld a, [_b];move id
   call GetMoveName
   ld hl, str_buffer
   ld de, tile_buffer
@@ -916,7 +918,7 @@ LearnMove:;hl = player, a = move id, returns exit code in c
   call str_Replace
   ld hl, tile_buffer
   call RevealTextForPlayer
-  call ShowSpritesHiddenByTextBox
+  call DrawLineupPlayers
 .noEffect
   ld c, 0
   POP_VAR _b
@@ -964,14 +966,14 @@ LearnMove:;hl = player, a = move id, returns exit code in c
   call RevealTextForPlayer
 
 .learnMove
-  ld a, [_b]
+  ld a, [_b];move id
   ld b, a
   pop af;move num
   pop hl;player
   push hl;player
   call SetPlayerMove
 
-  ld a, [_b]
+  ld a, [_b];move id
   call GetMoveName
   pop hl;player
   push hl;player
@@ -989,8 +991,9 @@ LearnMove:;hl = player, a = move id, returns exit code in c
   call str_Append
   ld hl, tile_buffer
   call RevealTextForPlayer
-
-  call ShowSpritesHiddenByTextBox
+  ld a, [_b]
+  ld b, a
+  call DrawLineupPlayers
   ld c, 1
   POP_VAR _b
   ret
@@ -1026,7 +1029,6 @@ UseItemOnPlayer:;b = item id, returns item used in c (0 = not used, 1 = used)
   ld a, [item_data.extra]
   call CheckPlayerKnowsMove
   jp z, .noEffect
-  call HideSpritesBehindTextBox
   call CheckCanLearnMove
   jp z, .unable
 .able
@@ -1057,7 +1059,9 @@ UseItemOnPlayer:;b = item id, returns item used in c (0 = not used, 1 = used)
   call str_Replace
   ld hl, str_buffer
   call RevealTextForPlayer
-  call ShowSpritesHiddenByTextBox
+  ld a, [_b]
+  ld b, a
+  call DrawLineupPlayers
   ld a, [item_data.id]
   ld b, a
   ld c, 0
@@ -1142,7 +1146,6 @@ UseItemOnPlayer:;b = item id, returns item used in c (0 = not used, 1 = used)
   ld hl, str_buffer
   ld de, name_buffer
   call str_Append
-  call HideSpritesBehindTextBox
   ld hl, name_buffer
   call RevealTextForPlayer
   
@@ -1302,13 +1305,11 @@ UseItemOnPlayer:;b = item id, returns item used in c (0 = not used, 1 = used)
   ld b, 0
   call DrawLineupPlayer
   call CopyBkgToWin
-  call HideSpritesBehindTextBox
   ld hl, StatusClearedText
   call RevealTextForPlayer
   jp .used 
 
 .noEffect
-  call HideSpritesBehindTextBox
   ld hl, ItWontHaveAnyEffectText
   call RevealTextForPlayer
 .unused
@@ -1321,7 +1322,9 @@ UseItemOnPlayer:;b = item id, returns item used in c (0 = not used, 1 = used)
   ld a, [item_data.id]
   ld b, a
   push bc;item id, used
-  call ShowSpritesHiddenByTextBox
+  ld a, [_b]
+  ld b, a
+  call DrawLineupPlayers
   pop bc;item id, used
   ret
 
@@ -1330,7 +1333,6 @@ ShowPlayerUsedItemText:;hl = player
   ld b, 0
   call DrawLineupPlayer
   call CopyBkgToWin
-  call HideSpritesBehindTextBox
 
   pop hl;player
   call GetUserPlayerName
@@ -1620,43 +1622,6 @@ AskYesNoForPlayer:;[_j] = selected player, returns
   call AskYesNo
   ret 
 
-HideSpritesBehindTextBox:;[_j] = selected player
-  ld de, 4
-  ld c, 3*4;3 players, 4 sprites each
-  ld a, [_j]
-  cp a, 6
-  jr c, .bottom
-.top
-  ld hl, oam_buffer+1;x sprite
-  jr .loop
-.bottom
-  ld hl, oam_buffer+1+6*16;x sprite
-.loop
-    ld a, [hl]
-    add a, 160
-    ld [hl], a
-    add hl, de
-    dec c
-    jr nz, .loop
-  ret
-
-ShowSpritesHiddenByTextBox:
-  ld c, 9*4;9 players, 4 sprites each
-  ld hl, oam_buffer+1;x sprite
-  ld de, 4
-.loop
-    ld a, [hl]
-    cp a, 160
-    jr c, .skip
-      sub a, 160
-      ld [hl], a
-.skip
-    add hl, de
-    dec c
-    jr nz, .loop
-  HIDE_WIN
-  ret
-
 DisplayTextForPlayer:;[_j] = selected player, hl = text
   push hl;text
   ld a, [_j]
@@ -1712,6 +1677,8 @@ RevealTextForPlayer:;[_j] = selected player, hl = text
 ;
 ;-------------------------------------------------------------------------
 ShowLineup::
+  ld a, d;item id
+  ld [_b], a;move id
   ld a, e;restore bg
   push af
   ld c, 0;0
