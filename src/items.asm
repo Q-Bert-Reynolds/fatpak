@@ -184,7 +184,7 @@ AddItemToList::;a = max items, hl = item list, bc = item id, amount, returns z i
   ld d, a;max items
   ld a, e;list length
   cp a, d
-  ret z;inventory full
+  ret nc;inventory full
   ld d, 0
   ld e, a
   add hl, de
@@ -384,15 +384,25 @@ DrawInventoryEntry::;a = num, de = xy, bc = list len, draw count
   add hl, bc
   add hl, bc
   ld a, [hli];get item id
-  dec a
-  ld c, a
+  ld c, a;item id
+  dec bc;item index
+  push bc;item index
+  push de;xy
+  push hl;address of item count
+  call GetItemData
+  pop hl;address of item count
+  pop de;xy
+  pop bc;item index
   ld a, [hl];get item count
+  ld h, 0
+  ld l, a;item count
   and a
+  jr z, .getItemName
+  ld a, [item_data.type]
+  cp a, ITEM_TYPE_SPECIAL
   jr z, .getItemName
 
 .drawItemCount
-  ld h, 0
-  ld l, a;item count
   push bc;item index
   push de;xy
   ld de, name_buffer
@@ -1251,6 +1261,9 @@ RemoveItems:;hl = item list, a = max list length, bc = index, toss count, return
   ld c, a;items to move down
   call mem_Copy;copies hl to hl-2
   xor a;exit code
+  ld [de], a
+  inc de
+  ld [de], a
   ret
 
 RevealItemTextAndWait:;hl = text

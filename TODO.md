@@ -8,12 +8,10 @@ Priority
   - move a fielder to a position
   - move fielders to positions based on result
 - using the computer
-  - bedroom PC is not working anymore
   - Bill's PC (will allow roster changes!!!)
   - Doc's PC
   - League PC
 - end game, get experience, level up!!!
-- can't deposit special items
 - if holding more than one directional button, can't hop ledge
 - color of version name incorrect after returning from new game/continue/options screen
 
@@ -136,7 +134,6 @@ Map System
 
 Items
 
-- list shrinks after selecting special item
 - change select arrow to empty after selecting item
 - hide play/item/team/run when item menu selected
 - use protein, carbos, etc.
