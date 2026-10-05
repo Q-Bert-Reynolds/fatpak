@@ -54,6 +54,38 @@ ENDM
 INCLUDE "src/memory1.asm"
   rev_Check_memory1_asm 1.2
 
+DEF SYS_INFO_DMG EQU %00000000 ;Dot Matrix Game
+DEF SYS_INFO_SGB EQU %00000001 ;Super Game Boy
+DEF SYS_INFO_GBC EQU %00000010 ;Game Boy Color
+DEF SYS_INFO_GBA EQU %00000100 ;Game Boy Advance
+DEF SYS_INFO_GBP EQU %00001000 ;Game Boy Pocket and Super Game Boy 2
+
+MACRO SYS_CHECK ;must happen first
+.gbcCheck
+  cp a, BOOTUP_A_MGB;is this a GBP
+  jr z, .gbp
+  ; NOTE: Never actually checking for DMG. 
+  ;       Assumes DMG if other tests fail. 
+  ;       Used to check emulators.
+  ;       https://github.com/ISSOtm/Aevilia-GB/blob/master/home.asm
+  ; cp a, BOOTUP_A_DMG
+  ; jr z, .dmg
+  cp a, BOOTUP_A_CGB;is this a GBC
+  ld a, 0;don't xor here
+  jr nz, .setSysInfo
+  bit 0, b;is it also a GBA
+  jr z, .gbc
+.gba;BOOTUP_B_AGB
+  or a, SYS_INFO_GBA
+.gbc;BOOTUP_B_CGB
+  or a, SYS_INFO_GBC
+  jr .setSysInfo
+.gbp
+  ld a, SYS_INFO_GBP
+.setSysInfo
+  ld [sys_info], a
+ENDM
+
 MACRO COPY_TO_HRAM; \1 = dest address in HRAM, \2 = first address to copy, \3 = last address to copy
   ld c, LOW(\1)
   ld b, (\3 - \2)
@@ -265,6 +297,7 @@ SECTION "GBDK WRAM Vars", WRAM0[_RAM]
 oam_buffer:: DS 4*40
 rand_hi:: DB
 rand_lo:: DB
+sys_info:: DB
 
 SECTION "GBDK Code", ROM0
 ;***************************************************************************
@@ -501,7 +534,17 @@ gbdk_CopyTilesFrom::
 ;***************************************************************************
 gbdk_Delay::
   DEF _CPMS EQU 4194/4  ; 4.194304 MHz
-  call gbdk_CPUSlow
+  ld a, [sys_info]
+  and a, SYS_INFO_GBC | SYS_INFO_GBA
+  jr z, .cpuSlow
+.checkFast
+  ldh a,[rKEY1]
+  and a, KEY1F_DBLSPEED
+  jr z, .cpuSlow
+.cpuFast
+  ld bc, (2*_CPMS)/7
+  jr .loop
+.cpuSlow
   ld bc, _CPMS/7         ; 3 cycles
 .loop
     dec bc                 ; 2 cycles
@@ -513,7 +556,6 @@ gbdk_Delay::
   ld a, d                ; 1 cycle
   or e                   ; 1 cycle
   jr nz, gbdk_Delay      ; 3 cycles
-  call gbdk_CPUFast
   ret                    ; 4 cycles
 
 ;***************************************************************************

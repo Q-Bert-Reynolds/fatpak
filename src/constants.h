@@ -1,13 +1,6 @@
 #ifndef CONSTANTS
 #define CONSTANTS
 
-// sys_info masks
-#define SYS_INFO_DMG 0b00000000 //Dot Matrix Game
-#define SYS_INFO_SGB 0b00000001 //Super Game Boy
-#define SYS_INFO_GBC 0b00000010 //Game Boy Color
-#define SYS_INFO_GBA 0b00000100 //Game Boy Advance
-#define SYS_INFO_GBP 0b00001000 //Game Boy Pocket and Super Game Boy 2
-
 // game_state masks
 #define GAME_STATE_CLOCK_STARTED   0b00000001
 #define GAME_STATE_PLAY_BALL       0b00000010

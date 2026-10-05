@@ -1,13 +1,7 @@
 SECTION "Gloval Vars", WRAM0
 
-; labels that start with an underscore are available in C using extern (ie. _breakpoint, _i) 
-; labels without the underscore are not available in C (ie. sys_info, text_speed)
-
-;debug
-_breakpoint:: DB
-
-;system info
-sys_info:: DB
+; labels that start with an underscore are available in C using extern
+; labels without the underscore are not available in C
 
 ;game state
 _game_state::

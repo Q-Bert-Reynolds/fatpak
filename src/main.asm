@@ -1,7 +1,7 @@
 DEF TESTS_ENABLED    EQU 0
-DEF INTRO_ENABLED    EQU 0
-DEF TITLE_ENABLED    EQU 0
-DEF NEW_GAME_ENABLED EQU 0
+DEF INTRO_ENABLED    EQU 1
+DEF TITLE_ENABLED    EQU 1
+DEF NEW_GAME_ENABLED EQU 1
 DEF WORLD_ENABLED    EQU 1
 DEF PLAY_ENABLED     EQU 1
 
@@ -71,29 +71,7 @@ SECTION "p1thru4", ROM0[$0060]
 
 SECTION "Main", ROM0[$0150]
 Main::
-.gbcCheck ;must happen first
-  cp a, BOOTUP_A_MGB;is this a Pocket
-  jr z, .gbp
-  ; NOTE: Never actually checking for DMG. 
-  ;       Assumes DMG if other tests fail. 
-  ;       Used to check emulators.
-  ;       https://github.com/ISSOtm/Aevilia-GB/blob/master/home.asm
-  ; cp a, BOOTUP_A_DMG
-  ; jr z, .dmg
-  cp a, BOOTUP_A_CGB;is this a GBC
-  ld a, 0;don't xor here
-  jr nz, .setSysInfo
-  bit 0, b;is it also a GBA
-  jr z, .gbc
-.gba;BOOTUP_B_AGB
-  or a, SYS_INFO_GBA
-.gbc;BOOTUP_B_CGB
-  or a, SYS_INFO_GBC
-  jr .setSysInfo
-.gbp
-  ld a, SYS_INFO_GBP
-.setSysInfo
-  ld [sys_info], a
+  SYS_CHECK
 
 .setupGameBoyColor
   ld a, [sys_info]
@@ -114,14 +92,14 @@ Main::
   call gbdk_SetupDMATransfer
 
 .initializeRAM
+  ld a, [sys_info]
+  push af
+  xor a
   ld hl, _RAM
-  ld bc, _breakpoint-_RAM;don't clear breakpoint or sys_info
-  xor a
-  call mem_Set
-  ld hl, sys_info+1
-  ld bc, (_RAM+$2000)-sys_info
-  xor a
-  call mem_Set
+  ld bc, (_RAMBANK-_RAM)*2
+  call mem_Set;clear WRAM
+  pop af
+  ld [sys_info], a;restore sys_info
   ld a, KB_MODE_BUTTONS
   ld [kb_mode], a
   ld sp, stack_bottom
