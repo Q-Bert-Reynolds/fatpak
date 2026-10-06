@@ -154,7 +154,6 @@ Rolédex
 
 Audio
 
-- fix note skip issue
 - pitch, hit, wiff, catch SFX
 - on/off PC SFX
 
