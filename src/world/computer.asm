@@ -151,9 +151,9 @@ AccessPlayerStorageSystem:
   ld de, $1210
   ld a, DRAW_FLAGS_PAD_TOP | DRAW_FLAGS_WIN
   call FlashNextArrow
-  ld hl, AccessedPlayerFarmSystemText
 .showAccessedFarmText
   ld de, 12
+  ld hl, AccessedPlayerFarmSystemText
   call RevealText
   ld de, $1210
   ld a, DRAW_FLAGS_PAD_TOP | DRAW_FLAGS_WIN
@@ -162,6 +162,19 @@ AccessPlayerStorageSystem:
   ld bc, 12
   ld hl, WhatText
   ld a, DRAW_FLAGS_PAD_TOP | DRAW_FLAGS_WIN
+  call DisplayTextAtPos
+  ld a, [current_farm]
+  ld b, 0
+  ld c, a
+  ld d, '\n'
+  ld hl, FarmTexts
+  call str_FromArrayWithTerminator
+  ld de, str_buffer
+  call str_CopyLine
+  xor a
+  ld [de], a
+  DRAW_UI_BOX DRAW_FLAGS_WIN, 9, 14, 11, 4
+  DRAW_STRING DRAW_FLAGS_WIN, 10, 16, str_buffer
   call DisplayTextAtPos
 .showFarmList
   ld hl, PlayerFarmSystemMenuText

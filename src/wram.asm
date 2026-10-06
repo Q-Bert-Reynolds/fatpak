@@ -28,6 +28,7 @@ pc_items:: DS MAX_PC_ITEMS*BYTES_PER_ITEM
 money:: DS 4;~$4b
 players_seen:: DS 151/8+1
 players_sign:: DS 151/8+1
+current_farm:: DB
 map:: DB
 map_chunk:: DB
 map_x:: DB

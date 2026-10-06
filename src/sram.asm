@@ -15,6 +15,7 @@ sram_pc_items: DS MAX_PC_ITEMS*BYTES_PER_ITEM
 sram_money: DS 4;32bit... ~$4b
 sram_players_seen: DS 151/8+1
 sram_players_sign: DS 151/8+1
+sram_current_farm: DB
 sram_map: DB
 sram_map_chunk: DB
 sram_map_x: DB
@@ -28,17 +29,23 @@ sram_main_save_end:
 SECTION "Team Save", SRAM, BANK[TEAM_SRAM_BANK]
 sram_UserLineup: DS LINEUP_SIZE
 
-SECTION "Farm Save 1", SRAM, BANK[FARM_SRAM_BANK]
-sram_FarmAAAA: DS FARM_SIZE
-sram_FarmAAA: DS FARM_SIZE
-sram_FarmAA: DS FARM_SIZE
-sram_FarmHighA: DS FARM_SIZE
+SECTION "Farm Save 0", SRAM, BANK[FARM_SRAM_BANK]
+sram_Farm1: DS FARM_SIZE
+sram_Farm2: DS FARM_SIZE
+sram_Farm3: DS FARM_SIZE
+sram_Farm4: DS FARM_SIZE
 
-SECTION "Farm Save 2", SRAM, BANK[FARM_SRAM_BANK+1]
-sram_FarmLowA: DS FARM_SIZE
-sram_FarmRookie: DS FARM_SIZE
-sram_FarmClassB: DS FARM_SIZE
-sram_FarmClassC: DS FARM_SIZE
+SECTION "Farm Save 1", SRAM, BANK[FARM_SRAM_BANK+1]
+sram_Farm5: DS FARM_SIZE
+sram_Farm6: DS FARM_SIZE
+sram_Farm7: DS FARM_SIZE
+sram_Farm8: DS FARM_SIZE
+
+SECTION "Farm Save 2", SRAM, BANK[FARM_SRAM_BANK+2]
+sram_Farm9: DS FARM_SIZE
+sram_Farm10: DS FARM_SIZE
+sram_Farm11: DS FARM_SIZE
+sram_Farm12: DS FARM_SIZE
 
 SECTION "Save/Load Code", ROM0
 LoadOptions::
@@ -67,7 +74,7 @@ LoadGame::
   di
   ENABLE_RAM_MBC5
 
-  ;load user and rival names
+  ;load user and rival names, time, items, money, location, roledex, game flags
   SWITCH_RAM_MBC5 MAIN_SRAM_BANK
   ld hl, sram_main_save
   ld de, main_save
@@ -75,7 +82,9 @@ LoadGame::
   call mem_Copy
 
   ;load user's lineup
+IF MAIN_SRAM_BANK != TEAM_SRAM_BANK
   SWITCH_RAM_MBC5 TEAM_SRAM_BANK
+ENDC
   ld hl, sram_UserLineup
   ld de, UserLineup
   ld bc, UserLineupEnd - UserLineup

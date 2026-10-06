@@ -16,8 +16,12 @@
 ;     Entry: hl = string
 ;     Return: de = length
 ;   str_FromArray
-;     gets string by index
+;     gets null terminated string by index
 ;     Entry: bc = index, hl = string array
+;     Return: hl = string at index bc
+;   str_FromArrayWithTerminator
+;     gets a string by index using value in register d as a terminator
+;     Entry: d = terminator, bc = index, hl = string array
 ;     Return: hl = string at index bc
 ;   str_CopyLine 
 ;     Copies line (\n) from hl to de
@@ -151,7 +155,7 @@ _str_FromArray::;void str_FromArray(int index, char strings[])
 
 ;***************************************************************************
 ;
-; str_FromArray - gets string by index
+; str_FromArray - gets a null terminated string by index
 ;
 ; input:
 ;   bc - index
@@ -161,11 +165,26 @@ _str_FromArray::;void str_FromArray(int index, char strings[])
 ;
 ;***************************************************************************
 str_FromArray::
+  ld d, 0
+
+;***************************************************************************
+;
+; str_FromArrayWithTerminator - gets string by index
+;
+; input:
+;   d - terminator
+;   bc - index
+;   hl - string array
+; output:
+;   hl - string at index bc
+;
+;***************************************************************************
+str_FromArrayWithTerminator::
   inc bc
   jr .test
 .loop; find end of string
     ld a, [hli]
-    and a
+    cp a, d
     jr nz, .loop
   .test; check bc == 0
     xor a
@@ -174,7 +193,7 @@ str_FromArray::
     jr nz, .loop
     cp c
     jr nz, .loop
-  ret 
+  ret
 
 ;***************************************************************************
 ;

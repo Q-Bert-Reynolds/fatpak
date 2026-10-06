@@ -65,7 +65,7 @@ GetItemName::;a = item id, returns item name in [name_buffer]
   push af;bank
   ld a, BANK(ItemNames)
   SET_BANK
-
+  
   ld hl, ItemNames
   call str_FromArray
   ld de, name_buffer

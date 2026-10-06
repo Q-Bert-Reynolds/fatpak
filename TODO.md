@@ -1,6 +1,6 @@
 Priority
 
-- hide roledex and lineup from pause menu until unlocked
+- hide roledex from pause menu until unlocked, lineup does nothing
 - add batting/pitching animations for Rattail, Pidge, and Chica
 - announcer mode
   - double plays
@@ -12,9 +12,7 @@ Priority
   - Bill's PC (will allow roster changes!!!)
   - Doc's PC
   - League PC
-- end game, get experience, level up!!!
-- if holding more than one directional button, can't hop ledge
-- color of version name incorrect after returning from new game/continue/options screen
+- end game, get experience, level up
 
 General
 
@@ -143,7 +141,8 @@ Items
 - use select to swap items in list
 - add town names and cursor to town map
 - status clearing items should have more specific messages (ie. "Chu is no longer paralyzed.")
- 
+- if holding more than one directional button, can't hop ledge
+
 Rolédex
 
 - update seen/signed after games, transformations, and signings
@@ -155,6 +154,7 @@ Rolédex
 
 Audio
 
+- fix note skip issue
 - pitch, hit, wiff, catch SFX
 - on/off PC SFX
 

@@ -265,20 +265,37 @@ DrawUIBox::;a=draw flags, bc = xy, de = wh
   call HideSpritesInRect
   ret
 
-MACRO DRAW_STRING ;x, y, text 
+MACRO DRAW_UI_BOX;\1=draw flags, \2=x, \3=y, \4=w, \5=h
+IF \1 == 0
   xor a
+ELSE
+  ld a, \1
+ENDC
+  ld bc, ((\2<<8)|\3);xy
+  ld de, ((\4<<8)|\5);wh
+  call DrawUIBox
+ENDM
+
+MACRO DRAW_STRING ;draw flags, x, y, text 
+IF \1 == 0
+  xor a
+ELSE
+  ld a, \1
+ENDC
   ld bc, 1
-  ld d, \1
-  ld e, \2
-  ld hl, \3
+  ld de, ((\2<<8)|\3);xy
+  ld hl, \4
   call DrawText
 ENDM
 
 MACRO DRAW_TEXT ;draw flags, max lines, x, y, text 
+IF \1 == 0
+  xor a
+ELSE
   ld a, \1
+ENDC
   ld bc, \2
-  ld d, \3
-  ld e, \4
+  ld de, ((\3<<8)|\4);xy
   ld hl, \5
   call DrawText
 ENDM
@@ -991,10 +1008,10 @@ UIShowOptions::
   ld e, a
   ld a, DRAW_FLAGS_BKG
   call DrawUIBox
-  DRAW_STRING 1, 1, TextSpeedOptionTitle
-  DRAW_STRING 2, 3, TextSpeedOptionFastString
-  DRAW_STRING 8, 3, TextSpeedOptionMediumString
-  DRAW_STRING 15, 3, TextSpeedOptionSlowString
+  DRAW_STRING 0, 1, 1, TextSpeedOptionTitle
+  DRAW_STRING 0, 2, 3, TextSpeedOptionFastString
+  DRAW_STRING 0, 8, 3, TextSpeedOptionMediumString
+  DRAW_STRING 0, 15, 3, TextSpeedOptionSlowString
 
   ;"AT-BAT ANIMATIONS "
   ;"                  "
@@ -1008,9 +1025,9 @@ UIShowOptions::
   ld d, a
   ld a, DRAW_FLAGS_BKG
   call DrawUIBox
-  DRAW_STRING 1, 6, AnimationOptionTitle
-  DRAW_STRING 2, 8, AnimationOptionOnString
-  DRAW_STRING 11, 8, AnimationOptionOffString
+  DRAW_STRING 0, 1, 6, AnimationOptionTitle
+  DRAW_STRING 0, 2, 8, AnimationOptionOnString
+  DRAW_STRING 0, 11, 8, AnimationOptionOffString
   
   ;"COACHING STYLE    "
   ;"                  "
@@ -1025,11 +1042,11 @@ UIShowOptions::
   ld e, a
   ld a, DRAW_FLAGS_BKG
   call DrawUIBox
-  DRAW_STRING 1, 11, CoachingOptionTitle
-  DRAW_STRING 2, 13, CoachingOptionShiftString
-  DRAW_STRING 11, 13, CoachingOptionSetString
+  DRAW_STRING 0, 1, 11, CoachingOptionTitle
+  DRAW_STRING 0, 2, 13, CoachingOptionShiftString
+  DRAW_STRING 0, 11, 13, CoachingOptionSetString
 
-  DRAW_STRING 2, 16, CancelString
+  DRAW_STRING 0, 2, 16, CancelString
 
   DISPLAY_ON
 

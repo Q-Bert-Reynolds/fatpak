@@ -45,8 +45,8 @@
 // ram banks 
 #define MAX_RAM_BANKS  4//32KB
 #define MAIN_SRAM_BANK 0
-#define TEAM_SRAM_BANK 1
-#define FARM_SRAM_BANK TEAM_SRAM_BANK
+#define TEAM_SRAM_BANK 0
+#define FARM_SRAM_BANK 1
 
 // sprite props
 #define FLIP_X_PAL  (OAMF_XFLIP | OAMF_PAL1 )

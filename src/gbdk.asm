@@ -535,7 +535,7 @@ gbdk_CopyTilesFrom::
 gbdk_Delay::
   DEF _CPMS EQU 4194/4  ; 4.194304 MHz
   ld a, [sys_info]
-  and a, SYS_INFO_GBC | SYS_INFO_GBA
+  and a, SYS_INFO_GBC
   jr z, .cpuSlow
 .checkFast
   ldh a,[rKEY1]

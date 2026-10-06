@@ -833,22 +833,22 @@ ENDC
 MapHousesChunkDocsLabSprites: ;19 bytes
 
   DB MAP_OBJ_TILE | MAP_COLLISION_SCRIPT ;GreenTeam, 6 bytes
-  DB 151;x1
-  DB 75;y1
+  DB 179;x1
+  DB 76;y1
   DB 64;tile
   DB 52;props
   DB 1;PickGreenTeam
 
   DB MAP_OBJ_TILE | MAP_COLLISION_SCRIPT ;RedTeam, 6 bytes
-  DB 165;x1
-  DB 75;y1
+  DB 150;x1
+  DB 76;y1
   DB 64;tile
   DB 17;props
   DB 2;PickRedTeam
 
   DB MAP_OBJ_TILE | MAP_COLLISION_SCRIPT ;BlueTeam, 6 bytes
-  DB 179;x1
-  DB 75;y1
+  DB 164;x1
+  DB 76;y1
   DB 64;tile
   DB 117;props
   DB 3;PickBlueTeam

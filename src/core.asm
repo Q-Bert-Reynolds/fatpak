@@ -64,7 +64,6 @@ GetStatusString:: ;a = status mask, string in name_buffer
     jr nz, .loop
 .exit
   ld hl, StatusStrings
-  ld de, name_buffer
   call str_FromArray
   ld de, name_buffer
   jp str_Copy
