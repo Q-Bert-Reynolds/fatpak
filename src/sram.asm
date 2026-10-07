@@ -1,9 +1,8 @@
-SECTION "Options Save", SRAM, BANK[MAIN_SRAM_BANK]
+SECTION "Main Save", SRAM, BANK[MAIN_SRAM_BANK]
 sram_text_speed: DB
 sram_animation_style: DB
 sram_coaching_style: DB
-
-SECTION "Main Save", SRAM, BANK[MAIN_SRAM_BANK]
+  
 sram_main_save:
 sram_user_name: DS NAME_LENGTH
 sram_rival_name: DS NAME_LENGTH
@@ -26,7 +25,6 @@ sram_pennant_flags:: DB ;which leagues have you won
 sram_item_flags:: DS ITEM_FLAGS_SIZE
 sram_main_save_end:
 
-SECTION "Team Save", SRAM, BANK[TEAM_SRAM_BANK]
 sram_UserLineup: DS LINEUP_SIZE
 
 SECTION "Farm Save 0", SRAM, BANK[FARM_SRAM_BANK]
@@ -82,9 +80,6 @@ LoadGame::
   call mem_Copy
 
   ;load user's lineup
-IF MAIN_SRAM_BANK != TEAM_SRAM_BANK
-  SWITCH_RAM_MBC5 TEAM_SRAM_BANK
-ENDC
   ld hl, sram_UserLineup
   ld de, UserLineup
   ld bc, UserLineupEnd - UserLineup
@@ -143,7 +138,6 @@ SaveGame::
   call mem_Copy
 
   ;save user's lineup
-  SWITCH_RAM_MBC5 TEAM_SRAM_BANK
   ld hl, UserLineup
   ld de, sram_UserLineup
   ld bc, UserLineupEnd - UserLineup

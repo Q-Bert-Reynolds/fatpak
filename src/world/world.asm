@@ -198,6 +198,7 @@ ShowPauseMenu::
   or a, GAME_STATE_PAUSED
   ld [game_state], a
   call CopyBkgToWin
+  
 .showPauseMenu
   ld a, WX_OFS
   ldh [rWX], a
@@ -209,17 +210,40 @@ ShowPauseMenu::
   ld bc, user_name
   call str_Replace
 
-  ld hl, name_buffer
   xor a
+  ld hl, name_buffer
   ld [hl], a;no title
 
+  ld a, [pc_flags]
+  and a, PC_FLAG_GOT_ROLEDEX
+  jr z, .showMenuWithoutRoledex
+.showFullMenu
   ld b, 10;x
   ld c, 0 ;y
   ld d, 10;w
   ld e, 16;h
   ld a, DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP
   call ShowListMenu ;returns choice in a
-  push af
+  jr .copyCopyWinToBuffer
+
+.showMenuWithoutRoledex
+  ld hl, str_buffer
+  ld de, tile_buffer;this is discarded
+  call str_CopyLine
+  ld de, str_buffer
+  call str_Copy
+  ld b, 10;x
+  ld c, 0 ;y
+  ld d, 10;w
+  ld e, 14;h
+  ld a, DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP
+  call ShowListMenu ;returns choice in a
+  and a
+  jr z, .copyCopyWinToBuffer
+  inc a;offset because roledex isn't available
+
+.copyCopyWinToBuffer
+  push af;choice
   call CopyWinToBuffer
   pop af
   ld b, a;choice
@@ -227,17 +251,23 @@ ShowPauseMenu::
   ld a, b;choice
   and a
   jp z, .exit
+
 .roledex
   cp 1
   jr nz, .lineup
   TRAMPOLINE ShowRoledex
-  jr .returnToPauseMenu
+  jr .restoreMap
+
 .lineup
   cp 2
   jr nz, .item
   ld de, 0
+  ld a, [team_flags]
+  and a, TEAM_FLAG_ANY
+  jr z, .returnToPauseMenu;you haven't picked a team yet
   TRAMPOLINE ShowLineup
-  jr .returnToPauseMenu
+  jr .restoreMap
+
 .item
   cp 3
   jr nz, .user
@@ -245,11 +275,13 @@ ShowPauseMenu::
   ld [inventory_mode], a
   TRAMPOLINE ShowInventory
   jr .returnToPauseMenu
+
 .user
   cp 4
   jr nz, .save
   TRAMPOLINE ShowUserInfo
-  jr .returnToPauseMenu
+  jr .restoreMap
+
 .save
   cp 5
   jr nz, .option
@@ -257,6 +289,7 @@ ShowPauseMenu::
   call ShowPlayerAvatar
   call DrawMapToScreen
   jp .exit
+
 .option
   cp 6
   jr nz, .exit
@@ -276,23 +309,28 @@ ShowPauseMenu::
   ldh [rSCX], a
   ld a, l
   ldh [rSCY], a
-.returnToPauseMenu
+
+.restoreMap
   DISPLAY_OFF
-  call CopyBufferToWin
   call LoadAvatarSprites
   call SetMapTiles
   call SetMapPalettes
-  call ShowPlayerAvatar
   call DrawMapToScreen
   DISPLAY_ON
+  
+.returnToPauseMenu
+  call CopyBufferToWin
+  call ShowPlayerAvatar
   POP_VAR list_selection
   jp .showPauseMenu
+
 .exit
   ld a, [game_state]
   and a, ~GAME_STATE_PAUSED
   ld [game_state], a
-  HIDE_WIN
   call DrawMapToScreen
+  call gbdk_WaitVBL
+  HIDE_WIN
   WAITPAD_UP
   POP_VAR list_selection
   ret

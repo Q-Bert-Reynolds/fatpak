@@ -1,7 +1,13 @@
 INCLUDE "src/beisbol.inc"
 
-SECTION "Temp Data", ROMX
-TempItems:
+DEF SEED_TEST_ITEMS EQU 1
+DEF SEED_TEST_LINEUP EQU 1
+DEF SEED_TEST_ROLEDEX EQU 1
+
+SECTION "Seed Data", ROMX
+
+IF SEED_TEST_ITEMS == 1
+TestItems:
   DB POTION_ITEM,      12
   DB BASEBALL_ITEM,    10
   DB TM01_ITEM,        1
@@ -22,16 +28,17 @@ TempItems:
   DB ANTIDOTE_ITEM,    7
   DB BICYCLE_ITEM,     1
   DB FULL_HEAL_ITEM,   1
-EndTempItems:
-  DS MAX_ITEMS*BYTES_PER_ITEM - (EndTempItems-TempItems)
+EndTestItems:
+  DS MAX_ITEMS*BYTES_PER_ITEM - (EndTestItems-TestItems)
+ENDC
 
-TempPCItems:
+InitialPCItems:
   DB POTION_ITEM,      1
-  DB TM50_ITEM,        1
-EndTempPCItems:
-  DS MAX_PC_ITEMS*BYTES_PER_ITEM - (EndTempPCItems-TempPCItems)
+EndInitialPCItems:
+  DS MAX_PC_ITEMS*BYTES_PER_ITEM - (EndInitialPCItems-InitialPCItems)
 
-TempUserLineup:
+IF SEED_TEST_LINEUP == 1
+TestUserLineup:
   DB NUM_BUBBI,      5, SHORTSTOP,      THROW_RIGHT | BAT_SWITCH
   DB NUM_SQUIRT,     5, CATCHER,        THROW_RIGHT | BAT_RIGHT
   DB NUM_ZAPH,      65, RIGHT_FIELDER,  THROW_RIGHT | BAT_RIGHT
@@ -41,23 +48,13 @@ TempUserLineup:
   DB NUM_META,       8, SECOND_BASEMAN, THROW_RIGHT | BAT_LEFT
   DB NUM_CHU,       23, CENTER_FIELDER, THROW_RIGHT | BAT_RIGHT
   DB NUM_BIG_RED,   33, PITCHER,        THROW_LEFT  | BAT_RIGHT
-  
-TempOpponentLineup:
-  DB NUM_ASH,       45, CATCHER,        THROW_RIGHT | BAT_RIGHT
-  DB NUM_GINGER,     8, SHORTSTOP,      THROW_RIGHT | BAT_SWITCH
-  DB NUM_MORTY,     65, RIGHT_FIELDER,  THROW_RIGHT | BAT_RIGHT
-  DB NUM_MACOBB,    28, FIRST_BASEMAN,  THROW_RIGHT | BAT_RIGHT
-  DB NUM_RAT_TAIL,  27, LEFT_FIELDER,   THROW_RIGHT | BAT_RIGHT
-  DB NUM_STARMAN,   15, THIRD_BASEMAN,  THROW_RIGHT | BAT_RIGHT
-  DB NUM_BUTTERFLY,  8, SECOND_BASEMAN, THROW_RIGHT | BAT_LEFT
-  DB NUM_EVIE,      23, CENTER_FIELDER, THROW_RIGHT | BAT_RIGHT
-  DB NUM_RAI,       33, PITCHER,        THROW_LEFT  | BAT_RIGHT
+ENDC
 
 Seed::
 
+IF SEED_TEST_LINEUP == 1
 .userLineup 
-
-  ld hl, TempUserLineup
+  ld hl, TestUserLineup
   ld de, UserLineup
   ld bc, UserLineupPlayer2-UserLineupPlayer1;size of PLAYER_DATA + USER_PLAYER_DATA
   call CreateLineup
@@ -72,12 +69,13 @@ Seed::
   ADD_USER_PLAYER_DATA UserLineupPlayer8, "",               75
   ADD_USER_PLAYER_DATA UserLineupPlayer9, "Ruby",     16777215
 
-.opposingLineup
-  ld hl, TempOpponentLineup
-  ld de, OpponentLineup
-  ld bc, OpponentLineupPlayer2-OpponentLineupPlayer1;size of PLAYER_DATA + OPPONENT_PLAYER_DATA
-  call CreateLineup
+  ld a, TEAM_FLAG_GREEN | TEAM_FLAG_HAS_PICKED
+  ld [team_flags], a
+ENDC
 
+IF SEED_TEST_ROLEDEX == 1
+  ld a, PC_FLAG_GOT_ROLEDEX | PC_FLAG_MET_BILL | PC_FLAG_BEAT_LEAGUE
+  ld [pc_flags], a
 .seenSigned
   ld hl, 2020
   call gbdk_Seed
@@ -122,26 +120,29 @@ Seed::
   ld [hli], a
   ld a, %01111000
   ld [hl], a
+ENDC
 
 .items
-  ld hl, TempItems
+IF SEED_TEST_ITEMS == 1
+  ld hl, TestItems
   ld de, inventory
   ld bc, MAX_ITEMS*BYTES_PER_ITEM
   call mem_Copy
+ENDC
 
-  ld hl, TempPCItems
+  ld hl, InitialPCItems
   ld de, pc_items
   ld bc, MAX_PC_ITEMS*BYTES_PER_ITEM
   call mem_Copy
 
 .money
   ld hl, money
-  ld a, (START_MONEY >> 24) & %11111111
+  ld a, LOW(START_MONEY >> 24)
   ld [hli], a
-  ld a, (START_MONEY >> 16) & %11111111
+  ld a, LOW(START_MONEY >> 16)
   ld [hli], a
-  ld a, (START_MONEY >> 8) & %11111111
+  ld a, LOW(START_MONEY >> 8)
   ld [hli], a
-  ld a,  START_MONEY & %11111111
+  ld a, LOW(START_MONEY)
   ld [hli], a
   ret

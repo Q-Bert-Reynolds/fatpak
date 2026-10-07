@@ -1,6 +1,5 @@
 Priority
 
-- hide roledex from pause menu until unlocked, lineup does nothing
 - add batting/pitching animations for Rattail, Pidge, and Chica
 - announcer mode
   - double plays

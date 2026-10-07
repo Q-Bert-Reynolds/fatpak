@@ -45,7 +45,6 @@
 // ram banks 
 #define MAX_RAM_BANKS  4//32KB
 #define MAIN_SRAM_BANK 0
-#define TEAM_SRAM_BANK 0
 #define FARM_SRAM_BANK 1
 
 // sprite props
@@ -263,6 +262,8 @@
 #define MAX_INNINGS      15
 #define NAME_LENGTH      8
 #define NICKNAME_LENGTH  12
+#define NAME_BUFFER_SIZE 16
+#define STR_BUFFER_SIZE  64
 #define BUFFER_SIZE      1024//32x32 tiles
 #define PLAYER_DATA_SIZE 25
 #define PLAYER_STAT_SIZE 64

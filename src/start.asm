@@ -158,7 +158,7 @@ UpdateIntroSparks:
     jr nz, .loop
 
   ld b, 56;x
-  ld c, 106;y
+  ld c, 105;y
   ld h, 8;w
   ld l, 3;h
   ld a, 1

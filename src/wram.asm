@@ -11,11 +11,13 @@ game_state:: DB
 list_selection:: DB
 inventory_mode:: DB
 
-;main save data
-main_save::
+;options
 text_speed:: DB
 animation_style:: DB
 coaching_style:: DB
+
+;main save data
+main_save::
 _user_name::
 user_name:: DS NAME_LENGTH
 _rival_name::
@@ -181,6 +183,6 @@ sprite_obj_buffer:: DS SPRITE_OBJ_BUFFER_SIZE; bank, address, x, y, extra
 _cmd_buffer::
 cmd_buffer::        DS BUFFER_SIZE/2
 _str_buffer::
-str_buffer::        DS 64
+str_buffer::        DS STR_BUFFER_SIZE
 _name_buffer::
-name_buffer::       DS 16
+name_buffer::       DS NAME_BUFFER_SIZE

@@ -12,6 +12,12 @@ SelectNameOrTextEntry: ;assumes d > 0, bc = title
   jp nz, .nameSelected
   ld a, 48
   ldh [rSCX], a
+  push bc;title
+  xor a
+  ld hl, name_buffer
+  ld bc, NAME_BUFFER_SIZE
+  call mem_Set;clear name buffer
+  pop bc;title
   ld de, name_buffer
   ld a, 7
   ld l, a
@@ -302,8 +308,7 @@ ENDC
 .saveUserName
   ld hl, name_buffer
   ld de, user_name
-  ld bc, 7
-  call mem_Copy
+  call str_Copy
 
 .showNolan
   DISPLAY_OFF

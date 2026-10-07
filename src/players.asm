@@ -44,6 +44,7 @@ MACRO USER_PLAYER_DATA
 .strikeouts_thrown DW
 .wild_pitches      DW
 .hit_batters       DW
+.end
 ENDM
 
 MACRO OPPONENT_PLAYER_DATA ;only needs data for BA and ERA
@@ -127,7 +128,8 @@ Runners:
   SIMULATION_PLAYER_DATA Runners, 3;third
 
 SECTION "Player Utils", ROM0
-
+;CreateUserLineupFromBank     - b = bank, hl = src
+;ClearUserPlayerData          - hl = player address, bcd = pay 
 ;CreateLineup                 - hl = src lineup data, de = destination lineup address, bc = player size
 ;CreatePlayer                 - a = player number, l = level, returns player data in hl
 ;SetPlayerMove                - hl = player, a = move num, b = new move id
@@ -185,31 +187,15 @@ ClearUserPlayerData:: ;hl = player address, bcd = pay
   push bc
   push de;bcd = pay
   ld bc, UserLineupPlayer1.nickname - UserLineupPlayer1
-  add hl, bc;player's nickname
+  add hl, bc;player's nickname is start of playe data
   xor a
-  ld bc, NICKNAME_LENGTH
-  call mem_Set
+  ld bc, UserLineupPlayer1.end - UserLineupPlayer1.nickname
+  call mem_Set;clear everything
   pop de
   pop bc;bcd = pay
   pop hl;player address
   push hl
   call SetUserPlayerPay
-  pop hl;player address
-  push hl
-  ld bc, UserLineupPlayer1.xp - UserLineupPlayer1
-  add hl, bc
-  xor a
-  ld [hli], a;xp
-  ld [hli], a
-  ld [hli], a
-  pop hl;player address
-  push hl
-  call GetPlayerMaxHP
-  ld d, h
-  ld e, l
-  pop hl;player address
-  push hl
-  call SetPlayerHP
   pop hl;player address
 ret
 
@@ -273,6 +259,11 @@ CreatePlayer:: ;a = num, b = age, c = pos, d = handedness, hl = address to write
   pop hl;player address
   push hl;player address
   call SetStatsFromAge
+
+  ld a, STATUS_MASK_ALL
+  pop hl;player address
+  push hl;player address
+  call ClearPlayerStatus
 
   pop hl;player address
   push hl;player address

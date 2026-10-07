@@ -65,7 +65,7 @@ GetItemName::;a = item id, returns item name in [name_buffer]
   push af;bank
   ld a, BANK(ItemNames)
   SET_BANK
-  
+
   ld hl, ItemNames
   call str_FromArray
   ld de, name_buffer
@@ -370,8 +370,11 @@ DrawInventoryEntry::;a = num, de = xy, bc = list len, draw count
   cp a, b;is num last?
   jr c, .drawItem
   jr z, .drawCancel
+
+.doNotDraw
   pop de;xy
   ret
+
 .drawCancel
   ld hl, CancelString
   jp .draw
@@ -387,11 +390,9 @@ DrawInventoryEntry::;a = num, de = xy, bc = list len, draw count
   ld c, a;item id
   dec bc;item index
   push bc;item index
-  push de;xy
   push hl;address of item count
   call GetItemData
   pop hl;address of item count
-  pop de;xy
   pop bc;item index
   ld a, [hl];get item count
   ld h, 0
@@ -403,8 +404,11 @@ DrawInventoryEntry::;a = num, de = xy, bc = list len, draw count
   jr z, .getItemName
 
 .drawItemCount
+  pop de;xy
   push bc;item index
-  push de;xy
+  push de;name xy
+  inc e
+  push de;count xy
   ld de, name_buffer
   call str_Number
 
@@ -413,9 +417,8 @@ DrawInventoryEntry::;a = num, de = xy, bc = list len, draw count
 
   ld h, e
   ld l, 1
-  pop de;xy
-  inc e
-  push de;xy
+  pop de;count xy
+  push de;count xy
   ld a, 17
   sub a, h
   ld d, a
@@ -423,7 +426,7 @@ DrawInventoryEntry::;a = num, de = xy, bc = list len, draw count
   ld a, DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP
   call SetTiles
 
-  pop de;xy
+  pop de;count xy
   ld d, 14
   ld bc, name_buffer
   ld a, 'x'
@@ -432,7 +435,9 @@ DrawInventoryEntry::;a = num, de = xy, bc = list len, draw count
   ld a, DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP
   call SetTiles
 
+  pop de;name xy
   pop bc;item index
+  push de;xy
 
 .getItemName
   ld hl, ItemNames 
