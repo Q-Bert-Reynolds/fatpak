@@ -459,7 +459,7 @@ _sgb_VRAMTransfer:
   ldh [rLCDC], a
 
   pop hl                      ; Packet data
-  call _sgb_PacketTransfer     ; We send the packet that will produce the transfer
+  call _sgb_PacketTransfer    ; We send the packet that will produce the transfer
 
   ;restore screen state
   pop af

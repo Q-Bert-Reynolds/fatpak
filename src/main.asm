@@ -73,12 +73,8 @@ SECTION "Main", ROM0[$0150]
 Main::
   SYS_CHECK
 
-.setupGameBoyColor
-  ld a, [sys_info]
-  and a, SYS_INFO_GBC
-  jr z, .setupDisplay
-  call gbdk_CPUFast; GBC always in fast mode
-  CGB_COMPATIBILITY
+.setupSuperGameBoy
+  TRAMPOLINE sgb_Init
 
 .setupDisplay
   di
@@ -90,6 +86,13 @@ Main::
   ldh [rWX], a
   ldh [rWY], a
   call gbdk_SetupDMATransfer
+
+.setupGameBoyColor
+  ld a, [sys_info]
+  and a, SYS_INFO_GBC
+  jr z, .initializeRAM
+  call gbdk_CPUFast; GBC always in fast mode
+  CGB_COMPATIBILITY
 
 .initializeRAM
   ld a, [sys_info]
@@ -119,10 +122,6 @@ Main::
 
   ld a, LCDCF_OFF | LCDCF_WIN9C00 | LCDCF_BLK21 | LCDCF_OBJ8 | LCDCF_OBJON | LCDCF_BGON
   ldh [rLCDC], a
-
-.setupSuperGameBoy
-  TRAMPOLINE sgb_Init
-  SET_DEFAULT_PALETTE
 
 .setupInterrupts
   ld a, IEF_VBLANK | IEF_SERIAL

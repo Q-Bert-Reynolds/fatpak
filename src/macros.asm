@@ -23,8 +23,6 @@
 ;   EXITABLE_DELAY                        JumpAddress, buttons8, frames8
 ;   WAITPAD_UP                                    
 ;   WAITPAD_UP_OR_FRAMES                  frames8
-;   SET_DEFAULT_PALETTE                                   
-;   RGB                                   red5, green5, blue5
 ;   D24                                   num24
 ;   BETWEEN                               n8, n8
 ;   ADD_USER_PLAYER_DATA                  PlayerAddress, "nickname", pay24 
@@ -259,19 +257,6 @@ MACRO WAITPAD_UP_OR_FRAMES ; \1=frames
   push af;frames
 .exit\@
   pop af;frames
-ENDM
-
-MACRO SET_DEFAULT_PALETTE
-  ld hl, rBGP
-  ld [hl], DMG_PAL_BDLW
-  ld hl, rOBP0
-  ld [hl], DMG_PAL_BDLW
-  ld hl, rOBP1
-  ld [hl], DMG_PAL_DLWW
-ENDM
-
-MACRO RGB ;\1 = red, \2 = green, \3 = blue
-  DW (\3 << 10 | \2 << 5 | \1)
 ENDM
 
 MACRO D24 ;\1 = 24 bit number 

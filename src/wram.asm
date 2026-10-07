@@ -186,3 +186,5 @@ _str_buffer::
 str_buffer::        DS STR_BUFFER_SIZE
 _name_buffer::
 name_buffer::       DS NAME_BUFFER_SIZE
+_palette_buffer:
+palette_buffer::    DS 8;4 colors, 2 bytes each

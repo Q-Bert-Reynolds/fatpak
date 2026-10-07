@@ -28,7 +28,7 @@ FadeIn::
 
 .fadeInGBC
   ld hl, tile_buffer+16*4*2;palettes * colors/palette * bytes/color
-  call CopyPalettesTo
+  call GBCCopyPalettesTo
   ld c, 16;palettes
   ld hl, tile_buffer
 .setToWhitePaletteLoop
@@ -43,7 +43,7 @@ FadeIn::
     dec c
     jr nz, .setToWhitePaletteLoop
   ld hl, tile_buffer
-  call CopyPalettesFrom
+  call GBCCopyPalettesFrom
   ld a, 32;max steps
 .fadeInGBCLoop
     push af;steps left
@@ -97,7 +97,7 @@ FadeIn::
     ld de, 18
     call gbdk_Delay
     ld hl, tile_buffer
-    call CopyPalettesFrom
+    call GBCCopyPalettesFrom
     pop af;steps left
     dec a
     jr nz, .fadeInGBCLoop
@@ -207,7 +207,7 @@ FadeOut::
   
 .fadeOutGBC
   ld hl, tile_buffer
-  call CopyPalettesTo
+  call GBCCopyPalettesTo
   ld a, 32;max steps
 .fadeOutGBCLoop
     push af;steps left
@@ -268,7 +268,7 @@ FadeOut::
     ld de, 18
     call gbdk_Delay
     ld hl, tile_buffer
-    call CopyPalettesFrom
+    call GBCCopyPalettesFrom
     pop af;steps left
     dec a
     jr nz, .fadeOutGBCLoop

@@ -174,7 +174,7 @@ LoadCoachPalettes:: ;a = coach id, h = offset
   ld a, b;coach
   call PreloadCoachPalettes
   ld [rROMB0], a
-  call SetTwoColorBGPalettes
+  call GBCSetTwoColorBGPalettes
 
   ldh a, [loaded_bank]
   ld [rROMB0], a

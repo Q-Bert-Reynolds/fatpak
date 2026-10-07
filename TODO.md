@@ -1,5 +1,6 @@
 Priority
 
+- update seen/signed after games, transformations, and signings
 - add batting/pitching animations for Rattail, Pidge, and Chica
 - announcer mode
   - double plays
@@ -12,14 +13,8 @@ Priority
   - Doc's PC
   - League PC
 - end game, get experience, level up
-
-General
-
-- link cable support!
-- give math subroutines more appropriate names
-- cut off sprites with the text box using an LCD interrupt (see https://gbdev.io/pandocs/LCDC.html#faux-layer-textboxstatus-bar)
+- trade players over link cable
 - use GB Printer to print stats, records, rolédex, baseball cards
-- remove the last few manual ROMX assignments, let linker handle bank management instead
 
 Optimization
 
@@ -42,6 +37,7 @@ Optimization
   - core.asm should not include core_strings.asm
   - move collision response code (doors, items, etc.) from map_loader to world
   - helper routines that don't take any args should use TRAMPOLINE instead
+- remove the last few manual ROMX assignments, let linker handle bank management instead
 
 Python scripts
 
@@ -144,7 +140,6 @@ Items
 
 Rolédex
 
-- update seen/signed after games, transformations, and signings
 - update player descriptions
 - fix player descriptions that are longer than 6 lines
 - if player descriptions only span 1 page, garbage text is drawn on the next
