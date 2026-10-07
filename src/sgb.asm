@@ -30,94 +30,146 @@ INCLUDE "src/memory1.asm"
 ;   sgb_PacketTransfer
 ;     Transfers data to SNES.
 ;     Input: hl = packet address
+;   sgb_CopyToWRAM
+;     Copies data to SNES WRAM using either DATA_SND or DATA_TRN
+;     Input: a = SNES bank, bc = byte count, de = SNES address, hl = src data
 
-; Super Game boy command packets definitions
-;  Code  Name      Expl.
-;  $00   PAL01     Set SGB Palette 0,1 Data
-;  $01   PAL23     Set SGB Palette 2,3 Data
-;  $02   PAL03     Set SGB Palette 0,3 Data
-;  $03   PAL12     Set SGB Palette 1,2 Data
-;  $04   ATTR_BLK  "Block" Area Designation Mode
-;  $05   ATTR_LIN  "Line" Area Designation Mode
-;  $06   ATTR_DIV  "Divide" Area Designation Mode
-;  $07   ATTR_CHR  "1CHR" Area Designation Mode
-;  $08   SOUND     Sound On/Off
-;  $09   SOU_TRN   Transfer Sound PRG/DATA
-;  $0A   PAL_SET   Set SGB Palette Indirect
-;  $0B   PAL_TRN   Set System Color Palette Data
-;  $0C   ATRC_EN   Enable/disable Attraction Mode
-;  $0D   TEST_EN   Speed Function
-;  $0E   ICON_EN   SGB Function
-;  $0F   DATA_SND  SUPER NES WRAM Transfer 1
-;  $10   DATA_TRN  SUPER NES WRAM Transfer 2
-;  $11   MLT_REG   Controller 2 Request
-;  $12   JUMP      Set SNES Program Counter
-;  $13   CHR_TRN   Transfer Character Font Data
-;  $14   PCT_TRN   Set Screen Data Color Data
-;  $15   ATTR_TRN  Set Attribute from ATF
-;  $16   ATTR_SET  Set Data to ATF
-;  $17   MASK_EN   Game Boy Window Mask
-;  $18   OBJ_TRN   Super NES OBJ Mode
+DEF SGB_CODE_PAL01    EQU $00 ;Set SGB Palette 0,1 Data
+DEF SGB_CODE_PAL23    EQU $01 ;Set SGB Palette 2,3 Data
+DEF SGB_CODE_PAL03    EQU $02 ;Set SGB Palette 0,3 Data
+DEF SGB_CODE_PAL12    EQU $03 ;Set SGB Palette 1,2 Data
+DEF SGB_CODE_ATTR_BLK EQU $04 ;Block Area Designation Mode
+DEF SGB_CODE_ATTR_LIN EQU $05 ;Line Area Designation Mode
+DEF SGB_CODE_ATTR_DIV EQU $06 ;Divide Area Designation Mode
+DEF SGB_CODE_ATTR_CHR EQU $07 ;1CHR Area Designation Mode
+DEF SGB_CODE_SOUND    EQU $08 ;Sound On/Off
+DEF SGB_CODE_SOU_TRN  EQU $09 ;Transfer Sound PRG/DATA
+DEF SGB_CODE_PAL_SET  EQU $0A ;Set SGB Palette Indirect
+DEF SGB_CODE_PAL_TRN  EQU $0B ;Set System Color Palette Data
+DEF SGB_CODE_ATRC_EN  EQU $0C ;Enable/disable Attraction Mode
+DEF SGB_CODE_TEST_EN  EQU $0D ;Speed Function (unavailable)
+DEF SGB_CODE_ICON_EN  EQU $0E ;SGB Function
+DEF SGB_CODE_DATA_SND EQU $0F ;Packet Transfer to SNES WRAM
+DEF SGB_CODE_DATA_TRN EQU $10 ;VRAM Transfer to SNES WRAM
+DEF SGB_CODE_MLT_REQ  EQU $11 ;Controller 2 Request
+DEF SGB_CODE_JUMP     EQU $12 ;Set SNES Program Counter
+DEF SGB_CODE_CHR_TRN  EQU $13 ;Transfer Character Font Data
+DEF SGB_CODE_PCT_TRN  EQU $14 ;Set Screen Data Color Data
+DEF SGB_CODE_ATTR_TRN EQU $15 ;Set Attribute from ATF
+DEF SGB_CODE_ATTR_SET EQU $16 ;Set Data to ATF
+DEF SGB_CODE_MASK_EN  EQU $17 ;Game Boy Window Mask
+DEF SGB_CODE_OBJ_TRN  EQU $18 ;SNES OBJ Mode (unavailable)
+DEF SGB_CODE_PAL_PRI  EQU $19 ;System palette priority
 
-MACRO SGB_PACKET ;\1 = code, \2 = num packets
+MACRO SGB_HEADER ;\1 = code, \2 = num packets
   DB (\1 << 3) + \2
 ENDM
 
-MACRO ATTR_BLK ;\1 = num packets
-  SGB_PACKET $4, ((\1 * 6)/16) + 1
+DEF PAL01 EQU 1
+DEF PAL23 EQU (1 << 3) | 1
+DEF PAL03 EQU (2 << 3) | 1
+DEF PAL12 EQU (3 << 3) | 1
+
+MACRO ATTR_BLK ;\1 = num data sets
+  SGB_HEADER SGB_CODE_ATTR_BLK, ((\1 * 6)/16) + 1
 	DB \1
 ENDM
 
-MACRO ATTR_BLK_PACKET ;\1 = control code, \2\3\4 = palettes, \5\6 = xy, \7\8 = wh
+MACRO ATTR_BLK_DATA ;\1 = control code, \2\3\4 = palette(0-3), \5\6 = xy, \7\8 = wh
 	DB \1 ;bit 2 = outside block, bit 1 = on border, bit 0 = inisde block
 	DB (\2 << 4) + (\3 << 2) + \4 ;\2 = outside, \3 = border, \4 = inside
 	DB \5, \6, \5+\7-1, \6+\8-1
 ENDM
 
-MACRO MLT_REQ ;\1 = player count
-  SGB_PACKET $11, 1
-  DB \1 - 1
-  DS 14
+MACRO ATTR_LIN ;\1 = num data sets
+  SGB_HEADER SGB_CODE_ATTR_LIN, \1
+	DB \1
 ENDM
 
-MACRO CHR_TRN ;\1 = tile table (0=$00-$7F, 1=$80-$FF), \2 = tile type (0=BG, 1=OBJ)
-  SGB_PACKET $13, 1
-  DB \1 + (\2 << 1)
-  DS 14
+MACRO ATTR_LINE_DATA ;\1 = mode (0=vertical, 1=horiz), \2 = palette(0-3), \3 = x or y depending on mode
+	DB (\1<<7) + (\2<<5) + \3
 ENDM
 
-MACRO PCT_TRN
-  SGB_PACKET $14, 1
-  DS 15
+MACRO ATTR_DIV ;\1 = mode (0=vertical, 1=horiz), \2\3\4 = palette(0-3), \5 = x or y
+  SGB_HEADER SGB_CODE_ATTR_DIV, 1
+	DB (\1<<6) + (\2<<4) + (\3<<2) + \4 ;\2 = line, \3 = above/left, \4 = below/right
+  DB \5;x if \1=0, y if \1=1
+  DS 13
+ENDM
+
+MACRO ATTR_CHR ;\1 = x, \2 = y, \3 = num data sets, \4 sytle
+  SGB_HEADER SGB_CODE_ATTR_CHR, (\3/4)+4
+	DB \1;x
+  DB \2;y
+  DW \3;num data sets
+  DB \4;0=left to right, 1=right to left
+ENDM
+
+MACRO ATTR_CHR_DATA;\1\3\4\4 palette(0-3)
+  DB (\1<<6) | (\2<<4) | (\3<<2) | \4
+ENDM
+
+MACRO SGB_SOUND;\1 = SFX A, \2 = SFX B, \3 = Attributes \4 = Music Score Code
+  SGB_HEADER SGB_CODE_SOUND, 1
+  DB \1;Sound Effect A (Port 1) Decrescendo 8-bit Sound Code
+  DB \2;Sound Effect B (Port 2) Sustain     8-bit Sound Code
+  DB \3;Bit 0-1 - Sound Effect A Pitch (0..3=Low..High)
+       ;Bit 2-3 - Sound Effect A Volume (0..2=High..Low, 3=Mute on)
+       ;Bit 4-5 - Sound Effect B Pitch (0..3=Low..High)
+       ;Bit 6-7 - Sound Effect B Volume (0..2=High..Low, 3=Not used)
+  DB \4;Music Score Code (must be zero if not used)
+  DS 11
 ENDM
 
 MACRO PAL_SET ;\1 = Pal0, \2 = Pal1, \3 = Pal2, \4 = Pal3
-  SGB_PACKET $0A, 1
+  SGB_HEADER SGB_CODE_PAL_SET, 1
   DW \1, \2, \3, \4
   DS 7
 ENDM
 
 MACRO PAL_TRN
-  SGB_PACKET $0B, 1
+  SGB_HEADER SGB_CODE_PAL_TRN, 1
   DS 15
 ENDM
 
+MACRO MLT_REQ ;\1 = player count
+  SGB_HEADER SGB_CODE_MLT_REQ, 1
+  DB \1 - 1
+  DS 14
+ENDM
+
+MACRO CHR_TRN ;\1 = tile table (0=$00-$7F, 1=$80-$FF), \2 = tile type (0=BG, 1=OBJ)
+  SGB_HEADER SGB_CODE_CHR_TRN, 1
+  DB \1 | (\2 << 1)
+  DS 14
+ENDM
+
+MACRO PCT_TRN
+  SGB_HEADER SGB_CODE_PCT_TRN, 1
+  DS 15
+ENDM
+
+MACRO ATTR_TRN
+  SGB_HEADER SGB_CODE_ATTR_TRN, 1
+  DS 15
+ENDM
+
+MACRO ATTR_SET;\1 Attribute File Number ($00-$2C), \2 = screen mask (0=cancel,1=freeze)
+  SGB_HEADER SGB_CODE_ATTR_SET, 1
+  DB \1 | (\2 << 6)
+  DS 14
+ENDM
+
 MACRO MASK_EN ;\1 = screen mask (0=cancel,1=freeze)
-  SGB_PACKET $17, 1
+  SGB_HEADER SGB_CODE_MASK_EN, 1
   DB \1
   DS 14
-ENDM 
+ENDM
 
-;\1 = SFX A, \2 = SFX B, \3 = SFX Attributes (below), \4 = Music Score Code (must be zero if not used)
-; Bit 0-1 - Sound Effect A Pitch (0..3=Low..High)
-; Bit 2-3 - Sound Effect A Volume (0..2=High..Low, 3=Mute on)
-; Bit 4-5 - Sound Effect B Pitch (0..3=Low..High)
-; Bit 6-7 - Sound Effect B Volume (0..2=High..Low, 3=Not used)
-MACRO SGB_SOUND
-  SGB_PACKET $08, 1
-  DB \1, \2, \3, \4
-  4 Music Score Code (must be zero if not used)
-  DS 10
+MACRO PAL_RPI ;\1 = priority (0=user,1=game)
+  SGB_HEADER SGB_CODE_PAL_PRI, 1
+  DB \1
+  DS 14
 ENDM
 
 SECTION "Super GameBoy Banked", ROMX
@@ -147,14 +199,13 @@ sgb_MltReqOnePlayer:  MLT_REQ 1
 
 ; Super Game Boy initialization
 sgb_Init::
+  call sgb_SendInitPackets       ; 8 initialization data packet sending, according to the official documentation
   call sgb_Check
   ret nc                         ; We return if the game is not running on a Super Game Boy
   
   ld a, [sys_info]
   or a, SYS_INFO_SGB
   ld [sys_info], a
-
-  call sgb_SendInitPackets       ; 8 initialization data packet sending, according to the official documentation
 
   di
   ld hl, sgb_MaskEnFreeze
@@ -177,7 +228,10 @@ sgb_Init::
   call _sgb_VRAMTransfer          ; Copies custom game palettes to SNES RAM
 
   ld hl, sgb_PalSetDefault               
-  call _sgb_PacketTransfer        ;Default game palette set
+  call _sgb_PacketTransfer        ; Default game palette set
+
+  ld hl, sgb_PalPriGame
+  call _sgb_PacketTransfer        ; override user palettes
 
   ld hl, sgb_MaskEnCancel
   call _sgb_PacketTransfer        ; Super Game Boy screen visualization unfreezing
@@ -186,8 +240,8 @@ sgb_Init::
 ; Carry Flag raised if the system in which the game is running is a Super Game Boy
 sgb_Check:
   di
-  ld  hl, sgb_MltReqTwoPlayers   ; Two player mode selection
-  call  _sgb_PacketTransfer
+  ld hl, sgb_MltReqTwoPlayers     ; Two player mode selection
+  call _sgb_PacketTransfer
   ei
   ld a, P1F_4 | P1F_5
   ldh [rP1], a                    ; We disable key and pad reading to read the joypad id
@@ -195,7 +249,7 @@ sgb_Check:
   ldh a, [rP1]
   ldh a, [rP1]
   ldh a, [rP1]                    ; Many readings to avoid the "bouncing" of values
-  ld b, a                        ; We store the id of the first joypad
+  ld b, a                         ; We store the id of the first joypad
   
   ; Joypad reading simulation
   ld a, P1F_5
@@ -213,8 +267,8 @@ sgb_Check:
   and a                          ; We lower the carry flag
   ret                            ; We are not in a Super Game Boy
 check_sgb_0:
-  ld  hl, sgb_MltReqOnePlayer
-  call  _sgb_PacketTransfer       ; We return to one player mode
+  ld hl, sgb_MltReqOnePlayer
+  call _sgb_PacketTransfer       ; We return to one player mode
   scf                            ; We raise the carry flag
   ret                            ; We are in a Super Game Boy
 
@@ -241,16 +295,14 @@ sgb_SendInitPackets:
 SECTION "Super GameBoy Main", ROM0
 
 ; Super Game boy command packets
-sgb_Pal01:        SGB_PACKET $00, 1
-sgb_Pal23:        SGB_PACKET $01, 1
-sgb_Pal03:        SGB_PACKET $02, 1
-sgb_Pal12:        SGB_PACKET $03, 1
 sgb_ChrTrn1:      CHR_TRN 0, 0 ; First 128 tile block transfer
 sgb_ChrTrn2:      CHR_TRN 1, 0 ; Second 128 tile block transfer
 sgb_PctTrn:       PCT_TRN
 sgb_PalTrn:       PAL_TRN
 sgb_MaskEnFreeze: MASK_EN 1
 sgb_MaskEnCancel: MASK_EN 0
+sgb_PalPriGame:   PAL_RPI 1
+sgb_PalPriUser:   PAL_RPI 0
 
 sgb_SetDefaultBorder::
   ld a, BANK(VersionSgbBorderTiles)
@@ -415,6 +467,7 @@ sgb_VRAMTransfer::
   ret z
 _sgb_VRAMTransfer:
   ; store screen state
+  di
   ldh a, [rLCDC]
   push af
   ldh a, [rSCX]
@@ -424,7 +477,6 @@ _sgb_VRAMTransfer:
   ldh a, [rBGP]
   push af
 
-  di
   push de                     ; packet data
   DISPLAY_OFF                 ; We disble interruptions and turn off the LCD because we are going to modify the VRAM data
   xor a
@@ -434,7 +486,7 @@ _sgb_VRAMTransfer:
   ldh [rBGP], a                ; VRAM-transfer background palette value
   ld de, _VRAM + 2048
   ld bc, 4096
-  call mem_CopyVRAM           ; We copy to the Game Boy VRAM the 4KB data that is going to be transferred to the SNES RAM
+  call mem_Copy               ; We copy to the Game Boy VRAM the 4KB data that is going to be transferred to the SNES RAM
 
   ; We copy to the visible _SCRN0 background the 4KB data that is going to be transferred to the SNES RAM by VRAM-transfer
   ld hl, _SCRN0
@@ -470,7 +522,7 @@ _sgb_VRAMTransfer:
   ldh [rSCY], a
   pop af
   ldh [rLCDC], a
-  ret
+  reti
 
 ; Super Game Boy packet transfer
 ; input: HL = Packet address
@@ -483,23 +535,34 @@ _sgb_PacketTransfer:
   and %00000111               ; The three lower bits indicate the number of packets to send
   ret z                       ; We return if there are no packets to send
   ld b, a                     ; We store the number of packets to send
-.sendPacketsLoop:
+
+  ld a, [hl]
+  sra a
+  sra a
+  sra a
+  cp SGB_CODE_PAL_PRI         ;last code available
+  ret nc
+  cp SGB_CODE_OBJ_TRN
+  ret z
+  cp SGB_CODE_TEST_EN
+  ret z
+.sendPacketsLoop
     push bc
     xor a
     ldh [rP1], a               ; Initial pulse (Start write). P14 = LOW and P15 = LOW
     ld a, P1F_4 | P1F_5
     ldh [rP1], a               ; P14 = HIGH and P15 = HIGH between pulses
     ld b, 16                  ; Number of bytes per packet
-  .sendBytesLoop:
+  .sendBytesLoop
       ld e, 8                 ; Bits per byte
       ld a, [hli]
       ld d, a                 ; Next byte of the packet
-    .sendBitsLoop:
+    .sendBitsLoop
         bit 0, d
         ld a, P1F_4           ; P14 = HIGH and P15 = LOW (Write 1)
         jr nz, .skip
         ld a, P1F_5           ; P14 = LOW and P15 = HIGH (Write 0)
-      .skip:
+      .skip
         ldh [rP1], a           ; We send one bit
         ld a, P1F_4 | P1F_5
         ldh [rP1], a           ; P14 = HIGH and P15 = HIGH between pulses
@@ -515,7 +578,7 @@ _sgb_PacketTransfer:
 
     ; 280048 clock cycles are consumed (66.768646240234375 milliseconds) at 4.194304 mhz | 24 cycles
     ld de, 7000               ; 12 cycles
-.wait24Cycles:
+.wait24Cycles
       nop                     ; 4 cycles
       nop                     ; 4 cycles
       nop                     ; 4 cycles
@@ -528,3 +591,29 @@ _sgb_PacketTransfer:
     dec b
     jr nz, .sendPacketsLoop       ; We jump while there are packets left to be sent
   ret
+
+sgb_CopyToWRAM::;a = SNES bank, bc = byte count, de = SNES address, hl = src data
+  ld [cmd_buffer+3], a;SNES bank
+  ld a, d
+  ld [cmd_buffer+1], a;SNES address low
+  ld a, e
+  ld [cmd_buffer+2], a;SNES address high
+  ld a, b
+  and a
+  jr nz, .useDataTransfer
+  ld a, c
+  cp a, 11
+  jr nc, .useDataTransfer
+.useDataSend
+  ld [cmd_buffer+4], a;byte count
+  ld a, SGB_CODE_DATA_SND
+  ld [cmd_buffer], a
+  ld de, cmd_buffer+5
+  call mem_Copy
+  ld hl, cmd_buffer
+  jp _sgb_PacketTransfer
+.useDataTransfer
+  ld a, SGB_CODE_DATA_TRN
+  ld [cmd_buffer], a
+  ld de, cmd_buffer
+  jp _sgb_VRAMTransfer

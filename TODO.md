@@ -1,5 +1,9 @@
 Priority
 
+- replace all uses of GBCSetPalette with SetPalettesIndirect
+- build sgb attribute files with palette data
+- construct sgb packet headers at runtime instead of taking up space in ROM0 using macros
+- move color palettes out of ROM0
 - update seen/signed after games, transformations, and signings
 - add batting/pitching animations for Rattail, Pidge, and Chica
 - announcer mode
@@ -33,7 +37,6 @@ Optimization
 - use HDMA transfers on GBC (see https://gbdev.io/pandocs/CGB_Registers.html#lcd-vram-dma-transfers)
 - running out of room in ROM0, move stuff to other banks
   - move map_stamps out of ROM0
-  - move colors.asm out of ROM0
   - core.asm should not include core_strings.asm
   - move collision response code (doors, items, etc.) from map_loader to world
   - helper routines that don't take any args should use TRAMPOLINE instead
@@ -148,8 +151,10 @@ Rolédex
 
 Audio
 
+- use FXHammer.gb to make SFX
 - pitch, hit, wiff, catch SFX
 - on/off PC SFX
+- test hUGEDriver (too big to fit in ROM0 currently)
 
 Animation
 
@@ -158,14 +163,12 @@ Animation
 
 Super GameBoy
 
+- wait 4 frames between transfers (https://gbdev.io/pandocs/SGB_Command_Packet.html)
 - colors not restored correctly when returning to world
 - user player tiles flash grey when drawing opponent stats
 - draws garbage when returning to world from ballgame
 - sound test doesn't seem to work, test on hardware
 - set tiles to palette 0 when drawing UI boxes (currently only works on GBC)
-- GBCSetPalette (used to match SGB and GBC palettes) can cause problems with GBC specific palettes
-- use color palette data
-- use additional sprites (bottom row of tiles will be trashed)
 - borders for each city when walking
 - borders for different fields
 - extra music voices

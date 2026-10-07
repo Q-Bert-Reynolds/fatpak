@@ -6,8 +6,8 @@ INCLUDE "src/baseball/interrupts.asm"
 
 SGBPlayBallIntroAttrBlk:
   ATTR_BLK 2
-  ATTR_BLK_PACKET %001, 0,0,0, 0,12, 20,6 ;bottom UI
-  ATTR_BLK_PACKET %001, 1,1,1, 0,0, 20,12 ;upper Dark
+  ATTR_BLK_DATA %001, 0,0,0, 0,12, 20,6 ;bottom UI
+  ATTR_BLK_DATA %001, 1,1,1, 0,0, 20,12 ;upper Dark
 
 PlayBallIntro:
   ld hl, SGBPlayBallIntroAttrBlk
@@ -211,7 +211,6 @@ PlayBallIntro:
   ld a, [hli]
   ld d, a
   ld bc, PaletteCalvin
-  ld a, [sgb_Pal23]
   call SetPalettesDirect
 
   pop af;num
@@ -226,7 +225,6 @@ PlayBallIntro:
 .showTeamText
   ld bc, PaletteCalvin
   ld de, PaletteNolan
-  ld a, [sgb_Pal23]
   call SetPalettesDirect
 
   ld hl, Opponent.coach

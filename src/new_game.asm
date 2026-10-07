@@ -164,7 +164,6 @@ NewGame::
   ld c, a
   ld a, [hli]
   ld b, a
-  ld a, [sgb_Pal23]
   call SetPalettesDirect
 
   ld a, 1

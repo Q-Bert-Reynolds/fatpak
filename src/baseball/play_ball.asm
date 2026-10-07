@@ -1024,9 +1024,9 @@ SetPlayBallTiles:
 SGBPlayBallPalSet: PAL_SET PALETTE_UI, PALETTE_DARK, PALETTE_GREY, PALETTE_GREY
 SGBPlayBallAttrBlk:
   ATTR_BLK 3
-  ATTR_BLK_PACKET %001, 0,0,0, 0,0, 20,18 ;main UI
-  ATTR_BLK_PACKET %001, 2,2,2, 0,5,   8,7 ;user player
-  ATTR_BLK_PACKET %001, 3,3,3, 12,0,  8,7 ;opposing player
+  ATTR_BLK_DATA %001, 0,0,0, 0,0, 20,18 ;main UI
+  ATTR_BLK_DATA %001, 2,2,2, 0,5,   8,7 ;user player
+  ATTR_BLK_DATA %001, 3,3,3, 12,0,  8,7 ;opposing player
   
 SetPlayerColors::;since SGB requires 2 palettes to change at the same time, always set both players
   ld hl, SGBPlayBallPalSet               
@@ -1055,7 +1055,6 @@ SetPlayerColors::;since SGB requires 2 palettes to change at the same time, alwa
   ld d, a;de = opponent palette
 
   pop bc;user palette
-  ld a, [sgb_Pal23]
   call SetPalettesDirect
 
   ret

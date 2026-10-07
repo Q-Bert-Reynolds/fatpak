@@ -121,7 +121,6 @@ ShowPlayer: ;de = player number
   ld a, [hli]
   ld d, a
   ld bc, PaletteCalvin
-  ld a, [sgb_Pal23]
   call SetPalettesDirect
 
   ld a, 72
@@ -138,11 +137,11 @@ BallToss:
 TitlePalSet: PAL_SET PALETTE_TITLE_SCREEN, PALETTE_VERSION, PALETTE_CALVIN, PALETTE_GREY
 SGBTitleAttrBlk:
   ATTR_BLK 5
-  ATTR_BLK_PACKET %111, 1,0,0,  0, 0, 20,8 ;title & home/away
-  ATTR_BLK_PACKET %001, 0,0,3,  0,10, 20,7 ;player
-  ATTR_BLK_PACKET %001, 0,0,2, 13,10,  3,4 ;Calvin's head
-  ATTR_BLK_PACKET %001, 0,0,2, 11,12,  5,2 ;Calvin's body
-  ATTR_BLK_PACKET %001, 0,0,1, 13,14,  2,3 ;Calvin's pants
+  ATTR_BLK_DATA %111, 1,0,0,  0, 0, 20,8 ;title & home/away
+  ATTR_BLK_DATA %001, 0,0,3,  0,10, 20,7 ;player
+  ATTR_BLK_DATA %001, 0,0,2, 13,10,  3,4 ;Calvin's head
+  ATTR_BLK_DATA %001, 0,0,2, 11,12,  5,2 ;Calvin's body
+  ATTR_BLK_DATA %001, 0,0,1, 13,14,  2,3 ;Calvin's pants
   
 ShowTitle:
   DISPLAY_OFF
@@ -378,7 +377,7 @@ CyclePlayersLoop:
 StartMenuPalSet: PAL_SET PALETTE_UI, PALETTE_UI, PALETTE_GREY, PALETTE_GREY
 SGBStartMenuAttrBlk:
   ATTR_BLK 1
-  ATTR_BLK_PACKET %111, 0,0,0, 0,0, 20,18 ;UI
+  ATTR_BLK_DATA %111, 0,0,0, 0,0, 20,18 ;UI
 
 ShowStartMenu: ; puts choice in a ... 0 = back, >0 = choice
   DISABLE_LCD_INTERRUPT

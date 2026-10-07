@@ -92,7 +92,8 @@ Main::
   and a, SYS_INFO_GBC
   jr z, .initializeRAM
   call gbdk_CPUFast; GBC always in fast mode
-  CGB_COMPATIBILITY
+  ld hl, DefaultPalettes
+  call GBCCopyPalettesFrom
 
 .initializeRAM
   ld a, [sys_info]

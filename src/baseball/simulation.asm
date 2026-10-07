@@ -600,7 +600,7 @@ InitBall:;a = ball speed b = spray angle c = launch angle
 
 SGBSimulationAttrBlk:
   ATTR_BLK 1
-  ATTR_BLK_PACKET %001, 3,3,3, 0,0, 20,18
+  ATTR_BLK_DATA %001, 3,3,3, 0,0, 20,18
   
 RunSimulation::;a = ball speed, d = spray angle, e = launch angle
   push af;ball speed
@@ -617,7 +617,6 @@ RunSimulation::;a = ball speed, d = spray angle, e = launch angle
 
   ld bc, PaletteCalvin
   ld de, PaletteField
-  ld a, [sgb_Pal23]
   call SetPalettesDirect
 
 .setSGB

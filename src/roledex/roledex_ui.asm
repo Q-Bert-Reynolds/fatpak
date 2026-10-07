@@ -7,11 +7,11 @@ INCLUDE "data/strings/roledex_ui_strings.asm"
 SGBRoledexPalSet: PAL_SET PALETTE_UI, PALETTE_DARK, PALETTE_GREY, PALETTE_GREY
 SGBRoledexPlayerAttrBlk:
   ATTR_BLK 2
-  ATTR_BLK_PACKET %001, 0,0,0, 0,0, 20,18 ;main UI
-  ATTR_BLK_PACKET %001, 2,2,2, 1,1,   8,7 ;player
+  ATTR_BLK_DATA %001, 0,0,0, 0,0, 20,18 ;main UI
+  ATTR_BLK_DATA %001, 2,2,2, 1,1,   8,7 ;player
 SGBRoledexAttrBlk:
   ATTR_BLK 1
-  ATTR_BLK_PACKET %001, 0,0,0, 0,0, 20,18 ;main UI
+  ATTR_BLK_DATA %001, 0,0,0, 0,0, 20,18 ;main UI
 
 DrawRoledexBaseUI:
   CLEAR_BKG_AREA 0,0,20,18,' '
@@ -290,7 +290,6 @@ ShowRoledexPlayerData:;a player num
   ld c, a
   ld a, [hli]
   ld b, a
-  ld a, [sgb_Pal23]
   call SetPalettesDirect
 
   ld bc, 0

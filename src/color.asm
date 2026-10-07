@@ -143,18 +143,16 @@ SetPalettesIndirect::;hl = palettes in PAL_SET (SGB) fromat
 
 ;----------------------------------------------------------------------
 ;
-; SetPalettesDirect - sets 2 palettes
+; SetPalettesDirect - sets middle 2 palettes
 ;   
 ;   works for both CGB and SGB
 ;
 ;   input: 
-;     a = SGB packet header
 ;     bc = colorA
 ;     de = colorB
 ;
 ;----------------------------------------------------------------------
-SetPalettesDirect::;a = SGB packet header, bc = paletteA, de = paletteB
-  ld h, a;header
+SetPalettesDirect::;bc = paletteA, de = paletteB
 .checkCGB
   ld a, [sys_info]
   and a, SYS_INFO_GBC
@@ -173,7 +171,7 @@ SetPalettesDirect::;a = SGB packet header, bc = paletteA, de = paletteB
   and a, SYS_INFO_SGB
   ret z
 .setPalettesSGB
-  ld a, h;header
+  ld a, PAL23
   jp sgb_SetPal
 
 GBCSetPalette::;a = palette id, hl = colors
@@ -222,6 +220,7 @@ GBCSetTwoColorBGPalettes::; b = first pal index, c = num palettes, hl = source
     dec c
     jr nz, .loop
   ret
+
 ;----------------------------------------------------------------------
 ;
 ; SetColorBlocks - sets rectangles of color in screenspace
@@ -249,7 +248,7 @@ SetColorBlocks::
 
 ;assumes no window offset, only handles inside blocks
 GBCSetColorBlocks::;b = draw flags, hl = SGB ATTR_BLK address
-  inc hl;skip SGB_PACKET
+  inc hl;skip sgb packet header
   ld a, [hli];packet count
 .loop
     push af;packet count
@@ -262,7 +261,7 @@ GBCSetColorBlocks::;b = draw flags, hl = SGB ATTR_BLK address
   ret
 
 ;TODO: handle outside and border cases
-GBCSetColorBlock::;b = draw flags, hl = ATTR_BLK_PACKET address, returns address of next ATTR_BLK_PACKET if any
+GBCSetColorBlock::;b = draw flags, hl = ATTR_BLK_DATA address, returns address of next ATTR_BLK_DATA if any
   push bc;draw flags
   ld a, [hli];bit 2 = outside block, bit 1 = on border, bit 0 = inisde block... not used here
   ld a, [hli];(outside << 4) + (border << 2) + inside XXoobbii
@@ -279,7 +278,7 @@ GBCSetColorBlock::;b = draw flags, hl = ATTR_BLK_PACKET address, returns address
   ld a, [hli];y+h-1
   sub a, e;h-1
   inc a;h
-  push hl;next ATTR_BLK_PACKET
+  push hl;next ATTR_BLK_DATA
   ld h, c;w
   ld l, a;h
   push hl;wh
@@ -296,12 +295,12 @@ GBCSetColorBlock::;b = draw flags, hl = ATTR_BLK_PACKET address, returns address
 
   pop de;xy
   pop hl;wh
-  pop bc;next ATTR_BLK_PACKET
+  pop bc;next ATTR_BLK_DATA
   pop af;draw flags
-  push bc;next ATTR_BLK_PACKET
+  push bc;next ATTR_BLK_DATA
   ld bc, tile_buffer
   call GBCSetPaletteMap
-  pop hl;next ATTR_BLK_PACKET
+  pop hl;next ATTR_BLK_DATA
   ret
 
 GBCSetPaletteMap::;a = draw flags, hl = wh, de = xy, bc = firstTile
@@ -378,9 +377,8 @@ GBCCopyPalettesFrom::;hl = source
     jr nz, .loop
   ret
 
-
 SECTION "Palettes", ROM0
-
+;This should be a ROMX section, but sgb_PalTrn and several color copy functions expect them to be in ROM0
 DefaultPalettes::
 PaletteGrey::
   ColorWhite:: COLOR_OFF_WHITE

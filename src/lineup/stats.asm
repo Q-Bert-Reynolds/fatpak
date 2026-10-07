@@ -2,9 +2,9 @@
 SGBStatsPalSet: PAL_SET PALETTE_UI, PALETTE_DARK, PALETTE_GREY, PALETTE_GREY
 SGBStatsAttrBlk:
   ATTR_BLK 3
-  ATTR_BLK_PACKET %001, 0,0,0, 0,0, 20,18 ;main UI
-  ATTR_BLK_PACKET %001, 2,2,2, 0,0,   8,7 ;player
-  ATTR_BLK_PACKET %001, 3,3,3, 12,3,  6,1 ;hp
+  ATTR_BLK_DATA %001, 0,0,0, 0,0, 20,18 ;main UI
+  ATTR_BLK_DATA %001, 2,2,2, 0,0,   8,7 ;player
+  ATTR_BLK_DATA %001, 3,3,3, 12,3,  6,1 ;hp
   
 SetStatScreenColors:;hl = player
   push hl;player
@@ -40,7 +40,6 @@ SetStatScreenColors:;hl = player
   ld de, PaletteGood;green
 .setPalettes
   pop bc;player palette
-  ld a, [sgb_Pal23]
   call SetPalettesDirect
 
   ret

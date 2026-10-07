@@ -12,26 +12,26 @@ INCLUDE "data/strings/lineup_strings.asm"
 SGBLineupPalSet: PAL_SET PALETTE_UI, PALETTE_SEPIA, PALETTE_WARNING, PALETTE_GOOD
 SGBLineupAttrBlk:
   ATTR_BLK 11
-  ATTR_BLK_PACKET %001, 0,0,0, 3,0, 17,18 ;main UI
-  ATTR_BLK_PACKET %001, 1,1,1, 0,0,  3,18 ;players
+  ATTR_BLK_DATA %001, 0,0,0, 3,0, 17,18 ;main UI
+  ATTR_BLK_DATA %001, 1,1,1, 0,0,  3,18 ;players
 .player1HPBar
-  ATTR_BLK_PACKET %001, 3,3,3, 5,0,  6, 2
+  ATTR_BLK_DATA %001, 3,3,3, 5,0,  6, 2
 .player2HPBar
-  ATTR_BLK_PACKET %001, 3,3,3, 5,2,  6, 2
+  ATTR_BLK_DATA %001, 3,3,3, 5,2,  6, 2
 .player3HPBar
-  ATTR_BLK_PACKET %001, 3,3,3, 5,4,  6, 2
+  ATTR_BLK_DATA %001, 3,3,3, 5,4,  6, 2
 .player4HPBar
-  ATTR_BLK_PACKET %001, 3,3,3, 5,6,  6, 2
+  ATTR_BLK_DATA %001, 3,3,3, 5,6,  6, 2
 .player5HPBar
-  ATTR_BLK_PACKET %001, 3,3,3, 5,8,  6, 2
+  ATTR_BLK_DATA %001, 3,3,3, 5,8,  6, 2
 .player6HPBar
-  ATTR_BLK_PACKET %001, 3,3,3, 5,10, 6, 2
+  ATTR_BLK_DATA %001, 3,3,3, 5,10, 6, 2
 .player7HPBar
-  ATTR_BLK_PACKET %001, 3,3,3, 5,12, 6, 2
+  ATTR_BLK_DATA %001, 3,3,3, 5,12, 6, 2
 .player8HPBar
-  ATTR_BLK_PACKET %001, 3,3,3, 5,14, 6, 2
+  ATTR_BLK_DATA %001, 3,3,3, 5,14, 6, 2
 .player9HPBar
-  ATTR_BLK_PACKET %001, 3,3,3, 5,16, 6, 2
+  ATTR_BLK_DATA %001, 3,3,3, 5,16, 6, 2
 SGBLineupAttrBlkEnd:
 
 SwapPositions: ;bc = player count, selected player
