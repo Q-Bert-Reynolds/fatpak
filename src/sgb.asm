@@ -199,15 +199,20 @@ sgb_MltReqOnePlayer:  MLT_REQ 1
 
 ; Super Game Boy initialization
 sgb_Init::
-  call sgb_SendInitPackets       ; 8 initialization data packet sending, according to the official documentation
-  call sgb_Check
-  ret nc                         ; We return if the game is not running on a Super Game Boy
-  
+  di
+  call sgb_SendInitPackets        ; 8 initialization data packet sending, according to the official documentation
+  call sgb_Check                  ; check multiplayer even if register check has passed
   ld a, [sys_info]
+  jr nc, .doubleCheck             ; multiplayer fail might be a fluke, check registers
   or a, SYS_INFO_SGB
   ld [sys_info], a
+.doubleCheck
+  and a, SYS_INFO_SGB
+  jr nz, .success
+.fail
+  reti                            ; both register and multiplayer checks failed
 
-  di
+.success
   ld hl, sgb_MaskEnFreeze
   call  _sgb_PacketTransfer       ; Freezes the visualization of the Super Game Boy screen to hide the graphic garbage during the VRAM transfers  
 
@@ -264,7 +269,7 @@ sgb_Check:
   ldh a, [rP1]
   cp b                           ; If the id is the same then there has not been reply to the two-
   jr nz, check_sgb_0             ; player mode request, and therefore we are not in a Super Game Boy
-  and a                          ; We lower the carry flag
+  ccf                            ; We lower the carry flag
   ret                            ; We are not in a Super Game Boy
 check_sgb_0:
   ld hl, sgb_MltReqOnePlayer
@@ -495,10 +500,7 @@ _sgb_VRAMTransfer:
   ld c, 13                    ; Rows of data to be copied
 .rowLoop:
     ld b, 20                  ; Visible background width
-.columnLoop:
-      push af
-      LCD_WAIT_VRAM
-      pop af
+  .columnLoop:
       ld [hli], a             ; Tile set
       inc a
       dec b

@@ -915,14 +915,32 @@ DEF AUDHIGH_LENGTH_OFF  EQU %00000000
 ;*
 ;***************************************************************************
 
+; Register A = CPU type
 DEF BOOTUP_A_DMG    EQU $01 ; Dot Matrix Game
 DEF BOOTUP_A_CGB    EQU $11 ; Color GameBoy
 DEF BOOTUP_A_MGB    EQU $FF ; Mini GameBoy (Pocket GameBoy)
+DEF BOOTUP_A_SGB    EQU BOOTUP_A_DMG
+DEF BOOTUP_A_SGB2   EQU BOOTUP_A_MGB
 
-; if a=BOOTUP_A_CGB, bit 0 in b can be checked to determine if real CGB or
-; other system running in GBC mode
-DEF BOOTUP_B_CGB    EQU %00000000
-DEF BOOTUP_B_AGB    EQU %00000001   ; GBA, GBA SP, Game Boy Player, or New GBA SP
+; Register B = CPU qualifier
+DEF BOOTUP_B_DMG0  EQU $FF
+DEF B_BOOTUP_B_AGB EQU 0 ;if a=BOOTUP_A_CGB, bit 0 in b can be checked to determine if real CGB(0) or AGB(1)
+
+; Register C = CPU qualifier
+DEF BOOTUP_C_DMG EQU $13
+DEF BOOTUP_C_SGB EQU $14
+DEF BOOTUP_C_CGB EQU $00 ; CGB or AGB
+
+; Register D = color qualifier
+DEF BOOTUP_D_MONO  EQU $00 ; DMG, MGB, SGB, or CGB or AGB in DMG mode
+DEF BOOTUP_D_COLOR EQU $FF ; CGB or AGB
+
+; Register E = CPU qualifier (distinguishes DMG variants)
+DEF BOOTUP_E_DMG0        EQU $C1
+DEF BOOTUP_E_DMG         EQU $C8
+DEF BOOTUP_E_SGB         EQU $00
+DEF BOOTUP_E_CGB_DMGMODE EQU $08 ; CGB or AGB in DMG mode
+DEF BOOTUP_E_CGB         EQU $56 ; CGB or AGB
 
 
 ;***************************************************************************

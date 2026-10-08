@@ -61,27 +61,34 @@ DEF SYS_INFO_GBA EQU %00000100 ;Game Boy Advance
 DEF SYS_INFO_GBP EQU %00001000 ;Game Boy Pocket and Super Game Boy 2
 
 MACRO SYS_CHECK ;must happen first
-.gbcCheck
-  cp a, BOOTUP_A_MGB;is this a GBP
+  cp a, BOOTUP_A_DMG
+  jr z, .dmg
+  cp a, BOOTUP_A_MGB
   jr z, .gbp
-  ; NOTE: Never actually checking for DMG. 
-  ;       Assumes DMG if other tests fail. 
-  ;       Used to check emulators.
-  ;       https://github.com/ISSOtm/Aevilia-GB/blob/master/home.asm
-  ; cp a, BOOTUP_A_DMG
-  ; jr z, .dmg
-  cp a, BOOTUP_A_CGB;is this a GBC
+.gbcCheck
+  cp a, BOOTUP_A_CGB
   ld a, 0;don't xor here
   jr nz, .setSysInfo
-  bit 0, b;is it also a GBA
+  bit B_BOOTUP_B_AGB, b;is it also a GBA
   jr z, .gbc
-.gba;BOOTUP_B_AGB
+.gba
   or a, SYS_INFO_GBA
-.gbc;BOOTUP_B_CGB
+.gbc
   or a, SYS_INFO_GBC
   jr .setSysInfo
 .gbp
   ld a, SYS_INFO_GBP
+  jr .sgbCheck
+.dmg
+  ld a, SYS_INFO_DMG
+.sgbCheck
+  ld b, a;sys info
+  ld a, c
+  cp a, BOOTUP_C_SGB
+  ld a, b;sys info
+  jr nz, .setSysInfo
+.sgb
+  or a, SYS_INFO_SGB
 .setSysInfo
   ld [sys_info], a
 ENDM
@@ -292,7 +299,7 @@ ENDC
     jr .rowLoop\@
 ENDM
 
-SECTION "GBDK WRAM Vars", WRAM0[_RAM]
+SECTION "GBDK WRAM Vars", WRAM0[$C000]
 ;ensure OAM buffer starts at $XX00 and is not in switchable WRAM, see gbdk_SetupDMATransfer
 oam_buffer:: DS 4*40
 rand_hi:: DB
