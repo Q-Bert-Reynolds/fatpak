@@ -103,7 +103,6 @@ MACRO COPY_TO_HRAM; \1 = dest address in HRAM, \2 = first address to copy, \3 = 
   inc c
   dec b
   jr nz, .copy
-  jp \3
 ENDM
 
 MACRO DISPLAY_ON
@@ -299,7 +298,7 @@ ENDC
     jr .rowLoop\@
 ENDM
 
-SECTION "GBDK WRAM Vars", WRAM0[$C000]
+SECTION "GBDK WRAM Vars", WRAM0[_RAM]
 ;ensure OAM buffer starts at $XX00 and is not in switchable WRAM, see gbdk_SetupDMATransfer
 oam_buffer:: DS 4*40
 rand_hi:: DB
@@ -672,6 +671,7 @@ gbdk_Seed::
 ;***************************************************************************
 gbdk_SetupDMATransfer::
   COPY_TO_HRAM gbdk_DMATransfer, .DMATransfer, .DMATransferEnd
+  ret
 
 .DMATransfer
   ld a, HIGH(oam_buffer)

@@ -539,14 +539,15 @@ _sgb_PacketTransfer:
   ld b, a                     ; We store the number of packets to send
 
   ld a, [hl]
-  sra a
-  sra a
-  sra a
-  cp SGB_CODE_PAL_PRI         ;last code available
+  rra
+  rra
+  rra
+  and %00011111
+  cp a, SGB_CODE_PAL_PRI+1        ;last code available
   ret nc
-  cp SGB_CODE_OBJ_TRN
+  cp a, SGB_CODE_OBJ_TRN
   ret z
-  cp SGB_CODE_TEST_EN
+  cp a, SGB_CODE_TEST_EN
   ret z
 .sendPacketsLoop
     push bc
