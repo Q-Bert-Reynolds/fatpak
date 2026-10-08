@@ -261,6 +261,8 @@ ShowTitle:
 
   DISPLAY_ON
   call gbdk_WaitVBL
+  ld hl, sgb_MaskEnCancel
+  call  sgb_PacketTransfer 
 
   ld hl, TitleDrop
 .dropInTitleLoop
@@ -380,9 +382,12 @@ SGBStartMenuAttrBlk:
   ATTR_BLK_DATA %111, 0,0,0, 0,0, 20,18 ;UI
 
 ShowStartMenu: ; puts choice in a ... 0 = back, >0 = choice
+  CLEAR_SCREEN 0
+  call gbdk_WaitVBL
   DISABLE_LCD_INTERRUPT
   DISPLAY_OFF
-
+  ld hl, sgb_MaskEnFreeze
+  call  sgb_PacketTransfer;wait until the screen is completely clear before freezing the display on sgb
 .setPalettes
   ld hl, StartMenuPalSet               
   call SetPalettesIndirect
@@ -401,9 +406,11 @@ ShowStartMenu: ; puts choice in a ... 0 = back, >0 = choice
   call GBCSetBkgPaletteMap
 
   call UpdateAudio
-  CLEAR_SCREEN ' '
   TRAMPOLINE UILoadFontTiles
+  CLEAR_SCREEN ' '
   DISPLAY_ON
+  ld hl, sgb_MaskEnCancel
+  call  sgb_PacketTransfer 
 
   call CheckSave
   jp z, .noSaveFile

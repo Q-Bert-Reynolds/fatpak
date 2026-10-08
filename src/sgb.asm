@@ -18,6 +18,9 @@ INCLUDE "src/memory1.asm"
 ;   sgb_SetBorder
 ;     Sets the Super Game Boy border.
 ;     Input: a = bank, hl = tiles, de = tile map
+;   sgb_PlaySound
+;     Plays a preset sound effect on the SNES
+;     Input: a = sound A, b = sound B, c = attributes
 ;   sgb_SetPal
 ;     Directly sets 2 SNES palettes. Packet can only be codes 0-3.
 ;     Input: a = packet header, bc = paletteA, de = paletteB
@@ -200,6 +203,7 @@ sgb_MltReqOnePlayer:  MLT_REQ 1
 ; Super Game Boy initialization
 sgb_Init::
   di
+  DISPLAY_OFF
   call sgb_SendInitPackets        ; 8 initialization data packet sending, according to the official documentation
   call sgb_Check                  ; check multiplayer even if register check has passed
   ld a, [sys_info]
@@ -268,10 +272,10 @@ sgb_Check:
   ldh a, [rP1]
   ldh a, [rP1]
   cp b                           ; If the id is the same then there has not been reply to the two-
-  jr nz, check_sgb_0             ; player mode request, and therefore we are not in a Super Game Boy
+  jr nz, .restore1P              ; player mode request, and therefore we are not in a Super Game Boy
   ccf                            ; We lower the carry flag
   ret                            ; We are not in a Super Game Boy
-check_sgb_0:
+.restore1P
   ld hl, sgb_MltReqOnePlayer
   call _sgb_PacketTransfer       ; We return to one player mode
   scf                            ; We raise the carry flag

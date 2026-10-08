@@ -258,7 +258,7 @@ InitializeGameData::
 ClearTiles:: ;a = tile, display should be off
   ld bc, 32*32+20*18
   ld hl, _SCRN0
-  jp mem_Set
+  jp mem_SetVRAM
 
 ClearScreen:: ;a = tile, display should be off
   call ClearTiles
@@ -290,6 +290,7 @@ HideAllSprites::
     inc hl
     dec b
     jr nz, .loop
+  call gbdk_DMATransfer
   ret
 
 HideSpritesInRect::;hl=wh, de=xy(left/top)

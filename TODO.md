@@ -1,14 +1,7 @@
 Priority
 
-- replace all uses of GBCSetPalette with SetPalettesIndirect
-- build sgb attribute files with palette data
-- construct sgb packet headers at runtime instead of taking up space in ROM0 using macros
-- move color palettes out of ROM0
-- update seen/signed after games, transformations, and signings
+- update play ball screen
 - add batting/pitching animations for Rattail, Pidge, and Chica
-- announcer mode
-  - double plays
-  - beat the throw
 - baseball simulation
   - move a fielder to a position
   - move fielders to positions based on result
@@ -37,6 +30,7 @@ Optimization
 - use HDMA transfers on GBC (see https://gbdev.io/pandocs/CGB_Registers.html#lcd-vram-dma-transfers)
 - running out of room in ROM0, move stuff to other banks
   - move map_stamps out of ROM0
+  - move color palettes out of ROM0
   - core.asm should not include core_strings.asm
   - move collision response code (doors, items, etc.) from map_loader to world
   - helper routines that don't take any args should use TRAMPOLINE instead
@@ -60,6 +54,7 @@ Start
 
 Play Ball
 
+- update seen/signed after games, transformations, and signings
 - fix swing timing
 - add swing/pitch fx
 - offers accepted by unsigned players should end game
@@ -77,14 +72,13 @@ Play Ball
 - change color of move info based on type
 - bunting
 - update user player stats
-
-Game Results
-
 - Show box score
 - Learn moves at certain ages. (sepatrate learn move logic from UseItemOnPlayer subroutine)
 
 Announcer
 
+- double plays
+- beat the throw
 - finish (deterministic) announcer mode baseball logic
 - fix range calculation in AnnounceFieldingText subroutine
 - Announce "Squirt looks done for out there." when out of HP. 
@@ -163,7 +157,9 @@ Animation
 
 Super GameBoy
 
-- wait 4 frames between transfers (https://gbdev.io/pandocs/SGB_Command_Packet.html)
+- replace all uses of GBCSetPalette with SetPalettesIndirect
+- build sgb attribute files with palette data
+- construct sgb packet headers at runtime instead of taking up space in ROM0 using macros
 - colors not restored correctly when returning to world
 - user player tiles flash grey when drawing opponent stats
 - draws garbage when returning to world from ballgame
@@ -172,7 +168,6 @@ Super GameBoy
 - borders for each city when walking
 - borders for different fields
 - extra music voices
-- fix LCD interrupt flickering when sending packets
 - use second controller
 
 Keyboard

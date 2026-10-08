@@ -532,4 +532,10 @@ Start::
   ld hl, SGBFadeOutAttrBlk
   call sgb_PacketTransfer
   TRAMPOLINE FadeOut
+  CLEAR_SCREEN 0
+  call gbdk_WaitVBL
+  DISABLE_LCD_INTERRUPT
+  DISPLAY_OFF
+  ld hl, sgb_MaskEnFreeze
+  call  sgb_PacketTransfer
   ret

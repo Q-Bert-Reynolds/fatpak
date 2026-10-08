@@ -76,7 +76,6 @@ ENDC
 ; ROUTINES THAT DO NOT REQUIRE BANK SWITCHING
 ; SetCurrentMap                a = map index, returns address in hl, bank in a
 ; GetCurrentMap                returns address in hl, bank in a
-; FixMapScroll                 HACK: called after moving right or down to solve off-by-one collision issues
 
 GetMapText::;a = text index, returns text in str_buffer
   ld b, 0

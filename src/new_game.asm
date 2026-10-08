@@ -6,6 +6,20 @@ INCLUDE "img/new_game/new_game.asm"
 INCLUDE "img/new_game/new_game_sprites/new_game_sprites.asm"
 INCLUDE "data/strings/new_game_strings.asm"
 
+NewGamePalSet: PAL_SET PALETTE_UI, PALETTE_MUCHACHO, PALETTE_CALVIN, PALETTE_NOLAN
+
+SGBNewGameDocAttrBlk:
+  ATTR_BLK 1
+  ATTR_BLK_DATA %111, 1,0,0, 0,12, 20,18
+  
+SGBNewGameCalvinAttrBlk:
+  ATTR_BLK 1
+  ATTR_BLK_DATA %011, 0,2,2, 13,4, 7,7
+  
+SGBNewGameNolanAttrBlk:
+  ATTR_BLK 1
+  ATTR_BLK_DATA %011, 0,3,3, 13,4, 7,7
+  
 SelectNameOrTextEntry: ;assumes d > 0, bc = title
   ld a, [_d]
   dec a
@@ -91,6 +105,12 @@ NewGame::
 
   TRAMPOLINE UILoadFontTiles
 
+  ld a, [sys_info]
+  and a, SYS_INFO_SGB
+  jr z, .docTiles
+  ld hl, NewGamePalSet
+  call SetPalettesIndirect
+
 .docTiles
   ; since font takes up $9000 to $9800, no need to wrap around with mem_CopyToTileData
   ld de, $8800;_VRAM+$1000+_UI_FONT_TILE_COUNT*16
@@ -107,7 +127,7 @@ NewGame::
 .docPalettes
   ld a, [sys_info]
   and a, SYS_INFO_GBC
-  jr z, .fadeInDoc
+  jr z, .docCheckSGB
 
   xor a
   ld hl, PaletteUI
@@ -122,6 +142,12 @@ NewGame::
   ld h, 1;offset
   ld a, COACH_DOC_HICKORY
   call SetCoachPalettes
+  jr .fadeInDoc
+
+.docCheckSGB
+  ld hl, SGBNewGameDocAttrBlk
+  ld b, DRAW_FLAGS_BKG
+  call SetColorBlocks
 
 .fadeInDoc
   PLAY_SONG hurrah_for_our_national_game_data, 1
