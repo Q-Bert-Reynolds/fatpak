@@ -1,5 +1,5 @@
-BaseballMetaSprites:: ;327 bytes
-GBMetaSpriteBaseballObjcutter:;67 bytes
+BaseballMetaSprites:: ;157 bytes
+GBMetaSpriteBaseballObjcutter:;34 bytes
   DB 1;width
   DB 1;height
   DB 8;frame count
@@ -8,28 +8,29 @@ GBMetaSpriteBaseballObjcutter:;67 bytes
   DB 0, 0, 17, 2;Laces
   DB 0, 0, 16, 1;Leather
 .frame1
-  DB 0, 0, 18, 2;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 18;Laces tile
 .frame2
-  DB 0, 0, 19, 2;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 19;Laces tile
 .frame3
-  DB 0, 0, 20, 2;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 20;Laces tile
 .frame4
-  DB 0, 0, 21, 2;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 21;Laces tile
 .frame5
-  DB 0, 0, 20, 66;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 2;change count
+  DB 2, 20;Laces tile
+  DB 3, 66;Laces props
 .frame6
-  DB 0, 0, 19, 66;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 19;Laces tile
 .frame7
-  DB 0, 0, 18, 66;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 18;Laces tile
 
-GBMetaSpriteBaseballObjfastball:;67 bytes
+GBMetaSpriteBaseballObjfastball:;38 bytes
   DB 1;width
   DB 1;height
   DB 8;frame count
@@ -38,28 +39,31 @@ GBMetaSpriteBaseballObjfastball:;67 bytes
   DB 0, 0, 23, 2;Laces
   DB 0, 0, 16, 1;Leather
 .frame1
-  DB 0, 0, 25, 2;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 25;Laces tile
 .frame2
-  DB 0, 0, 26, 2;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 26;Laces tile
 .frame3
-  DB 0, 0, 25, 98;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 2;change count
+  DB 2, 25;Laces tile
+  DB 3, 98;Laces props
 .frame4
-  DB 0, 0, 23, 34;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 2;change count
+  DB 2, 23;Laces tile
+  DB 3, 34;Laces props
 .frame5
-  DB 0, 0, 25, 34;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 25;Laces tile
 .frame6
-  DB 0, 0, 26, 34;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 26;Laces tile
 .frame7
-  DB 0, 0, 25, 66;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 2;change count
+  DB 2, 25;Laces tile
+  DB 3, 66;Laces props
 
-GBMetaSpriteBaseballObjslider:;67 bytes
+GBMetaSpriteBaseballObjslider:;36 bytes
   DB 1;width
   DB 1;height
   DB 8;frame count
@@ -68,28 +72,30 @@ GBMetaSpriteBaseballObjslider:;67 bytes
   DB 0, 0, 27, 2;Laces
   DB 0, 0, 16, 1;Leather
 .frame1
-  DB 0, 0, 48, 2;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 48;Laces tile
 .frame2
-  DB 0, 0, 17, 2;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 17;Laces tile
 .frame3
-  DB 0, 0, 48, 34;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 2;change count
+  DB 2, 48;Laces tile
+  DB 3, 34;Laces props
 .frame4
-  DB 0, 0, 27, 34;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 27;Laces tile
 .frame5
-  DB 0, 0, 52, 34;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 52;Laces tile
 .frame6
-  DB 0, 0, 21, 34;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 21;Laces tile
 .frame7
-  DB 0, 0, 52, 98;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 2;change count
+  DB 2, 52;Laces tile
+  DB 3, 98;Laces props
 
-GBMetaSpriteBaseballObjknuckleball:;83 bytes
+GBMetaSpriteBaseballObjknuckleball:;30 bytes
   DB 1;width
   DB 1;height
   DB 10;frame count
@@ -98,34 +104,30 @@ GBMetaSpriteBaseballObjknuckleball:;83 bytes
   DB 0, 0, 43, 98;Laces
   DB 0, 0, 16, 1;Leather
 .frame1
-  DB 0, 0, 43, 98;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 0;change count
 .frame2
-  DB 0, 0, 43, 98;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 0;change count
 .frame3
-  DB 0, 0, 42, 98;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 42;Laces tile
 .frame4
-  DB 0, 0, 42, 98;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 0;change count
 .frame5
-  DB 0, 0, 23, 34;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 2;change count
+  DB 2, 23;Laces tile
+  DB 3, 34;Laces props
 .frame6
-  DB 0, 0, 25, 34;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 25;Laces tile
 .frame7
-  DB 0, 0, 25, 34;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 0;change count
 .frame8
-  DB 0, 0, 25, 34;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 0;change count
 .frame9
-  DB 0, 0, 53, 34;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 53;Laces tile
 
-GBMetaSpriteBaseballObjgyro:;43 bytes
+GBMetaSpriteBaseballObjgyro:;19 bytes
   DB 1;width
   DB 1;height
   DB 5;frame count
@@ -134,15 +136,13 @@ GBMetaSpriteBaseballObjgyro:;43 bytes
   DB 0, 0, 32, 2;Laces
   DB 0, 0, 16, 1;Leather
 .frame1
-  DB 0, 0, 32, 2;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 0;change count
 .frame2
-  DB 0, 0, 33, 2;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 33;Laces tile
 .frame3
-  DB 0, 0, 26, 2;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 1;change count
+  DB 2, 26;Laces tile
 .frame4
-  DB 0, 0, 26, 2;Laces
-  DB 0, 0, 16, 1;Leather
+  DB 0;change count
 

@@ -3,6 +3,9 @@ INCLUDE "src/beisbol.inc"
 SECTION "Billet Town", ROMX
 INCLUDE "data/strings/billet_town_strings.asm"
 
+SECTION "World Meta Sprites", ROMX
+INCLUDE "maps/WorldMetaSprites.gbms"
+
 SECTION "World Code", ROMX
 INCLUDE "data/strings/world_strings.asm"
 INCLUDE "src/world/computer.asm"
@@ -183,6 +186,7 @@ AnimateJump:;a = frame
   ret 
 
 EnterDoor::
+  call PauseGame
   TRAMPOLINE FadeOut
   ld hl, PaletteCalvin
   ld a, 7
@@ -191,12 +195,11 @@ EnterDoor::
   call EnterMapDoor
   call ShowPlayerAvatar
   TRAMPOLINE FadeIn
+  call ResumeGame
   ret
 
 ShowPauseMenu::
-  ld a, [game_state]
-  or a, GAME_STATE_PAUSED
-  ld [game_state], a
+  call PauseGame
   call CopyBkgToWin
   
 .showPauseMenu
@@ -323,9 +326,7 @@ ShowPauseMenu::
   jp .showPauseMenu
 
 .exit
-  ld a, [game_state]
-  and a, ~GAME_STATE_PAUSED
-  ld [game_state], a
+  call ResumeGame
   call DrawMapToScreen
   call gbdk_WaitVBL
   HIDE_WIN

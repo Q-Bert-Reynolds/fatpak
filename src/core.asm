@@ -16,6 +16,8 @@ INCLUDE "data/strings/core_strings.asm"
 ; VBLInterrupt
 ; UpdateTime
 ; UpdateSpriteObjects
+; PauseGame
+; ResumeGame
 ; ClearTiles                      a = clear tile, display should be off
 ; ClearScreen                     a = clear tile, display should be off
 ; HideSpritesInRect               hl = wh, de = xy(left/top)
@@ -230,6 +232,18 @@ UpdateSpriteObjects::
     jr nz, .loop
   ld a, [loaded_bank]
   ld [rROMB0], a
+  ret
+
+PauseGame::
+  ld a, [game_state]
+  or a, GAME_STATE_PAUSED
+  ld [game_state], a
+  ret
+
+ResumeGame::
+  ld a, [game_state]
+  and a, ~GAME_STATE_PAUSED
+  ld [game_state], a
   ret
 
 InitializeGameData::

@@ -248,7 +248,6 @@
 #define SPRITE_OBJ_BUFFER_SIZE SPRITE_OBJ_MAX_COUNT * SPRITE_OBJ_SIZE
 
 //animation
-#define ANIM_DATA_INCREMENTAL  1//full data (0) is faster, incremental data (1) is smaller 
 #define ANIM_SAMPLE_RATE       12
 #define ANIM_FRAME_STEP        60 / ANIM_SAMPLE_RATE
 

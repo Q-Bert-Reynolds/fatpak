@@ -1,4 +1,4 @@
-WorldMetaSprites:: ;646 bytes
+WorldMetaSprites:: ;212 bytes
 GBMetaSpriteMetaSpriteTest1:;23 bytes
   DB 2;width
   DB 2;height
@@ -11,7 +11,7 @@ GBMetaSpriteMetaSpriteTest1:;23 bytes
   DB -12, -5, 0, 1;Ball (3)
   DB -12, 3, 1, 1;Ball (4)
 
-GBMetaSpriteMetaSpriteTestTestAnim:;623 bytes
+GBMetaSpriteMetaSpriteTestTestAnim:;189 bytes
   DB 2;width
   DB 2;height
   DB 31;frame count
@@ -23,183 +23,131 @@ GBMetaSpriteMetaSpriteTestTestAnim:;623 bytes
   DB -7, 0, 0, 1;Ball (3)
   DB -7, 8, 1, 1;Ball (4)
 .frame1
-  DB -15, 1, 64, 5;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 1;change count
+  DB 1, 1;Ball X
 .frame2
-  DB -14, -2, 64, 5;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 2;change count
+  DB 0, -14;Ball Y
+  DB 1, -2;Ball X
 .frame3
-  DB -13, -4, 64, 37;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 3;change count
+  DB 0, -13;Ball Y
+  DB 1, -4;Ball X
+  DB 3, 37;Ball props
 .frame4
-  DB -12, -6, 64, 37;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 2;change count
+  DB 0, -12;Ball Y
+  DB 1, -6;Ball X
 .frame5
-  DB -11, -8, 64, 100;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 3;change count
+  DB 0, -11;Ball Y
+  DB 1, -8;Ball X
+  DB 3, 100;Ball props
 .frame6
-  DB -9, -9, 64, 100;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 2;change count
+  DB 0, -9;Ball Y
+  DB 1, -9;Ball X
 .frame7
-  DB -8, -10, 64, 68;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 3;change count
+  DB 0, -8;Ball Y
+  DB 1, -10;Ball X
+  DB 3, 68;Ball props
 .frame8
-  DB -6, -11, 64, 68;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 2;change count
+  DB 0, -6;Ball Y
+  DB 1, -11;Ball X
 .frame9
-  DB -5, -10, 64, 3;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 3;change count
+  DB 0, -5;Ball Y
+  DB 1, -10;Ball X
+  DB 3, 3;Ball props
 .frame10
-  DB -3, -9, 64, 35;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 3;change count
+  DB 0, -3;Ball Y
+  DB 1, -9;Ball X
+  DB 3, 35;Ball props
 .frame11
-  DB -1, -8, 64, 35;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 2;change count
+  DB 0, -1;Ball Y
+  DB 1, -8;Ball X
 .frame12
-  DB 0, -6, 64, 35;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 2;change count
+  DB 0, 0;Ball Y
+  DB 1, -6;Ball X
 .frame13
-  DB 1, -4, 64, 96;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 3;change count
+  DB 0, 1;Ball Y
+  DB 1, -4;Ball X
+  DB 3, 96;Ball props
 .frame14
-  DB 2, -2, 64, 64;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 3;change count
+  DB 0, 2;Ball Y
+  DB 1, -2;Ball X
+  DB 3, 64;Ball props
 .frame15
-  DB 2, 1, 64, 64;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 1;change count
+  DB 1, 1;Ball X
 .frame16
-  DB 2, 4, 64, 64;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 1;change count
+  DB 1, 4;Ball X
 .frame17
-  DB 2, 6, 64, 1;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 2;change count
+  DB 1, 6;Ball X
+  DB 3, 1;Ball props
 .frame18
-  DB 2, 9, 64, 33;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 2;change count
+  DB 1, 9;Ball X
+  DB 3, 33;Ball props
 .frame19
-  DB 1, 12, 64, 33;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 2;change count
+  DB 0, 1;Ball Y
+  DB 1, 12;Ball X
 .frame20
-  DB 0, 14, 64, 103;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 3;change count
+  DB 0, 0;Ball Y
+  DB 1, 14;Ball X
+  DB 3, 103;Ball props
 .frame21
-  DB -1, 15, 64, 103;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 2;change count
+  DB 0, -1;Ball Y
+  DB 1, 15;Ball X
 .frame22
-  DB -3, 17, 64, 103;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 2;change count
+  DB 0, -3;Ball Y
+  DB 1, 17;Ball X
 .frame23
-  DB -5, 18, 64, 71;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 3;change count
+  DB 0, -5;Ball Y
+  DB 1, 18;Ball X
+  DB 3, 71;Ball props
 .frame24
-  DB -6, 18, 64, 71;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 1;change count
+  DB 0, -6;Ball Y
 .frame25
-  DB -8, 18, 64, 2;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 2;change count
+  DB 0, -8;Ball Y
+  DB 3, 2;Ball props
 .frame26
-  DB -9, 17, 64, 2;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 2;change count
+  DB 0, -9;Ball Y
+  DB 1, 17;Ball X
 .frame27
-  DB -11, 15, 64, 34;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 3;change count
+  DB 0, -11;Ball Y
+  DB 1, 15;Ball X
+  DB 3, 34;Ball props
 .frame28
-  DB -12, 14, 64, 102;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 3;change count
+  DB 0, -12;Ball Y
+  DB 1, 14;Ball X
+  DB 3, 102;Ball props
 .frame29
-  DB -13, 11, 64, 102;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 2;change count
+  DB 0, -13;Ball Y
+  DB 1, 11;Ball X
 .frame30
-  DB -14, 7, 64, 70;Ball
-  DB 1, 0, 16, 2;Ball (1)
-  DB 1, 8, 17, 2;Ball (2)
-  DB -7, 0, 0, 1;Ball (3)
-  DB -7, 8, 1, 1;Ball (4)
+  DB 3;change count
+  DB 0, -14;Ball Y
+  DB 1, 7;Ball X
+  DB 3, 70;Ball props
 

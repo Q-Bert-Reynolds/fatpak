@@ -32,11 +32,6 @@ map_temp_y: DB
 SECTION "Map Loader Code", ROM0
 ;TODO: move stamps and meta sprites out of ROM0
 INCLUDE "maps/map_stamps.gbstamp"
-IF ANIM_DATA_INCREMENTAL
-INCLUDE "maps/WorldMetaSprites.incremental.gbms"
-ELSE
-INCLUDE "maps/WorldMetaSprites.gbms"
-ENDC
 
 ; ROUTINES THAT SWITCH TO A BANK, DO SOME WORK, AND SWITCH BACK
 ; LoadMap                      loads palettes and tiles, sets meta sprites bank, clears sprites
@@ -633,7 +628,6 @@ CopyMetaSpriteToOAMBuffer::;bc = meta sprite, de = location of current frame, hl
 .calcFrame
   pop de;discard address of current frame
   push hl;oam
-IF ANIM_DATA_INCREMENTAL == 1
   push af;current frame
   ld a, [bc];sprite count
   push af;sprite count
@@ -672,22 +666,6 @@ IF ANIM_DATA_INCREMENTAL == 1
     jr nz, .copyFramesLoop
   pop af;sprite count
   ld bc, tile_buffer
-ELSE;ANIM_DATA_INCREMENTAL == 0
-  ld d, 0
-  ld e, a;current frame
-  ld a, [bc];sprite count
-  inc bc;first sprite
-  push bc;first sprite
-  push af;sprite count
-  call math_Multiply
-  add hl, hl;*2
-  add hl, hl;*4
-  pop af;sprite count
-  pop bc;first sprite
-  add hl, bc;first sprite of frame
-  ld b, h
-  ld c, l;first sprite of frame in bc
-ENDC
   pop hl;oam
 
 .copyToOAM

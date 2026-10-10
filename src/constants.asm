@@ -245,7 +245,6 @@ DEF SPRITE_OBJ_MAX_COUNT   EQU OAM_COUNT-4;4 sprites reserved for player avatar
 DEF SPRITE_OBJ_BUFFER_SIZE EQU SPRITE_OBJ_MAX_COUNT * SPRITE_OBJ_SIZE
 
 ;animation
-DEF ANIM_DATA_INCREMENTAL  EQU 1;full data (0) is faster, incremental data (1) is smaller 
 DEF ANIM_SAMPLE_RATE       EQU 12
 DEF ANIM_FRAME_STEP        EQU 60 / ANIM_SAMPLE_RATE
 
