@@ -8,6 +8,9 @@ INCLUDE "src/baseball/_announcer.asm"
 SECTION "Play Ball SGB", ROMX
 INCLUDE "img/play/play_ball_sgb_border.asm"
 
+SECTION "Play Ball Animations", ROMX
+INCLUDE "maps/BaseballMetaSprites.gbms"
+
 SECTION "Play Ball HOME", ROM0
 ;TODO: Figure out how banking works in C so these can go in announcer.c
 AnnounceDisplayText:: ;hl = text address
@@ -58,16 +61,26 @@ SECTION "Play Ball BANKED", ROMX, BANK[PLAY_BALL_BANK]
 
 DEF DISPLAY_PITCH_NAME_DELAY EQU 6
 
+DEF BASEBALL_SPRITE_ID   EQU 0
+DEF AIM_CIRCLE_SPRITE_ID EQU 3
+DEF STRIKEZONE_SPRITE_ID EQU 10
+
+DEF STRIKE_ZONE_CORNER_TILE EQU 3
+DEF CIRCLE_TILES            EQU 6
+DEF BASEBALL_LEATHER_TILE   EQU 16
+DEF BASEBALL_LACES_TILES    EQU 17
+
 INCLUDE "data/strings/play_ball_strings.asm"
 INCLUDE "src/baseball/ui.asm"
 INCLUDE "src/baseball/pitch_path.asm"
+INCLUDE "img/baseball_fx.asm"
 
 ShowAimCircle: ;a = size
   ld h, a
   ld c, 8
   call math_Divide8 ; l (remainder a) = h / c
-  add a, _BASEBALL_TILE_COUNT
-  ld [_i], a;i = (size%8)+_BASEBALL_TILE_COUNT;
+  add a, CIRCLE_TILES
+  ld [_i], a;i = (size%8)+CIRCLE_TILES;
 
   ld bc, 2
   ld hl, oam_buffer + AIM_CIRCLE_SPRITE_ID*4 + 2
@@ -105,7 +118,7 @@ ShowStrikeZone:
   ld a, d
   sub a, 8
   ld [hli], a;x
-  ld a, _BASEBALL_TILE_COUNT+_CIRCLE_TILE_COUNT
+  ld a, STRIKE_ZONE_CORNER_TILE
   ld [hli], a;tile
   ld a, OAMF_PAL1
   ld [hli], a
@@ -117,7 +130,7 @@ ShowStrikeZone:
   ld a, d
   add a, 16
   ld [hli], a;x
-  ld a, _BASEBALL_TILE_COUNT+_CIRCLE_TILE_COUNT
+  ld a, STRIKE_ZONE_CORNER_TILE
   ld [hli], a;tile
   ld a, FLIP_X_PAL
   ld [hli], a
@@ -129,7 +142,7 @@ ShowStrikeZone:
   ld a, d
   sub a, 8
   ld [hli], a;x
-  ld a, _BASEBALL_TILE_COUNT+_CIRCLE_TILE_COUNT
+  ld a, STRIKE_ZONE_CORNER_TILE
   ld [hli], a;tile
   ld a, FLIP_Y_PAL
   ld [hli], a
@@ -141,7 +154,7 @@ ShowStrikeZone:
   ld a, d
   add a, 16
   ld [hli], a;x
-  ld a, _BASEBALL_TILE_COUNT+_CIRCLE_TILE_COUNT
+  ld a, STRIKE_ZONE_CORNER_TILE
   ld [hli], a;tile
   ld a, FLIP_XY_PAL
   ld [hli], a
@@ -246,16 +259,16 @@ MovePitch: ;a = show projection, b = pitch path, c = z[0,100], de = start xy, hl
   ld c, 10
   call math_Divide8;i/10
   ld a, l
-  and a, %00000011;(i/10)%4
-  add a, 6;6+(i/10)%4
-  ld [_t], a;t = 6+(i/10)%4
+  and a, %00000011
+  add a, BASEBALL_LACES_TILES
+  ld [_t], a;current animation frame
   pop hl;offset
   pop de;ball xy
   add hl, de
   ld d, h
   ld e, l
 
-  ; ball outline
+  ; ball leather
   ld hl, oam_buffer + BASEBALL_SPRITE_ID*4
   ld a, e
   add a, 4
@@ -263,8 +276,8 @@ MovePitch: ;a = show projection, b = pitch path, c = z[0,100], de = start xy, hl
   ld a, d
   add a, 4
   ld [hli], a;x
-  ld a, 1
-  ld [hli], a;outline tile
+  ld a, BASEBALL_LEATHER_TILE
+  ld [hli], a;tile
   xor a
   ld [hli], a;prop
 
@@ -1005,19 +1018,9 @@ PlayBall:; a = selected move
   ret
 
 SetPlayBallTiles:
-  ld hl, _BaseballTiles
+  ld hl, _BaseballFxTiles
   ld de, _VRAM
-  ld bc, _BASEBALL_TILE_COUNT*16
-  call mem_CopyVRAM
-
-  ld hl, _CircleTiles
-  ld de, _VRAM+_BASEBALL_TILE_COUNT*16
-  ld bc, _CIRCLE_TILE_COUNT*16
-  call mem_CopyVRAM
-  
-  ld hl, _StrikeZoneTiles
-  ld de, _VRAM+(_BASEBALL_TILE_COUNT+_CIRCLE_TILE_COUNT)*16
-  ld bc, _STRIKE_ZONE_TILE_COUNT*16
+  ld bc, _BASEBALL_FX_TILE_COUNT*16
   call mem_CopyVRAM
   ret 
 

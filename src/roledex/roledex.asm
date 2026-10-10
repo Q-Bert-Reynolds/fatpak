@@ -10,6 +10,7 @@ DEF RIGHTY_BATTER_OPPONENT  EQU 5
 DEF LEFTY_PITCHER_OPPONENT  EQU 6
 DEF RIGHTY_PITCHER_OPPONENT EQU 7
 
+INCLUDE "src/baseball/images.asm"
 INCLUDE "data/move_data.asm"
 INCLUDE "data/move_strings.asm"
 INCLUDE "data/player_img.asm"

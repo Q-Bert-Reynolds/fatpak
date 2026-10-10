@@ -1,7 +1,0 @@
-IF !DEF(_BASEBALL_TILE_COUNT)
-DEF _BASEBALL_TILE_COUNT EQU 35
-DEF _BASEBALL_ROWS EQU 7
-DEF _BASEBALL_COLUMNS EQU 5
-_BaseballTiles: INCBIN "img/baseball.tiles"
-_BaseballTileMap: INCBIN "img/baseball.tilemap"
-ENDC

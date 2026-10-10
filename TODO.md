@@ -1,5 +1,6 @@
 Priority
 
+- play ball should use sprite_obj_buffer
 - update play ball screen
 - add batting/pitching animations for Rattail, Pidge, and Chica
 - baseball simulation

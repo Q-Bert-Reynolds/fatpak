@@ -1,7 +1,0 @@
-IF !DEF(_STRIKE_ZONE_TILE_COUNT)
-DEF _STRIKE_ZONE_TILE_COUNT EQU 3
-DEF _STRIKE_ZONE_ROWS EQU 1
-DEF _STRIKE_ZONE_COLUMNS EQU 3
-_StrikeZoneTiles: INCBIN "img/strike_zone.tiles"
-_StrikeZoneTileMap: INCBIN "img/strike_zone.tilemap"
-ENDC
