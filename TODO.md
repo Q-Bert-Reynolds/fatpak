@@ -109,17 +109,15 @@ Map System
 - regions should have their own music, palettes, tiles, etc
 - map scripts should optionally have collision check
 - sanitize maps before export (ie. objects with text should always have a collider and be on the text layer)
+  - add export warnings when neighbor chains are inconsistent (ie. north->west != west->north, this != south->east->north->west)
+  - empty chunks should be generated for missing neighbors
 - handle temporary bg tiles (ie. trees that can be cut down)
 - add support for animated tiles
 - use Unity's collision trigger property for finer control over GB collisions
-- bg palette 0 is used for UI, should not be exported
-- sprite palette 7 is used for player avatar, should be switched to palette 0 and not exported
 - chunks should be exported as tile arrays when more efficient than objects
-- print errors for more than 255 chunks, text, doors, etc. when exporting a scene
 - make legs go behind things
 - map stamps should be referenced from an index to a jump table instead of directly addressed
 - default collision type for chunk
-- a chunk index of 0 should fill the chunk with some default tile
 - add diagonal lines to map system, (already implemented(ish) in editor)
 - make the editor a standalone application
 
@@ -154,6 +152,7 @@ Animation
 
 - different sample rate/steps for world vs baseball
 - handle looped vs once animations
+- shuffle sprite_obj_buffer so its size can be increased (will add flicker)
 
 Super GameBoy
 

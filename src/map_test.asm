@@ -9,16 +9,13 @@ TestMap::
   TRAMPOLINE UILoadFontTiles
   ld a, MAP_OVERWORLD
   ld [map], a
-  call SetMapTiles
-  call SetMapPalettes
   ld a, 20
   ld [map_x], a
   ld [map_y], a
-  ld a, MAP_OVERWORLD
-  call SetCurrentMap
   ld a, MAP_OVERWORLD_CHUNK_BILLETTOWNNE
   ld [map_chunk], a
-  call DrawMapToScreen
+  call LoadMap
+  
   DISPLAY_ON
 
   ld a, 4

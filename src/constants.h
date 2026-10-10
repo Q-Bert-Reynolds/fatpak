@@ -192,7 +192,7 @@
 #define INVENTORY_MODE_SELL     5
 
 //maps
-#define MAP_DATA_INDEX         0
+#define MAP_DATA_META_SPRITE   0
 #define MAP_DATA_PALETTES      1
 #define MAP_DATA_STRINGS       3
 #define MAP_DATA_DOORS         5

@@ -313,9 +313,7 @@ ShowPauseMenu::
 .restoreMap
   DISPLAY_OFF
   call LoadAvatarSprites
-  call SetMapTiles
-  call SetMapPalettes
-  call DrawMapToScreen
+  call LoadMap
   DISPLAY_ON
   
 .returnToPauseMenu
@@ -567,10 +565,7 @@ InitMap::
   TRAMPOLINE UILoadFontTiles
   call LoadAvatarSprites
   call ShowPlayerAvatar
-  call ClearMapSprites
-
-  call SetMapTiles
-  call SetMapPalettes
+  call LoadMap
 
   ;TODO: load song based on location
   PLAY_SONG hurrah_for_our_national_game_data, 1
@@ -580,9 +575,6 @@ InitMap::
   xor a
   ld [list_selection], a
   ldh [map_steps], a
-
-  call DrawMapToScreen
-  call CopyMapSpritesToOAMBuffer
 
   SHOW_BKG
   HIDE_WIN

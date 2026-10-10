@@ -241,7 +241,7 @@ InitializeGameData::
   ld a, PADF_UP
   ldh [map_last_button_state], a
   ld a, MAP_HOUSES
-  call SetCurrentMap
+  ld [map], a
   ld a, MAP_HOUSES_CHUNK_PLAYERS_ROOM
   ld [map_chunk], a
 

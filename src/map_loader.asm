@@ -12,6 +12,7 @@ map_obj_type:: DB
 map_collision_type:: DB
 map_collision_data:: DB
 map_sprite_collision_index:: DB
+map_meta_sprites_bank:: DB
 map_scroll_speed:: DB
 map_sprite_count:: DB
 map_min_x:: DB
@@ -32,12 +33,13 @@ SECTION "Map Loader Code", ROM0
 ;TODO: move stamps and meta sprites out of ROM0
 INCLUDE "maps/map_stamps.gbstamp"
 IF ANIM_DATA_INCREMENTAL
-INCLUDE "maps/map_meta_sprites.incremental.gbms"
+INCLUDE "maps/WorldMetaSprites.incremental.gbms"
 ELSE
-INCLUDE "maps/map_meta_sprites.gbms"
+INCLUDE "maps/WorldMetaSprites.gbms"
 ENDC
 
 ; ROUTINES THAT SWITCH TO A BANK, DO SOME WORK, AND SWITCH BACK
+; LoadMap                      loads palettes and tiles, sets meta sprites bank, clears sprites
 ; GetScreenCollision           bc = xy pixel offset (-127,127), returns z if no collision, obj/collision type in a, extra data in b, map sprite index or -1 in c
 ; GetMapChunkCollision         hl = chunk address, de = xy, returns z if no collision, obj/collision type in a, extra data in [hl], map sprite index or -1 in c
 ; GetSpriteCollision           de = pixel xy, returns z if no collision, obj/collision type in a, extra data in [hl], map sprite index or -1 in c
@@ -45,8 +47,6 @@ ENDC
 ; MoveMapRight
 ; MoveMapUp
 ; MoveMapDown
-; SetMapPalettes
-; SetMapTiles
 ; DrawMapToScreen              draws map to visible background
 ; EnterMapDoor                 a = door index
 ; CheckMapItemFlags            item index in a, returns z if flag not set
@@ -74,7 +74,6 @@ ENDC
 ; GetMapItem                   item index in a, returns item id/count in bc, flag index/bits in de
 
 ; ROUTINES THAT DO NOT REQUIRE BANK SWITCHING
-; SetCurrentMap                a = map index, returns address in hl, bank in a
 ; GetCurrentMap                returns address in hl, bank in a
 
 GetMapText::;a = text index, returns text in str_buffer
@@ -135,10 +134,7 @@ EnterMapDoor::;a = door index
   ld a, [hl]
   ldh [map_last_button_state], a
 
-  call SetMapTiles
-  call SetMapPalettes
-  call ClearMapSprites
-  call DrawMapToScreen
+  call LoadMap
   
   pop af;previous bank
   SET_BANK
@@ -610,7 +606,7 @@ CopySpriteStampToOAMBuffer:;bc = stamp, hl = OAM buffer, [map_temp_x][map_temp_y
 CopyMetaSpriteToOAMBuffer::;bc = meta sprite, de = location of current frame, hl = OAM buffer, [map_temp_x][map_temp_y] = position, returns count in a
   ldh a, [loaded_bank]
   push af;loaded bank
-  ld a, BANK(GBMetaSprites)
+  ld a, [map_meta_sprites_bank]
   SET_BANK
   push de;location of current frame
   inc bc;skip width
@@ -1265,17 +1261,28 @@ MoveMapDown::
   SET_BANK
   ret
 
-SetMapPalettes::
+LoadMap::
   ldh a, [loaded_bank]
   push af;current bank
+
   call GetCurrentMap
   SET_BANK
-  inc hl;[hl] = lower byte of palette address (MAP_DATA_PALETTES == 1)
+  push af;map bank
+  push hl;map address
+
+  ld a, [hli]
+  ld [map_meta_sprites_bank], a
+  ld a, [sys_info]
+  and a, SYS_INFO_GBC
+  jr z, .setMapTiles
+
+.setMapPalettes
   ld a, [hli]
   ld b, a
   ld a, [hl]
   ld h, a
   ld l, b;hl = palette address
+
   ld a, BCPSF_AUTOINC
   ldh [rBCPS], a
   ld c, 8;TODO: only load last 7 palettes, first should be UI
@@ -1318,14 +1325,9 @@ SetMapPalettes::
     ldh [rOCPD], a;color 4
     dec c
     jr nz, .spriteLoop
-  pop af;previous bank
-  SET_BANK
-  ret
 
-SetMapTiles::
-  call GetCurrentMap
-  ld [rROMB0], a;map bank
-  push af;map bank
+.setMapTiles
+  pop hl;map address
 
   ld bc, MAP_DATA_TILES
   add hl, bc;current map address + tiles data offset
@@ -1364,8 +1366,13 @@ SetMapTiles::
   ld bc, 128*16;tiles*bytes/tile
   call mem_CopyVRAM
 
-  ldh a, [loaded_bank]
-  ld [rROMB0], a
+.drawMap
+  call ClearMapSprites
+  call DrawMapToScreen
+  call CopyMapSpritesToOAMBuffer
+
+  pop af;previous bank
+  SET_BANK
   ret
 
 DrawMapLeftEdge:
@@ -1885,7 +1892,7 @@ TestMapObjectMaxXY:; hl = xy, min XY in min_x,min_y, returns xy in hl, sets z if
   ret z;.outOfRange;chunk minX == stamp maxX
   jp nc, .outOfRange;chunk minX > stamp maxX
 .testMaxY
-  ldh a, [map_min_y];chunk minX
+  ldh a, [map_min_y];chunk minY
   cp a, l;stamp maxy
   ret z;.outOfRange;chunk minY == stamp maxY
   jp nc, .outOfRange;chunk minY > stamp maxY
@@ -2306,10 +2313,6 @@ DrawMapTile:;hl = tile data, de = xy, min/max XY in min_x,min_y,max_x,max_y
   inc hl
   inc hl
   ret
-
-SetCurrentMap::;a = map index, returns address in hl, bank in a
-  ld [map], a
-  ;fall through
 
 GetCurrentMap::;returns address in hl, bank in a
   ld a, [map]
