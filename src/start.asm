@@ -209,10 +209,7 @@ Start::
   ld hl, rBGP
   ld [hl], $E0
 
-  ld hl, _IntroTiles
-  ld de, _VRAM+$1000
-  ld bc, _INTRO_TILE_COUNT*16
-  call mem_CopyToTileData
+  LOAD_TILES _IntroTiles, _VRAM+$1000, 0, _INTRO_TILE_COUNT
   
   xor a
   ld d, a ; x
@@ -222,20 +219,9 @@ Start::
   ld bc, _IntroLightsTileMap
   call gbdk_SetBkgTiles
 
-  ld hl, _IntroBaseballTile
-  ld de, _VRAM
-  ld bc, 16
-  call mem_CopyVRAM
-
-  ld hl, _IntroSparksTile
-  ld de, _VRAM+16
-  ld bc, 16
-  call mem_CopyVRAM
-
-  ld hl, _VersionSpritesTiles
-  ld de, _VRAM+32
-  ld bc, _VERSION_SPRITES_TILE_COUNT*16
-  call mem_CopyVRAM
+  LOAD_TILES _IntroBaseballTile,   _VRAM, 0, 1
+  LOAD_TILES _IntroSparksTile,     _VRAM, 1, 1
+  LOAD_TILES _VersionSpritesTiles, _VRAM, 2, _VERSION_SPRITES_TILE_COUNT
 
   ld a, LCDCF_ON | LCDCF_WIN9C00 | LCDCF_BLK21 | LCDCF_OBJ8 | LCDCF_OBJON | LCDCF_BGON
   ldh [rLCDC], a

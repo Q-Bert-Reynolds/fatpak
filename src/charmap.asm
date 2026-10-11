@@ -30,6 +30,22 @@ charmap "<?>", 125
 charmap "<n~>", 126
 charmap "<e`>", 127
 
+;play ball replacement tiles
+charmap "<runners 3B_2B>", 10
+charmap "<runners 1B>", 11
+charmap "<count_balls>", 23
+charmap "<count_strikes>", 24
+charmap "<arrow_tail>", 12
+charmap "<arrow_line_vert>", 15
+charmap "<arrow_line_horiz>", 30
+charmap "<arrow_elbow_left>", 31
+charmap "<arrow_elbow_right>", 26
+charmap "<arrow_tip_left>", 25
+charmap "<arrow_tip_right>", 27
+charmap "<out_ou>", 26
+charmap "<out_t>", 27
+
+;ui tiles not covered by ASCII tabe
 charmap "<P>", 1 ; pitcher
 charmap "<C>", 2 ; catcher
 charmap "<1B>", 3 ; first

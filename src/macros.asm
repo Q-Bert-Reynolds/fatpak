@@ -9,6 +9,7 @@
 ;   DEBUG_LOG_LABEL                       LabeledAddress
 ;   SET_LCD_INTERRUPT                     InterruptAddress
 ;   DISABLE_LCD_INTERRUPT
+;   LOAD_TILES                            tileAddress16, index8, count8
 ;   HIDE_ALL_SPRITES
 ;   CLEAR_SCREEN                          tile8
 ;   CLEAR_BKG_AREA                        x8, y8, w8, h8, tile8
@@ -136,6 +137,17 @@ MACRO DISABLE_LCD_INTERRUPT
   ld [hl], a
 
   ei
+ENDM
+
+MACRO LOAD_TILES ;\1 = tile address, \2 = vram address, \3 = index, \4 = count
+  ld hl, \1
+  ld de, \2 + \3*16
+  ld bc, \4*16
+IF (\2 + \3*16 + \4*16) > $9800
+  call mem_CopyToTileData
+ELSE
+  call mem_CopyVRAM
+ENDC
 ENDM
 
 MACRO CLEAR_SCREEN ;\1 = tile

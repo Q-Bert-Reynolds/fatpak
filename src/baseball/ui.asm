@@ -1,3 +1,14 @@
+DEF COMPACT_SCOREBUG EQU 1
+
+IF COMPACT_SCOREBUG == 1
+INCLUDE "img/play/runners/runners.asm"
+INCLUDE "img/play/count/count.asm"
+INCLUDE "img/play/arrow/arrow.asm"
+
+DEF OUT_COUNT_BASES_LEN EQU 6
+OutCountBases:
+  DB "<out_ou><out_t><count_balls><count_strikes><runners 3B_2B><runners 1B>"
+ENDC
 
 DrawPlayerUI:: ;a = team (0 = user, 1 = opponent)
   push af;team
@@ -183,6 +194,98 @@ DrawPlayerUI:: ;a = team (0 = user, 1 = opponent)
   call gbdk_SetBkgTiles;set_bkg_tiles(x+9,y+1,3,1,health_pct(p));
   ret
 
+
+IF COMPACT_SCOREBUG == 1
+DrawBases::
+  ld bc, 16
+  ld de, _VRAM+$1000 + '<runners 1B>'*16
+.checkFirstBase
+  ld a, [runners_on_base]
+  and a, LOW(FIRST_BASE_MASK)
+  jr z, .notOnFirstBase
+.runnerOnFirstBase
+  ld hl, _RunnerOnFirstTile
+  jr .drawFirstBase
+.notOnFirstBase
+  ld hl, _FirstEmptyTile
+.drawFirstBase
+  call mem_CopyVRAM
+  
+  ld bc, 16
+  ld de, _VRAM+$1000 + '<runners 3B_2B>'*16
+.checkSecondThirdBase
+  ld a, [runners_on_base]
+  and a, LOW(SECOND_BASE_MASK)
+  ld b, a
+  ld a, [runners_on_base+1]
+  and a, HIGH(THIRD_BASE_MASK)
+  or a, b
+  jr z, .notOnSecondOrThirdBase
+  cp a, LOW(SECOND_BASE_MASK)
+  jr z, .runnerOnSecond
+  cp a, HIGH(THIRD_BASE_MASK)
+  jr z, .runnerOnThird
+.runnersOnSecondAndThird
+  ld hl, _RunnersOnSecondAndThirdTile
+  jr .drawSecondAndThirdBase
+.runnerOnSecond
+  ld hl, _RunnerOnSecondTile
+  jr .drawSecondAndThirdBase
+.runnerOnThird
+  ld hl, _RunnerOnThirdTile
+  jr .drawSecondAndThirdBase
+.notOnSecondOrThirdBase
+  ld hl, _SecondAndThirdEmptyTile
+.drawSecondAndThirdBase
+  call mem_CopyVRAM
+  ret
+
+DrawCountOutsInning::
+
+  LOAD_TILES _OutsOuTile,    _VRAM+$1000, '<out_ou>',        1
+  LOAD_TILES _OutsTTile,     _VRAM+$1000, '<out_t>',         1
+  
+  ;TODO: update count
+  LOAD_TILES _NoBallsTile,   _VRAM+$1000, '<count_balls>',   1
+  LOAD_TILES _NoStrikesTile, _VRAM+$1000, '<count_strikes>', 1
+
+  ld de, tile_buffer
+  call GetOuts
+  add a, '0'
+  ld [de], a
+  inc de
+  ld hl, OutCountBases
+  ld bc, OUT_COUNT_BASES_LEN
+  call mem_Copy
+  ld hl, tile_buffer+OUT_COUNT_BASES_LEN+1
+.frame
+  ld [hl], '▼'
+  ld a, [frame]
+  bit 0, a
+  jr nz, .inning
+  ld [hl], '▲'
+.inning
+  inc hl
+  ld d, h
+  ld e, l
+  srl a;frame/2
+  inc a
+  ld l, a
+  xor a
+  ld h, a
+  call str_Number
+.draw
+  ld hl, tile_buffer
+  call str_Length
+  ld h, e;w
+  ld l, 1;h
+  ld d, 0;x
+  ld e, 2;y
+  ld bc, tile_buffer
+  call gbdk_SetBkgTiles
+  ret
+
+ELSE
 DrawBases::
   ld a, ' ';for (i = 0; i < 5; i+=2) tiles[i] = " ";
   ld hl, tile_buffer
@@ -197,7 +300,6 @@ DrawBases::
   ld [hl], a
   ld a, [runners_on_base]
   and a, FIRST_BASE_MASK
-  and a
   jr z, .notOnFirst
   ld a, '◆'
   ld [hl], a
@@ -331,6 +433,7 @@ DrawCountOutsInning::
   ld bc, tile_buffer
   call gbdk_SetBkgTiles
   ret
+ENDC
 
 DrawTeamNames::
   ld hl, user_name

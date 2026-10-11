@@ -217,9 +217,7 @@ def folder_to_asm (root, files):
         if tile not in tileset:
           tileset.append(tile)
         tilemaps[img_name].append("{:02X}".format(tileset.index(tile)))
-  
-  if len(tilepaths) > 0:
-    print("\n\n" + str(tilepaths))
+
   if len(tileset) == len(tilepaths) and len(tileset) > 0:
     with open(os.path.join(root, name + ".asm"), "w+") as asm_file:
       for tilename, tilepath in tilepaths.items():

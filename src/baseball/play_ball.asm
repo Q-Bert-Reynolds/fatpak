@@ -77,7 +77,6 @@ INCLUDE "data/strings/play_ball_strings.asm"
 INCLUDE "src/baseball/ui.asm"
 INCLUDE "src/baseball/pitch_path.asm"
 INCLUDE "img/baseball_fx.asm"
-INCLUDE "img/play/runners/runners.asm"
 
 ShowAimCircle: ;a = size
   ld h, a
@@ -261,6 +260,8 @@ MovePitch: ;a = show projection, b = pitch path, c = z[0,100], de = start xy, hl
   ld d, h
   ld e, l
 
+  ;TODO: handle initial load of baseball in sprite_obj_buffer on start
+  ;      set ball animation from move data
   ld a, 1
   ldh [map_sprite_count], a
   ld hl, sprite_obj_buffer
@@ -453,7 +454,7 @@ Pitch:
   ld [pitch_z], a
   ld [pitch_z+1], a
   ld [_v], a;step
-.pitchLoop
+  .pitchLoop
     ld d, 25;TODO: differentiate between lefties and righties
     ld e, 41
     ld a, [aim_x]

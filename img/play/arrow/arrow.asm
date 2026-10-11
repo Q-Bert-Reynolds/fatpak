@@ -1,0 +1,7 @@
+_ArrowLineVerticalTile: INCBIN "./img/play/arrow/arrow_line_vertical.tile"
+_ArrowTipLeftTile: INCBIN "./img/play/arrow/arrow_tip_left.tile"
+_ArrowTailTile: INCBIN "./img/play/arrow/arrow_tail.tile"
+_ArrowLineHorizontalTile: INCBIN "./img/play/arrow/arrow_line_horizontal.tile"
+_ArrowCornerBottomLeftTile: INCBIN "./img/play/arrow/arrow_corner_bottom_left.tile"
+_ArrowCornerBottomRightTile: INCBIN "./img/play/arrow/arrow_corner_bottom_right.tile"
+_ArrowTipRightTile: INCBIN "./img/play/arrow/arrow_tip_right.tile"

@@ -579,10 +579,7 @@ INCLUDE "data/strings/ui_strings.asm"
 ;UIDrawSaveStats - a = draw flags, de = xy
 
 UILoadFontTiles::
-  ld hl, _UiFontTiles
-  ld de, _VRAM+$1000
-  ld bc, _UI_FONT_TILE_COUNT*16
-  call mem_CopyVRAM ;doesn't loop so mem_CopyToTileData is unnecessary
+  LOAD_TILES _UiFontTiles, _VRAM+$1000, 0, _UI_FONT_TILE_COUNT
   ret
 
 ; State Map SGB Palettes
