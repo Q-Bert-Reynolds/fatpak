@@ -13,6 +13,9 @@ INCLUDE "src/world/scripts.asm"
 INCLUDE "img/maps/world_sprites.asm"
 INCLUDE "maps/map_avatars.gbavatar"
 
+DEF WORLD_SAMPLE_RATE       EQU 12
+DEF WORLD_FRAME_STEP        EQU 60 / WORLD_SAMPLE_RATE
+
 MACRO MOVE_PLAYER;\1 = animation address, \2 = map move routine, \3 = map draw routine
   ld hl, \1
   call AnimatePlayerAvatar
@@ -583,6 +586,8 @@ InitMap::
   ret
 
 Overworld::
+  ld a, WORLD_FRAME_STEP
+  ldh [map_anim_frame_step], a
   call InitMap
   .moveLoop
     call CopyMapSpritesToOAMBuffer

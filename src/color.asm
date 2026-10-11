@@ -631,4 +631,16 @@ PaletteWarm::
   COLOR_PURPLE_GREY
   COLOR_BLACK
 
+PaletteBaseballLeather::
+  COLOR_WHITE
+  RGB 29, 29, 27
+  RGB 26, 25, 22
+  RGB 20, 20, 19
+
+PaletteBaseballLaces::
+  COLOR_WHITE
+  RGB 31, 31, 31
+  RGB 15, 0, 2
+  RGB 11, 3, 4
+
 ENDC ;COLOR_ASM

@@ -247,10 +247,6 @@
 #define SPRITE_OBJ_MAX_COUNT   OAM_COUNT-4//4 sprites reserved for player avatar
 #define SPRITE_OBJ_BUFFER_SIZE SPRITE_OBJ_MAX_COUNT * SPRITE_OBJ_SIZE
 
-//animation
-#define ANIM_SAMPLE_RATE       12
-#define ANIM_FRAME_STEP        60 / ANIM_SAMPLE_RATE
-
 //sizes
 #define STACK_SIZE       128
 #define MAX_ITEMS        20

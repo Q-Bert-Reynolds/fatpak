@@ -6,6 +6,7 @@ INCLUDE "data/map_data.asm"
 
 SECTION "Map Loader HRAM", HRAM
 map_last_button_state:: DB
+map_anim_frame_step:: DB
 map_anim_frame:: DB
 map_steps:: DB
 map_obj_type:: DB

@@ -52,7 +52,7 @@ sprite_first_tile:: DB
 
 ;timers
 vbl_timer:: DB ;counts to 60
-anim_timer:: DB ;counts to ANIM_SAMPLE_RATE
+anim_timer:: DB ;counts to map_anim_frame_step
 
 ;temp vars
 _a:: DB
@@ -83,7 +83,7 @@ sfx_disable_mask:: DB
 ;location of LCD interrupt subroutine
 rLCDInterrupt:: DW
 
-;Input
+;input
 last_button_state:: DB
 button_state:: DB
 
@@ -109,7 +109,7 @@ player_base::
 .level_up::  DS 23;learn set (2B * max 11 moves) and evolutions (3B * max 3 evolutions)
 .end::
 
-; move data struct
+;move data struct
 move_data::
 .id::           DB
 .use::          DB ;pitching=0, batting=1
@@ -121,7 +121,7 @@ move_data::
 .launch_angle:: DB
 .end::
 
-; item data
+;item data
 item_data::
 .id::    DB
 .type::  DB
@@ -129,7 +129,7 @@ item_data::
 .extra:: DS 2
 .end::
 
-;Baseball
+;baseball
 balls_strikes_outs:: DB; XBBBSSOO
 _runners_on_base::
 runners_on_base:: DW; lineup order of runners on base - SSSSFFFF HHHHTTTT (little-endian to make C code more readable)

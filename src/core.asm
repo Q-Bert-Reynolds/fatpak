@@ -192,10 +192,12 @@ UpdateSpriteObjects::
   and a, GAME_STATE_PAUSED
   ret nz
 
+  ldh a, [map_anim_frame_step]
+  ld b, a
   ld a, [anim_timer]
   inc a
   ld [anim_timer], a
-  cp a, ANIM_FRAME_STEP
+  cp a, b
   ret c
   xor a
   ld [anim_timer], a

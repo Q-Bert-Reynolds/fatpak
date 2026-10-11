@@ -61,6 +61,9 @@ SECTION "Play Ball BANKED", ROMX, BANK[PLAY_BALL_BANK]
 
 DEF DISPLAY_PITCH_NAME_DELAY EQU 6
 
+DEF PLAY_BALL_SAMPLE_RATE       EQU 30
+DEF PLAY_BALL_FRAME_STEP        EQU 60 / PLAY_BALL_SAMPLE_RATE
+
 DEF BASEBALL_SPRITE_ID   EQU 0
 DEF AIM_CIRCLE_SPRITE_ID EQU 3
 DEF STRIKEZONE_SPRITE_ID EQU 10
@@ -252,46 +255,26 @@ MovePitch: ;a = show projection, b = pitch path, c = z[0,100], de = start xy, hl
 
   ld a, [_s]
   call GetPitchPathOffset
-  push hl;offset
-
-  ;TODO: baseball animation should be based on move
-  ld h, a
-  ld c, 10
-  call math_Divide8;i/10
-  ld a, l
-  and a, %00000011
-  add a, BASEBALL_LACES_TILES
-  ld [_t], a;current animation frame
-  pop hl;offset
-  pop de;ball xy
+  pop de;xy
   add hl, de
   ld d, h
   ld e, l
 
-  ; ball leather
-  ld hl, oam_buffer + BASEBALL_SPRITE_ID*4
-  ld a, e
-  add a, 4
-  ld [hli], a;y
+  ld a, 1
+  ldh [map_sprite_count], a
+  ld hl, sprite_obj_buffer
+  ld bc, GBMetaSpriteBaseballObjcutter
   ld a, d
   add a, 4
-  ld [hli], a;x
-  ld a, BASEBALL_LEATHER_TILE
-  ld [hli], a;tile
-  xor a
-  ld [hli], a;prop
-
-  ; ball animation
+  ld [map_temp_x], a;x
   ld a, e
   add a, 4
-  ld [hli], a;y
-  ld a, d
-  add a, 4
-  ld [hli], a;x
-  ld a, [_t]
-  ld [hli], a;tile
-  ld a, OAMF_PAL1
-  ld [hli], a;prop
+  ld [map_temp_y], a;y
+  ld de, sprite_obj_buffer+5;address of current frame
+  ld a, [de];current frame
+  ld [map_temp_a], a
+  ld hl, oam_buffer
+  call CopyMetaSpriteToOAMBuffer
 
   pop bc;path,z
   ld a, 100
@@ -1148,6 +1131,11 @@ Transition:
   ret 
 
 StartGame::
+  ld a, PLAY_BALL_FRAME_STEP
+  ldh [map_anim_frame_step], a
+  ld a, BANK(GBMetaSpriteBaseballObjcutter)
+  ldh [map_meta_sprites_bank], a
+
   PLAY_SONG tessie_data, 1
   TRAMPOLINE UILoadFontTiles
   call Transition
@@ -1156,6 +1144,7 @@ StartGame::
   DISPLAY_OFF
   SET_DEFAULT_PALETTE
 
+.setupColor
   ld a, BANK(PlayBallSgbBorderTiles)
   ld hl, PlayBallSgbBorderTiles
   ld de, PlayBallSgbBorderTileMap
@@ -1163,7 +1152,19 @@ StartGame::
 
   ld hl, SGBPlayBallPalSet
   call SetPalettesIndirect
+  
+  ld a, [sys_info]
+  and a, SYS_INFO_GBC
+  jr z, .initScreen
+.setupGBC
+  ld a, 4
+  ld hl, PaletteBaseballLeather
+  call GBCSetPalette
+  ld a, 5
+  ld hl, PaletteBaseballLaces
+  call GBCSetPalette
 
+.initScreen
   xor a
   ldh [rSCX], a
   ldh [rSCY], a
