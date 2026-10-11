@@ -77,6 +77,7 @@ INCLUDE "data/strings/play_ball_strings.asm"
 INCLUDE "src/baseball/ui.asm"
 INCLUDE "src/baseball/pitch_path.asm"
 INCLUDE "img/baseball_fx.asm"
+INCLUDE "img/play/runners/runners.asm"
 
 ShowAimCircle: ;a = size
   ld h, a

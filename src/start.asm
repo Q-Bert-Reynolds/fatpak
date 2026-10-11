@@ -154,6 +154,8 @@ UpdateIntroSparks:
     ld a, d
     or a, OAMF_PRI
     call gbdk_SetSpriteProp
+    ld d, 1
+    call gbdk_SetSpriteTile
     dec c
     jr nz, .loop
 
@@ -220,13 +222,18 @@ Start::
   ld bc, _IntroLightsTileMap
   call gbdk_SetBkgTiles
 
-  ld hl, _IntroSpritesTiles
+  ld hl, _IntroBaseballTile
   ld de, _VRAM
-  ld bc, _INTRO_SPRITES_TILE_COUNT*16
+  ld bc, 16
+  call mem_CopyVRAM
+
+  ld hl, _IntroSparksTile
+  ld de, _VRAM+16
+  ld bc, 16
   call mem_CopyVRAM
 
   ld hl, _VersionSpritesTiles
-  ld de, _VRAM+_INTRO_SPRITES_TILE_COUNT*16
+  ld de, _VRAM+32
   ld bc, _VERSION_SPRITES_TILE_COUNT*16
   call mem_CopyVRAM
 
@@ -240,7 +247,7 @@ Start::
   call gbdk_MoveSprite
   xor a
   ld c, a
-  ld a, [_IntroBaseballTileMap]
+  xor a
   ld d, a ;tile
   call gbdk_SetSpriteTile
   xor a
@@ -406,7 +413,7 @@ Start::
     ld [sprite_flags], a
     xor a;skip tile 0
     ld [sprite_skip_id], a
-    ld a, _INTRO_SPRITES_TILE_COUNT
+    ld a, 2
     call SetSpriteTilesXY ;bc = xy in screen space, hl = wh in tiles, de = tilemap, a = offset
 
     call gbdk_WaitVBL
@@ -462,7 +469,7 @@ Start::
     ld [sprite_flags], a
     xor a;skip tile 0
     ld [sprite_skip_id], a
-    ld a, _INTRO_SPRITES_TILE_COUNT
+    ld a, 2
     call SetSpriteTilesXY ;bc = xy in screen space, hl = wh in tiles, de = tilemap, a = offset
 
 .moveBall
@@ -480,7 +487,7 @@ Start::
     ld [hli], a;y
     ld a, d
     ld [hli], a;x
-    ld a, [_IntroBaseballTileMap]
+    xor a
     ld [hli], a;tile
     ld a, OAMF_PRI | OAMF_PAL1 | 4
     ld [hl], a;props

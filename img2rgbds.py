@@ -173,6 +173,8 @@ def folder_to_asm (root, files):
   properties = {}
   palettemaps = {}
   colorset = {}
+  tilepaths = {}
+  tiles = {}
   for file in files:
     path = os.path.join(root, file)
     base, ext = os.path.splitext(path)
@@ -184,6 +186,10 @@ def folder_to_asm (root, files):
     img = Image.open(path)
     img_name = os.path.basename(base)
     rows, cols, hex_vals, colors, palettemap = gb_encode(img)
+    if rows * cols == 1:
+      tilename = os.path.basename(base)
+      tilepaths[tilename] = base + ".tile"
+      tiles[tilename] = bytes.fromhex("".join(hex_vals))
 
     if "avatar" in img_name:
       parts = [
@@ -212,7 +218,17 @@ def folder_to_asm (root, files):
           tileset.append(tile)
         tilemaps[img_name].append("{:02X}".format(tileset.index(tile)))
   
-  image_set_to_asm(root, name, tileset, tilemaps, dimensions, properties, palettemaps, colorset)
+  if len(tilepaths) > 0:
+    print("\n\n" + str(tilepaths))
+  if len(tileset) == len(tilepaths) and len(tileset) > 0:
+    with open(os.path.join(root, name + ".asm"), "w+") as asm_file:
+      for tilename, tilepath in tilepaths.items():
+        asm_file.write("_"+PascalCase(tilename)+"Tile: INCBIN \"")
+        asm_file.write(tilepath + "\"\n")
+        with open(tilepath, "wb") as bin_file:
+          bin_file.write(tiles[tilename])
+  else:
+    image_set_to_asm(root, name, tileset, tilemaps, dimensions, properties, palettemaps, colorset)
 
 def image_set_to_asm (root, name, tileset, tilemaps, dimensions, properties, palettemaps, colorset):
   if len(tileset) == 0:
