@@ -1251,7 +1251,7 @@ LoadMap::
 
   ld a, [hli]
   ld [map_meta_sprites_bank], a
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .setMapTiles
 
@@ -1632,7 +1632,7 @@ DrawMapChunk::; hl = chunk address, de=xy, bc=wh
   pop de;xy
   pop hl;palette address
 .setChunkPalette
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .drawMapObjects
   ld a, 1
@@ -1997,7 +1997,7 @@ DrawMapTileFill:;a = map obj type, hl = tile fill data, de = xy, min/max XY in m
 .palettes
   pop bc;wh
   pop de;xy
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .nextMapObject
   ld a, 1
@@ -2048,7 +2048,7 @@ DrawMapStamp:;hl = stamp data, de = xy, min/max XY in min_x,min_y,max_x,max_y, r
   pop hl;wh
 
 .setPalettes
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jp z, .nextMapObject
   ld a, 1
@@ -2175,7 +2175,7 @@ ClipStamp:
     jr nz, .loopTilemapRows
 
 .checkGBC
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr nz, .copyPaletteToBuffer
 .notGBC
@@ -2274,7 +2274,7 @@ DrawMapTile:;hl = tile data, de = xy, min/max XY in min_x,min_y,max_x,max_y
   call gbdk_SetTilesTo
   pop de;xy
   pop bc;palette
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jp z, .nextMapObject
   ld a, 1

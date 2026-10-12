@@ -88,7 +88,7 @@ Main::
   call gbdk_SetupDMATransfer
 
 .setupGameBoyColor
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .initializeRAM
   call gbdk_CPUFast; GBC always in fast mode
@@ -96,14 +96,10 @@ Main::
   call GBCCopyPalettesFrom
 
 .initializeRAM
-  ld a, [sys_info]
-  push af
   xor a
   ld hl, _RAM
   ld bc, (_RAMBANK-_RAM)*2
   call mem_Set;clear WRAM
-  pop af
-  ld [sys_info], a;restore sys_info
   ld a, KB_MODE_BUTTONS
   ld [kb_mode], a
   ld sp, stack_bottom

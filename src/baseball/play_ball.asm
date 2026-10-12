@@ -1096,7 +1096,7 @@ Transition:
       call gbdk_SetWinTiles
 
     .checkGBC
-      ld a, [sys_info]
+      ldh a, [sys_info]
       and a, SYS_INFO_GBC
       jr z, .wait
 
@@ -1155,7 +1155,7 @@ StartGame::
   ld hl, SGBPlayBallPalSet
   call SetPalettesIndirect
   
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .initScreen
 .setupGBC

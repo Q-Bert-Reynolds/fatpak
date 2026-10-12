@@ -624,7 +624,7 @@ RunSimulation::;a = ball speed, d = spray angle, e = launch angle
   call sgb_PacketTransfer
 
 .setGBC  
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .endSetPalettes
   

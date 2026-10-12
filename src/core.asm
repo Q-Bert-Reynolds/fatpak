@@ -284,7 +284,7 @@ ClearScreen:: ;a = tile, display should be off
   ldh [rWY], a
   call HideAllSprites
 .checkGBC
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   ret z
 .clearColors
@@ -989,7 +989,7 @@ CopyBkgToWin::
   pop hl;wh 
 
 .checkGBC
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   ret z
 
@@ -1011,7 +1011,7 @@ CopyWinToBuffer::
   ld de, 0
   ld bc, win_buffer
   call gbdk_GetWinTiles
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   ret z
   ld a, 2
@@ -1032,7 +1032,7 @@ CopyBufferToWin::
   ld de, 0
   ld bc, win_buffer
   call gbdk_SetWinTiles
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   ret z
   ld a, 2

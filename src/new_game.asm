@@ -105,7 +105,7 @@ NewGame::
 
   TRAMPOLINE UILoadFontTiles
 
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_SGB
   jr z, .docTiles
   ld hl, NewGamePalSet
@@ -125,7 +125,7 @@ NewGame::
   call SetCoachTiles
 
 .docPalettes
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .docCheckSGB
 
@@ -175,7 +175,7 @@ NewGame::
   call SetPlayerBkgTiles
 
 .muchachoColors
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .fadeInMuchacho
 
@@ -235,7 +235,7 @@ NewGame::
   call SetCoachTiles
 
 .calvinColors
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .slideInCalvin
 
@@ -351,7 +351,7 @@ ENDC
   call SetCoachTiles
 
 .nolanColors
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .slideInNolan
 
@@ -474,7 +474,7 @@ ENDC
   call mem_CopyVRAM
   
 .calvinColorsAgain
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .fadeInCalvin
 

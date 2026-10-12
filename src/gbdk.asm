@@ -90,7 +90,7 @@ MACRO SYS_CHECK ;must happen first
 .sgb
   or a, SYS_INFO_SGB
 .setSysInfo
-  ld [sys_info], a
+  ldh [sys_info], a
 ENDM
 
 MACRO COPY_TO_HRAM; \1 = dest address in HRAM, \2 = first address to copy, \3 = last address to copy
@@ -303,7 +303,6 @@ SECTION "GBDK WRAM Vars", WRAM0[_RAM]
 oam_buffer:: DS 4*40
 rand_hi:: DB
 rand_lo:: DB
-sys_info:: DB
 
 SECTION "GBDK Code", ROM0
 ;***************************************************************************
@@ -540,7 +539,7 @@ gbdk_CopyTilesFrom::
 ;***************************************************************************
 gbdk_Delay::
   DEF _CPMS EQU 4194/4  ; 4.194304 MHz
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .cpuSlow
 .checkFast
@@ -688,5 +687,6 @@ DEF DMA_SIZE EQU (.DMATransferEnd - .DMATransfer)
 SECTION "GBDK HRAM Vars", HRAM
 gbdk_DMATransfer:: DS DMA_SIZE
 vbl_done:: DB
+sys_info:: DB
 
 ENDC ;GBDK_ASM

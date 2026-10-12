@@ -4,7 +4,7 @@ SECTION "Fade", ROMX
 
 FadeIn::
   DISPLAY_ON
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr nz, .fadeInGBC
   
@@ -186,7 +186,7 @@ LerpBlueChannel:; a = blue, hl = address of current color, returns new red in a,
   ret
 
 FadeOut::
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr nz, .fadeOutGBC
 

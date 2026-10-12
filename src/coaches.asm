@@ -164,7 +164,7 @@ LoadCoachTiles:: ;a = coach id, de = vram address
 
 LoadCoachPalettes:: ;a = coach id, h = offset
   ld b, a;coach
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC | SYS_INFO_SGB
   ret z;exit early if color not supported
 
@@ -200,7 +200,7 @@ SetCoachTiles:: ;a = coach, de=xy, h=offset
 
 SetCoachPalettes:: ;a = coach, de=xy, h=offset
   ld b, a;coach
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC | SYS_INFO_SGB
   ret z;exit early if color not supported
 

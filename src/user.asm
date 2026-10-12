@@ -9,7 +9,7 @@ PennantsText: DB "○PENNANTS○"
 
 ShowUserInfo:
   DISPLAY_OFF
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .loadTiles
   ld a, 1

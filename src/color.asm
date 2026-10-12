@@ -95,7 +95,7 @@ SECTION "Color Code", ROM0
 ;----------------------------------------------------------------------
 SetPalettesIndirect::;hl = palettes in PAL_SET (SGB) fromat
 .checkCGB
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .checkSGB
 .setPaletteCGB
@@ -135,7 +135,7 @@ SetPalettesIndirect::;hl = palettes in PAL_SET (SGB) fromat
 
   pop hl;palettes
 .checkSGB
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_SGB
   ret z
 .setPalettesSGB
@@ -154,7 +154,7 @@ SetPalettesIndirect::;hl = palettes in PAL_SET (SGB) fromat
 ;----------------------------------------------------------------------
 SetPalettesDirect::;bc = paletteA, de = paletteB
 .checkCGB
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .checkSGB
 .setPaletteCGB
@@ -167,7 +167,7 @@ SetPalettesDirect::;bc = paletteA, de = paletteB
   ld a, 3
   call GBCSetPalette
 .checkSGB
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_SGB
   ret z
 .setPalettesSGB
@@ -234,13 +234,13 @@ GBCSetTwoColorBGPalettes::; b = first pal index, c = num palettes, hl = source
 ;----------------------------------------------------------------------
 SetColorBlocks::
 .checkCGB
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .checkSGB
 .setColorBlocksCGB
   jp GBCSetColorBlocks
 .checkSGB
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_SGB
   ret z
 .setColorBlocksSGB
@@ -309,7 +309,7 @@ GBCSetPaletteMap::;a = draw flags, hl = wh, de = xy, bc = firstTile
   ;fall through to bkg pal map
 
 GBCSetBkgPaletteMap::;hl = wh, de = xy, bc = firstTile
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   ret z
   ld a, 1
@@ -320,7 +320,7 @@ GBCSetBkgPaletteMap::;hl = wh, de = xy, bc = firstTile
   ret
 
 GBCSetWinPaletteMap::;hl = wh, de = xy, bc = firstTile
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   ret z
   ld a, 1

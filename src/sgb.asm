@@ -37,6 +37,8 @@ INCLUDE "src/memory1.asm"
 ;     Copies data to SNES WRAM using either DATA_SND or DATA_TRN
 ;     Input: a = SNES bank, bc = byte count, de = SNES address, hl = src data
 
+DEF SGB_CHECK EQU 0;0 = sys check only, 1 = controller test
+
 DEF SGB_CODE_PAL01    EQU $00 ;Set SGB Palette 0,1 Data
 DEF SGB_CODE_PAL23    EQU $01 ;Set SGB Palette 2,3 Data
 DEF SGB_CODE_PAL03    EQU $02 ;Set SGB Palette 0,3 Data
@@ -205,12 +207,17 @@ sgb_Init::
   di
   DISPLAY_OFF
   call sgb_SendInitPackets        ; 8 initialization data packet sending, according to the official documentation
+
+IF SGB_CHECK == 0
+  ldh a, [sys_info]
+ELSE
   call sgb_Check                  ; check multiplayer even if register check has passed
-  ld a, [sys_info]
+  ldh a, [sys_info]
   jr nc, .doubleCheck             ; multiplayer fail might be a fluke, check registers
   or a, SYS_INFO_SGB
-  ld [sys_info], a
+  ldh [sys_info], a
 .doubleCheck
+ENDC
   and a, SYS_INFO_SGB
   jr nz, .success
 .fail
@@ -319,7 +326,7 @@ sgb_SetDefaultBorder::
   ld de, VersionSgbBorderTileMap
 sgb_SetBorder:: ;a = bank, hl = tiles, de = tile map
   ld b, a;bank
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_SGB
   ret z
 
@@ -359,7 +366,7 @@ sgb_SetBorder:: ;a = bank, hl = tiles, de = tile map
 sgb_PlaySound:: ;a = sound A, b = sound B, c = attributes
   push bc
   push af
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_SGB
   jr z, .isSGB
   pop af
@@ -387,7 +394,7 @@ sgb_SetPal:: ;a = packet header, bc = paletteA, de = paletteB
   ld hl, cmd_buffer
   ld [hli], a
 
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_SGB
   ret z
 
@@ -416,7 +423,7 @@ sgb_SetPal:: ;a = packet header, bc = paletteA, de = paletteB
 ; Indirectly sets inside of screen block to palette b, border to palette c.
 ; Input: bc = palettes, de = xy, hl = wh
 sgb_SetBlock::
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_SGB
   ret z
 
@@ -471,7 +478,7 @@ sgb_SetBlock::
 ; input: DE = Packet data
 ;        HL = Graphical data address
 sgb_VRAMTransfer::
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_SGB
   ret z
 _sgb_VRAMTransfer:
@@ -533,7 +540,7 @@ _sgb_VRAMTransfer:
 ; Super Game Boy packet transfer
 ; input: HL = Packet address
 sgb_PacketTransfer::
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_SGB
   ret z
 _sgb_PacketTransfer:

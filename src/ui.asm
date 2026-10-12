@@ -192,7 +192,7 @@ DrawUIBox::;a=draw flags, bc = xy, de = wh
   push bc ;xy
   push de ;wh
   call GetUIBoxTiles
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .setTiles
 .isGBC
@@ -964,7 +964,7 @@ UIShowOptions::
   call LoadOptions
   
   CLEAR_BKG_AREA 0,0,20,18,' '
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .testTextSpeed
   ld a, 1

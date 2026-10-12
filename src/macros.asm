@@ -199,7 +199,7 @@ MACRO COPY_SCREEN_TO_FROM_BUFFER ;x, y, w, h, buffer, function
   ld bc, \5;buffer
   call \6
 
-  ld a, [sys_info]
+  ldh a, [sys_info]
   and a, SYS_INFO_GBC
   jr z, .skip\@
 
