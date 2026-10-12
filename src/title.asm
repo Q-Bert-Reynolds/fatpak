@@ -89,7 +89,7 @@ CyclePlayersLCDInterrupt::
   ret
 
 ShowPlayer: ;de = player number
-  DISABLE_LCD_INTERRUPT
+  call DisableLCDInterrupt
   ld hl, IntroPlayerNums
   add hl, de
   ld a, [hl]
@@ -125,7 +125,8 @@ ShowPlayer: ;de = player number
 
   ld a, 72
   ldh [rLYC], a
-  SET_LCD_INTERRUPT CyclePlayersLCDInterrupt
+  ld bc, CyclePlayersLCDInterrupt
+  call SetLCDInterrupt
   ret
 
 TitleDrop:
@@ -257,7 +258,8 @@ ShowTitle:
   ld [_y], a
   ld [_x], a
 
-  SET_LCD_INTERRUPT ShowTitleLCDInterrupt
+  ld bc, ShowTitleLCDInterrupt
+  call SetLCDInterrupt
 
   DISPLAY_ON
   call gbdk_WaitVBL
@@ -298,7 +300,7 @@ ShowTitle:
   cp 104
   jr c, .slideInVersionTextLoop
 
-  DISABLE_LCD_INTERRUPT
+  call DisableLCDInterrupt
   CLEAR_BKG_AREA 20, 8, _VERSION_COLUMNS, _VERSION_ROWS, 0
   ld d, 7
   ld e, 8
@@ -310,7 +312,8 @@ ShowTitle:
 
   ld a, 72
   ldh [rLYC], a
-  SET_LCD_INTERRUPT CyclePlayersLCDInterrupt
+  ld bc, CyclePlayersLCDInterrupt
+  call SetLCDInterrupt
 
   ld a, 128
   ld [_x], a
@@ -384,7 +387,7 @@ SGBStartMenuAttrBlk:
 ShowStartMenu: ; puts choice in a ... 0 = back, >0 = choice
   CLEAR_SCREEN 0
   call gbdk_WaitVBL
-  DISABLE_LCD_INTERRUPT
+  call DisableLCDInterrupt
   DISPLAY_OFF
   ld hl, sgb_MaskEnFreeze
   call  sgb_PacketTransfer;wait until the screen is completely clear before freezing the display on sgb
@@ -503,7 +506,7 @@ Title:: ; puts (c-d-1) in a
   xor a
   ldh [rSCX], a
 
-  DISABLE_LCD_INTERRUPT
+  call DisableLCDInterrupt
 
   xor a
   ld [_d], a
@@ -536,7 +539,7 @@ Title:: ; puts (c-d-1) in a
   cp a, b ;d==c
   jr z, .showTitleAndNewGameMenuLoop
 
-  DISABLE_LCD_INTERRUPT
+  call DisableLCDInterrupt
 
 ; return c-d-1
   ld a, [_d]

@@ -527,7 +527,7 @@ Start::
   TRAMPOLINE FadeOut
   CLEAR_SCREEN 0
   call gbdk_WaitVBL
-  DISABLE_LCD_INTERRUPT
+  call DisableLCDInterrupt
   DISPLAY_OFF
   ld hl, sgb_MaskEnFreeze
   call  sgb_PacketTransfer

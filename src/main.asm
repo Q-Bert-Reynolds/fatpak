@@ -79,7 +79,7 @@ Main::
 .setupDisplay
   di
   DISPLAY_OFF
-  DISABLE_LCD_INTERRUPT
+  call DisableLCDInterrupt
   xor a
   ldh [rSCX], a
   ldh [rSCY], a

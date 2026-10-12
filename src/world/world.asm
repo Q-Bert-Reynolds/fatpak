@@ -563,7 +563,7 @@ CheckRandomEncounter:;TODO get available players and age range from grass in exp
 
 InitMap::
   DISPLAY_OFF
-  DISABLE_LCD_INTERRUPT
+  call DisableLCDInterrupt
   SET_DEFAULT_PALETTE
 
   TRAMPOLINE UILoadFontTiles

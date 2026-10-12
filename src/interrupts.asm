@@ -3,52 +3,64 @@ SECTION "Interrupts", ROM0
 ;   SerialInterrupt
 ;
 ;lcd
-;   SET_LCD_INTERRUPT           \1=InterruptAddress
-;   DISABLE_LCD_INTERRUPT
 ;   LCDInterrupt
+;   SetLCDInterrupt             bc = interrupt address
+;   DisableLCDInterrupt
 ;
 ;vblank
 ;   VBLInterrupt
 ;   UpdateTime                  updates current game time
 ;   UpdateSpriteObjects         updates sprite_obj_buffer
 
-;TODO: check serial type (keyboard, link, printer)
-SerialInterrupt::
+SerialInterrupt::;TODO: check serial type (keyboard, link, printer)
   PUSH_ALL
   call PS2KeyboardInterrupt
   POP_ALL
   reti
 
-MACRO SET_LCD_INTERRUPT ;\1 = interrupt address
+LCDInterrupt::
+  PUSH_ALL
+  ld hl, rLCDInterrupt
+  ld a, [hli]
+  ld b, a
+  ld a, [hl]
+  ld h, b
+  ld l, a
+  ld bc, EndLCDInterrupt
+  push bc ;put return address on stack before jumping
+  jp hl
+EndLCDInterrupt::
+  POP_ALL
+  reti
+
+SetLCDInterrupt::;bc = interrupt address
   di
 
-  ld b, ~IEF_STAT
+  ld h, ~IEF_STAT
   ldh a, [rIE]
-  and a, b
+  and a, h
   ldh [rIE], a
 
   xor a
   ldh [rSTAT], a
 
   ld hl, rLCDInterrupt
-  ld bc, \1
   ld a, b
   ld [hli], a
   ld a, c
   ld [hl], a
 
-  ld b, IEF_STAT
+  ld h, IEF_STAT
   ldh a, [rIE]
-  or a, b
+  or a, h
   ldh [rIE], a
 
   ld a, STATF_LYC
   ldh [rSTAT], a
   
-  ei
-ENDM
+  reti
 
-MACRO DISABLE_LCD_INTERRUPT
+DisableLCDInterrupt::
   di
     
   ld b, ~IEF_STAT
@@ -66,22 +78,6 @@ MACRO DISABLE_LCD_INTERRUPT
   ld a, c
   ld [hl], a
 
-  ei
-ENDM
-
-LCDInterrupt::
-  PUSH_ALL
-  ld hl, rLCDInterrupt
-  ld a, [hli]
-  ld b, a
-  ld a, [hl]
-  ld h, b
-  ld l, a
-  ld bc, EndLCDInterrupt
-  push bc ;put return address on stack before jumping
-  jp hl
-EndLCDInterrupt::
-  POP_ALL
   reti
 
 VBLInterrupt::
@@ -134,7 +130,6 @@ UpdateTime:
   dec hl ;high byte
   inc [hl]
   ret
-
 
 UpdateSpriteObjects::
   ld a, [game_state]

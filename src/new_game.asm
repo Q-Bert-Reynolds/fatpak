@@ -93,7 +93,7 @@ SelectNameOrTextEntry: ;assumes d > 0, bc = title
   ret
 
 NewGame::
-  DISABLE_LCD_INTERRUPT
+  call DisableLCDInterrupt
   SWITCH_RAM_MBC5 0
 
 .showDoc

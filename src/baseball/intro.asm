@@ -153,7 +153,8 @@ PlayBallIntro:
 
   xor a
   ldh [rLYC], a
-  SET_LCD_INTERRUPT SlideInLCDInterrupt
+  ld bc, SlideInLCDInterrupt
+  call SetLCDInterrupt
   DISPLAY_ON
 
   ld a, 160
@@ -169,7 +170,7 @@ PlayBallIntro:
   xor a
   ld [_x], a
   call gbdk_WaitVBL
-  DISABLE_LCD_INTERRUPT
+  call DisableLCDInterrupt
 
   TRAMPOLINE SetPlayerColors
 
@@ -248,7 +249,8 @@ PlayBallIntro:
   ld hl, str_buffer
   call RevealTextAndWait
 
-  SET_LCD_INTERRUPT SlideOutLCDInterrupt
+  ld bc, SlideOutLCDInterrupt
+  call SetLCDInterrupt
 
   xor a
   ld [_x], a
@@ -266,7 +268,7 @@ PlayBallIntro:
   xor a
   ldh [rSCX], a
   ldh [rSCY], a
-  DISABLE_LCD_INTERRUPT
+  call DisableLCDInterrupt
 
   STR_FAR_COPY PlayBallText, str_buffer
   ld hl, str_buffer
