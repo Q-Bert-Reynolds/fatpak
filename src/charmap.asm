@@ -38,8 +38,8 @@ charmap "<count_strikes>", 24
 charmap "<arrow_tail>", 12
 charmap "<arrow_line_vert>", 15
 charmap "<arrow_line_horiz>", 30
-charmap "<arrow_elbow_left>", 31
-charmap "<arrow_elbow_right>", 26
+charmap "<arrow_elbow_left>", 26
+charmap "<arrow_elbow_right>", 31
 charmap "<arrow_tip_left>", 25
 charmap "<arrow_tip_right>", 27
 charmap "<out_ou>", 26

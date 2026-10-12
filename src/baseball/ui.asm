@@ -1,6 +1,3 @@
-DEF COMPACT_SCOREBUG EQU 1
-
-IF COMPACT_SCOREBUG == 1
 INCLUDE "img/play/runners/runners.asm"
 INCLUDE "img/play/count/count.asm"
 INCLUDE "img/play/arrow/arrow.asm"
@@ -8,193 +5,262 @@ INCLUDE "img/play/arrow/arrow.asm"
 DEF OUT_COUNT_BASES_LEN EQU 6
 OutCountBases:
   DB "<out_ou><out_t><count_balls><count_strikes><runners_3B_2B><runners_1B>"
-ENDC
+
+; DrawPlayerUI:: ;a = team (0 = user, 1 = opponent)
+;   push af;team
+;   ld c, a;team
+;   and a
+;   jr z, .userPlayer
+; .opposingPlayer
+;   xor a
+;   ld [_x], a
+;   ld a, 3
+;   ld [_y], a;if (team) x = 0, y = 3;
+;   jr .checkHomeAway
+; .userPlayer
+;   ld a, 8
+;   ld [_x], a
+;   ld a, 10
+;   ld [_y], a ;else x = 8, y = 10;
+; .checkHomeAway
+;   ld b, 1
+;   ld a, [home_team]
+;   cp c
+;   jr z, .teamIsHome
+;   xor a
+;   ld b, a
+; .teamIsHome
+;   xor a
+;   ld [_b], a
+;   ld a, [frame]
+;   and a, 1
+;   cp b
+;   jr z, .teamIsPitching
+;   ld a, 1
+;   ld [_b], a;team is batting
+; .teamIsPitching ;b = (team == home_team) != (frame % 2);
+
+;   ld a, ' '
+;   ld hl, tile_buffer
+;   ld [hli], a;tiles[0] = " ";
+;   inc hl
+
+;   xor a
+;   ld [_i], a
+; .nameBarLoop;for (i = 0; i < 10; i++) 
+;     ld a, '─'
+;     ld [hli], a ;tiles[i+2] = "─";
+;     ld a, [_i]
+;     inc a
+;     ld [_i], a
+;     cp 10
+;     jr nz, .nameBarLoop
+
+;   pop af;team
+;   push af
+;   and a
+;   jr nz, .setOpponentName
+;   call GetCurrentUserPlayer
+;   call GetUserPlayerName
+;   jr .drawName
+; .setOpponentName
+;   call GetCurrentOpponentPlayer
+;   call GetPlayerNumber
+;   call GetPlayerName
+; .drawName
+;   ld hl, name_buffer
+;   call str_Length;de = len
+;   ld a, 12
+;   sub a, e;(12-len)
+;   srl a;(12-len)/2
+;   inc a;1+(12-len)/2
+;   ld b, d
+;   ld c, e; bc = len
+;   ld hl, tile_buffer
+;   ld d, 0
+;   ld e, a;de = 1+(12-len)/2
+;   add hl, de
+;   ld d, h
+;   ld e, l;de = tile_buffer+1+(12-len)/2
+;   ld hl, name_buffer
+;   call mem_Copy
+
+;   pop af;team
+;   push af
+;   and a
+;   jr nz, .setOpponentAge
+;   call GetCurrentUserPlayer
+;   jr .drawAge
+; .setOpponentAge
+;   call GetCurrentOpponentPlayer
+; .drawAge
+;   ld d, h
+;   ld e, l
+;   ld hl, tile_buffer+12
+;   call SetAgeTiles
+; .doneWithAge
+;   ld a, [_b]
+;   and a
+;   jr z, .isPitcher ;if (b) {
+;   ld hl, tile_buffer+1
+;   call CurrentOrderInLineup
+;   add a, '1'
+;   ld [hl], a ;tiles[1] = "1" + p->batting_order;
+;   ld hl, tile_buffer+15
+;   ld a, '<BA>'
+;   ld [hl], a ;tiles[15] = "<BA>";
+;   jr .doneWithPlayerStats
+; .isPitcher ;else {
+;   ld hl, tile_buffer+1
+;   ld a, '<P>'
+;   ld [hl], a ;tiles[1] = p->position;
+;   ld hl, tile_buffer+15
+;   ld a, '<ERA>'
+;   ld [hl], a ;tiles[15] = "<ERA>";
+
+; .doneWithPlayerStats
+;   ld a, ' '
+;   ld hl, tile_buffer+20 ;tiles[20] = " ";
+  
+;   ld a, [_x]
+;   ld d, a
+;   ld a, [_y]
+;   ld e, a
+;   ld h, 12
+;   ld l, 2
+;   ld bc, tile_buffer
+;   call gbdk_SetBkgTiles;set_bkg_tiles(x,y,12,2,tiles);
+
+;   ld a, [_b]
+;   and a
+;   jr z, .setERA;if (b) 
+; .setBatAvg
+;   pop af;team
+;   push af
+;   ld de, 324
+;   call BattingAvgToString
+;   ld hl, str_buffer+4
+;   ld a, ' '
+;   ld [hl], a
+;   ld a, [_x]
+;   add a, 4
+;   ld d, a
+;   ld a, [_y]
+;   inc a
+;   ld e, a
+;   ld h, 5
+;   ld l, 1
+;   ld bc, str_buffer
+;   call gbdk_SetBkgTiles ;set_bkg_tiles(x+4,y+1,4,1,batting_avg(p));
+;   jr .setHealthPct
+
+; .setERA
+;   pop af;team
+;   push af
+;   ld hl, 902
+;   call EarnedRunAvgToString
+;   ld hl, str_buffer+4
+;   ld a, ' '
+;   ld [hl], a
+
+;   ld a, [_x]
+;   add a, 4
+;   ld d, a
+;   ld a, [_y]
+;   inc a
+;   ld e, a
+;   ld h, 5
+;   ld l, 1
+;   ld bc, str_buffer
+;   call gbdk_SetBkgTiles ;else set_bkg_tiles(x+4,y+1,4,1,earned_run_avg(p));
+
+; .setHealthPct 
+;   pop af;team
+;   ld a, 85
+;   call HealthPctToString
+;   ld a, [_x]
+;   add a, 9
+;   ld d, a
+;   ld a, [_y]
+;   inc a
+;   ld e, a
+;   ld h, 3
+;   ld l, 1
+;   ld bc, str_buffer
+;   call gbdk_SetBkgTiles;set_bkg_tiles(x+9,y+1,3,1,health_pct(p));
+;   ret
 
 DrawPlayerUI:: ;a = team (0 = user, 1 = opponent)
-  push af;team
-  ld c, a;team
   and a
-  jr z, .userPlayer
-.opposingPlayer
-  xor a
-  ld [_x], a
-  ld a, 3
-  ld [_y], a;if (team) x = 0, y = 3;
-  jr .checkHomeAway
-.userPlayer
-  ld a, 8
-  ld [_x], a
-  ld a, 10
-  ld [_y], a ;else x = 8, y = 10;
-.checkHomeAway
-  ld b, 1
-  ld a, [home_team]
-  cp c
-  jr z, .teamIsHome
-  xor a
-  ld b, a
-.teamIsHome
-  xor a
-  ld [_b], a
-  ld a, [frame]
-  and a, 1
-  cp b
-  jr z, .teamIsPitching
-  ld a, 1
-  ld [_b], a;team is batting
-.teamIsPitching ;b = (team == home_team) != (frame % 2);
+  jr z, DrawUserPlayerUI
+  jp DrawOpposingPlayerUI
 
+DrawUserPlayerUI::
   ld a, ' '
   ld hl, tile_buffer
-  ld [hli], a;tiles[0] = " ";
-  inc hl
+  ld bc, 30
+  call mem_Set
+  
+.arrow
+  ld a, '<arrow_tail>'
+  ld hl, tile_buffer+9
+  ld [hl], a
+  ld a, '<arrow_line_vert>'
+  ld hl, tile_buffer+19
+  ld [hl], a
+  ld a, '<arrow_elbow_right>'
+  ld hl, tile_buffer+29
+  ld [hl], a
+  ld a, '<arrow_tip_left>'
+  ld hl, tile_buffer+20
+  ld [hli], a
+  ld a, '<arrow_line_horiz>'
+  ld bc, 8
+  call mem_Set
+  ld hl, $0A03
+  ld de, $0909
+  ld bc, tile_buffer
+  call gbdk_SetBkgTiles
 
-  xor a
-  ld [_i], a
-.nameBarLoop;for (i = 0; i < 10; i++) 
-    ld a, '─'
-    ld [hli], a ;tiles[i+2] = "─";
-    ld a, [_i]
-    inc a
-    ld [_i], a
-    cp 10
-    jr nz, .nameBarLoop
-
-  pop af;team
-  push af
-  and a
-  jr nz, .setOpponentName
+.name
   call GetCurrentUserPlayer
   call GetUserPlayerName
-  jr .drawName
-.setOpponentName
-  call GetCurrentOpponentPlayer
-  call GetPlayerNumber
-  call GetPlayerName
-.drawName
-  ld hl, name_buffer
-  call str_Length;de = len
-  ld a, 12
-  sub a, e;(12-len)
-  srl a;(12-len)/2
-  inc a;1+(12-len)/2
-  ld b, d
-  ld c, e; bc = len
-  ld hl, tile_buffer
-  ld d, 0
-  ld e, a;de = 1+(12-len)/2
-  add hl, de
-  ld d, h
-  ld e, l;de = tile_buffer+1+(12-len)/2
-  ld hl, name_buffer
-  call mem_Copy
-
-  pop af;team
-  push af
-  and a
-  jr nz, .setOpponentAge
-  call GetCurrentUserPlayer
-  jr .drawAge
-.setOpponentAge
-  call GetCurrentOpponentPlayer
-.drawAge
-  ld d, h
-  ld e, l
-  ld hl, tile_buffer+12
-  call SetAgeTiles
-.doneWithAge
-  ld a, [_b]
-  and a
-  jr z, .isPitcher ;if (b) {
-  ld hl, tile_buffer+1
-  call CurrentOrderInLineup
-  add a, '1'
-  ld [hl], a ;tiles[1] = "1" + p->batting_order;
-  ld hl, tile_buffer+15
-  ld a, '<BA>'
-  ld [hl], a ;tiles[15] = "<BA>";
-  jr .doneWithPlayerStats
-.isPitcher ;else {
-  ld hl, tile_buffer+1
-  ld a, '<P>'
-  ld [hl], a ;tiles[1] = p->position;
-  ld hl, tile_buffer+15
-  ld a, '<ERA>'
-  ld [hl], a ;tiles[15] = "<ERA>";
-
-.doneWithPlayerStats
-  ld a, ' '
-  ld hl, tile_buffer+20 ;tiles[20] = " ";
-  
-  ld a, [_x]
-  ld d, a
-  ld a, [_y]
-  ld e, a
-  ld h, 12
-  ld l, 2
-  ld bc, tile_buffer
-  call gbdk_SetBkgTiles;set_bkg_tiles(x,y,12,2,tiles);
-
-  ld a, [_b]
-  and a
-  jr z, .setERA;if (b) 
-.setBatAvg
-  pop af;team
-  push af
-  ld de, 324
-  call BattingAvgToString
-  ld hl, str_buffer+4
-  ld a, ' '
-  ld [hl], a
-  ld a, [_x]
-  add a, 4
-  ld d, a
-  ld a, [_y]
-  inc a
-  ld e, a
-  ld h, 5
-  ld l, 1
-  ld bc, str_buffer
-  call gbdk_SetBkgTiles ;set_bkg_tiles(x+4,y+1,4,1,batting_avg(p));
-  jr .setHealthPct
-
-.setERA
-  pop af;team
-  push af
-  ld hl, 902
-  call EarnedRunAvgToString
-  ld hl, str_buffer+4
-  ld a, ' '
-  ld [hl], a
-
-  ld a, [_x]
-  add a, 4
-  ld d, a
-  ld a, [_y]
-  inc a
-  ld e, a
-  ld h, 5
-  ld l, 1
-  ld bc, str_buffer
-  call gbdk_SetBkgTiles ;else set_bkg_tiles(x+4,y+1,4,1,earned_run_avg(p));
-
-.setHealthPct 
-  pop af;team
-  ld a, 85
-  call HealthPctToString
-  ld a, [_x]
-  add a, 9
-  ld d, a
-  ld a, [_y]
-  inc a
-  ld e, a
-  ld h, 3
-  ld l, 1
-  ld bc, str_buffer
-  call gbdk_SetBkgTiles;set_bkg_tiles(x+9,y+1,3,1,health_pct(p));
+  DRAW_STRING DRAW_FLAGS_BKG, 9, 9, name_buffer
   ret
 
-IF COMPACT_SCOREBUG == 1
+DrawOpposingPlayerUI::
+  LOAD_TILES _ArrowCornerBottomLeftTile, _VRAM+$1000, '<arrow_elbow_left>', 1
+  LOAD_TILES _ArrowTipRightTile, _VRAM+$1000, '<arrow_tip_right>', 1
+
+  ld a, ' '
+  ld hl, tile_buffer
+  ld bc, 30
+  call mem_Set
+  
+.arrow
+  ld a, '<arrow_tail>'
+  ld hl, tile_buffer+10
+  ld [hl], a
+  ld a, '<arrow_tip_right>'
+  ld hl, tile_buffer+29
+  ld [hl], a
+  ld a, '<arrow_elbow_left>'
+  ld hl, tile_buffer+20
+  ld [hli], a
+  ld a, '<arrow_line_horiz>'
+  ld bc, 8
+  call mem_Set
+  ld hl, $0A03
+  ld de, $0101
+  ld bc, tile_buffer
+  call gbdk_SetBkgTiles
+
+.name
+  call GetCurrentOpponentPlayer
+  call GetPlayerName
+  DRAW_STRING DRAW_FLAGS_BKG, 2, 2, name_buffer
+  ret
+
 DrawBases::
   ld bc, 16
   ld de, _VRAM+$1000 + '<runners_1B>'*16
@@ -240,9 +306,8 @@ DrawBases::
   ret
 
 DrawCountOutsInning::
-
-  LOAD_TILES _OutsOuTile,    _VRAM+$1000, '<out_ou>',        1
-  LOAD_TILES _OutsTTile,     _VRAM+$1000, '<out_t>',         1
+  LOAD_TILES _OutsOuTile, _VRAM+$1000, '<out_ou>', 1
+  LOAD_TILES _OutsTTile, _VRAM+$1000, '<out_t>', 1
   
 .balls
   ld bc, 16
@@ -309,161 +374,12 @@ DrawCountOutsInning::
   call str_Length
   ld h, e;w
   ld l, 1;h
-  ld d, 0;x
-  ld e, 2;y
+  ld d, 1;x
+  ld e, 3;y
   ld bc, tile_buffer
   call gbdk_SetBkgTiles
   ret
 
-ELSE
-DrawBases::
-  ld a, ' ';for (i = 0; i < 5; i+=2) tiles[i] = " ";
-  ld hl, tile_buffer
-  ld [hl], a
-  ld hl, tile_buffer+2
-  ld [hl], a
-  ld hl, tile_buffer+4
-  ld [hl], a
-
-  ld hl, tile_buffer+5 ;tiles[5] = (runners_on_base & FIRST_BASE_MASK) ? "◆" : "◇";
-  ld a, '◇'
-  ld [hl], a
-  ld a, [runners_on_base]
-  and a, FIRST_BASE_MASK
-  jr z, .notOnFirst
-  ld a, '◆'
-  ld [hl], a
-.notOnFirst
-
-  ld hl, tile_buffer+1 ;tiles[1] = (runners_on_base & SECOND_BASE_MASK) ? "◆" : "◇";
-  ld a, '◇'
-  ld [hl], a
-  ld a, [runners_on_base]
-  and a, SECOND_BASE_MASK
-  and a
-  jr z, .notOnSecond
-  ld a, '◆'
-  ld [hl], a
-.notOnSecond
-  
-  ld hl, tile_buffer+3 ;tiles[3] = (runners_on_base & THIRD_BASE_MASK) ? "◆" : "◇";
-  ld a, '◇'
-  ld [hl], a
-  ld a, [runners_on_base+1]
-  and a, THIRD_BASE_MASK >> 8
-  and a
-  jr z, .notOnThird
-  ld a, '◆'
-  ld [hl], a
-.notOnThird
-
-  ld d, 9;x
-  ld e, 0;y
-  ld h, 3;w
-  ld l, 2;h
-  ld bc, tile_buffer
-  call gbdk_SetBkgTiles;set_bkg_tiles(9,0,3,2,tiles);
-  ret
-
-DrawCountOutsInning::
-  ld hl, tile_buffer
-.setBallsTiles
-  ld a, 'B'
-  ld [hli], a
-  xor a
-  ld [_i], a
-.setBallsLoop
-    ld a, '◌'
-    ld [hl], a
-    call GetBalls
-    ld b, a
-    ld a, [_i]
-    cp b
-    jr nc, .skipBall
-    ld a, '○'
-    ld [hl], a
-  .skipBall
-    ld a, [_i]
-    inc a
-    inc hl
-    ld [_i], a
-    cp 3
-    jr nz, .setBallsLoop
-
-.setStrikesTiles
-  ld a, 'S'
-  ld [hli], a
-  xor a
-  ld [_i], a
-.setStrikesLoop
-    ld a, '◌'
-    ld [hl], a
-    call GetStrikes
-    ld b, a
-    ld a, [_i]
-    cp b
-    jr nc, .skipStrike
-    ld a, '○'
-    ld [hl], a
-  .skipStrike
-    ld a, [_i]
-    inc a
-    inc hl
-    ld [_i], a
-    cp 2
-    jr nz, .setStrikesLoop
-  
-.setOutsTiles
-  ld a, 'O'
-  ld [hli], a
-  xor a
-  ld [_i], a
-.setOutsLoop
-    ld a, '◌'
-    ld [hl], a
-    call GetOuts
-    ld b, a
-    ld a, [_i]
-    cp b
-    jr nc, .skipOut
-    ld a, '○'
-    ld [hl], a
-  .skipOut
-    ld a, [_i]
-    inc a
-    inc hl
-    ld [_i], a
-    cp 2
-    jr nz, .setOutsLoop
-  
-.setInningFrameTiles
-  ld [hl], '▼'
-  ld a, [frame]
-  bit 0, a
-  jr nz, .skip ;tiles[0] = (frame % 2 == 0) ? "▲" : "▼";
-  ld [hl], '▲'
-.skip
-  inc hl
-  ld d, h
-  ld e, l
-  srl a;frame/2
-  inc a
-  ld l, a
-  xor a
-  ld h, a
-  call str_Number
-
-.drawCountOutsInning
-  ld hl, tile_buffer
-  call str_Length
-  ld h, e;w
-  ld l, 1;h
-  ld d, 0;x
-  ld e, 2;y
-  ld bc, tile_buffer
-  call gbdk_SetBkgTiles
-  ret
-ENDC
 
 DrawTeamNames::
   ld hl, user_name
@@ -475,11 +391,11 @@ DrawTeamNames::
   call str_Length;l = strlen(name_buff);
   ld h, e ;w
   ld l, 1
-  ld de, 0;x = y = 0
+  ld de, $0101
   ld a, [home_team]
   and a
   jr z, .setPlayerAway
-  ld de, 1;x = 0, y = 1  
+  ld de, $0102  
 .setPlayerAway
   ld bc, name_buffer
   call gbdk_SetBkgTiles;set_bkg_tiles(0,y,7,1,name_buff);
@@ -504,14 +420,14 @@ DrawTeamNames::
   call str_Length;l = strlen(name_buff);
   ld h, e ;w
   ld l, 1
-  ld de, 0;x = y = 0
+  ld de, $0101
   ld a, [home_team]
   and a
   jr nz, .setOpponentAway
-  ld de, 1;x = 0, y = 1  
+  ld de, $0102
 .setOpponentAway
   ld bc, name_buffer
-  call gbdk_SetBkgTiles;set_bkg_tiles(0,1,7,1,name_buff);
+  call gbdk_SetBkgTiles
   ret
 
 DrawScore::
@@ -523,73 +439,55 @@ DrawScore::
   call str_Number
 
   ld hl, name_buffer
-  call str_Length;l = strlen(name_buff);
+  call str_Length
   ld h, e ;w
   ld l, 1 ;h
-  ld d, 8 ;x
-  ld e, 0 ;y
+  ld d, 10 ;x
+  ld e, 1 ;y
   ld bc, name_buffer
-  call gbdk_SetBkgTiles ;set_bkg_tiles(9,0,l,1,name_buff);
+  call gbdk_SetBkgTiles
   
   xor a
   ld h, a
   ld a, [home_score]
   ld l, a
   ld de, name_buffer
-  call str_Number;sprintf(name_buff, "%d", away_score);
+  call str_Number
 
   ld hl, name_buffer
-  call str_Length;l = strlen(name_buff);
+  call str_Length
 
   ld h, e ;w
   ld l, 1 ;h
-  ld d, 8 ;x
-  ld e, 1 ;y
+  ld d, 10 ;x
+  ld e, 2 ;y
   ld bc, name_buffer
-  call gbdk_SetBkgTiles ;set_bkg_tiles(9,1,l,1,name_buff);
+  call gbdk_SetBkgTiles
   ret
 
 DrawPlayBallUI::
+  ;TODO: track which tiles are loaded
+  LOAD_TILES _ArrowTailTile, _VRAM+$1000, '<arrow_tail>', 1
+  LOAD_TILES _ArrowLineVerticalTile, _VRAM+$1000, '<arrow_line_vert>', 1
+  LOAD_TILES _ArrowLineHorizontalTile, _VRAM+$1000, '<arrow_line_horiz>', 1
+  LOAD_TILES _ArrowCornerBottomLeftTile, _VRAM+$1000, '<arrow_elbow_left>', 1
+  LOAD_TILES _ArrowCornerBottomRightTile, _VRAM+$1000, '<arrow_elbow_right>', 1
+  LOAD_TILES _ArrowTipLeftTile, _VRAM+$1000, '<arrow_tip_left>', 1
+  LOAD_TILES _ArrowTipRightTile, _VRAM+$1000, '<arrow_tip_right>', 1
+  
   call DrawTeamNames
   call DrawScore
   call DrawBases
 
-  ld b, 0
-  ld c, 12
-  ld d, 20
-  ld e, 6
-  ld a, DRAW_FLAGS_BKG
-  call DrawUIBox
+  DRAW_UI_BOX DRAW_FLAGS_BKG, 0, 12,  9, 6
+  DRAW_UI_BOX DRAW_FLAGS_BKG, 8, 12, 12, 6
 
   call DrawCountOutsInning
 
-  xor a
-  ld bc, 1
-  ld d, 9
-  ld e, 14
-  ld hl, PlayMenuPlayString
-  call DrawText
-
-  xor a
-  ld bc, 1
-  ld d, 15
-  ld e, 14
-  ld hl, PlayMenuTeamString
-  call DrawText
-
-  xor a
-  ld bc, 1
-  ld d, 9
-  ld e, 16
-  ld hl, PlayMenuItemString
-  call DrawText
-
-  xor a
-  ld bc, 1
-  ld d, 15
-  ld e, 16
-  ld hl, PlayMenuRunString
-  call DrawText
+  DRAW_STRING DRAW_FLAGS_BKG, 10, 14, PlayMenuPlayString
+  DRAW_STRING DRAW_FLAGS_BKG, 15, 14, PlayMenuTeamString
+  DRAW_STRING DRAW_FLAGS_BKG, 10, 16, PlayMenuItemString
+  DRAW_STRING DRAW_FLAGS_BKG, 15, 16, PlayMenuRunString
 
   DISPLAY_ON
   ret 
