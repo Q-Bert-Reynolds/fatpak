@@ -11,6 +11,8 @@ INCLUDE "src/charmap.asm"
 INCLUDE "src/constants.asm"
 INCLUDE "src/macros.asm"
 INCLUDE "src/keyboard/keyboard.asm"
+INCLUDE "src/input.asm"
+INCLUDE "src/interrupts.asm"
 
 INCLUDE "src/color.asm"
 INCLUDE "src/sgb.asm"

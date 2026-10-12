@@ -66,6 +66,53 @@ Simulation\1\2:
 .dest_y     DB
 ENDM
 
+MACRO CLEAR_USER_PLAYER_DATA ;\1 = player address, \2 = pay 
+  ld b, (\2 & $FF0000) >> 16
+  ld c, (\2 & $00FF00) >> 8
+  ld d, (\2 & $0000FF)
+  ld hl, \1
+  call ClearUserPlayerData
+ENDM
+
+MACRO ADD_USER_PLAYER_DATA ;\1 = player address, \2 = nickname, \3 = pay 
+  jr .copyNickname\@
+.nickname\@ 
+  DB \2
+  DS NICKNAME_LENGTH - STRLEN(\2)
+.copyNickname\@
+  ld hl, \1
+  ld de, .nickname\@
+  call SetUserPlayerName
+  ld b, (\3 & $FF0000) >> 16
+  ld c, (\3 & $00FF00) >> 8
+  ld d, (\3 & $0000FF)
+  ld hl, \1
+  call SetUserPlayerPay
+  ld a, [\1.age]
+  call GetXPForAge
+  ld hl, \1.xp
+  ld a, c
+  ld [hli], a
+  ld a, d
+  ld [hli], a
+  ld a, e
+  ld [hli], a
+  ld hl, \1
+  call GetPlayerMaxHP
+  push hl;max hp
+  call gbdk_Random
+  pop hl;max hp
+  ld a, d
+  and a, h
+  ld d, a
+  ld a, e
+  and a, l
+  or a, 1
+  ld e, a
+  ld hl, \1
+  call SetPlayerHP
+ENDM
+
 SECTION "Player RAM", WRAM0
 ;Lineups
 UserLineup::

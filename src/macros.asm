@@ -7,8 +7,6 @@
 ;   DEBUG_LOG_STRING                      "string"
 ;   DEBUG_LOG_ADDRESS                     address16 bank8
 ;   DEBUG_LOG_LABEL                       LabeledAddress
-;   SET_LCD_INTERRUPT                     InterruptAddress
-;   DISABLE_LCD_INTERRUPT
 ;   LOAD_TILES                            tileAddress16, index8, count8
 ;   HIDE_ALL_SPRITES
 ;   CLEAR_SCREEN                          tile8
@@ -19,14 +17,8 @@
 ;   COPY_WIN_TO_BUFFER                    x8, y8, w8, h8
 ;   COPY_BUFFER_TO_WIN                    x8, y8, w8, h8
 ;   COPY_SCREEN_TO_FROM_BUFFER            x8, y8, w8, h8, _buffer, gbdk_Func
-;   UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS   JumpAddress, buttons8
-;   JUMP_TO_IF_BUTTONS                    JumpAddress, buttons8
-;   EXITABLE_DELAY                        JumpAddress, buttons8, frames8
-;   WAITPAD_UP                                    
-;   WAITPAD_UP_OR_FRAMES                  frames8
 ;   D24                                   num24
 ;   BETWEEN                               n8, n8
-;   ADD_USER_PLAYER_DATA                  PlayerAddress, "nickname", pay24 
 
 MACRO SET_BANK
   ldh [loaded_bank], a
@@ -87,56 +79,6 @@ ENDM
 
 MACRO DEBUG_LOG_LABEL; \1 = label
   DEBUG_LOG_ADDRESS \1, BANK(\1)
-ENDM
-
-MACRO SET_LCD_INTERRUPT ;\1 = interrupt address
-  di
-
-  ld b, ~IEF_STAT
-  ldh a, [rIE]
-  and a, b
-  ldh [rIE], a
-
-  xor a
-  ldh [rSTAT], a
-
-  ld hl, rLCDInterrupt
-  ld bc, \1
-  ld a, b
-  ld [hli], a
-  ld a, c
-  ld [hl], a
-
-  ld b, IEF_STAT
-  ldh a, [rIE]
-  or a, b
-  ldh [rIE], a
-
-  ld a, STATF_LYC
-  ldh [rSTAT], a
-  
-  ei
-ENDM
-
-MACRO DISABLE_LCD_INTERRUPT
-  di
-    
-  ld b, ~IEF_STAT
-  ldh a, [rIE]
-  and a, b
-  ldh [rIE], a
-
-  xor a
-  ldh [rSTAT], a
-
-  ld hl, rLCDInterrupt
-  ld bc, EndLCDInterrupt
-  ld a, b
-  ld [hli], a
-  ld a, c
-  ld [hl], a
-
-  ei
 ENDM
 
 MACRO LOAD_TILES ;\1 = tile address, \2 = vram address, \3 = index, \4 = count
@@ -214,63 +156,6 @@ MACRO COPY_SCREEN_TO_FROM_BUFFER ;x, y, w, h, buffer, function
 .skip\@
 ENDM
 
-MACRO UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS ; \1=address, \2=buttons
-  call UpdateInput
-  JUMP_TO_IF_BUTTONS \1, \2
-ENDM
-
-MACRO JUMP_TO_IF_BUTTONS ; \1=address, \2=buttons
-  ld a, [last_button_state]
-  and a
-  jr nz, .skip\@
-  ld a, [button_state]
-  and \2
-  jp nz, \1
-.skip\@
-ENDM
-
-MACRO EXITABLE_DELAY ; \1=address, \2=buttons, \3=frames
-  ld a, \3
-.loop\@
-    push af
-    UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS .jump\@, \2
-    call gbdk_WaitVBL
-    pop af
-    dec a
-    jr nz, .loop\@
-  jr .exit\@
-.jump\@
-  pop af
-  jp \1
-.exit\@
-ENDM
-
-MACRO WAITPAD_UP
-.loop\@
-  call gbdk_WaitVBL
-  call UpdateInput
-  ld a, [last_button_state]
-  and a
-  jr nz, .loop\@
-ENDM
-
-MACRO WAITPAD_UP_OR_FRAMES ; \1=frames
-  ld a, \1
-.loop\@
-    push af;frames
-    call gbdk_WaitVBL
-    call UpdateInput
-    ld a, [last_button_state]
-    and a
-    jr z, .exit\@
-    pop af;frames
-    dec a
-    jr nz, .loop\@
-  push af;frames
-.exit\@
-  pop af;frames
-ENDM
-
 MACRO D24 ;\1 = 24 bit number 
   DB (\1 & $FF0000) >> 16
   DB (\1 & $00FF00) >> 8
@@ -311,51 +196,4 @@ ENDC
   ld a, 1
   and a
 .end\@
-ENDM
-
-MACRO CLEAR_USER_PLAYER_DATA ;\1 = player address, \2 = pay 
-  ld b, (\2 & $FF0000) >> 16
-  ld c, (\2 & $00FF00) >> 8
-  ld d, (\2 & $0000FF)
-  ld hl, \1
-  call ClearUserPlayerData
-ENDM
-
-MACRO ADD_USER_PLAYER_DATA ;\1 = player address, \2 = nickname, \3 = pay 
-  jr .copyNickname\@
-.nickname\@ 
-  DB \2
-  DS NICKNAME_LENGTH - STRLEN(\2)
-.copyNickname\@
-  ld hl, \1
-  ld de, .nickname\@
-  call SetUserPlayerName
-  ld b, (\3 & $FF0000) >> 16
-  ld c, (\3 & $00FF00) >> 8
-  ld d, (\3 & $0000FF)
-  ld hl, \1
-  call SetUserPlayerPay
-  ld a, [\1.age]
-  call GetXPForAge
-  ld hl, \1.xp
-  ld a, c
-  ld [hli], a
-  ld a, d
-  ld [hli], a
-  ld a, e
-  ld [hli], a
-  ld hl, \1
-  call GetPlayerMaxHP
-  push hl;max hp
-  call gbdk_Random
-  pop hl;max hp
-  ld a, d
-  and a, h
-  ld d, a
-  ld a, e
-  and a, l
-  or a, 1
-  ld e, a
-  ld hl, \1
-  call SetPlayerHP
 ENDM
