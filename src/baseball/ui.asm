@@ -557,7 +557,7 @@ SelectPlayMenuItem::
   ld [_y], a ;y = (play_menu_selection & 2) >> 1;
 
   call MovePlayMenuArrow
-  WAITPAD_UP
+  call WaitPadUp
 .moveMenuArrowLoop ;while (1) {
     call UpdateInput ;k = joypad();
 .testUpPressed ;if (k & J_UP && y == 1) { y = 0; move_play_menu_arrow(); }
@@ -755,7 +755,7 @@ SelectMoveMenuItem:: ;returns selection in a
   call MoveMoveMenuArrow
   call ShowMoveInfo
 
-  WAITPAD_UP;update_waitpadup();
+  call WaitPadUp
 .loop ;while (1) {
     call gbdk_WaitVBL
     call UpdateInput;  k = joypad();
@@ -770,7 +770,7 @@ SelectMoveMenuItem:: ;returns selection in a
     ld [move_choice], a
     call MoveMoveMenuArrow
     call ShowMoveInfo
-    WAITPAD_UP
+    call WaitPadUp
     jp .loop
 
 .checkButtonDown;  else if (k & J_DOWN && move_choice < c-1) {
@@ -787,7 +787,7 @@ SelectMoveMenuItem:: ;returns selection in a
     ld [move_choice], a
     call MoveMoveMenuArrow
     call ShowMoveInfo
-    WAITPAD_UP
+    call WaitPadUp
     jp .loop
 
 .checkButtonStartA;  if (k & (J_START | J_A)) {

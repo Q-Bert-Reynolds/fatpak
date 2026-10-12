@@ -71,7 +71,7 @@ FlashNextArrow:: ;a = draw flags, de = xy
   push af
   call SetTiles
 
-  WAITPAD_UP
+  call WaitPadUp
   ld l, 20
 .loop1 ;for (a = 20; a > 0; --a) {
     UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS .exitFlashNextArrow, (PADF_A | PADF_B | PADF_START)
@@ -452,8 +452,9 @@ MoveListMenuArrow:: ;a = draw flags, de = xy, _j = current index, _c = count, mu
   push af
   call DrawListMenuArrow;move_menu_arrow(--j);
 .failMoveUp
-  pop af;draw flags
-  WAITPAD_UP_OR_FRAMES 20
+  pop af;discard draw flags
+  ld a, 20
+  call WaitPadUpOrFrames
   ld a, -1
   ret
 .checkMoveArrowDown ;else if (button_state & PADF_DOWN && _j < _c-1) {
@@ -475,8 +476,9 @@ MoveListMenuArrow:: ;a = draw flags, de = xy, _j = current index, _c = count, mu
   push af
   call DrawListMenuArrow;move_menu_arrow(++j);
 .failMoveDown
-  pop af;draw flags
-  WAITPAD_UP_OR_FRAMES 20
+  pop af;discard draw flags
+  ld a, 20
+  call WaitPadUpOrFrames
   ld a, 1
   ret
 .noMove
@@ -1051,7 +1053,7 @@ UIShowOptions::
   ld [_y], a; y = 0;
 
   call MoveOptionsArrow; move_options_arrow(y);
-  WAITPAD_UP
+  call WaitPadUp
 
 .moveOptionsArrowLoop; while (1) {
   call UpdateInput;   k = joypad();
@@ -1067,7 +1069,7 @@ UIShowOptions::
   dec a
   ld [_y], a
   call MoveOptionsArrow;     move_options_arrow(--y);
-  WAITPAD_UP
+  call WaitPadUp
   jp .waitVBLAndLoop
 .checkDownPressed;   else if (button_state & PADF_DOWN && y < 3) {
   ld a, [button_state]
@@ -1083,7 +1085,7 @@ UIShowOptions::
   inc a
   ld [_y], a
   call MoveOptionsArrow;     move_options_arrow(++y);
-  WAITPAD_UP
+  call WaitPadUp
   jp .waitVBLAndLoop
 .checkLeftPressed;   else if (button_state & PADF_LEFT && y < 3) {
   ld a, [button_state]
@@ -1124,7 +1126,7 @@ UIShowOptions::
   ld [coaching_style], a
 .moveArrowLeft
   call MoveOptionsArrow;     move_options_arrow(y);
-  WAITPAD_UP
+  call WaitPadUp
   jr .waitVBLAndLoop
 .checkRightPressed;   else if (button_state & PADF_RIGHT && y < 3) {
   ld a, [button_state]
@@ -1165,7 +1167,7 @@ UIShowOptions::
   ld [coaching_style], a
 .moveArrowRight
   call MoveOptionsArrow;     move_options_arrow(y);
-  WAITPAD_UP
+  call WaitPadUp
   jr .waitVBLAndLoop
 .checkStartAPressed;   if (button_state & (PADF_START | PADF_A) && y == 3) break;
   ld a, [_y]
@@ -1257,7 +1259,7 @@ MoveTextEntryArrow: ; bc = from xy, de = to xy
   ld bc, tile_buffer
   call gbdk_SetWinTiles ;set_win_tiles(to_x*2+1,to_y*2+5,1,1,tile_buffer);
 .waitPadUp
-  WAITPAD_UP; update_waitpadup();
+  call WaitPadUp
   ret
 
 UpdateTextEntryDisplay: ; hl = str, d = max_len
@@ -1500,7 +1502,7 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
   ld [_l], a
 .drawTextBoxLoop; while (1) {
     call DrawTextEntryBox
-    WAITPAD_UP
+    call WaitPadUp
   .moveArrowLoop;   while (1) {
       call UpdateInput;k = joypad();
       ld a, [_x]
@@ -1653,7 +1655,7 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
       push hl ;str
       call UpdateTextEntryDisplay;update_text_entry_display(str, max_len);
       PLAY_SFX SelectSound
-      WAITPAD_UP
+      call WaitPadUp
       jr .waitVBL
     .bPressed;     else if (button_state & PADF_B && l > 0) {
       ld a, [button_state]
@@ -1679,7 +1681,7 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
       ld e, a
       push hl;str
       call UpdateTextEntryDisplay ;update_text_entry_display(str, max_len);
-      WAITPAD_UP
+      call WaitPadUp
     .waitVBL
       call gbdk_WaitVBL
       jp .moveArrowLoop
@@ -1895,7 +1897,7 @@ UIShowListMenu::; a = draw flags, bc = xy, de = wh, text = [str_buffer], title =
 
   push bc ;xy
   push af;draw flags
-  WAITPAD_UP;update_waitpadup();
+  call WaitPadUp
   ld a, [list_selection]
   ld [_j], a ;j = 0;
 .moveMenuArrowLoop ;while (1) {

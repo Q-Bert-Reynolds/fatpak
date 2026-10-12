@@ -12,7 +12,7 @@ ShowHouseSignText:
   ld hl, str_buffer
   call RevealTextAndWait
   HIDE_WIN
-  WAITPAD_UP
+  call WaitPadUp
   ret
 
 PickRedTeam:
@@ -75,7 +75,7 @@ PickTeam:
   ld a, DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP
   ld de, 12
   call RevealText
-  WAITPAD_UP
+  call WaitPadUp
   ld b, 14
   ld c, 7
   ld a, DRAW_FLAGS_WIN
@@ -97,5 +97,5 @@ PickTeam:
   ld [team_flags], a
 .done
   HIDE_WIN
-  WAITPAD_UP
+  call WaitPadUp
   ret

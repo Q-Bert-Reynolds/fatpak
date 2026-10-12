@@ -57,7 +57,7 @@ DrawStatScreen::;player in hl
   push hl;player
   call DrawPageOne
   DISPLAY_ON
-  WAITPAD_UP
+  call WaitPadUp
   call WaitForABStart
 
   pop hl;player
@@ -76,7 +76,7 @@ WaitForABStart:
     ld a, [button_state]
     and a, PADF_A | PADF_B | PADF_START
     jr z, WaitForABStart
-  WAITPAD_UP
+  call WaitPadUp
   ret
 
 DrawPageOne:

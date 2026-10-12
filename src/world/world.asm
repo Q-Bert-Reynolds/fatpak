@@ -333,7 +333,7 @@ ShowPauseMenu::
   call DrawMapToScreen
   call gbdk_WaitVBL
   HIDE_WIN
-  WAITPAD_UP
+  call WaitPadUp
   POP_VAR list_selection
   ret
 
@@ -481,7 +481,7 @@ CheckActions:
   call GetMapText
   call RevealTextAndWait
   HIDE_WIN
-  WAITPAD_UP
+  call WaitPadUp
   ret
 
 ShowPlayerAvatar:

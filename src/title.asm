@@ -457,7 +457,7 @@ ShowStartMenu: ; puts choice in a ... 0 = back, >0 = choice
   ld a, DRAW_FLAGS_BKG
   call DrawSaveStats
 
-  WAITPAD_UP
+  call WaitPadUp
 .showGameStatsLoop
     UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS .returnY, PADF_A
     JUMP_TO_IF_BUTTONS .backPressed, PADF_B

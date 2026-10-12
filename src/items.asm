@@ -122,7 +122,7 @@ TryPickupItem::;bc = item id/amount, de = flag index/bit, returns z if inventory
   call str_Replace
   ld hl, tile_buffer
   call RevealTextAndWait
-  WAITPAD_UP
+  call WaitPadUp
   HIDE_WIN
 
 .addToBag
@@ -147,7 +147,7 @@ TryPickupItem::;bc = item id/amount, de = flag index/bit, returns z if inventory
   pop de;discard flag data
   ld hl, BagFullText
   call RevealTextAndWait
-  WAITPAD_UP
+  call WaitPadUp
   HIDE_WIN
   xor a
   ret
@@ -246,7 +246,8 @@ ShowInventory:
   ld a, DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP
   call DrawListMenuArrow
   call DrawItems
-  WAITPAD_UP_OR_FRAMES 20
+  ld a, 20
+  call WaitPadUpOrFrames
 .loop
     call gbdk_WaitVBL
     call UpdateInput
@@ -300,7 +301,7 @@ ShowInventory:
     ld bc, bkg_buffer
     call gbdk_SetWinTiles
     call DrawItems
-    WAITPAD_UP
+    call WaitPadUp
     jp .loop
     
   .checkB
@@ -310,7 +311,7 @@ ShowInventory:
     jr nz, .exit
     jp .loop
 .exit
-  WAITPAD_UP
+  call WaitPadUp
   ret
 
 DrawItems::
@@ -775,7 +776,8 @@ MakeOffer:;returns z if offer cancelled, result of offer in a (1 = accepted), ex
   ld [_x], a
   call UpdateOffer
 .loop
-    WAITPAD_UP_OR_FRAMES 20
+    ld a, 20
+    call WaitPadUpOrFrames
     call gbdk_WaitVBL
     call UpdateInput
     ld a, [button_state]
@@ -853,7 +855,7 @@ MakeOffer:;returns z if offer cancelled, result of offer in a (1 = accepted), ex
   ld de, 12
   call RevealText
 
-  WAITPAD_UP
+  call WaitPadUp
   ld b, 14
   ld c, 7
   ld a, DRAW_FLAGS_WIN

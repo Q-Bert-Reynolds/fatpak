@@ -67,7 +67,7 @@ UsePublicComputer:
 .logOut
   HIDE_WIN
   call ShowPlayerAvatar
-  WAITPAD_UP
+  call WaitPadUp
   ret
 
 GetPCOptions:;returns options in str_buffer, option count in a
@@ -124,7 +124,7 @@ UseMyComputer:
   call ShowTurnedOnComputerText
   call AccessItemStorageSystem
   HIDE_WIN
-  WAITPAD_UP
+  call WaitPadUp
   call ShowPlayerAvatar
   ret
 

@@ -1,9 +1,46 @@
 SECTION "Input", ROM0
+;macros
 ;   UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS   JumpAddress, buttons8
 ;   JUMP_TO_IF_BUTTONS                    JumpAddress, buttons8
 ;   EXITABLE_DELAY                        JumpAddress, buttons8, frames8
-;   WAITPAD_UP                                    
-;   WAITPAD_UP_OR_FRAMES                  frames8
+
+;subroutines
+;   UpdateInput
+;   WaitPadUp
+;   WaitPadUpOrFrames                     a = frames
+
+DEF INPUT_REPEAT EQU 6
+
+MACRO UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS ; \1=address, \2=buttons
+  call UpdateInput
+  JUMP_TO_IF_BUTTONS \1, \2
+ENDM
+
+MACRO JUMP_TO_IF_BUTTONS ; \1=address, \2=buttons
+  ld a, [last_button_state]
+  and a
+  jr nz, .skip\@
+  ld a, [button_state]
+  and \2
+  jp nz, \1
+.skip\@
+ENDM
+
+MACRO EXITABLE_DELAY ; \1=address, \2=buttons, \3=frames
+  ld a, \3
+.loop\@
+    push af
+    UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS .jump\@, \2
+    call gbdk_WaitVBL
+    pop af
+    dec a
+    jr nz, .loop\@
+  jr .exit\@
+.jump\@
+  pop af
+  jp \1
+.exit\@
+ENDM
 
 UpdateInput::;https://gbdev.io/pandocs/Joypad_Input.html
   PUSH_ALL
@@ -39,59 +76,25 @@ ENDR
   POP_ALL
   ret
 
-MACRO UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS ; \1=address, \2=buttons
-  call UpdateInput
-  JUMP_TO_IF_BUTTONS \1, \2
-ENDM
-
-MACRO JUMP_TO_IF_BUTTONS ; \1=address, \2=buttons
-  ld a, [last_button_state]
-  and a
-  jr nz, .skip\@
-  ld a, [button_state]
-  and \2
-  jp nz, \1
-.skip\@
-ENDM
-
-MACRO EXITABLE_DELAY ; \1=address, \2=buttons, \3=frames
-  ld a, \3
-.loop\@
-    push af
-    UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS .jump\@, \2
-    call gbdk_WaitVBL
-    pop af
-    dec a
-    jr nz, .loop\@
-  jr .exit\@
-.jump\@
-  pop af
-  jp \1
-.exit\@
-ENDM
-
-MACRO WAITPAD_UP
-.loop\@
+WaitPadUp::
   call gbdk_WaitVBL
   call UpdateInput
   ld a, [last_button_state]
   and a
-  jr nz, .loop\@
-ENDM
+  jr nz, WaitPadUp
+  ret
 
-MACRO WAITPAD_UP_OR_FRAMES ; \1=frames
-  ld a, \1
-.loop\@
-    push af;frames
-    call gbdk_WaitVBL
-    call UpdateInput
-    ld a, [last_button_state]
-    and a
-    jr z, .exit\@
-    pop af;frames
-    dec a
-    jr nz, .loop\@
+WaitPadUpOrFrames::; a = frames
   push af;frames
-.exit\@
+  call gbdk_WaitVBL
+  call UpdateInput
+  ld a, [last_button_state]
+  and a
+  jr z, .exit
   pop af;frames
-ENDM
+  dec a
+  jr nz, WaitPadUpOrFrames
+  push af;frames
+.exit
+  pop af;frames
+  ret

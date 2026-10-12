@@ -43,7 +43,7 @@ SwapPositions: ;bc = player count, selected player
   ld de, 0
   ld a, DRAW_FLAGS_BKG | DRAW_FLAGS_PAD_TOP
   call DrawListMenuArrow
-  WAITPAD_UP
+  call WaitPadUp
 .loop
     call UpdateInput
     ld de, 0
@@ -241,7 +241,7 @@ ReorderLineup: ;bc = player count, selected player
   ld a, c
   ld [_j], a
   ld [_k], a
-  WAITPAD_UP
+  call WaitPadUp
 .loop
     call UpdateInput
     ld de, 0
@@ -1750,7 +1750,7 @@ ShowLineup::
   ldh a, [rLCDC]
   or LCDCF_BGON | LCDCF_OBJON | LCDCF_ON
   ldh [rLCDC], a
-  WAITPAD_UP
+  call WaitPadUp
 .loop
     call UpdateInput
     ld de, 0
@@ -1768,7 +1768,7 @@ ShowLineup::
     pop bc;b = item id
     push bc;b = item id
     call UseItemOnPlayer
-    WAITPAD_UP
+    call WaitPadUp
     ld a, c
     and a
     pop bc;b = item id
@@ -1786,7 +1786,7 @@ ShowLineup::
   .showPlayerMenu
     call ShowPlayerMenu
   .waitForNoInput
-    WAITPAD_UP
+    call WaitPadUp
     jr .animateSelectedPlayer
   .testBButton
     ld a, [button_state]

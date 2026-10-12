@@ -575,7 +575,7 @@ ShowRoledexPlayerData:;a player num
   call DrawText
 
 .waitForExit
-  WAITPAD_UP
+  call WaitPadUp
 .waitForExitLoop
   call gbdk_WaitVBL
   call UpdateInput
@@ -583,7 +583,7 @@ ShowRoledexPlayerData:;a player num
   and a, PADF_START | PADF_A | PADF_B
   jr z, .waitForExitLoop
 
-  WAITPAD_UP
+  call WaitPadUp
 
   ret
 
@@ -623,7 +623,8 @@ ShowRoledexMenu:;returns exit code in a
   ld e, 10
   ld a, DRAW_FLAGS_BKG
   call DrawListMenuArrow
-  WAITPAD_UP_OR_FRAMES 20
+  ld a, 20
+  call WaitPadUpOrFrames
 .loop
     call UpdateInput
     ld d, 15
@@ -673,7 +674,7 @@ ShowRoledexMenu:;returns exit code in a
       pop af
       ld [_j], a
       HIDE_WIN
-      WAITPAD_UP
+      call WaitPadUp
       jp .loop
 .checkShowMap
       cp 2
@@ -717,7 +718,7 @@ ShowRoledexMenu:;returns exit code in a
   ld de, 3
   ld a, DRAW_FLAGS_BKG
   call DrawListMenuArrow
-  WAITPAD_UP
+  call WaitPadUp
   pop af;exit code
   ret
 
@@ -744,7 +745,7 @@ ShowRoledex::
   ld de, 3
   ld a, DRAW_FLAGS_BKG
   call DrawListMenuArrow
-  WAITPAD_UP
+  call WaitPadUp
 .loop
     call UpdateInput
     ld a, [_j]
@@ -774,13 +775,15 @@ ShowRoledex::
     sub a, 7
     ld [_s], a
     call ShowRoledexPage
-    WAITPAD_UP_OR_FRAMES 20
+    ld a, 20
+    call WaitPadUpOrFrames
     jr .waitAndLoop
 .showFirstPage
     ld a, 1
     ld [_s], a
     call ShowRoledexPage
-    WAITPAD_UP_OR_FRAMES 20
+    ld a, 20
+    call WaitPadUpOrFrames
     jr .waitAndLoop
 .checkMovePageRight
     ld a, [button_state]
@@ -790,7 +793,8 @@ ShowRoledex::
     add a, 7
     ld [_s], a
     call ShowRoledexPage
-    WAITPAD_UP_OR_FRAMES 20
+    ld a, 20
+    call WaitPadUpOrFrames
     jr .waitAndLoop
 .checkAPressed
     ld a, [button_state]

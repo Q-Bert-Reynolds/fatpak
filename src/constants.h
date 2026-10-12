@@ -265,7 +265,6 @@
 #define LINEUP_SIZE      (PLAYER_DATA_SIZE+PLAYER_STAT_SIZE)*9
 #define PLAYERS_PER_FARM 20
 #define FARM_SIZE        (PLAYER_DATA_SIZE+PLAYER_STAT_SIZE)*PLAYERS_PER_FARM
-#define INPUT_REPEAT     6//Input read multiple times in a row to reduce switch bounce issues. See: https://gbdev.io/pandocs/#joypad-input
 #define START_MONEY      1234567890
 
 //audio
