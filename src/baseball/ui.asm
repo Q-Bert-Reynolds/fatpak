@@ -7,7 +7,7 @@ INCLUDE "img/play/arrow/arrow.asm"
 
 DEF OUT_COUNT_BASES_LEN EQU 6
 OutCountBases:
-  DB "<out_ou><out_t><count_balls><count_strikes><runners 3B_2B><runners 1B>"
+  DB "<out_ou><out_t><count_balls><count_strikes><runners_3B_2B><runners_1B>"
 ENDC
 
 DrawPlayerUI:: ;a = team (0 = user, 1 = opponent)
@@ -194,11 +194,10 @@ DrawPlayerUI:: ;a = team (0 = user, 1 = opponent)
   call gbdk_SetBkgTiles;set_bkg_tiles(x+9,y+1,3,1,health_pct(p));
   ret
 
-
 IF COMPACT_SCOREBUG == 1
 DrawBases::
   ld bc, 16
-  ld de, _VRAM+$1000 + '<runners 1B>'*16
+  ld de, _VRAM+$1000 + '<runners_1B>'*16
 .checkFirstBase
   ld a, [runners_on_base]
   and a, LOW(FIRST_BASE_MASK)
@@ -212,7 +211,7 @@ DrawBases::
   call mem_CopyVRAM
   
   ld bc, 16
-  ld de, _VRAM+$1000 + '<runners 3B_2B>'*16
+  ld de, _VRAM+$1000 + '<runners_3B_2B>'*16
 .checkSecondThirdBase
   ld a, [runners_on_base]
   and a, LOW(SECOND_BASE_MASK)
@@ -245,10 +244,38 @@ DrawCountOutsInning::
   LOAD_TILES _OutsOuTile,    _VRAM+$1000, '<out_ou>',        1
   LOAD_TILES _OutsTTile,     _VRAM+$1000, '<out_t>',         1
   
-  ;TODO: update count
-  LOAD_TILES _NoBallsTile,   _VRAM+$1000, '<count_balls>',   1
-  LOAD_TILES _NoStrikesTile, _VRAM+$1000, '<count_strikes>', 1
+.balls
+  ld bc, 16
+  ld de, _VRAM+$1000 + '<count_balls>'*16
+  call GetBalls
+  ld hl, _NoBallsTile
+  and a
+  jr z, .setBallsTile
+  ld hl, _OneBallTile
+  dec a
+  jr z, .setBallsTile
+  ld hl, _TwoBallsTile
+  dec a
+  jr z, .setBallsTile
+  ld hl, _ThreeBallsTile
+.setBallsTile
+  call mem_CopyVRAM
 
+.strikes
+  ld bc, 16
+  ld de, _VRAM+$1000 + '<count_strikes>'*16
+  call GetStrikes
+  ld hl, _NoStrikesTile
+  and a
+  jr z, .setStrikesTile
+  ld hl, _OneStrikeTile
+  dec a
+  jr z, .setStrikesTile
+  ld hl, _TwoStrikesTile
+.setStrikesTile
+  call mem_CopyVRAM
+
+.tilemap
   ld de, tile_buffer
   call GetOuts
   add a, '0'
@@ -258,12 +285,14 @@ DrawCountOutsInning::
   ld bc, OUT_COUNT_BASES_LEN
   call mem_Copy
   ld hl, tile_buffer+OUT_COUNT_BASES_LEN+1
+
 .frame
   ld [hl], '▼'
   ld a, [frame]
   bit 0, a
   jr nz, .inning
   ld [hl], '▲'
+
 .inning
   inc hl
   ld d, h
@@ -274,6 +303,7 @@ DrawCountOutsInning::
   xor a
   ld h, a
   call str_Number
+
 .draw
   ld hl, tile_buffer
   call str_Length

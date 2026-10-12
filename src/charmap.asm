@@ -31,8 +31,8 @@ charmap "<n~>", 126
 charmap "<e`>", 127
 
 ;play ball replacement tiles
-charmap "<runners 3B_2B>", 10
-charmap "<runners 1B>", 11
+charmap "<runners_3B_2B>", 10
+charmap "<runners_1B>", 11
 charmap "<count_balls>", 23
 charmap "<count_strikes>", 24
 charmap "<arrow_tail>", 12
