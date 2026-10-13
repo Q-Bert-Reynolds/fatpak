@@ -21,7 +21,7 @@
 # *.sym
 # *.1bpp
 # *.2bpp
-*.sav
+bin/*.sav
 
 # Tiled map editor
 *.tiled-session

@@ -1,4 +1,8 @@
-SECTION "Input", ROM0
+SECTION "Input Vars", WRAM0
+last_button_state:: DB
+button_state:: DB
+
+SECTION "Input Code", ROM0
 ;macros
 ;   UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS   JumpAddress, buttons8
 ;   JUMP_TO_IF_BUTTONS                    JumpAddress, buttons8

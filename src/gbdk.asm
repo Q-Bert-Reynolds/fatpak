@@ -298,7 +298,7 @@ ENDC
     jr .rowLoop\@
 ENDM
 
-SECTION "GBDK WRAM Vars", WRAM0[_RAM]
+SECTION "GBDK WRAM Vars", WRAM0, ALIGN[8]
 ;ensure OAM buffer starts at $XX00 and is not in switchable WRAM, see gbdk_SetupDMATransfer
 oam_buffer:: DS 4*40
 rand_hi:: DB
@@ -392,7 +392,7 @@ gbdk_WaitVBL::
     halt; wait for any interrupt
     nop; halt sometimes skips the next instruction
     ldh a, [vbl_done]  ; was it a vblank interrupt?
-    ;; warning: we may lose a vblank interrupt, if it occurs now
+    ; warning: we may lose a vblank interrupt if it occurs now
     and a
     jr z, .loop; no: back to sleep!
   ret

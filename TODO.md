@@ -1,5 +1,6 @@
 Priority
 
+- update play ball screen
 - add batting/pitching animations for Rattail, Pidge, and Chica
 - baseball simulation
   - move a fielder to a position
@@ -105,6 +106,7 @@ Team Menu
 
 Map System
 
+- maps.py should maintain map order to avoid corrupting save data
 - regions should have their own music, palettes, tiles, etc
 - map scripts should optionally have collision check
 - sanitize maps before export (ie. objects with text should always have a collider and be on the text layer)
@@ -142,7 +144,6 @@ Rolédex
 
 Audio
 
-- use FXHammer.gb to make SFX
 - pitch, hit, wiff, catch SFX
 - on/off PC SFX
 - test hUGEDriver (too big to fit in ROM0 currently)

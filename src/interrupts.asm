@@ -1,4 +1,9 @@
-SECTION "Interrupts", ROM0
+SECTION "Interrupt Vars", WRAM0
+vbl_timer:: DB ;counts to 60
+anim_timer:: DB ;counts to map_anim_frame_step
+rLCDInterrupt:: DW;location of LCD interrupt subroutine
+
+SECTION "Interrupt Code", ROM0
 ;serial
 ;   SerialInterrupt
 ;

@@ -50,10 +50,6 @@ sprite_flags:: DB ;0 = skip
 sprite_skip_id:: DB
 sprite_first_tile:: DB
 
-;timers
-vbl_timer:: DB ;counts to 60
-anim_timer:: DB ;counts to map_anim_frame_step
-
 ;temp vars
 _a:: DB
 _b:: DB
@@ -71,21 +67,6 @@ _w:: DW
 _x:: DW
 _y:: DW
 _z:: DW
-
-;audio
-rCurrentSFX:: DW
-current_sfx_bank:: DB
-sfx_step:: DB
-sfx_step_count:: DB
-sfx_ticks:: DB
-sfx_disable_mask:: DB
-
-;location of LCD interrupt subroutine
-rLCDInterrupt:: DW
-
-;input
-last_button_state:: DB
-button_state:: DB
 
 ;player base data struct
 player_base::

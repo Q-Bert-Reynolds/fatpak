@@ -1,11 +1,19 @@
-INCLUDE "src/beisbol.inc"
-INCLUDE "src/gbt_player/gbt_player.inc"
-
 IF !DEF(AUDIO_ASM)
 DEF AUDIO_ASM EQU 1
 
+INCLUDE "src/beisbol.inc"
+INCLUDE "src/gbt_player/gbt_player.inc"
 INCLUDE "src/gbt_player/gbt_player.asm"
 INCLUDE "src/gbt_player/gbt_player_bank1.asm"
+INCLUDE "src/fx_hammer.asm"
+
+INCLUDE "music/intro_lights.asm"
+INCLUDE "music/charge_fanfare.asm"
+INCLUDE "music/take_me_out_to_the_ballgame.asm"
+INCLUDE "music/hurrah_for_our_national_game.asm"
+INCLUDE "music/tessie.asm"
+
+INCLUDE "src/sfx.asm"
 
 MACRO PLAY_SONG ;\1 load address, \2 loop
   di
@@ -17,8 +25,7 @@ MACRO PLAY_SONG ;\1 load address, \2 loop
   ld [gbt_loop_enabled], a
 ENDM
 
-MACRO PLAY_SFX ;\1 load address
-  di
+MACRO PLAY_SFX ;\1  = load address
   push hl
   push af
   ld a, BANK(\1)
@@ -26,24 +33,30 @@ MACRO PLAY_SFX ;\1 load address
   call PlaySFX
   pop af
   pop hl
+ENDM
+
+MACRO PLAY_FXHAMMER ;\1 = index
+  di
+  ld a, \1
+  TRAMPOLINE FXHammer_Play
   ei
 ENDM
 
-INCLUDE "music/intro_lights.asm"
-INCLUDE "music/charge_fanfare.asm"
-INCLUDE "music/take_me_out_to_the_ballgame.asm"
-INCLUDE "music/hurrah_for_our_national_game.asm"
-INCLUDE "music/tessie.asm"
+SECTION "Audio Vars", WRAM0
+rCurrentSFX:: DW
+current_sfx_bank:: DB
+sfx_step:: DB
+sfx_step_count:: DB
+sfx_ticks:: DB
+sfx_disable_mask:: DB
 
-INCLUDE "src/sfx.asm"
-
-SECTION "Audio", ROM0
-
+SECTION "Audio Code", ROM0
 UpdateAudio::
   ldh a, [loaded_bank]
   push af
   
   call UpdateSFX
+  TRAMPOLINE FXHammer_Update
   call gbt_update
   
   pop af
