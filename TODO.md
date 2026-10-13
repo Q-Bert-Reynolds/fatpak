@@ -1,6 +1,6 @@
 Priority
 
-- update play ball screen
+- update timing for score bug vs player data
 - add batting/pitching animations for Rattail, Pidge, and Chica
 - baseball simulation
   - move a fielder to a position

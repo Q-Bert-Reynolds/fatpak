@@ -6,190 +6,6 @@ DEF OUT_COUNT_BASES_LEN EQU 6
 OutCountBases:
   DB "<out_ou><out_t><count_balls><count_strikes><runners_3B_2B><runners_1B>"
 
-; DrawPlayerUI:: ;a = team (0 = user, 1 = opponent)
-;   push af;team
-;   ld c, a;team
-;   and a
-;   jr z, .userPlayer
-; .opposingPlayer
-;   xor a
-;   ld [_x], a
-;   ld a, 3
-;   ld [_y], a;if (team) x = 0, y = 3;
-;   jr .checkHomeAway
-; .userPlayer
-;   ld a, 8
-;   ld [_x], a
-;   ld a, 10
-;   ld [_y], a ;else x = 8, y = 10;
-; .checkHomeAway
-;   ld b, 1
-;   ld a, [home_team]
-;   cp c
-;   jr z, .teamIsHome
-;   xor a
-;   ld b, a
-; .teamIsHome
-;   xor a
-;   ld [_b], a
-;   ld a, [frame]
-;   and a, 1
-;   cp b
-;   jr z, .teamIsPitching
-;   ld a, 1
-;   ld [_b], a;team is batting
-; .teamIsPitching ;b = (team == home_team) != (frame % 2);
-
-;   ld a, ' '
-;   ld hl, tile_buffer
-;   ld [hli], a;tiles[0] = " ";
-;   inc hl
-
-;   xor a
-;   ld [_i], a
-; .nameBarLoop;for (i = 0; i < 10; i++) 
-;     ld a, '─'
-;     ld [hli], a ;tiles[i+2] = "─";
-;     ld a, [_i]
-;     inc a
-;     ld [_i], a
-;     cp 10
-;     jr nz, .nameBarLoop
-
-;   pop af;team
-;   push af
-;   and a
-;   jr nz, .setOpponentName
-;   call GetCurrentUserPlayer
-;   call GetUserPlayerName
-;   jr .drawName
-; .setOpponentName
-;   call GetCurrentOpponentPlayer
-;   call GetPlayerNumber
-;   call GetPlayerName
-; .drawName
-;   ld hl, name_buffer
-;   call str_Length;de = len
-;   ld a, 12
-;   sub a, e;(12-len)
-;   srl a;(12-len)/2
-;   inc a;1+(12-len)/2
-;   ld b, d
-;   ld c, e; bc = len
-;   ld hl, tile_buffer
-;   ld d, 0
-;   ld e, a;de = 1+(12-len)/2
-;   add hl, de
-;   ld d, h
-;   ld e, l;de = tile_buffer+1+(12-len)/2
-;   ld hl, name_buffer
-;   call mem_Copy
-
-;   pop af;team
-;   push af
-;   and a
-;   jr nz, .setOpponentAge
-;   call GetCurrentUserPlayer
-;   jr .drawAge
-; .setOpponentAge
-;   call GetCurrentOpponentPlayer
-; .drawAge
-;   ld d, h
-;   ld e, l
-;   ld hl, tile_buffer+12
-;   call SetAgeTiles
-; .doneWithAge
-;   ld a, [_b]
-;   and a
-;   jr z, .isPitcher ;if (b) {
-;   ld hl, tile_buffer+1
-;   call CurrentOrderInLineup
-;   add a, '1'
-;   ld [hl], a ;tiles[1] = "1" + p->batting_order;
-;   ld hl, tile_buffer+15
-;   ld a, '<BA>'
-;   ld [hl], a ;tiles[15] = "<BA>";
-;   jr .doneWithPlayerStats
-; .isPitcher ;else {
-;   ld hl, tile_buffer+1
-;   ld a, '<P>'
-;   ld [hl], a ;tiles[1] = p->position;
-;   ld hl, tile_buffer+15
-;   ld a, '<ERA>'
-;   ld [hl], a ;tiles[15] = "<ERA>";
-
-; .doneWithPlayerStats
-;   ld a, ' '
-;   ld hl, tile_buffer+20 ;tiles[20] = " ";
-  
-;   ld a, [_x]
-;   ld d, a
-;   ld a, [_y]
-;   ld e, a
-;   ld h, 12
-;   ld l, 2
-;   ld bc, tile_buffer
-;   call gbdk_SetBkgTiles;set_bkg_tiles(x,y,12,2,tiles);
-
-;   ld a, [_b]
-;   and a
-;   jr z, .setERA;if (b) 
-; .setBatAvg
-;   pop af;team
-;   push af
-;   ld de, 324
-;   call BattingAvgToString
-;   ld hl, str_buffer+4
-;   ld a, ' '
-;   ld [hl], a
-;   ld a, [_x]
-;   add a, 4
-;   ld d, a
-;   ld a, [_y]
-;   inc a
-;   ld e, a
-;   ld h, 5
-;   ld l, 1
-;   ld bc, str_buffer
-;   call gbdk_SetBkgTiles ;set_bkg_tiles(x+4,y+1,4,1,batting_avg(p));
-;   jr .setHealthPct
-
-; .setERA
-;   pop af;team
-;   push af
-;   ld hl, 902
-;   call EarnedRunAvgToString
-;   ld hl, str_buffer+4
-;   ld a, ' '
-;   ld [hl], a
-
-;   ld a, [_x]
-;   add a, 4
-;   ld d, a
-;   ld a, [_y]
-;   inc a
-;   ld e, a
-;   ld h, 5
-;   ld l, 1
-;   ld bc, str_buffer
-;   call gbdk_SetBkgTiles ;else set_bkg_tiles(x+4,y+1,4,1,earned_run_avg(p));
-
-; .setHealthPct 
-;   pop af;team
-;   ld a, 85
-;   call HealthPctToString
-;   ld a, [_x]
-;   add a, 9
-;   ld d, a
-;   ld a, [_y]
-;   inc a
-;   ld e, a
-;   ld h, 3
-;   ld l, 1
-;   ld bc, str_buffer
-;   call gbdk_SetBkgTiles;set_bkg_tiles(x+9,y+1,3,1,health_pct(p));
-;   ret
-
 DrawPlayerUI:: ;a = team (0 = user, 1 = opponent)
   and a
   jr z, DrawUserPlayerUI
@@ -200,7 +16,27 @@ DrawUserPlayerUI::
   ld hl, tile_buffer
   ld bc, 30
   call mem_Set
-  
+
+.age
+  call GetCurrentUserPlayer
+  ld d, h
+  ld e, l
+  ld hl, name_buffer
+  call SetAgeTiles
+  ld hl, name_buffer
+  call str_Length
+  ld hl, tile_buffer
+  ld a, 21
+  sub a, e
+  ld e, a
+  add hl, de
+  ld d, h
+  ld e, l
+  ld hl, name_buffer
+  call str_Copy
+  ld a, ' '
+  ld [de], a
+
 .arrow
   ld a, '<arrow_tail>'
   ld hl, tile_buffer+9
@@ -229,6 +65,7 @@ DrawUserPlayerUI::
   ret
 
 DrawOpposingPlayerUI::
+  call gbdk_WaitVBL
   LOAD_TILES _ArrowCornerBottomLeftTile, _VRAM+$1000, '<arrow_elbow_left>', 1
   LOAD_TILES _ArrowTipRightTile, _VRAM+$1000, '<arrow_tip_right>', 1
 
@@ -236,7 +73,14 @@ DrawOpposingPlayerUI::
   ld hl, tile_buffer
   ld bc, 30
   call mem_Set
-  
+
+.age
+  call GetCurrentOpponentPlayer
+  ld d, h
+  ld e, l
+  ld hl, tile_buffer
+  call SetAgeTiles
+
 .arrow
   ld a, '<arrow_tail>'
   ld hl, tile_buffer+10
@@ -257,6 +101,7 @@ DrawOpposingPlayerUI::
 
 .name
   call GetCurrentOpponentPlayer
+  call GetPlayerNumber
   call GetPlayerName
   DRAW_STRING DRAW_FLAGS_BKG, 2, 2, name_buffer
   ret
@@ -306,6 +151,7 @@ DrawBases::
   ret
 
 DrawCountOutsInning::
+  call gbdk_WaitVBL
   LOAD_TILES _OutsOuTile, _VRAM+$1000, '<out_ou>', 1
   LOAD_TILES _OutsTTile, _VRAM+$1000, '<out_t>', 1
   
@@ -467,6 +313,7 @@ DrawScore::
 
 DrawPlayBallUI::
   ;TODO: track which tiles are loaded
+  call gbdk_WaitVBL
   LOAD_TILES _ArrowTailTile, _VRAM+$1000, '<arrow_tail>', 1
   LOAD_TILES _ArrowLineVerticalTile, _VRAM+$1000, '<arrow_line_vert>', 1
   LOAD_TILES _ArrowLineHorizontalTile, _VRAM+$1000, '<arrow_line_horiz>', 1
@@ -516,13 +363,10 @@ MovePlayMenuArrow:
       ld [hl], a
     .notArrow ;tiles[0] = (x==i && y==j) ? "▶" : " ";
       ld a, [_i]
-      add a, a;i*2
-      add a, a;i*4
-      ld b, a
-      ld a, [_i]
-      add a, a;i*2
-      add a, b;i*6
-      add a, 8;i*6+8
+      ld de, 5
+      call math_Multiply
+      ld a, 9
+      add a, l
       ld d, a ;x
       ld a, [_j]
       add a, a;j*2
@@ -560,7 +404,7 @@ SelectPlayMenuItem::
   call WaitPadUp
 .moveMenuArrowLoop ;while (1) {
     call UpdateInput ;k = joypad();
-.testUpPressed ;if (k & J_UP && y == 1) { y = 0; move_play_menu_arrow(); }
+  .testUpPressed ;if (k & J_UP && y == 1) { y = 0; move_play_menu_arrow(); }
     ld a, [button_state]
     and a, PADF_UP
     jr z, .testDownPressed
@@ -570,7 +414,7 @@ SelectPlayMenuItem::
     xor a
     ld [_y], a
     jr .moveArrow
-.testDownPressed ;else if (k & J_DOWN && y == 0) { y = 1; move_play_menu_arrow(); }
+  .testDownPressed ;else if (k & J_DOWN && y == 0) { y = 1; move_play_menu_arrow(); }
     ld a, [button_state]
     and a, PADF_DOWN
     jr z, .testLeftPressed
@@ -580,7 +424,7 @@ SelectPlayMenuItem::
     ld a, 1
     ld [_y], a
     jr .moveArrow    
-.testLeftPressed ;else if (k & J_LEFT && x == 1) { x = 0; move_play_menu_arrow(); }
+  .testLeftPressed ;else if (k & J_LEFT && x == 1) { x = 0; move_play_menu_arrow(); }
     ld a, [button_state]
     and a, PADF_LEFT
     jr z, .testRightPressed
@@ -590,7 +434,7 @@ SelectPlayMenuItem::
     xor a
     ld [_x], a
     jr .moveArrow
-.testRightPressed ;else if (k & J_RIGHT && x == 0) { x = 1; move_play_menu_arrow(); }
+  .testRightPressed ;else if (k & J_RIGHT && x == 0) { x = 1; move_play_menu_arrow(); }
     ld a, [button_state]
     and a, PADF_RIGHT
     jr z, .testAPressed
@@ -599,7 +443,7 @@ SelectPlayMenuItem::
     jr nz, .testAPressed
     ld a, 1
     ld [_x], a
-.moveArrow
+  .moveArrow
     call MovePlayMenuArrow
     
 .testAPressed ;if (k & J_A) break;
@@ -629,9 +473,9 @@ MoveMoveMenuArrow:
     jr z, .setArrow
     ld a, ' '
     jr .setTile
-.setArrow
+  .setArrow
     ld a, '▶'
-.setTile
+  .setTile
     ld [hli], a;tiles[i] = (i == y) ? "▶" : 0;
     ld a, [_i]
     inc a
