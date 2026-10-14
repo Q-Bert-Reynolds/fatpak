@@ -65,9 +65,11 @@ DEF PLAY_BALL_SAMPLE_RATE       EQU 30
 DEF PLAY_BALL_FRAME_STEP        EQU 60 / PLAY_BALL_SAMPLE_RATE
 
 DEF BASEBALL_SPRITE_ID   EQU 0
-DEF AIM_CIRCLE_SPRITE_ID EQU 3
-DEF STRIKEZONE_SPRITE_ID EQU 10
+DEF PROJECTION_SPRITE_ID EQU 3
+DEF AIM_CIRCLE_SPRITE_ID EQU 4
+DEF STRIKEZONE_SPRITE_ID EQU 8
 
+DEF DOTTED_CIRCLE_TILE      EQU 2
 DEF STRIKE_ZONE_CORNER_TILE EQU 3
 DEF CIRCLE_TILES            EQU 6
 DEF BASEBALL_LEATHER_TILE   EQU 16
@@ -294,21 +296,20 @@ MovePitch: ;a = show projection, b = pitch path, c = z[0,100], de = start xy, hl
 
   ;projection
   push de;break
-  push hl;store OAM address
   call StrikeZonePosition
-  pop hl;restore OAM address
   pop bc;break
   ld a, [pitch_target_y]
   add a, e
   add a, c
   add a, 4
+  ld hl, oam_buffer+PROJECTION_SPRITE_ID*4
   ld [hli], a;y
   ld a, [pitch_target_x]
   add a, d
   add a, b
   add a, 4
   ld [hli], a;x
-  ld a, 4
+  ld a, DOTTED_CIRCLE_TILE
   ld [hli], a;projection tile
   xor a
   ld [hli], a;prop

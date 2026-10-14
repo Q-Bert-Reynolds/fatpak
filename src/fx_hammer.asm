@@ -250,5 +250,5 @@ FXHammer_Update:
   ret
  
 SECTION "FXHammer Data", ROMX, BANK[FX_HAMMER_BANK], ALIGN[8]
-;To get sound data,  open hammered.sav and copy everything from $200-$3FFF into SoundData.bin.
+;To get sound data, open hammered.sav and copy everything from $200-$3FFF into SoundData.bin.
 FXHammerData: INCBIN "sfx/hammered.bin"

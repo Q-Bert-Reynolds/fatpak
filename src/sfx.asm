@@ -2,43 +2,40 @@ SECTION "SFX", ROMX
 
 SelectSound::
   DB 3;steps
-  DB %0001 ;disable mask
 
   DB 2, %1110, SFX_CH_1 ;ticks, mask, channel
   DB 0, $FF, $FF        ;sweep, duty/len, volume
-  DW E5                 ;frequency
+  DW E5 | $8000         ;frequency
 
   DB 4, %1110, SFX_CH_1
   DB 0, $FF, $FF
-  DW C6
+  DW C6 | $8000
 
   DB 2, %1110, SFX_CH_1
   DB 0, $FF, $FF
-  DW A6
+  DW A6 | $8000
 
 TitleDropInSound::
   DB 2;steps
-  DB %1010 ;disable mask
 
-  DB 1, %1101, SFX_CH_2
+  DB 1, %1110, SFX_CH_1
   DB %11110111, $FF, $FF
-  DW A3
+  DW A3 | $8000
 
-  DB 80, %0101, SFX_CH_4              ;ticks, mask, channel
+  DB 80, %0110, SFX_CH_4              ;ticks, mask, channel
   DB $00, $FF, $FF                   ;sweep, duty/len, volume
   DB NOISE_DIV_2K | NOISE_EARTHQUAKE, $80 ;frequency, control
 
 VersionSlideInSound::
   DB 5;steps
-  DB %1001 ;disable mask
   
   DB 16, %1111, SFX_CH_1
   DB 0, 0, 0
-  DW 0
+  DW 0 | $8000
 
   DB 1, %1110, SFX_CH_1
   DB %11110111, $FF, $FF
-  DW A3
+  DW A3 | $8000
 
   DB 8, %0110, SFX_CH_4
   DB $00, $FF, $F0

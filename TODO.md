@@ -144,6 +144,7 @@ Rolédex
 
 Audio
 
+- split FXHammer files into individual sfx, update FXHammer to work by address and with multiple banks
 - pitch, hit, wiff, catch SFX
 - on/off PC SFX
 - test hUGEDriver (too big to fit in ROM0 currently)

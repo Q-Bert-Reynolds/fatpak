@@ -262,6 +262,9 @@ DrawUIBox::;a=draw flags, bc = xy, de = wh
   ld e, l;xy + offset in de
 .hideSprites
   pop hl;wh
+  ld a, [game_state]
+  and a, GAME_STATE_PAUSED
+  ret z
   call HideSpritesInRect
   ret
 

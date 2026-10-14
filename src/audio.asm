@@ -43,12 +43,11 @@ MACRO PLAY_FXHAMMER ;\1 = index
 ENDM
 
 SECTION "Audio Vars", WRAM0
-rCurrentSFX:: DW
-current_sfx_bank:: DB
+sfx_ptr:: DW
+sfx_bank:: DB
 sfx_step:: DB
 sfx_step_count:: DB
 sfx_ticks:: DB
-sfx_disable_mask:: DB
 
 SECTION "Audio Code", ROM0
 UpdateAudio::
@@ -56,7 +55,7 @@ UpdateAudio::
   push af
   
   call UpdateSFX
-  TRAMPOLINE FXHammer_Update
+  ; TRAMPOLINE FXHammer_Update
   call gbt_update
   
   pop af
@@ -65,29 +64,32 @@ UpdateAudio::
 
 FinishSFX:
 .testChannel1
-  ld a, [sfx_disable_mask]
+  ld a, [gbt_channels_enabled]
   bit 0, a
-  jr z, .testChannel2
+  jr nz, .testChannel2
   xor a
   ldh [rNR12], a ; volume 0
 .testChannel2
-  ld a, [sfx_disable_mask]
+  ld a, [gbt_channels_enabled]
   bit 1, a
-  jr z, .testChannel3
+  jr nz, .testChannel3
   xor a
   ldh [rNR22], a ; volume 0
 .testChannel3
-  ld a, [sfx_disable_mask]
+  ld a, [gbt_channels_enabled]
   bit 2, a
-  jr z, .testChannel4
+  jr nz, .testChannel4
   xor a
   ldh [rNR32], a ; volume 0
 .testChannel4
-  ld a, [sfx_disable_mask]
+  ld a, [gbt_channels_enabled]
   bit 3, a
-  ret z
+  jr nz, .restoreMusic
   xor a
   ldh [rNR42], a ; volume 0
+.restoreMusic
+  ld a, %1111
+  ld [gbt_channels_enabled], a
   ret
 
 UpdateSFX:
@@ -109,28 +111,18 @@ UpdateSFX:
   jr nz, .notDone
 
   call FinishSFX
-  ld a, %1111
-  ld [gbt_channels_enabled], a
   ret
 
 .notDone
-  ld de, 8
-  call math_Multiply
-  ld b, 0
-  ld c, l
-  inc c
-  inc c
-
-  ld a, [rCurrentSFX]
+  ld a, [sfx_ptr]
   ld h, a
-  ld a, [rCurrentSFX+1]
+  ld a, [sfx_ptr+1]
   ld l, a
-  add hl, bc;current step
 
   ldh a, [loaded_bank]
   push af
   
-  ld a, [current_sfx_bank]
+  ld a, [sfx_bank]
   SET_BANK
 
   ld a, [hli]
@@ -140,21 +132,23 @@ UpdateSFX:
   ld [gbt_channels_enabled], a
 
   ld a, [hli]
-  ld b, $FF
   ld c, a
 
 REPT 4
   ld a, [hli]
-  ld [bc], a
+  ldh [c], a
   inc bc
 ENDR
 
-  ld a, AUDENA_ON
-  ldh [rAUDENA], a
-  
-  ld a, [hl]
+  ld a, [hli]
   or AUDHIGH_RESTART
-  ld [bc], a
+  ldh [c], a
+  inc bc
+
+  ld a, h
+  ld [sfx_ptr], a
+  ld a, l
+  ld [sfx_ptr+1], a
 
   pop af;restore bank
   SET_BANK
@@ -163,17 +157,9 @@ ENDR
 
 PlaySFX:: ; a = bank, hl = sfx address
   di
-  push af
-  push hl
+  ld [sfx_bank], a
   call FinishSFX
-  pop hl
-  pop af
 
-  ld [current_sfx_bank], a
-  ld a, h
-  ld [rCurrentSFX], a
-  ld a, l
-  ld [rCurrentSFX+1], a
   xor a
   ld [sfx_step_count], a
   ld a, -1
@@ -184,13 +170,16 @@ PlaySFX:: ; a = bank, hl = sfx address
   ldh a, [loaded_bank]
   push af;bank
 
-  ld a, [current_sfx_bank]
+  ld a, [sfx_bank]
   SET_BANK
 
   ld a, [hli];step count
   ld [sfx_step_count], a
-  ld a, [hl];channels to disable on finish
-  ld [sfx_disable_mask], a
+
+  ld a, h;first step in hl
+  ld [sfx_ptr], a
+  ld a, l
+  ld [sfx_ptr+1], a
 
   pop af;bank
   SET_BANK

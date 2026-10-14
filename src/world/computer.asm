@@ -2,6 +2,7 @@ UsePublicComputer:
   ldh a, [map_last_button_state]
   and a, PADF_UP
   ret z
+  call PauseGame
   call ShowTurnedOnComputerText
 
   xor a
@@ -68,6 +69,7 @@ UsePublicComputer:
   HIDE_WIN
   call ShowPlayerAvatar
   call WaitPadUp
+  call ResumeGame
   ret
 
 GetPCOptions:;returns options in str_buffer, option count in a
@@ -121,11 +123,13 @@ UseMyComputer:
   ldh a, [map_last_button_state]
   and a, PADF_UP
   ret z
+  call PauseGame
   call ShowTurnedOnComputerText
   call AccessItemStorageSystem
   HIDE_WIN
   call WaitPadUp
   call ShowPlayerAvatar
+  call ResumeGame
   ret
 
 ShowTurnedOnComputerText:
