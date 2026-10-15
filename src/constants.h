@@ -268,12 +268,6 @@
 #define FARM_SIZE        (PLAYER_DATA_SIZE+PLAYER_STAT_SIZE)*PLAYERS_PER_FARM
 #define START_MONEY      1234567890
 
-//audio
-#define SFX_CH_1 0x10
-#define SFX_CH_2 0x15
-#define SFX_CH_3 0x1A
-#define SFX_CH_4 0x1F
-
 //notes
 #define C3      44
 #define Db3     156

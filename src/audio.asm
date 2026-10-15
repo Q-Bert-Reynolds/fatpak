@@ -55,7 +55,7 @@ UpdateAudio::
   push af
   
   call UpdateSFX
-  ; TRAMPOLINE FXHammer_Update
+  TRAMPOLINE FXHammer_Update
   call gbt_update
   
   pop af
@@ -125,25 +125,25 @@ UpdateSFX:
   ld a, [sfx_bank]
   SET_BANK
 
-  ld a, [hli]
-  ld [sfx_ticks], a
+.loop
+    ld a, [hli]
+    ld [sfx_ticks], a
 
-  ld a, [hli]
-  ld [gbt_channels_enabled], a
+    ld a, [hli]
+    ld [gbt_channels_enabled], a
 
-  ld a, [hli]
-  ld c, a
+    ld a, [hli]
+    ld c, a
 
-REPT 4
-  ld a, [hli]
-  ldh [c], a
-  inc bc
-ENDR
+  REPT 5
+    ld a, [hli]
+    ldh [c], a
+    inc bc
+  ENDR
 
-  ld a, [hli]
-  or AUDHIGH_RESTART
-  ldh [c], a
-  inc bc
+    ld a, [sfx_ticks]
+    and a
+    jr z, .loop
 
   ld a, h
   ld [sfx_ptr], a
