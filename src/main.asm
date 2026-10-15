@@ -24,10 +24,10 @@ MACRO RUN_TESTS
   jr nz, .b\@
   jr .loop\@
 .a\@
-  PLAY_FXHAMMER 0
+  PLAY_FXHAMMER 2
   jr .loop\@
 .b\@
-  PLAY_SFX HammeredSound0
+  PLAY_SFX HammeredSound2
   jr .loop\@
   ; call KeyboardDemo
   ; DISPLAY_OFF

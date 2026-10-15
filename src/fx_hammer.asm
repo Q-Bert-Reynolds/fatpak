@@ -66,7 +66,7 @@ FXHammer_Play:: ;a = index
   ;FXSoundP
   xor a
   ld [hl+], a
-  ld a, $44
+  ld a, HIGH(FXHammerData)+2
   ;e is FX number
   add e
   ld [hl], a
