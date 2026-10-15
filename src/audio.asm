@@ -37,6 +37,7 @@ ENDM
 SECTION "Audio Vars", WRAM0
 sfx_ptr:: DW
 sfx_bank:: DB
+sfx_priority:: DB;stored in high nibble
 sfx_step:: DB
 sfx_step_count:: DB
 sfx_ticks:: DB
@@ -53,32 +54,42 @@ UpdateAudio::
   SET_BANK
   ret
 
-FinishSFX:
+StopSFX:;stops current sfx, resets sfx_priority and gbt_channels_enabled, only af affected
 .testChannel1
   ld a, [gbt_channels_enabled]
   bit 0, a
   jr nz, .testChannel2
-  xor a
-  ldh [rNR12], a ; volume 0
+	ld	a,$08;volume zero but don't turn off DAC
+	ldh	[rNR12],a
+	ld	a,$80;trigger sound to mute
+	ldh	[rNR14],a
 .testChannel2
   ld a, [gbt_channels_enabled]
   bit 1, a
   jr nz, .testChannel3
-  xor a
-  ldh [rNR22], a ; volume 0
+	ld	a,$08
+	ldh	[rNR22],a
+	ld	a,$80
+	ldh	[rNR24],a
 .testChannel3
   ld a, [gbt_channels_enabled]
   bit 2, a
   jr nz, .testChannel4
-  xor a
-  ldh [rNR32], a ; volume 0
+	ld	a,$08
+	ldh	[rNR32],a
+	ld	a,$80
+	ldh	[rNR34],a
 .testChannel4
   ld a, [gbt_channels_enabled]
   bit 3, a
-  jr nz, .restoreMusic
+  jr nz, .resetState
+	ld	a,$08
+	ldh	[rNR42],a
+	ld	a,$80
+	ldh	[rNR44],a
+.resetState
   xor a
-  ldh [rNR42], a ; volume 0
-.restoreMusic
+  ld [sfx_priority], a
   ld a, %1111
   ld [gbt_channels_enabled], a
   ret
@@ -101,7 +112,7 @@ UpdateSFX:
   cp a, b;step count
   jr nz, .notDone
 
-  call FinishSFX
+  call StopSFX
   ret
 
 .notDone
@@ -119,9 +130,6 @@ UpdateSFX:
 .loop
     ld a, [hli]
     ld [sfx_ticks], a
-
-    ld a, [hli]
-    ld [gbt_channels_enabled], a
 
     ld a, [hli]
     ld c, a
@@ -148,21 +156,37 @@ UpdateSFX:
 
 PlaySFX:: ; a = bank, hl = sfx address
   di
-  ld [sfx_bank], a
-  call FinishSFX
+  ld b, a;sfx bank
+  ldh a, [loaded_bank]
+  push af;previous bank
+  ld a, b;sfx bank
+  SET_BANK
 
-  xor a
-  ld [sfx_step_count], a
+.checkPriority
+  ld a, [sfx_priority]
+  ld d, a;old priority
+  ld a, [hli];priority and gbt flags
+  ld e, a;gbt flags
+  and a, $F0;new priority
+  cp a, d;compare priority
+  jr c, .exit;don't play if lower priority
+
+.initSFX
+  ld a, b;sfx bank
+  ld [sfx_bank], a
   ld a, -1
   ld [sfx_step], a
   ld a, 1
   ld [sfx_ticks], a
 
-  ldh a, [loaded_bank]
-  push af;bank
+  ld d, a;new priority
+  call StopSFX;resets sfx_priority and gbt_channels_enabled
+  ld a, d
+  ld [sfx_priority], a;save priority
 
-  ld a, [sfx_bank]
-  SET_BANK
+  ld a, e;priority and gbt flags
+  and a, $F;discard priority
+  ld [gbt_channels_enabled], a
 
   ld a, [hli];step count
   ld [sfx_step_count], a
@@ -172,15 +196,15 @@ PlaySFX:: ; a = bank, hl = sfx address
   ld a, l
   ld [sfx_ptr+1], a
 
-  pop af;bank
-  SET_BANK
-
   ld a, AUDENA_ON
   ldh [rAUDENA], a
   ld a,$FF
   ldh [rAUDVOL], a
   ldh [rAUDTERM], a
-  
+
+.exit
+  pop af;bank
+  SET_BANK
   reti
 
 PlaySong:: ; a = bank, hl = song address

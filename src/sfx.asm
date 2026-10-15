@@ -1,53 +1,59 @@
 
 DEF SFX_TRIGGER EQU $8000
 
-;\1 = ticks, \2 = mask, \3 = sweep, \4 = duty/len, \5 = volume, \6 = note
+;\1 = steps, \2 = gbt_channels_enabled, \3 = priority
+MACRO SFX_HEADER
+  DB LOW(\3 << 4 | \2), \1
+ENDM
+
+;\1 = ticks, \2 = sweep, \3 = duty/len, \4 = volume, \5 = note
 MACRO SFX_CH1
-  DB \1, \2, LOW(rNR10)
-  DB \3, \4, \5
-  DW \6 | SFX_TRIGGER
+  DB \1, LOW(rNR10)
+  DB \2, \3, \4
+  DW \5 | SFX_TRIGGER
 ENDM
 
-;\1 = ticks, \2 = mask, \3 = duty/len, \4 = volume, \5 = note
+;\1 = ticks, \2 = duty/len, \3 = volume, \4 = note
 MACRO SFX_CH2
-  DB \1, \2, LOW(rNR21-1)
-  DB 0, \3, \4
-  DW \5 | SFX_TRIGGER
+  DB \1, LOW(rNR21-1)
+  DB 0, \2, \3
+  DW \4 | SFX_TRIGGER
 ENDM
 
-;\1 = ticks, \2 = mask, \3 = duty/len, \4 = volume, \5 = note
+;\1 = ticks, \2 = duty/len, \3 = volume, \4 = note
 MACRO SFX_CH3
-  DB \1, \2, LOW(rNR30)
-  DB 0, \3, \4
-  DW \5 | SFX_TRIGGER
+  DB \1, LOW(rNR30)
+  DB 0, \2, \3
+  DW \4 | SFX_TRIGGER
 ENDM
 
-;\1 = ticks, \2 = mask, \3 = duty/len, \4 = volume, \5 = noise
+;\1 = ticks, \2 = duty/len, \3 = volume, \4 = noise
 MACRO SFX_CH4
-  DB \1, \2, LOW(rNR41-1)
-  DB 0, \3, \4
-  DB \5, AUDENA_ON
+  DB \1, LOW(rNR41-1)
+  DB 0, \2, \3
+  DB \4, AUDENA_ON
 ENDM
 
-INCLUDE "sfx/hammered.asm"
+INCLUDE "sfx/fxbank.asm"
+INCLUDE "sfx/vyskeisfx1.asm"
 
 SECTION "SFX", ROMX
 
 SelectSound::
-  DB 3;steps
-  SFX_CH1 2, %1110, 0, $FF, $FF, E4
-  SFX_CH1 4, %1110, 0, $FF, $FF, C5
-  SFX_CH1 2, %1110, 0, $FF, $FF, A5
+  SFX_HEADER 3, %1110, 0
+  SFX_CH1 2, 0, $FF, $FF, E4
+  SFX_CH1 4, 0, $FF, $FF, C5
+  SFX_CH1 2, 0, $FF, $FF, A5
 
 TitleDropInSound::
-  DB 2;steps
-  SFX_CH1 2, %1110, %11110111, $FF, $FF, A2
-  SFX_CH4 80, %0110, $FF, $FF, NOISE_DIV_2K|NOISE_EARTHQUAKE
+  SFX_HEADER 2, %0110, 0
+  SFX_CH1 2, %11110111, $FF, $FF, A2
+  SFX_CH4 80, $FF, $FF, NOISE_DIV_2K|NOISE_EARTHQUAKE
 
 VersionSlideInSound::
-  DB 5;steps
-  SFX_CH1 16, %1111, 0, 0, 0, 0
-  SFX_CH1 1, %1111, %11110111, $FF, $FF, A2
-  SFX_CH4 8, %0110, $FF, $F0, NOISE_DIV_128|NOISE_STATIC
-  SFX_CH4 8, %0110, $FF, $F8, NOISE_DIV_64|NOISE_STATIC
-  SFX_CH4 8, %0110, $FF, $FF, NOISE_DIV_32|NOISE_STATIC
+  SFX_HEADER 5, %0110, 1
+  SFX_CH1 16, 0, 0, 0, 0
+  SFX_CH1 1, %11110111, $FF, $FF, A2
+  SFX_CH4 8, $FF, $F0, NOISE_DIV_128|NOISE_STATIC
+  SFX_CH4 8, $FF, $F8, NOISE_DIV_64|NOISE_STATIC
+  SFX_CH4 8, $FF, $FF, NOISE_DIV_32|NOISE_STATIC

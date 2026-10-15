@@ -45,7 +45,7 @@ def main():
       data = sav_file.read()
 
     byte_list = list(data)
-    priority = data[0x200:0x240]
+    priorities = data[0x200:0x240]
     notes = data[0x240:0x2D0]
     channels = data[0x300:0x340] 
 
@@ -55,6 +55,7 @@ def main():
           break
 
         index = int((i-0x400) / 0x100)
+        priority = priorities[index]
         mask = channels[index]
         mask_str = "11"
         if mask & 0x30 != 0:
@@ -74,7 +75,7 @@ def main():
 
         asm_file.write(f'\nSECTION "{name}.sav {index}", ROMX\n')
         asm_file.write(f'{PascalCase(name)}Sound{index}::\n')
-        asm_file.write(f'  DB {steps} ;steps\n\n')
+        asm_file.write(f'  SFX_HEADER {steps}, %{mask_str}, {priority}\n')
 
         ch2_was_enabled = False
         ch4_was_enabled = False
@@ -87,26 +88,26 @@ def main():
           ch2_note = note(chunk[j+4]) # NT - note index
           ch4_pan_mute = chunk[j+5]   # P  - Ch 4 pan/mute ($80 = left, $08 = right)
           ch4_vol_env = chunk[j+6]    # L  - Ch 4 volume and envelope (written to rNR42)
-          ch4_freq_div = chunk[j+7]#freq_div(chunk[j+7]) # FR - Ch 4 noise frequency/divisor (written to rNR43)
+          ch4_freq_div = freq_div(chunk[j+7]) # FR - Ch 4 noise frequency/divisor (written to rNR43)
 
           ch2_enabled = ch2_pan_mute > 0
           ch4_enabled = ch4_pan_mute > 0
           start = 0 if (ch4_enabled or ch4_was_enabled) else ticks
           if ch2_enabled:
-              asm_file.write(f'  SFX_CH2 {start}, %{mask_str}, {ch2_duty_len}, {ch2_vol_env}, {ch2_note}\n')
+              asm_file.write(f'  SFX_CH2 {start}, {ch2_duty_len}, {ch2_vol_env}, {ch2_note}\n')
               ch2_was_enabled = True
           elif ch2_was_enabled:
               # Mute Channel 2: volume 0 ($08), re-trigger
-              asm_file.write(f'  SFX_CH2 {start}, %{mask_str}, 0, $08, $80\n')
+              asm_file.write(f'  SFX_CH2 {start}, 0, $08, $80 ;mute\n')
               ch2_was_enabled = False
 
           # Determine if Ch4 needs to play or be muted
           if ch4_enabled:
-              asm_file.write(f'  SFX_CH4 {ticks}, %{mask_str}, 255, {ch4_vol_env}, {ch4_freq_div}\n\n')
+              asm_file.write(f'  SFX_CH4 {ticks}, 255, {ch4_vol_env}, {ch4_freq_div}\n')
               ch4_was_enabled = True
           elif ch4_was_enabled:
               # Mute Channel 4: volume 0 ($08)
-              asm_file.write(f'  SFX_CH4 {ticks}, %{mask_str}, 255, $08, $80\n\n')
+              asm_file.write(f'  SFX_CH4 {ticks}, 255, $08, $80 ;mute\n')
               ch4_was_enabled = False
 
 if __name__ == "__main__":

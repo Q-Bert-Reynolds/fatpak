@@ -146,6 +146,10 @@ Audio
 
 - pitch, hit, wiff, catch SFX
 - on/off PC SFX
+- utilize panning from fxhammer files
+- shrink sfx format
+  - combine channel and ticks (CCTTTTTT)
+  - only include sweep byte in ch1 data
 - test hUGEDriver (too big to fit in ROM0 currently)
 
 Animation
