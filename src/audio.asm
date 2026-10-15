@@ -5,7 +5,6 @@ INCLUDE "src/beisbol.inc"
 INCLUDE "src/gbt_player/gbt_player.inc"
 INCLUDE "src/gbt_player/gbt_player.asm"
 INCLUDE "src/gbt_player/gbt_player_bank1.asm"
-INCLUDE "src/fx_hammer.asm"
 
 INCLUDE "music/intro_lights.asm"
 INCLUDE "music/charge_fanfare.asm"
@@ -35,13 +34,6 @@ MACRO PLAY_SFX ;\1  = load address
   pop hl
 ENDM
 
-MACRO PLAY_FXHAMMER ;\1 = index
-  di
-  ld a, \1
-  TRAMPOLINE FXHammer_Play
-  ei
-ENDM
-
 SECTION "Audio Vars", WRAM0
 sfx_ptr:: DW
 sfx_bank:: DB
@@ -55,7 +47,6 @@ UpdateAudio::
   push af
   
   call UpdateSFX
-  TRAMPOLINE FXHammer_Update
   call gbt_update
   
   pop af

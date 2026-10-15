@@ -1,4 +1,4 @@
-DEF TESTS_ENABLED    EQU 1
+DEF TESTS_ENABLED    EQU 0
 DEF INTRO_ENABLED    EQU 1
 DEF TITLE_ENABLED    EQU 1
 DEF NEW_GAME_ENABLED EQU 1
@@ -8,34 +8,13 @@ DEF PLAY_ENABLED     EQU 1
 INCLUDE "src/beisbol.inc"
 
 MACRO RUN_TESTS
+  call KeyboardDemo
+  DISPLAY_OFF
+  TRAMPOLINE UILoadFontTiles
+  ld a, ' '
+  call ClearScreen
   DISPLAY_ON
-  ld a, AUDENA_ON
-  ldh [rAUDENA], a
-  ld a,$FF
-  ldh [rAUDVOL], a
-  ldh [rAUDTERM], a
-.loop\@
-  call WaitPadUp
-  ld a, [button_state]
-  and a, PADF_A
-  jr nz, .a\@
-  ld a, [button_state]
-  and a, PADF_B
-  jr nz, .b\@
-  jr .loop\@
-.a\@
-  PLAY_FXHAMMER 2
-  jr .loop\@
-.b\@
-  PLAY_SFX HammeredSound2
-  jr .loop\@
-  ; call KeyboardDemo
-  ; DISPLAY_OFF
-  ; TRAMPOLINE UILoadFontTiles
-  ; ld a, ' '
-  ; call ClearScreen
-  ; DISPLAY_ON
-  ; SHOW_WIN
+  SHOW_WIN
 ENDM
 
 MACRO TEST_SIM ;\1 = speed, \2 = deg left/right, \3 = deg up/down

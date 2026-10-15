@@ -43,10 +43,7 @@ def main():
     name = os.path.basename(path).replace(".sav", "")
     with open(path, "rb") as sav_file:
       data = sav_file.read()
-    
-    with open(path.replace(".sav", ".bin"), "wb") as out_file:
-      out_file.write(data[0x200:0x4000])
-      
+
     byte_list = list(data)
     priority = data[0x200:0x240]
     notes = data[0x240:0x2D0]
@@ -91,17 +88,6 @@ def main():
           ch4_pan_mute = chunk[j+5]   # P  - Ch 4 pan/mute ($80 = left, $08 = right)
           ch4_vol_env = chunk[j+6]    # L  - Ch 4 volume and envelope (written to rNR42)
           ch4_freq_div = chunk[j+7]#freq_div(chunk[j+7]) # FR - Ch 4 noise frequency/divisor (written to rNR43)
-
-          # if ch2_pan_mute == 0:
-          #   ch2_vol_env = "$08"
-          #   ch2_note = "$80"
-          # if ch4_pan_mute == 0:
-          #   ch4_vol_env = "$08"
-          #   ch4_freq_div = "$80"
-            
-          # asm_file.write(f'  SFX_CH2 0, %{mask_str}, {ch2_duty_len}, {ch2_vol_env}, {ch2_note}\n')
-          # asm_file.write(f'  SFX_CH4 {ticks}, %{mask_str}, 255, {ch4_vol_env}, {ch4_freq_div}\n\n')
-
 
           ch2_enabled = ch2_pan_mute > 0
           ch4_enabled = ch4_pan_mute > 0
