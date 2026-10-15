@@ -36,7 +36,7 @@ def note(byte):
 def freq_div(byte):
   upperNibble = int((byte & 0xF0) >> 4)
   lowerNibble = int((byte & 0xF))
-  return f'{shift_table[upperNibble]}, {div_table[lowerNibble]}'
+  return f'{shift_table[upperNibble]}|{div_table[lowerNibble]}'
 
 def main():
   for path in glob.glob("./sfx/*.sav"):
@@ -75,29 +75,53 @@ def main():
           chunk += byte_list[j:j+8]
           steps += 1
 
-        asm_file.write(f'SECTION "{name}.sav {index}", ROMX\n')
+        asm_file.write(f'\nSECTION "{name}.sav {index}", ROMX\n')
         asm_file.write(f'{PascalCase(name)}Sound{index}::\n')
         asm_file.write(f'  DB {steps} ;steps\n\n')
+
+        ch2_was_enabled = False
+        ch4_was_enabled = False
         for j in range(0, len(chunk), 8):
           # TODO: use pan/mute values
-          ticks = int(chunk[j])               # TM - Duration in frames, 0 to stop
-          ch2_pan_mute = int(chunk[j+1])      # P  - Ch2 pan/mute ($20 = left, $02 = right)
-          ch2_vol_env = int(chunk[j+2])       # L  - Ch 2 volume/envelope (rNR22)
-          ch2_duty_len = int(chunk[j+3])      # W  - Ch 2 duty/length (rNR21)
-          ch2_note = note(chunk[j+4])         # NT - note index
-          ch4_pan_mute = int(chunk[j+5])      # P  - Ch 4 pan/mute ($80 = left, $08 = right)
-          ch4_vol_env = int(chunk[j+6])       # L  - Ch 4 volume and envelope (written to rNR42)
-          ch4_freq_div = freq_div(chunk[j+7]) # FR - Ch 4 noise frequency/divisor (written to rNR43)
+          ticks = int(chunk[j])       # TM - Duration in frames, 0 to stop
+          ch2_pan_mute = chunk[j+1]   # P  - Ch2 pan/mute ($20 = left, $02 = right)
+          ch2_vol_env = chunk[j+2]    # L  - Ch 2 volume/envelope (rNR22)
+          ch2_duty_len = chunk[j+3]   # W  - Ch 2 duty/length (rNR21)
+          ch2_note = note(chunk[j+4]) # NT - note index
+          ch4_pan_mute = chunk[j+5]   # P  - Ch 4 pan/mute ($80 = left, $08 = right)
+          ch4_vol_env = chunk[j+6]    # L  - Ch 4 volume and envelope (written to rNR42)
+          ch4_freq_div = chunk[j+7]#freq_div(chunk[j+7]) # FR - Ch 4 noise frequency/divisor (written to rNR43)
 
+          # if ch2_pan_mute == 0:
+          #   ch2_vol_env = "$08"
+          #   ch2_note = "$80"
+          # if ch4_pan_mute == 0:
+          #   ch4_vol_env = "$08"
+          #   ch4_freq_div = "$80"
+            
+          # asm_file.write(f'  SFX_CH2 0, %{mask_str}, {ch2_duty_len}, {ch2_vol_env}, {ch2_note}\n')
+          # asm_file.write(f'  SFX_CH4 {ticks}, %{mask_str}, 255, {ch4_vol_env}, {ch4_freq_div}\n\n')
+
+
+          ch2_enabled = ch2_pan_mute > 0
           ch4_enabled = ch4_pan_mute > 0
-          if ch2_pan_mute > 0:
-            start = 0 if ch4_enabled else ticks
-            asm_file.write(f'  SFX_CH2 {start}, %{mask_str}, {ch2_duty_len}, {ch2_vol_env}, {ch2_note}\n')
-            if not ch4_enabled:
-              asm_file.write("\n")
+          start = 0 if (ch4_enabled or ch4_was_enabled) else ticks
+          if ch2_enabled:
+              asm_file.write(f'  SFX_CH2 {start}, %{mask_str}, {ch2_duty_len}, {ch2_vol_env}, {ch2_note}\n')
+              ch2_was_enabled = True
+          elif ch2_was_enabled:
+              # Mute Channel 2: volume 0 ($08), re-trigger
+              asm_file.write(f'  SFX_CH2 {start}, %{mask_str}, 0, $08, $80\n')
+              ch2_was_enabled = False
 
+          # Determine if Ch4 needs to play or be muted
           if ch4_enabled:
-            asm_file.write(f'  SFX_CH4 {ticks}, %{mask_str}, 255, {ch4_vol_env}, {ch4_freq_div}\n\n')
+              asm_file.write(f'  SFX_CH4 {ticks}, %{mask_str}, 255, {ch4_vol_env}, {ch4_freq_div}\n\n')
+              ch4_was_enabled = True
+          elif ch4_was_enabled:
+              # Mute Channel 4: volume 0 ($08)
+              asm_file.write(f'  SFX_CH4 {ticks}, %{mask_str}, 255, $08, $80\n\n')
+              ch4_was_enabled = False
 
 if __name__ == "__main__":
   main()
