@@ -14,7 +14,7 @@ note_table = [
 shift_table = [
   "NOISE_DIV_2",  "NOISE_DIV_4",  "NOISE_DIV_8",  "NOISE_DIV_16",  "NOISE_DIV_32",  
   "NOISE_DIV_64",  "NOISE_DIV_128",  "NOISE_DIV_256",  "NOISE_DIV_512",  "NOISE_DIV_1K",  
-  "NOISE_DIV_2K",  "NOISE_DIV_4K",  "NOISE_DIV_8K",  "NOISE_DIV_16K"
+  "NOISE_DIV_2K",  "NOISE_DIV_4K",  "NOISE_DIV_8K",  "NOISE_DIV_16K", "$E0", "$F0"
 ]
 
 div_table = [
@@ -30,18 +30,13 @@ def all_zero(data):
   return True
 
 def note(byte):
-  index = int(byte & 0x7F) - 0x40
-  note = note_table[index]
-  if byte & 0x80 > 0:
-    note += ", 1"
-  else:
-    note += ", 0"
-  return note
+  index = (byte - 0x40) // 2
+  return note_table[index]
 
 def freq_div(byte):
   upperNibble = int((byte & 0xF0) >> 4)
   lowerNibble = int((byte & 0xF))
-  return f'{shift_table[upperNibble]}, {div_table[lowerNibble]}, 1'
+  return f'{shift_table[upperNibble]}, {div_table[lowerNibble]}'
 
 def main():
   for path in glob.glob("./sfx/*.sav"):
@@ -66,9 +61,9 @@ def main():
         mask = channels[index]
         mask_str = "11"
         if mask & 0x30 != 0:
-          mask_str = "10"
+          mask_str = "01"
         if mask & 0x3 != 0:
-          mask_str += "10"
+          mask_str += "01"
         else:
           mask_str += "11"
 
