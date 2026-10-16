@@ -169,6 +169,7 @@ PlaySFX:: ; a = bank, hl = sfx address
   ld e, a;gbt flags
   and a, $F0;new priority
   cp a, d;compare priority
+  ld d, a;new priority
   jr c, .exit;don't play if lower priority
 
 .initSFX
@@ -179,9 +180,8 @@ PlaySFX:: ; a = bank, hl = sfx address
   ld a, 1
   ld [sfx_ticks], a
 
-  ld d, a;new priority
   call StopSFX;resets sfx_priority and gbt_channels_enabled
-  ld a, d
+  ld a, d;new priority
   ld [sfx_priority], a;save priority
 
   ld a, e;priority and gbt flags

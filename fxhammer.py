@@ -67,9 +67,9 @@ def main():
         priority = priorities[index]
         mask = channels[index]
         mask_str = "11"
-        if mask & 0x30 != 0:
-          mask_str = "01"
         if mask & 0x3 != 0:
+          mask_str = "01"
+        if mask & 0x30 != 0:
           mask_str += "01"
         else:
           mask_str += "11"

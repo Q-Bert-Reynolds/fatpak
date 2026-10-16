@@ -26,7 +26,7 @@ FxbankSound0::
 
 SECTION "fxbank.sav - fxbank1", ROMX
 FxbankSound1::
-  SFX_HEADER 14, %0111, 0
+  SFX_HEADER 14, %1101, 0
   SFX_CH2 1, 128, 248, E3
   SFX_CH2 1, 128, 248, Ab3
   SFX_CH2 1, 128, 248, C4
@@ -67,7 +67,7 @@ FxbankSound2::
 
 SECTION "fxbank.sav - fxbank3", ROMX
 FxbankSound3::
-  SFX_HEADER 24, %0111, 0
+  SFX_HEADER 24, %1101, 0
   SFX_CH2 1, 32, 248, E7
   SFX_CH2 3, 128, 248, E6
   SFX_CH2 1, 32, 248, Gb7
@@ -187,7 +187,7 @@ FxbankSound6::
 
 SECTION "fxbank.sav - fxbank7", ROMX
 FxbankSound7::
-  SFX_HEADER 31, %0111, 0
+  SFX_HEADER 31, %1101, 0
   SFX_CH2 2, 128, 248, E3
   SFX_CH2 2, 64, 248, E3
   SFX_CH2 2, 64, 248, C4
@@ -222,7 +222,7 @@ FxbankSound7::
 
 SECTION "fxbank.sav - fxbank8", ROMX
 FxbankSound8::
-  SFX_HEADER 20, %1101, 0
+  SFX_HEADER 20, %0111, 0
   SFX_CH4 2, 255, 248, NOISE_DIV_32|NOISE_STUTTER
   SFX_CH4 2, 255, 248, NOISE_DIV_64|NOISE_STUTTER
   SFX_CH4 2, 255, 248, NOISE_DIV_128|NOISE_STUTTER

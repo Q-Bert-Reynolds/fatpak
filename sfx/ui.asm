@@ -1,39 +1,39 @@
 
 SECTION "ui.sav - Menu Move Up", ROMX
 UiMenuMoveUp::
-  SFX_HEADER 2, %0111, 15
+  SFX_HEADER 2, %1101, 15
   SFX_CH2 3, 0, 248, C2
   SFX_CH2 4, 64, 248, G2
 
 SECTION "ui.sav - Menu Move Down", ROMX
 UiMenuMoveDown::
-  SFX_HEADER 2, %0111, 15
+  SFX_HEADER 2, %1101, 15
   SFX_CH2 3, 64, 248, G2
   SFX_CH2 4, 0, 248, C2
 
 SECTION "ui.sav - Confirm/Select", ROMX
 UiConfirmSelect::
-  SFX_HEADER 3, %0111, 0
+  SFX_HEADER 3, %1101, 0
   SFX_CH2 5, 0, 248, C3
   SFX_CH2 5, 0, 248, E4
   SFX_CH2 8, 0, 248, G4
 
 SECTION "ui.sav - Cancel/Back", ROMX
 UiCancelBack::
-  SFX_HEADER 2, %0111, 0
+  SFX_HEADER 2, %1101, 0
   SFX_CH2 5, 0, 248, G3
   SFX_CH2 8, 0, 248, C3
 
 SECTION "ui.sav - Error/Buzzer", ROMX
 UiErrorBuzzer::
-  SFX_HEADER 3, %1101, 15
+  SFX_HEADER 3, %0111, 15
   SFX_CH4 6, 255, 248, NOISE_DIV_32|NOISE_SPACESHIP
   SFX_CH4 1, 255, 8, NOISE_DIV_2|NOISE_STUTTER
   SFX_CH4 6, 255, 248, NOISE_DIV_32|NOISE_SPACESHIP
 
 SECTION "ui.sav - Notification Ping", ROMX
 UiNotificationPing::
-  SFX_HEADER 15, %0111, 15
+  SFX_HEADER 15, %1101, 15
   SFX_CH2 1, 0, 248, C7
   SFX_CH2 1, 0, 232, C7
   SFX_CH2 1, 0, 216, C7
@@ -52,7 +52,7 @@ UiNotificationPing::
 
 SECTION "ui.sav - Info/Hint Pop", ROMX
 UiInfoHintPop::
-  SFX_HEADER 6, %0111, 15
+  SFX_HEADER 6, %1101, 15
   SFX_CH2 9, 0, 248, Gb5
   SFX_CH2 9, 0, 248, Bb5
   SFX_CH2 9, 0, 248, Db6
@@ -62,7 +62,7 @@ UiInfoHintPop::
 
 SECTION "ui.sav - Save/Success Chime", ROMX
 UiSaveSuccessChime::
-  SFX_HEADER 12, %0111, 15
+  SFX_HEADER 12, %1101, 15
   SFX_CH2 6, 64, 248, C6
   SFX_CH2 6, 64, 248, D6
   SFX_CH2 6, 64, 248, C6
@@ -78,7 +78,7 @@ UiSaveSuccessChime::
 
 SECTION "ui.sav - Text Confirm", ROMX
 UiTextConfirm::
-  SFX_HEADER 8, %1101, 15
+  SFX_HEADER 8, %0111, 15
   SFX_CH4 1, 255, 248, NOISE_DIV_4|NOISE_MIDDLETONE
   SFX_CH4 1, 255, 248, NOISE_DIV_32|NOISE_MIDDLETONE
   SFX_CH4 1, 255, 248, NOISE_DIV_32|NOISE_MIDDLETONE
@@ -90,12 +90,12 @@ UiTextConfirm::
 
 SECTION "ui.sav - Text Cancel/Delete", ROMX
 UiTextCancelDelete::
-  SFX_HEADER 1, %1101, 15
+  SFX_HEADER 1, %0111, 15
   SFX_CH4 4, 255, 200, NOISE_DIV_4|NOISE_STUTTER
 
 SECTION "ui.sav - Open Menu", ROMX
 UiOpenMenu::
-  SFX_HEADER 6, %0111, 15
+  SFX_HEADER 6, %1101, 15
   SFX_CH2 2, 192, 248, C6
   SFX_CH2 2, 0, 8, C2
   SFX_CH2 3, 192, 248, D6
@@ -105,7 +105,7 @@ UiOpenMenu::
 
 SECTION "ui.sav - Close Menu", ROMX
 UiCloseMenu::
-  SFX_HEADER 7, %0111, 0
+  SFX_HEADER 7, %1101, 0
   SFX_CH2 4, 192, 248, D6
   SFX_CH2 2, 0, 8, C2
   SFX_CH2 3, 192, 248, C6
@@ -116,7 +116,7 @@ UiCloseMenu::
 
 SECTION "ui.sav - Page Scroll", ROMX
 UiPageScroll::
-  SFX_HEADER 6, %1101, 14
+  SFX_HEADER 6, %0111, 14
   SFX_CH4 3, 255, 56, NOISE_DIV_2|NOISE_RUMBLE
   SFX_CH4 3, 255, 120, NOISE_DIV_2|NOISE_RUMBLE
   SFX_CH4 3, 255, 88, NOISE_DIV_2|NOISE_RUMBLE
@@ -126,7 +126,7 @@ UiPageScroll::
 
 SECTION "ui.sav - System Alert/Warning", ROMX
 UiSystemAlertWarning::
-  SFX_HEADER 4, %0111, 15
+  SFX_HEADER 4, %1101, 15
   SFX_CH2 16, 192, 248, C6
   SFX_CH2 16, 192, 248, C5
   SFX_CH2 16, 192, 248, C4
@@ -134,7 +134,7 @@ UiSystemAlertWarning::
 
 SECTION "ui.sav - ui14", ROMX
 UiSound14::
-  SFX_HEADER 1, %1101, 15
+  SFX_HEADER 1, %0111, 15
   SFX_CH4 1, 255, 248, NOISE_DIV_2|NOISE_STUTTER
 
 DEF NUM_UI_SOUNDS EQU 15
