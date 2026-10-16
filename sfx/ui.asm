@@ -1,0 +1,195 @@
+
+SECTION "ui.sav - Menu Move Up", ROMX
+UiMenuMoveUp::
+  SFX_HEADER 2, %0111, 15
+  SFX_CH2 3, 0, 248, C2
+  SFX_CH2 4, 64, 248, G2
+
+SECTION "ui.sav - Menu Move Down", ROMX
+UiMenuMoveDown::
+  SFX_HEADER 2, %0111, 15
+  SFX_CH2 3, 64, 248, G2
+  SFX_CH2 4, 0, 248, C2
+
+SECTION "ui.sav - Confirm/Select", ROMX
+UiConfirmSelect::
+  SFX_HEADER 3, %0111, 0
+  SFX_CH2 5, 0, 248, C3
+  SFX_CH2 5, 0, 248, E4
+  SFX_CH2 8, 0, 248, G4
+
+SECTION "ui.sav - Cancel/Back", ROMX
+UiCancelBack::
+  SFX_HEADER 2, %0111, 0
+  SFX_CH2 5, 0, 248, G3
+  SFX_CH2 8, 0, 248, C3
+
+SECTION "ui.sav - Error/Buzzer", ROMX
+UiErrorBuzzer::
+  SFX_HEADER 3, %1101, 15
+  SFX_CH4 6, 255, 248, NOISE_DIV_32|NOISE_SPACESHIP
+  SFX_CH4 1, 255, 8, NOISE_DIV_2|NOISE_STUTTER
+  SFX_CH4 6, 255, 248, NOISE_DIV_32|NOISE_SPACESHIP
+
+SECTION "ui.sav - Notification Ping", ROMX
+UiNotificationPing::
+  SFX_HEADER 15, %0111, 15
+  SFX_CH2 1, 0, 248, C7
+  SFX_CH2 1, 0, 232, C7
+  SFX_CH2 1, 0, 216, C7
+  SFX_CH2 1, 0, 200, C7
+  SFX_CH2 1, 0, 184, C7
+  SFX_CH2 1, 0, 168, C7
+  SFX_CH2 1, 0, 152, C7
+  SFX_CH2 1, 0, 136, C7
+  SFX_CH2 1, 0, 120, C7
+  SFX_CH2 1, 0, 104, C7
+  SFX_CH2 1, 0, 88, C7
+  SFX_CH2 1, 0, 72, C7
+  SFX_CH2 1, 0, 56, C7
+  SFX_CH2 1, 0, 40, C7
+  SFX_CH2 1, 0, 24, C7
+
+SECTION "ui.sav - Info/Hint Pop", ROMX
+UiInfoHintPop::
+  SFX_HEADER 6, %0111, 15
+  SFX_CH2 9, 0, 248, Gb5
+  SFX_CH2 9, 0, 248, Bb5
+  SFX_CH2 9, 0, 248, Db6
+  SFX_CH2 4, 0, 136, Db6
+  SFX_CH2 4, 0, 72, Db6
+  SFX_CH2 4, 0, 24, Db6
+
+SECTION "ui.sav - Save/Success Chime", ROMX
+UiSaveSuccessChime::
+  SFX_HEADER 12, %0111, 15
+  SFX_CH2 6, 64, 248, C6
+  SFX_CH2 6, 64, 248, D6
+  SFX_CH2 6, 64, 248, C6
+  SFX_CH2 6, 64, 248, F6
+  SFX_CH2 6, 64, 248, D6
+  SFX_CH2 6, 64, 248, A6
+  SFX_CH2 6, 64, 248, G6
+  SFX_CH2 8, 64, 248, C7
+  SFX_CH2 8, 64, 136, C7
+  SFX_CH2 8, 64, 56, C7
+  SFX_CH2 8, 64, 24, C7
+  SFX_CH2 0, 0, $08, $80 ;mute
+
+SECTION "ui.sav - Text Confirm", ROMX
+UiTextConfirm::
+  SFX_HEADER 8, %1101, 15
+  SFX_CH4 1, 255, 248, NOISE_DIV_4|NOISE_MIDDLETONE
+  SFX_CH4 1, 255, 248, NOISE_DIV_32|NOISE_MIDDLETONE
+  SFX_CH4 1, 255, 248, NOISE_DIV_32|NOISE_MIDDLETONE
+  SFX_CH4 1, 255, 184, NOISE_DIV_4|NOISE_MIDDLETONE
+  SFX_CH4 1, 255, 136, NOISE_DIV_4|NOISE_MIDDLETONE
+  SFX_CH4 1, 255, 72, NOISE_DIV_4|NOISE_MIDDLETONE
+  SFX_CH4 1, 255, 40, NOISE_DIV_4|NOISE_MIDDLETONE
+  SFX_CH4 1, 255, 24, NOISE_DIV_4|NOISE_MIDDLETONE
+
+SECTION "ui.sav - Text Cancel/Delete", ROMX
+UiTextCancelDelete::
+  SFX_HEADER 1, %1101, 15
+  SFX_CH4 4, 255, 200, NOISE_DIV_4|NOISE_STUTTER
+
+SECTION "ui.sav - Open Menu", ROMX
+UiOpenMenu::
+  SFX_HEADER 6, %0111, 15
+  SFX_CH2 2, 192, 248, C6
+  SFX_CH2 2, 0, 8, C2
+  SFX_CH2 3, 192, 248, D6
+  SFX_CH2 2, 0, 8, C2
+  SFX_CH2 2, 192, 248, C7
+  SFX_CH2 6, 192, 248, D7
+
+SECTION "ui.sav - Close Menu", ROMX
+UiCloseMenu::
+  SFX_HEADER 7, %0111, 0
+  SFX_CH2 4, 192, 248, D6
+  SFX_CH2 2, 0, 8, C2
+  SFX_CH2 3, 192, 248, C6
+  SFX_CH2 2, 0, 8, C2
+  SFX_CH2 2, 192, 248, D5
+  SFX_CH2 6, 192, 248, C5
+  SFX_CH2 0, 0, $08, $80 ;mute
+
+SECTION "ui.sav - Page Scroll", ROMX
+UiPageScroll::
+  SFX_HEADER 6, %1101, 14
+  SFX_CH4 3, 255, 56, NOISE_DIV_2|NOISE_RUMBLE
+  SFX_CH4 3, 255, 120, NOISE_DIV_2|NOISE_RUMBLE
+  SFX_CH4 3, 255, 88, NOISE_DIV_2|NOISE_RUMBLE
+  SFX_CH4 3, 255, 56, NOISE_DIV_2|NOISE_RUMBLE
+  SFX_CH4 3, 255, 24, NOISE_DIV_2|NOISE_RUMBLE
+  SFX_CH4 3, 255, $08, $80 ;mute
+
+SECTION "ui.sav - System Alert/Warning", ROMX
+UiSystemAlertWarning::
+  SFX_HEADER 4, %0111, 15
+  SFX_CH2 16, 192, 248, C6
+  SFX_CH2 16, 192, 248, C5
+  SFX_CH2 16, 192, 248, C4
+  SFX_CH2 16, 192, 248, C5
+
+SECTION "ui.sav - ui14", ROMX
+UiSound14::
+  SFX_HEADER 1, %1101, 15
+  SFX_CH4 1, 255, 248, NOISE_DIV_2|NOISE_STUTTER
+
+DEF NUM_UI_SOUNDS EQU 15
+
+MACRO UI_TITLES
+  DB "Menu Move Up", 0
+  DB "Menu Move Down", 0
+  DB "Confirm/Select", 0
+  DB "Cancel/Back", 0
+  DB "Error/Buzzer", 0
+  DB "Notification Ping", 0
+  DB "Info/Hint Pop", 0
+  DB "Save/Success Chime", 0
+  DB "Text Confirm", 0
+  DB "Text Cancel/Delete", 0
+  DB "Open Menu", 0
+  DB "Close Menu", 0
+  DB "Page Scroll", 0
+  DB "System Alert/Warning", 0
+  DB "ui14", 0
+ENDM
+
+MACRO UI_ADDRESSES
+  DW UiMenuMoveUp
+  DW UiMenuMoveDown
+  DW UiConfirmSelect
+  DW UiCancelBack
+  DW UiErrorBuzzer
+  DW UiNotificationPing
+  DW UiInfoHintPop
+  DW UiSaveSuccessChime
+  DW UiTextConfirm
+  DW UiTextCancelDelete
+  DW UiOpenMenu
+  DW UiCloseMenu
+  DW UiPageScroll
+  DW UiSystemAlertWarning
+  DW UiSound14
+ENDM
+
+MACRO UI_BANKS
+  DB BANK(UiMenuMoveUp)
+  DB BANK(UiMenuMoveDown)
+  DB BANK(UiConfirmSelect)
+  DB BANK(UiCancelBack)
+  DB BANK(UiErrorBuzzer)
+  DB BANK(UiNotificationPing)
+  DB BANK(UiInfoHintPop)
+  DB BANK(UiSaveSuccessChime)
+  DB BANK(UiTextConfirm)
+  DB BANK(UiTextCancelDelete)
+  DB BANK(UiOpenMenu)
+  DB BANK(UiCloseMenu)
+  DB BANK(UiPageScroll)
+  DB BANK(UiSystemAlertWarning)
+  DB BANK(UiSound14)
+ENDM
+

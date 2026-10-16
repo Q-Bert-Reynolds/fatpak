@@ -41,18 +41,27 @@ def freq_div(byte):
 def main():
   for path in glob.glob("./sfx/*.sav"):
     name = os.path.basename(path).replace(".sav", "")
+
+    txt_path = path.replace(".sav", ".txt")
+    has_names = os.path.isfile(txt_path)
+    if has_names:
+      with open(txt_path, "r", encoding="utf8") as txt_file:
+        names = txt_file.readlines()
+
     with open(path, "rb") as sav_file:
       data = sav_file.read()
-
     byte_list = list(data)
     priorities = data[0x200:0x240]
     notes = data[0x240:0x2D0]
     channels = data[0x300:0x340] 
 
     with open(path.replace(".sav", ".asm"), "w+", encoding="utf8") as asm_file:
+      count = 0
+      addresses = []
+      titles = []
       for i in range(0x400, 0x4000, 0x100):
         if all_zero(data[i:i+8]):
-          break
+          continue
 
         index = int((i-0x400) / 0x100)
         priority = priorities[index]
@@ -73,8 +82,15 @@ def main():
           chunk += byte_list[j:j+8]
           steps += 1
 
-        asm_file.write(f'\nSECTION "{name}.sav {index}", ROMX\n')
-        asm_file.write(f'{PascalCase(name)}Sound{index}::\n')
+        title = f'{name}{count}'
+        addressLabel = f'{PascalCase(name)}Sound{count}'
+        if has_names and count < len(names):
+          title = names[count].strip()
+          addressLabel = f'{PascalCase(name)}{PascalCase(names[count])}'
+        titles.append(title)
+        addresses.append(addressLabel)
+        asm_file.write(f'\nSECTION "{name}.sav - {title}", ROMX\n')
+        asm_file.write(f'{addressLabel}::\n')
         asm_file.write(f'  SFX_HEADER {steps}, %{mask_str}, {priority}\n')
 
         ch2_was_enabled = False
@@ -109,6 +125,26 @@ def main():
               # Mute Channel 4: volume 0 ($08)
               asm_file.write(f'  SFX_CH4 {ticks}, 255, $08, $80 ;mute\n')
               ch4_was_enabled = False
+
+        count += 1
+
+      const = ConstString(name)
+      asm_file.write(f"\nDEF NUM_{const}_SOUNDS EQU {len(addresses)}\n\n")
+
+      asm_file.write(f"MACRO {const}_TITLES\n")
+      for title in titles:
+        asm_file.write(f'  DB "{title}", 0\n')
+      asm_file.write(f"ENDM\n\n")
+
+      asm_file.write(f"MACRO {const}_ADDRESSES\n")
+      for label in addresses:
+        asm_file.write(f'  DW {label}\n')
+      asm_file.write(f"ENDM\n\n")
+
+      asm_file.write(f"MACRO {const}_BANKS\n")
+      for label in addresses:
+        asm_file.write(f'  DB BANK({label})\n')
+      asm_file.write(f"ENDM\n\n")
 
 if __name__ == "__main__":
   main()

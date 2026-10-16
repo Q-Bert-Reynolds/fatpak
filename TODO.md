@@ -154,7 +154,6 @@ Audio
 
 Animation
 
-- different sample rate/steps for world vs baseball
 - handle looped vs once animations
 - shuffle sprite_obj_buffer so its size can be increased (will add flicker)
 

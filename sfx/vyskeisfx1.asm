@@ -1,27 +1,27 @@
 
-SECTION "vyskeisfx1.sav 0", ROMX
-Vyskeisfx1Sound0::
+SECTION "vyskeisfx1.sav - Hit", ROMX
+Vyskeisfx1Hit::
   SFX_HEADER 3, %1101, 1
   SFX_CH4 5, 255, 168, NOISE_DIV_8|NOISE_STUTTER
   SFX_CH4 10, 255, 120, NOISE_DIV_256|NOISE_STUTTER
   SFX_CH4 6, 255, 168, NOISE_DIV_8|NOISE_STUTTER
 
-SECTION "vyskeisfx1.sav 1", ROMX
-Vyskeisfx1Sound1::
+SECTION "vyskeisfx1.sav - Menu Low", ROMX
+Vyskeisfx1MenuLow::
   SFX_HEADER 3, %0111, 0
   SFX_CH2 2, 64, 72, G2
   SFX_CH2 3, 0, 168, A3
   SFX_CH2 2, 64, 72, F3
 
-SECTION "vyskeisfx1.sav 2", ROMX
-Vyskeisfx1Sound2::
+SECTION "vyskeisfx1.sav - Menu High", ROMX
+Vyskeisfx1MenuHigh::
   SFX_HEADER 3, %0111, 0
   SFX_CH2 2, 64, 72, F3
   SFX_CH2 3, 0, 168, D4
   SFX_CH2 2, 64, 72, E3
 
-SECTION "vyskeisfx1.sav 3", ROMX
-Vyskeisfx1Sound3::
+SECTION "vyskeisfx1.sav - Double Hit", ROMX
+Vyskeisfx1DoubleHit::
   SFX_HEADER 6, %1101, 0
   SFX_CH4 4, 255, 152, NOISE_DIV_16|NOISE_STUTTER
   SFX_CH4 4, 255, 152, NOISE_DIV_8|NOISE_STUTTER
@@ -30,16 +30,16 @@ Vyskeisfx1Sound3::
   SFX_CH4 6, 255, 104, NOISE_DIV_512|NOISE_STUTTER
   SFX_CH4 6, 255, 72, NOISE_DIV_128|NOISE_MIDDLETONE
 
-SECTION "vyskeisfx1.sav 4", ROMX
-Vyskeisfx1Sound4::
+SECTION "vyskeisfx1.sav - Whiff", ROMX
+Vyskeisfx1Whiff::
   SFX_HEADER 4, %1101, 0
   SFX_CH4 5, 255, 120, NOISE_DIV_2|NOISE_STUTTER
   SFX_CH4 5, 255, 120, NOISE_DIV_64|NOISE_RUMBLE
   SFX_CH4 5, 255, 168, NOISE_DIV_16|NOISE_ENGINE
   SFX_CH4 5, 255, 120, NOISE_DIV_8|NOISE_STUTTER
 
-SECTION "vyskeisfx1.sav 5", ROMX
-Vyskeisfx1Sound5::
+SECTION "vyskeisfx1.sav - Blip Low", ROMX
+Vyskeisfx1BlipLow::
   SFX_HEADER 7, %0111, 0
   SFX_CH2 4, 64, 104, C2
   SFX_CH2 11, 0, 120, C2
@@ -49,16 +49,16 @@ Vyskeisfx1Sound5::
   SFX_CH2 5, 128, 104, C3
   SFX_CH2 3, 0, 56, C2
 
-SECTION "vyskeisfx1.sav 6", ROMX
-Vyskeisfx1Sound6::
+SECTION "vyskeisfx1.sav - Blip High", ROMX
+Vyskeisfx1BlipHigh::
   SFX_HEADER 4, %0111, 0
   SFX_CH2 4, 0, 136, C4
   SFX_CH2 4, 0, 136, C5
   SFX_CH2 4, 0, 168, B3
   SFX_CH2 7, 128, 88, D2
 
-SECTION "vyskeisfx1.sav 7", ROMX
-Vyskeisfx1Sound7::
+SECTION "vyskeisfx1.sav - Burn", ROMX
+Vyskeisfx1Burn::
   SFX_HEADER 5, %1101, 0
   SFX_CH4 21, 255, 88, NOISE_DIV_1K|NOISE_SPACESHIP
   SFX_CH4 12, 255, 168, NOISE_DIV_256|NOISE_HIGH_TONE
@@ -66,8 +66,8 @@ Vyskeisfx1Sound7::
   SFX_CH4 12, 255, 88, NOISE_DIV_128|NOISE_HIGH_TONE
   SFX_CH4 12, 255, 88, NOISE_DIV_1K|NOISE_EARTHQUAKE
 
-SECTION "vyskeisfx1.sav 8", ROMX
-Vyskeisfx1Sound8::
+SECTION "vyskeisfx1.sav - Power Down", ROMX
+Vyskeisfx1PowerDown::
   SFX_HEADER 8, %0111, 2
   SFX_CH2 4, 64, 88, C3
   SFX_CH2 3, 0, 120, C4
@@ -78,8 +78,8 @@ Vyskeisfx1Sound8::
   SFX_CH2 3, 64, 88, G2
   SFX_CH2 7, 64, 72, E3
 
-SECTION "vyskeisfx1.sav 9", ROMX
-Vyskeisfx1Sound9::
+SECTION "vyskeisfx1.sav - Power Up", ROMX
+Vyskeisfx1PowerUp::
   SFX_HEADER 6, %0111, 0
   SFX_CH2 5, 0, 104, C2
   SFX_CH2 5, 64, 136, C3
@@ -88,8 +88,8 @@ Vyskeisfx1Sound9::
   SFX_CH2 5, 0, 136, D3
   SFX_CH2 5, 64, 104, D4
 
-SECTION "vyskeisfx1.sav 10", ROMX
-Vyskeisfx1Sound10::
+SECTION "vyskeisfx1.sav - Alert", ROMX
+Vyskeisfx1Alert::
   SFX_HEADER 10, %0111, 0
   SFX_CH2 8, 128, 72, E3
   SFX_CH2 8, 0, 88, G3
@@ -102,8 +102,8 @@ Vyskeisfx1Sound10::
   SFX_CH2 7, 128, 72, E2
   SFX_CH2 5, 0, 56, E2
 
-SECTION "vyskeisfx1.sav 11", ROMX
-Vyskeisfx1Sound11::
+SECTION "vyskeisfx1.sav - Footsteps / Stairs", ROMX
+Vyskeisfx1FootstepsStairs::
   SFX_HEADER 20, %1101, 0
   SFX_CH4 5, 255, 120, NOISE_DIV_128|NOISE_STUTTER
   SFX_CH4 4, 255, 56, NOISE_DIV_16|NOISE_STUTTER
@@ -126,8 +126,8 @@ Vyskeisfx1Sound11::
   SFX_CH4 3, 255, 24, NOISE_DIV_512|NOISE_STUTTER
   SFX_CH4 5, 255, 24, NOISE_DIV_1K|NOISE_STUTTER
 
-SECTION "vyskeisfx1.sav 12", ROMX
-Vyskeisfx1Sound12::
+SECTION "vyskeisfx1.sav - Whoosh", ROMX
+Vyskeisfx1Whoosh::
   SFX_HEADER 9, %1101, 0
   SFX_CH4 5, 255, 88, NOISE_DIV_64|NOISE_HIGH_TONE
   SFX_CH4 5, 255, 88, NOISE_DIV_64|NOISE_OVERTONE
@@ -139,8 +139,8 @@ Vyskeisfx1Sound12::
   SFX_CH4 5, 255, 56, NOISE_DIV_64|NOISE_STUTTER
   SFX_CH4 5, 255, 40, NOISE_DIV_64|NOISE_STUTTER
 
-SECTION "vyskeisfx1.sav 13", ROMX
-Vyskeisfx1Sound13::
+SECTION "vyskeisfx1.sav - Open Door / Chest", ROMX
+Vyskeisfx1OpenDoorChest::
   SFX_HEADER 7, %1101, 1
   SFX_CH4 5, 255, 88, NOISE_DIV_64|NOISE_HIGH_TONE
   SFX_CH4 5, 255, 88, NOISE_DIV_64|NOISE_OVERTONE
@@ -150,14 +150,14 @@ Vyskeisfx1Sound13::
   SFX_CH4 4, 255, 72, NOISE_DIV_32|NOISE_UNDERTONE
   SFX_CH4 4, 255, 56, NOISE_DIV_16|NOISE_UNDERTONE
 
-SECTION "vyskeisfx1.sav 14", ROMX
-Vyskeisfx1Sound14::
+SECTION "vyskeisfx1.sav - Menu Short", ROMX
+Vyskeisfx1MenuShort::
   SFX_HEADER 2, %0111, 15
   SFX_CH2 2, 64, 168, E3
   SFX_CH2 2, 0, 88, E3
 
-SECTION "vyskeisfx1.sav 15", ROMX
-Vyskeisfx1Sound15::
+SECTION "vyskeisfx1.sav - Menu Chime", ROMX
+Vyskeisfx1MenuChime::
   SFX_HEADER 6, %0111, 0
   SFX_CH2 3, 0, 88, C5
   SFX_CH2 3, 64, 168, B4
@@ -166,14 +166,14 @@ Vyskeisfx1Sound15::
   SFX_CH2 3, 0, 40, C5
   SFX_CH2 3, 0, $08, $80 ;mute
 
-SECTION "vyskeisfx1.sav 16", ROMX
-Vyskeisfx1Sound16::
+SECTION "vyskeisfx1.sav - Menu Error", ROMX
+Vyskeisfx1MenuError::
   SFX_HEADER 2, %0111, 0
   SFX_CH2 6, 128, 168, F2
   SFX_CH2 6, 0, 152, C2
 
-SECTION "vyskeisfx1.sav 17", ROMX
-Vyskeisfx1Sound17::
+SECTION "vyskeisfx1.sav - Use Item Fail", ROMX
+Vyskeisfx1UseItemFail::
   SFX_HEADER 7, %0111, 0
   SFX_CH2 2, 0, 72, C2
   SFX_CH2 3, 64, 104, D2
@@ -181,8 +181,8 @@ Vyskeisfx1Sound17::
   SFX_CH2 5, 64, 104, A2
   SFX_CH2 5, 0, $08, $80 ;mute
 
-SECTION "vyskeisfx1.sav 18", ROMX
-Vyskeisfx1Sound18::
+SECTION "vyskeisfx1.sav - Use Items Success", ROMX
+Vyskeisfx1UseItemsSuccess::
   SFX_HEADER 5, %0111, 0
   SFX_CH2 3, 0, 168, A4
   SFX_CH2 2, 128, 168, D5
@@ -190,8 +190,8 @@ Vyskeisfx1Sound18::
   SFX_CH2 3, 128, 120, A5
   SFX_CH2 6, 128, 104, F5
 
-SECTION "vyskeisfx1.sav 19", ROMX
-Vyskeisfx1Sound19::
+SECTION "vyskeisfx1.sav - Debuff", ROMX
+Vyskeisfx1Debuff::
   SFX_HEADER 6, %0111, 0
   SFX_CH2 3, 128, 152, D4
   SFX_CH2 3, 0, 168, F4
@@ -200,8 +200,8 @@ Vyskeisfx1Sound19::
   SFX_CH2 3, 128, 72, Eb5
   SFX_CH2 12, 0, 72, D4
 
-SECTION "vyskeisfx1.sav 20", ROMX
-Vyskeisfx1Sound20::
+SECTION "vyskeisfx1.sav - Impact", ROMX
+Vyskeisfx1Impact::
   SFX_HEADER 11, %1101, 11
   SFX_CH4 3, 255, 152, NOISE_DIV_64|NOISE_STUTTER
   SFX_CH4 3, 255, 152, NOISE_DIV_16|NOISE_STUTTER
@@ -213,8 +213,8 @@ Vyskeisfx1Sound20::
   SFX_CH4 1, 255, 40, NOISE_DIV_64|NOISE_STUTTER
   SFX_CH4 3, 255, $08, $80 ;mute
 
-SECTION "vyskeisfx1.sav 21", ROMX
-Vyskeisfx1Sound21::
+SECTION "vyskeisfx1.sav - Impact 2", ROMX
+Vyskeisfx1Impact2::
   SFX_HEADER 5, %1101, 0
   SFX_CH4 5, 255, 168, NOISE_DIV_512|NOISE_STUTTER
   SFX_CH4 4, 255, 168, NOISE_DIV_64|NOISE_STUTTER
@@ -222,8 +222,8 @@ Vyskeisfx1Sound21::
   SFX_CH4 4, 255, 104, NOISE_DIV_8|NOISE_STUTTER
   SFX_CH4 4, 255, 72, NOISE_DIV_4|NOISE_STUTTER
 
-SECTION "vyskeisfx1.sav 22", ROMX
-Vyskeisfx1Sound22::
+SECTION "vyskeisfx1.sav - Impact 3", ROMX
+Vyskeisfx1Impact3::
   SFX_HEADER 7, %1101, 0
   SFX_CH4 3, 255, 104, NOISE_DIV_8|NOISE_STATIC
   SFX_CH4 3, 255, 136, NOISE_DIV_16|NOISE_STUTTER
@@ -233,8 +233,8 @@ Vyskeisfx1Sound22::
   SFX_CH4 3, 255, 72, NOISE_DIV_8|NOISE_STUTTER
   SFX_CH4 3, 255, 56, NOISE_DIV_8|NOISE_STUTTER
 
-SECTION "vyskeisfx1.sav 23", ROMX
-Vyskeisfx1Sound23::
+SECTION "vyskeisfx1.sav - Impact 4", ROMX
+Vyskeisfx1Impact4::
   SFX_HEADER 7, %1101, 0
   SFX_CH4 3, 255, 104, NOISE_DIV_8|NOISE_HIGH_TONE
   SFX_CH4 3, 255, 136, NOISE_DIV_32|NOISE_HIGH_TONE
@@ -244,8 +244,8 @@ Vyskeisfx1Sound23::
   SFX_CH4 3, 255, 72, NOISE_DIV_128|NOISE_MIDDLETONE
   SFX_CH4 3, 255, 56, NOISE_DIV_128|NOISE_MIDDLETONE
 
-SECTION "vyskeisfx1.sav 24", ROMX
-Vyskeisfx1Sound24::
+SECTION "vyskeisfx1.sav - Impact 5", ROMX
+Vyskeisfx1Impact5::
   SFX_HEADER 9, %1101, 0
   SFX_CH4 9, 255, 168, NOISE_DIV_128|NOISE_STUTTER
   SFX_CH4 3, 255, 120, NOISE_DIV_128|NOISE_RUMBLE
@@ -257,8 +257,8 @@ Vyskeisfx1Sound24::
   SFX_CH4 9, 255, 56, NOISE_DIV_1K|NOISE_STATIC
   SFX_CH4 9, 255, 40, NOISE_DIV_2K|NOISE_STATIC
 
-SECTION "vyskeisfx1.sav 25", ROMX
-Vyskeisfx1Sound25::
+SECTION "vyskeisfx1.sav - Crash and Burn", ROMX
+Vyskeisfx1CrashandBurn::
   SFX_HEADER 8, %1101, 0
   SFX_CH4 6, 255, 72, NOISE_DIV_64|NOISE_STUTTER
   SFX_CH4 5, 255, 88, NOISE_DIV_32|NOISE_STUTTER
@@ -269,8 +269,8 @@ Vyskeisfx1Sound25::
   SFX_CH4 11, 255, 104, NOISE_DIV_256|NOISE_MIDDLETONE
   SFX_CH4 42, 255, 88, NOISE_DIV_512|NOISE_UNDERTONE
 
-SECTION "vyskeisfx1.sav 26", ROMX
-Vyskeisfx1Sound26::
+SECTION "vyskeisfx1.sav - Phone Ring", ROMX
+Vyskeisfx1PhoneRing::
   SFX_HEADER 15, %0111, 0
   SFX_CH2 4, 128, 152, C4
   SFX_CH2 4, 64, 152, C4
@@ -288,8 +288,8 @@ Vyskeisfx1Sound26::
   SFX_CH2 2, 64, 56, C4
   SFX_CH2 2, 128, 40, C4
 
-SECTION "vyskeisfx1.sav 27", ROMX
-Vyskeisfx1Sound27::
+SECTION "vyskeisfx1.sav - Phaser", ROMX
+Vyskeisfx1Phaser::
   SFX_HEADER 7, %1101, 0
   SFX_CH4 1, 255, 136, NOISE_DIV_4|NOISE_STUTTER
   SFX_CH4 1, 255, 136, NOISE_DIV_8|NOISE_STUTTER
@@ -299,8 +299,8 @@ Vyskeisfx1Sound27::
   SFX_CH4 7, 255, 72, NOISE_DIV_32|NOISE_SCRATCH
   SFX_CH4 5, 255, 56, NOISE_DIV_16|NOISE_SCRATCH
 
-SECTION "vyskeisfx1.sav 28", ROMX
-Vyskeisfx1Sound28::
+SECTION "vyskeisfx1.sav - Phaser 2", ROMX
+Vyskeisfx1Phaser2::
   SFX_HEADER 7, %1101, 0
   SFX_CH4 1, 255, 136, NOISE_DIV_16|NOISE_MIDDLETONE
   SFX_CH4 1, 255, 136, NOISE_DIV_8|NOISE_RUMBLE
@@ -310,8 +310,8 @@ Vyskeisfx1Sound28::
   SFX_CH4 7, 255, 72, NOISE_DIV_64|NOISE_SPACESHIP
   SFX_CH4 5, 255, 56, NOISE_DIV_64|NOISE_OCEAN
 
-SECTION "vyskeisfx1.sav 29", ROMX
-Vyskeisfx1Sound29::
+SECTION "vyskeisfx1.sav - Jump", ROMX
+Vyskeisfx1Jump::
   SFX_HEADER 7, %0111, 0
   SFX_CH2 2, 0, 72, G3
   SFX_CH2 2, 64, 136, G3
@@ -321,8 +321,8 @@ Vyskeisfx1Sound29::
   SFX_CH2 3, 64, 88, B3
   SFX_CH2 3, 0, 56, B3
 
-SECTION "vyskeisfx1.sav 30", ROMX
-Vyskeisfx1Sound30::
+SECTION "vyskeisfx1.sav - Drive Away", ROMX
+Vyskeisfx1DriveAway::
   SFX_HEADER 17, %0111, 0
   SFX_CH2 6, 0, 136, C2
   SFX_CH2 6, 128, 120, C2
@@ -342,8 +342,8 @@ Vyskeisfx1Sound30::
   SFX_CH2 9, 0, 56, G2
   SFX_CH2 9, 0, 40, Ab2
 
-SECTION "vyskeisfx1.sav 31", ROMX
-Vyskeisfx1Sound31::
+SECTION "vyskeisfx1.sav - Rumble / Engine", ROMX
+Vyskeisfx1RumbleEngine::
   SFX_HEADER 12, %0111, 0
   SFX_CH2 6, 0, 136, C2
   SFX_CH2 6, 128, 120, C2
@@ -358,8 +358,8 @@ Vyskeisfx1Sound31::
   SFX_CH2 7, 0, 88, C2
   SFX_CH2 5, 64, 56, C2
 
-SECTION "vyskeisfx1.sav 32", ROMX
-Vyskeisfx1Sound32::
+SECTION "vyskeisfx1.sav - Slide", ROMX
+Vyskeisfx1Slide::
   SFX_HEADER 6, %1101, 0
   SFX_CH4 2, 255, 168, NOISE_DIV_16|NOISE_STUTTER
   SFX_CH4 3, 255, 72, NOISE_DIV_32|NOISE_STUTTER
@@ -368,8 +368,8 @@ Vyskeisfx1Sound32::
   SFX_CH4 6, 255, 88, NOISE_DIV_128|NOISE_STUTTER
   SFX_CH4 6, 255, 56, NOISE_DIV_128|NOISE_STUTTER
 
-SECTION "vyskeisfx1.sav 33", ROMX
-Vyskeisfx1Sound33::
+SECTION "vyskeisfx1.sav - FlyBy", ROMX
+Vyskeisfx1FlyBy::
   SFX_HEADER 9, %1101, 0
   SFX_CH4 2, 255, 72, NOISE_DIV_256|NOISE_STUTTER
   SFX_CH4 4, 255, 136, NOISE_DIV_512|NOISE_STUTTER
@@ -381,8 +381,8 @@ Vyskeisfx1Sound33::
   SFX_CH4 4, 255, 40, NOISE_DIV_128|NOISE_STUTTER
   SFX_CH4 4, 255, 24, NOISE_DIV_128|NOISE_VOLCANO
 
-SECTION "vyskeisfx1.sav 34", ROMX
-Vyskeisfx1Sound34::
+SECTION "vyskeisfx1.sav - Drift", ROMX
+Vyskeisfx1Drift::
   SFX_HEADER 7, %1101, 0
   SFX_CH4 2, 255, 24, NOISE_DIV_32|NOISE_OVERTONE
   SFX_CH4 2, 255, 40, NOISE_DIV_32|NOISE_OVERTONE
@@ -392,8 +392,8 @@ Vyskeisfx1Sound34::
   SFX_CH4 2, 255, 56, NOISE_DIV_32|NOISE_OVERTONE
   SFX_CH4 2, 255, 40, NOISE_DIV_32|NOISE_OVERTONE
 
-SECTION "vyskeisfx1.sav 35", ROMX
-Vyskeisfx1Sound35::
+SECTION "vyskeisfx1.sav - Race Start", ROMX
+Vyskeisfx1RaceStart::
   SFX_HEADER 12, %0111, 0
   SFX_CH2 8, 128, 152, C4
   SFX_CH2 7, 128, 104, C4
@@ -408,8 +408,8 @@ Vyskeisfx1Sound35::
   SFX_CH2 5, 128, 72, C5
   SFX_CH2 4, 128, 88, C5
 
-SECTION "vyskeisfx1.sav 36", ROMX
-Vyskeisfx1Sound36::
+SECTION "vyskeisfx1.sav - Level Ip", ROMX
+Vyskeisfx1LevelIp::
   SFX_HEADER 13, %0111, 0
   SFX_CH2 2, 0, 104, C3
   SFX_CH2 3, 128, 120, C3
@@ -425,8 +425,8 @@ Vyskeisfx1Sound36::
   SFX_CH2 7, 128, 40, E5
   SFX_CH2 7, 64, 24, E5
 
-SECTION "vyskeisfx1.sav 37", ROMX
-Vyskeisfx1Sound37::
+SECTION "vyskeisfx1.sav - Zap", ROMX
+Vyskeisfx1Zap::
   SFX_HEADER 14, %1101, 0
   SFX_CH4 2, 255, 168, NOISE_DIV_8|NOISE_UNDERTONE
   SFX_CH4 2, 255, 136, NOISE_DIV_8|NOISE_UNDERTONE
@@ -443,8 +443,8 @@ Vyskeisfx1Sound37::
   SFX_CH4 2, 255, 40, NOISE_DIV_256|NOISE_UNDERTONE
   SFX_CH4 2, 255, 24, NOISE_DIV_256|NOISE_UNDERTONE
 
-SECTION "vyskeisfx1.sav 38", ROMX
-Vyskeisfx1Sound38::
+SECTION "vyskeisfx1.sav - Lightning", ROMX
+Vyskeisfx1Lightning::
   SFX_HEADER 10, %1101, 0
   SFX_CH4 12, 255, 168, NOISE_DIV_8|NOISE_STUTTER
   SFX_CH4 16, 255, 104, NOISE_DIV_4|NOISE_RUMBLE
@@ -457,8 +457,8 @@ Vyskeisfx1Sound38::
   SFX_CH4 5, 255, 72, NOISE_DIV_64|NOISE_GLITCH
   SFX_CH4 3, 255, 40, NOISE_DIV_64|NOISE_GLITCH
 
-SECTION "vyskeisfx1.sav 39", ROMX
-Vyskeisfx1Sound39::
+SECTION "vyskeisfx1.sav - Jump 2", ROMX
+Vyskeisfx1Jump2::
   SFX_HEADER 7, %0111, 0
   SFX_CH2 3, 64, 152, C5
   SFX_CH2 3, 128, 152, C4
@@ -468,8 +468,8 @@ Vyskeisfx1Sound39::
   SFX_CH2 2, 64, 72, C4
   SFX_CH2 1, 64, 56, C4
 
-SECTION "vyskeisfx1.sav 40", ROMX
-Vyskeisfx1Sound40::
+SECTION "vyskeisfx1.sav - Coin", ROMX
+Vyskeisfx1Coin::
   SFX_HEADER 6, %0111, 0
   SFX_CH2 3, 0, 168, E3
   SFX_CH2 3, 0, 168, E4
@@ -478,8 +478,8 @@ Vyskeisfx1Sound40::
   SFX_CH2 3, 0, 88, E5
   SFX_CH2 3, 64, 72, E5
 
-SECTION "vyskeisfx1.sav 41", ROMX
-Vyskeisfx1Sound41::
+SECTION "vyskeisfx1.sav - Victory Short", ROMX
+Vyskeisfx1VictoryShort::
   SFX_HEADER 11, %0111, 0
   SFX_CH2 5, 64, 168, G5
   SFX_CH2 5, 64, 168, Gb5
@@ -493,8 +493,8 @@ Vyskeisfx1Sound41::
   SFX_CH2 5, 0, 88, B5
   SFX_CH2 5, 64, 88, B5
 
-SECTION "vyskeisfx1.sav 42", ROMX
-Vyskeisfx1Sound42::
+SECTION "vyskeisfx1.sav - Game Over", ROMX
+Vyskeisfx1GameOver::
   SFX_HEADER 17, %0111, 0
   SFX_CH2 10, 128, 168, E4
   SFX_CH2 10, 64, 168, E4
@@ -514,8 +514,8 @@ Vyskeisfx1Sound42::
   SFX_CH2 8, 128, 88, C4
   SFX_CH2 8, 0, 56, C4
 
-SECTION "vyskeisfx1.sav 43", ROMX
-Vyskeisfx1Sound43::
+SECTION "vyskeisfx1.sav - Victory Long", ROMX
+Vyskeisfx1VictoryLong::
   SFX_HEADER 25, %0111, 0
   SFX_CH2 5, 0, 168, C4
   SFX_CH2 5, 64, 168, C4
@@ -543,8 +543,8 @@ Vyskeisfx1Sound43::
   SFX_CH2 5, 0, 72, A4
   SFX_CH2 5, 0, 56, A4
 
-SECTION "vyskeisfx1.sav 44", ROMX
-Vyskeisfx1Sound44::
+SECTION "vyskeisfx1.sav - Falling / Missile", ROMX
+Vyskeisfx1FallingMissile::
   SFX_HEADER 12, %0111, 0
   SFX_CH2 7, 0, 136, A6
   SFX_CH2 7, 64, 136, A6
@@ -559,8 +559,8 @@ Vyskeisfx1Sound44::
   SFX_CH2 7, 64, 136, Gb6
   SFX_CH2 7, 128, 136, Gb6
 
-SECTION "vyskeisfx1.sav 45", ROMX
-Vyskeisfx1Sound45::
+SECTION "vyskeisfx1.sav - Explosion", ROMX
+Vyskeisfx1Explosion::
   SFX_HEADER 5, %1101, 0
   SFX_CH4 5, 255, 168, NOISE_DIV_16|NOISE_STUTTER
   SFX_CH4 5, 255, 168, NOISE_DIV_32|NOISE_STUTTER
@@ -568,8 +568,8 @@ Vyskeisfx1Sound45::
   SFX_CH4 26, 255, 168, NOISE_DIV_512|NOISE_STUTTER
   SFX_CH4 37, 255, 168, NOISE_DIV_1K|NOISE_STUTTER
 
-SECTION "vyskeisfx1.sav 46", ROMX
-Vyskeisfx1Sound46::
+SECTION "vyskeisfx1.sav - Explosion 2", ROMX
+Vyskeisfx1Explosion2::
   SFX_HEADER 6, %1101, 0
   SFX_CH4 3, 255, 168, NOISE_DIV_4|NOISE_STUTTER
   SFX_CH4 3, 255, 168, NOISE_DIV_8|NOISE_STUTTER
@@ -578,8 +578,8 @@ Vyskeisfx1Sound46::
   SFX_CH4 36, 255, 104, NOISE_DIV_256|NOISE_LOW_TONE
   SFX_CH4 36, 255, 56, NOISE_DIV_256|NOISE_LOW_TONE
 
-SECTION "vyskeisfx1.sav 47", ROMX
-Vyskeisfx1Sound47::
+SECTION "vyskeisfx1.sav - Machine Gun Short", ROMX
+Vyskeisfx1MachineGunShort::
   SFX_HEADER 6, %1101, 0
   SFX_CH4 3, 255, 168, NOISE_DIV_256|NOISE_STUTTER
   SFX_CH4 3, 255, 168, NOISE_DIV_256|NOISE_ENGINE
@@ -588,8 +588,8 @@ Vyskeisfx1Sound47::
   SFX_CH4 3, 255, 168, NOISE_DIV_256|NOISE_STUTTER
   SFX_CH4 3, 255, 104, NOISE_DIV_256|NOISE_ENGINE
 
-SECTION "vyskeisfx1.sav 48", ROMX
-Vyskeisfx1Sound48::
+SECTION "vyskeisfx1.sav - Machine Gun Medium", ROMX
+Vyskeisfx1MachineGunMedium::
   SFX_HEADER 13, %1101, 0
   SFX_CH4 3, 255, 168, NOISE_DIV_256|NOISE_STUTTER
   SFX_CH4 3, 255, 168, NOISE_DIV_256|NOISE_ENGINE
@@ -605,8 +605,8 @@ Vyskeisfx1Sound48::
   SFX_CH4 3, 255, 168, NOISE_DIV_256|NOISE_ENGINE
   SFX_CH4 3, 255, 168, NOISE_DIV_256|NOISE_STUTTER
 
-SECTION "vyskeisfx1.sav 49", ROMX
-Vyskeisfx1Sound49::
+SECTION "vyskeisfx1.sav - Machine Gun Long", ROMX
+Vyskeisfx1MachineGunLong::
   SFX_HEADER 26, %1101, 0
   SFX_CH4 3, 255, 168, NOISE_DIV_256|NOISE_STUTTER
   SFX_CH4 3, 255, 168, NOISE_DIV_256|NOISE_ENGINE
@@ -635,8 +635,8 @@ Vyskeisfx1Sound49::
   SFX_CH4 3, 255, 168, NOISE_DIV_256|NOISE_STUTTER
   SFX_CH4 3, 255, 168, NOISE_DIV_256|NOISE_ENGINE
 
-SECTION "vyskeisfx1.sav 50", ROMX
-Vyskeisfx1Sound50::
+SECTION "vyskeisfx1.sav - Buff", ROMX
+Vyskeisfx1Buff::
   SFX_HEADER 13, %0111, 0
   SFX_CH2 5, 128, 168, F4
   SFX_CH2 5, 64, 168, E4
@@ -652,8 +652,8 @@ Vyskeisfx1Sound50::
   SFX_CH2 5, 64, 56, G4
   SFX_CH2 5, 128, 56, A4
 
-SECTION "vyskeisfx1.sav 51", ROMX
-Vyskeisfx1Sound51::
+SECTION "vyskeisfx1.sav - Buff 2", ROMX
+Vyskeisfx1Buff2::
   SFX_HEADER 19, %0111, 0
   SFX_CH2 3, 0, 168, A5
   SFX_CH2 3, 64, 168, A5
@@ -675,8 +675,8 @@ Vyskeisfx1Sound51::
   SFX_CH2 3, 128, 72, A5
   SFX_CH2 3, 64, 56, A5
 
-SECTION "vyskeisfx1.sav 52", ROMX
-Vyskeisfx1Sound52::
+SECTION "vyskeisfx1.sav - Nope", ROMX
+Vyskeisfx1Nope::
   SFX_HEADER 6, %0111, 0
   SFX_CH2 4, 64, 168, C2
   SFX_CH2 4, 0, 168, D2
@@ -684,3 +684,174 @@ Vyskeisfx1Sound52::
   SFX_CH2 4, 0, 120, G2
   SFX_CH2 4, 0, 104, D2
   SFX_CH2 4, 0, 56, C2
+
+DEF NUM_VYSKEISFX1_SOUNDS EQU 53
+
+MACRO VYSKEISFX1_TITLES
+  DB "Hit", 0
+  DB "Menu Low", 0
+  DB "Menu High", 0
+  DB "Double Hit", 0
+  DB "Whiff", 0
+  DB "Blip Low", 0
+  DB "Blip High", 0
+  DB "Burn", 0
+  DB "Power Down", 0
+  DB "Power Up", 0
+  DB "Alert", 0
+  DB "Footsteps / Stairs", 0
+  DB "Whoosh", 0
+  DB "Open Door / Chest", 0
+  DB "Menu Short", 0
+  DB "Menu Chime", 0
+  DB "Menu Error", 0
+  DB "Use Item Fail", 0
+  DB "Use Items Success", 0
+  DB "Debuff", 0
+  DB "Impact", 0
+  DB "Impact 2", 0
+  DB "Impact 3", 0
+  DB "Impact 4", 0
+  DB "Impact 5", 0
+  DB "Crash and Burn", 0
+  DB "Phone Ring", 0
+  DB "Phaser", 0
+  DB "Phaser 2", 0
+  DB "Jump", 0
+  DB "Drive Away", 0
+  DB "Rumble / Engine", 0
+  DB "Slide", 0
+  DB "FlyBy", 0
+  DB "Drift", 0
+  DB "Race Start", 0
+  DB "Level Ip", 0
+  DB "Zap", 0
+  DB "Lightning", 0
+  DB "Jump 2", 0
+  DB "Coin", 0
+  DB "Victory Short", 0
+  DB "Game Over", 0
+  DB "Victory Long", 0
+  DB "Falling / Missile", 0
+  DB "Explosion", 0
+  DB "Explosion 2", 0
+  DB "Machine Gun Short", 0
+  DB "Machine Gun Medium", 0
+  DB "Machine Gun Long", 0
+  DB "Buff", 0
+  DB "Buff 2", 0
+  DB "Nope", 0
+ENDM
+
+MACRO VYSKEISFX1_ADDRESSES
+  DW Vyskeisfx1Hit
+  DW Vyskeisfx1MenuLow
+  DW Vyskeisfx1MenuHigh
+  DW Vyskeisfx1DoubleHit
+  DW Vyskeisfx1Whiff
+  DW Vyskeisfx1BlipLow
+  DW Vyskeisfx1BlipHigh
+  DW Vyskeisfx1Burn
+  DW Vyskeisfx1PowerDown
+  DW Vyskeisfx1PowerUp
+  DW Vyskeisfx1Alert
+  DW Vyskeisfx1FootstepsStairs
+  DW Vyskeisfx1Whoosh
+  DW Vyskeisfx1OpenDoorChest
+  DW Vyskeisfx1MenuShort
+  DW Vyskeisfx1MenuChime
+  DW Vyskeisfx1MenuError
+  DW Vyskeisfx1UseItemFail
+  DW Vyskeisfx1UseItemsSuccess
+  DW Vyskeisfx1Debuff
+  DW Vyskeisfx1Impact
+  DW Vyskeisfx1Impact2
+  DW Vyskeisfx1Impact3
+  DW Vyskeisfx1Impact4
+  DW Vyskeisfx1Impact5
+  DW Vyskeisfx1CrashandBurn
+  DW Vyskeisfx1PhoneRing
+  DW Vyskeisfx1Phaser
+  DW Vyskeisfx1Phaser2
+  DW Vyskeisfx1Jump
+  DW Vyskeisfx1DriveAway
+  DW Vyskeisfx1RumbleEngine
+  DW Vyskeisfx1Slide
+  DW Vyskeisfx1FlyBy
+  DW Vyskeisfx1Drift
+  DW Vyskeisfx1RaceStart
+  DW Vyskeisfx1LevelIp
+  DW Vyskeisfx1Zap
+  DW Vyskeisfx1Lightning
+  DW Vyskeisfx1Jump2
+  DW Vyskeisfx1Coin
+  DW Vyskeisfx1VictoryShort
+  DW Vyskeisfx1GameOver
+  DW Vyskeisfx1VictoryLong
+  DW Vyskeisfx1FallingMissile
+  DW Vyskeisfx1Explosion
+  DW Vyskeisfx1Explosion2
+  DW Vyskeisfx1MachineGunShort
+  DW Vyskeisfx1MachineGunMedium
+  DW Vyskeisfx1MachineGunLong
+  DW Vyskeisfx1Buff
+  DW Vyskeisfx1Buff2
+  DW Vyskeisfx1Nope
+ENDM
+
+MACRO VYSKEISFX1_BANKS
+  DB BANK(Vyskeisfx1Hit)
+  DB BANK(Vyskeisfx1MenuLow)
+  DB BANK(Vyskeisfx1MenuHigh)
+  DB BANK(Vyskeisfx1DoubleHit)
+  DB BANK(Vyskeisfx1Whiff)
+  DB BANK(Vyskeisfx1BlipLow)
+  DB BANK(Vyskeisfx1BlipHigh)
+  DB BANK(Vyskeisfx1Burn)
+  DB BANK(Vyskeisfx1PowerDown)
+  DB BANK(Vyskeisfx1PowerUp)
+  DB BANK(Vyskeisfx1Alert)
+  DB BANK(Vyskeisfx1FootstepsStairs)
+  DB BANK(Vyskeisfx1Whoosh)
+  DB BANK(Vyskeisfx1OpenDoorChest)
+  DB BANK(Vyskeisfx1MenuShort)
+  DB BANK(Vyskeisfx1MenuChime)
+  DB BANK(Vyskeisfx1MenuError)
+  DB BANK(Vyskeisfx1UseItemFail)
+  DB BANK(Vyskeisfx1UseItemsSuccess)
+  DB BANK(Vyskeisfx1Debuff)
+  DB BANK(Vyskeisfx1Impact)
+  DB BANK(Vyskeisfx1Impact2)
+  DB BANK(Vyskeisfx1Impact3)
+  DB BANK(Vyskeisfx1Impact4)
+  DB BANK(Vyskeisfx1Impact5)
+  DB BANK(Vyskeisfx1CrashandBurn)
+  DB BANK(Vyskeisfx1PhoneRing)
+  DB BANK(Vyskeisfx1Phaser)
+  DB BANK(Vyskeisfx1Phaser2)
+  DB BANK(Vyskeisfx1Jump)
+  DB BANK(Vyskeisfx1DriveAway)
+  DB BANK(Vyskeisfx1RumbleEngine)
+  DB BANK(Vyskeisfx1Slide)
+  DB BANK(Vyskeisfx1FlyBy)
+  DB BANK(Vyskeisfx1Drift)
+  DB BANK(Vyskeisfx1RaceStart)
+  DB BANK(Vyskeisfx1LevelIp)
+  DB BANK(Vyskeisfx1Zap)
+  DB BANK(Vyskeisfx1Lightning)
+  DB BANK(Vyskeisfx1Jump2)
+  DB BANK(Vyskeisfx1Coin)
+  DB BANK(Vyskeisfx1VictoryShort)
+  DB BANK(Vyskeisfx1GameOver)
+  DB BANK(Vyskeisfx1VictoryLong)
+  DB BANK(Vyskeisfx1FallingMissile)
+  DB BANK(Vyskeisfx1Explosion)
+  DB BANK(Vyskeisfx1Explosion2)
+  DB BANK(Vyskeisfx1MachineGunShort)
+  DB BANK(Vyskeisfx1MachineGunMedium)
+  DB BANK(Vyskeisfx1MachineGunLong)
+  DB BANK(Vyskeisfx1Buff)
+  DB BANK(Vyskeisfx1Buff2)
+  DB BANK(Vyskeisfx1Nope)
+ENDM
+
