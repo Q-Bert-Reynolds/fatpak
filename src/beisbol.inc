@@ -29,7 +29,7 @@ INCLUDE "src/teams.asm"
 INCLUDE "src/map_loader.asm"
 
 INCLUDE "src/seed_data.asm"
-INCLUDE "src/tests.asm"
+INCLUDE "src/tests/test.asm"
 
 INCLUDE "src/fade.asm"
 INCLUDE "src/start.asm"

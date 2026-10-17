@@ -3,6 +3,7 @@ UsePublicComputer:
   and a, PADF_UP
   ret z
   call PauseGame
+  PLAY_SFX TurnOnPCSound
   call ShowTurnedOnComputerText
 
   xor a
@@ -67,6 +68,7 @@ UsePublicComputer:
 
 .logOut
   HIDE_WIN
+  PLAY_SFX TurnOffPCSound
   call ShowPlayerAvatar
   call WaitPadUp
   call ResumeGame
@@ -124,10 +126,12 @@ UseMyComputer:
   and a, PADF_UP
   ret z
   call PauseGame
+  PLAY_SFX TurnOnPCSound
   call ShowTurnedOnComputerText
   call AccessItemStorageSystem
   HIDE_WIN
   call WaitPadUp
+  PLAY_SFX TurnOffPCSound
   call ShowPlayerAvatar
   call ResumeGame
   ret

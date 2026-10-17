@@ -48,7 +48,7 @@ UpdateAudio::
   push af
   
   call UpdateSFX
-  call gbt_update
+  ; call gbt_update
   
   pop af
   SET_BANK

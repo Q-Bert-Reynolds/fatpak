@@ -58,9 +58,6 @@ kb_mode:: DB
 
 SECTION "Keyboard Code Bank 0", ROM0
 INCLUDE "src/keyboard/ps2_interrupt.asm"
-INCLUDE "src/keyboard/kb_demo.asm"
-INCLUDE "src/keyboard/kb_debug_ui.asm"
-
 
 SECTION "Keyboard Code Bank X", ROMX
 INCLUDE "src/keyboard/kb_jump_table.asm"

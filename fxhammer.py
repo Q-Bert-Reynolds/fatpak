@@ -83,10 +83,10 @@ def main():
           steps += 1
 
         title = f'{name}{count}'
-        addressLabel = f'{PascalCase(name)}Sound{count}'
+        addressLabel = f'{PascalCase(name)}{count}Sound'
         if has_names and count < len(names):
           title = names[count].strip()
-          addressLabel = f'{PascalCase(name)}{PascalCase(names[count])}'
+          addressLabel = f'{PascalCase(name)}{PascalCase(names[count])}Sound'
         titles.append(title)
         addresses.append(addressLabel)
         asm_file.write(f'\nSECTION "{name}.sav - {title}", ROMX\n')

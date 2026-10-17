@@ -34,10 +34,6 @@ MACRO SFX_CH4
   DB \4, AUDENA_ON
 ENDM
 
-INCLUDE "sfx/fxbank.asm"
-INCLUDE "sfx/vyskeisfx1.asm"
-INCLUDE "sfx/ui.asm"
-
 SECTION "SFX", ROMX
 
 SelectSound::
@@ -58,3 +54,22 @@ VersionSlideInSound::
   SFX_CH4 8, $FF, $F0, NOISE_DIV_128|NOISE_STATIC
   SFX_CH4 8, $FF, $F8, NOISE_DIV_64|NOISE_STATIC
   SFX_CH4 8, $FF, $FF, NOISE_DIV_32|NOISE_STATIC
+
+TurnOnPCSound::
+  SFX_HEADER 6, %1101, 15
+  SFX_CH2 2, 192, 248, C6
+  SFX_CH2 2, 0, 8, C2
+  SFX_CH2 3, 192, 248, D6
+  SFX_CH2 2, 0, 8, C2
+  SFX_CH2 2, 192, 248, C7
+  SFX_CH2 6, 192, 248, D7
+
+TurnOffPCSound::
+  SFX_HEADER 7, %1101, 0
+  SFX_CH2 4, 192, 248, D6
+  SFX_CH2 2, 0, 8, C2
+  SFX_CH2 3, 192, 248, C6
+  SFX_CH2 2, 0, 8, C2
+  SFX_CH2 2, 192, 248, D5
+  SFX_CH2 6, 192, 248, C5
+  SFX_CH2 0, 0, $08, $80 ;mute

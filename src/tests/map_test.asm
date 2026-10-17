@@ -17,8 +17,10 @@ TestMap::
   call LoadMap
   
   DISPLAY_ON
-
-  ld a, 4
+  
+  ld a, WORLD_FRAME_STEP
+  ldh [map_anim_frame_step], a
+  ld a, 8
   ldh [map_scroll_speed], a
 
 .loop
@@ -53,6 +55,7 @@ TestMap::
     and a, PADF_A | PADF_START
     jr nz, .exit
   .wait
+    call CopyMapSpritesToOAMBuffer
     call gbdk_WaitVBL
     jp .loop
 .exit

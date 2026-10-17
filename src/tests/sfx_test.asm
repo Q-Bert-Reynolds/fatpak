@@ -1,25 +1,7 @@
-MACRO RUN_TESTS
-  TRAMPOLINE SFXTest;call KeyboardDemo
-ENDM
+INCLUDE "sfx/fxbank.asm"
+INCLUDE "sfx/vyskeisfx1.asm"
+INCLUDE "sfx/ui.asm"
 
-MACRO TEST_SIM ;\1 = speed, \2 = deg left/right, \3 = deg up/down
-  ld a, \1
-  ld b, \2
-  ld c, \3
-  call RunSimulation;a = exit velocity b = spray angle c = launch angle
-ENDM
-
-MACRO TEST_ANNOUNCER ;\1 = angle left or right
-  ld hl, str_buffer
-  xor a
-  ld [hl], a
-  ld b, \1
-  call AppendOutfieldLocationTextByAngle
-  ld hl, str_buffer
-  call RevealTextAndWait
-ENDM
-
-IF TESTS_ENABLED
 SECTION "SFX Test", ROMX
 
 DEF NUM_SFX_FILES EQU 4
@@ -89,6 +71,11 @@ SFXTest::
   call DrawTitle
 .loop
     call WaitPadUp
+  .checkB
+    ld a, [button_state]
+    and a, PADF_B
+    ret nz
+
   .checkA
     ld a, [button_state]
     and a, PADF_A
@@ -244,4 +231,3 @@ PlaySelectedSound:
   pop hl;sound address
   call PlaySFX
   ret
-ENDC;TESTS_ENABLED

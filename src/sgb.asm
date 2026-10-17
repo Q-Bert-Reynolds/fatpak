@@ -204,24 +204,28 @@ sgb_MltReqOnePlayer:  MLT_REQ 1
 
 ; Super Game Boy initialization
 sgb_Init::
+IF SGB_CHECK == 0
+  ldh a, [sys_info]
+  and a, SYS_INFO_SGB
+  ret z
+ENDC
+
   di
   DISPLAY_OFF
   call sgb_SendInitPackets        ; 8 initialization data packet sending, according to the official documentation
 
-IF SGB_CHECK == 0
-  ldh a, [sys_info]
-ELSE
+IF SGB_CHECK == 1
   call sgb_Check                  ; check multiplayer even if register check has passed
   ldh a, [sys_info]
   jr nc, .doubleCheck             ; multiplayer fail might be a fluke, check registers
   or a, SYS_INFO_SGB
   ldh [sys_info], a
 .doubleCheck
-ENDC
   and a, SYS_INFO_SGB
   jr nz, .success
 .fail
   reti                            ; both register and multiplayer checks failed
+ENDC
 
 .success
   ld hl, sgb_MaskEnFreeze
