@@ -1,17 +1,9 @@
 Priority
 
-- update timing for score bug vs player data
-- add batting/pitching animations for Rattail, Pidge, and Chica
-- baseball simulation
-  - move a fielder to a position
-  - move fielders to positions based on result
-- using the computer
-  - Bill's PC (will allow roster changes!!!)
-  - Doc's PC
-  - League PC
-- end game, get experience, level up
-- trade players over link cable
-- use GB Printer to print stats, records, rolédex, baseball cards
+- add batting/pitching animations for Pidge, and Chica
+- fix swing timing
+- fix timing for score bug vs player data
+- add swing/pitch fx
 
 Optimization
 
@@ -54,9 +46,8 @@ Start
 
 Play Ball
 
+- end game, get experience, level up
 - update seen/signed after games, transformations, and signings
-- fix swing timing
-- add swing/pitch fx
 - offers accepted by unsigned players should end game
 - set contact power from move, player, and barrel
 - if opposing pitcher is ahead - throw more balls, behind - throw more strikes
@@ -86,6 +77,8 @@ Announcer
 
 Simulation
 
+- move a fielder to a position
+- move fielders to positions based on result
 - ball should bounce off fences
 - running
 - catching throwing
@@ -142,6 +135,12 @@ Rolédex
 - create tileset specific to dex
 - show player home towns / recruitment locations
 
+Computers
+
+- Bill's PC (will allow roster changes!!!)
+- Doc's PC
+- League PC
+
 Audio
 
 - pitch, hit, wiff, catch SFX
@@ -171,8 +170,10 @@ Super GameBoy
 - extra music voices
 - use second controller
 
-Keyboard
+Serial Port
 
+- trade players over link cable
+- use GB Printer to print stats, records, rolédex, baseball cards
 - USB keyboard sometimes freezes title screen
 - PS/2 keyboard causes flickering on LCDC interrupts
 - add shortcut keys
