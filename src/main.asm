@@ -1,58 +1,18 @@
-DEF TESTS_ENABLED    EQU 1
-DEF INTRO_ENABLED    EQU 1
-DEF TITLE_ENABLED    EQU 1
-DEF NEW_GAME_ENABLED EQU 1
-DEF WORLD_ENABLED    EQU 1
-DEF PLAY_ENABLED     EQU 1
-
 INCLUDE "src/beisbol.inc"
-
-MACRO RUN_TESTS
-  TRAMPOLINE SFXTest;call KeyboardDemo
-  DISPLAY_OFF
-  TRAMPOLINE UILoadFontTiles
-  ld a, ' '
-  call ClearScreen
-  DISPLAY_ON
-  SHOW_WIN
-ENDM
-
-MACRO TEST_SIM ;\1 = speed, \2 = deg left/right, \3 = deg up/down
-  ld a, \1
-  ld b, \2
-  ld c, \3
-  call RunSimulation;a = exit velocity b = spray angle c = launch angle
-ENDM
-
-MACRO TEST_ANNOUNCER ;\1 = angle left or right
-  ld hl, str_buffer
-  xor a
-  ld [hl], a
-  ld b, \1
-  call AppendOutfieldLocationTextByAngle
-  ld hl, str_buffer
-  call RevealTextAndWait
-ENDM
 
 SECTION "Header", ROM0[$100]
 Entry:
   nop
   jp Main
   NINTENDO_LOGO
-IF DEF(_HOME)
-  DB "BEISBOL HOME",0,0,0    ;Cart name - 15bytes
-ELIF DEF(_AWAY)
-  DB "BEISBOL AWAY",0,0,0    ;Cart name - 15bytes
-ELSE
-  DB "BEISBOL DEMO",0,0,0    ;Cart name - 15bytes
-ENDC
-  DB CART_COMPATIBLE_DMG_GBC ;$143
-  DB 0,0                     ;$144 - Licensee code (not important)
+  GAME_NAME                  ;$134 - Title
+  DB CART_COMPATIBLE_DMG_GBC ;$143 - CGB Flag
+  DW 0                       ;$144 - Licensee code (not important)
   DB CART_INDICATOR_SGB      ;$146 - SGB Support indicator
   DB CART_ROM_MBC5_RAM_BAT   ;$147 - Cart type
   DB CART_ROM_1024KB         ;$148 - ROM Size 
   DB CART_SRAM_32KB          ;$149 - RAM Size
-  DB 1                       ;$14a - Destination code
+  CART_DEST                  ;$14a - Destination code
   DB $33                     ;$14b - Old licensee code
   DB 0                       ;$14c - Mask ROM version
   DB 0                       ;$14d - Complement check (important)
@@ -138,7 +98,7 @@ Main::
   ldh [map_last_button_state], a
 .finishLoading
 
-IF TESTS_ENABLED == 1
+IF TESTS_ENABLED
   RUN_TESTS
   DISPLAY_OFF
   ld a, 1
@@ -151,12 +111,12 @@ IF TESTS_ENABLED == 1
 ENDC
 
 .start ;show intro credits, batting animation
-IF INTRO_ENABLED == 1
+IF INTRO_ENABLED
   TRAMPOLINE Start
   call HideAllSprites
 ENDC
 
-IF TITLE_ENABLED == 1
+IF TITLE_ENABLED
 .title ;show title drop, version slide, cycle of players, new game/continue screen
   ld a, BANK(Title)
   SET_BANK
@@ -164,7 +124,7 @@ IF TITLE_ENABLED == 1
   jr nz, .startClock
 ENDC
 
-IF NEW_GAME_ENABLED == 1
+IF NEW_GAME_ENABLED
 .newGame
   TRAMPOLINE NewGame
   TRAMPOLINE Seed
@@ -175,7 +135,7 @@ ENDC
   ld [game_state], a
 
 .mainLoop
-IF WORLD_ENABLED == 1
+IF WORLD_ENABLED
   .world; walk around, find a game, repeat
     ld a, [game_state]
     and a, ~GAME_STATE_PLAY_BALL
@@ -183,7 +143,7 @@ IF WORLD_ENABLED == 1
     TRAMPOLINE Overworld
 ENDC
 
-IF PLAY_ENABLED == 1
+IF PLAY_ENABLED
   .baseball
     ld a, [game_state]
     or a, GAME_STATE_PLAY_BALL

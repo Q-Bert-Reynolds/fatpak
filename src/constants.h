@@ -1,6 +1,14 @@
 #ifndef CONSTANTS
 #define CONSTANTS
 
+// assembly flags
+#define TESTS_ENABLED    1
+#define INTRO_ENABLED    1
+#define TITLE_ENABLED    1
+#define NEW_GAME_ENABLED 1
+#define WORLD_ENABLED    1
+#define PLAY_ENABLED     1
+
 // game_state masks
 #define GAME_STATE_CLOCK_STARTED   0b00000001
 #define GAME_STATE_PLAY_BALL       0b00000010

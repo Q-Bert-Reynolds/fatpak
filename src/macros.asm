@@ -20,6 +20,24 @@
 ;   D24                                   num24
 ;   BETWEEN                               n8, n8
 
+MACRO GAME_NAME
+IF DEF(_HOME)
+  DB "BEISBOL HOME",0,0,0
+ELIF DEF(_AWAY)
+  DB "BEISBOL AWAY",0,0,0
+ELSE
+  DB "BEISBOL DEMO",0,0,0
+ENDC
+ENDM
+
+MACRO CART_DEST
+IF DEF(LANG_JA)
+  DB CART_DEST_JAPANESE
+ELSE
+  DB CART_DEST_NON_JAPANESE
+ENDC
+ENDM
+
 MACRO SET_BANK
   ldh [loaded_bank], a
   ld [rROMB0], a

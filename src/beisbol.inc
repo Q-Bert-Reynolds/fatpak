@@ -28,8 +28,8 @@ INCLUDE "src/coaches.asm"
 INCLUDE "src/teams.asm"
 INCLUDE "src/map_loader.asm"
 
-; INCLUDE "src/map_test.asm"
 INCLUDE "src/seed_data.asm"
+INCLUDE "src/tests.asm"
 
 INCLUDE "src/fade.asm"
 INCLUDE "src/start.asm"

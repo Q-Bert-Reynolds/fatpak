@@ -144,6 +144,7 @@ Rolédex
 
 Audio
 
+- leverage macros so only used sfx are included in the project
 - pitch, hit, wiff, catch SFX
 - on/off PC SFX
 - utilize panning from fxhammer files
