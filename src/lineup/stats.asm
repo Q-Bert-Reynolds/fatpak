@@ -73,7 +73,7 @@ DrawStatScreen::;player in hl
 WaitForABStart:
     call gbdk_WaitVBL
     call UpdateInput
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_A | PADF_B | PADF_START
     jr z, WaitForABStart
   call WaitPadUp

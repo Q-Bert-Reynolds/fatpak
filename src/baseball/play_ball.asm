@@ -628,7 +628,7 @@ Swing:; aim xy = de, pitch z = a, returns contact made in a
 Aim: 
   call UpdateInput
 .testRight;if (k & J_RIGHT) ++a;
-  ld a, [button_state]
+  ldh a, [button_state]
   and PADF_RIGHT
   jr z, .testLeft
   ld a, [aim_x]
@@ -637,7 +637,7 @@ Aim:
   ld [aim_x], a
   jr .testDown
 .testLeft;else if (k & J_LEFT) --a;
-  ld a, [button_state]
+  ldh a, [button_state]
   and PADF_LEFT
   jr z, .testDown
   ld a, [aim_x]
@@ -645,7 +645,7 @@ Aim:
   dec a
   ld [aim_x], a
 .testDown;if (k & J_DOWN) ++b;
-  ld a, [button_state]
+  ldh a, [button_state]
   and PADF_DOWN
   jr z, .testUp
   ld a, [aim_y]
@@ -654,7 +654,7 @@ Aim:
   ld [aim_y], a
   jr .updateAim
 .testUp;else if (k & J_UP) --b;
-  ld a, [button_state]
+  ldh a, [button_state]
   and PADF_UP
   jr z, .updateAim
   ld a, [aim_y]
@@ -780,7 +780,7 @@ Bat:
     jp nz, .checkFinishSwing
       call Aim
 
-      ld a, [button_state]
+      ldh a, [button_state]
       and PADF_A
       jp z, .moveBaseball
         ld a, [_v]
@@ -1135,7 +1135,7 @@ Transition:
 
 StartGame::
   ld a, PLAY_BALL_FRAME_STEP
-  ldh [map_anim_frame_step], a
+  ldh [anim_frame_step], a
   ld a, BANK(GBMetaSpriteBaseballObjcutter)
   ldh [map_meta_sprites_bank], a
 

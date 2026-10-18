@@ -846,34 +846,341 @@ DW _149DragonTileMap
 DW _150MikeTileMap
 DW _151MickTileMap
 
-SECTION "Player Animations 0", ROMX, BANK[PLAYER_IMG_BANK+PLAYER_IMG_BANK_COUNT+0]
 
-
+SECTION "001 Bubbi Animations", ROMX
 INCLUDE "img/players/001Bubbi/001Bubbi_lefty_pitcher_opponent.asm"
 INCLUDE "img/players/001Bubbi/001Bubbi_lefty_batter_user.asm"
 INCLUDE "img/players/001Bubbi/001Bubbi_righty_batter_user.asm"
 INCLUDE "img/players/001Bubbi/001Bubbi_righty_pitcher_opponent.asm"
 INCLUDE "img/players/001Bubbi/001Bubbi_righty_pitcher_user_2x.asm"
 INCLUDE "img/players/001Bubbi/001Bubbi_lefty_batter_opponent.asm"
+
+SECTION "002 Ivy Animations", ROMX
 INCLUDE "img/players/002Ivy/002Ivy_righty_pitcher_opponent.asm"
 INCLUDE "img/players/002Ivy/002Ivy_lefty_batter_opponent.asm"
+
+SECTION "003 Venus Animations", ROMX
 INCLUDE "img/players/003Venus/003Venus_righty_batter_user.asm"
 INCLUDE "img/players/003Venus/003Venus_lefty_batter_user.asm"
 INCLUDE "img/players/003Venus/003Venus_righty_pitcher_opponent.asm"
+
+SECTION "004 Ginger Animations", ROMX
 INCLUDE "img/players/004Ginger/004Ginger_lefty_pitcher_opponent.asm"
 INCLUDE "img/players/004Ginger/004Ginger_lefty_pitcher_user_2x.asm"
-SECTION "Player Animations 1", ROMX, BANK[PLAYER_IMG_BANK+PLAYER_IMG_BANK_COUNT+1]
 
-
+SECTION "005 Freckles Animations", ROMX
 INCLUDE "img/players/005Freckles/005Freckles_lefty_pitcher_opponent.asm"
 INCLUDE "img/players/005Freckles/005Freckles_lefty_pitcher_user_2x.asm"
+
+SECTION "006 Big Red Animations", ROMX
 INCLUDE "img/players/006BigRed/006BigRed_lefty_pitcher_opponent.asm"
 INCLUDE "img/players/006BigRed/006BigRed_lefty_pitcher_user.asm"
+
+SECTION "007 Squirt Animations", ROMX
 INCLUDE "img/players/007Squirt/007Squirt_righty_pitcher_opponent.asm"
+
+SECTION "008 Pudge Animations", ROMX
+
+SECTION "009 Yogi Animations", ROMX
 INCLUDE "img/players/009Yogi/009Yogi_righty_batter_user.asm"
+
+SECTION "010 Sweet Pea Animations", ROMX
+
+SECTION "011 Meta Animations", ROMX
+
+SECTION "012 Butterfly Animations", ROMX
+
+SECTION "013 Weeds Animations", ROMX
+
+SECTION "014 Koo-Koo Animations", ROMX
+
+SECTION "015 Beedie Animations", ROMX
+
+SECTION "016 Pidge Animations", ROMX
+INCLUDE "img/players/016Pidge/016Pidge_righty_batter_opponent.asm"
+INCLUDE "img/players/016Pidge/016Pidge_righty_batter_user.asm"
+INCLUDE "img/players/016Pidge/016Pidge_righty_pitcher_user.asm"
+INCLUDE "img/players/016Pidge/016Pidge_righty_pitcher_opponent.asm"
+
+SECTION "017 Gio Animations", ROMX
+
+SECTION "018 OT Animations", ROMX
+
+SECTION "019 Rat Tail Animations", ROMX
+INCLUDE "img/players/019RatTail/019RatTail_lefty_pitcher_user.asm"
+INCLUDE "img/players/019RatTail/019RatTail_lefty_pitcher_opponent.asm"
 INCLUDE "img/players/019RatTail/019RatTail_lefty_batter_opponent.asm"
+INCLUDE "img/players/019RatTail/019RatTail_lefty_batter_user.asm"
+
+SECTION "020 Mullet Animations", ROMX
+
+SECTION "021 Stoop Animations", ROMX
+
+SECTION "022 Crow Animations", ROMX
+
+SECTION "023 Snake Animations", ROMX
+
+SECTION "024 Cobra Animations", ROMX
+
+SECTION "025 Chu Animations", ROMX
+
+SECTION "026 Rai Animations", ROMX
 INCLUDE "img/players/026Rai/026Rai_lefty_pitcher_opponent.asm"
+
+SECTION "027 Shrew Animations", ROMX
+
+SECTION "028 Sandy Animations", ROMX
+
+SECTION "029 Chica Animations", ROMX
+INCLUDE "img/players/029Chica/029Chica_righty_pitcher_user.asm"
+INCLUDE "img/players/029Chica/029Chica_lefty_batter_opponent.asm"
+INCLUDE "img/players/029Chica/029Chica_lefty_batter_user.asm"
+INCLUDE "img/players/029Chica/029Chica_righty_pitcher_opponent.asm"
+
+SECTION "030 Muchacha Animations", ROMX
+
+SECTION "031 Reina Animations", ROMX
+
+SECTION "032 Chico Animations", ROMX
+
+SECTION "033 Muchacho Animations", ROMX
+
+SECTION "034 Rey Animations", ROMX
+
+SECTION "035 Fairy Animations", ROMX
+
+SECTION "036 Fable Animations", ROMX
+
+SECTION "037 Vulfpek Animations", ROMX
+
+SECTION "038 Foxy Animations", ROMX
+
+SECTION "039 Puff Animations", ROMX
+
+SECTION "040 Tuff Animations", ROMX
+
+SECTION "041 Bats Animations", ROMX
+
+SECTION "042 Golden Bat Animations", ROMX
+
+SECTION "043 Oddie Animations", ROMX
+
+SECTION "044 Gloomy Animations", ROMX
+
+SECTION "045 Vile Animations", ROMX
+
+SECTION "046 Paris Animations", ROMX
+
+SECTION "047 Pariah Animations", ROMX
+
+SECTION "048 Natty Animations", ROMX
+
+SECTION "049 Mouth Animations", ROMX
+
+SECTION "050 Diggs Animations", ROMX
+
+SECTION "051 Doug Animations", ROMX
+
+SECTION "052 Meow Animations", ROMX
+
+SECTION "053 Purr Animations", ROMX
+
+SECTION "054 Duck Animations", ROMX
+
+SECTION "055 Goose Animations", ROMX
+
+SECTION "056 Man Animations", ROMX
+
+SECTION "057 Primo Animations", ROMX
+
+SECTION "058 Lit Animations", ROMX
+
+SECTION "059 Arcane Animations", ROMX
+
+SECTION "060 Polly Animations", ROMX
+
+SECTION "061 Whirly Animations", ROMX
+
+SECTION "062 Wrath Animations", ROMX
+
+SECTION "063 Bruh Animations", ROMX
+
+SECTION "064 Dab Animations", ROMX
+
+SECTION "065 Zam Animations", ROMX
+
+SECTION "066 Chip Animations", ROMX
+
+SECTION "067 Chuck Animations", ROMX
+
+SECTION "068 Champ Animations", ROMX
+
+SECTION "069 Sprout Animations", ROMX
+
+SECTION "070 Weepy Animations", ROMX
+
+SECTION "071 Vic Animations", ROMX
+
+SECTION "072 Jelly Animations", ROMX
+
+SECTION "073 Jam Animations", ROMX
+
+SECTION "074 Dude Animations", ROMX
+
+SECTION "075 Gravel Animations", ROMX
+
+SECTION "076 Golem Animations", ROMX
+
+SECTION "077 Pinto Animations", ROMX
+
+SECTION "078 Unicorn Animations", ROMX
+
+SECTION "079 Slowpoke Animations", ROMX
+
+SECTION "080 Laggard Animations", ROMX
+
+SECTION "081 Magnet Animations", ROMX
+
+SECTION "082 Ton Animations", ROMX
+
+SECTION "083 Dubious Animations", ROMX
+
+SECTION "084 Duce Animations", ROMX
+
+SECTION "085 Trey Animations", ROMX
+
+SECTION "086 Seal Animations", ROMX
+
+SECTION "087 Sealion Animations", ROMX
+
+SECTION "088 Greaser Animations", ROMX
+
+SECTION "089 Muck Animations", ROMX
+
+SECTION "090 Cup Animations", ROMX
+
+SECTION "091 Dish Animations", ROMX
+
+SECTION "092 Gas Animations", ROMX
+
+SECTION "093 Morty Animations", ROMX
+
+SECTION "094 Macobb Animations", ROMX
+
+SECTION "095 Onyx Animations", ROMX
+
+SECTION "096 Zee Animations", ROMX
+
+SECTION "097 Sooth Animations", ROMX
+
+SECTION "098 Dick Animations", ROMX
+
+SECTION "099 Rex Animations", ROMX
+
+SECTION "100 Speedball Animations", ROMX
+
+SECTION "101 Tucker Animations", ROMX
+
+SECTION "102 Ed Animations", ROMX
+
+SECTION "103 Edd Animations", ROMX
+
+SECTION "104 Bones Animations", ROMX
+
+SECTION "105 Marrow Animations", ROMX
+
+SECTION "106 Bruce Animations", ROMX
+
+SECTION "107 Jackie Animations", ROMX
+
+SECTION "108 Lick Animations", ROMX
+
+SECTION "109 Ash Animations", ROMX
+
+SECTION "110 Smokey Animations", ROMX
+
+SECTION "111 Rhino Animations", ROMX
+
+SECTION "112 Don Animations", ROMX
+
+SECTION "113 Chance Animations", ROMX
+
+SECTION "114 Frizz Animations", ROMX
+
+SECTION "115 Gengis Animations", ROMX
+
+SECTION "116 Brain Animations", ROMX
+
+SECTION "117 Einstein Animations", ROMX
+
+SECTION "118 Goldie Animations", ROMX
+
+SECTION "119 Seeker Animations", ROMX
+
+SECTION "120 Starchild Animations", ROMX
+
+SECTION "121 Starman Animations", ROMX
+
+SECTION "122 Mime Animations", ROMX
+
+SECTION "123 Scy Animations", ROMX
+
+SECTION "124 Jinx Animations", ROMX
+
+SECTION "125 Buzz Animations", ROMX
+
+SECTION "126 Magma Animations", ROMX
+
+SECTION "127 Pinch Animations", ROMX
+
+SECTION "128 Bull Animations", ROMX
+
+SECTION "129 Fish Animations", ROMX
+
+SECTION "130 Gar Animations", ROMX
+
+SECTION "131 Bus Animations", ROMX
+
+SECTION "132 Yeah-Yeah Animations", ROMX
+
+SECTION "133 Evie Animations", ROMX
+
+SECTION "134 Vapor Animations", ROMX
+
+SECTION "135 Jolt Animations", ROMX
+
+SECTION "136 Flare Animations", ROMX
+
+SECTION "137 Polygon Animations", ROMX
+
+SECTION "138 Spiral Animations", ROMX
+
+SECTION "139 Spire Animations", ROMX
+
+SECTION "140 Cap Animations", ROMX
+
+SECTION "141 Topper Animations", ROMX
+
+SECTION "142 Bonehead Animations", ROMX
+
+SECTION "143 Bear Animations", ROMX
 INCLUDE "img/players/143Bear/143Bear_lefty_pitcher_user_2x.asm"
 INCLUDE "img/players/143Bear/143Bear_righty_batter_user.asm"
 INCLUDE "img/players/143Bear/143Bear_righty_batter_opponent.asm"
+
+SECTION "144 Art Animations", ROMX
+
+SECTION "145 Zaph Animations", ROMX
 INCLUDE "img/players/145Zaph/145Zaph_righty_batter_user.asm"
+
+SECTION "146 Fenix Animations", ROMX
+
+SECTION "147 Drats Animations", ROMX
+
+SECTION "148 Aire Animations", ROMX
+
+SECTION "149 Dragon Animations", ROMX
+
+SECTION "150 Mike Animations", ROMX
+
+SECTION "151 Mick Animations", ROMX

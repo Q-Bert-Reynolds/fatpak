@@ -1,4 +1,4 @@
-SECTION "Input Vars", WRAM0
+SECTION "Input Vars", HRAM
 last_button_state:: DB
 button_state:: DB
 
@@ -21,10 +21,10 @@ MACRO UPDATE_INPUT_AND_JUMP_TO_IF_BUTTONS ; \1=address, \2=buttons
 ENDM
 
 MACRO JUMP_TO_IF_BUTTONS ; \1=address, \2=buttons
-  ld a, [last_button_state]
+  ldh a, [last_button_state]
   and a
   jr nz, .skip\@
-  ld a, [button_state]
+  ldh a, [button_state]
   and \2
   jp nz, \1
 .skip\@
@@ -50,8 +50,8 @@ UpdateInput::;https://gbdev.io/pandocs/Joypad_Input.html
   PUSH_ALL
 
   ;copy button_state to last_button_state
-  ld a, [button_state]
-  ld [last_button_state], a
+  ldh a, [button_state]
+  ldh [last_button_state], a
 
   ;read DPad
   ld hl, rP1
@@ -83,7 +83,7 @@ ENDR
 WaitPadUp::
   call gbdk_WaitVBL
   call UpdateInput
-  ld a, [last_button_state]
+  ldh a, [last_button_state]
   and a
   jr nz, WaitPadUp
   ret
@@ -92,7 +92,7 @@ WaitPadUpOrFrames::; a = frames
   push af;frames
   call gbdk_WaitVBL
   call UpdateInput
-  ld a, [last_button_state]
+  ldh a, [last_button_state]
   and a
   jr z, .exit
   pop af;frames

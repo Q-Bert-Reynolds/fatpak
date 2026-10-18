@@ -579,7 +579,7 @@ ShowRoledexPlayerData:;a player num
 .waitForExitLoop
   call gbdk_WaitVBL
   call UpdateInput
-  ld a, [button_state]
+  ldh a, [button_state]
   and a, PADF_START | PADF_A | PADF_B
   jr z, .waitForExitLoop
 
@@ -634,7 +634,7 @@ ShowRoledexMenu:;returns exit code in a
     and a
     jr nz, .loop
 .checkA
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_A
     jp z, .checkB
 
@@ -701,7 +701,7 @@ ShowRoledexMenu:;returns exit code in a
       jr .exit
 .checkB
     ld b, 0
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_B
     jr nz, .exit
     call gbdk_WaitVBL
@@ -766,7 +766,7 @@ ShowRoledex::
     call ShowRoledexPage
     jp .waitAndLoop
 .checkMovePageLeft
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_LEFT
     jr z, .checkMovePageRight
     ld a, [_s]
@@ -786,7 +786,7 @@ ShowRoledex::
     call WaitPadUpOrFrames
     jr .waitAndLoop
 .checkMovePageRight
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_RIGHT
     jr z, .checkAPressed
     ld a, [_s]
@@ -797,7 +797,7 @@ ShowRoledex::
     call WaitPadUpOrFrames
     jr .waitAndLoop
 .checkAPressed
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_A
     jr z, .checkBPressed
     call ShowRoledexMenu
@@ -805,7 +805,7 @@ ShowRoledex::
     jr z, .exit
     jr .waitAndLoop
 .checkBPressed
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_B
     jr nz, .exit
 .waitAndLoop

@@ -1,8 +1,9 @@
-SECTION "Interrupt Vars", WRAM0
+SECTION "Interrupt Vars", HRAM
 vbl_timer:: DB ;counts to 60
-anim_timer:: DB ;counts to map_anim_frame_step
+anim_timer:: DB ;counts to anim_frame_step
+anim_frame_step:: DB
 rLCDInterrupt:: DW;location of LCD interrupt subroutine
-
+  
 SECTION "Interrupt Code", ROM0
 ;serial
 ;   SerialInterrupt
@@ -25,10 +26,11 @@ SerialInterrupt::;TODO: check serial type (keyboard, link, printer)
 
 LCDInterrupt::
   PUSH_ALL
-  ld hl, rLCDInterrupt
-  ld a, [hli]
+  ld c, LOW(rLCDInterrupt)
+  ldh a, [c]
   ld b, a
-  ld a, [hl]
+  inc c
+  ldh a, [c]
   ld h, b
   ld l, a
   ld bc, EndLCDInterrupt
@@ -49,11 +51,10 @@ SetLCDInterrupt::;bc = interrupt address
   xor a
   ldh [rSTAT], a
 
-  ld hl, rLCDInterrupt
   ld a, b
-  ld [hli], a
+  ldh [rLCDInterrupt], a
   ld a, c
-  ld [hl], a
+  ldh [rLCDInterrupt+1], a
 
   ld h, IEF_STAT
   ldh a, [rIE]
@@ -76,12 +77,11 @@ DisableLCDInterrupt::
   xor a
   ldh [rSTAT], a
 
-  ld hl, rLCDInterrupt
   ld bc, EndLCDInterrupt
   ld a, b
-  ld [hli], a
+  ldh [rLCDInterrupt], a
   ld a, c
-  ld [hl], a
+  ldh [rLCDInterrupt+1], a
 
   reti
 
@@ -91,19 +91,20 @@ VBLInterrupt::
   call UpdateTime
   call UpdateAudio
   call UpdateSpriteObjects
+  ; call UpdateTileAnimations
   ld a, 1
   ldh [vbl_done], a
   POP_ALL
   reti
 
 UpdateTime:
-  ld a, [vbl_timer]
+  ldh a, [vbl_timer]
   inc a
-  ld [vbl_timer], a
+  ldh [vbl_timer], a
   cp a, 60
   ret c
   xor a
-  ld [vbl_timer], a
+  ldh [vbl_timer], a
 
 .testGameState
   ld a, [game_state]
@@ -141,15 +142,15 @@ UpdateSpriteObjects::
   and a, GAME_STATE_PAUSED
   ret nz
 
-  ldh a, [map_anim_frame_step]
+  ldh a, [anim_frame_step]
   ld b, a
-  ld a, [anim_timer]
+  ldh a, [anim_timer]
   inc a
-  ld [anim_timer], a
+  ldh [anim_timer], a
   cp a, b
   ret c
   xor a
-  ld [anim_timer], a
+  ldh [anim_timer], a
 
   ld hl, sprite_obj_buffer
   ldh a, [map_sprite_count]
@@ -183,4 +184,33 @@ UpdateSpriteObjects::
     jr nz, .loop
   ld a, [loaded_bank]
   ld [rROMB0], a
+  ret
+
+UpdateTileAnimations::
+  ld a, [game_state]
+  and a, GAME_STATE_PAUSED
+  ret nz
+
+  ldh a, [vbl_timer]
+  and a
+  ret nz
+
+  ld hl, $8BC0
+  ld de, tile_buffer
+  ld bc, 16
+  call mem_CopyVRAM
+
+  ld b, 16
+  ld hl, tile_buffer
+.loop
+  ld a, [hl]
+  rrca
+  ld [hli], a
+  dec b
+  jr nz, .loop
+
+  ld hl, tile_buffer
+  ld de, $8BC0
+  ld bc, 16
+  call mem_CopyVRAM
   ret

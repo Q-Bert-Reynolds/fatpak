@@ -117,24 +117,13 @@ def generate_img_bank(roledex):
 
       asm_file.write("\n")
 
-    bank = 0
-    bytes_per_anim = 65*16 + 56*4 #max 16 tiles, max 4 8x7 frames, TODO: this should be calculated instead 
-    bytes_so_far = 0
-    index = 0
-    while index < 151:
-      if bytes_so_far == 0:
-        asm_file.write("SECTION \"Player Animations "+str(bank)+"\", ROMX, BANK[PLAYER_IMG_BANK+PLAYER_IMG_BANK_COUNT+"+str(bank)+"]\n\n")
-        asm_file.write("\n")
-      player = roledex[index]
+    for i in range(151):
+      player = roledex[i]
+      asm_file.write(f'\nSECTION "{player["#"]} {player["Nickname"]} Animations", ROMX\n')
       name = player["#"] + player["Nickname"].replace(" ","").replace("-","")
       for path in glob.glob("./img/players/"+name+"/"+name+"_*.asm"):
         path = pathlib.PurePath(path).as_posix()
         asm_file.write("INCLUDE \"" + path + "\"\n")
-        bytes_so_far += bytes_per_anim
-        if (bytes_so_far >= 16384):
-          bank += 1
-          bytes_so_far = 0
-      index += 1
     print("Generated " + str(bank+1) + " banks for player animations.")
 
 def generate_player_strings(roledex):

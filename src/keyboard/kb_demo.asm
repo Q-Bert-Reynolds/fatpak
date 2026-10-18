@@ -38,10 +38,10 @@ KeyboardDemo::
     call UpdateInput
     call DrawKeyboardDebugData
   .testAButton
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_A
     jr z, .testBButton
-    ld a, [last_button_state]
+    ldh a, [last_button_state]
     and a, PADF_A
     jr nz, .testBButton
   .pressedAButton
@@ -58,10 +58,10 @@ KeyboardDemo::
     ldh [rWY], a
 
   .testBButton
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_B
     jp z, .loop
-    ld a, [last_button_state]
+    ldh a, [last_button_state]
     and a, PADF_B
     jp nz, .loop
   .pressedBButton

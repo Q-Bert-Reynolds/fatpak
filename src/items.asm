@@ -269,7 +269,7 @@ ShowInventory:
     ld [_s], a
     call DrawItems
   .flashDownArrow
-    ld a, [vbl_timer]
+    ldh a, [vbl_timer]
     cp a, 30
     ld a, ' '
     jr c, .drawDown
@@ -284,7 +284,7 @@ ShowInventory:
     ld a, DRAW_FLAGS_WIN | DRAW_FLAGS_PAD_TOP
     call SetTiles
   .checkA
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_A
     jr z, .checkB
     ld de, 0
@@ -306,7 +306,7 @@ ShowInventory:
     
   .checkB
     ld b, 0
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_B
     jr nz, .exit
     jp .loop
@@ -780,14 +780,14 @@ MakeOffer:;returns z if offer cancelled, result of offer in a (1 = accepted), ex
     call WaitPadUpOrFrames
     call gbdk_WaitVBL
     call UpdateInput
-    ld a, [button_state]
+    ldh a, [button_state]
     cp a, PADF_B
     jp z, .cancel
     and a, PADF_A | PADF_START
     jr nz, .makeOffer
 
   .checkLeft
-    ld a, [button_state]
+    ldh a, [button_state]
     cp a, PADF_LEFT
     jr nz, .checkRight
     ld a, [_x]
@@ -799,7 +799,7 @@ MakeOffer:;returns z if offer cancelled, result of offer in a (1 = accepted), ex
     jr .loop
 
   .checkRight
-    ld a, [button_state]
+    ldh a, [button_state]
     cp a, PADF_RIGHT
     jr nz, .checkUp
     ld a, [_x]
@@ -811,7 +811,7 @@ MakeOffer:;returns z if offer cancelled, result of offer in a (1 = accepted), ex
     jr .loop
 
   .checkUp
-    ld a, [button_state]
+    ldh a, [button_state]
     cp a, PADF_UP
     jr nz, .checkDown
     ld a, 1
@@ -820,7 +820,7 @@ MakeOffer:;returns z if offer cancelled, result of offer in a (1 = accepted), ex
     jr .loop
 
   .checkDown
-    ld a, [button_state]
+    ldh a, [button_state]
     cp a, PADF_DOWN
     jr nz, .loop
     ld a, -1

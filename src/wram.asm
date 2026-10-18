@@ -155,17 +155,13 @@ stack_bottom:
 SECTION "Buffers", WRAMX
 _tile_buffer::
 tile_buffer::       DS BUFFER_SIZE
-_bkg_buffer::
 bkg_buffer::        DS BUFFER_SIZE
-_win_buffer::
 win_buffer::        DS BUFFER_SIZE
-_sprite_obj_buffer::
 sprite_obj_buffer:: DS SPRITE_OBJ_BUFFER_SIZE; bank, address, x, y, extra
-_cmd_buffer::
+tile_anim_buffer::  DS 8
 cmd_buffer::        DS BUFFER_SIZE/2
 _str_buffer::
 str_buffer::        DS STR_BUFFER_SIZE
 _name_buffer::
 name_buffer::       DS NAME_BUFFER_SIZE
-_palette_buffer:
 palette_buffer::    DS 8;4 colors, 2 bytes each

@@ -72,19 +72,19 @@ SFXTest::
 .loop
     call WaitPadUp
   .checkB
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_B
     ret nz
 
   .checkA
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_A
     jr z, .checkLeft
     call PlaySelectedSound
     jr .wait
     
   .checkLeft
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_LEFT
     jr z, .checkRight
     ld a, [_x]
@@ -99,7 +99,7 @@ SFXTest::
     jr .draw
 
   .checkRight
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_RIGHT
     jr z, .checkUp
     ld a, [_x]
@@ -114,7 +114,7 @@ SFXTest::
     jr .draw
 
   .checkUp
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_UP
     jr z, .checkDown
     ld a, [_y]
@@ -132,7 +132,7 @@ SFXTest::
     jr .draw
 
   .checkDown
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_DOWN
     jr z, .wait
     ld a, [_y]

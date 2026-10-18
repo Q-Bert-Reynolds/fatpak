@@ -983,27 +983,27 @@ DW PaletteSepia ;Color Palette
 DB BANK(_LeftyBatterUserTiles)
 DW _LeftyBatterUserTiles
 DB _LEFTY_BATTER_USER_TILE_COUNT
-DB BANK(_RightyBatterUserTiles)
-DW _RightyBatterUserTiles
-DB _RIGHTY_BATTER_USER_TILE_COUNT
+DB BANK(_016PidgeRightyBatterUserTiles)
+DW _016PidgeRightyBatterUserTiles
+DB _016PIDGE_RIGHTY_BATTER_USER_TILE_COUNT
 DB BANK(_LeftyPitcherUserTiles)
 DW _LeftyPitcherUserTiles
 DB _LEFTY_PITCHER_USER_TILE_COUNT
-DB BANK(_RightyPitcherUserTiles)
-DW _RightyPitcherUserTiles
-DB _RIGHTY_PITCHER_USER_TILE_COUNT
+DB BANK(_016PidgeRightyPitcherUserTiles)
+DW _016PidgeRightyPitcherUserTiles
+DB _016PIDGE_RIGHTY_PITCHER_USER_TILE_COUNT
 DB BANK(_LeftyBatterOpponentTiles)
 DW _LeftyBatterOpponentTiles
 DB _LEFTY_BATTER_OPPONENT_TILE_COUNT
-DB BANK(_RightyBatterOpponentTiles)
-DW _RightyBatterOpponentTiles
-DB _RIGHTY_BATTER_OPPONENT_TILE_COUNT
+DB BANK(_016PidgeRightyBatterOpponentTiles)
+DW _016PidgeRightyBatterOpponentTiles
+DB _016PIDGE_RIGHTY_BATTER_OPPONENT_TILE_COUNT
 DB BANK(_LeftyPitcherOpponentTiles)
 DW _LeftyPitcherOpponentTiles
 DB _LEFTY_PITCHER_OPPONENT_TILE_COUNT
-DB BANK(_RightyPitcherOpponentTiles)
-DW _RightyPitcherOpponentTiles
-DB _RIGHTY_PITCHER_OPPONENT_TILE_COUNT
+DB BANK(_016PidgeRightyPitcherOpponentTiles)
+DW _016PidgeRightyPitcherOpponentTiles
+DB _016PIDGE_RIGHTY_PITCHER_OPPONENT_TILE_COUNT
 DB $42, $A6, $00, $80, $1E, $F1, $82 ;HM/TM bit field
 ;learnset
 DB BENDER_MOVE, 1
@@ -1144,15 +1144,15 @@ DB 3 ;Lineup Hat
 DB 0 ;Lineup Palette
 DW PaletteSlate ;Color Palette
 ;animations
-DB BANK(_LeftyBatterUserTiles)
-DW _LeftyBatterUserTiles
-DB _LEFTY_BATTER_USER_TILE_COUNT
+DB BANK(_019RatTailLeftyBatterUserTiles)
+DW _019RatTailLeftyBatterUserTiles
+DB _019RATTAIL_LEFTY_BATTER_USER_TILE_COUNT
 DB BANK(_RightyBatterUserTiles)
 DW _RightyBatterUserTiles
 DB _RIGHTY_BATTER_USER_TILE_COUNT
-DB BANK(_LeftyPitcherUserTiles)
-DW _LeftyPitcherUserTiles
-DB _LEFTY_PITCHER_USER_TILE_COUNT
+DB BANK(_019RatTailLeftyPitcherUserTiles)
+DW _019RatTailLeftyPitcherUserTiles
+DB _019RATTAIL_LEFTY_PITCHER_USER_TILE_COUNT
 DB BANK(_RightyPitcherUserTiles)
 DW _RightyPitcherUserTiles
 DB _RIGHTY_PITCHER_USER_TILE_COUNT
@@ -1162,9 +1162,9 @@ DB _019RATTAIL_LEFTY_BATTER_OPPONENT_TILE_COUNT
 DB BANK(_RightyBatterOpponentTiles)
 DW _RightyBatterOpponentTiles
 DB _RIGHTY_BATTER_OPPONENT_TILE_COUNT
-DB BANK(_LeftyPitcherOpponentTiles)
-DW _LeftyPitcherOpponentTiles
-DB _LEFTY_PITCHER_OPPONENT_TILE_COUNT
+DB BANK(_019RatTailLeftyPitcherOpponentTiles)
+DW _019RatTailLeftyPitcherOpponentTiles
+DB _019RATTAIL_LEFTY_PITCHER_OPPONENT_TILE_COUNT
 DB BANK(_RightyPitcherOpponentTiles)
 DW _RightyPitcherOpponentTiles
 DB _RIGHTY_PITCHER_OPPONENT_TILE_COUNT
@@ -1679,30 +1679,30 @@ DB 2 ;Lineup Hat
 DB 0 ;Lineup Palette
 DW PaletteBlue ;Color Palette
 ;animations
-DB BANK(_LeftyBatterUserTiles)
-DW _LeftyBatterUserTiles
-DB _LEFTY_BATTER_USER_TILE_COUNT
+DB BANK(_029ChicaLeftyBatterUserTiles)
+DW _029ChicaLeftyBatterUserTiles
+DB _029CHICA_LEFTY_BATTER_USER_TILE_COUNT
 DB BANK(_RightyBatterUserTiles)
 DW _RightyBatterUserTiles
 DB _RIGHTY_BATTER_USER_TILE_COUNT
 DB BANK(_LeftyPitcherUserTiles)
 DW _LeftyPitcherUserTiles
 DB _LEFTY_PITCHER_USER_TILE_COUNT
-DB BANK(_RightyPitcherUserTiles)
-DW _RightyPitcherUserTiles
-DB _RIGHTY_PITCHER_USER_TILE_COUNT
-DB BANK(_LeftyBatterOpponentTiles)
-DW _LeftyBatterOpponentTiles
-DB _LEFTY_BATTER_OPPONENT_TILE_COUNT
+DB BANK(_029ChicaRightyPitcherUserTiles)
+DW _029ChicaRightyPitcherUserTiles
+DB _029CHICA_RIGHTY_PITCHER_USER_TILE_COUNT
+DB BANK(_029ChicaLeftyBatterOpponentTiles)
+DW _029ChicaLeftyBatterOpponentTiles
+DB _029CHICA_LEFTY_BATTER_OPPONENT_TILE_COUNT
 DB BANK(_RightyBatterOpponentTiles)
 DW _RightyBatterOpponentTiles
 DB _RIGHTY_BATTER_OPPONENT_TILE_COUNT
 DB BANK(_LeftyPitcherOpponentTiles)
 DW _LeftyPitcherOpponentTiles
 DB _LEFTY_PITCHER_OPPONENT_TILE_COUNT
-DB BANK(_RightyPitcherOpponentTiles)
-DW _RightyPitcherOpponentTiles
-DB _RIGHTY_PITCHER_OPPONENT_TILE_COUNT
+DB BANK(_029ChicaRightyPitcherOpponentTiles)
+DW _029ChicaRightyPitcherOpponentTiles
+DB _029CHICA_RIGHTY_PITCHER_OPPONENT_TILE_COUNT
 DB $00, $2E, $20, $8C, $1E, $08, $82 ;HM/TM bit field
 ;learnset
 DB FASTBALL_MOVE, 1

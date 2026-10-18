@@ -405,7 +405,7 @@ SelectPlayMenuItem::
 .moveMenuArrowLoop ;while (1) {
     call UpdateInput ;k = joypad();
   .testUpPressed ;if (k & J_UP && y == 1) { y = 0; move_play_menu_arrow(); }
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_UP
     jr z, .testDownPressed
     ld a, [_y]
@@ -415,7 +415,7 @@ SelectPlayMenuItem::
     ld [_y], a
     jr .moveArrow
   .testDownPressed ;else if (k & J_DOWN && y == 0) { y = 1; move_play_menu_arrow(); }
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_DOWN
     jr z, .testLeftPressed
     ld a, [_y]
@@ -425,7 +425,7 @@ SelectPlayMenuItem::
     ld [_y], a
     jr .moveArrow    
   .testLeftPressed ;else if (k & J_LEFT && x == 1) { x = 0; move_play_menu_arrow(); }
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_LEFT
     jr z, .testRightPressed
     ld a, [_x]
@@ -435,7 +435,7 @@ SelectPlayMenuItem::
     ld [_x], a
     jr .moveArrow
   .testRightPressed ;else if (k & J_RIGHT && x == 0) { x = 1; move_play_menu_arrow(); }
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_RIGHT
     jr z, .testAPressed
     ld a, [_x]
@@ -447,7 +447,7 @@ SelectPlayMenuItem::
     call MovePlayMenuArrow
     
 .testAPressed ;if (k & J_A) break;
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_A
     jr nz, .exitMoveMenuArrowLoop
     call gbdk_WaitVBL
@@ -604,7 +604,7 @@ SelectMoveMenuItem:: ;returns selection in a
     call gbdk_WaitVBL
     call UpdateInput;  k = joypad();
 .checkButtonUp;  if (k & J_UP && move_choice > 0) {
-    ld a, [button_state]
+    ldh a, [button_state]
     and PADF_UP
     jr z, .checkButtonDown
     ld a, [move_choice]
@@ -618,7 +618,7 @@ SelectMoveMenuItem:: ;returns selection in a
     jp .loop
 
 .checkButtonDown;  else if (k & J_DOWN && move_choice < c-1) {
-    ld a, [button_state]
+    ldh a, [button_state]
     and PADF_DOWN
     jr z, .checkButtonStartA
     ld a, [_c];move count
@@ -635,7 +635,7 @@ SelectMoveMenuItem:: ;returns selection in a
     jp .loop
 
 .checkButtonStartA;  if (k & (J_START | J_A)) {
-    ld a, [button_state]
+    ldh a, [button_state]
     and PADF_START | PADF_A
     jp z, .checkButtonB
     ld a, [move_choice]
@@ -643,7 +643,7 @@ SelectMoveMenuItem:: ;returns selection in a
     jr .restoreTiles
 
 .checkButtonB;  else if (k & J_B) break;
-    ld a, [button_state]
+    ldh a, [button_state]
     and PADF_B
     jp z, .loop
     ld a, -1

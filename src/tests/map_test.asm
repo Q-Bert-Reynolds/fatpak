@@ -19,39 +19,39 @@ TestMap::
   DISPLAY_ON
   
   ld a, WORLD_FRAME_STEP
-  ldh [map_anim_frame_step], a
+  ldh [anim_frame_step], a
   ld a, 8
   ldh [map_scroll_speed], a
 
 .loop
     call UpdateInput
   .testUp
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_UP
     jr z, .testDown
     call MoveMapUp
     jp .testLeft
   .testDown
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_DOWN
     jr z, .testLeft
     call MoveMapDown
   .testLeft
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_LEFT
     jr z, .testRight
     call MoveMapLeft
     jp .testStartA
   .testRight
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_RIGHT
     jr z, .testStartA
     call MoveMapRight
   .testStartA
-    ld a, [last_button_state]
+    ldh a, [last_button_state]
     and a, PADF_A | PADF_START
     jr nz, .wait
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_A | PADF_START
     jr nz, .exit
   .wait

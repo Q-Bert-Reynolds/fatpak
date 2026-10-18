@@ -54,7 +54,7 @@ MACRO MOVE_PLAYER;\1 = animation address, \2 = map move routine, \3 = map draw r
     call AnimateJump
   .copySprites
     call CopyMapSpritesToOAMBuffer
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_B
     jr nz, .skipVBL
     call gbdk_WaitVBL
@@ -587,35 +587,35 @@ InitMap::
 
 Overworld::
   ld a, WORLD_FRAME_STEP
-  ldh [map_anim_frame_step], a
+  ldh [anim_frame_step], a
   call InitMap
   .moveLoop
     call CopyMapSpritesToOAMBuffer
     call gbdk_WaitVBL
     call UpdateInput
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_UP | PADF_DOWN | PADF_LEFT | PADF_RIGHT
     jr z, .checkStart
     ldh [map_last_button_state], a
   .checkStart
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_START
     jr z, .checkA
     call ShowPauseMenu
   .checkA
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_A
     jr z, .look
     call CheckActions
   .look
-    ld a, [last_button_state]
+    ldh a, [last_button_state]
     and a, PADF_LEFT|PADF_RIGHT|PADF_UP|PADF_DOWN
     jr nz, .move
-    ld a, [button_state]
+    ldh a, [button_state]
     call Look
     jr .moveLoop
   .move
-    ld a, [button_state]
+    ldh a, [button_state]
     call Move
     call CheckRandomEncounter
     jr z, .moveLoop

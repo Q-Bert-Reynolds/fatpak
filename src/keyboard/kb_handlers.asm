@@ -55,17 +55,17 @@ KBHandleCharacter::;a = character in ASCII
   ld a, l
   ld [_y], a
   TRAMPOLINE DrawTextEntryBox
-  ld a, [button_state]
+  ldh a, [button_state]
   or a, PADF_A
-  ld [button_state], a
+  ldh [button_state], a
 
   ret
 
 KBHandleArrowKey::;a = DPad key
   ld b, a
-  ld a, [button_state]
+  ldh a, [button_state]
   or a, b
-  ld [button_state], a
+  ldh [button_state], a
   ret
 
 KBHandleTab::
@@ -73,15 +73,15 @@ KBHandleTab::
   ld a, [kb_mode]
   cp a, KB_MODE_BUTTONS
   ret nz
-  ld a, [button_state]
+  ldh a, [button_state]
   or a, PADF_SELECT
-  ld [button_state], a
+  ldh [button_state], a
   ret
 
 KBHandleEnter::
-  ld a, [button_state]
+  ldh a, [button_state]
   or a, PADF_START
-  ld [button_state], a
+  ldh [button_state], a
   ret
 
 KBHandleBackspace::
@@ -89,9 +89,9 @@ KBHandleBackspace::
   ld a, [kb_mode]
   cp a, KB_MODE_TYPING
   ret nz
-  ld a, [button_state]
+  ldh a, [button_state]
   or a, PADF_B
-  ld [button_state], a
+  ldh [button_state], a
   ret
 
 KBHandleDelete::
@@ -111,7 +111,7 @@ KBHandleEscape::
   ld a, [kb_mode]
   cp a, KB_MODE_BUTTONS
   ret nz
-  ld a, [button_state]
+  ldh a, [button_state]
   or a, PADF_B
-  ld [button_state], a
+  ldh [button_state], a
   ret

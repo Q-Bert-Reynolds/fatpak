@@ -440,7 +440,7 @@ DrawListMenuArrow:: ;a = draw flags, de = xy, _j = current index, _c = count
 MoveListMenuArrow:: ;a = draw flags, de = xy, _j = current index, _c = count, must call UpdateInput first, returns direction in a
   push af;draw flags
 .checkMoveArrowUp ;if (button_state & PADF_UP && j > 0) {
-  ld a, [button_state]
+  ldh a, [button_state]
   and a, PADF_UP
   jp z, .checkMoveArrowDown
   ld a, [_j]
@@ -461,7 +461,7 @@ MoveListMenuArrow:: ;a = draw flags, de = xy, _j = current index, _c = count, mu
   ld a, -1
   ret
 .checkMoveArrowDown ;else if (button_state & PADF_DOWN && _j < _c-1) {
-  ld a, [button_state]
+  ldh a, [button_state]
   and a, PADF_DOWN
   jr z, .noMove
   ld a, [_c]
@@ -1061,7 +1061,7 @@ UIShowOptions::
 .moveOptionsArrowLoop; while (1) {
   call UpdateInput;   k = joypad();
 .checkUpPressed;   if (button_state & PADF_UP && y > 0) {
-  ld a, [button_state]
+  ldh a, [button_state]
   and a, PADF_UP
   jr z, .checkDownPressed
   ld a, [_y]
@@ -1075,7 +1075,7 @@ UIShowOptions::
   call WaitPadUp
   jp .waitVBLAndLoop
 .checkDownPressed;   else if (button_state & PADF_DOWN && y < 3) {
-  ld a, [button_state]
+  ldh a, [button_state]
   and a, PADF_DOWN
   jr z, .checkLeftPressed
   ld a, 3
@@ -1091,7 +1091,7 @@ UIShowOptions::
   call WaitPadUp
   jp .waitVBLAndLoop
 .checkLeftPressed;   else if (button_state & PADF_LEFT && y < 3) {
-  ld a, [button_state]
+  ldh a, [button_state]
   and a, PADF_LEFT
   jr z, .checkRightPressed
   ld a, [_y]
@@ -1132,7 +1132,7 @@ UIShowOptions::
   call WaitPadUp
   jr .waitVBLAndLoop
 .checkRightPressed;   else if (button_state & PADF_RIGHT && y < 3) {
-  ld a, [button_state]
+  ldh a, [button_state]
   and a, PADF_RIGHT
   jr z, .checkStartAPressed
   ld a, [_y]
@@ -1176,11 +1176,11 @@ UIShowOptions::
   ld a, [_y]
   cp 3
   jr nz, .checkBPressed
-  ld a, [button_state]
+  ldh a, [button_state]
   and a, PADF_START | PADF_A
   jr nz, .exitMoveOptionsArrowLoop
 .checkBPressed;   else if (button_state & PADF_B) break;
-  ld a, [button_state]
+  ldh a, [button_state]
   and a, PADF_B
   jr nz, .exitMoveOptionsArrowLoop
 .waitVBLAndLoop
@@ -1515,7 +1515,7 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
       ld c, a
       ld e, a
     .moveUp;if (button_state & PADF_UP && y > 0) {
-      ld a, [button_state]
+      ldh a, [button_state]
       and PADF_UP
       jr z, .moveDown
       ld a, [_y]
@@ -1527,7 +1527,7 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
       call MoveTextEntryArrow;  move_text_entry_arrow(x,y,x,y-1);
       jp .aPressed
     .moveDown;else if (button_state & PADF_DOWN && y < 5) {
-      ld a, [button_state]
+      ldh a, [button_state]
       and PADF_DOWN
       jr z, .moveLeft
       ld a, [_y]
@@ -1539,7 +1539,7 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
       call MoveTextEntryArrow;  move_text_entry_arrow(x,y,x,y+1);
       jp .aPressed
     .moveLeft;else if (button_state & PADF_LEFT && x > 0 && y < 5) {
-      ld a, [button_state]
+      ldh a, [button_state]
       and PADF_LEFT
       jr z, .moveRight
       ld a, [_y]
@@ -1554,7 +1554,7 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
       call MoveTextEntryArrow;  move_text_entry_arrow(x,y,x-1,y);
       jp .aPressed
     .moveRight;else if (button_state & PADF_RIGHT && x < 8 && y < 5) {
-      ld a, [button_state]
+      ldh a, [button_state]
       and PADF_RIGHT
       jr z, .aPressed
       ld a, [_y]
@@ -1568,7 +1568,7 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
       ld [_x], a;  ++x;
       call MoveTextEntryArrow;  move_text_entry_arrow(x,y,x+1,y);
     .aPressed
-      ld a, [button_state]
+      ldh a, [button_state]
       and PADF_A
       jp z, .startPressed
       ld a, [_y]
@@ -1582,7 +1582,7 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
       ld [_c], a ;c = 1-c;
       jp .exitMoveArrowLoop ;break;
     .startPressed
-      ld a, [button_state]
+      ldh a, [button_state]
       and a, PADF_START
       jp z, .bPressed
       jr .submitText
@@ -1661,7 +1661,7 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
       call WaitPadUp
       jr .waitVBL
     .bPressed;     else if (button_state & PADF_B && l > 0) {
-      ld a, [button_state]
+      ldh a, [button_state]
       and PADF_B
       jr z, .waitVBL
       ld a, [_l]
@@ -1913,7 +1913,7 @@ UIShowListMenu::; a = draw flags, bc = xy, de = wh, text = [str_buffer], title =
     push af;draw flags
     call MoveListMenuArrow
   .selectMenuItem ;if (button_state & (PADF_START | PADF_A)) 
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_START | PADF_A
     jr z, .back
     PLAY_SFX SelectSound
@@ -1921,7 +1921,7 @@ UIShowListMenu::; a = draw flags, bc = xy, de = wh, text = [str_buffer], title =
     inc a ;return j+1;
     jr .exitMenu
   .back ;else if (button_state & PADF_B) 
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_B
     jr z, .waitVBLThenLoop
     xor a ;return 0;
@@ -1999,11 +1999,11 @@ UIShowNumberPicker::; a = draw flags, bc = xy, de = wh, hl = max/start nums, ret
       call gbdk_WaitVBL
       call UpdateInput
     .wait
-      ld a, [last_button_state]
+      ldh a, [last_button_state]
       and a
       jr nz, .inputLoop
     .checkUp
-      ld a, [button_state]
+      ldh a, [button_state]
       and a, PADF_UP
       jr z, .checkDown
       pop bc;max/current nums
@@ -2017,7 +2017,7 @@ UIShowNumberPicker::; a = draw flags, bc = xy, de = wh, hl = max/start nums, ret
       jr .finishInput
 
     .checkDown
-      ld a, [button_state]
+      ldh a, [button_state]
       and a, PADF_DOWN
       jr z, .checkStartA
       pop bc;max/current nums
@@ -2029,7 +2029,7 @@ UIShowNumberPicker::; a = draw flags, bc = xy, de = wh, hl = max/start nums, ret
       jr .finishInput
 
     .checkStartA
-      ld a, [button_state]
+      ldh a, [button_state]
       and a, PADF_A | PADF_START
       jr z, .checkB
       PLAY_SFX SelectSound
@@ -2039,7 +2039,7 @@ UIShowNumberPicker::; a = draw flags, bc = xy, de = wh, hl = max/start nums, ret
       ld a, c;selected num
       ret
     .checkB
-      ld a, [button_state]
+      ldh a, [button_state]
       and a, PADF_B
       jr z, .inputLoop
       pop bc;max/current nums

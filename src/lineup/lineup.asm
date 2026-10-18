@@ -68,7 +68,7 @@ SwapPositions: ;bc = player count, selected player
     ld bc, name_buffer
     call gbdk_SetBkgTiles
 .checkA
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_A
     jr z, .checkB
 
@@ -114,7 +114,7 @@ SwapPositions: ;bc = player count, selected player
 
     ret
 .checkB
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_B
     jp z, .loop
   ret
@@ -266,7 +266,7 @@ ReorderLineup: ;bc = player count, selected player
     ld bc, name_buffer
     call gbdk_SetBkgTiles
 .checkA
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_A
     jp z, .checkB
     
@@ -275,7 +275,7 @@ ReorderLineup: ;bc = player count, selected player
     call SwapLineupSprites
     ret
 .checkB
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_B
     jp z, .loop
   ret
@@ -1757,7 +1757,7 @@ ShowLineup::
     ld a, DRAW_FLAGS_BKG | DRAW_FLAGS_PAD_TOP
     call MoveListMenuArrow
   .testStartOrA
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_A | PADF_START
     jp z, .testBButton
     pop bc;b = item id
@@ -1789,12 +1789,12 @@ ShowLineup::
     call WaitPadUp
     jr .animateSelectedPlayer
   .testBButton
-    ld a, [button_state]
+    ldh a, [button_state]
     and a, PADF_B
     jr nz, .exit
   .animateSelectedPlayer
     call gbdk_WaitVBL
-    ld a, [vbl_timer]
+    ldh a, [vbl_timer]
     swap a
     and a, 1
     ld [_u], a;x offset
