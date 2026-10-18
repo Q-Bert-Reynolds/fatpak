@@ -46,7 +46,7 @@ ENDM
 MACRO TRAMPOLINE ;\1 = jump address
   ld b, BANK(\1)
   ld hl, \1
-  call Trampoline
+  rst Trampoline
 ENDM
 
 MACRO PUSH_VAR ;\1 = WRAM address

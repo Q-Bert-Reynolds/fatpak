@@ -59,23 +59,6 @@ GetStatusString:: ;a = status mask, string in name_buffer
   ld de, name_buffer
   jp str_Copy
 
-Trampoline:: ;b = bank, hl = address, can use a, de, and RAM for args, can return in any register
-  ldh [temp_a_reg], a
-  ldh a, [loaded_bank]
-  push af;old bank
-  ld a, b;new bank
-  SET_BANK
-  ldh a, [temp_a_reg]
-  ld bc, .bounceBack
-  push bc ;put return addres on stack before jumping
-  jp hl
-.bounceBack
-  ldh [temp_a_reg], a
-  pop af;old bank
-  SET_BANK
-  ldh a, [temp_a_reg]
-  ret
-
 PauseGame::
   ld a, [game_state]
   or a, GAME_STATE_PAUSED

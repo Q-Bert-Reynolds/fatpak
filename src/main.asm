@@ -1,5 +1,45 @@
 INCLUDE "src/beisbol.inc"
 
+;rst vectors
+SECTION "Trampoline RST", ROM0[$0000]
+Trampoline:: ;b = bank, hl = address, can use a, de, and RAM for args, can return in any register
+  ldh [temp_a_reg], a
+  ldh a, [loaded_bank]
+  push af;old bank
+  ld a, b;new bank
+  SET_BANK
+  ldh a, [temp_a_reg]
+  ld bc, .bounceBack
+  push bc ;put return addres on stack before jumping
+  jp hl
+.bounceBack
+  ldh [temp_a_reg], a
+  pop af;old bank
+  SET_BANK
+  ldh a, [temp_a_reg]
+  ret
+  
+SECTION "RST $20", ROM0[$0020]
+  ret
+SECTION "RST $28", ROM0[$0028]
+  ret
+SECTION "RST $30", ROM0[$0030]
+  ret
+SECTION "RST $38", ROM0[$0038]
+  ret
+
+;interrupt vectors
+SECTION "VBlank", ROM0[$0040]
+  jp VBLInterrupt
+SECTION "LCDC", ROM0[$0048]
+  jp LCDInterrupt
+SECTION "TimerOverflow", ROM0[$0050]
+  reti
+SECTION "Serial", ROM0[$0058]
+  jp SerialInterrupt
+SECTION "p1thru4", ROM0[$0060]
+  reti
+
 SECTION "Header", ROM0[$100]
 Entry:
   nop
@@ -17,17 +57,6 @@ Entry:
   DB 0                       ;$14c - Mask ROM version
   DB 0                       ;$14d - Complement check (important)
   DW 0                       ;$14e - Checksum (not important)
-
-SECTION "VBlank", ROM0[$0040]
-  jp VBLInterrupt
-SECTION "LCDC", ROM0[$0048]
-  jp LCDInterrupt
-SECTION "TimerOverflow", ROM0[$0050]
-  reti
-SECTION "Serial", ROM0[$0058]
-  jp SerialInterrupt
-SECTION "p1thru4", ROM0[$0060]
-  reti
 
 SECTION "Main", ROM0[$0150]
 Main::

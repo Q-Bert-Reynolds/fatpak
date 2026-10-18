@@ -9,7 +9,7 @@ Optimization
 - reduce stack thrashing in favor of repeated loading from WRAM 
 - if all sprite stamps are 2x2, remove data from export and simplify stamp drawing
 - COPY_TILE_BLOCK macro in GBDK.asm should be a subroutine, add HRAM vars to allow for this
-- utilize remaining HRAM (after DMA routine)
+- utilize remaining HRAM space and RST vectors
 - replace long chains of compares and jumps with jump tables
 - remove use of temp_bank in rolédex to free up RAM
 - player image data need to be compressed to fit more
@@ -26,6 +26,7 @@ Optimization
   - move collision response code (doors, items, etc.) from map_loader to world
   - helper routines that don't take any args should use TRAMPOLINE instead
 - remove the last few manual ROMX assignments, let linker handle bank management instead
+- profiler to map out most called addresses 
 
 Python scripts
 
