@@ -1,6 +1,7 @@
 Priority
 
-- add batting/pitching animations for Pidge, and Chica
+- add righty user pitch animation for Pidge
+- add pitcher/batter animations for Chica
 - fix swing timing
 - fix timing for score bug vs player data
 - add swing/pitch fx
