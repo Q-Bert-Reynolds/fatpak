@@ -237,7 +237,7 @@ ShowPauseMenu::
   ld de, tile_buffer;this is discarded
   call str_CopyLine
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
   ld b, 10;x
   ld c, 0 ;y
   ld d, 10;w
@@ -427,7 +427,7 @@ CheckActions:
 .foundAvatar
   ldh a, [map_sprite_collision_index]
   ld de, SPRITE_OBJ_SIZE
-  call math_Multiply;hl = map sprite index * map sprite size
+  rst math_Multiply;hl = map sprite index * map sprite size
   ld de, sprite_obj_buffer+3
   add hl, de;hl = map sprite x address
   ldh a, [rSCX]

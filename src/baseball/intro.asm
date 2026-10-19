@@ -73,7 +73,7 @@ PlayBallIntro:
 
       ld de, _CALVIN_BACK_2X_COLUMNS-1
       ld a, [_j]
-      call math_Multiply
+      rst math_Multiply
       ld b, 0
       ld a, [_i]
       ld c, a
@@ -230,7 +230,7 @@ PlayBallIntro:
 
   ld hl, Opponent.coach
   ld de, str_buffer
-  call str_Copy;coach name in str_buffer
+  rst str_Copy;coach name in str_buffer
   STR_FAR_COPY TeamChallengeText, name_buffer
   ld hl, name_buffer
   ld de, str_buffer

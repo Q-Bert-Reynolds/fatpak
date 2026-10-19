@@ -65,6 +65,24 @@ INCLUDE "src/math.asm"
 INCLUDE "src/hardware.inc"
   rev_Check_hardware_inc 4
 
+SECTION "str_Copy RST", ROM0[$0038]
+;***************************************************************************
+;
+; str_Copy - Copy a string
+;
+; input:
+;   hl - src string
+;   de - dst string
+;
+;***************************************************************************
+str_Copy::
+  ld   a, [hli]
+  ld   [de], a
+  inc  de
+  and  a
+  jr   nz, str_Copy
+  ret
+
 SECTION "Strings Code", ROM0
 ;***************************************************************************
 ;
@@ -80,7 +98,7 @@ SECTION "Strings Code", ROM0
 str_FarCopy::
   ld a, c;bank of hl
   ld [rROMB0], a;switch to bank of hl
-  call str_Copy;copy hl to de
+  rst str_Copy;copy hl to de
   ld a, b;previous bank
   ld [rROMB0], a;switch back
   ret
@@ -101,23 +119,7 @@ _str_Copy::;void str_Copy(char src[], char dest[])
   ;compiler puts dest in bc, should be de
   ld d, b
   ld e, c
-
-;***************************************************************************
-;
-; str_Copy - Copy a string
-;
-; input:
-;   hl - src string
-;   de - dst string
-;
-;***************************************************************************
-str_Copy::
-  ld   a, [hli]
-  ld   [de], a
-  inc  de
-  and  a
-  jr   nz, str_Copy
-  ret
+  rst str_Copy
 
 
 ;***************************************************************************
@@ -243,7 +245,7 @@ str_Append::
   and a
   jr nz, str_Append
   dec de
-  call str_Copy
+  rst str_Copy
   ret 
 
 ;***************************************************************************
@@ -313,7 +315,7 @@ str_Replace::
 .stringReplace
     ld a, [bc]
     and a
-    jr z, str_Copy
+    jp z, str_Copy
     ld [de], a
     inc bc
     inc de

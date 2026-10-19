@@ -29,6 +29,43 @@ map_temp_width: DB
 map_temp_x: DB
 map_temp_y: DB
 
+SECTION "TestMapObjectMinXY RST", ROM0[$0000]
+TestMapObjectMinXY:; de = xy, max XY in max_x,max_y, returns xy in de, sets z if out of range
+.testMinX
+  ldh a, [map_max_x]
+  cp a, d;obj minX
+  jr c, .outOfRange;maxX < obj minX
+  ret z;.outOfRange;maxX == obj minX
+.testMinY
+  ldh a, [map_max_y];maxY
+  cp a, e;obj minY
+  jr c, .outOfRange;maxY < obj minY
+  ret z;.outOfRange;maxY == obj minY
+.inRange
+  ret
+.outOfRange
+  xor a
+  ret 
+
+SECTION "TestMapObjectMaxXY RST", ROM0[$0010]
+TestMapObjectMaxXY:; hl = xy, min XY in min_x,min_y, returns xy in hl, sets z if out of range
+.testMaxX
+  ldh a, [map_min_x];minX
+  cp a, h;obj maxX
+  ret z;.outOfRange;minX == obj maxX
+  jp nc, .outOfRange;minX > obj maxX
+.testMaxY
+  ldh a, [map_min_y];minY
+  cp a, l;obj maxy
+  ret z;.outOfRange;minY == obj maxY
+  jp nc, .outOfRange;minY > obj maxY
+.inRange
+  ret
+.outOfRange
+  xor a
+  ret
+
+
 SECTION "Map Loader Code", ROM0
 ;TODO: move stamps and meta sprites out of ROM0
 INCLUDE "maps/map_stamps.gbstamp"
@@ -90,7 +127,7 @@ GetMapText::;a = text index, returns text in str_buffer
   pop bc;index
   call str_FromArray
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
   ld hl, str_buffer
 
   pop af;previous bank
@@ -115,7 +152,7 @@ EnterMapDoor::;a = door index
   push bc;doors address
 
   ld de, 5;bytes per door
-  call math_Multiply;index * bytes per door
+  rst math_Multiply;index * bytes per door
   pop bc;doors address
   add hl, bc;door at index
   ld a, [hli]
@@ -185,7 +222,7 @@ GetMapItem:: ;item index in b, returns item id/count in bc, flag index/bits in d
   ld h, 0
   ld l, a
   ld de, 3;item id, flag index, flag bit
-  call math_Multiply
+  rst math_Multiply
   pop bc;items address
   add hl, bc
   ld a, [hli];item id
@@ -242,7 +279,7 @@ GetMapAddress: ;address index in [map_collision_data], switches to bank of addre
   
   ldh a, [map_collision_data]
   ld de, 3;bank (1 byte) + address (2 bytes)
-  call math_Multiply
+  rst math_Multiply
   pop bc;scripts address
   add hl, bc
   ld a, [hli];bank
@@ -1745,14 +1782,14 @@ DrawMapChunk::; hl = chunk address, de=xy, bc=wh
     srl e
     srl e
     srl e;y/8
-    call TestMapObjectMinXY
+    rst TestMapObjectMinXY
     jr z, .outOfRange
     push hl;map sprite address
     ld h, d
     inc h
     ld l, e
     inc l
-    call TestMapObjectMaxXY
+    rst TestMapObjectMaxXY
     pop hl;map sprite address
     jr z, .outOfRange
 
@@ -1845,43 +1882,9 @@ DrawMapChunk::; hl = chunk address, de=xy, bc=wh
   .spriteHasExtraData
     inc hl
     jp .loadSpritesLoop
-
-TestMapObjectMinXY:; de = xy, max XY in max_x,max_y, returns xy in de, sets z if out of range
-.testMinX
-  ldh a, [map_max_x];chunk maxX
-  cp a, d;stamp minX
-  jr c, .outOfRange;chunk maxX < stamp minX
-  ret z;.outOfRange;chunk maxX == stamp minX
-.testMinY
-  ldh a, [map_max_y];chunk maxY
-  cp a, e;stamp minY
-  jr c, .outOfRange;chunk maxY < stamp minY
-  ret z;.outOfRange;chunk maxY == stamp minY
-.inRange
-  ret
-.outOfRange
-  xor a
-  ret 
-
-TestMapObjectMaxXY:; hl = xy, min XY in min_x,min_y, returns xy in hl, sets z if out of range
-.testMaxX
-  ldh a, [map_min_x];chunk minX
-  cp a, h;stamp maxX
-  ret z;.outOfRange;chunk minX == stamp maxX
-  jp nc, .outOfRange;chunk minX > stamp maxX
-.testMaxY
-  ldh a, [map_min_y];chunk minY
-  cp a, l;stamp maxy
-  ret z;.outOfRange;chunk minY == stamp maxY
-  jp nc, .outOfRange;chunk minY > stamp maxY
-.inRange
-  ret
-.outOfRange
-  xor a
-  ret
     
 DrawMapStampFill:;hl = stamp fill data, de = xy, min/max XY in min_x,min_y,max_x,max_y
-  call TestMapObjectMinXY
+  rst TestMapObjectMinXY
   jr z, .outOfRange
 
 .draw
@@ -2015,7 +2018,7 @@ DrawMapTileFill:;a = map obj type, hl = tile fill data, de = xy, min/max XY in m
   ret
 
 DrawMapStamp:;hl = stamp data, de = xy, min/max XY in min_x,min_y,max_x,max_y, returns wh in bc
-  call TestMapObjectMinXY
+  rst TestMapObjectMinXY
   jr z, .outOfRange
 
 .loadStampData
@@ -2031,7 +2034,7 @@ DrawMapStamp:;hl = stamp data, de = xy, min/max XY in min_x,min_y,max_x,max_y, r
   ld l, a
   add hl, de;maxXY = wh + xy, assumes l + e < 256
 
-  call TestMapObjectMaxXY
+  rst TestMapObjectMaxXY
   jp z, .nextMapObject
 
 .clipStamp
@@ -2135,7 +2138,7 @@ ClipStamp:
   ld e, a
   ld a, d;full width
   ld d, 0;de = clip y
-  call math_Multiply
+  rst math_Multiply
   ld b, h
   ld c, l;bc = y clip * width
   pop de;wh
@@ -2187,7 +2190,7 @@ ClipStamp:
   ld a, 2
   ldh [rSVBK], a
   pop af;full height
-  call math_Multiply
+  rst math_Multiply
   ld b, h
   ld c, l;bc = width * height
   pop hl;stamp tiles

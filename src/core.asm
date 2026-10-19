@@ -59,6 +59,23 @@ GetStatusString:: ;a = status mask, string in name_buffer
   ld de, name_buffer
   jp str_Copy
 
+Trampoline:: ;b = bank, hl = address, can use a, de, and RAM for args, can return in any register
+  ldh [temp_a_reg], a
+  ldh a, [loaded_bank]
+  push af;old bank
+  ld a, b;new bank
+  SET_BANK
+  ldh a, [temp_a_reg]
+  ld bc, .bounceBack
+  push bc ;put return addres on stack before jumping
+  jp hl
+.bounceBack
+  ldh [temp_a_reg], a
+  pop af;old bank
+  SET_BANK
+  ldh a, [temp_a_reg]
+  ret
+
 PauseGame::
   ld a, [game_state]
   or a, GAME_STATE_PAUSED
@@ -200,7 +217,7 @@ CopyToTileBufferWithOffset: ;hl=wh, de=xy, bc=in_tiles, a=offset
   ld d, 0
   ld e, h ;de = width
   ld a, l ;a = height
-  call math_Multiply
+  rst math_Multiply
   pop bc;in_tiles
   pop af;offset
   push hl;count
@@ -459,7 +476,7 @@ FlipTileMapX::;hl=wh; bc=in_tiles, de=out_tiles
     ld e, a
     ld a, [_j]
     inc a
-    call math_Multiply
+    rst math_Multiply
     dec hl
     add hl, bc
     pop de;out_tiles
@@ -508,7 +525,7 @@ GetHealthPct::;hl = player, returns HP * 96 / maxHP in de
   ld d, h
   ld e, l
   ld a, 96;is divisible by 6, easier than multiplying by 100
-  call math_Multiply
+  rst math_Multiply
   ld d, h
   ld e, l;hp*96
   pop hl;player

@@ -286,7 +286,7 @@ GBCSetColorBlock::;b = draw flags, hl = ATTR_BLK_DATA address, returns address o
 
   ld d, 0
   ld e, c;w
-  call math_Multiply;hl = de * a = w * h, b untouched
+  rst math_Multiply;hl = de * a = w * h, b untouched
   ld a, b;palette
   ld b, h
   ld c, l

@@ -33,7 +33,7 @@ DrawUserPlayerUI::
   ld d, h
   ld e, l
   ld hl, name_buffer
-  call str_Copy
+  rst str_Copy
   ld a, ' '
   ld [de], a
 
@@ -259,7 +259,7 @@ DrawTeamNames::
 .setOpposingTeamName
   ld hl, Opponent.name
   ld de, name_buffer
-  call str_Copy
+  rst str_Copy
 
 .drawOpposingName
   ld hl, name_buffer
@@ -364,7 +364,7 @@ MovePlayMenuArrow:
     .notArrow ;tiles[0] = (x==i && y==j) ? "▶" : " ";
       ld a, [_i]
       ld de, 5
-      call math_Multiply
+      rst math_Multiply
       ld a, 9
       add a, l
       ld d, a ;x

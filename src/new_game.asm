@@ -293,14 +293,14 @@ ELSE
   ld hl, AwayNames
 ENDC
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
 
   xor a
   ld [_d], a
 .showUserNameListLoop; while (d == 0) {
     ld hl, UserNameTitle
     ld de, name_buffer
-    call str_Copy
+    rst str_Copy
     
     xor a
     ld [list_selection], a
@@ -333,7 +333,7 @@ ENDC
 .saveUserName
   ld hl, name_buffer
   ld de, user_name
-  call str_Copy
+  rst str_Copy
 
 .showNolan
   DISPLAY_OFF
@@ -409,14 +409,14 @@ ELSE
   ld hl, HomeNames
 ENDC
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
 
   xor a
   ld [_d], a
 .showRivalNameListLoop
     ld hl, UserNameTitle
     ld de, name_buffer
-    call str_Copy
+    rst str_Copy
 
     xor a
     ld [list_selection], a
@@ -446,7 +446,7 @@ ENDC
 .saveRivalName
   ld hl, name_buffer
   ld de, rival_name
-  call str_Copy
+  rst str_Copy
 
 .showCalvinAgain
   DISPLAY_OFF

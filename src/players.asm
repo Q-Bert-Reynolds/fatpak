@@ -366,7 +366,7 @@ GetPlayerMoveName:: ;hl = player, a = move num, d = move mask, returns move name
 .noMove
   ld hl, NoMove
   ld de, name_buffer
-  call str_Copy
+  rst str_Copy
   jr .exit
 .setMoveName
   ld a, e;move index
@@ -486,7 +486,7 @@ SetStatsFromAge:: ;hl = player
   ld d, 0
   ld e, a;age*2
   ld a, [player_base.hp]
-  call math_Multiply;base_hp * 2 * age
+  rst math_Multiply;base_hp * 2 * age
   ld c, 100
   call math_Divide16;(base_hp * 2 * age)/100
   pop af;age
@@ -554,7 +554,7 @@ SetStatsFromAge:: ;hl = player
     ld a, [bc];base stat
     push bc;base stat address
     push hl;lineup stat address
-    call math_Multiply;base * 2 * age
+    rst math_Multiply;base * 2 * age
     ld c, 100
     call math_Divide16;(base_hp * 2 * age)/100
     ld de, 5
@@ -948,7 +948,7 @@ GetXPForAge:: ;a = age, returns experience needed in cde
   push af;age
   ld d, 0
   ld e, a
-  call math_Multiply; hl = de * a = age^2
+  rst math_Multiply; hl = de * a = age^2
   pop af;age
   ld d, 0
   ld e, a
@@ -989,7 +989,7 @@ SetUserPlayerName::;hl = player, de = name address
   push de;name address
   pop hl;name address
   pop de;player name
-  call str_Copy
+  rst str_Copy
   ret
 
 _GetUserPlayerName::
@@ -1004,7 +1004,7 @@ GetUserPlayerName::;hl = user player, returns name in name_buffer
   and a
   jr z, .getBaseName
   ld de, name_buffer
-  call str_Copy
+  rst str_Copy
   pop hl
   pop bc
   ret
@@ -1019,7 +1019,7 @@ _GetOpposingPlayerInLineup::
 GetOpposingPlayerInLineup::;a = lineup index, returns player in hl (and bc)
   ld bc, OpponentLineup
   ld de, OpponentLineupPlayer2 - OpponentLineupPlayer1
-  call math_Multiply
+  rst math_Multiply
   add hl, bc
   ld b, h;SDCC expects return to be in bc
   ld c, l
@@ -1029,7 +1029,7 @@ _GetUserPlayerInLineup::
 GetUserPlayerInLineup::;a = lineup index, returns player in hl (and bc)
   ld bc, UserLineup
   ld de, UserLineupPlayer2 - UserLineupPlayer1
-  call math_Multiply
+  rst math_Multiply
   add hl, bc
   ld b, h;SDCC expects return to be in bc
   ld c, l

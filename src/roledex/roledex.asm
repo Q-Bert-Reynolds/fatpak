@@ -60,7 +60,7 @@ GetMoveName:: ; a = move number, returns name in name_buffer
   ld hl, MoveNames
   call str_FromArray
   ld de, name_buffer
-  call str_Copy
+  rst str_Copy
 
   ldh a, [temp_bank]
   SET_BANK
@@ -121,7 +121,7 @@ GetPlayerName:: ; a = number, returns name in name_buffer
   call str_FromArray
 .copy
   ld de, name_buffer
-  call str_Copy
+  rst str_Copy
 
   pop af;bank
   SET_BANK
@@ -143,7 +143,7 @@ GetPlayerDescription:: ; a = number, returns description in str_buffer
   call str_FromArray
 .copy
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
 
   ldh a, [temp_bank]
   SET_BANK
@@ -319,7 +319,7 @@ PreLoadPlayerBkgData: ;a = number, de = vram offset
   push af ;a = num
 
   ld a, 16
-  call math_Multiply 
+  rst math_Multiply 
   ld de, _VRAM+$1000
   add hl, de ;_VRAM+$1000+vram_offset*16
   ld a, $98
@@ -344,7 +344,7 @@ PreLoadPlayerBkgData: ;a = number, de = vram offset
   add hl, bc
   ld a, [hl]
   ld de, 16
-  call math_Multiply
+  rst math_Multiply
   ld b, h
   ld c, l
 
@@ -524,7 +524,7 @@ LoadUserPlayerBkgTiles::
   push de;tiles
   ld a, [hli];tile count
   ld de, 16
-  call math_Multiply
+  rst math_Multiply
   ld b, h
   ld c, l
 
@@ -588,7 +588,7 @@ LoadOpposingPlayerBkgTiles::
 
   ld a, [hli]
   ld de, 16
-  call math_Multiply
+  rst math_Multiply
   ld b, h
   ld c, l
 
@@ -603,7 +603,7 @@ LoadOpposingPlayerBkgTiles::
 
 SetUserPlayerBkgTiles:: ;a = frame
   ld de, 56
-  call math_Multiply
+  rst math_Multiply
   push hl;tile map for frame
 
   call GetCurrentUserPlayer
@@ -655,7 +655,7 @@ SetUserPlayerBkgTiles:: ;a = frame
 
   ld a, [hli]
   ld de, 16
-  call math_Multiply
+  rst math_Multiply
   ld b, h
   ld c, l
 
@@ -677,7 +677,7 @@ SetUserPlayerBkgTiles:: ;a = frame
 
 SetOpposingPlayerBkgTiles:: ;a = frame
   ld de, 56
-  call math_Multiply
+  rst math_Multiply
   push hl;frame
   call GetCurrentOpponentPlayer
   push hl;current player
@@ -728,7 +728,7 @@ SetOpposingPlayerBkgTiles:: ;a = frame
 
   ld a, [hli]
   ld de, 16
-  call math_Multiply
+  rst math_Multiply
   ld b, h
   ld c, l
 

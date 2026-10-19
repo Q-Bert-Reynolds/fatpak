@@ -69,7 +69,7 @@ GetItemName::;a = item id, returns item name in [name_buffer]
   ld hl, ItemNames
   call str_FromArray
   ld de, name_buffer
-  call str_Copy
+  rst str_Copy
 
   pop af;bank
   SET_BANK
@@ -446,7 +446,7 @@ DrawInventoryEntry::;a = num, de = xy, bc = list len, draw count
 
 .draw
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
 
   ld hl, str_buffer
   call str_Length
@@ -509,7 +509,7 @@ SelectItem::;returns exit code in a (-1 = close inventory, 0 = back to inventory
   push bc;index in b
   ld hl, UseTossText
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
   xor a
   ld [name_buffer], a
   ld [list_selection], a

@@ -89,7 +89,7 @@ SwapPositions: ;bc = player count, selected player
 
     ld de, 40
     ld a, [_k]
-    call math_Multiply
+    rst math_Multiply
     ld bc, bkg_buffer
     add hl, bc
     ld bc, 3
@@ -98,7 +98,7 @@ SwapPositions: ;bc = player count, selected player
 
     ld de, 40
     ld a, [_j]
-    call math_Multiply
+    rst math_Multiply
     ld bc, bkg_buffer
     add hl, bc
     ld bc, 3
@@ -143,7 +143,7 @@ SwapLineupData:
 SwapLineupTiles:
   ld de, 40
   ld a, [_k]
-  call math_Multiply
+  rst math_Multiply
   ld de, bkg_buffer
   add hl, de
   push hl;k's lineup card
@@ -153,7 +153,7 @@ SwapLineupTiles:
 
   ld de, 40
   ld a, [_j]
-  call math_Multiply
+  rst math_Multiply
   ld de, bkg_buffer
   add hl, de
   pop de;k's lineup card
@@ -321,7 +321,7 @@ DrawLineupPlayer: ;hl = player, b = item id, _j is order on screen
   call GetUserPlayerName
   ld hl, name_buffer
   ld de, tile_buffer+4
-  call str_Copy
+  rst str_Copy
   dec de
   ld a, ' '
   ld [de], a
@@ -438,7 +438,7 @@ SetHPBarColor:;e = HP*96/maxHP, [_j] = order
 .setPalettes
   ld a, [_j]
   ld de, SGBLineupAttrBlk.player2HPBar-SGBLineupAttrBlk.player1HPBar
-  call math_Multiply
+  rst math_Multiply
   ld de, cmd_buffer + (SGBLineupAttrBlk.player1HPBar-SGBLineupAttrBlk)
   add hl, de
   inc hl
@@ -514,7 +514,7 @@ DrawLineupPlayerSprites:;hl = player, [_u] = x offset
   ld a, [_j]
   inc a
   ld de, 16
-  call math_Multiply
+  rst math_Multiply
   ld a, l
   add a, 8
   ld [_y], a
@@ -675,7 +675,7 @@ ShowPlayerStats:
   ld a, [_j];selected player
   PUSH_VAR _j
   ld de, UserLineupPlayer2 - UserLineupPlayer1
-  call math_Multiply
+  rst math_Multiply
   ld bc, UserLineup
   add hl, bc
   call DrawStatScreen
@@ -726,7 +726,7 @@ ShowPlayerMenu:
   ld c, 4
 .setStrBuff
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
 
   ld hl, name_buffer
   xor a
@@ -773,7 +773,7 @@ ShowPlayerMenu:
   push bc;player count, selected player
   ld a, c
   ld de, UserLineupPlayer2 - UserLineupPlayer1
-  call math_Multiply
+  rst math_Multiply
   ld bc, UserLineup
   add hl, bc
   call DrawStatScreen
@@ -848,7 +848,7 @@ LearnMove:;hl = player, a = move id, returns exit code in c
   call GetUserPlayerName
   ld hl, name_buffer
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
   ld hl, TryingToLearnText
   ld de, str_buffer
   call str_Append
@@ -906,7 +906,7 @@ LearnMove:;hl = player, a = move id, returns exit code in c
   call GetUserPlayerName
   ld hl, name_buffer
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
   ld hl, DidNotLearnText
   ld de, str_buffer
   call str_Append
@@ -955,7 +955,7 @@ LearnMove:;hl = player, a = move id, returns exit code in c
   call GetUserPlayerName
   ld hl, name_buffer
   ld de, tile_buffer
-  call str_Copy
+  rst str_Copy
   ld hl, str_buffer
   ld de, tile_buffer
   call str_Append
@@ -985,7 +985,7 @@ LearnMove:;hl = player, a = move id, returns exit code in c
   call GetUserPlayerName
   ld hl, name_buffer
   ld de, tile_buffer
-  call str_Copy
+  rst str_Copy
   ld hl, str_buffer
   ld de, tile_buffer
   call str_Append
@@ -1041,7 +1041,7 @@ UseItemOnPlayer:;b = item id, returns item used in c (0 = not used, 1 = used)
   call GetUserPlayerName
   ld hl, name_buffer
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
   ld hl, NotCompatibleWithText
   ld de, str_buffer
   call str_Append
@@ -1338,7 +1338,7 @@ ShowPlayerUsedItemText:;hl = player
   call GetUserPlayerName
   ld hl, name_buffer
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
   ld de, str_buffer
   
   ld hl, PlayerUsedItemText
@@ -1470,7 +1470,7 @@ Evolve:;hl = player, a = player num to evolve to
   call GetUserPlayerName
   ld hl, name_buffer
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
 
   ld hl, PlayerEvolvedIntoText
   ld de, str_buffer

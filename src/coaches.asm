@@ -30,7 +30,7 @@ PreLoadCoachTiles:: ;a = coach id, de = vram address, returns bank in a, tiles i
   add hl, bc
   ld a, [hl]
   ld de, 16
-  call math_Multiply
+  rst math_Multiply
   ld b, h
   ld c, l
   pop af;id

@@ -40,7 +40,7 @@ ShowUserInfo:
 .drawUserName
   ld hl, NameText
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
 
   ld hl, user_name
   ld de, str_buffer  
@@ -59,7 +59,7 @@ ShowUserInfo:
 .drawMoney
   ld hl, MoneyText
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
 
   ld a, [money]
   ld d, a

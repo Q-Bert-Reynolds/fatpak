@@ -24,7 +24,7 @@ _RevealTextAndWait:: ;extern void RevealTextAndWait(char text[]);
   ld l, e;we need it in hl
 RevealTextAndWait:: ;hl = text
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
 
   ldh a, [loaded_bank]
   push af;bank
@@ -46,7 +46,7 @@ RevealText:: ;a = draw flags, de = xy, hl = text
   push bc;draw flags
   push de;xy
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
 
   ld a, BANK(UIRevealText)
   SET_BANK
@@ -512,7 +512,7 @@ AskYesNo::;a = draw flags, bc = xy, returns choice in a (0 = cancel, 1 = yes, 2 
   push bc;xy
   ld hl, YesNoText
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
   xor a
   ld [name_buffer], a
   ld [list_selection], a
@@ -531,11 +531,11 @@ ShowTextEntry:: ;bc = title, de = str, l = max_len -> puts text in name_buffer
   ld h, b
   ld l, c
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
 
   pop hl ;str
   ld de, name_buffer
-  call str_Copy
+  rst str_Copy
 
   ld a, BANK(UIShowTextEntry)
   SET_BANK
@@ -1350,7 +1350,7 @@ DrawTextEntryBox:
     ld a, [_j]
     add a, a; j*2
     ld de, 18
-    call math_Multiply; hl = 18 * j*2
+    rst math_Multiply; hl = 18 * j*2
     ld b, h
     ld c, l ;bc = j*2*18
     ld hl, tile_buffer
@@ -1402,7 +1402,7 @@ DrawTextEntryBox:
     add a, a; j*2
     inc a ;j*2+1
     ld de, 18
-    call math_Multiply; hl = 18 * (j*2+1)
+    rst math_Multiply; hl = 18 * (j*2+1)
     ld b, h
     ld c, l ;bc = (j*2+1)*18
     ld hl, tile_buffer

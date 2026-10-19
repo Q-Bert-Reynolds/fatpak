@@ -426,7 +426,7 @@ ShowStartMenu: ; puts choice in a ... 0 = back, >0 = choice
   ld [hl], a
   ld hl, ContinueMenuText
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
   ld hl, NewGameMenuText
   ld de, str_buffer
   call str_Append
@@ -479,7 +479,7 @@ ShowStartMenu: ; puts choice in a ... 0 = back, >0 = choice
 
   ld hl, NewGameMenuText
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
 ; IF DEF(_DEMO)
 ;   ld hl, ExhibitionMenuText
 ;   ld de, str_buffer

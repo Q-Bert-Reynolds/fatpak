@@ -50,13 +50,13 @@ CalculateLandingSpot2:
 .skip;hang time = de
 
   ld a, PHYS_POS_STEPS
-  call math_Multiply
+  rst math_Multiply
   ld d, h
   ld e, l
 
   push de;hang time * steps
   ld a, [ball_vel_x]
-  call math_Multiply
+  rst math_Multiply
   ld a, [ball_pos_x]
   ld d, a
   ld a, [ball_pos_x+1]
@@ -67,7 +67,7 @@ CalculateLandingSpot2:
   push hl;landing spot x
 
   ld a, [ball_vel_y]
-  call math_Multiply
+  rst math_Multiply
   ld a, [ball_pos_y]
   ld d, a
   ld a, [ball_pos_y+1]

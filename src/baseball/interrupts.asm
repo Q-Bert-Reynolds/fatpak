@@ -17,7 +17,7 @@ MoveCoach:
 .columnLoop;for (i = 0; i < _CALVIN_BACK_2X_COLUMNS-1; ++i) {
       ld a, [_j]
       ld de, (_CALVIN_BACK_2X_COLUMNS-1)
-      call math_Multiply ;hl = j*(_CALVIN_BACK_2X_COLUMNS-1)
+      rst math_Multiply ;hl = j*(_CALVIN_BACK_2X_COLUMNS-1)
       ld a, [_i]
       add a, l
       ld c, a ;c = j*(_CALVIN_BACK_2X_COLUMNS-1)+i

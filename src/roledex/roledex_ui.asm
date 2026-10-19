@@ -196,7 +196,7 @@ DrawRoledexListEntry:;a = number, de = xy
   
   ld hl, name_buffer
   ld de, tile_buffer+1
-  call str_Copy
+  rst str_Copy
 
 .drawTiles
   ld hl, tile_buffer
@@ -345,7 +345,7 @@ ShowRoledexPlayerData:;a player num
   ld [de], a
   inc de
   ld hl, str_buffer
-  call str_Copy
+  rst str_Copy
 
   ld h, 4
   ld l, 1
@@ -390,7 +390,7 @@ ShowRoledexPlayerData:;a player num
   ld [hl], a
   ld hl, name_buffer
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
   jr .drawHeight
 
 .getHeight
@@ -466,7 +466,7 @@ ShowRoledexPlayerData:;a player num
   ld [hl], a
   ld hl, name_buffer
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
   jr .drawWeight
 
 .getWeight

@@ -4,6 +4,17 @@ anim_timer:: DB ;counts to anim_frame_step
 anim_frame_step:: DB
 rLCDInterrupt:: DW;location of LCD interrupt subroutine
   
+SECTION "VBlank", ROM0[$0040]
+  jp VBLInterrupt
+SECTION "LCDC", ROM0[$0048]
+  jp LCDInterrupt
+SECTION "TimerOverflow", ROM0[$0050]
+  reti
+SECTION "Serial", ROM0[$0058]
+  jp SerialInterrupt
+SECTION "p1thru4", ROM0[$0060]
+  reti
+
 SECTION "Interrupt Code", ROM0
 ;serial
 ;   SerialInterrupt

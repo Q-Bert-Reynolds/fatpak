@@ -130,7 +130,7 @@ DrawPageOne:
   ld [de], a
   inc de
   ld hl, str_buffer
-  call str_Copy
+  rst str_Copy
 
   ld h, 4
   ld l, 1
@@ -313,7 +313,7 @@ DrawPageOne:
   call GetStatusString
   ld hl, StatScreenStatusText
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
   ld hl, name_buffer
   ld de, str_buffer
   call str_Append
@@ -331,7 +331,7 @@ DrawPageOne:
 .drawType1
   ld hl, StatScreenTypeText
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
   ld hl, name_buffer
   ld a, '1'
   ld [hli], a
@@ -376,7 +376,7 @@ DrawPageOne:
 
   ld hl, StatScreenTypeText
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
   ld hl, name_buffer
   ld a, '2'
   ld [hli], a

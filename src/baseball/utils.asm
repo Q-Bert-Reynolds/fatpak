@@ -267,7 +267,7 @@ DistanceFromSpeedLaunchAngle::;a = speed, c = launch angle, returns distance in 
   push bc
   ld d, 0
   ld e, a
-  call math_Multiply;v^2
+  rst math_Multiply;v^2
   pop bc
   ld d, 0
   ld e, b
@@ -300,12 +300,12 @@ HeightFromSpeedLaunchAngle::;a = speed, c = launch angle, returns height in a
   call math_Sin255
   ld d, 0
   ld e, a;sin(ang)*255
-  call math_Multiply;65025*sin(ang)^2
+  rst math_Multiply;65025*sin(ang)^2
   pop af;speed
   push hl
   ld d, 0
   ld e, a
-  call math_Multiply;v^2
+  rst math_Multiply;v^2
   pop bc;b = 255 * sin(ang)^2
 
   ld d, 0
@@ -417,14 +417,14 @@ LocationFromDistSprayAngle::;a = distance, b = spray angle, returns xy in de
   push de;distance
   push af;angle
   call math_Cos255
-  call math_Multiply
+  rst math_Multiply
   ld a, h;discard lower byte
   ld [ball_pos_x], a
 
   pop af;angle
   pop de; distance
   call math_Sin255
-  call math_Multiply
+  rst math_Multiply
   ld a, h;discard lower byte
   ld [ball_pos_y], a
 

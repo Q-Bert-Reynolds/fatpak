@@ -83,7 +83,7 @@ GetPCOptions:;returns options in str_buffer, option count in a
   ld hl, SomeonesPCText
 .copyStoragePCText
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
 .appendUserPCText
   ld hl, UserPCText
   ld de, name_buffer
@@ -187,7 +187,7 @@ AccessPlayerStorageSystem:
 .showFarmList
   ld hl, PlayerFarmSystemMenuText
   ld de, str_buffer
-  call str_Copy
+  rst str_Copy
   xor a
   ld [name_buffer], a
   ld bc, 0
@@ -224,7 +224,7 @@ AccessItemStorageSystem:
 
     ld hl, ItemStorageSystemMenuText
     ld de, str_buffer
-    call str_Copy
+    rst str_Copy
     xor a
     ld [name_buffer], a
     ld bc, 0

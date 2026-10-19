@@ -523,7 +523,7 @@ Pitch:
 .updatePitchZ
     ld a, [_s];pitch speed
     ld de, 8
-    call math_Multiply
+    rst math_Multiply
     ld de, 200
     add hl, de
     ld a, [pitch_z]
@@ -830,7 +830,7 @@ Bat:
 .updatePitchZ
     ld a, [_s];pitch speed
     ld de, 20
-    call math_Multiply
+    rst math_Multiply
     ld de, 1000
     add hl, de
     ld a, [pitch_z]
@@ -963,7 +963,7 @@ GetExitVelocityAndAngle:;returns velocity in a, spray in d, launch in e
   ld d, h
   ld e, l
   ld a, [move_data.power]
-  call math_Multiply;hl =power * bat
+  rst math_Multiply;hl =power * bat
   sla h
   jr nc, .skip
   ld h, 255

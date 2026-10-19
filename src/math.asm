@@ -76,12 +76,7 @@ MACRO ADD_HL_DE_ADC_REG ;\1 = register
 .skip\@
 ENDM
 
-SECTION "Math Code", ROM0
-_math_Multiply::
-  call math_Multiply
-  ld b, h;SDCC expects return value in bc
-  ld c, l
-  ret
+SECTION "math_Multiply RST", ROM0[$0028]
 math_Multiply:: ; hl = de * a where 0 <= a <= 255
   ld hl, 0
   and a
@@ -92,6 +87,13 @@ math_Multiply:: ; hl = de * a where 0 <= a <= 255
     add hl, de
     dec a
     jr nz, .loop
+  ret
+
+SECTION "Math Code", ROM0
+_math_Multiply::
+  rst math_Multiply
+  ld b, h;SDCC expects return value in bc
+  ld c, l
   ret
 
 ; math_ShiftMultiply: ; hl = de * a where 0 <= a <= 255
@@ -115,10 +117,10 @@ math_Multiply:: ; hl = de * a where 0 <= a <= 255
 
 math_SignedMultiply:: ; hl = de * a where -127 <= a <= 127, -32385 <= de <= 32385
   cp a, 128
-  jr c, math_Multiply
+  jp c, math_Multiply
   cpl
   inc a
-  call math_Multiply
+  rst math_Multiply
   ld a, h
   cpl
   ld h, a
@@ -416,7 +418,7 @@ math_Length:: ;de = xy, returns length in a
   ld a, e;a
   ld d, 0
   ld e, a
-  call math_Multiply;a*a
+  rst math_Multiply;a*a
   call math_Divide16;a*a/b
   srl l;0.5*a*a/b
   pop bc
@@ -493,13 +495,13 @@ _Lerp:
   ld e, a
   ld a, 100
   sub a, c
-  call math_Multiply
+  rst math_Multiply
   pop bc
   push hl;a*(100-c)
   ld d, 0
   ld e, b
   ld a, c
-  call math_Multiply
+  rst math_Multiply
   pop de
   add hl, de;a*(100-c)+b*c
   ld c, 100
