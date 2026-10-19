@@ -82,6 +82,9 @@ DEF_RGB  COLOR_DARK_BLUE,     5,  8, 16
 DEF_RGB  COLOR_DEEP_PURPLE,   0,  2,  5
 DEF_RGB  COLOR_PURPLE_GREY,  10,  9, 12
 
+SECTION "Color Vars", WRAMX
+palette_buffer:: DS 8;4 colors, 2 bytes each
+
 SECTION "Color Code", ROM0
 ;----------------------------------------------------------------------
 ;

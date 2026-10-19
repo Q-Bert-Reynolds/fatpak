@@ -199,62 +199,6 @@
 #define INVENTORY_MODE_TOSS     4    
 #define INVENTORY_MODE_SELL     5
 
-//maps
-#define MAP_DATA_META_SPRITE   0
-#define MAP_DATA_PALETTES      1
-#define MAP_DATA_STRINGS       3
-#define MAP_DATA_DOORS         5
-#define MAP_DATA_CHUNKS        7
-#define MAP_DATA_ADDRESSES     9
-#define MAP_DATA_ITEMS         11
-#define MAP_DATA_AREAS         13
-#define MAP_DATA_TILES         15
-#define MAP_OBJ_TYPE_MASK      0b00001111//up to 15 map object types
-#define MAP_OBJ_NONE           0 //bg only
-#define MAP_OBJ_NONE_FILL      1 //bg only
-#define MAP_OBJ_TILE           2 //bg and sprites
-#define MAP_OBJ_TILE_FILL      3 //bg only
-#define MAP_OBJ_STAMP          4 //bg and sprites
-#define MAP_OBJ_STAMP_FILL     5 //bg only
-#define MAP_OBJ_AVATAR         6 //sprites only
-#define MAP_OBJ_META_SPRITE    7 //sprites only
-#define MAP_COLLISION_MASK     0b11110000//up to 15 map collision types
-#define MAP_COLLISION_NONE     0
-#define MAP_COLLISION_SOLID    1 << 4
-#define MAP_COLLISION_WATER    2 << 4
-#define MAP_COLLISION_DOOR     3 << 4
-#define MAP_COLLISION_TEXT     4 << 4
-#define MAP_COLLISION_LEDGE    5 << 4
-#define MAP_COLLISION_GRASS    6 << 4
-#define MAP_COLLISION_SCRIPT   7 << 4
-#define MAP_COLLISION_TEAM     8 << 4
-#define MAP_COLLISION_ITEM     9 << 4
-#define MAP_STEP_SIZE          16//2 tiles per step
-#define WALK_ANIM_FRAMES       4//TODO: should come from GBStampAnimation
-#define MAP_CHUNK_TILE         0
-#define MAP_CHUNK_PALETTE      1
-#define MAP_CHUNK_AREA         2
-#define MAP_CHUNK_NORTH        3
-#define MAP_CHUNK_EAST         4
-#define MAP_CHUNK_SOUTH        5
-#define MAP_CHUNK_WEST         6
-#define MAP_CHUNK_DATA         7
-#define MAP_AVATAR_DIRECTION   0b11000000
-#define MAP_AVATAR_LEFT        0b00000000
-#define MAP_AVATAR_RIGHT       0b01000000
-#define MAP_AVATAR_UP          0b10000000
-#define MAP_AVATAR_DOWN        0b11000000
-#define MAP_AVATAR_EXTRA_DATA  0b00111111
-#define MAP_AVATAR_FRAME       0b00000111
-#define MAP_AVATAR_BEHAVIOUR   0b00111000
-#define MAP_AVATAR_STATIONARY  0b00000000
-#define MAP_AVATAR_WANDER      0b00001000
-
-//sprite objects
-#define SPRITE_OBJ_SIZE        6//bytes... bank, address(2), x, y, extra
-#define SPRITE_OBJ_MAX_COUNT   OAM_COUNT-4//4 sprites reserved for player avatar
-#define SPRITE_OBJ_BUFFER_SIZE SPRITE_OBJ_MAX_COUNT * SPRITE_OBJ_SIZE
-
 //sizes
 #define STACK_SIZE       128
 #define MAX_ITEMS        20

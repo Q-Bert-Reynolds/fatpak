@@ -157,11 +157,8 @@ _tile_buffer::
 tile_buffer::       DS BUFFER_SIZE
 bkg_buffer::        DS BUFFER_SIZE
 win_buffer::        DS BUFFER_SIZE
-sprite_obj_buffer:: DS SPRITE_OBJ_BUFFER_SIZE; bank, address, x, y, extra
-tile_anim_buffer::  DS 8
 cmd_buffer::        DS BUFFER_SIZE/2
 _str_buffer::
 str_buffer::        DS STR_BUFFER_SIZE
 _name_buffer::
 name_buffer::       DS NAME_BUFFER_SIZE
-palette_buffer::    DS 8;4 colors, 2 bytes each

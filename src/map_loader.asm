@@ -32,39 +32,32 @@ map_temp_y: DB
 SECTION "TestMapObjectMinXY RST", ROM0[$0000]
 TestMapObjectMinXY:; de = xy, max XY in max_x,max_y, returns xy in de, sets z if out of range
 .testMinX
-  ldh a, [map_max_x]
-  cp a, d;obj minX
-  jr c, .outOfRange;maxX < obj minX
-  ret z;.outOfRange;maxX == obj minX
+  ldh a, [map_max_x]                 ;2 bytes
+  cp a, d;obj minX                   ;1 byte
+  jr c, TestFailed;maxX < obj minX   ;2 bytes
+  ret z;TestFailed;maxX == obj minX  ;1 byte
 .testMinY
-  ldh a, [map_max_y];maxY
-  cp a, e;obj minY
-  jr c, .outOfRange;maxY < obj minY
-  ret z;.outOfRange;maxY == obj minY
-.inRange
-  ret
-.outOfRange
-  xor a
-  ret 
+  ldh a, [map_max_y];maxY            ;2 bytes
+  cp a, e;obj minY                   ;1 byte
+  jr c, TestFailed;maxY < obj minY   ;2 bytes
+  ret                                ;1 byte
+TestFailed:
+  xor a                              ;1 byte
+  ret                                ;1 byte
 
 SECTION "TestMapObjectMaxXY RST", ROM0[$0010]
 TestMapObjectMaxXY:; hl = xy, min XY in min_x,min_y, returns xy in hl, sets z if out of range
 .testMaxX
-  ldh a, [map_min_x];minX
-  cp a, h;obj maxX
-  ret z;.outOfRange;minX == obj maxX
-  jp nc, .outOfRange;minX > obj maxX
+  ldh a, [map_min_x];minX            ;2 bytes
+  cp a, h;obj maxX                   ;1 byte
+  ret z;TestFailed;minX == obj maxX  ;1 byte
+  jr nc, TestFailed;minX > obj maxX  ;2 bytes
 .testMaxY
-  ldh a, [map_min_y];minY
-  cp a, l;obj maxy
-  ret z;.outOfRange;minY == obj maxY
-  jp nc, .outOfRange;minY > obj maxY
-.inRange
-  ret
-.outOfRange
-  xor a
-  ret
-
+  ldh a, [map_min_y];minY            ;2 bytes
+  cp a, l;obj maxy                   ;1 byte
+  ret z;TestFailed;minY == obj maxY  ;1 byte
+  jr nc, TestFailed;minY > obj maxY  ;2 bytes
+  ret                                ;1 byte
 
 SECTION "Map Loader Code", ROM0
 ;TODO: move stamps and meta sprites out of ROM0
@@ -107,6 +100,66 @@ INCLUDE "maps/map_stamps.gbstamp"
 
 ; ROUTINES THAT DO NOT REQUIRE BANK SWITCHING
 ; GetCurrentMap                returns address in hl, bank in a
+
+DEF MAP_DATA_META_SPRITE   EQU 0
+DEF MAP_DATA_PALETTES      EQU 1
+DEF MAP_DATA_STRINGS       EQU 3
+DEF MAP_DATA_DOORS         EQU 5
+DEF MAP_DATA_CHUNKS        EQU 7
+DEF MAP_DATA_ADDRESSES     EQU 9
+DEF MAP_DATA_ITEMS         EQU 11
+DEF MAP_DATA_AREAS         EQU 13
+DEF MAP_DATA_TILE_ANIMS    EQU 15
+DEF MAP_DATA_TILES         EQU 17
+
+DEF MAP_OBJ_TYPE_MASK      EQU %00001111;up to 15 map object types
+DEF MAP_OBJ_NONE           EQU 0 ;bg only
+DEF MAP_OBJ_NONE_FILL      EQU 1 ;bg only
+DEF MAP_OBJ_TILE           EQU 2 ;bg and sprites
+DEF MAP_OBJ_TILE_FILL      EQU 3 ;bg only
+DEF MAP_OBJ_STAMP          EQU 4 ;bg and sprites
+DEF MAP_OBJ_STAMP_FILL     EQU 5 ;bg only
+DEF MAP_OBJ_AVATAR         EQU 6 ;sprites only
+DEF MAP_OBJ_META_SPRITE    EQU 7 ;sprites only
+
+DEF MAP_COLLISION_MASK     EQU %11110000;up to 15 map collision types
+DEF MAP_COLLISION_NONE     EQU 0
+DEF MAP_COLLISION_SOLID    EQU 1 << 4
+DEF MAP_COLLISION_WATER    EQU 2 << 4
+DEF MAP_COLLISION_DOOR     EQU 3 << 4
+DEF MAP_COLLISION_TEXT     EQU 4 << 4
+DEF MAP_COLLISION_LEDGE    EQU 5 << 4
+DEF MAP_COLLISION_GRASS    EQU 6 << 4
+DEF MAP_COLLISION_SCRIPT   EQU 7 << 4
+DEF MAP_COLLISION_TEAM     EQU 8 << 4
+DEF MAP_COLLISION_ITEM     EQU 9 << 4
+
+DEF MAP_STEP_SIZE          EQU 16;2 tiles per step
+DEF WALK_ANIM_FRAMES       EQU 4;TODO: should come from GBStampAnimation
+
+DEF MAP_CHUNK_TILE         EQU 0
+DEF MAP_CHUNK_PALETTE      EQU 1
+DEF MAP_CHUNK_AREA         EQU 2
+DEF MAP_CHUNK_NORTH        EQU 3
+DEF MAP_CHUNK_EAST         EQU 4
+DEF MAP_CHUNK_SOUTH        EQU 5
+DEF MAP_CHUNK_WEST         EQU 6
+DEF MAP_CHUNK_DATA         EQU 7
+
+DEF MAP_AVATAR_DIRECTION   EQU %11000000
+DEF MAP_AVATAR_LEFT        EQU %00000000
+DEF MAP_AVATAR_RIGHT       EQU %01000000
+DEF MAP_AVATAR_UP          EQU %10000000
+DEF MAP_AVATAR_DOWN        EQU %11000000
+DEF MAP_AVATAR_EXTRA_DATA  EQU %00111111
+DEF MAP_AVATAR_FRAME       EQU %00000111
+DEF MAP_AVATAR_BEHAVIOUR   EQU %00111000
+DEF MAP_AVATAR_STATIONARY  EQU %00000000
+DEF MAP_AVATAR_WANDER      EQU %00001000
+
+DEF TILE_ANIM_TYPE_SCROLL  EQU 0
+DEF TILE_ANIM_TYPE_SINE    EQU 1
+DEF TILE_ANIM_TYPE_TEXTURE EQU 2
 
 GetMapText::;a = text index, returns text in str_buffer
   ld b, 0
@@ -1277,6 +1330,7 @@ MoveMapDown::
   ret
 
 LoadMap::
+  di
   ldh a, [loaded_bank]
   push af;current bank
 
@@ -1344,8 +1398,29 @@ LoadMap::
 .setMapTiles
   pop hl;map address
 
-  ld bc, MAP_DATA_TILES
-  add hl, bc;current map address + tiles data offset
+  ;animations
+  ld bc, MAP_DATA_TILE_ANIMS
+  add hl, bc;current map address + tile anim offset
+  ld a, [hli]
+  ld e, a
+  ld a, [hli]
+  ld d, a;bg tiles address in de
+  push hl
+
+  ld h, d
+  ld l, e
+  ld a, [hl];count
+  ld b, a
+  add a, a;count*2
+  add a, b;count*3
+  inc a;count*3+1
+  ld b, 0
+  ld c, a
+  ld de, tile_anim_buffer
+  call mem_Copy
+
+  ;images
+  pop hl
   ld a, [hli]
   ld b, a;bg tiles bank
   ld a, [hli]
@@ -1388,7 +1463,7 @@ LoadMap::
 
   pop af;previous bank
   SET_BANK
-  ret
+  reti
 
 DrawMapLeftEdge:
   ld bc, $0113

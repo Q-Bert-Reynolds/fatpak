@@ -1,6 +1,9 @@
 INCLUDE "src/beisbol.inc"
 
-SECTION "Header", ROM0[$100]
+SECTION "Crash Handler RST", ROM0[$0038]
+  jp Main
+
+SECTION "Header", ROM0[$0100]
 Entry:
   nop
   jp Main

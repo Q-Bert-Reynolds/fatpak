@@ -76,7 +76,7 @@ MACRO ADD_HL_DE_ADC_REG ;\1 = register
 .skip\@
 ENDM
 
-SECTION "math_Multiply RST", ROM0[$0028]
+SECTION "math_Multiply RST", ROM0[$0020]
 math_Multiply:: ; hl = de * a where 0 <= a <= 255
   ld hl, 0
   and a

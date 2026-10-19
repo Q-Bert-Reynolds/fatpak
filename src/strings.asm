@@ -65,7 +65,7 @@ INCLUDE "src/math.asm"
 INCLUDE "src/hardware.inc"
   rev_Check_hardware_inc 4
 
-SECTION "str_Copy RST", ROM0[$0038]
+SECTION "str_Copy RST", ROM0[$0030]
 ;***************************************************************************
 ;
 ; str_Copy - Copy a string
