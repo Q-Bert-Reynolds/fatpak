@@ -57,7 +57,6 @@ UpdateTileAnimations:
 
   ld a, [tile_anim_timer]
   inc a
-  and a, %01111111
   ld [tile_anim_timer], a
 
   ld a, c;tile count
@@ -92,7 +91,11 @@ ScrollTileAnimation:
   ld b, a
   ldh a, [rSCY]
   cp a, b
-  ret z
+  jr nz, .scrollChanged
+.incrementTileAndExit
+  ld bc, 5
+  add hl, bc
+  ret
 
 .scrollChanged
   call CopyTileAnimDataToBuffer
@@ -123,6 +126,7 @@ ScrollTileAnimation:
   ld b, h
   ld c, l
 
+.copyToVRAM
   pop hl;dest
   ld a, 16
   sub a, e
@@ -171,7 +175,31 @@ ScrollTileAnimation:
   pop hl;next tile
   ret
 
+TileOffsetSineTable:
+DB 0, 0, 0, 0, 1, 1, 2, 2, 3, 4, 4, 5, 5, 6, 6, 7, 7, 7, 7, 7, 6, 6, 5, 5, 4, 4, 3, 2, 2, 1, 1, 0
+
 SineTileAnimation:
+  call CopyTileAnimDataToBuffer
+  ld a, [hli];speed
+  push hl;next tile
+  ld hl, _VRAM8800
+  add hl, de
+  push hl;dest
+
+  ld a, [tile_anim_timer]
+  swap a
+  and $F
+  add a, a
+  ld h, 0
+  ld l, a
+  ld bc, TileOffsetSineTable
+  add hl, bc
+  ld a, [hl]
+  ld d, a;x offset
+  ld e, 0;y offset
+  ld bc, tile_buffer
+  jr ScrollTileAnimation.copyToVRAM
+
 TextureTileAnimation:
 LinearTileAnimation:
   ld a, [hli];tile id
@@ -194,6 +222,7 @@ LinearTileAnimation:
   and a
   jr nz, .done
   
+.calcVRAM
   ld h, 0
   ld l, b
   add hl, hl;*2
@@ -206,7 +235,12 @@ LinearTileAnimation:
   ld b, 16
   ld a, c
   and a, %10000000
-  jr nz, .shiftLeftLoop
+  ld a, c
+  jr z, .shiftRightLoop
+  
+  cpl
+  inc a
+  jr .shiftLeftLoop
 
 .shiftRightLoop
     ld a, [hl]

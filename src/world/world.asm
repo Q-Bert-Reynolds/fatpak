@@ -619,4 +619,7 @@ Overworld::
     call Move
     call CheckRandomEncounter
     jr z, .moveLoop
-    ret
+  
+  xor a
+  ld [tile_anim_buffer], a
+  ret
