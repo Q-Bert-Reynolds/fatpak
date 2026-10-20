@@ -14,8 +14,12 @@ SECTION "Tile Animation ROM0", ROM0
 CopyTileAnimDataToBuffer:;hl = tile index address, puts tile bytes in tile_buffer, returns offset in de, address of tile speed in hl
   ld a, [hli];tile id
   push hl;tile bank address
-  ld de, 16
-  rst math_Multiply
+  ld h, 0
+  ld l, a
+  add hl, hl;*2
+  add hl, hl;*4
+  add hl, hl;*8
+  add hl, hl;*16
   pop de;tile bank address
   push hl;offset offset
 .blah
@@ -78,23 +82,17 @@ ScrollTileAnimation:
   add hl, de
   push hl;dest
 
-  ld d, a;x speed
-  ld e, a;y speed
   ldh a, [rSCX]
-  srl a
-  srl a
-  srl a
-  add a, d
+  rrca
+  rrca
+  rrca
   and a, %111
   ld d, a
   ldh a, [rSCY]
-  srl a
-  srl a
-  srl a
-  add a, e
-  ld e, a
-  ld a, 255
-  sub a, e
+  rrca
+  rrca
+  rrca
+  cpl a
   and a, %111
   sla a
   ld e, a
@@ -129,6 +127,8 @@ ScrollTileAnimation:
     jr nz, .bytesLoop
 
   ld a, e
+  and a
+  jr z, .done
   ld bc, tile_buffer
 .bytesLoop2
     push af;bytes left
@@ -148,7 +148,7 @@ ScrollTileAnimation:
     pop af;bytes left
     dec a;bytes left
     jr nz, .bytesLoop2
-
+.done
   pop hl;next tile
   ret
 
