@@ -587,7 +587,7 @@ InitMap::
 
 Overworld::
   ld a, WORLD_FRAME_STEP
-  ldh [anim_frame_step], a
+  ldh [anim_step_size], a
   call InitMap
   .moveLoop
     call CopyMapSpritesToOAMBuffer

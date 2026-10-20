@@ -7,12 +7,15 @@ DEF SPRITE_OBJ_BUFFER_SIZE EQU SPRITE_OBJ_MAX_COUNT * SPRITE_OBJ_SIZE
 
 SECTION "Interrupt HRAM", HRAM
 vbl_timer:: DB ;counts to 60
-anim_timer:: DB ;counts to anim_frame_step
-anim_frame_step:: DB
+anim_timer:: DB ;counts to anim_step_size
+anim_step_size:: DB
+anim_step:: DB ;increments when anim_timer resets
 rLCDInterrupt:: DW;location of LCD interrupt subroutine
-
+  
 SECTION "Interrupt WRAMX", WRAMX
 sprite_obj_buffer:: DS SPRITE_OBJ_BUFFER_SIZE
+last_scx: DB
+last_scy: DB
 
 SECTION "VBlank", ROM0[$0040]
   jp VBLInterrupt
@@ -108,12 +111,20 @@ DisableLCDInterrupt::
 
 VBLInterrupt::
   PUSH_ALL
+
   call gbdk_DMATransfer
   call UpdateTime
   call UpdateAudio
   call UpdateAnimations
+
+  ldh a, [rSCX]
+  ld [last_scx], a
+  ldh a, [rSCY]
+  ld [last_scy], a
+  
   ld a, 1
   ldh [vbl_done], a
+
   POP_ALL
   reti
 
@@ -162,17 +173,22 @@ UpdateAnimations::
   and a, GAME_STATE_PAUSED
   ret nz
 
-  ldh a, [anim_frame_step]
+  ldh a, [anim_step_size]
   ld b, a
   ldh a, [anim_timer]
   inc a
   ldh [anim_timer], a
   cp a, b
-  ret c
+  jr c, .updateTiles
+
   xor a
   ldh [anim_timer], a
-
+  ldh a, [anim_step]
+  inc a
+  ldh [anim_step], a
   call UpdateSpriteObjects
+
+.updateTiles
   TRAMPOLINE UpdateTileAnimations
   ret
 

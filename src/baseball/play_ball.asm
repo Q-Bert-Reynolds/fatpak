@@ -1135,7 +1135,7 @@ Transition:
 
 StartGame::
   ld a, PLAY_BALL_FRAME_STEP
-  ldh [anim_frame_step], a
+  ldh [anim_step_size], a
   ld a, BANK(GBMetaSpriteBaseballObjcutter)
   ldh [map_meta_sprites_bank], a
 

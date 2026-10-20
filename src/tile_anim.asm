@@ -8,7 +8,8 @@ DEF TILE_ANIM_TYPE_SINE    EQU 2
 DEF TILE_ANIM_TYPE_TEXTURE EQU 3
 
 SECTION "Tile Animation WRAMX", WRAMX
-tile_anim_buffer::  DS TILE_ANIM_BUFFER_SIZE;byte 0 is count
+tile_anim_timer: DB
+tile_anim_buffer:: DS TILE_ANIM_BUFFER_SIZE;byte 0 is count
 
 SECTION "Tile Animation ROM0", ROM0
 CopyTileAnimDataToBuffer:;hl = tile index address, puts tile bytes in tile_buffer, returns offset in de, address of tile speed in hl
@@ -50,14 +51,21 @@ SECTION "Tile Animation ROMX", ROMX
 UpdateTileAnimations:
   ld hl, tile_anim_buffer
   ld a, [hli];tile count
+  ld c, a;tile count
   and a
   ret z
 
+  ld a, [tile_anim_timer]
+  inc a
+  and a, %01111111
+  ld [tile_anim_timer], a
+
+  ld a, c;tile count
 .loopTiles
     push af;tiles left
     ld a, [hli];type    
-    ld bc, .returnAddress
-    push bc;return address
+    ld de, .returnAddress
+    push de;return address
     cp TILE_ANIM_TYPE_LINEAR
     jp z, LinearTileAnimation
     cp TILE_ANIM_TYPE_SCROLL
@@ -66,7 +74,7 @@ UpdateTileAnimations:
     jp z, SineTileAnimation
     cp TILE_ANIM_TYPE_TEXTURE
     jp z, TextureTileAnimation
-    pop bc;return address
+    pop de;return address
     
   .returnAddress
     pop af;tiles left
@@ -75,6 +83,18 @@ UpdateTileAnimations:
   ret
 
 ScrollTileAnimation:
+  ld a, [last_scx]
+  ld b, a
+  ldh a, [rSCX]
+  cp a, b
+  jr nz, .scrollChanged
+  ld a, [last_scy]
+  ld b, a
+  ldh a, [rSCY]
+  cp a, b
+  ret z
+
+.scrollChanged
   call CopyTileAnimDataToBuffer
   ld a, [hli];speed
   push hl;next tile
@@ -82,6 +102,7 @@ ScrollTileAnimation:
   add hl, de
   push hl;dest
 
+  ;TODO: speed should drive rotation
   ldh a, [rSCX]
   rrca
   rrca
@@ -91,10 +112,8 @@ ScrollTileAnimation:
   ldh a, [rSCY]
   rrca
   rrca
-  rrca
   cpl a
-  and a, %111
-  sla a
+  and a, %1110
   ld e, a
   
   ld b, 0
@@ -156,20 +175,54 @@ SineTileAnimation:
 TextureTileAnimation:
 LinearTileAnimation:
   ld a, [hli];tile id
-  ld de, 4
-  add hl, de
+  ld b, a;tile id
+  inc hl
+  inc hl
+  inc hl
+  ld a, [hli]
+  ld c, a;speed
   push hl;next tile
-
-  ld de, 16
-  rst math_Multiply
+  push bc;id, speed
+  
+  ld a, c;speed
+  call math_Abs
+  ld c, a;|speed|
+  ld a, [tile_anim_timer]
+  ld h, a
+  call math_Divide8;step / speed
+  pop bc;id, speed
+  and a
+  jr nz, .done
+  
+  ld h, 0
+  ld l, b
+  add hl, hl;*2
+  add hl, hl;*4
+  add hl, hl;*8
+  add hl, hl;*16
   ld de, _VRAM8800
   add hl, de
+
   ld b, 16
-.loop
+  ld a, c
+  and a, %10000000
+  jr nz, .shiftLeftLoop
+
+.shiftRightLoop
     ld a, [hl]
     rrca
     ld [hli], a
     dec b;bytes left
-    jr nz, .loop
+    jr nz, .shiftRightLoop
+  jr .done
+
+.shiftLeftLoop
+    ld a, [hl]
+    rlca
+    ld [hli], a
+    dec b;bytes left
+    jr nz, .shiftLeftLoop
+
+.done
   pop hl;next tile
   ret

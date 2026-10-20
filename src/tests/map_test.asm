@@ -19,7 +19,7 @@ TestMap::
   DISPLAY_ON
   
   ld a, WORLD_FRAME_STEP
-  ldh [anim_frame_step], a
+  ldh [anim_step_size], a
   ld a, 8
   ldh [map_scroll_speed], a
 

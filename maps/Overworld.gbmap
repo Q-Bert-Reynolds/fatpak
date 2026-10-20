@@ -9337,11 +9337,11 @@ MapOverworldBilletTown:;Billet Town, 14 bytes
 MapOverworldTileAnimations: ;7 bytes
   DB 1;num tile animations
 
-  DB TILE_ANIM_TYPE_SCROLL
+  DB TILE_ANIM_TYPE_LINEAR
   DB 60;tile id
   DB BANK(_OverworldTiles)
   DW _OverworldTiles
-  DB 0;speed
+  DB -32;speed
 
 MapOverworldEnd:
 DEF MAP_OVERWORLD_SIZE EQU MapOverworldEnd - MapOverworld
