@@ -106,7 +106,6 @@ Map System
   - add export warnings when neighbor chains are inconsistent (ie. north->west != west->north, this != south->east->north->west)
   - empty chunks should be generated for missing neighbors
 - handle temporary bg tiles (ie. trees that can be cut down)
-- add support for animated tiles
 - use Unity's collision trigger property for finer control over GB collisions
 - chunks should be exported as tile arrays when more efficient than objects
 - make legs go behind things

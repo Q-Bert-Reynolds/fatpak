@@ -1,11 +1,9 @@
+INCLUDE "src/tile_anim.asm"
+
 ;TODO: shuffle sprite objects, leverage flicker to show more than 40
 DEF SPRITE_OBJ_SIZE        EQU 6;bytes... bank, address(2), x, y, extra
 DEF SPRITE_OBJ_MAX_COUNT   EQU OAM_COUNT-4;4 sprites reserved for player avatar
 DEF SPRITE_OBJ_BUFFER_SIZE EQU SPRITE_OBJ_MAX_COUNT * SPRITE_OBJ_SIZE
-
-DEF TILE_ANIM_SIZE         EQU 3;bytes... id, speed, type
-DEF TILE_ANIM_MAX_COUNT    EQU 4
-DEF TILE_ANIM_BUFFER_SIZE  EQU 1 + TILE_ANIM_MAX_COUNT * TILE_ANIM_SIZE
 
 SECTION "Interrupt HRAM", HRAM
 vbl_timer:: DB ;counts to 60
@@ -15,7 +13,6 @@ rLCDInterrupt:: DW;location of LCD interrupt subroutine
 
 SECTION "Interrupt WRAMX", WRAMX
 sprite_obj_buffer:: DS SPRITE_OBJ_BUFFER_SIZE
-tile_anim_buffer::  DS TILE_ANIM_BUFFER_SIZE;byte 0 is count
 
 SECTION "VBlank", ROM0[$0040]
   jp VBLInterrupt
@@ -40,7 +37,7 @@ SECTION "Interrupt Code", ROM0
 ;vblank
 ;   VBLInterrupt
 ;   UpdateTime                  updates current game time
-;   UpdateSpriteObjects         updates sprite_obj_buffer
+;   UpdateAnimations            updates meta sprite and tile animations
 
 SerialInterrupt::;TODO: check serial type (keyboard, link, printer)
   PUSH_ALL
@@ -176,10 +173,10 @@ UpdateAnimations::
   ldh [anim_timer], a
 
   call UpdateSpriteObjects
-  call UpdateTileAnimations
+  TRAMPOLINE UpdateTileAnimations
   ret
 
-UpdateSpriteObjects::
+UpdateSpriteObjects:
   ld hl, sprite_obj_buffer
   ldh a, [map_sprite_count]
   and a
@@ -213,38 +210,3 @@ UpdateSpriteObjects::
   ld a, [loaded_bank]
   ld [rROMB0], a
   ret
-
-UpdateTileAnimations::
-  ld hl, tile_anim_buffer
-  ld a, [hli];tile count
-  and a
-  ret z
-
-  ld c, a;tile count
-.loopTiles
-    ld b, 16;bytes per tile
-
-    ld a, [hli];tile id
-    inc hl;skip speed
-    inc hl;skip type
-    push hl;next tile
-    push bc;bytes per tile, tile count
-
-    ld de, 16
-    rst math_Multiply
-    ld de, _VRAM8800
-    add hl, de
-    
-    pop bc;bytes per tile, tile count
-  .loopBytes
-      ld a, [hl]
-      rrca
-      ld [hli], a
-      dec b;bytes left
-      jr nz, .loopBytes
-
-    pop hl;next tile
-    dec c;tiles left
-    jr nz, .loopTiles
-  ret
-

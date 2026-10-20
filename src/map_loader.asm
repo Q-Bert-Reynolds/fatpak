@@ -157,10 +157,6 @@ DEF MAP_AVATAR_BEHAVIOUR   EQU %00111000
 DEF MAP_AVATAR_STATIONARY  EQU %00000000
 DEF MAP_AVATAR_WANDER      EQU %00001000
 
-DEF TILE_ANIM_TYPE_SCROLL  EQU 0
-DEF TILE_ANIM_TYPE_SINE    EQU 1
-DEF TILE_ANIM_TYPE_TEXTURE EQU 2
-
 GetMapText::;a = text index, returns text in str_buffer
   ld b, 0
   ld c, a
@@ -1413,7 +1409,8 @@ LoadMap::
   ld b, a
   add a, a;count*2
   add a, b;count*3
-  inc a;count*3+1
+  add a, a;count*6
+  inc a;count*6+1
   ld b, 0
   ld c, a
   ld de, tile_anim_buffer

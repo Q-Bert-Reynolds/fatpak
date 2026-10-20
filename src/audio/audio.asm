@@ -2,9 +2,9 @@ IF !DEF(AUDIO_ASM)
 DEF AUDIO_ASM EQU 1
 
 INCLUDE "src/beisbol.inc"
-INCLUDE "src/gbt_player/gbt_player.inc"
-INCLUDE "src/gbt_player/gbt_player.asm"
-INCLUDE "src/gbt_player/gbt_player_bank1.asm"
+INCLUDE "src/audio/gbt_player/gbt_player.inc"
+INCLUDE "src/audio/gbt_player/gbt_player.asm"
+INCLUDE "src/audio/gbt_player/gbt_player_bank1.asm"
 
 INCLUDE "music/intro_lights.asm"
 INCLUDE "music/charge_fanfare.asm"
@@ -12,7 +12,7 @@ INCLUDE "music/take_me_out_to_the_ballgame.asm"
 INCLUDE "music/hurrah_for_our_national_game.asm"
 INCLUDE "music/tessie.asm"
 
-INCLUDE "src/sfx.asm"
+INCLUDE "src/audio/sfx.asm"
 
 MACRO PLAY_SONG ;\1 load address, \2 loop
   di
@@ -48,7 +48,7 @@ UpdateAudio::
   push af
   
   call UpdateSFX
-  ; call gbt_update
+  call gbt_update
   
   pop af
   SET_BANK

@@ -9,7 +9,7 @@
 ;###############################################################################
 
     INCLUDE "src/hardware.inc"
-    INCLUDE "src/gbt_player/gbt_player.inc"
+    INCLUDE "src/audio/gbt_player/gbt_player.inc"
 
 ;###############################################################################
 
