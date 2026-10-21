@@ -7,6 +7,15 @@ DEF TILE_ANIM_TYPE_SCROLL  EQU 1
 DEF TILE_ANIM_TYPE_SINE    EQU 2
 DEF TILE_ANIM_TYPE_TEXTURE EQU 3
 
+MACRO ROTATE_TILE ;\1
+REPT 16
+  ld a, [hl]
+  \1
+  ld [hli], a
+ENDR
+  ret
+ENDM
+
 SECTION "Tile Animation WRAMX", WRAMX
 tile_anim_timer: DB
 tile_anim_buffer:: DS TILE_ANIM_BUFFER_SIZE;byte 0 is count
@@ -37,9 +46,13 @@ CopyTileAnimDataToBuffer:;hl = tile index address, puts tile bytes in tile_buffe
   push bc;offset
   add hl, bc
   push de;address of tile speed
+
   ld de, tile_buffer
-  ld bc, 16
-  call mem_Copy
+REPT 16
+  ld a, [hli]
+  ld [de], a
+  inc de
+ENDR
   pop hl;address of tile speed
   pop de;offset
 
@@ -119,64 +132,53 @@ ScrollTileAnimation:
   and a, %1110
   ld e, a
   
+;NOTE jump or fallthrough only... no jump
+CopyBufferedTileToVRAM:;hl = VRAM address, de = xy offset
   ld b, 0
   ld c, a
   ld hl, tile_buffer
   add hl, bc
   ld b, h
   ld c, l
-
-.copyToVRAM
   pop hl;dest
+
+  PUSH_ALL
+  ld a, d
+  ld hl, tile_buffer
+  call RotateTileRight
+  POP_ALL
+
   ld a, 16
   sub a, e
-.bytesLoop
+.loop
     push af;bytes left
-    push de;xy offset
     ld a, [bc]
     inc bc
-    inc d
-  .bitsLoop
-      dec d
-      jr z, .writeByte
-      rrca
-      jr .bitsLoop
-  .writeByte
     ld [hli], a
-
-    pop de;xy offset
     pop af;bytes left
     dec a;bytes left
-    jr nz, .bytesLoop
+    jr nz, .loop
 
   ld a, e
   and a
   jr z, .done
   ld bc, tile_buffer
-.bytesLoop2
+.loop2
     push af;bytes left
-    push de;xy offset
     ld a, [bc]
     inc bc
-    inc d
-  .bitsLoop2
-      dec d
-      jr z, .writeByte2
-      rrca
-      jr .bitsLoop2
-  .writeByte2
     ld [hli], a
-
-    pop de;xy offset
     pop af;bytes left
     dec a;bytes left
-    jr nz, .bytesLoop2
+    jr nz, .loop2
 .done
   pop hl;next tile
   ret
 
-TileOffsetSineTable:
+TileOffsetSinTable:
 DB 0, 0, 0, 0, 1, 1, 2, 2, 3, 4, 4, 5, 5, 6, 6, 7, 7, 7, 7, 7, 6, 6, 5, 5, 4, 4, 3, 2, 2, 1, 1, 0
+TileOffsetCosTable:
+DB 3, 4, 4, 5, 5, 6, 6, 7, 7, 7, 7, 7, 6, 6, 5, 5, 4, 4, 3, 2, 2, 1, 1, 0, 0, 0, 0, 0, 1, 1, 2, 2
 
 SineTileAnimation:
   call CopyTileAnimDataToBuffer
@@ -192,15 +194,29 @@ SineTileAnimation:
   add a, a
   ld h, 0
   ld l, a
-  ld bc, TileOffsetSineTable
+  ld bc, TileOffsetCosTable
   add hl, bc
   ld a, [hl]
   ld d, a;x offset
-  ld e, 0;y offset
+
+  ld a, [tile_anim_timer]
+  swap a
+  and $F
+  add a, a
+  ld h, 0
+  ld l, a
+  ld bc, TileOffsetSinTable
+  add hl, bc
+  ld a, [hl]
+  rlca
+  ld e, a;y offset
   ld bc, tile_buffer
-  jr ScrollTileAnimation.copyToVRAM
+
+  jp CopyBufferedTileToVRAM
 
 TextureTileAnimation:
+  ;TODO
+
 LinearTileAnimation:
   ld a, [hli];tile id
   ld b, a;tile id
@@ -260,3 +276,37 @@ LinearTileAnimation:
 .done
   pop hl;next tile
   ret
+
+RotateTileRight:;a = amount, ;hl = address
+  and a, %111
+  ret z
+  ld de, .return
+  push de;return address
+
+  dec a
+  jp z, RotateTileRight1
+  dec a
+  jp z, RotateTileRight2
+  dec a
+  jp z, RotateTileRight3
+  dec a
+  jp z, RotateTileRight4
+  dec a
+  jp z, RotateTileRight5
+  dec a
+  jp z, RotateTileRight6
+  dec a
+  jp z, RotateTileRight7
+
+  pop de;return address
+
+.return
+  ret
+
+RotateTileRight1: ROTATE_TILE rrca
+RotateTileRight2: ROTATE_TILE rrca \n rrca
+RotateTileRight3: ROTATE_TILE rrca \n rrca \n rrca
+RotateTileRight4: ROTATE_TILE swap a
+RotateTileRight5: ROTATE_TILE swap a \n rrca
+RotateTileRight6: ROTATE_TILE rlca \n rlca
+RotateTileRight7: ROTATE_TILE rlca
