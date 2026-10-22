@@ -7,15 +7,6 @@ DEF TILE_ANIM_TYPE_SCROLL  EQU 1
 DEF TILE_ANIM_TYPE_SINE    EQU 2
 DEF TILE_ANIM_TYPE_TEXTURE EQU 3
 
-MACRO ROTATE_TILE ;\1
-REPT 16
-  ld a, [hl]
-  \1
-  ld [hli], a
-ENDR
-  ret
-ENDM
-
 SECTION "Tile Animation WRAMX", WRAMX
 tile_anim_timer: DB
 tile_anim_buffer:: DS TILE_ANIM_BUFFER_SIZE;byte 0 is count
@@ -81,7 +72,7 @@ UpdateTileAnimations:
     cp TILE_ANIM_TYPE_LINEAR
     jp z, LinearTileAnimation
     cp TILE_ANIM_TYPE_SCROLL
-    jp z, ScrollTileAnimation
+    jp z, ScrollTileAnimation2
     cp TILE_ANIM_TYPE_SINE
     jp z, SineTileAnimation
     cp TILE_ANIM_TYPE_TEXTURE
@@ -303,10 +294,163 @@ RotateTileRight:;a = amount, ;hl = address
 .return
   ret
 
+MACRO ROTATE_TILE ;\1 = rotate instruction
+REPT 16
+  ld a, [hl]
+  \1
+  ld [hli], a
+ENDR
+  ret
+ENDM
+
 RotateTileRight1: ROTATE_TILE rrca
 RotateTileRight2: ROTATE_TILE rrca \n rrca
 RotateTileRight3: ROTATE_TILE rrca \n rrca \n rrca
 RotateTileRight4: ROTATE_TILE swap a
-RotateTileRight5: ROTATE_TILE swap a \n rrca
+RotateTileRight5: ROTATE_TILE rlca \n rlca \n rlca
 RotateTileRight6: ROTATE_TILE rlca \n rlca
 RotateTileRight7: ROTATE_TILE rlca
+  
+ScrollTileAnimation2:
+  ld a, [last_scx]
+  ld d, a
+  ldh a, [rSCX]
+  sub a, d
+  ld d, a;diff x
+  ld a, [last_scy]
+  ld e, a
+  ldh a, [rSCY]
+  sub a, e;diff y
+  jr nz, .scrollChanged
+  ld a, d
+  and a
+  jr nz, .scrollChanged
+.incrementTileAndExit
+  ld bc, 5
+  add hl, bc
+  ret
+
+.scrollChanged
+  ld a, [hli];tile id
+  ld b, a;tile id
+  inc hl
+  inc hl
+  inc hl
+  ld a, [hli]
+  ld c, a;speed
+  push hl;next tile
+
+  ld h, 0
+  ld l, b
+  add hl, hl;*2
+  add hl, hl;*4
+  add hl, hl;*8
+  add hl, hl;*16
+  ld bc, _VRAM8800
+  add hl, bc
+  call RotateTile
+  pop hl;next tile
+  ret
+
+RotateTile:;de = xy; hl = tile address
+  ld a, d;x
+  and a, %111;x=0-7
+  swap a;x<<4
+  rrca;x<<3
+  ld d, a
+  ld a, e;y
+  and a, %111;y=0-7
+  or a, d;index = x<<3 | y
+  add a, a                            ; a = index * 2 (0..126)
+  ld e, a
+  ld d, HIGH(RotateTileJumpTable)     ; DE = entry address
+  ld a, [de]
+  ld c, a
+  inc e
+  ld a, [de]
+  ld b, a                             ; BC = Target routine address
+  push bc
+  ret                                 ; Tail-call jump to RotateTile_Y_X
+  
+DS ALIGN[8]
+RotateTileJumpTable:
+FOR x, 8
+  FOR y, 8
+    DW RotateTileX{d:x}Y{d:y}
+  ENDR
+ENDR
+
+MACRO ROTATE_TILE_X ; \1 = x (1..7)
+  IF \1 == 4
+    swap a
+  ELIF \1 < 4
+    REPT \1
+      rrca
+    ENDR
+  ELSE
+    REPT 8-\1
+      rlca
+    ENDR
+  ENDC
+ENDM;ROTATE_TILE_X
+
+MACRO ROTATE_TILE_XY ;\1 = x, \2 = y
+RotateTileX\1Y\2:
+  ;advance hl to wrapped rows and push them onto stack
+  ld de, 16-2*\2
+  add hl, de;start of wrapped rows
+  REPT \2
+    ld a, [hli]
+    ld c, a;low bitplane
+    ld a, [hli]
+    ld b, a;high bitplane
+    push bc;stack row
+  ENDR
+
+  ;set hl to destination end (byte 15) and de to source end (byte 15 - 2y)
+  dec hl;byte 15
+  ld d, h
+  ld e, l
+  REPT 2*\2
+    dec de;byte 15-2y
+  ENDR
+
+  ;stream non-wrapping rows backwards
+  REPT 16-2*\2
+    ld a, [de]
+    dec de
+    ROTATE_TILE_X \1
+    ld [hld], a
+  ENDR
+
+  ;pop wrapped rows and write into rows 0 to (y-1)
+  REPT \2
+    pop bc
+    ld a, b
+    ROTATE_TILE_X \1
+    ld [hld], a
+    ld a, c
+    ROTATE_TILE_X \1
+    ld [hld], a
+  ENDR
+  ret
+ENDM;ROTATE_TILE_XY
+
+RotateTileX0Y0:
+  ret
+
+FOR x, 1, 8
+RotateTileX{d:x}Y0:
+  REPT 16
+    ld a, [hl]
+    ROTATE_TILE_X {d:x}
+    ld [hli], a
+  ENDR
+  ret
+ENDR
+
+FOR x, 8
+  FOR y, 1, 8
+    ROTATE_TILE_XY {d:x}, {d:y}
+  ENDR
+ENDR
