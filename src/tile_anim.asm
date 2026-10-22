@@ -215,20 +215,49 @@ LinearTileAnimation:
   pop hl;next tile
   ret
 
+CalcScroll:;a = diff, c = shifts, hl = accumulator address, returns rotation in a, clobbers bc, increments hl
+  and a
+  jr z, .noChange
+
+  ld b, a;diff
+  ld a, c;shifts
+  ld c, 0;frac
+  and a
+  jr z, .addAccum;no shift
+
+.shiftLoop
+  sra b;shift right, keep sign
+  rr c;rotate carry into frac
+  dec a
+  jr nz, .shiftLoop
+
+.addAccum
+  ld a, [hl];current remainder
+  add a, c;add frac
+  ld [hli], a;update remainder
+
+  ld a, b
+  adc a, 0;diff + carry
+  ret
+
+.noChange
+  inc hl
+  ret
+
 ScrollTileAnimation:
   ld a, [last_scx]
   ld d, a
   ldh a, [rSCX]
   sub a, d
   ld d, a;diff x
+
   ld a, [last_scy]
   ld e, a
   ldh a, [rSCY]
   sub a, e;diff y
   ld e, a
-  jr nz, .scrollChanged
-  ld a, d
-  and a
+
+  or a, d
   jr nz, .scrollChanged
 .incrementTileAndExit
   ld bc, 5
@@ -237,33 +266,29 @@ ScrollTileAnimation:
 
 .scrollChanged
   ld a, [hli];tile id
-  ld b, 0
-  ld c, a;tile id
-  inc hl
-  inc hl
-  inc hl
-  ld a, [hli];speed
+  ld b, a
+  push bc;b = tile id
+  
+  ld a, [hli];x shift
+  ld c, a
+  ld a, d;x diff
+  call CalcScroll
+  ld d, a;x rotation
+
+  ld a, [hli];y shift
+  ld c, a
+  ld a, e;y diff
+  call CalcScroll
+  ld e, a;y rotation
+
+  pop bc;b = tile id
+  ld a, d
+  or a, e
+  ret z
+  
   push hl;next tile
-  push bc;tile id
-
-  push af;speed
-  and a, $F;y speed
-  push de;xy
-  ld d, 0;y only
-  rst math_Multiply;speed * xy
-  pop de;xy
-  pop af;speed
-  swap a
-  and a, $F;x speed
-  ld e, l;y
-  push de;xy
-  ld e, d;x
-  ld d, 0;x only
-  rst math_Multiply;speed * xy
-  pop de;xy
-  ld d, l;x
-
-  pop hl;tile id
+  ld h, 0
+  ld l, b;tile id
   add hl, hl;*2
   add hl, hl;*4
   add hl, hl;*8

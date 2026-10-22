@@ -9339,9 +9339,30 @@ MapOverworldTileAnimations: ;7 bytes
 
   DB TILE_ANIM_TYPE_SCROLL
   DB 60;tile id
-  DB BANK(_OverworldTiles)
-  DW _OverworldTiles
-  DB $55;speed
+  DB 1;x shifts
+  DB 0;x acc
+  DB 1;y shifts
+  DB 0;y acc
+
+  ; DB TILE_ANIM_TYPE_SCROLL
+  ; DB 13;tile id
+  ; DB 1;x shifts
+  ; DB 0;x acc
+  ; DB 1;y shifts
+  ; DB 0;y acc
+
+  ; DB TILE_ANIM_TYPE_SCROLL
+  ; DB 66;tile id
+  ; DB 2;x shifts
+  ; DB 0;x acc
+  ; DB 2;y shifts
+  ; DB 0;y acc
+
+  ; DB TILE_ANIM_TYPE_SCROLL
+  ; DB 60;tile id
+  ; DB BANK(_OverworldTiles)
+  ; DW _OverworldTiles
+  ; DB $11;speed
 
 MapOverworldEnd:
 DEF MAP_OVERWORLD_SIZE EQU MapOverworldEnd - MapOverworld
