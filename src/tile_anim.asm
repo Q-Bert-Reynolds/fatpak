@@ -110,36 +110,25 @@ SineTileAnimation:
   and a
   jr nz, .done
 
-  push bc;id, speed
   ld a, l
-  ld d, l
-  swap a
-  and $F
-  add a, a
-  ld h, 0
-  ld l, a
-  ld bc, TileOffsetCosTable
-  add hl, bc
-  ld a, [hl]
-  ld l, d
+  and %00011111
+  ld d, 0
+  ld e, a
+
+  ld hl, TileOffsetCosTable
+  add hl, de
+  ld a, [hl];x offset
+  ld hl, TileOffsetSinTable
+  add hl, de
+  ld e, [hl];y offset
   ld d, a;x offset
 
-  ld a, l
-  swap a
-  and $F
-  add a, a
-  ld h, 0
-  ld l, a
-  ld bc, TileOffsetSinTable
-  add hl, bc
-  ld a, [hl]
-  rlca
-  ld e, a;y offset
+  or a, e
+  jr z, .done
 
 .calcVRAM
-  pop bc;id, speed
   ld h, 0
-  ld l, b
+  ld l, b;tile id
   add hl, hl;*2
   add hl, hl;*4
   add hl, hl;*8
@@ -147,7 +136,7 @@ SineTileAnimation:
   ld bc, _VRAM8800
   add hl, bc
   call RotateTile
-  
+
 .done
   pop hl;next tile
   ret
