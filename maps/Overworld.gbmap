@@ -9341,7 +9341,7 @@ MapOverworldTileAnimations: ;7 bytes
   DB 60;tile id
   DB BANK(_OverworldTiles)
   DW _OverworldTiles
-  DB 1;speed
+  DB $55;speed
 
 MapOverworldEnd:
 DEF MAP_OVERWORLD_SIZE EQU MapOverworldEnd - MapOverworld

@@ -225,6 +225,7 @@ ScrollTileAnimation:
   ld e, a
   ldh a, [rSCY]
   sub a, e;diff y
+  ld e, a
   jr nz, .scrollChanged
   ld a, d
   and a
@@ -236,16 +237,33 @@ ScrollTileAnimation:
 
 .scrollChanged
   ld a, [hli];tile id
-  ld b, a;tile id
+  ld b, 0
+  ld c, a;tile id
   inc hl
   inc hl
   inc hl
-  ld a, [hli]
-  ld c, a;speed
+  ld a, [hli];speed
   push hl;next tile
+  push bc;tile id
 
-  ld h, 0
-  ld l, b
+  push af;speed
+  and a, $F;y speed
+  push de;xy
+  ld d, 0;y only
+  rst math_Multiply;speed * xy
+  pop de;xy
+  pop af;speed
+  swap a
+  and a, $F;x speed
+  ld e, l;y
+  push de;xy
+  ld e, d;x
+  ld d, 0;x only
+  rst math_Multiply;speed * xy
+  pop de;xy
+  ld d, l;x
+
+  pop hl;tile id
   add hl, hl;*2
   add hl, hl;*4
   add hl, hl;*8
