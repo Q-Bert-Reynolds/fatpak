@@ -72,7 +72,7 @@ UpdateTileAnimations:
     cp TILE_ANIM_TYPE_LINEAR
     jp z, LinearTileAnimation
     cp TILE_ANIM_TYPE_SCROLL
-    jp z, ScrollTileAnimation2
+    jp z, ScrollTileAnimation
     cp TILE_ANIM_TYPE_SINE
     jp z, SineTileAnimation
     cp TILE_ANIM_TYPE_TEXTURE
@@ -85,101 +85,34 @@ UpdateTileAnimations:
     jr nz, .loopTiles
   ret
 
-ScrollTileAnimation:
-  ld a, [last_scx]
-  ld b, a
-  ldh a, [rSCX]
-  cp a, b
-  jr nz, .scrollChanged
-  ld a, [last_scy]
-  ld b, a
-  ldh a, [rSCY]
-  cp a, b
-  jr nz, .scrollChanged
-.incrementTileAndExit
-  ld bc, 5
-  add hl, bc
-  ret
-
-.scrollChanged
-  call CopyTileAnimDataToBuffer
-  ld a, [hli];speed
-  push hl;next tile
-  ld hl, _VRAM8800
-  add hl, de
-  push hl;dest
-
-  ;TODO: speed should drive rotation
-  ldh a, [rSCX]
-  rrca
-  rrca
-  rrca
-  and a, %111
-  ld d, a
-  ldh a, [rSCY]
-  rrca
-  rrca
-  cpl a
-  and a, %1110
-  ld e, a
-  
-;NOTE jump or fallthrough only... no jump
-CopyBufferedTileToVRAM:;hl = VRAM address, de = xy offset
-  ld b, 0
-  ld c, a
-  ld hl, tile_buffer
-  add hl, bc
-  ld b, h
-  ld c, l
-  pop hl;dest
-
-  PUSH_ALL
-  ld a, d
-  ld hl, tile_buffer
-  call RotateTileRight
-  POP_ALL
-
-  ld a, 16
-  sub a, e
-.loop
-    push af;bytes left
-    ld a, [bc]
-    inc bc
-    ld [hli], a
-    pop af;bytes left
-    dec a;bytes left
-    jr nz, .loop
-
-  ld a, e
-  and a
-  jr z, .done
-  ld bc, tile_buffer
-.loop2
-    push af;bytes left
-    ld a, [bc]
-    inc bc
-    ld [hli], a
-    pop af;bytes left
-    dec a;bytes left
-    jr nz, .loop2
-.done
-  pop hl;next tile
-  ret
-
 TileOffsetSinTable:
-DB 0, 0, 0, 0, 1, 1, 2, 2, 3, 4, 4, 5, 5, 6, 6, 7, 7, 7, 7, 7, 6, 6, 5, 5, 4, 4, 3, 2, 2, 1, 1, 0
+DB 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, -1, 0, -1, 0, -1, 0, -1, -1, 0, -1, 0, -1
 TileOffsetCosTable:
-DB 3, 4, 4, 5, 5, 6, 6, 7, 7, 7, 7, 7, 6, 6, 5, 5, 4, 4, 3, 2, 2, 1, 1, 0, 0, 0, 0, 0, 1, 1, 2, 2
+DB 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, -1, 0, -1, 0, -1, 0, -1, -1, 0, -1, 0, -1, 0, 0, 0, 0, 1, 0, 1, 0
 
 SineTileAnimation:
-  call CopyTileAnimDataToBuffer
-  ld a, [hli];speed
+  ld a, [hli];tile id
+  ld b, a;tile id
+  inc hl
+  inc hl
+  inc hl
+  ld a, [hli]
+  ld c, a;speed
   push hl;next tile
-  ld hl, _VRAM8800
-  add hl, de
-  push hl;dest
+  push bc;id, speed
 
+  call math_Abs;speed in a
+  ld c, a;|speed|
   ld a, [tile_anim_timer]
+  ld h, a
+  call math_Divide8;step / speed
+  pop bc;id, speed
+  and a
+  jr nz, .done
+
+  push bc;id, speed
+  ld a, l
+  ld d, l
   swap a
   and $F
   add a, a
@@ -188,9 +121,10 @@ SineTileAnimation:
   ld bc, TileOffsetCosTable
   add hl, bc
   ld a, [hl]
+  ld l, d
   ld d, a;x offset
 
-  ld a, [tile_anim_timer]
+  ld a, l
   swap a
   and $F
   add a, a
@@ -201,9 +135,22 @@ SineTileAnimation:
   ld a, [hl]
   rlca
   ld e, a;y offset
-  ld bc, tile_buffer
 
-  jp CopyBufferedTileToVRAM
+.calcVRAM
+  pop bc;id, speed
+  ld h, 0
+  ld l, b
+  add hl, hl;*2
+  add hl, hl;*4
+  add hl, hl;*8
+  add hl, hl;*16
+  ld bc, _VRAM8800
+  add hl, bc
+  call RotateTile
+  
+.done
+  pop hl;next tile
+  ret
 
 TextureTileAnimation:
   ;TODO
@@ -268,50 +215,7 @@ LinearTileAnimation:
   pop hl;next tile
   ret
 
-RotateTileRight:;a = amount, ;hl = address
-  and a, %111
-  ret z
-  ld de, .return
-  push de;return address
-
-  dec a
-  jp z, RotateTileRight1
-  dec a
-  jp z, RotateTileRight2
-  dec a
-  jp z, RotateTileRight3
-  dec a
-  jp z, RotateTileRight4
-  dec a
-  jp z, RotateTileRight5
-  dec a
-  jp z, RotateTileRight6
-  dec a
-  jp z, RotateTileRight7
-
-  pop de;return address
-
-.return
-  ret
-
-MACRO ROTATE_TILE ;\1 = rotate instruction
-REPT 16
-  ld a, [hl]
-  \1
-  ld [hli], a
-ENDR
-  ret
-ENDM
-
-RotateTileRight1: ROTATE_TILE rrca
-RotateTileRight2: ROTATE_TILE rrca \n rrca
-RotateTileRight3: ROTATE_TILE rrca \n rrca \n rrca
-RotateTileRight4: ROTATE_TILE swap a
-RotateTileRight5: ROTATE_TILE rlca \n rlca \n rlca
-RotateTileRight6: ROTATE_TILE rlca \n rlca
-RotateTileRight7: ROTATE_TILE rlca
-  
-ScrollTileAnimation2:
+ScrollTileAnimation:
   ld a, [last_scx]
   ld d, a
   ldh a, [rSCX]
@@ -355,8 +259,9 @@ ScrollTileAnimation2:
 RotateTile:;de = xy; hl = tile address
   ld a, d;x
   and a, %111;x=0-7
-  swap a;x<<4
-  rrca;x<<3
+  rlca;x<<1
+  rlca;x<<2
+  rlca;x<<3
   ld d, a
   ld a, e;y
   and a, %111;y=0-7

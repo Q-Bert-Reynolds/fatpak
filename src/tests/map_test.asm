@@ -12,7 +12,7 @@ TestMap::
   ld a, 20
   ld [map_x], a
   ld [map_y], a
-  ld a, MAP_OVERWORLD_CHUNK_BILLETTOWNNE
+  ld a, MAP_OVERWORLD_CHUNK_BILLETTOWNSW
   ld [map_chunk], a
   call LoadMap
   
@@ -20,7 +20,7 @@ TestMap::
   
   ld a, WORLD_FRAME_STEP
   ldh [anim_step_size], a
-  ld a, 8
+  ld a, 1
   ldh [map_scroll_speed], a
 
 .loop

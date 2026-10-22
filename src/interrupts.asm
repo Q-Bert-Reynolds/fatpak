@@ -137,10 +137,10 @@ UpdateTime:
   xor a
   ldh [vbl_timer], a
 
-.testGameState
+.checkGameState
   ld a, [game_state]
-  and a
-  ret z;if game hasn't started, don't increment game time
+  and a, GAME_STATE_CLOCK_STARTED
+  ret z
 
 .incrementSeconds
   ld a, [seconds]
