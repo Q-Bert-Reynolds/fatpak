@@ -88,7 +88,9 @@ UpdateTileAnimations:
   ld a, c;tile count
 .loopTiles
     push af;tiles left
-    ld a, [hli];type    
+    ld a, [hli];type
+    ;TODO: calc VRAM address here instead of in anim routines
+
     ld de, .returnAddress
     push de;return address
     cp TILE_ANIM_TYPE_LINEAR
@@ -115,37 +117,81 @@ DB 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, -1, 0, -1, 0, -1, 0, -1, -1, 0, -1, 0, -1
 SineTileAnimation:
   ld a, [hli];tile id
   ld b, a;tile id
-  ld a, [hli]
-  ld c, a;speed
-  push hl;next tile
-  push bc;id, speed
 
-  call math_Abs;speed in a
-  ld c, a;|speed|
   ld a, [tile_anim_timer]
-  ld h, a
-  call math_Divide8;step / speed
-  pop bc;id, speed
-  and a
-  jr nz, .done
-
-  ld a, l
-  and %00011111
+  and 1
+  jr z, .testX
+  ld bc, 4
+  add hl, bc
+  ret
+  
+.testX
+  push bc;b = tile id
   ld d, 0
+  ld a, [hli]
+  and %111;max speed is 7
+  ld c, a;x speed
+  ld a, [hl];frames left in lowest 3 bits
+  dec a
+  and %111;frames left
+  jr nz, .noXStep
+.stepX
+  ld a, [hl]
+  add a, %1000
+  or a, c;reset frames left
+  ld [hli], a
+  rrca
+  rrca
+  rrca
+  and a, %11111
   ld e, a
-
+  push hl
   ld hl, TileOffsetCosTable
   add hl, de
   ld a, [hl];x offset
-  ld hl, TileOffsetSinTable
-  add hl, de
-  ld e, [hl];y offset
-  ld d, a;x offset
+  ld d, a
+  pop hl
+  jr .testY
+.noXStep
+  ld a, [hl]
+  dec a
+  ld [hli], a
 
-  or a, e
-  jr z, .done
+.testY
+  ld e, 0;y offset
+  ld a, [hli]
+  and %111;max speed is 7
+  ld c, a;y speed
+  ld a, [hl];frames left in lowest 3 bits
+  dec a
+  and %111;frames left
+  jr nz, .noYStep
+.stepY
+  ld a, [hl]
+  add a, %1000
+  or a, c;reset frames left
+  ld [hli], a
+  rrca
+  rrca
+  rrca
+  and a, %11111
+  ld b, 0
+  ld c, a
+  push hl
+  ld hl, TileOffsetSinTable
+  add hl, bc
+  ld a, [hl];y offset
+  ld e, a
+  pop hl
+  jr .calcVRAM
+.noYStep
+  ld a, [hl]
+  dec a
+  ld [hli], a
 
 .calcVRAM
+  pop bc;b = tile id
+  push hl;next tile
   ld h, 0
   ld l, b;tile id
   add hl, hl;*2
@@ -155,29 +201,38 @@ SineTileAnimation:
   ld bc, _VRAM8800
   add hl, bc
   call RotateTile
-
-.done
   pop hl;next tile
   ret
 
 LinearTileAnimation:
   ld a, [hli];tile id
   ld b, a;tile id
+
+.testX
+  ld d, 0
   ld a, [hli]
-  ld c, a;speed
-  push hl;next tile
-  push bc;id, speed
-  
-  ld a, c;speed
-  call math_Abs
-  ld c, a;|speed|
-  ld a, [tile_anim_timer]
-  ld h, a
-  call math_Divide8;step / speed
-  pop bc;id, speed
-  and a
-  jr nz, .done
-  
+  ld c, a;x speed
+  ld a, [hl];x frames left before step
+  dec a
+  jr nz, .updateXFrame
+  inc d
+  ld a, c;reset x frame to x speed
+.updateXFrame
+  ld [hli], a
+
+.testY
+  ld e, 0
+  ld a, [hli]
+  ld c, a;y speed
+  ld a, [hl];y frames left before step
+  dec a
+  jr nz, .updateYFrame
+  inc e
+  ld a, c;reset y frame to y speed
+.updateYFrame
+  ld [hli], a
+
+  push hl;next tile  
 .calcVRAM
   ld h, 0
   ld l, b
@@ -185,35 +240,11 @@ LinearTileAnimation:
   add hl, hl;*4
   add hl, hl;*8
   add hl, hl;*16
-  ld de, _VRAM8800
-  add hl, de
+  ld bc, _VRAM8800
+  add hl, bc
 
-  ld b, 16
-  ld a, c
-  and a, %10000000
-  ld a, c
-  jr z, .shiftRightLoop
-  
-  cpl
-  inc a
-  jr .shiftLeftLoop
-
-.shiftRightLoop
-    ld a, [hl]
-    rrca
-    ld [hli], a
-    dec b;bytes left
-    jr nz, .shiftRightLoop
-  jr .done
-
-.shiftLeftLoop
-    ld a, [hl]
-    rlca
-    ld [hli], a
-    dec b;bytes left
-    jr nz, .shiftLeftLoop
-
-.done
+.updateTile
+  call RotateTile
   pop hl;next tile
   ret
 
