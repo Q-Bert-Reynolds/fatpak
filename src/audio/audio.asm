@@ -56,7 +56,7 @@ UpdateAudio::
 
 StopSFX:;stops current sfx, resets sfx_priority and gbt_channels_enabled, only af affected
 .testChannel1
-  ld a, [gbt_channels_enabled]
+  ldh a, [gbt_channels_enabled]
   bit 0, a
   jr nz, .testChannel2
 	ld	a,$08;volume zero but don't turn off DAC
@@ -64,7 +64,7 @@ StopSFX:;stops current sfx, resets sfx_priority and gbt_channels_enabled, only a
 	ld	a,$80;trigger sound to mute
 	ldh	[rNR14],a
 .testChannel2
-  ld a, [gbt_channels_enabled]
+  ldh a, [gbt_channels_enabled]
   bit 1, a
   jr nz, .testChannel3
 	ld	a,$08
@@ -72,7 +72,7 @@ StopSFX:;stops current sfx, resets sfx_priority and gbt_channels_enabled, only a
 	ld	a,$80
 	ldh	[rNR24],a
 .testChannel3
-  ld a, [gbt_channels_enabled]
+  ldh a, [gbt_channels_enabled]
   bit 2, a
   jr nz, .testChannel4
 	ld	a,$08
@@ -80,7 +80,7 @@ StopSFX:;stops current sfx, resets sfx_priority and gbt_channels_enabled, only a
 	ld	a,$80
 	ldh	[rNR34],a
 .testChannel4
-  ld a, [gbt_channels_enabled]
+  ldh a, [gbt_channels_enabled]
   bit 3, a
   jr nz, .resetState
 	ld	a,$08
@@ -91,7 +91,7 @@ StopSFX:;stops current sfx, resets sfx_priority and gbt_channels_enabled, only a
   xor a
   ld [sfx_priority], a
   ld a, %1111
-  ld [gbt_channels_enabled], a
+  ldh [gbt_channels_enabled], a
   ret
 
 UpdateSFX:
@@ -186,7 +186,7 @@ PlaySFX:: ; a = bank, hl = sfx address
 
   ld a, e;priority and gbt flags
   and a, $F;discard priority
-  ld [gbt_channels_enabled], a
+  ldh [gbt_channels_enabled], a
 
   ld a, [hli];step count
   ld [sfx_step_count], a

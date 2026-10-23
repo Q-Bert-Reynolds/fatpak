@@ -13,6 +13,13 @@
 
 ;###############################################################################
 
+    SECTION "GBT_HRAM",HRAM
+
+;-------------------------------------------------------------------------------
+gbt_channels_enabled:: DS 1
+
+;###############################################################################
+
     SECTION "GBT_VAR_1",WRAM0
 
 ;-------------------------------------------------------------------------------
@@ -43,8 +50,6 @@ gbt_current_step_data_bank:: DS 2 ; bank of current pattern data - LSB first
 ELSE
 gbt_current_step_data_bank:: DS 1 ; bank of current pattern data
 ENDC
-
-gbt_channels_enabled:: DS 1
 
 gbt_pan::   DS 4*1 ; Ch 1-4
 gbt_vol::   DS 4*1 ; Ch 1-4
@@ -187,7 +192,7 @@ ENDC
     ld      [gbt_channel3_loaded_instrument],a
 
     ld      a,$0F
-    ld      [gbt_channels_enabled],a
+    ldh     [gbt_channels_enabled],a
 
     ld      hl,gbt_pan
     ld      a,$11 ; L and R
@@ -235,34 +240,34 @@ ENDC
     ld      [gbt_cut_note_tick+3],a
 
     ld      a,$80
-    ld      [rNR52],a
+    ldh     [rNR52],a
     ld      a,$00
-    ld      [rNR51],a
+    ldh     [rNR51],a
     ld      a,$00 ; 0%
-    ld      [rNR50],a
+    ldh     [rNR50],a
 
     xor     a,a
-    ld      [rNR10],a
-    ld      [rNR11],a
-    ld      [rNR12],a
-    ld      [rNR13],a
-    ld      [rNR14],a
-    ld      [rNR21],a
-    ld      [rNR22],a
-    ld      [rNR23],a
-    ld      [rNR24],a
-    ld      [rNR30],a
-    ld      [rNR31],a
-    ld      [rNR32],a
-    ld      [rNR33],a
-    ld      [rNR34],a
-    ld      [rNR41],a
-    ld      [rNR42],a
-    ld      [rNR43],a
-    ld      [rNR44],a
+    ldh     [rNR10],a
+    ldh     [rNR11],a
+    ldh     [rNR12],a
+    ldh     [rNR13],a
+    ldh     [rNR14],a
+    ldh     [rNR21],a
+    ldh     [rNR22],a
+    ldh     [rNR23],a
+    ldh     [rNR24],a
+    ldh     [rNR30],a
+    ldh     [rNR31],a
+    ldh     [rNR32],a
+    ldh     [rNR33],a
+    ldh     [rNR34],a
+    ldh     [rNR41],a
+    ldh     [rNR42],a
+    ldh     [rNR43],a
+    ldh     [rNR44],a
 
     ld      a,$77 ; 100%
-    ld      [rNR50],a
+    ldh     [rNR50],a
 
     ld      a,$01
     ld      [gbt_playing],a
@@ -278,7 +283,7 @@ gbt_pause:: ; a = pause/unpause
 
     ; Silence all channels
     xor     a,a
-    ld      [rNR51],a
+    ldh     [rNR51],a
 
     ret
 
@@ -292,7 +297,7 @@ gbt_pause:: ; a = pause/unpause
     or      a,[hl]
     inc     hl
     or      a,[hl]
-    ld      [rNR51],a
+    ldh     [rNR51],a
 
     ret
 
@@ -307,15 +312,15 @@ gbt_loop:: ; a = loop/don't loop
 gbt_stop::
     xor     a,a
     ld      [gbt_playing],a
-    ld      [rNR50],a
-    ld      [rNR51],a
-    ld      [rNR52],a
+    ldh     [rNR50],a
+    ldh     [rNR51],a
+    ldh     [rNR52],a
     ret
 
 ;-------------------------------------------------------------------------------
 
 gbt_enable_channels:: ; a = channel flags (channel flag = (1<<(channel_num-1)))
-    ld      [gbt_channels_enabled],a
+    ldh     [gbt_channels_enabled],a
     ret
 
 ;-------------------------------------------------------------------------------
