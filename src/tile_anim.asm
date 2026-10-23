@@ -384,8 +384,9 @@ ENDM;ROTATE_TILE_X
 
 MACRO ROTATE_TILE_XY ;\1 = x, \2 = y
 RotateTileX\1Y\2:
+IF \2 <= 4;shift down
   ;advance hl to wrapped rows and push them onto stack
-  ld de, 16-2*\2
+  ld de, 2*(8-\2)
   add hl, de;start of wrapped rows
   REPT \2
     ld a, [hli]
@@ -405,7 +406,7 @@ RotateTileX\1Y\2:
   ld e, a
 
   ;stream non-wrapping rows backwards
-  REPT 16-2*\2
+  REPT 2*(8-\2)
     ld a, [de]
     dec e
     ROTATE_TILE_X \1
@@ -424,8 +425,55 @@ RotateTileX\1Y\2:
     ROTATE_TILE_X \1
     ld [hld], a
   ENDR
+
+ELSE;shift up
+  ;push top rows onto stack
+  REPT 8 - \2
+    ld a, [hli]
+    ld c, a
+    ld a, [hli]
+    ld b, a
+    IF \2 < 7
+      push bc
+    ENDC
+  ENDR
+
+  ;src de = byte 2*(8-y), dest hl = byte 0
+  ld d, h
+  ld e, l
+  ld a, l
+  sub 2*(8-\2)
+  ld l, a
+
+  ;stream remaining rows forwards
+  REPT 2*\2
+    ld a, [de]
+    inc e
+    ROTATE_TILE_X \1
+    ld [hli], a
+  ENDR
+
+  ;advance hl to byte 15
+  ld a, l
+  add a, 2*(8-\2)-1
+  ld l, a
+
+  ;stream backwards
+  REPT 8-\2
+    IF \2 < 7;no need for stack if y = 7
+      pop bc
+    ENDC
+    ld a, b
+    ROTATE_TILE_X \1
+    ld [hld], a
+    ld a, c
+    ROTATE_TILE_X \1
+    ld [hld], a
+  ENDR
+ENDC
   ret
 ENDM;ROTATE_TILE_XY
+
 
 RotateTileX0Y0:
   ret
