@@ -9335,7 +9335,7 @@ MapOverworldBilletTown:;Billet Town, 14 bytes
   DB 0;END
 
 MapOverworldTileAnimations: ;7 bytes
-  DB 1;num tile animations
+  DB 3;num tile animations
 
   ; DB TILE_ANIM_TYPE_SCROLL
   ; DB 60;tile id
@@ -9344,12 +9344,12 @@ MapOverworldTileAnimations: ;7 bytes
   ; DB 1;y shifts
   ; DB 0;y acc
 
-  ; DB TILE_ANIM_TYPE_SCROLL
-  ; DB 13;tile id
-  ; DB 1;x shifts
-  ; DB 0;x acc
-  ; DB 1;y shifts
-  ; DB 0;y acc
+  DB TILE_ANIM_TYPE_SCROLL
+  DB 13;tile id
+  DB 1;x shifts
+  DB 0;x acc
+  DB 1;y shifts
+  DB 0;y acc
 
   ; DB TILE_ANIM_TYPE_SCROLL
   ; DB 66;tile id

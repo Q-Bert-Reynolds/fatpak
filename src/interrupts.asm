@@ -114,9 +114,9 @@ VBLInterrupt::
 
   call gbdk_DMATransfer
   call UpdateTime
-  call UpdateAudio
   call UpdateAnimations
-
+  call UpdateAudio
+  
   ldh a, [rSCX]
   ld [last_scx], a
   ldh a, [rSCY]
@@ -173,13 +173,15 @@ UpdateAnimations::
   and a, GAME_STATE_PAUSED
   ret nz
 
+  TRAMPOLINE UpdateTileAnimations
+
   ldh a, [anim_step_size]
   ld b, a
   ldh a, [anim_timer]
   inc a
   ldh [anim_timer], a
   cp a, b
-  jr c, .updateTiles
+  ret c
 
   xor a
   ldh [anim_timer], a
@@ -187,9 +189,6 @@ UpdateAnimations::
   inc a
   ldh [anim_step], a
   call UpdateSpriteObjects
-
-.updateTiles
-  TRAMPOLINE UpdateTileAnimations
   ret
 
 UpdateSpriteObjects:

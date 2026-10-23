@@ -56,6 +56,9 @@ TestMap::
     jr nz, .exit
   .wait
     call CopyMapSpritesToOAMBuffer
+    ldh a, [button_state]
+    and a, PADF_B
+    jp nz, .loop
     call gbdk_WaitVBL
     jp .loop
 .exit
