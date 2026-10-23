@@ -1,5 +1,6 @@
 Priority
 
+- handle negative speeds for tile animations
 - optimize gbt_player and tile_animations so 4 tiles can be updated on dmg
 - fix swing timing
 - fix timing for score bug vs player data

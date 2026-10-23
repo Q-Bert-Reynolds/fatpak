@@ -9339,10 +9339,10 @@ MapOverworldTileAnimations: ;25 bytes
 
   DB TILE_ANIM_TYPE_SINE
   DB 60;tile id
-  DB 4;x steps
-  DB 0;x last step
-  DB 4;y steps
-  DB 0;y last step
+  DB 4;frames per x step
+  DB 0;x last step index
+  DB 4;frames per y step
+  DB 0;y last step index
 
   DB TILE_ANIM_TYPE_SCROLL
   DB 13;tile id
@@ -9353,10 +9353,10 @@ MapOverworldTileAnimations: ;25 bytes
 
   DB TILE_ANIM_TYPE_LINEAR
   DB 66;tile id
-  DB 10;x steps
-  DB 0;x last step
-  DB 120;y steps
-  DB 0;y last step
+  DB 10;frames per x step
+  DB 10;x steps left
+  DB 120;frames per y step
+  DB 120;y steps left
 
   DB TILE_ANIM_TYPE_TEXTURE
   DB 44;tile id

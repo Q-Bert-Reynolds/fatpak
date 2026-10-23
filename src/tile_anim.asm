@@ -18,24 +18,25 @@ SECTION "Tile Animation ROM0", ROM0
 TextureTileAnimation:
   ld a, [tile_anim_timer]
   and a, $F
-  ret z
+  ret nz
   
   ld a, [tile_anim_timer]
   swap a
-  and a, %11
+  and a, %11;TODO: read frame count
   push af;frame
 
 .calcVRAM
   ld a, [hli];tile id
   push hl;tile bank address
-  ld h, 0
+  
+  swap a
+  ld h, a
+  and a, $F0
   ld l, a
-  add hl, hl;*2
-  add hl, hl;*4
-  add hl, hl;*8
-  add hl, hl;*16
-  ld de, _VRAM8800
-  add hl, de;
+  ld a, h
+  and a, $F
+  add a, HIGH(_VRAM8800)
+  ld h, a
 
 .readTileData
   pop de;tile bank address
@@ -183,26 +184,15 @@ SineTileAnimation:
   ld a, [hl];y offset
   ld e, a
   pop hl
-  jr .calcVRAM
+  jr .updateTile
 .noYStep
   ld a, [hl]
   dec a
   ld [hli], a
 
-.calcVRAM
+.updateTile
   pop bc;b = tile id
-  push hl;next tile
-  ld h, 0
-  ld l, b;tile id
-  add hl, hl;*2
-  add hl, hl;*4
-  add hl, hl;*8
-  add hl, hl;*16
-  ld bc, _VRAM8800
-  add hl, bc
-  call RotateTile
-  pop hl;next tile
-  ret
+  jp RotateTileById
 
 LinearTileAnimation:
   ld a, [hli];tile id
@@ -232,21 +222,7 @@ LinearTileAnimation:
 .updateYFrame
   ld [hli], a
 
-  push hl;next tile  
-.calcVRAM
-  ld h, 0
-  ld l, b
-  add hl, hl;*2
-  add hl, hl;*4
-  add hl, hl;*8
-  add hl, hl;*16
-  ld bc, _VRAM8800
-  add hl, bc
-
-.updateTile
-  call RotateTile
-  pop hl;next tile
-  ret
+  jp RotateTileById
 
 CalcScroll:;a = diff, c = shifts, hl = accumulator address, returns rotation in a, clobbers bc, increments hl
   and a
@@ -315,19 +291,26 @@ ScrollTileAnimation:
   ld e, a;y rotation
 
   pop bc;b = tile id
+  ;fall through
+
+RotateTileById: ;b = tile id, hl = next tile, de = xy offset
   ld a, d
-  or a, e
+  or e
   ret z
-  
+
   push hl;next tile
-  ld h, 0
-  ld l, b;tile id
-  add hl, hl;*2
-  add hl, hl;*4
-  add hl, hl;*8
-  add hl, hl;*16
-  ld bc, _VRAM8800
-  add hl, bc
+
+  ld a, b;tile id
+  swap a
+  ld h, a
+  and a, $F0
+  ld l, a
+  ld a, h
+  and a, $F
+  add a, HIGH(_VRAM8800)
+  ld h, a
+
+.updateTile
   call RotateTile
   pop hl;next tile
   ret
@@ -385,28 +368,31 @@ RotateTileX\1Y\2:
     ld c, a;low bitplane
     ld a, [hli]
     ld b, a;high bitplane
-    push bc;stack row
+    IF \2 > 1
+      push bc;stack row
+    ENDC
   ENDR
 
   ;set hl to destination end (byte 15) and de to source end (byte 15 - 2y)
   dec hl;byte 15
   ld d, h
-  ld e, l
-  REPT 2*\2
-    dec de;byte 15-2y
-  ENDR
+  ld a, l
+  sub 2*\2
+  ld e, a
 
   ;stream non-wrapping rows backwards
   REPT 16-2*\2
     ld a, [de]
-    dec de
+    dec e
     ROTATE_TILE_X \1
     ld [hld], a
   ENDR
 
   ;pop wrapped rows and write into rows 0 to (y-1)
   REPT \2
-    pop bc
+    IF \2 > 1
+      pop bc
+    ENDC
     ld a, b
     ROTATE_TILE_X \1
     ld [hld], a
