@@ -110,7 +110,7 @@ UpdateTileAnimations:
   ret
 
 TileOffsetSinTable:
-DB 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, -1, 0, -1, 0, -1, 0, -1, -1, 0, -1, 0, -1
+DB 0, 0, 0, 0, 1, 0, 1, 0;continued in TileOffsetCosTable
 TileOffsetCosTable:
 DB 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, -1, 0, -1, 0, -1, 0, -1, -1, 0, -1, 0, -1, 0, 0, 0, 0, 1, 0, 1, 0
 

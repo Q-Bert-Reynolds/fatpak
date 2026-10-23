@@ -9346,9 +9346,9 @@ MapOverworldTileAnimations: ;25 bytes
 
   DB TILE_ANIM_TYPE_SCROLL
   DB 13;tile id
-  DB 1;x steps
+  DB 2;x steps
   DB 0;x accumulator
-  DB 3;y steps
+  DB 2;y steps
   DB 0;y accumulator
 
   DB TILE_ANIM_TYPE_LINEAR

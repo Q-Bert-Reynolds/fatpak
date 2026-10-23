@@ -1,6 +1,6 @@
 Priority
 
-- use tile speed properly
+- optimize gbt_player and tile_animations so 4 tiles can be updated on dmg
 - fix swing timing
 - fix timing for score bug vs player data
 - add swing/pitch fx
