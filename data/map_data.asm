@@ -1,5 +1,6 @@
 
 SECTION "Map Images", ROMX
+INCLUDE "img/maps/flower_tile_anim.asm"
 INCLUDE "img/maps/houses.asm"
 INCLUDE "img/maps/overworld.asm"
 INCLUDE "img/maps/world_sprites.asm"

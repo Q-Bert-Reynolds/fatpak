@@ -12,7 +12,20 @@ tile_anim_timer: DB
 tile_anim_buffer:: DS TILE_ANIM_BUFFER_SIZE;byte 0 is count
 
 SECTION "Tile Animation ROM0", ROM0
-CopyTileAnimDataToBuffer:;hl = tile index address, puts tile bytes in tile_buffer, returns offset in de, address of tile speed in hl
+;hl = address of tile id
+;puts tile bytes in tile_buffer
+;returns address of next tile in hl
+TextureTileAnimation:
+  ld a, [tile_anim_timer]
+  and a, $F
+  ret z
+  
+  ld a, [tile_anim_timer]
+  swap a
+  and a, %11
+  push af;frame
+
+.calcVRAM
   ld a, [hli];tile id
   push hl;tile bank address
   ld h, 0
@@ -21,31 +34,40 @@ CopyTileAnimDataToBuffer:;hl = tile index address, puts tile bytes in tile_buffe
   add hl, hl;*4
   add hl, hl;*8
   add hl, hl;*16
+  ld de, _VRAM8800
+  add hl, de;
+
+.readTileData
   pop de;tile bank address
-  push hl;offset offset
-.blah
+  pop af;frame
+  push hl;vram address
+  push af;frame
   ld a, [de];bank
   ld [rROMB0], a
   inc de
-  ld a, [de];tile
+  ld a, [de];tile data address
   ld l, a
   inc de
   ld a, [de]
-  ld h, a
+  ld h, a;tile data in hl
+  inc de;discard speed
+  pop af;frame
   inc de
-  pop bc;offset
-  push bc;offset
-  add hl, bc
-  push de;address of tile speed
+  ld bc, 16
+  and a
+  jr z, .writeToVRAM
+.loop
+    add hl, bc
+    dec a
+    jr nz, .loop
 
-  ld de, tile_buffer
+.writeToVRAM
+  pop bc;vram address
 REPT 16
   ld a, [hli]
-  ld [de], a
-  inc de
+  ld [bc], a
+  inc bc
 ENDR
-  pop hl;address of tile speed
-  pop de;offset
 
   ldh a, [loaded_bank]
   ld [rROMB0], a
@@ -93,9 +115,6 @@ DB 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, -1, 0, -1, 0, -1, 0, -1, -1, 0, -1, 0, -1
 SineTileAnimation:
   ld a, [hli];tile id
   ld b, a;tile id
-  inc hl
-  inc hl
-  inc hl
   ld a, [hli]
   ld c, a;speed
   push hl;next tile
@@ -141,15 +160,9 @@ SineTileAnimation:
   pop hl;next tile
   ret
 
-TextureTileAnimation:
-  ;TODO
-
 LinearTileAnimation:
   ld a, [hli];tile id
   ld b, a;tile id
-  inc hl
-  inc hl
-  inc hl
   ld a, [hli]
   ld c, a;speed
   push hl;next tile
