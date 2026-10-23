@@ -7,6 +7,17 @@ DEF TILE_ANIM_TYPE_SCROLL  EQU 1
 DEF TILE_ANIM_TYPE_SINE    EQU 2
 DEF TILE_ANIM_TYPE_TEXTURE EQU 3
 
+MACRO CALC_VRAM_ADDRESS;a = tile id, puts VRAM address in hl
+  swap a
+  ld h, a
+  and a, $F0
+  ld l, a
+  ld a, h
+  and a, $F
+  add a, HIGH(_VRAM8800)
+  ld h, a
+ENDM
+
 SECTION "Tile Animation WRAMX", WRAMX
 tile_anim_timer: DB
 tile_anim_buffer:: DS TILE_ANIM_BUFFER_SIZE;byte 0 is count
@@ -29,14 +40,7 @@ TextureTileAnimation:
   ld a, [hli];tile id
   push hl;tile bank address
   
-  swap a
-  ld h, a
-  and a, $F0
-  ld l, a
-  ld a, h
-  and a, $F
-  add a, HIGH(_VRAM8800)
-  ld h, a
+  CALC_VRAM_ADDRESS
 
 .readTileData
   pop de;tile bank address
@@ -118,14 +122,12 @@ DB 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, -1, 0, -1, 0, -1, 0, -1, -1, 0, -1, 0, -1
 SineTileAnimation:
   ld a, [hli];tile id
   ld b, a;tile id
-
   ld a, [tile_anim_timer]
   and 1
   jr z, .testX
   ld bc, 4
   add hl, bc
   ret
-  
 .testX
   push bc;b = tile id
   ld d, 0
@@ -157,7 +159,6 @@ SineTileAnimation:
   ld a, [hl]
   dec a
   ld [hli], a
-
 .testY
   ld e, 0;y offset
   ld a, [hli]
@@ -183,21 +184,29 @@ SineTileAnimation:
   add hl, bc
   ld a, [hl];y offset
   ld e, a
-  pop hl
-  jr .updateTile
+  pop hl;next tile
+  jr .checkOffset
 .noYStep
   ld a, [hl]
   dec a
   ld [hli], a
-
-.updateTile
+.checkOffset
   pop bc;b = tile id
-  jp RotateTileById
+  ld a, d
+  or e
+  ret z;no rotation
+.rotateTile
+  push hl;next tile
+  ld a, b;tile id
+  CALC_VRAM_ADDRESS
+  call RotateTileByOne
+  pop hl;next tile
+  ret
+
 
 LinearTileAnimation:
   ld a, [hli];tile id
   ld b, a;tile id
-
 .testX
   ld d, 0
   ld a, [hli]
@@ -209,7 +218,6 @@ LinearTileAnimation:
   ld a, c;reset x frame to x speed
 .updateXFrame
   ld [hli], a
-
 .testY
   ld e, 0
   ld a, [hli]
@@ -221,34 +229,38 @@ LinearTileAnimation:
   ld a, c;reset y frame to y speed
 .updateYFrame
   ld [hli], a
-
-  jp RotateTileById
+.checkOffset
+  ld a, d
+  or e
+  ret z;no rotation
+.rotateTile
+  push hl;next tile
+  ld a, b;tile id
+  CALC_VRAM_ADDRESS
+  call RotateTileByOne
+  pop hl;next tile
+  ret
 
 CalcScroll:;a = diff, c = shifts, hl = accumulator address, returns rotation in a, clobbers bc, increments hl
   and a
   jr z, .noChange
-
   ld b, a;diff
   ld a, c;shifts
   ld c, 0;frac
   and a
   jr z, .addAccum;no shift
-
 .shiftLoop
   sra b;shift right, keep sign
   rr c;rotate carry into frac
   dec a
   jr nz, .shiftLoop
-
 .addAccum
   ld a, [hl];current remainder
   add a, c;add frac
   ld [hli], a;update remainder
-
   ld a, b
   adc a, 0;diff + carry
   ret
-
 .noChange
   inc hl
   ret
@@ -291,31 +303,19 @@ ScrollTileAnimation:
   ld e, a;y rotation
 
   pop bc;b = tile id
-  ;fall through
-
-RotateTileById: ;b = tile id, hl = next tile, de = xy offset
   ld a, d
   or e
-  ret z
+  ret z;scrolled to same offset
 
+.rotateTile
   push hl;next tile
-
   ld a, b;tile id
-  swap a
-  ld h, a
-  and a, $F0
-  ld l, a
-  ld a, h
-  and a, $F
-  add a, HIGH(_VRAM8800)
-  ld h, a
-
-.updateTile
+  CALC_VRAM_ADDRESS
   call RotateTile
   pop hl;next tile
   ret
 
-RotateTile:;de = xy; hl = tile address
+RotateTile:;de = xy(0-7); hl = tile address
   ld a, d;x
   and a, %111;x=0-7
   rlca;x<<1
@@ -325,17 +325,41 @@ RotateTile:;de = xy; hl = tile address
   ld a, e;y
   and a, %111;y=0-7
   or a, d;index = x<<3 | y
-  add a, a                            ; a = index * 2 (0..126)
+  add a, a;index*2
   ld e, a
-  ld d, HIGH(RotateTileJumpTable)     ; DE = entry address
+  ld d, HIGH(RotateTileJumpTable)
   ld a, [de]
   ld c, a
   inc e
   ld a, [de]
-  ld b, a                             ; BC = Target routine address
-  push bc
-  ret                                 ; Tail-call jump to RotateTile_Y_X
-  
+  ld b, a;bc = routine address
+  push bc;push routine address on stack
+  ret;returns to routine address
+
+RotateTileByOne:;de = xy(-1,0,1); hl = tile address
+  ld a, d
+  cp a, 0
+  jr z, .zeroX
+  jp c, .decX
+.incX
+  ld a, e
+  cp a, 0
+  jp z, RotateTileX1Y0
+  jp c, RotateTileX1Y7;y=-1
+  jp RotateTileX1Y1
+.zeroX ; D == 0
+  ld a, e
+  cp a, 0
+  ;ret z ;xy=0 already handled
+  jp c, RotateTileX0Y7;y=-1
+  jp RotateTileX0Y1
+.decX
+  ld a, e
+  cp a, 0
+  jp z, RotateTileX7Y0
+  jp c, RotateTileX7Y7;y=-1
+  jp RotateTileX7Y1
+
 DS ALIGN[8]
 RotateTileJumpTable:
 FOR x, 8
