@@ -303,24 +303,12 @@ gbt_pause:: ; a = pause/unpause
 
 ;-------------------------------------------------------------------------------
 
-gbt_loop:: ; a = loop/don't loop
-    ld      [gbt_loop_enabled],a
-    ret
-
-;-------------------------------------------------------------------------------
-
 gbt_stop::
     xor     a,a
     ld      [gbt_playing],a
     ldh     [rNR50],a
     ldh     [rNR51],a
     ldh     [rNR52],a
-    ret
-
-;-------------------------------------------------------------------------------
-
-gbt_enable_channels:: ; a = channel flags (channel flag = (1<<(channel_num-1)))
-    ldh     [gbt_channels_enabled],a
     ret
 
 ;-------------------------------------------------------------------------------
