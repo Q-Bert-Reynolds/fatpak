@@ -9339,7 +9339,7 @@ MapOverworldTileAnimations: ;25 bytes
 
   DB TILE_ANIM_TYPE_SINE
   DB 60;tile id
-  DB 4;frames per x step
+  DB -4;frames per x step
   DB 0;x last step index
   DB 4;frames per y step
   DB 0;y last step index

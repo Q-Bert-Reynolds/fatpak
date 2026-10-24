@@ -132,16 +132,22 @@ SineTileAnimation:
   push bc;b = tile id
   ld d, 0
   ld a, [hli]
-  and %111;max speed is 7
   ld c, a;x speed
+  bit 7, a
+  jr z, .posSpeedX
+  call math_Abs
+.posSpeedX
+  and a, %111
+  ld b, a
   ld a, [hl];frames left in lowest 3 bits
   dec a
-  and %111;frames left
+  and a, %111;frames left
   jr nz, .noXStep
 .stepX
   ld a, [hl]
+  and a, %11111000
   add a, %1000
-  or a, c;reset frames left
+  or a, b;reset frames left
   ld [hli], a
   rrca
   rrca
@@ -152,6 +158,11 @@ SineTileAnimation:
   ld hl, TileOffsetCosTable
   add hl, de
   ld a, [hl];x offset
+  bit 7, c
+  jr z, .setXOffset
+  cpl
+  inc a
+.setXOffset
   ld d, a
   pop hl
   jr .testY
@@ -162,29 +173,42 @@ SineTileAnimation:
 .testY
   ld e, 0;y offset
   ld a, [hli]
+  ld c, a
+  bit 7, a
+  jr z, .posSpeedY
+  call math_Abs
+.posSpeedY
   and %111;max speed is 7
-  ld c, a;y speed
+  ld b, a;y speed
   ld a, [hl];frames left in lowest 3 bits
   dec a
   and %111;frames left
   jr nz, .noYStep
 .stepY
   ld a, [hl]
+  and %11111000
   add a, %1000
-  or a, c;reset frames left
+  or a, b;reset frames left
   ld [hli], a
   rrca
   rrca
   rrca
   and a, %11111
+  push bc
   ld b, 0
   ld c, a
   push hl
   ld hl, TileOffsetSinTable
   add hl, bc
   ld a, [hl];y offset
+  pop hl
+  pop bc
+  bit 7, c
+  jr z, .setYOffset
+  cpl
+  inc a
+.setYOffset
   ld e, a
-  pop hl;next tile
   jr .checkOffset
 .noYStep
   ld a, [hl]
@@ -193,7 +217,7 @@ SineTileAnimation:
 .checkOffset
   pop bc;b = tile id
   ld a, d
-  or e
+  or a, e
   ret z;no rotation
 .rotateTile
   push hl;next tile

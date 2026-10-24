@@ -1,6 +1,5 @@
 Priority
 
-- handle negative speeds for tile animations
 - fix swing timing
 - fix timing for score bug vs player data
 - add swing/pitch fx
