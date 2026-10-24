@@ -1,5 +1,7 @@
 Priority
 
+- move a fielder to a position
+- move fielders to positions based on result
 - fix swing timing
 - fix timing for score bug vs player data
 - add swing/pitch fx
@@ -78,8 +80,6 @@ Announcer
 
 Simulation
 
-- move a fielder to a position
-- move fielders to positions based on result
 - ball should bounce off fences
 - running
 - catching throwing
@@ -220,3 +220,4 @@ Design Notes
   - steroids stop working after they've been taken 20 times
   - some transformations (Gio to OT, for example) require steroid use
 - max offer should depend on ball (baseball = $100, game ball = $1000, etc.)
+- track ballgame progress separately from main save files so people can't quit midgame to protect their record 

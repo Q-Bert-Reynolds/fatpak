@@ -4,6 +4,7 @@ SECTION "Simulation", ROMX
 
 INCLUDE "img/field.asm"
 INCLUDE "img/simulation.asm"
+INCLUDE "src/baseball/player_behaviors.asm"
 
 ;Sprite IDs
 ;0 to 25  - head and body for 9 fielders and 4 baserunners
@@ -92,13 +93,13 @@ CalculateLandingSpot:; returns landing xy in de
     jr nc, .applyGravity
     cp 135;don't fall faster than terminal velocity
     jr nc, .XY
-.applyGravity
+  .applyGravity
     sub a, 1
     ld [tile_buffer+8], a;ball_vel_z
 
-.XY
+  .XY
     ld a, PHYS_POS_STEPS
-.loopXY
+  .loopXY
       push af;steps left
       ld a, [tile_buffer+6];ball_vel_x
       ld hl, tile_buffer;ball_pos_x
@@ -117,7 +118,7 @@ CalculateLandingSpot:; returns landing xy in de
       jr nz, .landed
       ld a, 255
       ld [tile_buffer+4], a;ball_pos_z
-.skip
+    .skip
       pop af;steps left
       dec a
       jr nz, .loopXY
@@ -130,7 +131,30 @@ CalculateLandingSpot:; returns landing xy in de
   ld e, a
   ret
 
-UpdateBall:
+SimulatePlayers:
+  ld hl, Fielders
+  ld a, 13;9 fielders, 4 runners
+.loop
+    push af;player count
+
+    inc hl;skip player data
+    inc hl;skip animation state
+
+    ld a, [hli];y velocity
+    call math_AddSignedByteToWord;a = y vel, hl = y pos
+
+    ld a, [hli];x velocity
+    call math_AddSignedByteToWord;a = x vel, hl = x pos
+
+    inc hl;skip dest x
+    inc hl;skip dest y    
+
+    pop af;players left to process
+    dec a
+    jr nz, .loop
+  ret
+
+SimulateBall:
   ld a, [ball_vel_z]
   cp 128;always apply gravity if going up
   jr nc, .applyGravity
@@ -162,7 +186,7 @@ UpdateBall:
     ld a, 255
     ld [ball_pos_z], a
     jr .skip
-.bounce
+  .bounce
     xor a
     ld [ball_pos_z], a
     ld [ball_pos_z+1], a
@@ -185,7 +209,7 @@ UpdateBall:
     srl b
     or a, b
     ld [ball_vel_y], a
-.skip
+  .skip
     pop af;steps left
     dec a
     jr nz, .updatePositionLoop
@@ -235,16 +259,17 @@ UpdateBall:
   jr nc, .moveToRight
   sub a, 84
   ldh [rSCX], a
-  jr .drawBall
+  ret
 .moveToLeft
   xor a
   ldh [rSCX], a
-  jr .drawBall
+  ret
 .moveToRight
   ld a, 96
   ldh [rSCX], a
+  ret
 
-.drawBall
+DrawBall:
   ld hl, oam_buffer+38*4;ball and shadow are second to last sprites
   ldh a, [rSCY]
   ld b, a
@@ -289,11 +314,6 @@ UpdateBall:
 
   ret
 
-;sprites 
-UpdateRunners:
-  call DrawRunners
-  ret
-
 InitRunners:
   ;TODO: set palettebased on player data
 
@@ -302,6 +322,10 @@ InitRunners:
   ld [SimulationRunners0.pos_x], a
   ld a, HOME_PLATE_Y+16
   ld [SimulationRunners0.pos_y], a
+  ld d, FIRST_BASE_X
+  ld e, FIRST_BASE_Y
+  ld hl, SimulationRunners0
+  call SetSimPlayerDestination
 
   ;runner on first
   ld bc, 0
@@ -357,17 +381,19 @@ DrawRunners:
     ldh a, [rSCY]
     ld b, a
     ld a, [hli];y
+    inc hl
+    inc hl;skip to x position
     sub a, b
     ld [de], a
     inc de
-    inc hl
     ldh a, [rSCX]
     ld b, a
     ld a, [hld];x
+    dec hl
+    dec hl;return to y position
     sub a, b
     ld [de], a
     inc de
-    dec hl
     ld a, SIM_BODY_TILE_ID
     ld [de], a;tile
     inc de
@@ -377,18 +403,19 @@ DrawRunners:
     ldh a, [rSCY]
     ld b, a
     ld a, [hli];y
+    inc hl
+    inc hl;skip to x position
     sub a, b
     sub a, 8
     ld [de], a
     inc de
-    inc hl
     ldh a, [rSCX]
     ld b, a
-    ld a, [hli];x
+    ld a, [hl];x
     sub a, b
     ld [de], a
     inc de
-    ld bc, SimulationRunners1.anim_state - SimulationRunners0.pos_x
+    ld bc, SimulationRunners1.pos_y - SimulationRunners0.pos_x
     add hl, bc
     ld a, SIM_HEAD_TILE_ID
     ld [de], a;tile
@@ -401,11 +428,6 @@ DrawRunners:
     dec a
     jr nz, .loop
   ret
-
-
-UpdateFielders:
-  call DrawFielders
-  ret 
 
 InitFielders:
   ;pitcher
@@ -476,17 +498,19 @@ DrawFielders:
     ldh a, [rSCY]
     ld b, a
     ld a, [hli];y
+    inc hl
+    inc hl;skip to x position
     sub a, b
     ld [de], a
     inc de
-    inc hl
     ldh a, [rSCX]
     ld b, a
     ld a, [hld];x
+    dec hl
+    dec hl;return to y position
     sub a, b
     ld [de], a
     inc de
-    dec hl
     ld a, SIM_BODY_TILE_ID
     ld [de], a;tile
     inc de
@@ -496,18 +520,19 @@ DrawFielders:
     ldh a, [rSCY]
     ld b, a
     ld a, [hli];y
+    inc hl
+    inc hl;skip to x position
     sub a, b
     sub a, 8
     ld [de], a
     inc de
-    inc hl
     ldh a, [rSCX]
     ld b, a
-    ld a, [hli];x
+    ld a, [hl];x
     sub a, b
     ld [de], a
     inc de
-    ld bc, SimulationFielders2.anim_state - SimulationFielders1.pos_x
+    ld bc, SimulationFielders2.pos_y - SimulationFielders1.pos_x
     add hl, bc
     ld a, SIM_HEAD_TILE_ID
     ld [de], a;tile
@@ -649,22 +674,28 @@ RunSimulation::;a = ball speed, d = spray angle, e = launch angle
   call InitFielders
 
 .loop
-    call UpdateBall
-    call UpdateRunners
-    call UpdateFielders
+    call SimulateBall
+    call SimulatePlayers
+
+    call DrawBall
+    call DrawRunners
+    call DrawFielders
+
     call gbdk_WaitVBL
 
-    ld a, [ball_vel_x]
-    ld b, a
-    ld a, [ball_vel_y]
-    or a, b
-    ld b, a
-    ld a, [ball_vel_z]
-    or a, b
-    ld b, a
-    ld a, [ball_pos_z]
-    or a, b
-    jr nz, .loop
+    ; ld a, [ball_vel_x]
+    ; ld b, a
+    ; ld a, [ball_vel_y]
+    ; or a, b
+    ; ld b, a
+    ; ld a, [ball_vel_z]
+    ; or a, b
+    ; ld b, a
+    ; ld a, [ball_pos_z]
+    ; or a, b
+    ; jr nz, .loop
+    
+    jr .loop
 
   DISPLAY_OFF
   xor a

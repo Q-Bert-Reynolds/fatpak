@@ -1,7 +1,8 @@
 DEF TESTS_ENABLED         EQU 1
 DEF SOUND_TEST_ENABLED    EQU 0
 DEF KEYBOARD_TEST_ENABLED EQU 0
-DEF MAP_TEST_ENABLED      EQU 1
+DEF MAP_TEST_ENABLED      EQU 0
+DEF SIM_TEST_ENABLED      EQU 1
 
 MACRO RUN_TESTS
 IF SOUND_TEST_ENABLED
@@ -15,13 +16,17 @@ ENDC
 IF MAP_TEST_ENABLED
   TRAMPOLINE TestMap
 ENDC
+
+IF SIM_TEST_ENABLED
+  TEST_SIM 100, -15, 15
+ENDC
 ENDM
 
 MACRO TEST_SIM ;\1 = speed, \2 = deg left/right, \3 = deg up/down
   ld a, \1
-  ld b, \2
-  ld c, \3
-  call RunSimulation;a = exit velocity b = spray angle c = launch angle
+  ld d, \2
+  ld e, \3
+  TRAMPOLINE RunSimulation;a = exit velocity d= spray angle e = launch angle
 ENDM
 
 MACRO TEST_ANNOUNCER ;\1 = angle left or right

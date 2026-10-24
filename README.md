@@ -14,7 +14,6 @@ You've finally been granted your Béisbol coach's license. Now, it's time to hea
 - [Home Version Box](https://drive.google.com/file/d/1-uF70yOGvBDvrCaU4W-j3mZX3pLW1fXw/view)
 - [Away Version Box](https://drive.google.com/file/d/1_kXh6oG8o5cgbJV2eutplZcjUX0jlLqc/view)
 - [Cartridge Labels](https://drive.google.com/file/d/1n6UwmMSDLmREgHvivLpuPbX-q09tqQ74/view)
-- [Old rom hack attempt](https://bitbucket.org/q_bert_reynolds/beisbolromhack)
 
 # Compiling:
     make clean

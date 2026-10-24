@@ -58,10 +58,10 @@ MACRO SIMULATION_PLAYER_DATA ;\1 = fielder/runner, \2 = sprite index
 Simulation\1\2:
 .player     DB ;upper nibble = team, lower nibble = lineup order
 .anim_state DB ;upper nibble = running/fielding/throwing, lower nibble = frame
-.pos_y      DW
-.pos_x      DW
 .vel_y      DB
+.pos_y      DW
 .vel_x      DB
+.pos_x      DW
 .dest_x     DB
 .dest_y     DB
 ENDM

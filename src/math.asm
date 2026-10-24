@@ -332,7 +332,7 @@ math_TestBit:: ;tests bit d of byte e, affects z flag, all registers
   and a, e
   ret
 
-math_AddSignedByteToWord:: ;a = byte, [hl] = word, result in [hl], a -> 2=carry,3=borrow
+math_AddSignedByteToWord:: ;a = byte, [hl] = word, result in [hl], a -> 2=carry,3=borrow, hl incremented by 2
   ld e, a ;put 8bit in e
   add a, a ;bit 7 into carry
   push af;pos/neg
@@ -354,7 +354,7 @@ math_AddSignedByteToWord:: ;a = byte, [hl] = word, result in [hl], a -> 2=carry,
   ld a, d
   ld [hli], a
   ld a, e
-  ld [hl], a;store de in [hl]
+  ld [hli], a;store de in [hl]
 
 .checkForBorrowCarry;TODO: surely this could be faster
   pop hl;pos/neg flag
