@@ -1,13 +1,13 @@
 Priority
 
 - handle negative speeds for tile animations
-- optimize gbt_player and tile_animations so 4 tiles can be updated on dmg
 - fix swing timing
 - fix timing for score bug vs player data
 - add swing/pitch fx
 
 Optimization
 
+- buffer tile data, stagger writes to vram
 - reduce stack thrashing in favor of repeated loading from WRAM 
 - if all sprite stamps are 2x2, remove data from export and simplify stamp drawing
 - COPY_TILE_BLOCK macro in GBDK.asm should be a subroutine, add HRAM vars to allow for this

@@ -215,7 +215,11 @@ LinearTileAnimation:
   dec a
   jr nz, .updateXFrame
   inc d
-  ld a, c;reset x frame to x speed
+  ld a, c;reset x frame to |x speed|
+  bit 7, a
+  jr z, .updateXFrame
+  ld d, -1
+  call math_Abs
 .updateXFrame
   ld [hli], a
 .testY
@@ -226,7 +230,11 @@ LinearTileAnimation:
   dec a
   jr nz, .updateYFrame
   inc e
-  ld a, c;reset y frame to y speed
+  ld a, c;reset y frame to |y speed|
+  bit 7, a
+  jr z, .updateYFrame
+  ld e, -1
+  call math_Abs
 .updateYFrame
   ld [hli], a
 .checkOffset
@@ -338,35 +346,26 @@ RotateTile:;de = xy(0-7); hl = tile address
 
 RotateTileByOne:;de = xy(-1,0,1); hl = tile address
   ld a, d
-  cp a, 0
-  jr z, .zeroX
-  jp c, .decX
-.incX
-  ld a, e
-  cp a, 0
-  jp z, RotateTileX1Y0
-  jp c, RotateTileX1Y7;y=-1
-  jp RotateTileX1Y1
-.zeroX ; D == 0
-  ld a, e
-  cp a, 0
-  ;ret z ;xy=0 already handled
-  jp c, RotateTileX0Y7;y=-1
-  jp RotateTileX0Y1
+  cp a, 1
+  jr z, .incX
+  jr c, .zeroX
 .decX
   ld a, e
-  cp a, 0
-  jp z, RotateTileX7Y0
-  jp c, RotateTileX7Y7;y=-1
-  jp RotateTileX7Y1
-
-DS ALIGN[8]
-RotateTileJumpTable:
-FOR x, 8
-  FOR y, 8
-    DW RotateTileX{d:x}Y{d:y}
-  ENDR
-ENDR
+  cp a, 1
+  jp z, RotateTileX7Y1
+  jp c, RotateTileX7Y0
+  jp RotateTileX7Y7
+.incX
+  ld a, e
+  cp a, 1
+  jp z, RotateTileX1Y1
+  jr c, RotateTileX1Y0
+  jp RotateTileX1Y7
+.zeroX
+  ld a, e
+  cp a, 1
+  jp z, RotateTileX0Y1
+  jp RotateTileX0Y7
 
 MACRO ROTATE_TILE_X ; \1 = x (1..7)
   IF \1 == 4
@@ -491,5 +490,13 @@ ENDR
 FOR x, 8
   FOR y, 1, 8
     ROTATE_TILE_XY {d:x}, {d:y}
+  ENDR
+ENDR
+
+DS ALIGN[8]
+RotateTileJumpTable:
+FOR x, 8
+  FOR y, 8
+    DW RotateTileX{d:x}Y{d:y}
   ENDR
 ENDR
