@@ -63,8 +63,7 @@ UpdateSimPlayerVelocity: ;hl = sim player address
 .getDestination
   ld a, [hli]
   ld d, a;dest_x
-  ld a, [hl]
-  ld a, e;dest_y
+  ld e, [hl];dest_y
 
 .calcDirection
   ld a, d
