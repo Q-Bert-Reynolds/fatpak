@@ -93,7 +93,6 @@ Team Menu
 
 - add hair/skin palette data
 - pressing left and right cycles between stats
-- missing moves in stat page move list should show "-"
 - stat page should be accessible from PC
 - show pitch or bat icon next to move PP
 - show appropriate stat (ie. BA, ERA) below age

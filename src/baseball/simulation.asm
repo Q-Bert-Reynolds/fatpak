@@ -582,19 +582,28 @@ RunSimulation::;a = ball speed, d = spray angle, e = launch angle
 
     call gbdk_WaitVBL
 
-    ; ld a, [ball_vel_x]
-    ; ld b, a
-    ; ld a, [ball_vel_y]
-    ; or a, b
-    ; ld b, a
-    ; ld a, [ball_vel_z]
-    ; or a, b
-    ; ld b, a
-    ; ld a, [ball_pos_z]
-    ; or a, b
-    ; jr nz, .loop
+    ld a, [ball_vel_x]
+    ld b, a
+    ld a, [ball_vel_y]
+    or a, b
+    ld b, a
+    ld a, [ball_vel_z]
+    or a, b
+    ld b, a
+    ld a, [ball_pos_z]
+    or a, b
+    jr nz, .loop
     
-    jr .loop
+IF SIM_TEST_ENABLED
+  ld a, %0001111
+  call SignedRandom
+  push de
+  ld a, %1000111
+  call SignedRandom
+  pop af
+  add a, 100
+  jp RunSimulation
+ENDC
 
   DISPLAY_OFF
   xor a

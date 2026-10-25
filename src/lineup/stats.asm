@@ -468,6 +468,9 @@ DrawPageTwo:
   ld b, a
   xor a
   ld [_i], a
+  ld a, b
+  and a
+  jr z, .loopMissingMoves
 .loopMoveNames
     pop hl;player
     push hl
@@ -534,6 +537,29 @@ DrawPageTwo:
     pop bc;move count
     cp b
     jr nz, .loopMoveNames
+
+.loopMissingMoves
+    ld a, [_i]
+    cp MAX_MOVES
+    jr nc, .drawExperience
+    ld a, '-'
+    ld hl, name_buffer
+    ld bc, 2
+    call mem_Set
+    ld h, 2
+    ld l, 1
+    ld d, 2
+    ld a, [_i]
+    add a, a;i*2
+    add a, 9
+    ld e, a
+    ld bc, name_buffer
+    call gbdk_SetBkgTiles
+
+    ld a, [_i]
+    inc a
+    ld [_i], a
+    jr .loopMissingMoves
 
 .drawExperience
   ld h, 10
