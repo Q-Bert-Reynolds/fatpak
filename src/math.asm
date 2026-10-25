@@ -410,6 +410,9 @@ math_Distance:: ;hl = xy1, de = xy2, returns distance in a
 ;   length = b + 0.5 * a * a / b     where 0 <= a <= b
 ;   b = x, a = y
 math_Length:: ;de = xy, returns length in a
+  ld a, d
+  or a, e
+  ret z
   ld a, d;x
   cp a, e;x < y?
   jr nc, .skip
@@ -442,6 +445,11 @@ math_Normalize:: ;de = xy, returns |xy| in de
   push de;xy
   call math_Length
   pop de;xy
+  and a
+  jr nz, .notZero
+  ld de, 0
+  ret
+.notZero
   push de;xy
   push af;len
   ld h, d;x
@@ -449,6 +457,11 @@ math_Normalize:: ;de = xy, returns |xy| in de
   ld b, 0
   ld c, a
   call math_Divide16_16
+  ld a, d
+  and a
+  jr z, .xNotSaturated
+  ld e, 255
+.xNotSaturated
   ld l, e
   pop af;len
   pop de;xy
@@ -459,6 +472,11 @@ math_Normalize:: ;de = xy, returns |xy| in de
   ld b, 0
   ld c, a
   call math_Divide16_16
+  ld a, d
+  and a
+  jr z, .yNotSaturated
+  ld e, 255
+.yNotSaturated
   ld l, e
   pop de;x/len,y
   ld e, l;y/len
