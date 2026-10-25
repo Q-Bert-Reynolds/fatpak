@@ -26,9 +26,12 @@
 ;   math_TestBit                 tests bit d of byte e, affects z flag, all registers
 ;   math_AddSignedByteToWord     a = byte, [hl] = word, result in [hl], a -> 2=carry,3=borrow
 ;   math_Distance                hl = xy1, de = xy2, returns distance in a
-;   math_Length                  a = length(de)
-;   math_Normalize               de = normalized(de)
+;   math_Length                  a = length(de) where d and e are 0-255
+;   math_SignedLength            a = length(de) where d and e are -127-127
+;   math_Normalize               de = normalized(de) where d and e are 0-255
+;   math_SignedNormalize         de = normalized(de) where d and e are -127-127
 ;   math_Abs                     a = |a|
+;   math_Neg                     a = -a
 ;   math_Cos255                  a = cos(a) * 255 where a in degrees <= 180
 ;   math_Sin255                  a = sin(a) * 255 where a in degrees <= 180
 
@@ -332,7 +335,7 @@ math_TestBit:: ;tests bit d of byte e, affects z flag, all registers
   and a, e
   ret
 
-math_AddSignedByteToWord:: ;a = byte, [hl] = word, result in [hl], a -> 2=carry,3=borrow, hl incremented by 2
+math_AddSignedByteToWord:: ;a = byte, [hl] = word, result in [hl], a -> 2=carry,3=borrow
   ld e, a ;put 8bit in e
   add a, a ;bit 7 into carry
   push af;pos/neg
@@ -354,7 +357,7 @@ math_AddSignedByteToWord:: ;a = byte, [hl] = word, result in [hl], a -> 2=carry,
   ld a, d
   ld [hli], a
   ld a, e
-  ld [hli], a;store de in [hl]
+  ld [hl], a;store de in [hl]
 
 .checkForBorrowCarry;TODO: surely this could be faster
   pop hl;pos/neg flag
@@ -426,6 +429,15 @@ math_Length:: ;de = xy, returns length in a
   add a, l;b+0.5*a*a/b
   ret
 
+math_SignedLength:: ;de = xy (signed), returns length in a
+  ld a, d
+  call math_Abs
+  ld d, a
+  ld a, e
+  call math_Abs
+  ld e, a
+  jr math_Length
+
 math_Normalize:: ;de = xy, returns |xy| in de
   push de;xy
   call math_Length
@@ -452,13 +464,43 @@ math_Normalize:: ;de = xy, returns |xy| in de
   ld e, l;y/len
   ret
 
+math_SignedNormalize:: ;de = xy (signed), returns |xy| in de
+  push de;signed xy
+  ld a, d
+  call math_Abs
+  ld d, a
+  ld a, e
+  call math_Abs
+  ld e, a
+  call math_Normalize
+  srl d
+  srl e
+
+  pop bc;signed xy
+.testXSign
+  bit 7, b
+  jr z, .testYSign
+  ld a, d
+  call math_Neg
+  ld d, a
+
+.testYSign
+  bit 7, c
+  ret z
+  ld a, e
+  call math_Neg
+  ld e, a
+
+  ret
+
+
 math_Lerp:: ;a = (a*(100-c)+b*c)/100 where 0 <= c <= 100
   ld d, a
   ld a, c
   cp a, 101
   ld c, a
   ld a, d
-  jr c, _Lerp
+  jr c, .lerp
 
   ld d, a
   ld a, c
@@ -474,7 +516,7 @@ math_Lerp:: ;a = (a*(100-c)+b*c)/100 where 0 <= c <= 100
   cpl;TODO: this seems unnecessary 
   ld b, a
   xor a
-  call _Lerp
+  call .lerp
   pop bc
   ld c, a
   ld a, b
@@ -484,12 +526,12 @@ math_Lerp:: ;a = (a*(100-c)+b*c)/100 where 0 <= c <= 100
 .skip
   ld b, a
   xor a
-  call _Lerp
+  call .lerp
   pop bc
   add a, b
   ret
 
-_Lerp:
+.lerp:
   push bc
   ld d, 0
   ld e, a
@@ -512,10 +554,11 @@ _Lerp:
 math_Abs:: ;a = |a|
   cp a, 128
   ret c
+  ;fall through
+math_Neg:: ;a = -a
   cpl
   inc a
   ret
-
 
 math_Cos255:: ;a = cos(a) * 255 where 0 <= a <= 180 deg
   ld b, a;deg

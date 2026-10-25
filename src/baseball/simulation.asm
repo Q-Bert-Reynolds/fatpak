@@ -1,10 +1,10 @@
 INCLUDE "src/beisbol.inc"
 
-SECTION "Simulation", ROMX
+SECTION "Simulation Code", ROMX
 
 INCLUDE "img/field.asm"
 INCLUDE "img/simulation.asm"
-INCLUDE "src/baseball/player_behaviors.asm"
+INCLUDE "src/baseball/sim_player.asm"
 
 ;Sprite IDs
 ;0 to 25  - head and body for 9 fielders and 4 baserunners
@@ -132,23 +132,14 @@ CalculateLandingSpot:; returns landing xy in de
   ret
 
 SimulatePlayers:
-  ld hl, Fielders
+  ld hl, SimPlayers
   ld a, 13;9 fielders, 4 runners
 .loop
     push af;player count
-
-    inc hl;skip player data
-    inc hl;skip animation state
-
-    ld a, [hli];y velocity
-    call math_AddSignedByteToWord;a = y vel, hl = y pos
-
-    ld a, [hli];x velocity
-    call math_AddSignedByteToWord;a = x vel, hl = x pos
-
-    inc hl;skip dest x
-    inc hl;skip dest y    
-
+    call UpdateSimPlayerVelocity
+    call UpdateSimPlayerPosition
+    ld bc, SIM_PLAYER_SIZE
+    add hl, bc;next player
     pop af;players left to process
     dec a
     jr nz, .loop
@@ -319,13 +310,13 @@ InitRunners:
 
   ;batter
   ld a, HOME_PLATE_X+8;TODO: place based on handedness
-  ld [SimulationRunners0.pos_x], a
+  ld [SimRunner0.pos_x], a
   ld a, HOME_PLATE_Y+16
-  ld [SimulationRunners0.pos_y], a
-  ld d, FIRST_BASE_X
-  ld e, FIRST_BASE_Y
-  ld hl, SimulationRunners0
-  call SetSimPlayerDestination
+  ld [SimRunner0.pos_y], a
+  ld a, FIRST_BASE_X
+  ld [SimRunner0.dest_x], a
+  ld a, FIRST_BASE_Y
+  ld [SimRunner0.dest_y], a
 
   ;runner on first
   ld bc, 0
@@ -335,10 +326,7 @@ InitRunners:
   ld b, FIRST_BASE_X+8
   ld c, FIRST_BASE_Y
 .setFirstBaserRunner
-  ld a, b
-  ld [SimulationRunners1.pos_x], a
-  ld a, c
-  ld [SimulationRunners1.pos_y], a
+  INIT_SIM_PLAYER Runner, 1, b, c
 
   ;runner on second
   ld bc, 0
@@ -349,10 +337,7 @@ InitRunners:
   ld b, SECOND_BASE_X-8
   ld c, SECOND_BASE_Y
 .setSecondBaserRunner
-  ld a, b
-  ld [SimulationRunners2.pos_x], a
-  ld a, c
-  ld [SimulationRunners2.pos_y], a
+  INIT_SIM_PLAYER Runner, 2, b, c
 
   ;runner on third
   ld bc, 0
@@ -362,17 +347,14 @@ InitRunners:
   ld b, THIRD_BASE_X-8
   ld c, THIRD_BASE_Y+16
 .setThirdBaserRunner
-  ld a, b
-  ld [SimulationRunners3.pos_x], a
-  ld a, c
-  ld [SimulationRunners3.pos_y], a
+  INIT_SIM_PLAYER Runner, 3, b, c
 
   call DrawRunners
   ret
 
 DrawRunners:
   ld de, oam_buffer+9*2*4
-  ld hl, SimulationRunners0.pos_y
+  ld hl, SimRunner0.pos_y
 
   ld a, 4
 .loop
@@ -415,7 +397,7 @@ DrawRunners:
     sub a, b
     ld [de], a
     inc de
-    ld bc, SimulationRunners1.pos_y - SimulationRunners0.pos_x
+    ld bc, SimRunner1.pos_y - SimRunner0.pos_x
     add hl, bc
     ld a, SIM_HEAD_TILE_ID
     ld [de], a;tile
@@ -430,66 +412,22 @@ DrawRunners:
   ret
 
 InitFielders:
-  ;pitcher
-  ld a, 85
-  ld [SimulationFielders1.pos_x], a
-  ld a, 186
-  ld [SimulationFielders1.pos_y], a
-
-  ;catcher
-  ld a, 40
-  ld [SimulationFielders2.pos_x], a
-  ld a, 232
-  ld [SimulationFielders2.pos_y], a
-
-  ;first
-  ld a, 136
-  ld [SimulationFielders3.pos_x], a
-  ld a, 216
-  ld [SimulationFielders3.pos_y], a
-
-  ;second
-  ld a, 158
-  ld [SimulationFielders4.pos_x], a
-  ld a, 154
-  ld [SimulationFielders4.pos_y], a
-
-  ;third
-  ld a, 61
-  ld [SimulationFielders5.pos_x], a
-  ld a, 136
-  ld [SimulationFielders5.pos_y], a
-
-  ;short
-  ld a, 116
-  ld [SimulationFielders6.pos_x], a
-  ld a, 112
-  ld [SimulationFielders6.pos_y], a
-
-  ;left field
-  ld a, 90
-  ld [SimulationFielders7.pos_x], a
-  ld a, 36
-  ld [SimulationFielders7.pos_y], a
-
-  ;center field
-  ld a, 196
-  ld [SimulationFielders8.pos_x], a
-  ld a, 68
-  ld [SimulationFielders8.pos_y], a
-
-  ;right field
-  ld a, 220
-  ld [SimulationFielders9.pos_x], a
-  ld a, 192
-  ld [SimulationFielders9.pos_y], a
+  INIT_SIM_PLAYER Fielder, 1,  85, 186 ;pitcher
+  INIT_SIM_PLAYER Fielder, 2,  40, 232 ;catcher
+  INIT_SIM_PLAYER Fielder, 3, 136, 216 ;first
+  INIT_SIM_PLAYER Fielder, 4, 158, 154 ;second
+  INIT_SIM_PLAYER Fielder, 5,  61, 136 ;third
+  INIT_SIM_PLAYER Fielder, 6, 116, 112 ;short
+  INIT_SIM_PLAYER Fielder, 7,  90,  36 ;left field
+  INIT_SIM_PLAYER Fielder, 8, 196,  68 ;center field
+  INIT_SIM_PLAYER Fielder, 9, 220, 192 ;right field
 
   call DrawFielders
   ret
 
 DrawFielders:
   ld de, oam_buffer
-  ld hl, SimulationFielders1.pos_y
+  ld hl, SimFielder1.pos_y
 
   ld a, 9
 .loop
@@ -532,7 +470,7 @@ DrawFielders:
     sub a, b
     ld [de], a
     inc de
-    ld bc, SimulationFielders2.pos_y - SimulationFielders1.pos_x
+    ld bc, SimFielder2.pos_y - SimFielder1.pos_x
     add hl, bc
     ld a, SIM_HEAD_TILE_ID
     ld [de], a;tile
