@@ -48,6 +48,20 @@ POPS
 
 DEF SIM_PLAYER_SIZE EQU SimFielder2 - SimFielder1
 
+MoveFielderToPosition:;a = position, de = xy
+  push de;xy
+  dec a
+  ld de, SIM_PLAYER_SIZE
+  rst math_Multiply
+  ld de, SimFielder1.dest_x
+  add hl, de
+
+  pop de;xy
+  ld [hl], d;x
+  inc hl
+  ld [hl], e;y
+  ret
+
 SimulatePlayers:
   ld hl, SimPlayers
   ld a, 13;9 fielders, 4 runners

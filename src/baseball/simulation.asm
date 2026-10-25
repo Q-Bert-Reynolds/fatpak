@@ -87,16 +87,43 @@ RunSimulation::;a = ball speed, d = spray angle, e = launch angle
   call InitRunners
   call InitFielders
 
+  call CalculateLandingSpot ;returns landing xy in de
+  push de;xy
+  call GetClosestFielderByLocation ;de = xy, returns position number in a, distance in b
+  pop de;xy
+  call MoveFielderToPosition;a = position, de = xy
 .loop
     call SimulateBall
     call SimulatePlayers
-
     call DrawBall
     call DrawRunners
     call DrawFielders
-
     call gbdk_WaitVBL
 
+IF SIM_TEST_ENABLED
+    call UpdateInput
+    ld a, [last_button_state]
+    and a, PADF_A | PADF_B
+    jr nz, .loop
+    ld a, [button_state]
+    and a, PADF_A
+    jr z, .loop
+    ld a, [button_state]
+    and a, PADF_B
+    jr nz, .endSimulation
+    
+  ; ld a, %0001111
+  ; call SignedRandom
+  ; push de
+  ; ld a, %1000111
+  ; call SignedRandom
+  ; pop af
+  ; add a, 100
+  ld a, 255
+  ld d, 0
+  ld e, 80
+  jp RunSimulation
+ELSE
     ld a, [ball_vel_x]
     ld b, a
     ld a, [ball_vel_y]
@@ -108,18 +135,9 @@ RunSimulation::;a = ball speed, d = spray angle, e = launch angle
     ld a, [ball_pos_z]
     or a, b
     jr nz, .loop
-    
-IF SIM_TEST_ENABLED
-  ld a, %0001111
-  call SignedRandom
-  push de
-  ld a, %1000111
-  call SignedRandom
-  pop af
-  add a, 100
-  jp RunSimulation
 ENDC
 
+.endSimulation
   DISPLAY_OFF
   xor a
   ldh [rSCX], a

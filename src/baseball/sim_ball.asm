@@ -1,4 +1,6 @@
-DEF BALL_POS_STEPS EQU 5
+DEF BALL_POS_STEPS EQU 10
+DEF SIM_BALL_ORIGIN_X EQU 4
+DEF SIM_BALL_ORIGIN_Y EQU 4
 
 InitBall:;a = ball speed b = spray angle c = launch angle
   ld d, 0
@@ -9,7 +11,7 @@ InitBall:;a = ball speed b = spray angle c = launch angle
   ; put ball in front of home plate
   ld a, HOME_PLATE_X+4
   ld [ball_pos_x], a
-  ld a, HOME_PLATE_Y+12
+  ld a, HOME_PLATE_Y+8
   ld [ball_pos_y], a
   ld a, 1
   ld [ball_pos_z], a
@@ -28,10 +30,7 @@ InitBall:;a = ball speed b = spray angle c = launch angle
 
   ld a, c
   call math_Sin127
-  pop hl;speed
-  add hl, hl
-  ld d, h
-  ld e, l
+  pop de;speed
   call math_SignedMultiply;v * sin(ang)*127
   ld a, h
   ld [ball_vel_z], a
@@ -44,31 +43,37 @@ InitBall:;a = ball speed b = spray angle c = launch angle
 
   ld a, c
   call math_Cos127
-  pop hl;de;speed
-  ; call math_SignedMultiply;hl = forward = speed*cos(launch)*127 = de*cos(c)*127
+  pop de;speed
+  call math_SignedMultiply;hl = forward = speed*cos(launch)*127 = de*cos(c)*127
+  ld a, h
+  and a, %01111111
+  ld l, a
+  ld a, h
+  and a, %10000000
+  ld h, a
 
-.calcXVelocity;TODO: x = forward * sin(45-b)
+.calcXVelocity;TODO: x = forward * cos(45-b)
   pop bc;angles
   push bc;angles
   push hl;forward
 
   ld a, 45
-  add a, b
-  call math_Sin127
+  sub a, b
+  call math_Cos127
   pop de;forward
   push de;forward
   call math_SignedMultiply;hl = x speed * 127
   ld a, h
   ld [ball_vel_x], a
   
-.calcYVelocity;TODO: y = forward * cos(45-b)
+.calcYVelocity;TODO: y = forward * sin(45-b)
   pop hl;forward
   pop bc;angles
   push hl;forward
 
   ld a, 45
-  add a, b
-  call math_Cos127
+  sub a, b
+  call math_Sin127
   pop de;forward
   call math_SignedMultiply;hl = y speed * 127
   ld a, h
@@ -77,94 +82,69 @@ InitBall:;a = ball speed b = spray angle c = launch angle
   ld [ball_vel_y], a
   ret
 
-CalculateLandingSpot2:
+CalculateLandingSpot:; returns landing xy in de
   ld d, 0
   ld a, [ball_vel_z]
   sla a
   ld e, a
-  jr nc, .skip
-  ld d, 1
-.skip;hang time = de
-
   ld a, BALL_POS_STEPS
   rst math_Multiply
   ld d, h
   ld e, l
-
   push de;hang time * steps
+.landingX
   ld a, [ball_vel_x]
+  ld b, a
+  call math_Abs
   rst math_Multiply
+  ld d, h
+  ld e, l
   ld a, [ball_pos_x]
-  ld d, a
+  ld h, a
   ld a, [ball_pos_x+1]
-  ld e, a
-  add hl, de;landing spot x
-
-  pop de;hang time * steps
-  push hl;landing spot x
-
+  ld l, a
+  bit 7, b;sign of vel_x
+  jr nz, .subX
+  add hl, de
+  jr .doneX
+.subX
+  ld a, l
+  sub a, e
+  ld l, a
+  ld a, h
+  sbc a, d
+  ld h, a
+.doneX
+  push hl;landing x
+.landingY
+  pop bc;landing x
+  pop de;steps
+  push bc
   ld a, [ball_vel_y]
+  ld b, a
+  call math_Abs
   rst math_Multiply
+  ld d, h
+  ld e, l
   ld a, [ball_pos_y]
-  ld d, a
+  ld h, a
   ld a, [ball_pos_y+1]
-  ld e, a
-  add hl, de;landing spot y
-  pop bc;landing spot x
-
-  ld d, b;x
-  ld e, h;y
-  ret
-
-;TODO: this should calculated directly instead of iteratively
-CalculateLandingSpot:; returns landing xy in de
-  ld hl, ball_pos_x
-  ld de, tile_buffer
-  ld bc, ball_state - ball_pos_x
-  call mem_Copy;copy ball pos,vel to tile buffer
-
-.loopZ;until z == 0
-    ld a, [tile_buffer+8];ball_vel_z
-    cp 128;always apply gravity if going up
-    jr nc, .applyGravity
-    cp 135;don't fall faster than terminal velocity
-    jr nc, .XY
-  .applyGravity
-    sub a, 1
-    ld [tile_buffer+8], a;ball_vel_z
-
-  .XY
-    ld a, BALL_POS_STEPS
-  .loopXY
-      push af;steps left
-      ld a, [tile_buffer+6];ball_vel_x
-      ld hl, tile_buffer;ball_pos_x
-      call math_AddSignedByteToWord
-
-      ld a, [tile_buffer+7];ball_vel_y
-      ld hl, tile_buffer+2;ball_pos_y
-      call math_AddSignedByteToWord
-
-      ld a, [tile_buffer+8];ball_vel_z
-      ld hl, tile_buffer+4;ball_pos_z
-      call math_AddSignedByteToWord
-      cp 0
-      jr z, .skip
-      cp 2
-      jr nz, .landed
-      ld a, 255
-      ld [tile_buffer+4], a;ball_pos_z
-    .skip
-      pop af;steps left
-      dec a
-      jr nz, .loopXY
-    jr .loopZ
-.landed
-  pop af;discard steps
-  ld a, [tile_buffer];ball_pos_x
-  ld d, a
-  ld a, [tile_buffer+2];ball_pos_y
-  ld e, a
+  ld l, a
+  bit 7, b;sign of vel_y
+  jr nz, .subY
+  add hl, de
+  jr .doneY
+.subY
+  ld a, l
+  sub a, e
+  ld l, a
+  ld a, h
+  sbc a, d
+  ld h, a
+.doneY
+  pop bc;landing x
+  ld d, b
+  ld e, h;landing y
   ret
 
 DrawBall:
@@ -179,11 +159,13 @@ DrawBall:
   ld c, a
   ld a, b
   sub a, c
+  add a, SIM_BALL_ORIGIN_Y
   ld [hli], a;y
   ldh a, [rSCX]
   ld b, a
   ld a, [ball_pos_x]
   sub a, b
+  add a, SIM_BALL_ORIGIN_X
   ld [hli], a;x
   ld a, [ball_pos_z]
   swap a
@@ -191,25 +173,25 @@ DrawBall:
   ld [hli], a;tile
   ld a, OAMF_PAL1
   ld [hli], a;prop
-
 .drawShadow
   ldh a, [rSCY]
   ld b, a
   ld a, [ball_pos_y]
   sub a, b
+  add a, SIM_BALL_ORIGIN_Y
   inc a
   ld [hli], a
   ldh a, [rSCX]
   ld b, a
   ld a, [ball_pos_x]
   sub a, b
+  add a, SIM_BALL_ORIGIN_X
   inc a
   ld [hli], a
   ld a, 16
   ld [hli], a
   xor a
   ld [hl], a
-
   ret
 
 SimulateBall:
