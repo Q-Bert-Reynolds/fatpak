@@ -46,10 +46,9 @@ InitBall:;a = ball speed b = spray angle c = launch angle
   pop de;speed
   call math_SignedMultiply;hl = forward = speed*cos(launch)*127 = de*cos(c)*127
   ld a, h
-  and a, %01111111
   ld l, a
-  ld a, h
-  and a, %10000000
+  add a, a
+  sbc a, a
   ld h, a
 
 .calcXVelocity;TODO: x = forward * cos(45-b)

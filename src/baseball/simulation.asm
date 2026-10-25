@@ -120,8 +120,8 @@ IF SIM_TEST_ENABLED
   ; pop af
   ; add a, 100
   ld a, 255
-  ld d, 0
-  ld e, 80
+  ld d, 15
+  ld e, 95
   jp RunSimulation
 ELSE
     ld a, [ball_vel_x]
