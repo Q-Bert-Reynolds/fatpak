@@ -1,10 +1,10 @@
 #ifndef CONSTANTS
 #define CONSTANTS
 
-// assembly flags
-#define INTRO_ENABLED    0
-#define TITLE_ENABLED    0
-#define NEW_GAME_ENABLED 0
+// scenes
+#define INTRO_ENABLED    1
+#define TITLE_ENABLED    1
+#define NEW_GAME_ENABLED 1
 #define WORLD_ENABLED    1
 #define PLAY_ENABLED     1
 

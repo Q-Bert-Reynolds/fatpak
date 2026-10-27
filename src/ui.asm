@@ -1455,7 +1455,7 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
 
   TRAMPOLINE DetectKeyboard
   ld a, KB_MODE_TYPING
-  ld [kb_mode], a
+  TRAMPOLINE SetKeyboardMode
   
   pop hl;title
   push hl
@@ -1696,7 +1696,7 @@ UIShowTextEntry:: ; de = title, hl = str, c = max_len
   pop af;a = max_len
 
   ld a, KB_MODE_BUTTONS
-  ld [kb_mode], a
+  TRAMPOLINE SetKeyboardMode
 
   POP_VAR _y
   POP_VAR _x

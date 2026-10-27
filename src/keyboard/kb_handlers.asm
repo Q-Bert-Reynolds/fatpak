@@ -12,15 +12,34 @@
 UILowerCase: DB "abcdefghijklmnopqrstuvwxyz *():;[]#%-?!*+/.,"
 UIUpperCase: DB "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 KBHandleCharacter::;a = character in ASCII
-  ld b, a
+  ld b, a;ASCII
+  ld a, [kb_mode]
+  cp a, KB_MODE_BUTTONS
+  jr z, .updateButtonState
+  
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
+  ret nz;if release flag set, return early
+
   ld a, [kb_mode]
   cp a, KB_MODE_TYPING
-  ld a, b
-  ret c
-
+  jr z, .findCharXY
+  
 IF KEYBOARD_TEST_ENABLED
+  ld a, b
   jp nz, KBDemoDrawCharacter
 ENDC
+
+.updateButtonState
+  ld a, b;ASCII
+  ld b, PADF_A
+  cp a, 'z'
+  jp z, KBUpdateButtons
+  ld b, PADF_B
+  cp a, 'x'
+  jp z, KBUpdateButtons
+  ld b, 0
+  jp KBUpdateButtons
 
 .findCharXY;ASCII in b
   PUSH_VAR _c
@@ -66,43 +85,56 @@ ENDC
 
   ret
 
-KBHandleArrowKey::;a = DPad key
+KBHandleArrowKey::;a = dpad flags
   ld b, a
-  ldh a, [button_state]
-  or a, b
-  ldh [button_state], a
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
+  ld a, b
+  jr z, KBUpdateButtons.press
+.arrowReleased
+  cpl a
+  ld b, a
+  ldh a, [kb_button_state]
+  and a, b
+  ldh [kb_button_state], a
   ret
 
-KBHandleTab::
-  ld b, a
-  ld a, [kb_mode]
-  cp a, KB_MODE_BUTTONS
-  ret nz
-  ldh a, [button_state]
-  or a, PADF_SELECT
-  ldh [button_state], a
-  ret
-
-KBHandleEnter::
-  ldh a, [button_state]
-  or a, PADF_START
-  ldh [button_state], a
+KBHandleTab:: 
+  ld b, PADF_SELECT
+  jr KBUpdateButtons
+KBHandleEnter:: 
+  ld b, PADF_START
+  jr KBUpdateButtons
+KBHandleEscape:: 
+  ld b, PADF_B
+  ;fall through
+KBUpdateButtons::;b = button flags
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
+;NOTE: Button released events can be lost when an interrupt is disabled.
+;      To avoid stale button flags, key release events clear kb_button_state,
+;      and press events set the button state to a single button.
+  ld a, b 
+  jr z, .press
+.release
+  xor a
+.press
+  ldh [kb_button_state], a
   ret
 
 KBHandleBackspace::
-  ld b, a
-  ld a, [kb_mode]
-  cp a, KB_MODE_TYPING
-  ret c
-
 IF KEYBOARD_TEST_ENABLED
-  jp nz, KBDemoRemoveCharacter
-ENDC
-
-  ldh a, [button_state]
-  or a, PADF_B
-  ldh [button_state], a
+  ld a, [kb_mode]
+  cp a, KB_MODE_DEMO
+  jr nz, .buttons
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
+  jp z, KBDemoRemoveCharacter
   ret
+.buttons
+ENDC
+  ld b, PADF_B
+  jr KBUpdateButtons
 
 KBHandleDelete::
   ld b, a
@@ -116,12 +148,3 @@ KBHandleFunctionKey::;a = function key
   ;TODO: jump between scenes
   ret
 
-KBHandleEscape::
-  ld b, a
-  ld a, [kb_mode]
-  cp a, KB_MODE_BUTTONS
-  ret nz
-  ldh a, [button_state]
-  or a, PADF_B
-  ldh [button_state], a
-  ret

@@ -106,11 +106,11 @@ IF SIM_TEST_ENABLED
     and a, PADF_A | PADF_B
     jr nz, .loop
     ld a, [button_state]
-    and a, PADF_A
-    jr z, .loop
-    ld a, [button_state]
     and a, PADF_B
     jr nz, .endSimulation
+    ld a, [button_state]
+    and a, PADF_A
+    jr z, .loop
     
   ; ld a, %0001111
   ; call SignedRandom

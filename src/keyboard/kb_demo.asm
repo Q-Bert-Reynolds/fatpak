@@ -31,9 +31,8 @@ KeyboardDemo::
   ld [_y], a
   ld [kb_scan_code], a
   ldh [rSB], a
-  ld [kb_mode], a
   ld a, KB_MODE_DEMO
-  ld [kb_mode], a
+  TRAMPOLINE SetKeyboardMode
   
   TRAMPOLINE DetectKeyboard
 .loop
@@ -62,6 +61,9 @@ KeyboardDemo::
     ldh a, [last_button_state]
     and a, PADF_B
     jp nz, .loop
+
+  ld a, KB_MODE_BUTTONS
+  TRAMPOLINE SetKeyboardMode
   ret
 
 KBDemoDrawCharacter:;a = ASCII value

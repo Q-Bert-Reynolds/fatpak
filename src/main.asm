@@ -53,7 +53,7 @@ Main::
   ld bc, (_RAMBANK-_RAM)*2
   call mem_Set;clear WRAM
   ld a, KB_MODE_BUTTONS
-  ld [kb_mode], a
+  TRAMPOLINE SetKeyboardMode
   ld sp, stack_bottom
 
 .setupAudio

@@ -171,6 +171,7 @@ Super GameBoy
 
 Serial Port
 
+- add assembly flag for keyboard support instead of supporting both IGKB and PS/2 at the same time
 - trade players over link cable
 - use GB Printer to print stats, records, rolédex, baseball cards
 - USB keyboard sometimes freezes title screen

@@ -68,6 +68,8 @@ INCLUDE "src/keyboard/ps2_handlers.asm"
 INCLUDE "src/keyboard/igkb_handlers.asm"
 
 DetectKeyboard::
+  xor a
+  ld [kb_button_state], a
   ld a, KB_TYPE_PS2
   ld [kb_type], a;assume PS2 keyboard connected
   xor a
@@ -79,12 +81,26 @@ DetectKeyboard::
   ld a, [kb_error]
   cp a, PS2_ERROR_TIMEOUT | PS2_ERROR_PARITY_BIT | PS2_ERROR_FINISH_BIT
   jr nz, .usePS2Clock;if magic error code not received, PS2 connected
-  ld a, KB_TYPE_IGKB
+  ld a, KB_TYPE_NONE;KB_TYPE_IGKB
   ld [kb_type], a
   ret
 .usePS2Clock
   ld a, SCF_START
   ldh [rSC], a;ask for bits using keyboard clock 
+  ret
+
+SetKeyboardMode::;a = mode
+  ld b, a
+  ld a, [kb_mode]
+  cp a, b
+  ret z
+.clearFlags
+  xor a
+  ld [kb_flags], a
+  ld [kb_button_state], a
+.setMode
+  ld a, b
+  ld [kb_mode], a
   ret
 
 ProcessKeyCodes::

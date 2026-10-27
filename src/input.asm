@@ -1,6 +1,7 @@
 SECTION "Input Vars", HRAM
 last_button_state:: DB
 button_state:: DB
+kb_button_state:: DB
 
 SECTION "Input Code", ROM0
 ;macros
@@ -73,10 +74,16 @@ ENDR
   and %00001111 ;discard upper nibble
   or b ;combine DPad with other buttons
   cpl ;flip bits so 1 means pressed
-  ld hl, button_state
-  ld [hl], a
+  ldh [button_state], a
 
+  ;read keyboard
   TRAMPOLINE ProcessKeyCodes
+  ldh a, [kb_button_state]
+  ld b, a
+  ldh a, [button_state]
+  or a, b
+  ldh [button_state], a 
+
   POP_ALL
   ret
 

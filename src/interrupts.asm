@@ -40,7 +40,8 @@ SECTION "Interrupt Code", ROM0
 ;vblank
 ;   VBLInterrupt
 ;   UpdateTime                  updates current game time
-;   UpdateAnimations            updates meta sprite and tile animations
+;   UpdateAnimations            updates animation timer, meta sprites, and tile animations
+;   UpdateSpriteObjects         updates meta sprite objects
 
 SerialInterrupt::;TODO: check serial type (keyboard, link, printer)
   PUSH_ALL
@@ -168,7 +169,7 @@ UpdateTime:
   inc [hl]
   ret
 
-UpdateAnimations::
+UpdateAnimations:
   ld a, [game_state]
   and a, GAME_STATE_PAUSED
   ret nz

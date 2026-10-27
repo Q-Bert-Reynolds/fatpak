@@ -18,7 +18,8 @@ PS2HandleKeycode::;a = scan code
   ld c, a;scan code
   ld hl, PS2JumpTable
  
-  call PS2CheckExtendedFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_EXTENDED
   jr z, .lookupAddress;if not extended, lookup
 
 .extendedKeys;otherwise check a few special cases
@@ -53,7 +54,13 @@ PS2HandleKeycode::;a = scan code
   ld h, a;upper byte of jump address
   ld l, b;hl = keycode jump address
   ld a, c;scan code
+  ld bc, .clearFlags
+  push bc
   jp hl
+.clearFlags
+  xor a
+  ld [kb_flags], a
+  ret
 
 PS2HandleReleaseKey:
   ld a, [kb_flags]
@@ -90,21 +97,22 @@ PS2HandleError:;a = scan code
 .clearFlags
   xor a
   ld [kb_flags], a
+  ld [kb_button_state], a
   ret 
 
 PS2HandleFunctionKey:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ret nz;if release flag set, return early
   ;TODO convert scan code to function key number
   jp KBHandleFunctionKey
 
 PS2HandleTab:
-  call PS2CheckReleaseFlag
-  ret nz;if release flag set, return early
   jp KBHandleTab
 
 PS2HandleShift:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ld a, [kb_modifiers]
   jr nz, .releaseShift
 .pressShift
@@ -117,7 +125,8 @@ PS2HandleShift:
   ret
 
 PS2HandleAlt:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ld a, [kb_modifiers]
   jr nz, .releaseAlt
 .pressAlt
@@ -130,7 +139,8 @@ PS2HandleAlt:
   ret
 
 PS2HandleSuper:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ld a, [kb_modifiers]
   jr nz, .releaseSuper
 .pressSuper
@@ -143,7 +153,8 @@ PS2HandleSuper:
   ret
 
 PS2HandleCtrl:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ld a, [kb_modifiers]
   jr nz, .releaseCtrl
 .pressCtrl
@@ -158,8 +169,6 @@ PS2HandleCtrl:
 PS2HandleCharacter:;a = scan code
   ld b, 0
   ld c, a;scan code
-  call PS2CheckReleaseFlag
-  ret nz;if release flag set, return early
 .lookupASCII
   ld hl, PS2toASCIIKeymap
   ld a, [kb_modifiers]
@@ -172,76 +181,79 @@ PS2HandleCharacter:;a = scan code
   ld a, [hl];ASCII value
   jp KBHandleCharacter
 
-;TODO these should toggle lock bits in kb_modifiers
-;     should also disable and enable keyboard lights
+;TODO: toggle lock bits in kb_modifiers
+;NOTE: not possible to change keyboard lights
 PS2HandleCapsLock:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ret nz;if release flag set, return early
   ;if previous keycode is not caps lock, toggle caps lock in kb_modifiers
   ret
 
 PS2HandleScrollLock:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ret nz;if release flag set, return early
   ;if previous keycode is not scroll lock, toggle caps lock in kb_modifiers
   ret
 
 PS2HandleNumLock:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ret nz;if release flag set, return early
   ;if previous keycode is not num lock, toggle caps lock in kb_modifiers
   ret 
 
 PS2HandleBackspace:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ret nz;if release flag set, return early
   jp KBHandleBackspace
 
 PS2HandleEscape:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ret nz;if release flag set, return early
   jp KBHandleEscape 
 
 PS2HandleEnter:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ret nz;if release flag set, return early
   jp KBHandleEnter
 
 PS2HandleEndKey:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ret nz;if release flag set, return early
   ret
 
 PS2HandleHomeKey:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ret nz;if release flag set, return early
   ret
 
 PS2HandleInsertKey:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ret nz;if release flag set, return early
   ret
 
 PS2HandleDeleteKey:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ret nz;if release flag set, return early
   ret
 
 PS2HandleArrowKey:;scan code in a
-  ld b, a
-  call PS2CheckReleaseFlag
-  ret nz;if release flag set, return early
-  ld a, PS2_KEY_UP_ARROW
-  cp a, b
+  cp a, PS2_KEY_UP_ARROW
   jr z, .upPressed
-  ld a, PS2_KEY_LEFT_ARROW
-  cp a, b
+  cp a, PS2_KEY_LEFT_ARROW
   jr z, .leftPressed
-  ld a, PS2_KEY_DOWN_ARROW
-  cp a, b
+  cp a, PS2_KEY_DOWN_ARROW
   jr z, .downPressed
-  ; ld a, PS2_KEY_RIGHT_ARROW
-  ; cp a, b
+  ; cp a, PS2_KEY_RIGHT_ARROW
 .rightPressed
   ld a, PADF_RIGHT
   jp KBHandleArrowKey
@@ -256,22 +268,26 @@ PS2HandleArrowKey:;scan code in a
   jp KBHandleArrowKey
 
 PS2HandlePageDown:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ret nz;if release flag set, return early
   ret
 
 PS2HandlePageUp:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ret nz;if release flag set, return early
   ret
 
 PS2HandlePrintScreen:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ret nz;if release flag set, return early
   ret
 
 PS2HandleMenus:
-  call PS2CheckReleaseFlag
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
   ret nz;if release flag set, return early
   ret
 
