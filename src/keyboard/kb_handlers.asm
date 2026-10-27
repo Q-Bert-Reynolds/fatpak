@@ -15,7 +15,12 @@ KBHandleCharacter::;a = character in ASCII
   ld b, a
   ld a, [kb_mode]
   cp a, KB_MODE_TYPING
-  ret nz
+  ld a, b
+  ret c
+
+IF KEYBOARD_TEST_ENABLED
+  jp nz, KBDemoDrawCharacter
+ENDC
 
 .findCharXY;ASCII in b
   PUSH_VAR _c
@@ -88,7 +93,12 @@ KBHandleBackspace::
   ld b, a
   ld a, [kb_mode]
   cp a, KB_MODE_TYPING
-  ret nz
+  ret c
+
+IF KEYBOARD_TEST_ENABLED
+  jp nz, KBDemoRemoveCharacter
+ENDC
+
   ldh a, [button_state]
   or a, PADF_B
   ldh [button_state], a
@@ -98,8 +108,8 @@ KBHandleDelete::
   ld b, a
   ld a, [kb_mode]
   cp a, KB_MODE_TYPING
-  ret nz
-
+  ret c
+  ;TODO
   ret
 
 KBHandleFunctionKey::;a = function key

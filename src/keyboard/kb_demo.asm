@@ -31,10 +31,19 @@ KeyboardDemo::
   ld [_y], a
   ld [kb_scan_code], a
   ldh [rSB], a
+  ld [kb_mode], a
+  ld a, KB_MODE_DEMO
+  ld [kb_mode], a
   
   TRAMPOLINE DetectKeyboard
 .loop
     call gbdk_WaitVBL
+  .kbCheck
+    ld a, [kb_type]
+    and a
+    jr nz, .getInput
+    TRAMPOLINE DetectKeyboard
+  .getInput
     call UpdateInput
     call DrawKeyboardDebugData
   .testAButton
@@ -45,18 +54,7 @@ KeyboardDemo::
     and a, PADF_A
     jr nz, .testBButton
   .pressedAButton
-    ld a, [_i]
-    xor a, 1
-    ld [_i], a
-    jr nz, .hideDebug
-  .showDebug
-    ld a, 104
-    ldh [rWY], a
-    jp .testBButton
-  .hideDebug
-    ld a, 144
-    ldh [rWY], a
-
+    call ToggleKBMode
   .testBButton
     ldh a, [button_state]
     and a, PADF_B
@@ -64,15 +62,10 @@ KeyboardDemo::
     ldh a, [last_button_state]
     and a, PADF_B
     jp nz, .loop
-  .pressedBButton
-    call ToggleKBMode
-    jp .loop
   ret
 
-
-DrawCharacter::;a = ASCII value
+KBDemoDrawCharacter:;a = ASCII value
   ld [tile_buffer], a
-
   ld a, [_y]
   ld e, a
   ld a, [_x]
@@ -99,7 +92,7 @@ DrawCharacter::;a = ASCII value
   ret
 
 ;TODO: handle backspace and delete differently
-RemoveCharacter::
+KBDemoRemoveCharacter:
   ld a, [_x]
   dec a
   jr nc, .setX
@@ -127,7 +120,7 @@ RemoveCharacter::
   call gbdk_SetBkgTiles  
   ret 
 
-ToggleKBMode::
+ToggleKBMode:
   xor a
   ldh [rSC], a;stop transfer
   ld a, [kb_type]

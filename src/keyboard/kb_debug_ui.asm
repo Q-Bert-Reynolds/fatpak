@@ -190,7 +190,7 @@ DrawKeyboardDebugData::
   ld a, 'T'
   jr nz, .drawTimeoutError
 .noTimeoutError
-  ld a, '_'
+  ld a, '-'
 .drawTimeoutError
   ld [hli], a
 
@@ -199,7 +199,7 @@ DrawKeyboardDebugData::
   ld a, 'U'
   jr nz, .drawUnknownCodeError
 .noUnknownCodeError
-  ld a, '_'
+  ld a, '-'
 .drawUnknownCodeError
   ld [hli], a
 
@@ -208,7 +208,7 @@ DrawKeyboardDebugData::
   ld a, 'K'
   jr nz, .drawKeyboardError
 .noKeyboardError
-  ld a, '_'
+  ld a, '-'
 .drawKeyboardError
   ld [hli], a
 
@@ -217,7 +217,7 @@ DrawKeyboardDebugData::
   ld a, 'S'
   jr nz, .drawStartBitError
 .noStartBitError
-  ld a, '_'
+  ld a, '-'
 .drawStartBitError
   ld [hli], a
 
@@ -226,7 +226,7 @@ DrawKeyboardDebugData::
   ld a, 'P'
   jr nz, .drawParityBitError
 .noParityBitError
-  ld a, '_'
+  ld a, '-'
 .drawParityBitError
   ld [hli], a
 
@@ -235,7 +235,7 @@ DrawKeyboardDebugData::
   ld a, 'F'
   jr nz, .drawFinishBitError
 .noFinishBitError
-  ld a, '_'
+  ld a, '-'
 .drawFinishBitError
   ld [hli], a
 

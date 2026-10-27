@@ -8,6 +8,13 @@
 #define WORLD_ENABLED    1
 #define PLAY_ENABLED     1
 
+// tests
+#define TESTS_ENABLED         1
+#define SOUND_TEST_ENABLED    0
+#define KEYBOARD_TEST_ENABLED 1
+#define MAP_TEST_ENABLED      0
+#define SIM_TEST_ENABLED      1
+
 // game_state masks
 #define GAME_STATE_CLOCK_STARTED   0b00000001
 #define GAME_STATE_PLAY_BALL       0b00000010
