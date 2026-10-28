@@ -9,7 +9,7 @@
 #define PLAY_ENABLED     1
 
 // tests
-#define TESTS_ENABLED         1
+#define TESTS_ENABLED         0
 #define SOUND_TEST_ENABLED    0
 #define KEYBOARD_TEST_ENABLED 1
 #define MAP_TEST_ENABLED      0

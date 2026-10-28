@@ -22,16 +22,18 @@ MOD2GBT   = $(BIN_DIR)/mod2gbt
 endif
 
 C_SOURCES = $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/**/*.c) $(wildcard $(DATA_DIR)/**/*.c) 
+C_HEADERS = $(wildcard $(SRC_DIR)/*.h) $(wildcard $(SRC_DIR)/**/*.h)
+C_ASM     = $(join $(dir $(C_SOURCES)), $(patsubst %.c, _%.asm, $(notdir $(C_SOURCES))))
 
 all: clean assets assemble run
 
 code: assemble run
 
-$(C_SOURCES): 
+_%.asm: %.c $(C_HEADERS)
 	@mkdir -p $(BUILD_DIR)
-	sdcc $@ -msm83 --asm=rgbds --opt-code-size --no-peep --peep-file peephole.def $(DEFINES) --disable-warning 218 -S -o $(patsubst %.c, $(dir $@)_%.asm, $(notdir $@))
+	sdcc $< -msm83 --asm=rgbds --opt-code-size --no-peep --peep-file peephole.def $(DEFINES) --disable-warning 218 -S -o $@
 
-assemble: $(C_SOURCES)
+assemble: $(C_ASM)
 	rgbasm $(DEFINES) -o $(BUILD_DIR)/main.o $(SRC_DIR)/main.asm
 	rgblink -m $(BUILD_DIR)/main.map -n $(SYM_FILE) -o $(ROM_FILE) $(BUILD_DIR)/main.o
 	rgbfix -jvcs -k 01 -l 0x33 -m 0x1B -p 255 $(ROM_FILE)

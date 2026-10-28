@@ -483,7 +483,9 @@ _HitByPitchText:
 	DB "%s is on <1B>."
 	DB $00
 _BenchesClearText:
-	DB "And the benches clear."
+	DB "And the benches"
+	DB $80
+	DB "clear."
 	DB $00
 _RunnersOnBaseTexts:
 	DB "Nobody on base."
@@ -509,7 +511,9 @@ _RunnersOnBaseTexts:
 	DB "Bases loaded."
 	DB $00
 _TaggingFromTexts:
-	DB "%s tags from first."
+	DB "%s tags from"
+	DB $80
+	DB "first."
 	DB $00
 	DB "%s will"
 	DB $80
