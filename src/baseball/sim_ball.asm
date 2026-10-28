@@ -15,11 +15,14 @@ InitBall:;a = ball speed b = spray angle c = launch angle
   ld [ball_pos_y], a
   ld a, 1
   ld [ball_pos_z], a
+  ld a, BALL_STATE_IN_PLAY
+  ld [ball_state], a
 
   xor a
   ld [ball_pos_x+1], a
   ld [ball_pos_y+1], a
   ld [ball_pos_z+1], a
+  ld [sim_throw_target], a
 
 .calcZVelocity;z = a * sin(c)
   pop bc;spray,launch
@@ -216,6 +219,8 @@ SimulateBall:
     ld [ball_pos_z], a
     jr .skip
   .bounce
+    ld hl, ball_state
+    set 6, [hl];BALL_STATE_LANDED
     xor a
     ld [ball_pos_z], a
     ld [ball_pos_z+1], a
@@ -253,11 +258,11 @@ SimulateBall:
 .slowYToStop
   ld a, [ball_vel_y]
   cp -1
-  jr nz, .updateCameraY
+  jr nz, UpdateSimCamera
   xor a
   ld [ball_vel_y], a
 
-.updateCameraY
+UpdateSimCamera:
   ld a, [ball_pos_z]
   srl a
   srl a

@@ -84,8 +84,8 @@ math_Multiply:: ; hl = de * a where 0 <= a <= 255
   ld hl, 0
   and a
   ret z
-  ; cp a, 16
-  ; jr nc, math_ShiftMultiply
+  cp a, 16
+  jp nc, math_ShiftMultiply
 .loop
     add hl, de
     dec a
@@ -99,24 +99,19 @@ _math_Multiply::
   ld c, l
   ret
 
-; math_ShiftMultiply: ; hl = de * a where 0 <= a <= 255
-;   ld hl, 0
-;   and a
-;   ret z
-; .shiftAdd
-;   add a, a
-;   jr nc, .skipMSB
-;   add hl, de
-; .skipMSB:
-
-; REPT 7
-;   add hl, hl
-;   add a, a
-;   jr nc, .skip\@
-;   add hl, de
-; .skip\@:
-; ENDR
-;   ret
+math_ShiftMultiply: ; hl = de * a where 16 <= a <= 255, hl = 0
+  add a, a
+  jr nc, .skipMSB
+  add hl, de
+.skipMSB:
+REPT 7
+  add hl, hl
+  add a, a
+  jr nc, .skip\@
+  add hl, de
+.skip\@:
+ENDR
+  ret
 
 math_SignedMultiply:: ; hl = de * a where -127 <= a <= 127, -32385 <= de <= 32385
   cp a, 128
@@ -216,9 +211,10 @@ math_Divide16:: ;hl (remainder a) = hl / c
 .loop:
     add hl, hl
     rla
-    jr c, .skip
+    jr c, .subtract;remainder > 255
     cp c
     jr c, .skip
+  .subtract:
     sub c
     inc l
   .skip:
@@ -430,6 +426,8 @@ math_Length:: ;de = xy, returns length in a
   pop bc
   ld a, c;b
   add a, l;b+0.5*a*a/b
+  ret nc
+  ld a, 255
   ret
 
 math_SignedLength:: ;de = xy (signed), returns length in a
@@ -454,30 +452,26 @@ math_Normalize:: ;de = xy, returns |xy| in de
   push af;len
   ld h, d;x
   ld l, 0
-  ld b, 0
   ld c, a
-  call math_Divide16_16
-  ld a, d
+  call math_Divide16
+  ld a, h
   and a
   jr z, .xNotSaturated
-  ld e, 255
+  ld l, 255
 .xNotSaturated
-  ld l, e
   pop af;len
   pop de;xy
   ld d, l;x/len
   push de;x/len,y
   ld h, e;y
   ld l, 0
-  ld b, 0
   ld c, a
-  call math_Divide16_16
-  ld a, d
+  call math_Divide16
+  ld a, h
   and a
   jr z, .yNotSaturated
-  ld e, 255
+  ld l, 255
 .yNotSaturated
-  ld l, e
   pop de;x/len,y
   ld e, l;y/len
   ret
