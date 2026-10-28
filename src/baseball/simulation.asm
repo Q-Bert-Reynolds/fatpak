@@ -116,20 +116,29 @@ IF SIM_TEST_ENABLED
     and a, PADF_A
     jr z, .loop
     
+.randomizeOuts
+  ld a, %11
+  call SignedRandom
+  ld a, d
+  call math_CountBits
+  call SetOuts
 
+.randomizeRunners
   ld a, %01110111
-  call SignedRandom;runners
+  call SignedRandom
   ld a, d
   ld [runners_on_base], a
   ld a, e
   ld [runners_on_base+1], a
 
+.randomizeExitVelocity
   ld a, %01111111
-  call SignedRandom;ball speed
+  call SignedRandom
   push de
 
+.randomizeSprayAndLaunchAngle
   ld a, %1000111
-  call SignedRandom;direction
+  call SignedRandom
 
   pop af
   add a, 127

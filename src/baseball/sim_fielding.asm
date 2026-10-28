@@ -5,6 +5,9 @@ DEF THROW_HEIGHT     EQU 8
 DEF MIN_THROW_SPEED  EQU 40 ;added to throw stat / 2
 DEF MAX_THROW_SPEED  EQU 100
 DEF MAX_THROW_VEL_Z  EQU 48
+DEF THROW_BEATS_SHIFT EQU 2 ;throw if the ball is closer to the base than 4x the runner
+DEF STEP_ON_DIST      EQU 12 ;run to the base instead of throwing
+DEF STEP_ON_FRAMES    EQU 8
 
 PUSHS
 SECTION "Simulation Fielding Vars", WRAM0
@@ -12,6 +15,7 @@ sim_chaser:       DB ;position that chases the ball after it lands
 sim_throw_target: DB ;only this position can catch the ball, 0 = anyone
 sim_hold_timer:   DB
 sim_frame:        DB
+sim_holder:       DB
 POPS
 
 UpdateBall:
@@ -193,29 +197,97 @@ HoldBall:;a = position holding the ball
   ld hl, sim_hold_timer
   dec [hl]
   ret nz
-  ld a, [ball_state]
-  bit 7, a;BALL_STATE_CAUGHT
-  jr nz, .endPlay;fly out
-  ld a, [sim_throw_target]
-  and a
-  jr nz, .endPlay;TODO: relays, double plays
-
-.chooseBase;TODO: move to C, consider runners, outs, and arm strength
-  ld de, (FIRST_BASE_X << 8) | FIRST_BASE_Y
   ld a, b
-  cp a, SHORTSTOP+1
-  jr c, .getCoverer
-  ld de, (SECOND_BASE_X << 8) | SECOND_BASE_Y
-.getCoverer
-  push bc;holder
-  call GetBaseCoverer
-  pop bc;holder
-  jr z, .endPlay
-  cp a, b
-  jp nz, ThrowBall;holder isn't covering the base
+  ld [sim_holder], a
+  ;fall through to ChooseThrow
+
+ChooseThrow:;TODO: move to simulation.c
+.countOuts
+  call GetOuts
+  ld b, a
+  ld hl, sim_runner_state
+  ld c, 4
+.countOutsLoop
+    bit 7, [hl];RUNNER_OUT
+    jr z, .notOut
+    inc b
+  .notOut
+    inc hl
+    dec c
+    jr nz, .countOutsLoop
+  ld a, b
+  cp a, 3
+  jr nc, .endPlay
+
+  ld a, 3;lead runner first
+.loop
+    ld [sim_runner_index], a
+    call TryToGetRunner
+    ret nz
+    ld a, [sim_runner_index]
+    dec a
+    cp a, $FF
+    jr nz, .loop
 .endPlay
   ld hl, ball_state
   res 4, [hl];BALL_STATE_IN_PLAY
+  ret
+
+TryToGetRunner:;returns nz if the holder throws or runs to the runner's base
+  call GetRunnerStateAddress
+  ld a, [hl]
+  and a, RUNNER_PRESENT | RUNNER_OUT | RUNNER_SCORED
+  cp a, RUNNER_PRESENT
+  jr nz, .no
+  ld a, [hl]
+  and a, RUNNER_BASE
+  call GetBasePosition
+  ld d, b
+  ld e, c;base xy
+  call GetRunnerAddress
+  call GetSimPlayerXY
+  call ApproxDistance
+  and a
+  jr z, .no;safe
+  ld l, a;runner distance
+  ld a, [ball_pos_x]
+  ld b, a
+  ld a, [ball_pos_y]
+  ld c, a
+  call ApproxDistance
+  cp a, STEP_ON_DIST
+  jr c, .runToBase
+  ld h, a;ball distance
+  ld a, l
+REPT THROW_BEATS_SHIFT
+  add a, a
+  jr c, .throw
+ENDR
+  cp a, h
+  jr c, .no
+.throw
+  push de;base xy
+  call GetBaseCoverer
+  pop de;base xy
+  jr z, .no
+  ld c, a
+  ld a, [sim_holder]
+  cp a, c
+  jr z, .runToBase
+  ld b, a
+  ld a, c
+  call ThrowBall
+  or a, 1
+  ret
+.runToBase
+  ld a, [sim_holder]
+  call MoveFielderToPosition
+  ld a, STEP_ON_FRAMES
+  ld [sim_hold_timer], a
+  or a, 1
+  ret
+.no
+  xor a
   ret
 
 GetBaseCoverer:;de = base xy, returns position in a and nz if found

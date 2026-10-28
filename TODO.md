@@ -1,6 +1,8 @@
 Priority
 
-- catch and throw the ball, adds 
+- fix keyboard focus issues
+- add simulation.c for higher level logic
+- use map system for fields
 - fix swing timing
 - fix timing for score bug vs player data
 - add swing/pitch fx
@@ -80,12 +82,7 @@ Announcer
 Simulation
 
 - ball should bounce off fences
-- running
-- catching throwing
-- implement basic rules
-- iterative landing spot calc slightly off, direct method often way off
-- field should use map system
-- runners have wrong palette
+- runners have wrong palette on GBC an SGB
 - reuse the lineup sprites on the field
 
 Team Menu
