@@ -2,14 +2,14 @@
 #define CONSTANTS
 
 // scenes
-#define INTRO_ENABLED    1
-#define TITLE_ENABLED    1
-#define NEW_GAME_ENABLED 1
+#define INTRO_ENABLED    0
+#define TITLE_ENABLED    0
+#define NEW_GAME_ENABLED 0
 #define WORLD_ENABLED    1
 #define PLAY_ENABLED     1
 
 // tests
-#define TESTS_ENABLED         1
+#define TESTS_ENABLED         0
 #define SOUND_TEST_ENABLED    0
 #define KEYBOARD_TEST_ENABLED 0
 #define MAP_TEST_ENABLED      0

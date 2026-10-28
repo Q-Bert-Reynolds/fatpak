@@ -74,13 +74,11 @@ def main():
         else:
           mask_str += "11"
 
-        steps = 0
         chunk = []
         for j in range(i, i+0x100, 8):
           if all_zero(byte_list[j:j+8]):
             break
           chunk += byte_list[j:j+8]
-          steps += 1
 
         title = f'{name}{count}'
         addressLabel = f'{PascalCase(name)}{count}Sound'
@@ -91,8 +89,10 @@ def main():
         addresses.append(addressLabel)
         asm_file.write(f'\nSECTION "{name}.sav - {title}", ROMX\n')
         asm_file.write(f'{addressLabel}::\n')
-        asm_file.write(f'  SFX_HEADER {steps}, %{mask_str}, {priority}\n')
-
+        # UpdateSFX chains entries with 0 ticks into one step, so each row's last entry
+        # needs ticks > 0 and steps must count rows that emit entries, or it reads past the end
+        lines = []
+        steps = 0
         ch2_was_enabled = False
         ch4_was_enabled = False
         for j in range(0, len(chunk), 8):
@@ -108,24 +108,33 @@ def main():
 
           ch2_enabled = ch2_pan_mute > 0
           ch4_enabled = ch4_pan_mute > 0
-          start = 0 if (ch4_enabled or ch4_was_enabled) else ticks
+          row = [] # (macro, args) with ticks filled in below
           if ch2_enabled:
-              asm_file.write(f'  SFX_CH2 {start}, {ch2_duty_len}, {ch2_vol_env}, {ch2_note}\n')
+              row.append(('SFX_CH2', f'{ch2_duty_len}, {ch2_vol_env}, {ch2_note}'))
               ch2_was_enabled = True
           elif ch2_was_enabled:
               # Mute Channel 2: volume 0 ($08), re-trigger
-              asm_file.write(f'  SFX_CH2 {start}, 0, $08, $80 ;mute\n')
+              row.append(('SFX_CH2', '0, $08, $80 ;mute'))
               ch2_was_enabled = False
 
           # Determine if Ch4 needs to play or be muted
           if ch4_enabled:
-              asm_file.write(f'  SFX_CH4 {ticks}, 255, {ch4_vol_env}, {ch4_freq_div}\n')
+              row.append(('SFX_CH4', f'255, {ch4_vol_env}, {ch4_freq_div}'))
               ch4_was_enabled = True
           elif ch4_was_enabled:
               # Mute Channel 4: volume 0 ($08)
-              asm_file.write(f'  SFX_CH4 {ticks}, 255, $08, $80 ;mute\n')
+              row.append(('SFX_CH4', '255, $08, $80 ;mute'))
               ch4_was_enabled = False
 
+          if not row:
+            continue
+          steps += 1
+          for k, (macro, args) in enumerate(row):
+            t = max(ticks, 1) if k == len(row)-1 else 0
+            lines.append(f'  {macro} {t}, {args}\n')
+
+        asm_file.write(f'  SFX_HEADER {steps}, %{mask_str}, {priority}\n')
+        asm_file.writelines(lines)
         count += 1
 
       const = ConstString(name)

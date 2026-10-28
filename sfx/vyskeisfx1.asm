@@ -174,7 +174,7 @@ Vyskeisfx1MenuErrorSound::
 
 SECTION "vyskeisfx1.sav - Use Item Fail", ROMX
 Vyskeisfx1UseItemFailSound::
-  SFX_HEADER 7, %1101, 0
+  SFX_HEADER 5, %1101, 0
   SFX_CH2 2, 0, 72, C2
   SFX_CH2 3, 64, 104, D2
   SFX_CH2 4, 0, 136, A2
@@ -202,7 +202,7 @@ Vyskeisfx1DebuffSound::
 
 SECTION "vyskeisfx1.sav - Impact", ROMX
 Vyskeisfx1ImpactSound::
-  SFX_HEADER 11, %0111, 11
+  SFX_HEADER 9, %0111, 11
   SFX_CH4 3, 255, 152, NOISE_DIV_64|NOISE_STUTTER
   SFX_CH4 3, 255, 152, NOISE_DIV_16|NOISE_STUTTER
   SFX_CH4 3, 255, 152, NOISE_DIV_64|NOISE_STUTTER

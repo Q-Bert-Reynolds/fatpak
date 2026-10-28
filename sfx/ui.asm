@@ -74,7 +74,7 @@ UiSaveSuccessChimeSound::
   SFX_CH2 8, 64, 136, C7
   SFX_CH2 8, 64, 56, C7
   SFX_CH2 8, 64, 24, C7
-  SFX_CH2 0, 0, $08, $80 ;mute
+  SFX_CH2 1, 0, $08, $80 ;mute
 
 SECTION "ui.sav - Text Confirm", ROMX
 UiTextConfirmSound::
@@ -112,7 +112,7 @@ UiCloseMenuSound::
   SFX_CH2 2, 0, 8, C2
   SFX_CH2 2, 192, 248, D5
   SFX_CH2 6, 192, 248, C5
-  SFX_CH2 0, 0, $08, $80 ;mute
+  SFX_CH2 1, 0, $08, $80 ;mute
 
 SECTION "ui.sav - Page Scroll", ROMX
 UiPageScrollSound::

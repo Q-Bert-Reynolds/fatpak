@@ -72,4 +72,4 @@ TurnOffPCSound::
   SFX_CH2 2, 0, 8, C2
   SFX_CH2 2, 192, 248, D5
   SFX_CH2 6, 192, 248, C5
-  SFX_CH2 0, 0, $08, $80 ;mute
+  SFX_CH2 1, 0, $08, $80 ;mute
