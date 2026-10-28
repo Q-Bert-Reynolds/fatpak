@@ -91,59 +91,49 @@ CalculateLandingSpot:; returns landing xy in de
   ld d, h
   ld e, l
   push de;hang time * steps
-.landingX
-  ld a, [ball_vel_x]
-  ld b, a
-  call math_Abs
-  rst math_Multiply
-  ld d, h
-  ld e, l
   ld a, [ball_pos_x]
-  ld h, a
-  ld a, [ball_pos_x+1]
-  ld l, a
-  bit 7, b;sign of vel_x
-  jr nz, .subX
-  add hl, de
-  jr .doneX
-.subX
-  ld a, l
-  sub a, e
-  ld l, a
-  ld a, h
-  sbc a, d
-  ld h, a
-.doneX
-  push hl;landing x
-.landingY
-  pop bc;landing x
-  pop de;steps
-  push bc
-  ld a, [ball_vel_y]
   ld b, a
-  call math_Abs
-  rst math_Multiply
-  ld d, h
-  ld e, l
+  ld a, [ball_vel_x]
+  call LandingOnAxis
+  pop de;hang time * steps
+  push af;landing x
   ld a, [ball_pos_y]
-  ld h, a
-  ld a, [ball_pos_y+1]
+  ld b, a
+  ld a, [ball_vel_y]
+  call LandingOnAxis
+  ld e, a;landing y
+  pop af;landing x
+  ld d, a
+  ret
+
+LandingOnAxis:;a = signed velocity, b = position, de = hang time * steps, returns landing position clamped to 0-255 in a
+  ld c, a
+  push bc;position, velocity
+  call math_Abs
+  ld h, 0
   ld l, a
-  bit 7, b;sign of vel_y
-  jr nz, .subY
-  add hl, de
-  jr .doneY
-.subY
-  ld a, l
-  sub a, e
-  ld l, a
-  ld a, h
-  sbc a, d
-  ld h, a
-.doneY
-  pop bc;landing x
-  ld d, b
-  ld e, h;landing y
+  call math_Multiply16;bcde = distance in 1/256ths of a pixel
+  ld a, b
+  or a, c
+  pop bc;position, velocity
+  jr nz, .clamp;off the field
+  ld a, b
+  bit 7, c
+  jr nz, .subtract
+  add a, d
+  ret nc
+  ld a, 255
+  ret
+.subtract
+  sub a, d
+  ret nc
+  xor a
+  ret
+.clamp
+  bit 7, c
+  ld a, 255
+  ret z
+  xor a
   ret
 
 DrawBall:

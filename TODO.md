@@ -1,6 +1,6 @@
 Priority
 
-- move fielders to positions based on result
+- catch and throw the ball, adds 
 - fix swing timing
 - fix timing for score bug vs player data
 - add swing/pitch fx

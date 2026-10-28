@@ -53,6 +53,136 @@ POPS
 
 DEF SIM_PLAYER_SIZE EQU SimFielder2 - SimFielder1
 
+;fielder assignments
+DEF STAY   EQU 0
+DEF BALL   EQU 1
+DEF BACKUP EQU 2
+DEF COVER1 EQU 3
+DEF COVER2 EQU 4
+DEF COVER3 EQU 5
+DEF COVERH EQU 6
+
+DEF CF_LEFT_GAP EQU 10;row used when the center fielder takes a ball left of second
+
+FielderAssignments:;row = position fielding the ball, column = fielder
+  ;   P       C       1B      2B      3B      SS      LF      CF      RF
+  DB BALL,   COVERH, COVER1, STAY,   COVER3, COVER2, STAY,   STAY,   STAY  ;P
+  DB COVERH, BALL,   COVER1, STAY,   COVER3, COVER2, STAY,   STAY,   STAY  ;C
+  DB COVER1, COVERH, BALL,   STAY,   COVER3, COVER2, STAY,   STAY,   STAY  ;1B
+  DB STAY,   COVERH, COVER1, BALL,   COVER3, COVER2, STAY,   STAY,   STAY  ;2B
+  DB STAY,   COVERH, COVER1, COVER2, BALL,   COVER3, STAY,   STAY,   STAY  ;3B
+  DB STAY,   COVERH, COVER1, COVER2, COVER3, BALL,   STAY,   STAY,   STAY  ;SS
+  DB STAY,   COVERH, COVER1, COVER2, COVER3, STAY,   BALL,   BACKUP, STAY  ;LF
+  DB STAY,   COVERH, COVER1, STAY,   COVER3, COVER2, STAY,   BALL,   BACKUP;CF right gap
+  DB STAY,   COVERH, COVER1, STAY,   COVER3, COVER2, STAY,   BACKUP, BALL  ;RF
+  DB STAY,   COVERH, COVER1, STAY,   COVER3, COVER2, BACKUP, BALL,   STAY  ;CF left gap
+
+BasePositions:
+  DB FIRST_BASE_X, FIRST_BASE_Y
+  DB SECOND_BASE_X, SECOND_BASE_Y
+  DB THIRD_BASE_X, THIRD_BASE_Y
+  DB HOME_PLATE_X, HOME_PLATE_Y
+
+MoveFieldersForPlay:;a = position fielding the ball, de = landing xy
+  cp a, CENTER_FIELDER
+  jr nz, .getAssignments
+  ld b, a
+  ld a, d
+  add a, e;x + y > 255 is right of the line from home through second
+  ld a, b
+  jr c, .getAssignments
+  ld a, CF_LEFT_GAP
+.getAssignments
+  dec a
+  push de;landing xy
+  ld de, RIGHT_FIELDER
+  rst math_Multiply
+  ld de, FielderAssignments
+  add hl, de
+  pop de;landing xy
+  ld a, PITCHER
+.loop
+    push af;position
+    push de;landing xy
+    push hl;assignment address
+    ld a, [hl]
+    and a
+    jr z, .next;STAY
+    dec a
+    jr z, .move;BALL
+    dec a
+    jr z, .backup
+  .cover
+    add a, a
+    ld c, a
+    ld b, 0
+    ld hl, BasePositions-2
+    add hl, bc
+    ld a, [hli]
+    ld d, a
+    ld e, [hl]
+    jr .move
+  .backup
+    call GetBackupPosition
+  .move
+    pop hl;assignment address
+    pop bc;landing xy
+    pop af;position
+    push af
+    push bc
+    push hl
+    call MoveFielderToPosition
+  .next
+    pop hl;assignment address
+    pop de;landing xy
+    pop af;position
+    inc hl
+    inc a
+    cp a, RIGHT_FIELDER+1
+    jr nz, .loop
+  ret
+
+GetBackupPosition:;de = landing xy, returns xy behind landing (away from home) in de
+  push de;landing xy
+  ld a, d
+  sub a, HOME_PLATE_X
+  rra;halve 9 bit differences to fit in signed bytes
+  ld b, a
+  ld a, e
+  sub a, HOME_PLATE_Y
+  rra
+  ld e, a
+  ld d, b
+  call math_SignedNormalize
+  sra d
+  sra d
+  sra d;~16 pixels
+  sra e
+  sra e
+  sra e
+  pop bc;landing xy
+  ld a, b
+  ld b, d
+  call AddSignedOffsetClamped
+  ld d, a
+  ld a, c
+  ld b, e
+  call AddSignedOffsetClamped
+  ld e, a
+  ret
+
+AddSignedOffsetClamped:;a = position, b = signed offset, returns position clamped to 0-255 in a
+  add a, b
+  bit 7, b
+  jr nz, .negative
+  ret nc
+  ld a, 255
+  ret
+.negative
+  ret c
+  xor a
+  ret
+
 MoveFielderToPosition:;a = position, de = xy
   push de;xy
   dec a

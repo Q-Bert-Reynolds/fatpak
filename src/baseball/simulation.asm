@@ -91,7 +91,7 @@ RunSimulation::;a = ball speed, d = spray angle, e = launch angle
   push de;xy
   call GetClosestFielderByLocation ;de = xy, returns position number in a, distance in b
   pop de;xy
-  call MoveFielderToPosition;a = position, de = xy
+  call MoveFieldersForPlay;a = position, de = xy
 .loop
     call SimulateBall
     call SimulatePlayers
