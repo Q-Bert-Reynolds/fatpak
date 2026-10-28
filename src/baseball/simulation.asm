@@ -7,6 +7,7 @@ INCLUDE "img/simulation.asm"
 INCLUDE "src/baseball/sim_ball.asm"
 INCLUDE "src/baseball/sim_player.asm"
 INCLUDE "src/baseball/sim_fielding.asm"
+INCLUDE "src/baseball/sim_running.asm"
 
 ;Sprite IDs
 ;0 to 25  - head and body for 9 fielders and 4 baserunners
@@ -96,6 +97,7 @@ RunSimulation::;a = ball speed, d = spray angle, e = launch angle
   call MoveFieldersForPlay;a = position, de = xy
 .loop
     call UpdateBall
+    call UpdateRunners
     call SimulatePlayers
     call DrawBall
     call DrawRunners
@@ -115,7 +117,8 @@ IF SIM_TEST_ENABLED
     jr z, .loop
     
 
-  call gbdk_Random;runners
+  ld a, %01110111
+  call SignedRandom;runners
   ld a, d
   ld [runners_on_base], a
   ld a, e
@@ -134,6 +137,8 @@ IF SIM_TEST_ENABLED
 ELSE
     ld a, [ball_state]
     and a, BALL_STATE_IN_PLAY
+    jr nz, .loop
+    call AreRunnersRunning
     jr nz, .loop
 ENDC
 

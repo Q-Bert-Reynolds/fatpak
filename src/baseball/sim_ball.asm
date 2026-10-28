@@ -38,6 +38,11 @@ InitBall:;a = ball speed b = spray angle c = launch angle
   call math_SignedMultiply;v * sin(ang)*127
   ld a, h
   ld [ball_vel_z], a
+  dec a
+  bit 7, a
+  jr z, .calcForwardVelocity
+  ld hl, ball_state
+  set 6, [hl];BALL_STATE_LANDED, ground balls can't be caught on the fly
 
 .calcForwardVelocity;forward = a * cos(c)
   pop bc;spray,launch

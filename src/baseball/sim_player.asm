@@ -450,6 +450,7 @@ InitRunners:
   ld de, SimRunner3.speed
   call SetSimRunnerSpeed
 
+  call InitRunnerStates
   call DrawRunners
   ret
 
