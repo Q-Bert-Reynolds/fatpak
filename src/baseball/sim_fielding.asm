@@ -2,21 +2,24 @@ DEF CATCH_RADIUS     EQU 4
 DEF CATCH_HEIGHT     EQU 12
 DEF HOLD_FRAMES      EQU 20 ;time to transfer the ball before throwing
 DEF THROW_HEIGHT     EQU 8
-DEF MIN_THROW_SPEED  EQU 16 ;added to throw stat / 4
-DEF MAX_THROW_SPEED  EQU 63
-DEF MAX_THROW_VEL_Z  EQU 40
+DEF MIN_THROW_SPEED  EQU 40 ;added to throw stat / 2
+DEF MAX_THROW_SPEED  EQU 100
+DEF MAX_THROW_VEL_Z  EQU 48
 
 PUSHS
 SECTION "Simulation Fielding Vars", WRAM0
 sim_chaser:       DB ;position that chases the ball after it lands
 sim_throw_target: DB ;only this position can catch the ball, 0 = anyone
 sim_hold_timer:   DB
+sim_frame:        DB
 POPS
 
 UpdateBall:
+  ld hl, sim_frame
+  inc [hl]
   ld a, [ball_state]
   and a, BALL_STATE_FIELDER
-  jr nz, HoldBall
+  jp nz, HoldBall
   call SimulateBall
   call ChaseBall
   ;fall through to CheckCatch
@@ -88,12 +91,81 @@ ChaseBall:
   ld a, [ball_state]
   and a, BALL_STATE_LANDED
   ret z
+  ld a, [sim_throw_target]
+  and a
+  jr z, .closestChases
+.receiverChases;bad throws
   ld a, [ball_pos_x]
   ld d, a
   ld a, [ball_pos_y]
   ld e, a
   ld a, [sim_chaser]
   jp MoveFielderToPosition
+.closestChases;fielder closest to where the ball will stop goes there, every 4 frames
+  ld a, [sim_frame]
+  and a, %00000011
+  ret nz
+  call CalculateRollingStop
+  push de;stop xy
+  call GetClosestSimFielder
+  ld [sim_chaser], a
+  pop de;stop xy
+  jp MoveFielderToPosition
+
+GetClosestSimFielder:;de = xy, returns position in a
+  ld bc, 255 << 8;b = min distance, c = closest position
+  ld a, PITCHER
+.loop
+    push af;position
+    push bc;min distance, closest position
+    dec a
+    push de;xy
+    ld de, SIM_PLAYER_SIZE
+    rst math_Multiply
+    ld de, SimFielder1.pos_y
+    add hl, de
+    pop de;xy
+    ld a, e
+    sub a, [hl];y
+    jr nc, .absY
+    cpl
+    inc a
+  .absY
+    ld b, a;|dy|
+    inc hl
+    inc hl
+    inc hl;pos_x
+    ld a, d
+    sub a, [hl];x
+    jr nc, .absX
+    cpl
+    inc a
+  .absX
+    cp a, b
+    jr nc, .xIsMax
+    ld c, a
+    ld a, b
+    ld b, c
+  .xIsMax;distance ~= max + min/2
+    srl b
+    add a, b
+    jr nc, .compare
+    ld a, 255
+  .compare
+    pop bc;min distance, closest position
+    cp a, b
+    jr nc, .next
+    ld b, a
+    pop af;position
+    push af
+    ld c, a
+  .next
+    pop af;position
+    inc a
+    cp a, RIGHT_FIELDER+1
+    jr nz, .loop
+  ld a, c
+  ret
 
 HoldBall:;a = position holding the ball
   ld b, a
@@ -179,12 +251,10 @@ ThrowBall:;a = target position, b = holder position
   and a, ~(BALL_STATE_FIELDER | BALL_STATE_LANDED)
   ld [hl], a
 
-.getThrowSpeed;throw stat / 4 + MIN_THROW_SPEED
+.getThrowSpeed;throw stat / 2 + MIN_THROW_SPEED
   ld a, b
   call GetFielderByPosition
   call GetPlayerThrow
-  srl h
-  rr l
   srl h
   rr l
   ld a, h

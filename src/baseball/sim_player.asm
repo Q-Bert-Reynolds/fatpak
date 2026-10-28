@@ -19,6 +19,8 @@ Sim\1\2:
 .dest_x     DB
 .dest_y     DB
 .speed      DB
+.dir_x      DB ;cached normalized direction
+.dir_y      DB
 ENDM
 
 MACRO INIT_SIM_PLAYER ;\1 = fielder/runner, \2 = position/base, \3 = x, \4 = y
@@ -52,6 +54,7 @@ SimRunners:
 POPS
 
 DEF SIM_PLAYER_SIZE EQU SimFielder2 - SimFielder1
+ASSERT SIM_PLAYER_SIZE & 1, "UpdateSimPlayerVelocity expects an odd SIM_PLAYER_SIZE"
 
 ;fielder assignments
 DEF STAY   EQU 0
@@ -238,10 +241,26 @@ UpdateSimPlayerVelocity: ;hl = sim player address
   ld d, b;dx/2 and dy/2 can both be 0 when dx or dy is 1
   ld e, c
 .getSpeed
-  ld a, [hl];speed
+  ld a, [hli];speed
   push bc;dx, dy
   push af;speed
+
+.getDirection;normalizing is slow, so alternating players update their direction each frame
+  ld a, [sim_frame]
+  xor a, l;SIM_PLAYER_SIZE is odd, so consecutive players have opposite parity
+  rra
+  jr c, .normalize
+  ld a, [hli]
+  ld d, a
+  ld e, [hl]
+  jr .calcTargetVelocity
+.normalize
+  push hl;direction address
   call math_SignedNormalize
+  pop hl;direction address
+  ld a, d
+  ld [hli], a
+  ld [hl], e
 
 .calcTargetVelocity;target = speed * direction / 128
   pop af;speed

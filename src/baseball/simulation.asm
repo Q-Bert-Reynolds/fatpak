@@ -114,16 +114,22 @@ IF SIM_TEST_ENABLED
     and a, PADF_A
     jr z, .loop
     
-  ; ld a, %0001111
-  ; call SignedRandom
-  ; push de
-  ; ld a, %1000111
-  ; call SignedRandom
-  ; pop af
-  ; add a, 100
-  ld a, 255
-  ld d, 15
-  ld e, 95
+
+  call gbdk_Random;runners
+  ld a, d
+  ld [runners_on_base], a
+  ld a, e
+  ld [runners_on_base+1], a
+
+  ld a, %01111111
+  call SignedRandom;ball speed
+  push de
+
+  ld a, %1000111
+  call SignedRandom;direction
+
+  pop af
+  add a, 127
   jp RunSimulation
 ELSE
     ld a, [ball_state]

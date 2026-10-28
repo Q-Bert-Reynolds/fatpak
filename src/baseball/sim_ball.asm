@@ -1,6 +1,7 @@
 DEF BALL_POS_STEPS EQU 10
 DEF SIM_BALL_ORIGIN_X EQU 4
 DEF SIM_BALL_ORIGIN_Y EQU 4
+DEF ROLL_VEL_Z        EQU 4 ;bounces slower than this roll instead
 
 InitBall:;a = ball speed b = spray angle c = launch angle
   ld d, 0
@@ -85,8 +86,12 @@ InitBall:;a = ball speed b = spray angle c = launch angle
   ret
 
 CalculateLandingSpot:; returns landing xy in de
-  ld d, 0
   ld a, [ball_vel_z]
+  dec a
+  bit 7, a
+  jr nz, CalculateRollingStop
+  inc a
+  ld d, 0
   sla a
   ld e, a
   ld a, BALL_POS_STEPS
@@ -108,6 +113,32 @@ CalculateLandingSpot:; returns landing xy in de
   pop af;landing x
   ld d, a
   ret
+
+CalculateRollingStop:; returns xy where the ball stops rolling in de
+  ld a, [ball_pos_x]
+  ld b, a
+  ld a, [ball_vel_x]
+  call RollOnAxis
+  push af;landing x
+  ld a, [ball_pos_y]
+  ld b, a
+  ld a, [ball_vel_y]
+  call RollOnAxis
+  ld e, a;landing y
+  pop af;landing x
+  ld d, a
+  ret
+
+RollOnAxis:;a = signed velocity, b = position, returns position where the ball stops rolling in a
+  ld c, a
+  call math_Abs
+  inc a
+  ld de, BALL_POS_STEPS
+  rst math_Multiply;friction slows the ball by 1 every 2 frames, so it travels 10*v*(v+1)
+  ld d, h
+  ld e, l
+  ld a, c
+  ;fall through to LandingOnAxis
 
 LandingOnAxis:;a = signed velocity, b = position, de = hang time * steps, returns landing position clamped to 0-255 in a
   ld c, a
@@ -186,6 +217,29 @@ DrawBall:
   ld [hl], a
   ret
 
+DampBounce:;hl = velocity, v -= v/8
+  ld a, [hl]
+  sra a
+  sra a
+  sra a
+  ld b, a
+  ld a, [hl]
+  sub a, b
+  ld [hl], a
+  ret
+
+ApplyFriction:;hl = velocity, moves it 1 toward 0
+  ld a, [hl]
+  and a
+  ret z
+  rla
+  jr c, .negative
+  dec [hl]
+  ret
+.negative
+  inc [hl]
+  ret
+
 SimulateBall:
   ld a, [ball_vel_z]
   cp 128;always apply gravity if going up
@@ -225,24 +279,26 @@ SimulateBall:
     ld [ball_pos_z], a
     ld [ball_pos_z+1], a
     ld a, [ball_vel_z]
-    xor a, $FF
-    ld b, a
-    and a, %10000000
-    srl b
-    or a, b
+    cpl
+    sra a;bounce back up at half speed
+    cp a, ROLL_VEL_Z
+    jr c, .roll
     ld [ball_vel_z], a
-    ld a, [ball_vel_x]
-    ld b, a
-    and a, %10000000
-    srl b
-    or a, b
-    ld [ball_vel_x], a
-    ld a, [ball_vel_y]
-    ld b, a
-    and a, %10000000
-    srl b
-    or a, b
-    ld [ball_vel_y], a
+    ld hl, ball_vel_x
+    call DampBounce
+    ld hl, ball_vel_y
+    call DampBounce
+    jr .skip
+  .roll
+    xor a
+    ld [ball_vel_z], a
+    ld a, [sim_frame]
+    rra
+    jr nc, .skip
+    ld hl, ball_vel_x
+    call ApplyFriction
+    ld hl, ball_vel_y
+    call ApplyFriction
   .skip
     pop af;steps left
     dec a
