@@ -4,6 +4,10 @@ DEF SIM_BODY_TILE_ID EQU $64
 DEF SIM_PLAYER_ORIGIN_X EQU 4
 DEF SIM_PLAYER_ORIGIN_Y EQU 10
 
+DEF SIM_PLAYER_ACCEL     EQU 8   ;velocity change per frame
+DEF SIM_PLAYER_MIN_SPEED EQU 96  ;added to speed stat / 2
+DEF SIM_PLAYER_MAX_SPEED EQU 127 ;1/256ths of a pixel per frame
+
 MACRO SIM_PLAYER_DATA ;\1 = fielder/runner, \2 = position/base
 Sim\1\2:
 .player     DB ;upper nibble = team, lower nibble = lineup order
@@ -14,6 +18,7 @@ Sim\1\2:
 .pos_x      DW
 .dest_x     DB
 .dest_y     DB
+.speed      DB
 ENDM
 
 MACRO INIT_SIM_PLAYER ;\1 = fielder/runner, \2 = position/base, \3 = x, \4 = y
@@ -78,47 +83,143 @@ SimulatePlayers:
 
 UpdateSimPlayerVelocity: ;hl = sim player address
   push hl;sim player address
-
-  inc hl;skip player
-  inc hl;skip anim_state
-  push hl;address of vel_y
-
-.getPosition
-  inc hl;skip vel_y
+  ld de, SimFielder1.pos_y - SimFielder1
+  add hl, de
   ld c, [hl];pos_y
-  inc hl
-  inc hl;skip pos_y frac
-
-  inc hl;skip vel_x
+  ld e, SimFielder1.pos_x - SimFielder1.pos_y
+  add hl, de
   ld b, [hl];pos_x
-  inc hl
-  inc hl;skip pos_x frac
+  ld e, SimFielder1.dest_x - SimFielder1.pos_x
+  add hl, de
 
-.getDestination
-  ld a, [hli]
-  ld d, a;dest_x
-  ld e, [hl];dest_y
-
-.calcDirection
-  ld a, d
-  sub a, b;dest_x - pos_x
-  ld d, a
-  ld a, e
-  sub a, c;dest_y - pos_y
-  ld e, a
+.calcDelta;halve 9 bit differences to fit in signed bytes
+  ld a, [hli];dest_x
+  sub a, b
+  ld b, a;dx, 0 when arrived
+  rra
+  ld d, a;dx/2
+  ld a, [hli];dest_y
+  sub a, c
+  ld c, a;dy, 0 when arrived
+  rra
+  ld e, a;dy/2
+  or a, d
+  jr nz, .getSpeed
+  ld d, b;dx/2 and dy/2 can both be 0 when dx or dy is 1
+  ld e, c
+.getSpeed
+  ld a, [hl];speed
+  push bc;dx, dy
+  push af;speed
   call math_SignedNormalize
-  
-.setVelocity
-  ;TODO: lerp velocity to speed * direction
-  pop hl;address of vel_y
-  ld [hl], e;vel_y
-  inc hl
-  inc hl
-  inc hl
-  ld [hl], d
 
+.calcTargetVelocity;target = speed * direction / 128
+  pop af;speed
+  ld h, d
+  ld l, e;direction
+  ld d, 0
+  ld e, a;speed
+  push hl;direction
+  ld a, h
+  call math_SignedMultiply
+  add hl, hl
+  pop bc;direction
+  push hl;target x in h
+  ld a, c
+  call math_SignedMultiply
+  add hl, hl
+  pop bc;target x in b
+  ld c, h;target y
+
+.setVelocity
+  pop de;dx, dy
+  pop hl;sim player address
+  push hl
+  inc hl
+  inc hl;vel_y
+  ld a, e;dy
+  and a
+  jr z, .stopY
+  ld a, c;target y
+  call AccelerateSimPlayer
+  jr .setVelocityX
+.stopY
+  ld [hl], a
+.setVelocityX
+  inc hl
+  inc hl
+  inc hl;vel_x
+  ld a, d;dx
+  and a
+  jr z, .stopX
+  ld a, b;target x
+  call AccelerateSimPlayer
   pop hl;sim player address
   ret
+.stopX
+  ld [hl], a
+  pop hl;sim player address
+  ret
+
+AccelerateSimPlayer:;a = target velocity, hl = velocity address
+  xor a, $80;bias signed values so they compare as unsigned
+  ld e, a
+  ld a, [hl]
+  xor a, $80
+  cp a, e
+  jr nc, .slowDown
+.speedUp
+  add a, SIM_PLAYER_ACCEL
+  jr c, .clamp
+  cp a, e
+  jr c, .set
+  jr .clamp
+.slowDown
+  sub a, SIM_PLAYER_ACCEL
+  jr c, .clamp
+  cp a, e
+  jr nc, .set
+.clamp
+  ld a, e
+.set
+  xor a, $80
+  ld [hl], a
+  ret
+
+SetSimPlayerSpeed:;hl = player, de = sim player speed address
+  call GetPlayerSpeed
+  srl h
+  rr l
+  ld a, h
+  and a
+  jr nz, .max
+  ld a, l
+  add a, SIM_PLAYER_MIN_SPEED
+  jr c, .max
+  cp a, SIM_PLAYER_MAX_SPEED+1
+  jr c, .set
+.max
+  ld a, SIM_PLAYER_MAX_SPEED
+.set
+  ld [de], a
+  ret
+
+SetSimRunnerSpeed:;a = lineup order (1-9, 0 = no runner), de = sim player speed address
+  and a
+  ret z
+  dec a
+  ld b, a
+  push de
+  call IsUserFielding
+  ld a, b
+  jr nz, .opponentIsBatting
+  call GetUserPlayerInLineup
+  jr .setSpeed
+.opponentIsBatting
+  call GetOpposingPlayerInLineup
+.setSpeed
+  pop de
+  jr SetSimPlayerSpeed
 
 UpdateSimPlayerPosition: ;hl = sim player address
   push hl;sim player address
@@ -181,6 +282,25 @@ InitRunners:
 .setThirdBaserRunner
   INIT_SIM_PLAYER Runner, 3, b, c
 
+.setSpeeds
+  call CurrentOrderInLineup
+  inc a
+  ld de, SimRunner0.speed
+  call SetSimRunnerSpeed
+  ld a, [runners_on_base]
+  and a, $0F
+  ld de, SimRunner1.speed
+  call SetSimRunnerSpeed
+  ld a, [runners_on_base]
+  swap a
+  and a, $0F
+  ld de, SimRunner2.speed
+  call SetSimRunnerSpeed
+  ld a, [runners_on_base+1]
+  and a, $0F
+  ld de, SimRunner3.speed
+  call SetSimRunnerSpeed
+
   call DrawRunners
   ret
 
@@ -194,6 +314,23 @@ InitFielders:
   INIT_SIM_PLAYER Fielder, 7,  84,  24 ;left field
   INIT_SIM_PLAYER Fielder, 8, 190,  56 ;center field
   INIT_SIM_PLAYER Fielder, 9, 214, 180 ;right field
+
+  ld de, SimFielder1.speed
+  ld a, PITCHER
+.setSpeeds
+    push af;position
+    push de;sim player speed address
+    call GetFielderByPosition
+    pop de;sim player speed address
+    call SetSimPlayerSpeed
+    ld hl, SIM_PLAYER_SIZE
+    add hl, de
+    ld d, h
+    ld e, l
+    pop af;position
+    inc a
+    cp a, RIGHT_FIELDER+1
+    jr nz, .setSpeeds
   call DrawFielders
   ret
 

@@ -25,6 +25,7 @@ SECTION "Baseball Utils Bank 0", ROM0
 ; LocationFromDistSprayAngle      a = distance, b = spray angle, returns xy in de
 ; GetClosestFielderByLocation     de = xy, returns position number in a
 ; IsUserFielding                  nz = user is fielding, z = user is batting
+; GetFielderByPosition            a = position number (1-9), returns fielding team's player in hl
 ; CurrentOrderInLineup            returns order in a
 ; GetPitchBreak                   b = path, c = z, returns xy offset in de
 
@@ -568,17 +569,9 @@ GetClosestFielderByAngle::;a = spray angle, e = speed, returns time to ball in b
 
     ;get player speed
     push af;fielder_to_ball
-    call IsUserFielding
     ld a, [_i]
-    jr z, .userIsFielding
-  .opponentIsFielding
     inc a;position 1-9
-    call GetOpposingPlayerByPosition
-    jr .gotPlayer
-  .userIsFielding
-    inc a;position 1-9
-    call GetUserPlayerByPosition
-  .gotPlayer
+    call GetFielderByPosition
     call GetPlayerSpeed;returns speed in hl
     ld a, h;high byte of speed (meaningful unit)
     ld [_v], a;save speed divisor
@@ -630,6 +623,13 @@ IsUserFielding::;nz = user is fielding, z = user is batting
   xor a, b;home != frame
   pop bc
   ret
+
+GetFielderByPosition::;a = position(1-9), returns fielding team's player in hl (and bc)
+  ld b, a
+  call IsUserFielding
+  ld a, b
+  jp nz, GetUserPlayerByPosition
+  jp GetOpposingPlayerByPosition
 
 _CurrentOrderInLineup::
 CurrentOrderInLineup::;returns order in a

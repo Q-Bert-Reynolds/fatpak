@@ -1,6 +1,5 @@
 Priority
 
-- move a fielder to a position
 - move fielders to positions based on result
 - fix swing timing
 - fix timing for score bug vs player data
