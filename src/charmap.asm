@@ -1,4 +1,4 @@
-NEWCHARMAP baseball
+NEWCHARMAP latin1
 
 ;SDCC converts unicode to ascii for you and breaks the charmap
 ;As a workaround translate.py replaces unicode chars with <strings>: 
@@ -20,30 +20,15 @@ charmap "<down arrow>", 28
 charmap "<up arrow>", 29
 charmap "<return>", 30
 charmap "<+>", 31
-charmap "<i`>", 91
-charmap "<u:>", 93
-charmap "<u`>", 94
-charmap "<o`>", 95
-charmap "<a`>", 96
-charmap "<!>", 123
-charmap "<?>", 125
-charmap "<n~>", 126
-charmap "<e`>", 127
-
-;play ball replacement tiles
-charmap "<runners_3B_2B>", 10
-charmap "<runners_1B>", 11
-charmap "<count_balls>", 23
-charmap "<count_strikes>", 24
-charmap "<arrow_tail>", 12
-charmap "<arrow_line_vert>", 15
-charmap "<arrow_line_horiz>", 30
-charmap "<arrow_elbow_left>", 26
-charmap "<arrow_elbow_right>", 31
-charmap "<arrow_tip_left>", 25
-charmap "<arrow_tip_right>", 27
-charmap "<out_ou>", 26
-charmap "<out_t>", 27
+charmap "<i`>", 237
+charmap "<u:>", 252
+charmap "<u`>", 250
+charmap "<o`>", 243
+charmap "<a`>", 225
+charmap "<!>", 161
+charmap "<?>", 191
+charmap "<n~>", 241
+charmap "<e`>", 233
 
 ;ui tiles not covered by ASCII tabe
 charmap "<P>", 1 ; pitcher
@@ -77,15 +62,15 @@ charmap "▼", 28 ;bottom of the inning
 charmap "▲", 29 ;top of the inning
 charmap "↵", 30 ;end/return
 charmap "┼", 31
-charmap "í", 91
-charmap "ü", 93
-charmap "ú", 94
-charmap "ó", 95
-charmap "á", 96
-charmap "¡", 123
-charmap "¿", 125
-charmap "ñ", 126
-charmap "é", 127
+charmap "í", 237
+charmap "ü", 252
+charmap "ú", 250
+charmap "ó", 243
+charmap "á", 225
+charmap "¡", 161
+charmap "¿", 191
+charmap "ñ", 241
+charmap "é", 233
 charmap "\n", 128
 
 ; Standard printable ASCII characters that RGBDS 0.8 no longer provides for us
