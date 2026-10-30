@@ -21,6 +21,11 @@ unsigned int top;
 unsigned char want_col;
 unsigned char pad_timer;
 unsigned char blink_timer;
+unsigned char dirty;
+unsigned char osk_shown;
+unsigned char osk_layer;
+unsigned char osk_x;
+unsigned char osk_y;
 
 // is row the last visual row, given its next row start
 static unsigned char IsLastRow(unsigned int row, unsigned int next) {
@@ -71,8 +76,8 @@ static void HandleKey(unsigned char key, unsigned char mods) {
   switch (key) {
     case KEY_UP: MoveUp(); return;
     case KEY_DOWN: MoveDown(); return;
-    case KEY_PAGE_UP: for (i = TB_ROWS - 1; i; --i) MoveUp(); return;
-    case KEY_PAGE_DOWN: for (i = TB_ROWS - 1; i; --i) MoveDown(); return;
+    case KEY_PAGE_UP: for (i = tb_rows - 1; i; --i) MoveUp(); return;
+    case KEY_PAGE_DOWN: for (i = tb_rows - 1; i; --i) MoveDown(); return;
     case KEY_LEFT: if (cursor) --cursor; break;
     case KEY_RIGHT: if (cursor != tb_Length()) ++cursor; break;
     case KEY_HOME: cursor = tb_RowStart(cursor); break;
@@ -89,16 +94,70 @@ static void HandleKey(unsigned char key, unsigned char mods) {
   want_col = (unsigned char)(cursor - tb_RowStart(cursor));
 }
 
-// d-pad repeats while held, B = backspace, START = enter
+// returns held d-pad buttons when pressed and while repeating
+static unsigned char DpadRepeat(unsigned char pressed) {
+  unsigned char held = (button_state | pressed) & PADF_DPAD;
+  if (!held) return 0;
+  if (pressed & PADF_DPAD) pad_timer = PAD_REPEAT_DELAY;
+  else if (--pad_timer) return 0;
+  else pad_timer = PAD_REPEAT_RATE;
+  return held;
+}
+
+static void ToggleOSK(void) {
+  osk_shown = !osk_shown;
+  tb_rows = osk_shown ? TB_ROWS - OSK_ROWS : TB_ROWS;
+  if (osk_shown) {
+    OSKDraw(osk_layer);
+    OSKSelect(osk_x, osk_y);
+  }
+  OSKShow(osk_shown);
+  dirty = 1;
+}
+
+static void SetOSKLayer(unsigned char layer) {
+  osk_layer = osk_layer == layer ? OSK_LOWER : layer;
+  OSKDraw(osk_layer);
+}
+
+static unsigned char PressOSKKey(void) {
+  unsigned char key;
+  if (osk_y == OSK_ROWS - 1) {
+    if (osk_x == 0) SetOSKLayer(OSK_SHIFT);
+    else if (osk_x == 1) SetOSKLayer(OSK_SYMBOLS);
+    else if (osk_x == OSK_COLS - 2) return KEY_LEFT;
+    else if (osk_x == OSK_COLS - 1) return KEY_RIGHT;
+    else return ' ';
+    return KEY_NONE;
+  }
+  key = OSKGetKey(osk_layer, (osk_y << 3) + (osk_y << 1) + osk_x);
+  if (osk_layer == OSK_SHIFT) SetOSKLayer(OSK_SHIFT); // shift is one shot
+  return key;
+}
+
+static void MoveOSKSelection(unsigned char held) {
+  if (held & PADF_UP) osk_y = osk_y ? osk_y - 1 : OSK_ROWS - 1;
+  else if (held & PADF_DOWN) osk_y = osk_y == OSK_ROWS - 1 ? 0 : osk_y + 1;
+  if (held & PADF_LEFT) osk_x = osk_x ? osk_x - 1 : OSK_COLS - 1;
+  else if (held & PADF_RIGHT) osk_x = osk_x == OSK_COLS - 1 ? 0 : osk_x + 1;
+  OSKSelect(osk_x, osk_y);
+}
+
+// SELECT = on screen keyboard, B = backspace, START = enter
+// d-pad moves the cursor, or the keyboard selection when it's shown (A = type)
 static unsigned char PadKey(void) {
-  unsigned char pressed = button_state & ~last_button_state;
-  unsigned char held = button_state & PADF_DPAD;
+  unsigned char pressed = PadPressed();
+  unsigned char held;
+  if (pressed & PADF_SELECT) ToggleOSK();
   if (pressed & PADF_B) return KEY_BACKSPACE;
   if (pressed & PADF_START) return KEY_ENTER;
+  if (osk_shown && (pressed & PADF_A)) return PressOSKKey();
+  held = DpadRepeat(pressed);
   if (!held) return KEY_NONE;
-  if (pressed & PADF_DPAD) pad_timer = PAD_REPEAT_DELAY;
-  else if (--pad_timer) return KEY_NONE;
-  else pad_timer = PAD_REPEAT_RATE;
+  if (osk_shown) {
+    MoveOSKSelection(held);
+    return KEY_NONE;
+  }
   if (held & PADF_UP) return KEY_UP;
   if (held & PADF_DOWN) return KEY_DOWN;
   if (held & PADF_LEFT) return KEY_LEFT;
@@ -122,7 +181,7 @@ static void Refresh(void) {
     if (cursor < top) top = row;
     else { // scroll until the cursor is on the last row, jump if it's more than a screen away
       bottom = tb_bottom;
-      for (i = TB_ROWS; i; --i) {
+      for (i = tb_rows; i; --i) {
         top = tb_NextRow(top);
         if (bottom == row) break;
         bottom = tb_NextRow(bottom);
@@ -138,18 +197,22 @@ static void Refresh(void) {
 
 void Editor(void) {
   unsigned int event;
-  unsigned char key, dirty;
+  unsigned char key;
 
   EditorSetup();
   cursor = 0;
   top = 0;
   want_col = 0;
   pad_timer = 0;
+  osk_shown = 0;
+  osk_layer = OSK_LOWER;
+  osk_x = 0;
+  osk_y = 0;
+  tb_rows = TB_ROWS;
   Refresh();
 
   while (1) {
     WaitFrame();
-    dirty = 0;
     while ((key = (unsigned char)(event = KBPopEvent()))) {
       HandleKey(key, (unsigned char)(event >> 8));
       dirty = 1;
@@ -158,7 +221,10 @@ void Editor(void) {
       HandleKey(key, 0);
       dirty = 1;
     }
-    if (dirty) Refresh();
+    if (dirty) {
+      Refresh();
+      dirty = 0;
+    }
     else if (++blink_timer == CURSOR_BLINK) EditorShowCursor(0);
     else if (blink_timer == CURSOR_BLINK + CURSOR_BLINK) {
       EditorShowCursor(1);

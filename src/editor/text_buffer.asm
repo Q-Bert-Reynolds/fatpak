@@ -13,7 +13,7 @@
 ;   tb_Normalize                moves gap to the end so SRAM reads as plain text
 ;   tb_RowStart                 de = pos, returns start of the visual row containing pos in bc
 ;   tb_NextRow                  de = row start, returns start of the next visual row in bc
-;   tb_Render                   de = top, draws TB_ROWS rows to tile_buffer, finds tb_find
+;   tb_Render                   de = top, draws tb_rows rows to tile_buffer, finds tb_find
 
 MACRO SRAM_ON
   ld a, CART_SRAM_ENABLE
@@ -58,6 +58,7 @@ _tb_find:: DW;position to find while scanning rows
 _tb_found_col:: DB;$FF = not found
 _tb_found_row:: DB;$FF = not found
 _tb_bottom:: DW;start of the row after the last rendered row
+_tb_rows:: DB;visible rows
 
 SECTION "Text Buffer Code", ROM0
 
@@ -551,7 +552,7 @@ _tb_NextRow::;de = row start, returns start of the next visual row in bc
   SRAM_OFF
   ret
 
-_tb_Render::;de = top, draws TB_ROWS rows into tile_buffer, sets _tb_found_col/row for [_tb_find] and _tb_bottom
+_tb_Render::;de = top, draws [_tb_rows] rows into tile_buffer, sets _tb_found_col/row for [_tb_find] and _tb_bottom
   SRAM_ON
   push de
   call TBLength
@@ -585,7 +586,8 @@ _tb_Render::;de = top, draws TB_ROWS rows into tile_buffer, sets _tb_found_col/r
     ST_HL_VAR tb_row_ptr
     ld a, [tb_row]
     inc a
-    cp a, TB_ROWS
+    ld hl, _tb_rows
+    cp a, [hl]
     jr c, .rowLoop
   ST_DE_VAR _tb_bottom
   SRAM_OFF

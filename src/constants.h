@@ -40,6 +40,13 @@
 #define TB_SIZE  0x6000//SRAM banks 0-2
 #define TB_COLS  20
 #define TB_ROWS  18
+
+//on screen keyboard
+#define OSK_COLS    10
+#define OSK_ROWS    5
+#define OSK_LOWER   0
+#define OSK_SHIFT   1
+#define OSK_SYMBOLS 2
 #define ASCII_TAB 9
 #define ASCII_LF  10
 #define ASCII_CR  13

@@ -1,6 +1,7 @@
 INCLUDE "src/beisbol.inc"
 
 INCLUDE "src/editor/text_buffer.asm"
+INCLUDE "src/editor/osk.asm"
 
 SECTION "Editor ROM0", ROM0
 ;C functions (src/editor/editor.h)
@@ -27,10 +28,12 @@ _EditorSetup::
   ld c, CURSOR_SPRITE
   ld d, 0
   call gbdk_SetSpriteProp
+  call OSKSetup
 
   ld a, KB_MODE_EDITOR
   TRAMPOLINE SetKeyboardMode
   call _tb_Load
+  call PadPressed;clear presses latched before the editor started
 
   DISPLAY_ON
   ret
@@ -39,9 +42,11 @@ _WaitFrame::
   call gbdk_WaitVBL
   jp UpdateInput
 
-_EditorDraw::
+_EditorDraw::;copies visible rows
+  ld a, [_tb_rows]
+  ld l, a
+  ld h, TB_COLS
   ld de, 0
-  ld hl, (TB_COLS << 8) | TB_ROWS
   ld bc, tile_buffer
   jp gbdk_SetBkgTiles
 

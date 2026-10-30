@@ -1,6 +1,5 @@
 Priority (v1)
 
-- on-screen keyboard fallback, toggled with SELECT
 - call tb_Normalize before saving/menus so the .sav reads as plain text
 - emulate Everdrive X SD card in Gearboy ($BD00 data, $BD01 ctrl, $BD0A key)
 - Everdrive X SD card: SPI driver (asm), FatFs (C), file browser
@@ -15,6 +14,7 @@ Editor
 - select text (shift + arrows / A + d-pad), delete, cut, copy, paste
 - status line (file name, modified, free space)
 - iGKB handlers don't send home/end/page/delete keys
+- on screen keyboard: hold A to repeat, a way to move the cursor up/down while it's open
 
 Later
 

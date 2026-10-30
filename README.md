@@ -9,6 +9,21 @@ Planned for v1:
 
 Later: more encodings, variable width fonts, rich text, WorkBoy keyboard, iGKB, Super Game Boy mouse.
 
+# Controls
+| Button | Action |
+| --- | --- |
+| D-pad | move cursor, or the on screen keyboard selection when it's open |
+| A | type the selected key |
+| B | backspace |
+| START | new line |
+| SELECT | show/hide the on screen keyboard |
+
+On screen keyboard bottom row: shift (one shot), symbols, space, cursor left, cursor right.
+
+PS/2 keyboards type directly: arrows, home, end, page up/down, backspace, delete, enter.
+
+Text is kept in SRAM, so it's still there after turning the Game Boy off.
+
 # Engine
 - asm for core routines (drawing, input, math, memory, audio), C (SDCC) for higher level logic
 - PS/2 and iGKB keyboard drivers (src/keyboard)

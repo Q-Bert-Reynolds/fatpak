@@ -6,6 +6,7 @@
 // src/input.asm
 extern volatile unsigned char button_state;
 extern volatile unsigned char last_button_state;
+extern unsigned char PadPressed(void); // buttons pressed since the last call, latched in VBlank
 
 // src/keyboard/keyboard.asm
 extern unsigned int KBPopEvent(void); // key in low byte (KEY_NONE if empty), modifiers in high byte
@@ -16,7 +17,14 @@ extern void WaitFrame(void); // waits for vblank, updates input
 extern void EditorDraw(void); // copies tile_buffer to the screen
 extern void EditorShowCursor(unsigned char show); // uses tb_found_col/row
 
+// src/editor/osk.asm
+extern void OSKShow(unsigned char show);
+extern void OSKDraw(unsigned char layer);
+extern void OSKSelect(unsigned char x, unsigned char y);
+extern unsigned char OSKGetKey(unsigned char layer, unsigned char index); // 0 = no key
+
 // src/editor/text_buffer.asm
+extern unsigned char tb_rows; // visible rows
 extern unsigned int tb_find;
 extern unsigned char tb_found_col;
 extern unsigned char tb_found_row;

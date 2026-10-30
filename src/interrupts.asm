@@ -114,6 +114,7 @@ VBLInterrupt::
   PUSH_ALL
 
   call gbdk_DMATransfer
+  call LatchPad
   call UpdateTime
   call UpdateAnimations
   call UpdateAudio
