@@ -1,5 +1,7 @@
 SECTION "Input Vars", HRAM
+_last_button_state::
 last_button_state:: DB
+_button_state::
 button_state:: DB
 kb_button_state:: DB
 

@@ -1,0 +1,38 @@
+#ifndef EDITOR
+#define EDITOR
+
+#include "../constants.h"
+
+// src/input.asm
+extern volatile unsigned char button_state;
+extern volatile unsigned char last_button_state;
+
+// src/keyboard/keyboard.asm
+extern unsigned int KBPopEvent(void); // key in low byte (KEY_NONE if empty), modifiers in high byte
+
+// src/editor/editor.asm
+extern void EditorSetup(void);
+extern void WaitFrame(void); // waits for vblank, updates input
+extern void EditorDraw(void); // copies tile_buffer to the screen
+extern void EditorShowCursor(unsigned char show); // uses tb_found_col/row
+
+// src/editor/text_buffer.asm
+extern unsigned int tb_find;
+extern unsigned char tb_found_col;
+extern unsigned char tb_found_row;
+extern unsigned int tb_bottom;
+
+extern void tb_Load(void);
+extern void tb_Clear(void);
+extern unsigned int tb_Length(void);
+extern unsigned char tb_GetChar(unsigned int pos);
+extern unsigned char tb_Insert(unsigned int pos, unsigned char c);
+extern unsigned char tb_Delete(unsigned int pos);
+extern void tb_Normalize(void);
+extern unsigned int tb_RowStart(unsigned int pos);
+extern unsigned int tb_NextRow(unsigned int row);
+extern void tb_Render(unsigned int top);
+
+void Editor(void);
+
+#endif

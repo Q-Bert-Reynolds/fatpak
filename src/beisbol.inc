@@ -27,6 +27,7 @@ INCLUDE "src/tests/test.asm"
 
 INCLUDE "src/fade.asm"
 INCLUDE "src/world/world.asm"
+INCLUDE "src/editor/editor.asm"
 
 INCLUDE "src/wram.asm"
 INCLUDE "src/sram.asm"

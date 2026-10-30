@@ -1,14 +1,24 @@
 Priority (v1)
 
-- text buffer + cursor (C), fixed width rendering (asm), scrolling
-- PS/2 keyboard typing mode feeds the editor (arrows, enter, backspace, delete, home/end, page up/down)
 - on-screen keyboard fallback, toggled with SELECT
-- Everdrive X SD card: SPI driver (asm), FAT32 file system, file browser
+- call tb_Normalize before saving/menus so the .sav reads as plain text
+- emulate Everdrive X SD card in Gearboy ($BD00 data, $BD01 ctrl, $BD0A key)
+- Everdrive X SD card: SPI driver (asm), FatFs (C), file browser
 - open/save .txt files
-- emulate Everdrive SD card in Gearboy (RAM-backed SD stub until then)
+
+Editor
+
+- only redraw changed rows, copy during VBlank (whole screen redraw takes a few frames)
+- TBMoveGap does bank math per byte (~1s+ to move the gap across 24KB on DMG), copy in chunks
+- a full 20 character row followed by a line feed shows an extra blank row
+- tabs are drawn as a single space
+- caps lock, function keys, ctrl shortcuts
+- status line (file name, modified, free space)
+- iGKB handlers don't send home/end/page/delete keys
 
 Later
 
+- horizontal scrolling (no wrap) option
 - multiple encodings (CP437, CP1252, UTF-8)
 - variable width fonts (see untoxa/VWF)
 - rich text, colors, highlights

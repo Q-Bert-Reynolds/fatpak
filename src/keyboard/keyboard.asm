@@ -11,6 +11,10 @@ DEF KB_MODE_NONE    EQU 0
 DEF KB_MODE_BUTTONS EQU 1
 DEF KB_MODE_TYPING  EQU 2
 DEF KB_MODE_DEMO    EQU 3
+DEF KB_MODE_EDITOR  EQU 4;key presses are queued as key events
+
+DEF KB_EVENT_COUNT EQU 16;must be a power of 2
+DEF KB_SCAN_CODE_COUNT EQU 64;must be a power of 2
 
 ;kb_error
 DEF PS2_ERROR_TIMEOUT      EQU %100000
@@ -22,16 +26,6 @@ DEF PS2_ERROR_FINISH_BIT   EQU %000001
 
 DEF KB_FLAG_RELEASE  EQU %00000001 ;$PS2 code $F0
 DEF KB_FLAG_EXTENDED EQU %00000010 ;$PS2 code $E0
-
-;kb_modifiers
-DEF KB_MOD_SCROLL_LOCK EQU PS2_LED_SCROLL_LOCK;001
-DEF KB_MOD_NUM_LOCK    EQU PS2_LED_NUM_LOCK   ;010
-DEF KB_MOD_CAPS_LOCK   EQU PS2_LED_CAPS_LOCK  ;100
-DEF KB_MOD_SUPER       EQU %00001000
-DEF KB_MOD_ALT         EQU %00010000
-DEF KB_MOD_CTRL        EQU %00100000
-DEF KB_MOD_SHIFT       EQU %01000000
-DEF KB_MOD_FUNCTION    EQU %10000000
 
 SECTION "Keyboard Vars", WRAM0
 ;PS/2 scan codes are 11 bits (S0123456 7PFxxxxx):
@@ -45,8 +39,8 @@ SECTION "Keyboard Vars", WRAM0
 ; - the rest are incorrectly converted ASCII codes that can sometimes be converted back to HID codes
 
 kb_scan_code:: DB
-kb_scan_code_buffer:: DS 8;holds last 8 scan codes
-kb_error_buffer:: DS 8;holds last 8 error codes
+kb_scan_code_buffer:: DS KB_SCAN_CODE_COUNT;holds last scan codes
+kb_error_buffer:: DS KB_SCAN_CODE_COUNT;holds last error codes
 kb_buffer_write:: DB
 kb_buffer_read:: DB
 kb_interrupt_count:: DB
@@ -56,9 +50,32 @@ kb_modifiers:: DB ;FSCAUPNL - (F)unction, (S)hift, (C)trl, (A)lt, S(U)per, Ca(P)
 kb_flags:: DB;xxxxxxER - (E)xtended key flag, (R)elease key flag
 kb_type:: DB
 kb_mode:: DB
+kb_event_buffer:: DS KB_EVENT_COUNT*2;key, modifiers
+kb_event_write:: DB
+kb_event_read:: DB
 
 SECTION "Keyboard Code Bank 0", ROM0
 INCLUDE "src/keyboard/ps2_interrupt.asm"
+
+_KBPopEvent::
+KBPopEvent::;returns key in c (KEY_NONE if queue is empty), modifiers in b
+  ld bc, 0
+  ld a, [kb_event_read]
+  ld hl, kb_event_write
+  cp a, [hl]
+  ret z
+  ld l, a
+  inc a
+  and a, KB_EVENT_COUNT-1
+  ld [kb_event_read], a
+  ld h, 0
+  add hl, hl
+  ld de, kb_event_buffer
+  add hl, de
+  ld a, [hli]
+  ld c, a
+  ld b, [hl]
+  ret
 
 SECTION "Keyboard Code Bank X", ROMX
 INCLUDE "src/keyboard/kb_jump_table.asm"
@@ -159,7 +176,7 @@ ProcessPS2KeyCodes:
   .incrementReadIndex
     ld a, e
     inc a
-    and a, %00000111;read%8
+    and a, KB_SCAN_CODE_COUNT-1
     ld e, a;de = read index
     ld [kb_buffer_read], a
 

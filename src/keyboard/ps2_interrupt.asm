@@ -119,7 +119,7 @@ PS2KeyboardInterrupt::
 .incrementWriteHead
   ld a, [kb_buffer_write]
   inc a
-  and a, %00000111;a%8
+  and a, KB_SCAN_CODE_COUNT-1
   ld [kb_buffer_write], a
 
 .checkAllErrors

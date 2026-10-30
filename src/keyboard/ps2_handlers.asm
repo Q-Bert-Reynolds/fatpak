@@ -223,28 +223,22 @@ PS2HandleEnter:
   jp KBHandleEnter
 
 PS2HandleEndKey:
-  ld a, [kb_flags]
-  and a, KB_FLAG_RELEASE
-  ret nz;if release flag set, return early
-  ret
+  ld a, KEY_END
+  jp KBHandleEditorKey
 
 PS2HandleHomeKey:
-  ld a, [kb_flags]
-  and a, KB_FLAG_RELEASE
-  ret nz;if release flag set, return early
-  ret
+  ld a, KEY_HOME
+  jp KBHandleEditorKey
 
 PS2HandleInsertKey:
-  ld a, [kb_flags]
-  and a, KB_FLAG_RELEASE
-  ret nz;if release flag set, return early
-  ret
+  ld a, KEY_INSERT
+  jp KBHandleEditorKey
 
 PS2HandleDeleteKey:
   ld a, [kb_flags]
   and a, KB_FLAG_RELEASE
   ret nz;if release flag set, return early
-  ret
+  jp KBHandleDelete
 
 PS2HandleArrowKey:;scan code in a
   cp a, PS2_KEY_UP_ARROW
@@ -268,16 +262,12 @@ PS2HandleArrowKey:;scan code in a
   jp KBHandleArrowKey
 
 PS2HandlePageDown:
-  ld a, [kb_flags]
-  and a, KB_FLAG_RELEASE
-  ret nz;if release flag set, return early
-  ret
+  ld a, KEY_PAGE_DOWN
+  jp KBHandleEditorKey
 
 PS2HandlePageUp:
-  ld a, [kb_flags]
-  and a, KB_FLAG_RELEASE
-  ret nz;if release flag set, return early
-  ret
+  ld a, KEY_PAGE_UP
+  jp KBHandleEditorKey
 
 PS2HandlePrintScreen:
   ld a, [kb_flags]

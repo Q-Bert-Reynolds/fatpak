@@ -97,20 +97,5 @@ IF TESTS_ENABLED
   ldh [rVBK], a
 ENDC
 
-.start;TODO: replace with text editor
-  DISPLAY_OFF
-  SET_DEFAULT_PALETTE
-  TRAMPOLINE UILoadFontTiles
-  CLEAR_SCREEN ' '
-  ld de, $0408;xy
-  ld hl, $0B01;wh
-  ld bc, AppNameText
-  call gbdk_SetBkgTiles
-  DISPLAY_ON
-
-.mainLoop
-  call gbdk_WaitVBL
-  call UpdateInput
-  jr .mainLoop
-
-AppNameText: DB "TEXT EDITOR"
+.start
+  TRAMPOLINE _Editor;never returns
