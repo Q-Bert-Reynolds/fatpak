@@ -1,8 +1,7 @@
 Priority
 
-- fix keyboard focus issues
-- add simulation.c for higher level logic
 - use map system for fields
+- add simulation.c for higher level logic
 - fix swing timing
 - fix timing for score bug vs player data
 - add swing/pitch fx
