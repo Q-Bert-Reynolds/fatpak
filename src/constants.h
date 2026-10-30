@@ -6,6 +6,7 @@
 #define SOUND_TEST_ENABLED    0
 #define KEYBOARD_TEST_ENABLED 0
 #define MAP_TEST_ENABLED      0
+#define SD_TEST_ENABLED       0
 
 // game_state masks
 #define GAME_STATE_CLOCK_STARTED   0b00000001

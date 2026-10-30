@@ -45,6 +45,10 @@ Set in src/constants.asm, run before the editor starts:
 - SOUND_TEST_ENABLED
 - KEYBOARD_TEST_ENABLED
 - MAP_TEST_ENABLED
+- SD_TEST_ENABLED (inits the card, checks the MBR and FAT32 boot sector, writes and reads back sector 1)
+
+# SD card
+`make sdcard` builds bin/sdcard.img (64MB, MBR + FAT32) from the files in sd/. Gearboy emulates the EverDrive X SD card using sdcard.img next to the ROM, or the GEARBOY_SD_IMAGE environment variable.
 
 # Compiling:
     make clean

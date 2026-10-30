@@ -11,6 +11,8 @@ DATA_DIR  = data
 MUSIC_DIR = music
 BIN_DIR   = bin
 BUILD_DIR = build
+SD_DIR    = sd
+SD_IMAGE  = $(BIN_DIR)/sdcard.img
 
 ifeq ($(OS), Windows_NT)
 PYTHON	  = python
@@ -62,6 +64,15 @@ endif
 	$(PYTHON) sgb_border.py img/default_sgb_border.png img/default_sgb_border.asm
 	$(PYTHON) translate.py 
 	$(PYTHON) maps.py
+
+# SD card image for Gearboy's EverDrive X emulation, 64MB MBR + FAT32 with the files in sd/
+sdcard:
+	@mkdir -p $(BIN_DIR)
+	@rm -f $(SD_IMAGE)
+	truncate -s 64M $(SD_IMAGE)
+	echo 'start=2048, type=c' | /usr/sbin/sfdisk -q $(SD_IMAGE)
+	/usr/sbin/mkfs.fat -F 32 --offset 2048 -n TEXTEDITOR $(SD_IMAGE) 64512 > /dev/null
+	mcopy -i $(SD_IMAGE)@@1M $(SD_DIR)/* ::
 
 clean:
 	@rm -rf $(BUILD_DIR)

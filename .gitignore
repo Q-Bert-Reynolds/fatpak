@@ -22,6 +22,7 @@
 # *.1bpp
 # *.2bpp
 bin/*.sav
+bin/sdcard.img
 
 # Tiled map editor
 *.tiled-session

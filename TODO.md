@@ -1,8 +1,12 @@
 Priority (v1)
 
 - call tb_Normalize before saving/menus so the .sav reads as plain text
-- emulate Everdrive X SD card in Gearboy ($BD00 data, $BD01 ctrl, $BD0A key)
-- Everdrive X SD card: SPI driver (asm), FatFs (C), file browser
+- FatFs (C) on top of src/editor/sd.asm, file browser
+- SDCC runtime helpers (32 bit multiply/divide) compiled through the rgbds pipeline for FatFs
+- banked calls from C (ROM0 stubs) so FatFs can live in its own bank
+- test on the X7: does writing $A5 to $BD0A unlock the registers while SRAM is enabled? if so, text in SRAM could unlock them
+  (GBC-OS's in-game VBlank hook unlocks without disabling RAMG, see ~/Projects/everdrive-gb, but it may run in OS mapper mode)
+- faster sector reads with auto-read streaming ($BD01 bit 2 + $BD06 bit 0, reading $BD00 clocks the next byte)
 - open/save .txt files
 
 Editor

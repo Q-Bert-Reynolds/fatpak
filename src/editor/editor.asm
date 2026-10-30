@@ -2,6 +2,7 @@ INCLUDE "src/beisbol.inc"
 
 INCLUDE "src/editor/text_buffer.asm"
 INCLUDE "src/editor/osk.asm"
+INCLUDE "src/editor/sd.asm"
 
 SECTION "Editor ROM0", ROM0
 ;C functions (src/editor/editor.h)
