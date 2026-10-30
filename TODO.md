@@ -4,8 +4,7 @@ Priority (v1)
 - FatFs (C) on top of src/editor/sd.asm, file browser
 - SDCC runtime helpers (32 bit multiply/divide) compiled through the rgbds pipeline for FatFs
 - banked calls from C (ROM0 stubs) so FatFs can live in its own bank
-- test on the X7: does writing $A5 to $BD0A unlock the registers while SRAM is enabled? if so, text in SRAM could unlock them
-  (GBC-OS's in-game VBlank hook unlocks without disabling RAMG, see ~/Projects/everdrive-gb, but it may run in OS mapper mode)
+- test on the X7: does writing $A5 to $BD0A unlock the registers while SRAM is enabled? (the text buffer skips $BD00-$BD0F either way)
 - faster sector reads with auto-read streaming ($BD01 bit 2 + $BD06 bit 0, reading $BD00 clocks the next byte)
 - open/save .txt files
 
@@ -18,6 +17,7 @@ Editor
 - select text (shift + arrows / A + d-pad), delete, cut, copy, paste
 - status line (file name, modified, free space)
 - iGKB handlers don't send home/end/page/delete keys
+- PS/2 keyboard is only detected at boot, re-detect when plugged in later
 - on screen keyboard: hold A to repeat, a way to move the cursor up/down while it's open
 
 Later

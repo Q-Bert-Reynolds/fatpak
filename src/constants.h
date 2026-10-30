@@ -38,7 +38,11 @@
 #define DRAW_FLAGS_NO_SPACE 0b00000100
 
 //text buffer
-#define TB_SIZE  0x6000//SRAM banks 0-2
+#define TB_BANKS     3//SRAM banks 0-2
+#define TB_HOLE      0x1D00//0xBD00-0xBD0F are EverDrive registers, never stored to
+#define TB_HOLE_SIZE 0x10
+#define TB_BANK_SIZE (0x2000-TB_HOLE_SIZE)
+#define TB_SIZE      (TB_BANK_SIZE*TB_BANKS)
 #define TB_COLS  20
 #define TB_ROWS  18
 

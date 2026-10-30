@@ -1,4 +1,5 @@
 import os
+import re
 
 def main():
   if os.path.isfile("src/constants.h"):
@@ -17,8 +18,8 @@ def main():
         line = line.replace("DEF ", "#define ")
         line = line.replace(" EQU ", " ")
         line = line.replace(";", "//")
-        line = line.replace(" %", " 0b")
-        line = line.replace(" $", " 0x")
+        line = re.sub(r"%([01]+)\b", r"0b\1", line)
+        line = re.sub(r"\$([0-9A-Fa-f]+)\b", r"0x\1", line)
         out_file.write(line)
 
       out_file.write("\n#endif //CONSTANTS\n")

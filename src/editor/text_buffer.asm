@@ -1,4 +1,5 @@
-;Gap buffer stored in SRAM banks 0-2. Positions are logical (gap excluded),
+;Gap buffer stored in SRAM banks 0-2, skipping $BD00-$BD0F in each bank so text
+;can never reach the EverDrive registers (writing $A5 to $BD0A unlocks them). Positions are logical (gap excluded),
 ;physical offsets include the gap. The gap is always zeroed and text never
 ;contains 0, so the buffer can be recovered from SRAM without metadata:
 ;text before the gap, zeros, text after the gap up to TB_SIZE.
@@ -62,7 +63,7 @@ _tb_rows:: DB;visible rows
 
 SECTION "Text Buffer Code", ROM0
 
-TBSignature: DB "TXT1"
+TBSignature: DB "TXT2"
 
 _tb_Load::
   SRAM_ON
@@ -89,15 +90,13 @@ _tb_Load::
     and a
     jr z, .foundGapStart
     inc de
-    ld a, d
-    cp a, HIGH(TB_SIZE)
+    call TBCheckSize
     jr nz, .gapStartLoop
 .foundGapStart
   ST_DE_VAR tb_gap_start
 
 .findGapEnd;first non 0 after gap start
-    ld a, d
-    cp a, HIGH(TB_SIZE)
+    call TBCheckSize
     jr z, .foundGapEnd
     ld h, d
     ld l, e
@@ -123,16 +122,20 @@ _tb_Load::
 _tb_Clear::
   SRAM_ON
   xor a
-.clearBankLoop
+.clearBankLoop;everything but the register hole
     push af;bank
     ld [rRAMB], a
     xor a
     ld hl, _SRAM
-    ld bc, $2000
+    ld bc, TB_HOLE
+    call mem_Set
+    xor a
+    ld hl, _SRAM+TB_HOLE+TB_HOLE_SIZE
+    ld bc, $2000-TB_HOLE-TB_HOLE_SIZE
     call mem_Set
     pop af;bank
     inc a
-    cp a, HIGH(TB_SIZE)/$20
+    cp a, TB_BANKS
     jr nz, .clearBankLoop
   ld hl, 0
   ST_HL_VAR tb_gap_start
@@ -141,15 +144,41 @@ _tb_Clear::
   SRAM_OFF
   ret
 
+;returns z if de = TB_SIZE, only affects a
+TBCheckSize:
+  ld a, e
+  cp a, LOW(TB_SIZE)
+  ret nz
+  ld a, d
+  cp a, HIGH(TB_SIZE)
+  ret
+
 ;hl = physical offset, selects SRAM bank, returns SRAM address in hl, only affects a
 TBPhysAddr:
-  ld a, h
-  swap a
-  rrca;bank = h >> 5
-  and a, %00000111
+  push bc
+  ld bc, -TB_BANK_SIZE
+  xor a;bank
+.findBank
+    add hl, bc
+    jr nc, .foundBank
+    inc a
+    jr .findBank
+.foundBank
+  ld bc, TB_BANK_SIZE
+  add hl, bc;offset in bank
+  pop bc
   ld [rRAMB], a
   ld a, h
-  and a, %00011111
+  cp a, HIGH(TB_HOLE)
+  jr c, .setAddress
+  ld a, l;skip the register hole
+  add a, TB_HOLE_SIZE
+  ld l, a
+  ld a, h
+  adc a, 0
+  ld h, a
+.setAddress
+  ld a, h
   or a, HIGH(_SRAM)
   ld h, a
   ret
@@ -216,6 +245,13 @@ TBReadNext:
   ld a, h
   cp a, HIGH(_SRAM)+$20
   jr z, .seek;crossed into next bank
+  cp a, HIGH(_SRAM+TB_HOLE)
+  jr nz, .checkGap
+  ld a, l
+  and a
+  jr nz, .checkGap
+  ld l, TB_HOLE_SIZE;skip the register hole
+.checkGap
   ld a, [tb_gap_start]
   cp a, e
   jr nz, .done
