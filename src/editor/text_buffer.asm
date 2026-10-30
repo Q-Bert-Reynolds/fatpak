@@ -395,8 +395,33 @@ TBDrawChar:
   pop hl
   ret
 
+;b = column, sets [_tb_found_col] to b if de = [_tb_find] and it hasn't been found yet
+TBCheckFind:
+  ld a, [_tb_find]
+  cp a, e
+  ret nz
+  ld a, [_tb_find+1]
+  cp a, d
+  ret nz
+  ld a, [_tb_found_col]
+  inc a
+  ret nz;already found
+  ld a, b
+  ld [_tb_found_col], a
+  ret
+
+;returns z if de = [tb_len]
+TBCheckEnd:
+  ld a, [tb_len]
+  cp a, e
+  ret nz
+  ld a, [tb_len+1]
+  cp a, d
+  ret
+
 ;Scans one visual row. Rows are up to TB_COLS characters, end after a line feed,
-;and wrap after the last space when a word doesn't fit.
+;and wrap after the last space when a word doesn't fit. Spaces and a line feed
+;after a full row hang off the end of it (found at column TB_COLS).
 ;de = row start, [tb_len] = length, returns next row start in de
 ;sets [_tb_found_col] if [_tb_find] is in the row and [_tb_found_col] is $FF
 TBScanRow:
@@ -408,26 +433,9 @@ TBScanRow:
     ld a, b
     cp a, TB_COLS
     jr z, .full
-  .checkFind
-    ld a, [_tb_find]
-    cp a, e
-    jr nz, .checkEnd
-    ld a, [_tb_find+1]
-    cp a, d
-    jr nz, .checkEnd
-    ld a, [_tb_found_col]
-    inc a
-    jr nz, .checkEnd;already found
-    ld a, b
-    ld [_tb_found_col], a
-  .checkEnd
-    ld a, [tb_len]
-    cp a, e
-    jr nz, .read
-    ld a, [tb_len+1]
-    cp a, d
+    call TBCheckFind
+    call TBCheckEnd
     ret z;end of text
-  .read
     push bc
     call TBReadNext
     pop bc
@@ -447,18 +455,26 @@ TBScanRow:
     jr .loop
 
 .full
-  ld a, [tb_len]
-  cp a, e
-  jr nz, .peek
-  ld a, [tb_len+1]
-  cp a, d
-  ret z;end of text
-.peek
-  ld a, [hl];next char
-  cp a, ' '
-  ret z
-  cp a, ASCII_LF
-  ret z
+    call TBCheckEnd
+    ret z;end of text
+    ld a, [hl];next char
+    cp a, ' '
+    jr z, .hang
+    cp a, ASCII_LF
+    jr nz, .checkWrap
+  .hang
+    push af
+    call TBCheckFind
+    push bc
+    call TBReadNext
+    pop bc
+    pop af
+    cp a, ASCII_LF
+    ret z
+    ld c, TB_COLS;row ends with a space, no word to wrap
+    jr .full
+
+.checkWrap
   ld a, c
   and a
   ret z;no spaces, wrap mid word

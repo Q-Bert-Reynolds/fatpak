@@ -57,10 +57,16 @@ _EditorShowCursor::;a = show
   add a, OAM_Y_OFS
   ld e, a;y
   ld a, [_tb_found_col]
+  cp a, TB_COLS
+  jr c, .setX
+  ld a, TB_COLS*8-1+OAM_X_OFS;hanging space or line feed, right edge of the screen
+  jr .moveSprite
+.setX
   add a, a
   add a, a
   add a, a
   add a, OAM_X_OFS
+.moveSprite
   ld d, a;x
   ld c, CURSOR_SPRITE
   jp gbdk_MoveSprite

@@ -10,9 +10,9 @@ Editor
 
 - only redraw changed rows, copy during VBlank (whole screen redraw takes a few frames)
 - TBMoveGap does bank math per byte (~1s+ to move the gap across 24KB on DMG), copy in chunks
-- a full 20 character row followed by a line feed shows an extra blank row
 - tabs are drawn as a single space
-- caps lock, function keys, ctrl shortcuts
+- function keys, ctrl shortcuts
+- select text (shift + arrows / A + d-pad), delete, cut, copy, paste
 - status line (file name, modified, free space)
 - iGKB handlers don't send home/end/page/delete keys
 
