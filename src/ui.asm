@@ -570,56 +570,18 @@ ShowNumberPicker::; a = draw flags, bc = xy, de = wh, h = max number, returns nu
 SECTION "UI", ROMX
 
 INCLUDE "img/ui_font.asm"
-INCLUDE "img/town_map.asm"
 INCLUDE "data/strings/ui_strings.asm"
 
 ;UILoadFontTiles
-;UIDrawStateMap
 ;UIRevealText - a = draw flags, hl = text, de = xy
 ;UIRevealTextAndWait - a = draw flags, hl = text
 ;UIShowOptions
 ;UIShowTextEntry - a = draw flags, de = title, hl = str, c = max_len
 ;UIShowListMenu - a = draw flags, bc = xy, de = wh, text = [str_buffer], title = [name_buff], returns choice in a
 ;UIShowNumberPicker - a = draw flags, bc = xy, de = wh, h = max number, returns number in a (0 = cancel)
-;UIDrawSaveStats - a = draw flags, de = xy
 
 UILoadFontTiles::
   LOAD_TILES _UiFontTiles, _VRAM+$1000, 0, _UI_FONT_TILE_COUNT
-  ret
-
-; State Map SGB Palettes
-SGBTownMapPalSet: PAL_SET PALETTE_UI, PALETTE_TOWN_MAP, PALETTE_TOWN_MAP_LOCATION, PALETTE_GREY
-SGBTownMapAttrBlk:
-  ATTR_BLK 7
-  ATTR_BLK_DATA %001, 0,0,0,  0,0, 20,1  ;title
-  ATTR_BLK_DATA %001, 1,1,1,  0,1, 20,17 ;map
-  ATTR_BLK_DATA %001, 2,2,2,  1,2,  7,1  ;locations
-  ATTR_BLK_DATA %001, 2,2,2,  3,6,  6,7
-  ATTR_BLK_DATA %001, 2,2,2, 12,11, 1,1
-  ATTR_BLK_DATA %001, 2,2,2, 16,14, 1,1
-  ATTR_BLK_DATA %001, 2,2,2, 17,12, 1,1
-
-UIDrawStateMap::
-  DISPLAY_OFF
-  ld hl, _TownMapTiles
-  ld de, $8800
-  ld bc, _TOWN_MAP_TILE_COUNT*16
-  call mem_CopyVRAM
-
-  ld de, 0
-  ld h, _TOWN_MAP_COLUMNS
-  ld l, _TOWN_MAP_ROWS
-  ld bc, _TownMapTileMap
-  ld a, _UI_FONT_TILE_COUNT
-  call SetBkgTilesWithOffset
-
-  ld hl, SGBTownMapPalSet               
-  call SetPalettesIndirect
-  ld hl, SGBTownMapAttrBlk
-  ld b, DRAW_FLAGS_BKG
-  call SetColorBlocks
-
-  DISPLAY_ON
   ret
 
 UIRevealText:: ;a = draw flags, hl = text, de = xy
@@ -932,34 +894,20 @@ MoveOptionsArrow:
   SET_MOVE_OPTIONS_ARROW_TILE animation_style, 1, 1
   call gbdk_SetBkgTiles; set_bkg_tiles(10,8,1,1,tile_buffer + (b==1 ? 2 : 0) - (y==1 ? 1 : 0));
 
-  ld d, 1 ;x
-  ld e, 13 ;y
-  ld h, 1 ;w
-  ld l, 1 ;h
-  SET_MOVE_OPTIONS_ARROW_TILE coaching_style, 2, 0
-  call gbdk_SetBkgTiles; set_bkg_tiles(1,13,1,1,tile_buffer + (c==0 ? 2 : 0) - (y==2 ? 1 : 0));
-  
-  ld d, 10 ;x
-  ld e, 13 ;y
-  ld h, 1 ;w
-  ld l, 1 ;h
-  SET_MOVE_OPTIONS_ARROW_TILE coaching_style, 2, 1
-  call gbdk_SetBkgTiles; set_bkg_tiles(10,13,1,1,tile_buffer + (c==1 ? 2 : 0) - (y==2 ? 1 : 0));
-
   ld a, '▶'
   ld bc, tile_buffer
   ld [bc], a
   ld d, 1 ;x
-  ld e, 16 ;y
+  ld e, 11 ;y
   ld h, 1 ;w
   ld l, 1 ;h
   ld a, [_y]
-  cp 3
+  cp 2
   jr z, .setCancelTile
   ld a, '▷'
   ld [bc], a
 .setCancelTile
-  call gbdk_SetBkgTiles; set_bkg_tiles(1,16,1,1,tile_buffer + (y==3 ? 1 : 2));
+  call gbdk_SetBkgTiles; set_bkg_tiles(1,11,1,1,tile_buffer + (y==2 ? 1 : 2));
   ret
 
 UIShowOptions::
@@ -987,15 +935,9 @@ UIShowOptions::
 .testAnimationStyle; if (b > 1) b = 0;
   ld a, [animation_style]
   cp 2
-  jr c, .testCoachingStyle
-  xor a
-  ld [animation_style], a
-.testCoachingStyle; if (c > 1) c = 0;
-  ld a, [coaching_style]
-  cp 2
   jr c, .doneTestingStoreOptions
   xor a
-  ld [coaching_style], a
+  ld [animation_style], a
 .doneTestingStoreOptions
 
   ;"TEXT SPEED        "
@@ -1031,24 +973,7 @@ UIShowOptions::
   DRAW_STRING 0, 2, 8, AnimationOptionOnString
   DRAW_STRING 0, 11, 8, AnimationOptionOffString
   
-  ;"COACHING STYLE    "
-  ;"                  "
-  ;" SHIFT    SET     "
-  xor a
-  ld b, a
-  ld a, 10
-  ld c, a
-  ld a, 20
-  ld d, a
-  ld a, 5
-  ld e, a
-  ld a, DRAW_FLAGS_BKG
-  call DrawUIBox
-  DRAW_STRING 0, 1, 11, CoachingOptionTitle
-  DRAW_STRING 0, 2, 13, CoachingOptionShiftString
-  DRAW_STRING 0, 11, 13, CoachingOptionSetString
-
-  DRAW_STRING 0, 2, 16, CancelString
+  DRAW_STRING 0, 2, 11, CancelString
 
   DISPLAY_ON
 
@@ -1074,11 +999,11 @@ UIShowOptions::
   call MoveOptionsArrow;     move_options_arrow(--y);
   call WaitPadUp
   jp .waitVBLAndLoop
-.checkDownPressed;   else if (button_state & PADF_DOWN && y < 3) {
+.checkDownPressed;   else if (button_state & PADF_DOWN && y < 2) {
   ldh a, [button_state]
   and a, PADF_DOWN
   jr z, .checkLeftPressed
-  ld a, 3
+  ld a, 2
   ld b, a
   ld a, [_y]
   cp b
@@ -1090,12 +1015,12 @@ UIShowOptions::
   call MoveOptionsArrow;     move_options_arrow(++y);
   call WaitPadUp
   jp .waitVBLAndLoop
-.checkLeftPressed;   else if (button_state & PADF_LEFT && y < 3) {
+.checkLeftPressed;   else if (button_state & PADF_LEFT && y < 2) {
   ldh a, [button_state]
   and a, PADF_LEFT
   jr z, .checkRightPressed
   ld a, [_y]
-  cp 3
+  cp 2
   jr nc, .checkRightPressed
   call gbdk_WaitVBL
 .moveTextSpeedLeft;     if (y == 0 && a > 0) --a;
@@ -1111,32 +1036,22 @@ UIShowOptions::
 .moveAnimationStyleLeft;     else if (y == 1 && b > 0) --b;
   ld a, [_y]
   cp 1
-  jr nz, .moveCoachingStyleLeft
-  ld a, [animation_style]
-  and a
-  jr z, .moveCoachingStyleLeft
-  dec a
-  ld [animation_style], a
-  jr .moveArrowLeft
-.moveCoachingStyleLeft;     else if (y == 2 && c > 0) --c;
-  ld a, [_y]
-  cp 2
   jr nz, .moveArrowLeft
-  ld a, [coaching_style]
+  ld a, [animation_style]
   and a
   jr z, .moveArrowLeft
   dec a
-  ld [coaching_style], a
+  ld [animation_style], a
 .moveArrowLeft
   call MoveOptionsArrow;     move_options_arrow(y);
   call WaitPadUp
   jr .waitVBLAndLoop
-.checkRightPressed;   else if (button_state & PADF_RIGHT && y < 3) {
+.checkRightPressed;   else if (button_state & PADF_RIGHT && y < 2) {
   ldh a, [button_state]
   and a, PADF_RIGHT
   jr z, .checkStartAPressed
   ld a, [_y]
-  cp 3
+  cp 2
   jr nc, .checkStartAPressed
   call gbdk_WaitVBL
 .moveTextSpeedRight;     if (y == 0 && a < 2) ++a;
@@ -1152,29 +1067,19 @@ UIShowOptions::
 .moveAnimationStyleRight;     else if (y == 1 && b < 1) ++b;
   ld a, [_y]
   cp 1
-  jr nz, .moveCoachingStyleRight
-  ld a, [animation_style]
-  cp 1
-  jr nc, .moveCoachingStyleRight
-  inc a
-  ld [animation_style], a
-  jr .moveArrowRight
-.moveCoachingStyleRight;     else if (y == 2 && c < 1) ++c;
-  ld a, [_y]
-  cp 2
   jr nz, .moveArrowRight
-  ld a, [coaching_style]
+  ld a, [animation_style]
   cp 1
   jr nc, .moveArrowRight
   inc a
-  ld [coaching_style], a
+  ld [animation_style], a
 .moveArrowRight
   call MoveOptionsArrow;     move_options_arrow(y);
   call WaitPadUp
   jr .waitVBLAndLoop
-.checkStartAPressed;   if (button_state & (PADF_START | PADF_A) && y == 3) break;
+.checkStartAPressed;   if (button_state & (PADF_START | PADF_A) && y == 2) break;
   ld a, [_y]
-  cp 3
+  cp 2
   jr nz, .checkBPressed
   ldh a, [button_state]
   and a, PADF_START | PADF_A
@@ -2053,185 +1958,3 @@ UIShowNumberPicker::; a = draw flags, bc = xy, de = wh, hl = max/start nums, ret
     pop de;xy
     pop hl;draw flags
     jp .loop
-
-UIDrawSaveStats::;a = draw flags, de = xy
-  push de;xy
-  push af;draw flags
-  call HideAllSprites
-
-  pop af;draw flags
-  pop de;xy
-  push de;xy
-  push af;draw flags
-  ld b, d
-  ld c, e
-  ld d, 16
-  ld e, 10
-  pop af;draw flags
-  push af
-  call DrawUIBox
-
-.drawCoachText
-  pop af;draw flags
-  pop de;xy
-  push de;xy
-  push af;draw flags
-  inc d;x+1
-  inc e
-  inc e;y+2
-  ld h, 5
-  ld l, 1
-  ld bc, CoachStatText
-  pop af;draw flags
-  push af
-  call SetTiles
-
-  ld hl, user_name
-  ld de, name_buffer
-  ld bc, 8
-  call mem_Copy
-
-.drawCoachName
-  ld hl, name_buffer
-  call str_Length
-  ld h, e
-  ld l, 1
-  pop af;draw flags
-  pop de;xy
-  push de;xy
-  push af;draw flags
-  ld a, 10
-  add a, d
-  ld d, a;x+10
-  inc e
-  inc e;y+2
-  ld bc, name_buffer
-  pop af;draw flags
-  push af
-  call SetTiles
-
-.drawPennantsText
-  pop af;draw flags
-  pop de;xy
-  push de;xy
-  push af;draw flags
-  inc d;x+1
-  ld a, 4
-  add a, e
-  ld e, a;y+4
-  ld h, 8
-  ld l, 1
-  ld bc, PennantsStatText
-  pop af;draw flags
-  push af
-  call SetTiles
-
-.drawPennantsCount
-  pop af;draw flags
-  pop de;xy
-  push de;xy
-  push af;draw flags
-  ld a, 14
-  add a, d
-  ld d, a;x+14
-  ld a, 4
-  add a, e
-  ld e, a;y+4
-  ld h, 1
-  ld l, 1
-  ld bc, str_buffer
-  ld a, '0'
-  ld [bc], a
-  pop af;draw flags
-  push af
-  call SetTiles
-
-.drawRoledexText
-  pop af;draw flags
-  pop de;xy
-  push de;xy
-  push af;draw flags
-  inc d;x+1
-  ld a, 6
-  add a, e
-  ld e, a;y+6
-  ld h, 7
-  ld l, 1
-  ld bc, RoledexStatText
-  pop af;draw flags
-  push af
-  call SetTiles
-
-.drawSignedCount
-  call GetSeenSignedCounts
-  ld h, 0
-  ld l, e;signed
-  ld de, name_buffer
-  call str_Number
-
-  ld hl, name_buffer
-  call str_Length
-  ld h, e;width
-  ld l, 1;height
-  ld a, 3
-  sub a, h
-  ld b, a;x offset
-
-  pop af;draw flags
-  pop de;xy
-  push de;xy
-  push af;draw flags
-
-  ld a, 12
-  add a, d;x+12
-  add a, b;x+12+offset
-  ld d, a;x = x+12+offset
-  ld a, b
-  ld a, 6
-  add a, e
-  ld e, a;y+6
-  ld bc, name_buffer
-  pop af;draw flags
-  push af
-  call SetTiles
-
-.drawTimeText
-  pop af;draw flags
-  pop de;xy
-  push de;xy
-  push af;draw flags
-  inc d;x+1
-  ld a, 8
-  add a, e
-  ld e, a;y+8
-  ld h, 4
-  ld l, 1
-  ld bc, TimeStatText
-  pop af;draw flags
-  push af
-  call SetTiles
-
-  TRAMPOLINE GetTimePlayedString
-  pop af;draw flags
-  pop de;xy
-  push de;xy
-  push af;draw flags
-  ld hl, str_buffer
-  call str_Length
-  
-  ld h, e;w
-  ld l, 1;h
-  pop af;draw flags
-  ld b, a;draw flags
-  pop de;xy
-  ld a, 15
-  add a, d;x
-  sub a, h;x-w
-  ld d, a
-  ld a, 8
-  add a, e
-  ld e, a;y
-  ld a, b;draw flags
-  ld bc, str_buffer
-  call SetTiles
-  ret

@@ -1,4 +1,0 @@
-IF !DEF(_BASEBALL_FX_TILE_COUNT)
-DEF _BASEBALL_FX_TILE_COUNT EQU 128
-_BaseballFxTiles: INCBIN "img/baseball_fx.tiles"
-ENDC

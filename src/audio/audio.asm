@@ -5,10 +5,6 @@ INCLUDE "src/beisbol.inc"
 INCLUDE "src/audio/gbt_player/gbt_player.asm"
 INCLUDE "src/audio/gbt_player/gbt_player_bank1.asm"
 
-INCLUDE "music/intro_lights.asm"
-INCLUDE "music/charge_fanfare.asm"
-INCLUDE "music/take_me_out_to_the_ballgame.asm"
-INCLUDE "music/hurrah_for_our_national_game.asm"
 INCLUDE "music/tessie.asm"
 
 INCLUDE "src/audio/sfx.asm"

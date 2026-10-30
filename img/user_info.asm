@@ -1,7 +1,0 @@
-IF !DEF(_USER_INFO_TILE_COUNT)
-DEF _USER_INFO_TILE_COUNT EQU 37
-DEF _USER_INFO_ROWS EQU 18
-DEF _USER_INFO_COLUMNS EQU 20
-_UserInfoTiles: INCBIN "img/user_info.tiles"
-_UserInfoTileMap: INCBIN "img/user_info.tilemap"
-ENDC

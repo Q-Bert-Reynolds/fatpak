@@ -1,6 +1,0 @@
-_RunnersOnSecondAndThirdTile: INCBIN "./img/play/runners/runners_on_second_and_third.tile"
-_RunnerOnSecondTile: INCBIN "./img/play/runners/runner_on_second.tile"
-_FirstEmptyTile: INCBIN "./img/play/runners/first_empty.tile"
-_RunnerOnFirstTile: INCBIN "./img/play/runners/runner_on_first.tile"
-_SecondAndThirdEmptyTile: INCBIN "./img/play/runners/second_and_third_empty.tile"
-_RunnerOnThirdTile: INCBIN "./img/play/runners/runner_on_third.tile"

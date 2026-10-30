@@ -1,66 +1,24 @@
 #ifndef CONSTANTS
 #define CONSTANTS
 
-// scenes
-#define INTRO_ENABLED    1
-#define TITLE_ENABLED    1
-#define NEW_GAME_ENABLED 1
-#define WORLD_ENABLED    1
-#define PLAY_ENABLED     1
-
 // tests
 #define TESTS_ENABLED         0
 #define SOUND_TEST_ENABLED    0
 #define KEYBOARD_TEST_ENABLED 0
 #define MAP_TEST_ENABLED      0
-#define SIM_TEST_ENABLED      1
 
 // game_state masks
 #define GAME_STATE_CLOCK_STARTED   0b00000001
-#define GAME_STATE_PLAY_BALL       0b00000010
-#define GAME_STATE_UNSIGNED_PLAYER 0b00000100
 #define GAME_STATE_PAUSED          0b00001000
-
-// game progress flags
-#define TEAM_FLAGS           0
-#define TEAM_FLAG_HAS_PICKED 0b00001000
-#define TEAM_FLAG_ANY        0b00000111
-#define TEAM_FLAG_RED        0b00000001
-#define TEAM_FLAG_GREEN      0b00000010
-#define TEAM_FLAG_BLUE       0b00000100
-#define PC_FLAGS             1
-#define PC_FLAG_GOT_ROLEDEX  0b00000001
-#define PC_FLAG_MET_BILL     0b00000010
-#define PC_FLAG_BEAT_LEAGUE  0b00000100
-#define PENNANT_FLAGS        2
-#define PENNANT_FLAG_ROCK    0b00000001
-#define PENNANT_FLAG_LAPIS   0b00000010
-#define PENNANT_FLAG_COPPER  0b00000100
-#define PENNANT_FLAG_EARTH   0b00001000
-#define PENNANT_FLAG_BOG     0b00010000
-#define PENNANT_FLAG_RUBBER  0b00100000
-#define PENNANT_FLAG_MANTLE  0b01000000
-#define PENNANT_FLAG_DIAMOND 0b10000000
-#define ITEM_FLAGS           3
-
-// ball state masks
-#define BALL_STATE_CAUGHT  0b10000000
-#define BALL_STATE_LANDED  0b01000000
-#define BALL_STATE_FAIR    0b00100000
-#define BALL_STATE_IN_PLAY 0b00010000
-#define BALL_STATE_FIELDER 0b00001111
 
 // rom banks
 #define MAX_ROM_BANKS        64//1MB
 #define GBT_PLAYER_BANK      1
 #define FX_HAMMER_BANK       2
-#define PLAY_BALL_BANK       3
-#define PLAYER_IMG_BANK      4
 
 // ram banks 
 #define MAX_RAM_BANKS  4//32KB
 #define MAIN_SRAM_BANK 0
-#define FARM_SRAM_BANK 1
 
 // sprite props
 #define FLIP_X_PAL  (OAMF_XFLIP | OAMF_PAL1 )
@@ -78,153 +36,13 @@
 #define DRAW_FLAGS_PAD_TOP  0b00000010
 #define DRAW_FLAGS_NO_SPACE 0b00000100
 
-//base positions
-#define HOME_PLATE_X  43
-#define HOME_PLATE_Y  212
-#define FIRST_BASE_X  123
-#define FIRST_BASE_Y  212
-#define SECOND_BASE_X 123
-#define SECOND_BASE_Y 132
-#define THIRD_BASE_X  43
-#define THIRD_BASE_Y  132
-
-//position
-#define PITCHER          1
-#define CATCHER          2
-#define FIRST_BASEMAN    3
-#define SECOND_BASEMAN   4
-#define THIRD_BASEMAN    5
-#define SHORTSTOP        6
-#define LEFT_FIELDER     7
-#define CENTER_FIELDER   8
-#define RIGHT_FIELDER    9
-
-//physical
-#define THROW_LEFT  0b00000000
-#define THROW_RIGHT 0b00000001
-#define BAT_LEFT    0b00000010
-#define BAT_RIGHT   0b00000100
-#define BAT_SWITCH  0b00000110
-#define SEX_FEMALE  0b00000000
-#define SEX_MALE    0b00001000
-#define ALT_COLORS  0b00010000
-
-//moves mask
-#define PITCHING_MOVES 0b0001
-#define BATTING_MOVES  0b0010
-#define RUNNING_MOVES  0b0100
-#define FIELDING_MOVES 0b1000
-#define ALL_MOVES      0b1111
-
-//pitch paths
-#define PITCH_PATH_NONE     0
-#define PITCH_PATH_STRAIGHT 1
-#define PITCH_PATH_CURVE    2
-#define PITCH_PATH_FADE     3
-#define PITCH_PATH_SLIDER   4
-#define PITCH_PATH_RISE     5
-#define PITCH_PATH_DROP     6
-#define PITCH_PATH_EEPHUS   7
-#define PITCH_PATH_SCREW    8
-#define PITCH_PATH_SLURVE   9
-#define PITCH_PATH_KNUCKLE  10
-#define PITCH_PATH_CUT      11
-
-//types
-#define NONE     0
-#define NORMAL   1
-#define FIRE     2
-#define WATER    3
-#define ELECTRIC 4
-#define GRASS    5
-#define ICE      6
-#define FIGHTING 7
-#define POISON   8
-#define GROUND   9
-#define FLYING   10
-#define PSYCHIC  11
-#define BUG      12
-#define ROCK     13
-#define GHOST    14
-#define DRAGON   15
-
-//evolution
-#define EV_TYPE_NONE    0
-#define EV_TYPE_AGE     1
-#define EV_TYPE_TRADE   2
-#define EV_TYPE_ITEM    3
-
-//status
-#define STATUS_MASK_OK  0
-#define STATUS_MASK_BRN 1
-#define STATUS_MASK_FRZ 2
-#define STATUS_MASK_PAR 4
-#define STATUS_MASK_PSN 8
-#define STATUS_MASK_SLP 16
-#define STATUS_MASK_ALL -1
-
-//stats
-#define STAT_HP         1
-#define STAT_REVIVE     2
-#define STAT_ALL        3
-#define STAT_EVOLVE     4
-#define STAT_MAXPP      5
-#define STAT_THROW      6
-#define STAT_SPEED      7
-#define STAT_FIELD      8
-#define STAT_BAT        9
-#define STAT_MAXHP      10
-#define STAT_AGE        11
-#define STAT_CRIT       12
-#define STAT_CONTACT    13
-#define STAT_ACCURACY   14
-#define STAT_SPECIAL    15
-#define STAT_STATUS_BRN 16
-#define STAT_STATUS_FRZ 17
-#define STAT_STATUS_PAR 18
-#define STAT_STATUS_PSN 19
-#define STAT_STATUS_SLP 20
-#define STAT_STATUS_ALL 21
-#define STAT_PP         22
-#define STAT_PPALL      23
-#define STAT_LEVEL      24
-
-//item types
-#define ITEM_TYPE_BASEBALL  1
-#define ITEM_TYPE_GAME      2
-#define ITEM_TYPE_MOVE      3
-#define ITEM_TYPE_SPECIAL   4
-#define ITEM_TYPE_STATS     5
-#define ITEM_TYPE_SELL      6
-#define ITEM_TYPE_WORLD     7
-#define ITEM_TYPE_DNA       8
-
-//inventory
-#define INVENTORY_MODE_USE      1
-#define INVENTORY_MODE_WITHDRAW 2
-#define INVENTORY_MODE_DEPOSIT  3
-#define INVENTORY_MODE_TOSS     4    
-#define INVENTORY_MODE_SELL     5
-
 //sizes
 #define STACK_SIZE       128
-#define MAX_ITEMS        20
-#define MAX_PC_ITEMS     50
-#define BYTES_PER_ITEM   2
 #define ITEM_FLAGS_SIZE  32//256 items flags
-#define MAX_MOVES        4
-#define MAX_INNINGS      15
 #define NAME_LENGTH      8
-#define NICKNAME_LENGTH  12
 #define NAME_BUFFER_SIZE 16
 #define STR_BUFFER_SIZE  64
 #define BUFFER_SIZE      1024//32x32 tiles
-#define PLAYER_DATA_SIZE 25
-#define PLAYER_STAT_SIZE 64
-#define LINEUP_SIZE      (PLAYER_DATA_SIZE+PLAYER_STAT_SIZE)*9
-#define PLAYERS_PER_FARM 20
-#define FARM_SIZE        (PLAYER_DATA_SIZE+PLAYER_STAT_SIZE)*PLAYERS_PER_FARM
-#define START_MONEY      1234567890
 
 //notes
 #define C2      44

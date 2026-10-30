@@ -1,7 +1,0 @@
-IF !DEF(_TOWN_MAP_TILE_COUNT)
-DEF _TOWN_MAP_TILE_COUNT EQU 46
-DEF _TOWN_MAP_ROWS EQU 18
-DEF _TOWN_MAP_COLUMNS EQU 20
-_TownMapTiles: INCBIN "img/town_map.tiles"
-_TownMapTileMap: INCBIN "img/town_map.tilemap"
-ENDC

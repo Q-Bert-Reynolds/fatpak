@@ -2,6 +2,7 @@ IF !DEF(MAP_LOADER)
 DEF MAP_LOADER EQU 1
 
 INCLUDE "src/beisbol.inc"
+;NOTE: lines commented out with ;; reference removed baseball/RPG code
 INCLUDE "data/map_data.asm"
 
 SECTION "Map Loader HRAM", HRAM
@@ -242,9 +243,9 @@ PickUpMapItem:: ;item index in b
 
   call GetMapItem
 
-  ld a, BANK(TryPickupItem)
-  SET_BANK
-  call TryPickupItem;bc = item id, de = flag index/bits
+;;  ld a, BANK(TryPickupItem)
+;;  SET_BANK
+;;  call TryPickupItem;bc = item id, de = flag index/bits
   jr z, .exit
 .clearSprites
   call ClearMapSprites
@@ -288,13 +289,13 @@ PlayMapTeam:: ;team index in [map_collision_data]
   push af;current bank
 
   call GetMapAddress;sets team bank, puts team address in hl
-  ld de, Opponent
-  ld bc, OpponentEnd-Opponent
-  call mem_Copy;team lineup in hl
-  ld de, OpponentLineup
-  ld bc, OpponentLineupPlayer2-OpponentLineupPlayer1;size of PLAYER_DATA + OPPONENT_PLAYER_DATA
-  call CreateLineup
-  TRAMPOLINE PlayTeam
+;;  ld de, Opponent
+;;  ld bc, OpponentEnd-Opponent
+;;  call mem_Copy;team lineup in hl
+;;  ld de, OpponentLineup
+;;  ld bc, OpponentLineupPlayer2-OpponentLineupPlayer1;size of PLAYER_DATA + OPPONENT_PLAYER_DATA
+;;  call CreateLineup
+;;  TRAMPOLINE PlayTeam
 
   pop af;previous bank
   SET_BANK

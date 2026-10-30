@@ -1,4 +1,0 @@
-IF !DEF(_HEALTH_BAR_TILE_COUNT)
-DEF _HEALTH_BAR_TILE_COUNT EQU 11
-_HealthBarTiles: INCBIN "img/health_bar.tiles"
-ENDC

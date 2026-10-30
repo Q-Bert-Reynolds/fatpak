@@ -78,17 +78,12 @@ Main::
   ei
   TRAMPOLINE DetectKeyboard
 
-.seed ;load temp data
-  TRAMPOLINE Seed
-  
-.loadGame
+.loadOptions
   call LoadOptions
-  call CheckSave
-  jp z, .finishLoading
-  call LoadGame
-  ld a, PADF_DOWN
-  ldh [map_last_button_state], a
-.finishLoading
+
+.startClock
+  ld a, GAME_STATE_CLOCK_STARTED
+  ld [game_state], a
 
 IF TESTS_ENABLED
   RUN_TESTS
@@ -102,50 +97,20 @@ IF TESTS_ENABLED
   ldh [rVBK], a
 ENDC
 
-.start ;show intro credits, batting animation
-IF INTRO_ENABLED
-  TRAMPOLINE Start
-  call HideAllSprites
-ENDC
-
-IF TITLE_ENABLED
-.title ;show title drop, version slide, cycle of players, new game/continue screen
-  ld a, BANK(Title)
-  SET_BANK
-  call Title ;sets z if new game pressed
-  jr nz, .startClock
-ENDC
-
-IF NEW_GAME_ENABLED
-.newGame
-  TRAMPOLINE NewGame
-  TRAMPOLINE Seed
-ENDC
-
-.startClock
-  ld a, GAME_STATE_CLOCK_STARTED
-  ld [game_state], a
+.start;TODO: replace with text editor
+  DISPLAY_OFF
+  SET_DEFAULT_PALETTE
+  TRAMPOLINE UILoadFontTiles
+  CLEAR_SCREEN ' '
+  ld de, $0408;xy
+  ld hl, $0B01;wh
+  ld bc, AppNameText
+  call gbdk_SetBkgTiles
+  DISPLAY_ON
 
 .mainLoop
-IF WORLD_ENABLED
-  .world; walk around, find a game, repeat
-    ld a, [game_state]
-    and a, ~GAME_STATE_PLAY_BALL
-    ld [game_state], a
-    TRAMPOLINE Overworld
-ENDC
+  call gbdk_WaitVBL
+  call UpdateInput
+  jr .mainLoop
 
-IF PLAY_ENABLED
-  .baseball
-    ld a, [game_state]
-    or a, GAME_STATE_PLAY_BALL
-    ld [game_state], a
-    TRAMPOLINE StartGame
-ENDC
-    jr .mainLoop; TODO: if game finished, exit
-
-  xor a
-  SET_BANK
-  jp Main ;restart the game
-  nop
-  ret
+AppNameText: DB "TEXT EDITOR"

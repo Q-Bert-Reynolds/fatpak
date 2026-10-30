@@ -1,7 +1,0 @@
-IF !DEF(_FIELD_TILE_COUNT)
-DEF _FIELD_TILE_COUNT EQU 54
-DEF _FIELD_ROWS EQU 32
-DEF _FIELD_COLUMNS EQU 32
-_FieldTiles: INCBIN "img/field.tiles"
-_FieldTileMap: INCBIN "img/field.tilemap"
-ENDC

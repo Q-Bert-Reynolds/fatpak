@@ -1,8 +1,7 @@
-VERSION   = DEMO#DEMO AWAY HOME
 LANGUAGE  = EN#EN ES FR IT PT DE JA
-DEFINES   = -D _$(VERSION) -D LANG_$(LANGUAGE) 
+DEFINES   = -D LANG_$(LANGUAGE)
 
-GAME_NAME = BEISBOL_$(VERSION)
+GAME_NAME = TEXT_EDITOR
 ROM_NAME  = $(GAME_NAME).gbc
 ROM_FILE  = $(BIN_DIR)/$(ROM_NAME)
 SYM_FILE  = $(BIN_DIR)/$(GAME_NAME).sym
@@ -60,11 +59,8 @@ endif
 	$(PYTHON) mod2gbt.py
 	$(PYTHON) fxhammer.py
 	$(PYTHON) img2rgbds.py
-	$(PYTHON) roledex.py
-	$(PYTHON) moves.py
-	$(PYTHON) items.py
+	$(PYTHON) sgb_border.py img/default_sgb_border.png img/default_sgb_border.asm
 	$(PYTHON) translate.py 
-	$(PYTHON) teams.py 
 	$(PYTHON) maps.py
 
 clean:

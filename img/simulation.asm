@@ -1,4 +1,0 @@
-IF !DEF(_SIMULATION_TILE_COUNT)
-DEF _SIMULATION_TILE_COUNT EQU 128
-_SimulationTiles: INCBIN "img/simulation.tiles"
-ENDC
