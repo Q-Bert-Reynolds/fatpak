@@ -32,8 +32,8 @@ render_col: DB
 draw_split: DB
 draw_row: DB
 
-DEF render_bitmap EQUS "cmd_buffer";160 bytes, 8 lines of 20 bytes (1bpp)
-DEF render_tiles EQUS "(cmd_buffer+TB_WIDTH)";320 bytes, 20 tiles (2bpp)
+DEF render_bitmap EQUS "cmd_buffer";160 bytes, 20 tiles of 8 lines (1bpp), must start a page
+DEF RENDER_BURST EQU 4;bytes written to VRAM per HBlank (8 writes)
 
 SECTION "Render ROM0", ROM0
 
@@ -201,7 +201,22 @@ ELSE
 ENDC
 ENDR
 
-SECTION "Render", ROMX
+SECTION "Render", ROMX, ALIGN[12];shift tables must be 4KB aligned and in this bank
+ASSERT LOW(render_bitmap) == 0, "render_bitmap must be page aligned"
+
+;RenderShiftRight + s * 256 + byte = byte >> s, 8 pages later is the bits shifted out (byte << (8 - s))
+RenderShiftRight:
+FOR RS_SHIFT, 8
+FOR RS_BYTE, 256
+  DB RS_BYTE >> RS_SHIFT
+ENDR
+ENDR
+RenderShiftLeft:
+FOR RS_SHIFT, 8
+FOR RS_BYTE, 256
+  DB (RS_BYTE << (8 - RS_SHIFT)) & $FF
+ENDR
+ENDR
 
 INCLUDE "img/fonts/font_mono.asm"
 INCLUDE "img/fonts/font_vwf.asm"
@@ -300,7 +315,7 @@ RenderRow:
 .char
     ld a, [render_x]
     cp a, TB_WIDTH
-    jr nc, .toTiles
+    jr nc, .toVRAM
     LD_HL_VAR render_src
     ld a, [hli]
     ld c, a
@@ -312,32 +327,7 @@ RenderRow:
     dec b
     jr nz, .char
 
-.toTiles;both bitplanes are the 1bpp line, drawn pixels are color 3
-  ld hl, render_bitmap
-  ld de, render_tiles
-  ld c, TB_COLS
-.tile
-    push hl
-    ld b, 8
-  .line
-      ld a, [hl]
-      ld [de], a
-      inc de
-      ld [de], a
-      inc de
-      ld a, l
-      add a, TB_COLS
-      ld l, a
-      ld a, h
-      adc a, 0
-      ld h, a
-      dec b
-      jr nz, .line
-    pop hl
-    inc hl
-    dec c
-    jr nz, .tile
-
+.toVRAM;both bitplanes are the 1bpp byte, drawn pixels are color 3
   ld a, [render_row]
   add a, a
   ld c, a
@@ -347,81 +337,104 @@ RenderRow:
   ld a, [hli]
   ld e, a
   ld d, [hl]
-  ld hl, render_tiles
-  ld bc, TB_COLS*16
-  jp mem_CopyVRAM
+  ld hl, render_bitmap
+  ld c, TB_WIDTH/RENDER_BURST
+.burst
+    ldh a, [rLY]
+    cp a, SCRN_Y
+    jr c, .waitForHBlank
+    cp a, SCRN_Y+8
+    jr c, .write;VBlank with time left
+  .waitForHBlank;start of mode 0, then mode 0 and 2 leave at least ~160 cycles
+      ldh a, [rSTAT]
+      and a, STATF_BUSY
+      jr z, .waitForHBlank
+  .waitForNotBusy
+      ldh a, [rSTAT]
+      and a, STATF_BUSY
+      jr nz, .waitForNotBusy
+  .write
+    di
+REPT RENDER_BURST;tiles are 16 byte aligned, so a burst never crosses a page
+    ld a, [hli]
+    ld [de], a
+    inc e
+    ld [de], a
+    inc e
+ENDR
+    ei
+    ld a, e
+    and a
+    jr nz, .nextBurst
+    inc d
+.nextBurst
+    dec c
+    jr nz, .burst
+  ret
 
 ;a = character, ORs its glyph into render_bitmap at [render_x] and advances it
 RenderGlyph:
   ld c, a
-  LD_HL_VAR render_widths
   ld b, 0
+  LD_HL_VAR render_widths
   add hl, bc
   ld a, [hl]
   ld [render_w], a
   ld l, c
-  ld h, 0
+  ld h, b
   add hl, hl
   add hl, hl
   add hl, hl
   ld a, [render_glyphs]
-  ld e, a
+  ld c, a
   ld a, [render_glyphs+1]
-  ld d, a
-  add hl, de;glyph
+  ld b, a
+  add hl, bc
+  ld b, h
+  ld c, l;glyph
+  ld a, [render_x]
+  and a, %11111000;tile * 8
+  add a, LOW(render_bitmap)
+  ld e, a
+  ld d, HIGH(render_bitmap)
   ld a, [render_x]
   and a, %00000111
-  ld [render_shift], a
+  add a, HIGH(RenderShiftRight)
+  ld h, a;shift table page, set 3 for the left shift table
   ld a, [render_x]
-  srl a
-  srl a
-  srl a
-  ld [render_col], a
+  cp a, TB_WIDTH-8
+  jp nc, .lastTile
+REPT 8;glyph line spans this tile and the next
+  ld a, [bc]
+  inc bc
+  ld l, a
+  ld a, [de]
+  or a, [hl]
+  ld [de], a
+  set 3, h
+  ld a, e
+  add a, 8
   ld e, a
-  ld d, 0
-  push hl
-  ld hl, render_bitmap
-  add hl, de
-  ld d, h
-  ld e, l;bitmap byte
-  pop hl
-  ld c, 8
-.line
-    ld a, [hli]
-    push hl
-    ld h, a
-    ld l, 0
-    ld a, [render_shift]
-    and a
-    jr z, .write
-    ld b, a
-  .shift
-      srl h
-      rr l
-      dec b
-      jr nz, .shift
-  .write
-    ld a, [de]
-    or a, h
-    ld [de], a
-    ld a, [render_col]
-    cp a, TB_COLS-1
-    jr nc, .nextLine
-    inc de
-    ld a, [de]
-    or a, l
-    ld [de], a
-    dec de
-  .nextLine
-    ld a, e
-    add a, TB_COLS
-    ld e, a
-    ld a, d
-    adc a, 0
-    ld d, a
-    pop hl
-    dec c
-    jr nz, .line
+  ld a, [de]
+  or a, [hl]
+  ld [de], a
+  res 3, h
+  ld a, e
+  sub a, 7
+  ld e, a
+ENDR
+  jr .advance
+.lastTile
+REPT 8
+  ld a, [bc]
+  inc bc
+  ld l, a
+  ld a, [de]
+  or a, [hl]
+  ld [de], a
+  inc e
+ENDR
+.advance
   ld a, [render_x]
   ld b, a
   ld a, [render_w]
