@@ -25,6 +25,19 @@ SECTION "Main", ROM0[$0150]
 Main::
   SYS_CHECK
 
+.clearHRAM;keeps sys_info from SYS_CHECK, nothing is on the stack yet
+  ldh a, [sys_info]
+  ld b, a
+  xor a
+  ld hl, _HRAM
+  ld c, $FFFF-_HRAM
+.clearHRAMLoop
+    ld [hli], a
+    dec c
+    jr nz, .clearHRAMLoop
+  ld a, b
+  ldh [sys_info], a
+
 .setupSuperGameBoy
   TRAMPOLINE sgb_Init
 

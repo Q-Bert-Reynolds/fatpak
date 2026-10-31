@@ -28,6 +28,9 @@ extern void OSKDraw(unsigned char layer);
 extern void OSKSelect(unsigned char x, unsigned char y);
 extern unsigned char OSKGetKey(unsigned char layer, unsigned char index); // 0 = no key
 
+// src/editor/sd.asm
+extern unsigned char sd_Detect(void); // 1 on an EverDrive X
+
 // src/fatfs/fatfs.asm (stubs into the FatFs banks)
 extern unsigned char FileMount(void); // FRESULT
 extern unsigned char FileOpenDir(void); // FRESULT
@@ -53,6 +56,7 @@ extern unsigned char tb_GetChar(unsigned int pos);
 extern unsigned char tb_Insert(unsigned int pos, unsigned char c);
 extern unsigned char tb_Delete(unsigned int pos);
 extern void tb_Normalize(void);
+extern unsigned char tb_NormalizeStep(void); // 1 when the gap is at the end
 extern unsigned int tb_RowStart(unsigned int pos);
 extern unsigned int tb_NextRow(unsigned int row);
 extern void tb_Render(unsigned int top);

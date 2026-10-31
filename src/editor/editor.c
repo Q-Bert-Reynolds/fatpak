@@ -26,6 +26,7 @@
 #define PAD_REPEAT_DELAY 20
 #define PAD_REPEAT_RATE  4
 #define CURSOR_BLINK     30
+#define NORMALIZE_DELAY  30 // frames without input before closing the gap
 
 unsigned int cursor;
 unsigned int top;
@@ -39,6 +40,9 @@ unsigned char osk_x;
 unsigned char osk_y;
 unsigned char modified;
 unsigned char font;
+unsigned char everdrive; // text is saved to SD, otherwise SRAM is the only copy so the gap is closed when idle
+unsigned char idle_frames;
+unsigned char normalized;
 char file_name[FILE_NAME_SIZE]; // current file, empty for new text
 char file_list[FILE_LIST_MAX][FILE_NAME_SIZE];
 
@@ -451,6 +455,9 @@ void Editor(void) {
   unsigned char key;
 
   EditorSetup();
+  everdrive = sd_Detect();
+  idle_frames = 0;
+  normalized = 0;
   cursor = 0;
   top = 0;
   want_col = 0;
@@ -479,8 +486,13 @@ void Editor(void) {
     if (dirty) {
       Refresh();
       dirty = 0;
+      idle_frames = 0;
+      normalized = 0;
+      continue;
     }
-    else if (++blink_timer == CURSOR_BLINK) EditorShowCursor(0);
+    if (idle_frames < NORMALIZE_DELAY) ++idle_frames;
+    else if (!everdrive && !normalized) normalized = tb_NormalizeStep(); // keeps the .sav readable as text
+    if (++blink_timer == CURSOR_BLINK) EditorShowCursor(0);
     else if (blink_timer == CURSOR_BLINK + CURSOR_BLINK) {
       EditorShowCursor(1);
       blink_timer = 0;

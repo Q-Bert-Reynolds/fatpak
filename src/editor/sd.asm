@@ -4,6 +4,7 @@
 ;disabled while they're in use.
 ;
 ;C functions (src/editor/editor.h)
+;   sd_Detect                   returns a = 1 if the EverDrive X registers respond
 ;   sd_Init                     returns a = 0 if a card is ready
 ;   sd_ReadSector               de = 512 byte buffer, [_sd_sector] = LBA, returns a = 0 if successful
 ;   sd_WriteSector              de = 512 byte buffer, [_sd_sector] = LBA, returns a = 0 if successful
@@ -164,6 +165,30 @@ SDWaitForCommand:
 .done
   pop hl;discard command
   pop hl
+  ret
+
+_sd_Detect::;returns a = 1 if the EverDrive X registers respond
+;reads back two values from the SPI control register, disabled SRAM reads $FF on other carts
+  SD_REGS_ON
+  ld a, EDX_SPI_SS | EDX_SPI_LOW_SPEED
+  call .check
+  jr nz, .no
+  ld a, EDX_SPI_SS
+  call .check
+  jr nz, .no
+  SD_REGS_OFF
+  ld a, 1
+  ret
+.no
+  SD_REGS_OFF
+  xor a
+  ret
+.check;a = value, returns z if it reads back
+  ld b, a
+  ld [EDX_SPI_CTRL], a
+  ld a, [EDX_SPI_CTRL]
+  and a, (1 << EDX_SPI_BUSY) | %00000111
+  cp a, b
   ret
 
 _sd_Init::;returns a = 0 if a card is ready

@@ -12,6 +12,7 @@
 ;   tb_Insert                   de = pos, a = char, returns a = 0 if buffer is full
 ;   tb_Delete                   de = pos, returns deleted char in a (0 = nothing deleted)
 ;   tb_Normalize                moves gap to the end so SRAM reads as plain text
+;   tb_NormalizeStep            moves gap up to TB_NORMALIZE_STEP bytes toward the end, returns a = 1 when it's there
 ;   tb_Append                   de = buffer, bc = count, inserts at the gap skipping 0s, returns a = 0 if it filled up
 ;   tb_Read                     de = buffer, bc = count, copies from tb_read_pos and advances it
 ;   tb_RowStart                 de = pos, returns start of the visual row containing pos in bc
@@ -42,6 +43,20 @@ MACRO ST_HL_VAR ;\1 = address of little endian word
   ld [\1+1], a
 ENDM
 
+MACRO LD_BC_VAR ;\1 = address of little endian word
+  ld a, [\1]
+  ld c, a
+  ld a, [\1+1]
+  ld b, a
+ENDM
+
+MACRO LD_DE_VAR ;\1 = address of little endian word
+  ld a, [\1]
+  ld e, a
+  ld a, [\1+1]
+  ld d, a
+ENDM
+
 MACRO ST_DE_VAR ;\1 = address of little endian word
   ld a, e
   ld [\1], a
@@ -66,6 +81,14 @@ _tb_rows:: DB;visible rows
 _tb_read_pos:: DW
 tb_dest: DW
 tb_count: DW
+tb_target: DW
+tb_k: DW
+tb_src: DW
+tb_dst: DW
+tb_src_addr: DW
+tb_dst_addr: DW
+tb_src_bank: DB
+tb_dst_bank: DB
 
 SECTION "Text Buffer Code", ROM0
 
@@ -278,69 +301,238 @@ _tb_GetChar::;de = pos, returns char in a
   ld a, b
   ret
 
-;de = logical position, moves gap start to de, preserves de
-TBMoveGap:
-  LD_HL_VAR tb_gap_start
-  ld a, e
-  sub a, l
-  ld c, a
-  ld a, d
-  sbc a, h
-  ld b, a;bc = de - gap start
-  jr c, .moveLeft
-  or a, c
-  ret z
+DEF TB_CHUNK EQU 256;bytes moved at a time, through win_buffer when banks differ
 
-.moveRight;move bc bytes from after the gap to before it
-    push bc;count
-    LD_HL_VAR tb_gap_end
-    push hl
-    inc hl
-    ST_HL_VAR tb_gap_end
-    pop hl
-    call TBPhysAddr
-    ld b, [hl]
-    ld [hl], 0
-    LD_HL_VAR tb_gap_start
-    push hl
-    inc hl
-    ST_HL_VAR tb_gap_start
-    pop hl
-    call TBPhysAddr
-    ld [hl], b
-    pop bc;count
-    dec bc
-    ld a, b
-    or a, c
-    jr nz, .moveRight
+;hl = min(hl, de), only affects a
+TBMin:
+  ld a, l
+  sub a, e
+  ld a, h
+  sbc a, d
+  ret c
+  ld h, d
+  ld l, e
   ret
 
-.moveLeft;move -bc bytes from before the gap to after it
-  ld a, c
-  cpl
-  ld c, a
+;hl = min(hl, gap length, TB_CHUNK), affects a, bc, de
+TBChunkLimit:
+  call TBGapLength
+  ld d, b
+  ld e, c
+  call TBMin
+  ld de, TB_CHUNK
+  jr TBMin
+
+;hl = physical offset, returns bank in b, SRAM address in hl, bytes until the register hole
+;or bank end in de, affects a
+TBPhysRun:
+  ld b, 0
+  ld de, -TB_BANK_SIZE
+.findBank
+    add hl, de
+    jr nc, .foundBank
+    inc b
+    jr .findBank
+.foundBank
+  ld de, TB_BANK_SIZE
+  add hl, de;offset in bank
+  ld a, h
+  cp a, HIGH(TB_HOLE)
+  jr nc, .afterHole
+  ld a, LOW(TB_HOLE)
+  sub a, l
+  ld e, a
+  ld a, HIGH(TB_HOLE)
+  sbc a, h
+  ld d, a
+  jr .address
+.afterHole
+  ld a, LOW(TB_BANK_SIZE)
+  sub a, l
+  ld e, a
+  ld a, HIGH(TB_BANK_SIZE)
+  sbc a, h
+  ld d, a
+  ld a, l
+  add a, TB_HOLE_SIZE
+  ld l, a
+  ld a, h
+  adc a, 0
+  ld h, a
+.address
+  ld a, h
+  or a, HIGH(_SRAM)
+  ld h, a
+  ret
+
+;hl = physical offset, returns bytes before it in the same run (bank and side of the hole) in de, affects a, hl
+TBRunBack:
+  dec hl
+  ld de, -TB_BANK_SIZE
+.findBank
+    add hl, de
+    jr c, .findBank
+  ld de, TB_BANK_SIZE
+  add hl, de;offset in bank
+  ld a, h
+  cp a, HIGH(TB_HOLE)
+  jr c, .beforeHole
+  ld de, 1-TB_HOLE
+  add hl, de
+  ld d, h
+  ld e, l
+  ret
+.beforeHole
+  inc hl
+  ld d, h
+  ld e, l
+  ret
+
+;copies [tb_k] bytes from physical [tb_src] to [tb_dst] and zeroes the source, runs don't overlap
+TBCopyChunk:
+  LD_HL_VAR tb_src
+  call TBPhysRun
   ld a, b
-  cpl
-  ld b, a
-  inc bc;bc = gap start - de
-.moveLeftLoop
-    push bc;count
+  ld [tb_src_bank], a
+  ST_HL_VAR tb_src_addr
+  LD_HL_VAR tb_dst
+  call TBPhysRun
+  ld a, b
+  ld [tb_dst_bank], a
+  ST_HL_VAR tb_dst_addr
+  ld a, [tb_src_bank]
+  ld [rRAMB], a
+  ld hl, tb_dst_bank
+  cp a, [hl]
+  jr nz, .differentBanks
+.sameBank
+  LD_HL_VAR tb_dst_addr
+  ld d, h
+  ld e, l
+  LD_HL_VAR tb_src_addr
+  LD_BC_VAR tb_k
+  call mem_Copy
+  jr .zeroSource
+.differentBanks
+  ld de, win_buffer
+  LD_HL_VAR tb_src_addr
+  LD_BC_VAR tb_k
+  call mem_Copy
+  ld a, [tb_dst_bank]
+  ld [rRAMB], a
+  LD_HL_VAR tb_dst_addr
+  ld d, h
+  ld e, l
+  ld hl, win_buffer
+  LD_BC_VAR tb_k
+  call mem_Copy
+  ld a, [tb_src_bank]
+  ld [rRAMB], a
+.zeroSource
+  LD_HL_VAR tb_src_addr
+  LD_BC_VAR tb_k
+  xor a
+  jp mem_Set
+
+;de = logical position, moves gap start to de, preserves de
+TBMoveGap:
+  push de
+  ST_DE_VAR tb_target
+  call TBGapLength
+  ld a, b
+  or a, c
+  jr nz, .loop
+  ST_DE_VAR tb_gap_start;no gap, nothing to move
+  ST_DE_VAR tb_gap_end
+  pop de
+  ret
+
+.loop
     LD_HL_VAR tb_gap_start
-    dec hl
-    ST_HL_VAR tb_gap_start
-    call TBPhysAddr
-    ld b, [hl]
-    ld [hl], 0
-    LD_HL_VAR tb_gap_end
-    dec hl
-    ST_HL_VAR tb_gap_end
-    call TBPhysAddr
-    ld [hl], b
-    pop bc;count
-    dec bc
-    ld a, b
+    ld a, [tb_target]
+    sub a, l
+    ld c, a
+    ld a, [tb_target+1]
+    sbc a, h
+    ld b, a;bc = target - gap start
+    jp c, .left
     or a, c
-    jr nz, .moveLeftLoop
+    jp z, .done
+
+  .right;move text after the gap to before it
+    ld h, b
+    ld l, c
+    call TBChunkLimit
+    push hl
+    LD_HL_VAR tb_gap_end
+    call TBPhysRun
+    pop hl
+    call TBMin
+    push hl
+    LD_HL_VAR tb_gap_start
+    call TBPhysRun
+    pop hl
+    call TBMin
+    ST_HL_VAR tb_k
+    LD_HL_VAR tb_gap_end
+    ST_HL_VAR tb_src
+    LD_HL_VAR tb_gap_start
+    ST_HL_VAR tb_dst
+    call TBCopyChunk
+    LD_DE_VAR tb_k
+    LD_HL_VAR tb_gap_start
+    add hl, de
+    ST_HL_VAR tb_gap_start
+    LD_HL_VAR tb_gap_end
+    add hl, de
+    ST_HL_VAR tb_gap_end
+    jp .loop
+
+  .left;move text before the gap to after it
+    ld a, c
+    cpl
+    ld l, a
+    ld a, b
+    cpl
+    ld h, a
+    inc hl;gap start - target
+    call TBChunkLimit
+    push hl
+    LD_HL_VAR tb_gap_start
+    call TBRunBack
+    pop hl
+    call TBMin
+    push hl
+    LD_HL_VAR tb_gap_end
+    call TBRunBack
+    pop hl
+    call TBMin
+    ST_HL_VAR tb_k
+    ld d, h
+    ld e, l
+    LD_HL_VAR tb_gap_start
+    ld a, l
+    sub a, e
+    ld l, a
+    ld a, h
+    sbc a, d
+    ld h, a
+    ST_HL_VAR tb_gap_start
+    ST_HL_VAR tb_src
+    LD_HL_VAR tb_gap_end
+    ld a, l
+    sub a, e
+    ld l, a
+    ld a, h
+    sbc a, d
+    ld h, a
+    ST_HL_VAR tb_gap_end
+    ST_HL_VAR tb_dst
+    call TBCopyChunk
+    jp .loop
+
+.done
+  pop de
   ret
 
 _tb_Insert::;de = pos, a = char, returns a = 0 if buffer is full
@@ -470,6 +662,35 @@ _tb_Read::;de = buffer, bc = count, copies from [_tb_read_pos] and advances it
 .done
   ST_DE_VAR _tb_read_pos
   SRAM_OFF
+  ret
+
+DEF TB_NORMALIZE_STEP EQU 512;about half a frame
+
+_tb_NormalizeStep::;moves the gap up to TB_NORMALIZE_STEP bytes toward the end, returns a = 1 when it's there
+  SRAM_ON
+  call TBLength
+  ld d, h
+  ld e, l
+  LD_HL_VAR tb_gap_start
+  ld bc, TB_NORMALIZE_STEP
+  add hl, bc
+  call TBMin
+  ld d, h
+  ld e, l
+  call TBMoveGap
+  call TBLength
+  ld a, [tb_gap_start]
+  cp a, l
+  jr nz, .notDone
+  ld a, [tb_gap_start+1]
+  cp a, h
+  jr nz, .notDone
+  SRAM_OFF
+  ld a, 1
+  ret
+.notDone
+  SRAM_OFF
+  xor a
   ret
 
 _tb_Normalize::

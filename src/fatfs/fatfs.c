@@ -15,7 +15,6 @@ extern unsigned char sd_WriteSector(const unsigned char* buffer);
 
 // src/editor/text_buffer.asm
 extern void tb_Clear(void);
-extern void tb_Normalize(void);
 extern unsigned int tb_Length(void);
 extern unsigned int tb_read_pos;
 extern unsigned char tb_Append(const unsigned char* buffer, unsigned int count); // 0 = buffer full
@@ -161,7 +160,6 @@ unsigned char fs_Save(const char* name) {
   unsigned int left;
   FRESULT result = f_open(&file, name, FA_WRITE | FA_CREATE_ALWAYS);
   if (result) return result;
-  tb_Normalize();
   left = tb_Length();
   tb_read_pos = 0;
   while (left) {
