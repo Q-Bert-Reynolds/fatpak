@@ -30,7 +30,10 @@
 
 unsigned int cursor;
 unsigned int top;
-unsigned char want_col;
+unsigned char want_x; // pixel x up and down try to keep
+unsigned char keep_x;
+unsigned char moved; // cursor moved, text didn't change
+unsigned char redraw; // rendered rows changed, text didn't
 unsigned char pad_timer;
 unsigned char blink_timer;
 unsigned char dirty;
@@ -51,61 +54,128 @@ static const char discard_items[][FILE_NAME_SIZE] = {"NO", "YES"};
 
 static void Render(void);
 
-// is row the last visual row, given its next row start
-static unsigned char IsLastRow(unsigned int row, unsigned int next) {
-  return next == tb_Length() && (next == row || tb_GetChar(next - 1) != ASCII_LF);
+static char* RowAddress(unsigned char row);
+static void Render(void);
+
+// rendered row pos is on, 0xFF if it isn't on screen
+static unsigned char FindRow(unsigned int pos) {
+  unsigned char row;
+  for (row = 0; row < tb_rows; ++row) {
+    if (pos < tb_row_starts[row]) return 0xFF;
+    if (pos < tb_row_starts[row + 1]) return row;
+  }
+  return pos == tb_Length() ? tb_end_row : 0xFF;
 }
 
-// position in row closest to col
-static unsigned int PosAtCol(unsigned int row, unsigned char col) {
-  unsigned int next = tb_NextRow(row);
-  unsigned int pos = row;
-  while (col && pos != next) {
-    if (tb_GetChar(pos) == ASCII_LF) return pos;
-    ++pos;
-    --col;
+// moves the cursor sprite to the cursor, returns 0 if it isn't on screen
+static unsigned char PlaceCursor(void) {
+  unsigned char row = FindRow(cursor);
+  unsigned int col;
+  if (row == 0xFF) return 0;
+  col = cursor - tb_row_starts[row];
+  if (col > tb_row_counts[row]) col = tb_row_counts[row]; // hanging spaces
+  tb_found_row = row;
+  tb_found_col = (unsigned char)col;
+  if (!keep_x) want_x = RenderCursorX(tb_found_col);
+  keep_x = 0;
+  blink_timer = 0;
+  EditorShowCursor(1);
+  return 1;
+}
+
+// position in a rendered row closest to x
+static unsigned int PosAtX(unsigned char row, unsigned char x) {
+  char* chars = RowAddress(row);
+  unsigned char count = tb_row_counts[row], col = 0, width;
+  unsigned int pos;
+  while (col < count) {
+    width = font_widths[(unsigned char)chars[col]];
+    if (x < ((width + 1) >> 1)) break;
+    x = x < width ? 0 : x - width;
+    ++col;
   }
-  if (pos == next && !IsLastRow(row, next)) --pos; // stay on wrapped row
+  pos = tb_row_starts[row] + col;
+  if (col == count && pos == tb_row_starts[row + 1] && tb_end_row != row) --pos; // stay on wrapped row
   return pos;
 }
 
+// sets the first rendered row and renders
+static void ScrollTo(unsigned int new_top) {
+  top = new_top;
+  Render();
+  redraw = 1;
+}
+
 static void MoveUp(void) {
-  unsigned int row = tb_RowStart(cursor);
-  if (row == 0) cursor = 0;
-  else cursor = PosAtCol(tb_RowStart(row - 1), want_col);
+  unsigned char row = tb_found_row;
+  keep_x = 1;
+  if (row) cursor = PosAtX(row - 1, want_x);
+  else if (!top) cursor = 0;
+  else {
+    ScrollTo(tb_RowStart(top - 1));
+    cursor = PosAtX(0, want_x);
+  }
 }
 
 static void MoveDown(void) {
-  unsigned int row = tb_RowStart(cursor);
-  unsigned int next = tb_NextRow(row);
-  if (IsLastRow(row, next)) cursor = tb_Length();
-  else cursor = PosAtCol(next, want_col);
+  unsigned char row = tb_found_row;
+  keep_x = 1;
+  if (tb_end_row == row) cursor = tb_Length(); // last row
+  else if (row + 1 < tb_rows) cursor = PosAtX(row + 1, want_x);
+  else {
+    ScrollTo(tb_row_starts[1]);
+    cursor = PosAtX(row, want_x);
+  }
 }
 
-// before the space or line feed that ends the row, otherwise after the last char
+static void PageUp(void) {
+  unsigned char row = tb_found_row, i;
+  keep_x = 1;
+  if (!top) {
+    cursor = 0;
+    return;
+  }
+  for (i = tb_rows - 1; i && top; --i) top = tb_RowStart(top - 1);
+  ScrollTo(top);
+  cursor = PosAtX(row, want_x);
+}
+
+static void PageDown(void) {
+  unsigned char row = tb_found_row;
+  keep_x = 1;
+  if (tb_end_row != 0xFF) {
+    cursor = tb_Length();
+    return;
+  }
+  ScrollTo(tb_row_starts[tb_rows - 1]);
+  if (tb_end_row != 0xFF && row > tb_end_row) row = tb_end_row;
+  cursor = PosAtX(row, want_x);
+}
+
+// before the space that ends a wrapped row, otherwise after the last char
 static void MoveEnd(void) {
-  unsigned int row = tb_RowStart(cursor);
-  unsigned int next = tb_NextRow(row);
-  unsigned char c;
-  cursor = next;
-  if (IsLastRow(row, next)) return;
-  c = tb_GetChar(next - 1);
-  if (c == ' ' || c == ASCII_LF) --cursor;
+  unsigned char row = tb_found_row, count = tb_row_counts[row];
+  cursor = tb_row_starts[row] + count;
+  if (count && cursor == tb_row_starts[row + 1] && tb_end_row != row && RowAddress(row)[count - 1] == ' ') --cursor;
 }
 
 static void HandleKey(unsigned char key, unsigned char mods) {
-  unsigned char i;
   if (mods & (KB_MOD_CTRL | KB_MOD_ALT | KB_MOD_SUPER)) return; // TODO: shortcuts
 
+  moved = 1;
   switch (key) {
     case KEY_UP: MoveUp(); return;
     case KEY_DOWN: MoveDown(); return;
-    case KEY_PAGE_UP: for (i = tb_rows - 1; i; --i) MoveUp(); return;
-    case KEY_PAGE_DOWN: for (i = tb_rows - 1; i; --i) MoveDown(); return;
-    case KEY_LEFT: if (cursor) --cursor; break;
-    case KEY_RIGHT: if (cursor != tb_Length()) ++cursor; break;
-    case KEY_HOME: cursor = tb_RowStart(cursor); break;
-    case KEY_END: MoveEnd(); break;
+    case KEY_PAGE_UP: PageUp(); return;
+    case KEY_PAGE_DOWN: PageDown(); return;
+    case KEY_LEFT: if (cursor) --cursor; return;
+    case KEY_RIGHT: if (cursor != tb_Length()) ++cursor; return;
+    case KEY_HOME: cursor = tb_row_starts[tb_found_row]; return;
+    case KEY_END: MoveEnd(); return;
+  }
+  moved = 0;
+  dirty = 1;
+  switch (key) {
     case KEY_BACKSPACE:
       if (cursor && tb_Delete(--cursor)) modified = 1;
       break;
@@ -122,7 +192,6 @@ static void HandleKey(unsigned char key, unsigned char mods) {
         modified = 1;
       }
   }
-  want_col = (unsigned char)(cursor - tb_RowStart(cursor));
 }
 
 // returns held d-pad buttons when pressed and while repeating
@@ -310,7 +379,7 @@ static unsigned char CanDiscard(void) {
 static void ResetCursor(void) {
   cursor = 0;
   top = 0;
-  want_col = 0;
+  want_x = 0;
   modified = 0;
   dirty = 1;
 }
@@ -446,8 +515,9 @@ static void Refresh(void) {
     Render();
   }
   EditorDraw(tb_rows);
-  blink_timer = 0;
-  EditorShowCursor(1);
+  redraw = 0;
+  moved = 0;
+  PlaceCursor();
 }
 
 void Editor(void) {
@@ -460,7 +530,10 @@ void Editor(void) {
   normalized = 0;
   cursor = 0;
   top = 0;
-  want_col = 0;
+  want_x = 0;
+  keep_x = 0;
+  moved = 0;
+  redraw = 0;
   pad_timer = 0;
   modified = 0;
   font = FONT_VWF;
@@ -477,17 +550,29 @@ void Editor(void) {
     WaitFrame();
     while ((key = (unsigned char)(event = KBPopEvent()))) {
       if (!HandleFileKey(key, (unsigned char)(event >> 8))) HandleKey(key, (unsigned char)(event >> 8));
-      dirty = 1;
+      if (dirty) break; // text changed, rows need rendering before more keys
+      if (moved) { // keeps tb_found_row current for the next key
+        if (!PlaceCursor()) dirty = 1;
+        moved = 0;
+      }
     }
     if ((key = PadKey())) {
       if (!HandleFileKey(key, 0)) HandleKey(key, 0);
-      dirty = 1;
     }
+    if (dirty || redraw || moved) idle_frames = 0;
     if (dirty) {
       Refresh();
       dirty = 0;
-      idle_frames = 0;
       normalized = 0;
+      continue;
+    }
+    if (redraw) {
+      EditorDraw(tb_rows);
+      redraw = 0;
+    }
+    if (moved) {
+      moved = 0;
+      if (!PlaceCursor()) Refresh();
       continue;
     }
     if (idle_frames < NORMALIZE_DELAY) ++idle_frames;

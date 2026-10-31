@@ -78,6 +78,10 @@ _tb_found_col:: DB;$FF = not found
 _tb_found_row:: DB;$FF = not found
 _tb_bottom:: DW;start of the row after the last rendered row
 _tb_rows:: DB;visible rows
+_tb_row_starts:: DS (TB_ROWS+1)*2;start of each rendered row, then _tb_bottom
+_tb_row_counts:: DS TB_ROWS;characters drawn in each rendered row
+tb_row_chars: DB
+_tb_end_row:: DB;rendered row the end of the text is on, $FF = not on screen
 _tb_read_pos:: DW
 tb_dest: DW
 tb_count: DW
@@ -786,6 +790,7 @@ TBScanRow:
   call TBReadSeek
   xor a
   ld [tb_x], a
+  ld [tb_row_chars], a
   ld b, 0;column
   ld c, 0;column after last space
 .loop
@@ -793,7 +798,7 @@ TBScanRow:
     cp a, TB_STRIDE
     jr z, .full
     call TBCheckEnd
-    jp z, TBCheckFind;end of text
+    jr z, .end
     ld a, [hl];next char
     cp a, ASCII_LF
     jr z, .fits
@@ -826,11 +831,21 @@ TBScanRow:
     ld [tb_x], a
     pop bc
     inc b
+    ld a, b
+    ld [tb_row_chars], a
     ld a, [tb_char]
     cp a, ' '
     jr nz, .loop
     ld c, b
     jr .loop
+
+.end
+  ld a, [_tb_end_row]
+  inc a
+  jp nz, TBCheckFind
+  ld a, [tb_row]
+  ld [_tb_end_row], a
+  jp TBCheckFind
 
 .full
     call TBCheckEnd
@@ -860,6 +875,8 @@ TBScanRow:
   ret z;row ends with a space
 
 .wrapWord;next row starts after the last space
+  ld a, c
+  ld [tb_row_chars], a
   ld a, b
   ld [tb_char], a;characters in the row
   LD_HL_VAR tb_row_start
@@ -956,12 +973,21 @@ _tb_Render::;de = top, draws [_tb_rows] rows into tile_buffer, sets _tb_found_co
   ld a, $FF
   ld [_tb_found_col], a
   ld [_tb_found_row], a
+  ld [_tb_end_row], a
   ld hl, tile_buffer
   ST_HL_VAR tb_row_ptr
   xor a
 .rowLoop
     ld [tb_row], a
+    call TBStoreRowStart
     call TBScanRow
+    ld a, [tb_row]
+    ld c, a
+    ld b, 0
+    ld hl, _tb_row_counts
+    add hl, bc
+    ld a, [tb_row_chars]
+    ld [hl], a
     ld a, [_tb_found_col]
     inc a
     jr z, .nextRow
@@ -981,5 +1007,22 @@ _tb_Render::;de = top, draws [_tb_rows] rows into tile_buffer, sets _tb_found_co
     cp a, [hl]
     jr c, .rowLoop
   ST_DE_VAR _tb_bottom
+  ld a, [_tb_rows]
+  ld [tb_row], a
+  call TBStoreRowStart
   SRAM_OFF
+  ret
+
+;stores de in _tb_row_starts[tb_row], only affects a, hl
+TBStoreRowStart:
+  ld a, [tb_row]
+  add a, a
+  add a, LOW(_tb_row_starts)
+  ld l, a
+  ld a, HIGH(_tb_row_starts)
+  adc a, 0
+  ld h, a
+  ld a, e
+  ld [hli], a
+  ld [hl], d
   ret

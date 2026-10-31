@@ -21,6 +21,7 @@ extern unsigned char font_widths[256]; // current font
 extern void SetFont(unsigned char font);
 extern void EditorDraw(unsigned char split); // rows below split use FONT_MONO (on screen keyboard)
 extern void EditorRedraw(void); // redraw every row next EditorDraw
+extern unsigned char RenderCursorX(unsigned char col); // x of col in tb_found_row
 
 // src/editor/osk.asm
 extern void OSKShow(unsigned char show);
@@ -48,6 +49,9 @@ extern unsigned int tb_find;
 extern unsigned char tb_found_col;
 extern unsigned char tb_found_row;
 extern unsigned int tb_bottom;
+extern unsigned int tb_row_starts[TB_ROWS + 1]; // rendered rows, then tb_bottom
+extern unsigned char tb_row_counts[TB_ROWS]; // characters drawn in each rendered row
+extern unsigned char tb_end_row; // rendered row the end of the text is on, 0xFF = not on screen
 
 extern void tb_Load(void);
 extern void tb_Clear(void);

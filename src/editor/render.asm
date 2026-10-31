@@ -90,6 +90,7 @@ _EditorDraw::;a = rows drawn with the editor's font, the rest use FONT_MONO
   ret
 
 ;returns x of character a in [_tb_found_row] of tile_buffer in a, using the current font
+_RenderCursorX::
 RenderCursorX::
   ld c, a;column
   ld a, [_tb_found_row]
