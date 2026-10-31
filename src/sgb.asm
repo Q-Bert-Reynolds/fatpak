@@ -192,7 +192,7 @@ DataSnd6: DB $79, $1B, $08, $00, $0B, $EA, $EA, $EA, $EA, $EA, $A9, $01, $CD, $4
 DataSnd7: DB $79, $10, $08, $00, $0B, $4C, $20, $08, $EA, $EA, $EA, $EA, $EA, $60, $EA, $EA
 
 ; Super Game boy command packets
-sgb_PalSetDefault:    PAL_SET PALETTE_CALVIN, PALETTE_GREY, PALETTE_UI, PALETTE_SEPIA
+sgb_PalSetDefault:    PAL_SET PALETTE_GREY, PALETTE_SEPIA, PALETTE_UI, PALETTE_DARK
 sgb_MltReqTwoPlayers: MLT_REQ 2
 sgb_MltReqOnePlayer:  MLT_REQ 1
 

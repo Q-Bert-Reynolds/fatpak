@@ -9,6 +9,8 @@ Planned for v1:
 
 Later: more encodings, variable width fonts, rich text, WorkBoy keyboard, iGKB, Super Game Boy mouse.
 
+See [ARCHITECTURE.md](ARCHITECTURE.md) for how the code is organized.
+
 # Controls
 | Button | Action |
 | --- | --- |

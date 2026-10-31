@@ -1,9 +1,11 @@
 IF !DEF(MAP_LOADER)
 DEF MAP_LOADER EQU 1
 
-INCLUDE "src/beisbol.inc"
-;NOTE: lines commented out with ;; reference removed baseball/RPG code
+INCLUDE "src/text_editor.inc"
+INCLUDE "src/world/world.asm"
 INCLUDE "data/map_data.asm"
+
+;NOTE: lines commented out with ;; reference removed baseball/RPG code
 
 SECTION "Map Loader HRAM", HRAM
 map_last_button_state:: DB

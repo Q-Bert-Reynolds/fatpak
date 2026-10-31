@@ -19,7 +19,7 @@ def parse_files(root, files):
   name = os.path.basename(root)
   if name == "fonts":
     return #fonts.py
-  if name in ["img", "players", "coaches", "maps"]:
+  if name in ["img", "maps"]:
     for name in files:
       path = os.path.join(root, name)
       img_to_asm(path)
@@ -132,7 +132,7 @@ def folder_to_asm (root, files):
       png_to_sgb(path, base, name)
 
   #check for changes in this folder 
-  asm_path = os.path.join(root, name.replace("demo_", "").replace("home_", "").replace("away_", "") + ".asm")
+  asm_path = os.path.join(root, name + ".asm")
   if os.path.isfile(asm_path):
     asm_change = os.path.getmtime(asm_path)
     has_changes = False
@@ -234,12 +234,9 @@ def image_set_to_asm (root, name, tileset, tilemaps, dimensions, properties, pal
   if len(tileset) == 0:
     return
   
-  name = name.replace("demo_", "").replace("home_", "").replace("away_", "")
   tilesPath = pathlib.PurePath(root, name + ".tiles").as_posix()
   if len(tileset) > 256:
     print("Error: " + tilesPath + " has " + str(len(tileset)) + " tiles.")
-  elif "_2x" in name and len(tileset) > 16:
-    print("Warning: " + tilesPath + " has " + str(len(tileset)) + " tiles.")
   elif len(tileset) > 64:
     print("Warning: " + tilesPath + " has " + str(len(tileset)) + " tiles.")
     
@@ -313,7 +310,6 @@ def gif_to_asm (path, base):
       print(f'Skipping "{path}". Generated assembly is up to date.')
     return
 
-  is_2x = "_2x" in name
   tileset = []
   tilemaps = {}
   dimensions = {}
@@ -341,22 +337,6 @@ def gif_to_asm (path, base):
       if tile not in tileset:
         tileset.append(tile)
       tilemaps[img_name].append("{:02X}".format(tileset.index(tile)))
-  
-    if is_2x:
-      tilemap_2x = []
-      for i in range(len(tilemaps[img_name])):
-        tile = int(tilemaps[img_name][i], 16)
-        tilemap_2x.append(tile*4)
-        tilemap_2x.append(tile*4+1)
-      tilemaps[img_name] = tilemap_2x
-      tilemap_2x = []
-      for i in range(rows):
-        row = tilemaps[img_name][i*cols*2:(i+1)*cols*2]
-        tilemap_2x.extend(map(lambda n : "{:02X}".format(n), row))
-        tilemap_2x.extend(map(lambda n : "{:02X}".format(n+2), row))
-      tilemaps[img_name] = tilemap_2x
-      rows*=2
-      cols*=2
 
     dimensions[img_name] = (rows, cols)
 
@@ -391,7 +371,7 @@ def png_to_gb (path, base, name):
   rows, cols, hex_vals, colors, palettemap = gb_encode(img)
   tile_count = rows*cols
 
-  if name in ["ui_font", "simulation", "baseball_fx"] or "maps" in path:
+  if name == "ui_font" or "maps" in path:
     tileset = []
     for i in range(0, len(hex_vals), 16):
       tile = "".join(hex_vals[i:i+16])
@@ -422,35 +402,18 @@ def png_to_gb (path, base, name):
         tilemap.append("{:02X}".format(len(tileset)))
         tileset.append(tile)
 
-    is_2x = "_2x" in name
-    if is_2x:
-      tilemap_2x = []
-      for i in range(len(tilemap)):
-        tile = int(tilemap[i], 16)
-        tilemap_2x.append(tile*4)
-        tilemap_2x.append(tile*4+1)
-      tilemap = tilemap_2x
-      tilemap_2x = []
-      for i in range(rows):
-        row = tilemap[i*cols*2:(i+1)*cols*2]
-        tilemap_2x.extend(map(lambda n : "{:02X}".format(n), row))
-        tilemap_2x.extend(map(lambda n : "{:02X}".format(n+2), row))
-      tilemap = tilemap_2x
-      rows*=2
-      cols*=2
-    else:
-      tile_count = len(tileset)
+    tile_count = len(tileset)
 
     with open(base + ".asm", "w+") as asm_file:
       asm_file.write("IF !DEF(_" + name.upper() + "_TILE_COUNT)\n")
       asm_file.write("DEF _" + name.upper() + "_TILE_COUNT EQU " + str(tile_count) + "\n")
 
-      has_map = (name not in ["health_bar"]) and ("sprites" not in name)
+      has_map = "sprites" not in name
       if has_map:
         asm_file.write("DEF _" + name.upper() + "_ROWS EQU " + str(rows) + "\n")
         asm_file.write("DEF _" + name.upper() + "_COLUMNS EQU " + str(cols) + "\n")
 
-      if colors and "players" not in path:
+      if colors:
         asm_file.write("DEF _" + name.upper() + "_PALETTE_COUNT EQU " + str(len(colors)) + "\n")
         asm_file.write("_"+PascalCase(name)+"Colors:\n"+"".join(colors))
         asm_file.write("_"+PascalCase(name)+"PaletteMap:\n"+palettemap)

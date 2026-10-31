@@ -1,4 +1,4 @@
-INCLUDE "src/beisbol.inc"
+INCLUDE "src/text_editor.inc"
 
 SECTION "Map Test", ROMX
 
@@ -7,12 +7,12 @@ TestMap::
   PLAY_SONG tessie_data, 1
   SET_DEFAULT_PALETTE
   TRAMPOLINE UILoadFontTiles
-  ld a, MAP_OVERWORLD
+  ld a, MAP_MAPTEST
   ld [map], a
   ld a, 20
   ld [map_x], a
   ld [map_y], a
-  ld a, MAP_OVERWORLD_CHUNK_BILLETTOWNSW
+  ld a, MAP_MAPTEST_CHUNK_BILLETTOWNSW
   ld [map_chunk], a
   call LoadMap
   

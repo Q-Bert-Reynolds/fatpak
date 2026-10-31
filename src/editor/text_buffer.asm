@@ -18,6 +18,8 @@
 ;   tb_RowStart                 de = pos, returns start of the visual row containing pos in bc
 ;   tb_NextRow                  de = row start, returns start of the next visual row in bc
 ;   tb_Render                   de = top, draws tb_rows rows to tile_buffer, finds tb_find
+;   tb_RenderRows               a = first row, e = end row, draws rows from tb_row_starts[first]
+;   tb_ScrollRows               a = 1 moves rows up (scroll down), 0 down, shifts tile_buffer and the row tables
 
 MACRO SRAM_ON
   ld a, CART_SRAM_ENABLE
@@ -81,6 +83,7 @@ _tb_rows:: DB;visible rows
 _tb_row_starts:: DS (TB_ROWS+1)*2;start of each rendered row, then _tb_bottom
 _tb_row_counts:: DS TB_ROWS;characters drawn in each rendered row
 tb_row_chars: DB
+tb_end: DB
 _tb_end_row:: DB;rendered row the end of the text is on, $FF = not on screen
 _tb_read_pos:: DW
 tb_dest: DW
@@ -949,36 +952,52 @@ _tb_NextRow::;de = row start, returns start of the next visual row in bc
   ret
 
 _tb_Render::;de = top, draws [_tb_rows] rows into tile_buffer, sets _tb_found_col/row for [_tb_find] and _tb_bottom
-  SRAM_ON
-  push de
-  call TBLength
-  ST_HL_VAR tb_len
-  ld a, [_tb_rows];clear visible rows, rows below may be the on screen keyboard
-  ld l, a
-  ld h, 0
-  add hl, hl
-  add hl, hl
-  add hl, hl
-  ld b, h
-  ld c, l
-  add hl, hl
-  add hl, hl
-  add hl, bc
-  ld b, h
-  ld c, l;rows * TB_STRIDE
-  ld a, ' '
-  ld hl, tile_buffer
-  call mem_Set
-  pop de
   ld a, $FF
   ld [_tb_found_col], a
   ld [_tb_found_row], a
   ld [_tb_end_row], a
-  ld hl, tile_buffer
-  ST_HL_VAR tb_row_ptr
+  ld a, e
+  ld [_tb_row_starts], a
+  ld a, d
+  ld [_tb_row_starts+1], a
+  ld a, [_tb_rows]
+  ld e, a
   xor a
+  ;fall through
+
+_tb_RenderRows::;a = first row, e = end row, scans rows [first, end) from _tb_row_starts[first] into tile_buffer
+  ld [tb_row], a
+  ld a, e
+  ld [tb_end], a
+  SRAM_ON
+  call TBLength
+  ST_HL_VAR tb_len
+  ld a, [tb_row]
+  call RenderRowAddress
+  ld de, tile_buffer
+  add hl, de
+  ST_HL_VAR tb_row_ptr
+  ld a, [tb_row]
+  ld b, a
+  ld a, [tb_end]
+  sub a, b
+  call RenderRowAddress
+  ld b, h
+  ld c, l;rows * TB_STRIDE
+  LD_HL_VAR tb_row_ptr
+  ld a, ' '
+  call mem_Set
+  ld a, [tb_row]
+  add a, a
+  add a, LOW(_tb_row_starts)
+  ld l, a
+  ld a, HIGH(_tb_row_starts)
+  adc a, 0
+  ld h, a
+  ld a, [hli]
+  ld e, a
+  ld d, [hl]
 .rowLoop
-    ld [tb_row], a
     call TBStoreRowStart
     call TBScanRow
     ld a, [tb_row]
@@ -1003,14 +1022,121 @@ _tb_Render::;de = top, draws [_tb_rows] rows into tile_buffer, sets _tb_found_co
     ST_HL_VAR tb_row_ptr
     ld a, [tb_row]
     inc a
-    ld hl, _tb_rows
+    ld [tb_row], a
+    ld hl, tb_end
     cp a, [hl]
     jr c, .rowLoop
-  ST_DE_VAR _tb_bottom
-  ld a, [_tb_rows]
-  ld [tb_row], a
   call TBStoreRowStart
+  ld a, [_tb_rows]
+  ld hl, tb_end
+  cp a, [hl]
+  jr nz, .done
+  ST_DE_VAR _tb_bottom
+.done
   SRAM_OFF
+  ret
+
+;hl = last source byte, de = last destination byte, bc = count, copies backwards
+TBCopyBack:
+  inc b
+  inc c
+  jr .next
+.loop
+    ld a, [hld]
+    ld [de], a
+    dec de
+.next
+    dec c
+    jr nz, .loop
+    dec b
+    jr nz, .loop
+  ret
+
+_tb_ScrollRows::;a = 1 to move rows up (scroll down) or 0 to move them down, shifts tile_buffer and the row tables
+  and a
+  jr z, .moveDown
+.moveUp
+  ld a, [_tb_rows]
+  dec a
+  call RenderRowAddress
+  ld b, h
+  ld c, l
+  ld hl, tile_buffer+TB_STRIDE
+  ld de, tile_buffer
+  call mem_Copy
+  ld a, [_tb_rows]
+  add a, a
+  ld c, a
+  ld b, 0
+  ld hl, _tb_row_starts+2
+  ld de, _tb_row_starts
+  call mem_Copy
+  ld a, [_tb_rows]
+  dec a
+  ld c, a
+  ld b, 0
+  ld hl, _tb_row_counts+1
+  ld de, _tb_row_counts
+  call mem_Copy
+  ld a, [_tb_end_row]
+  cp a, $FF
+  ret z
+  dec a;0 becomes $FF, off the top
+  ld [_tb_end_row], a
+  ret
+
+.moveDown
+  ld a, [_tb_rows]
+  dec a
+  call RenderRowAddress;(rows - 1) * TB_STRIDE
+  ld b, h
+  ld c, l
+  push bc
+  ld de, tile_buffer-1
+  add hl, de
+  ld d, h
+  ld e, l;last byte of row rows - 2
+  ld hl, TB_STRIDE
+  add hl, de
+  ld d, h
+  ld e, l;last byte of row rows - 1
+  pop bc
+  push de
+  ld de, -TB_STRIDE
+  add hl, de
+  pop de
+  call TBCopyBack
+  ld a, [_tb_rows]
+  add a, a
+  ld c, a
+  ld b, 0
+  ld hl, _tb_row_starts-1
+  add hl, bc;last byte of starts[rows - 1]
+  ld d, h
+  ld e, l
+  inc de
+  inc de
+  call TBCopyBack
+  ld a, [_tb_rows]
+  dec a
+  ld c, a
+  ld b, 0
+  ld hl, _tb_row_counts-1
+  add hl, bc;last byte of counts[rows - 2]
+  ld d, h
+  ld e, l
+  inc de
+  call TBCopyBack
+  ld a, [_tb_end_row]
+  cp a, $FF
+  ret z
+  inc a
+  ld hl, _tb_rows
+  cp a, [hl]
+  jr c, .setEndRow
+  ld a, $FF;off the bottom
+.setEndRow
+  ld [_tb_end_row], a
   ret
 
 ;stores de in _tb_row_starts[tb_row], only affects a, hl

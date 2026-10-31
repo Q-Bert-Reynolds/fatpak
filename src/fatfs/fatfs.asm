@@ -1,4 +1,4 @@
-INCLUDE "src/beisbol.inc"
+INCLUDE "src/text_editor.inc"
 
 ;FatFs lives in its own bank (src/fatfs/fatfs.c), C in other banks calls it through these
 ;C functions (src/editor/editor.h)

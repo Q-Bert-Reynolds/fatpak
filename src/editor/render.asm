@@ -1,18 +1,23 @@
 ;Draws rows of characters from tile_buffer (TB_STRIDE per row) as pixels, so fonts can have
 ;any width. Every screen cell has its own tile: 360 tiles is more than the background can
-;address at once, so the top of the screen uses $8000 tile data and an LCD interrupt switches
-;to $8800 halfway down. Rows 6-11 use tiles both modes share ($8800-$8FFF), so the switch can
-;happen anywhere in those rows (the PS/2 interrupt can delay it).
-;   rows 0-5    tiles 2-121     $8000 mode only (tiles 0 and 1 are sprites)
-;   rows 6-11   tiles 128-247   either mode
-;   rows 12-17  tiles 256-375   $8800 mode only
+;address at once, so an LCD interrupt switches between $8000 and $8800 tile data partway down.
+;Rows draw into 18 blocks of 20 tiles kept in a ring, scrolling a row rotates the ring by one
+;(SCY moves 8 pixels and only the new row is drawn). Blocks between the $8000 only and $8800
+;only blocks use tiles both modes share, so a switch can happen anywhere in them (the PS/2
+;interrupt can delay it).
+;   blocks 0-5    tiles 2-121     $8000 mode only (tiles 0 and 1 are sprites)
+;   blocks 6-8    tiles 128-187   either mode
+;   blocks 9-14   tiles 256-375   $8800 mode only
+;   blocks 15-17  tiles 188-247   either mode
+;Screen row r draws into block (render_block_top + r) % TB_ROWS. Mode switches (at most 2) are
+;staged in render_pending_* and applied with SCY at line 144.
 ;
 ;C functions (src/editor/editor.h)
 ;   SetFont                     a = font, sets _font_widths and redraws rows using it
 ;   EditorDraw                  a = rows drawn with the editor's font, the rest use FONT_MONO
 ;   EditorRedraw                forgets which rows are drawn so EditorDraw redraws all of them
+;   RenderSetMapRow             a = BG map row, e = block, points the map row at the block's tiles
 
-DEF RENDER_SPLIT_LY EQU 72;row 9, anywhere in rows 6-11 works
 
 SECTION "Font Widths", WRAM0, ALIGN[8]
 _font_widths:: DS 256;current font's widths, used to wrap rows
@@ -31,6 +36,18 @@ render_shift: DB
 render_col: DB
 draw_split: DB
 draw_row: DB
+render_block: DB
+_render_block_top:: DB;block of screen row 0
+render_top_mode: DB;LCDCF_BG8000 or 0 at the top of the screen
+render_split_count: DB
+render_splits: DS 4;LY, mode
+render_split_index: DB
+_render_pending:: DB;set after staging a scroll, cleared at line 144 when it's applied
+_render_pending_scy:: DB
+_render_pending_top_mode:: DB
+_render_pending_split_count:: DB
+_render_pending_splits:: DS 4
+render_map_row: DS TB_COLS
 
 DEF render_bitmap EQUS "cmd_buffer";160 bytes, 20 tiles of 8 lines (1bpp), must start a page
 DEF RENDER_BURST EQU 4;bytes written to VRAM per HBlank (8 writes)
@@ -135,23 +152,106 @@ RenderRowAddress:
   add hl, de
   ret
 
-;switches tile data addressing halfway down the screen and back at VBlank
+;switches tile data addressing at render_splits, and at line 144 applies a staged scroll and
+;sets the mode for the top of the next frame
 RenderLCDInterrupt::
   ldh a, [rLYC]
-  cp a, RENDER_SPLIT_LY
-  ldh a, [rLCDC]
-  jr nz, .top
-  and a, ~LCDCF_BG8000
-  ldh [rLCDC], a
+  cp a, SCRN_Y
+  jr z, .vblank
+  ld a, [render_split_index]
+  ld e, a
+  inc a
+  ld [render_split_index], a
+  ld d, 0
+  ld hl, render_splits+1
+  add hl, de
+  add hl, de
+  ld b, [hl];mode
+  call .setMode
+  ld a, [render_split_index]
+  ld hl, render_split_count
+  cp a, [hl]
+  jr nc, .nextVBlank
+  ld hl, render_splits
+  add a, a
+  add a, l
+  ld l, a
+  ld a, h
+  adc a, 0
+  ld h, a
+  ld a, [hl]
+  ldh [rLYC], a
+  ret
+.nextVBlank
   ld a, SCRN_Y
   ldh [rLYC], a
   ret
-.top
-  or a, LCDCF_BG8000
-  ldh [rLCDC], a
-  ld a, RENDER_SPLIT_LY
+
+.vblank
+  ld a, [_render_pending]
+  and a
+  jr z, .frameStart
+  ld a, [_render_pending_scy]
+  ldh [rSCY], a
+  ld hl, _render_pending_top_mode
+  ld de, render_top_mode
+  ld b, 2+4;top mode, count, splits
+.copySplits
+    ld a, [hli]
+    ld [de], a
+    inc de
+    dec b
+    jr nz, .copySplits
+  xor a
+  ld [_render_pending], a
+.frameStart
+  ld a, [render_top_mode]
+  ld b, a
+  call .setMode
+  xor a
+  ld [render_split_index], a
+  ld a, [render_split_count]
+  and a
+  jr z, .nextVBlank
+  ld a, [render_splits]
   ldh [rLYC], a
   ret
+
+.setMode;b = LCDCF_BG8000 or 0
+  ldh a, [rLCDC]
+  and a, ~LCDCF_BG8000
+  or a, b
+  ldh [rLCDC], a
+  ret
+
+_RenderSetMapRow::;a = BG map row, e = block
+  push af
+  ld d, 0
+  ld hl, BlockTileIndex
+  add hl, de
+  ld a, [hl]
+  ld hl, render_map_row
+  ld b, TB_COLS
+.index
+    ld [hli], a
+    inc a
+    dec b
+    jr nz, .index
+  pop af
+  ld l, a
+  ld h, 0
+  add hl, hl
+  add hl, hl
+  add hl, hl
+  add hl, hl
+  add hl, hl;row * SCRN_VX_B
+  ld de, _SCRN0
+  add hl, de
+  ld d, h
+  ld e, l
+  ld hl, render_map_row
+  ld bc, TB_COLS
+  jp mem_CopyVRAM
 
 ;display should be off, clears tiles, sets the background map, starts the LCD interrupt
 RenderSetup::
@@ -160,7 +260,7 @@ RenderSetup::
   ld bc, $1800
   call mem_SetVRAM
   ld hl, _SCRN0
-  ld de, RowTileIndex
+  ld de, BlockTileIndex
   ld c, TB_ROWS
 .row
     ld a, [de]
@@ -181,23 +281,38 @@ RenderSetup::
     jr nz, .row
   call _EditorRedraw
   HIDE_WIN
+  xor a
+  ld [_render_block_top], a
+  ld [_render_pending], a
+  ld [render_split_index], a
+  ldh [rSCY], a
+  ld a, LCDCF_BG8000;blocks 0-5 on top
+  ld [render_top_mode], a
+  ld a, 1
+  ld [render_split_count], a
+  ld a, 7*8;middle of blocks 6-8
+  ld [render_splits], a
+  xor a
+  ld [render_splits+1], a
   ldh a, [rLCDC]
   or a, LCDCF_BG8000
   ldh [rLCDC], a
-  ld a, RENDER_SPLIT_LY
+  ld a, 7*8
   ldh [rLYC], a
   ld bc, RenderLCDInterrupt
   jp SetLCDInterrupt
 
-;first tile index of each row, see the top of this file
-RowTileIndex:
-FOR ROW, TB_ROWS
-IF ROW < 6
-  DB 2 + ROW*TB_COLS
-ELIF ROW < 12
-  DB 128 + (ROW-6)*TB_COLS
+;first tile index of each block, see the top of this file
+BlockTileIndex:
+FOR BLOCK, TB_ROWS
+IF BLOCK < 6
+  DB 2 + BLOCK*TB_COLS
+ELIF BLOCK < 9
+  DB 128 + (BLOCK-6)*TB_COLS
+ELIF BLOCK < 15
+  DB (BLOCK-9)*TB_COLS
 ELSE
-  DB (ROW-12)*TB_COLS
+  DB 128 + (BLOCK-12)*TB_COLS
 ENDC
 ENDR
 
@@ -221,40 +336,50 @@ ENDR
 INCLUDE "img/fonts/font_mono.asm"
 INCLUDE "img/fonts/font_vwf.asm"
 
-;VRAM address of the first tile of each row
-RowTileAddress:
-FOR ROW, TB_ROWS
-IF ROW < 6
-  DW _VRAM8000 + (2 + ROW*TB_COLS)*16
-ELIF ROW < 12
-  DW _VRAM8000 + (128 + (ROW-6)*TB_COLS)*16
+;VRAM address of the first tile of each block
+BlockTileAddress:
+FOR BLOCK, TB_ROWS
+IF BLOCK < 6
+  DW _VRAM8000 + (2 + BLOCK*TB_COLS)*16
+ELIF BLOCK < 9
+  DW _VRAM8000 + (128 + (BLOCK-6)*TB_COLS)*16
+ELIF BLOCK < 15
+  DW _VRAM8000 + (256 + (BLOCK-9)*TB_COLS)*16
 ELSE
-  DW _VRAM8000 + (256 + (ROW-12)*TB_COLS)*16
+  DW _VRAM8000 + (128 + (BLOCK-12)*TB_COLS)*16
 ENDC
 ENDR
 
-;a = row, e = font, draws the row's characters if they or the font changed
+;a = screen row, e = font, draws the row's characters into its block if they or the font changed
 RenderRow:
   ld [render_row], a
   ld a, e
   ld [render_row_font], a
+  ld a, [_render_block_top]
+  ld hl, render_row
+  add a, [hl]
+  cp a, TB_ROWS
+  jr c, .setBlock
+  sub a, TB_ROWS
+.setBlock
+  ld [render_block], a
   ld a, [render_row]
   call RenderRowAddress
-  push hl
   ld de, tile_buffer
   add hl, de
   ld a, l
   ld [render_src], a
   ld a, h
   ld [render_src+1], a
-  pop hl
-  ld de, bkg_buffer;characters drawn last time
+  ld a, [render_block]
+  call RenderRowAddress
+  ld de, bkg_buffer;characters the block shows
   add hl, de
   ld d, h
   ld e, l
 
 .checkFont
-  ld a, [render_row]
+  ld a, [render_block]
   ld c, a
   ld b, 0
   ld hl, row_font
@@ -277,7 +402,7 @@ RenderRow:
   ret
 
 .changed
-  ld a, [render_row]
+  ld a, [render_block]
   call RenderRowAddress
   ld de, bkg_buffer
   add hl, de
@@ -328,11 +453,11 @@ RenderRow:
     jr nz, .char
 
 .toVRAM;both bitplanes are the 1bpp byte, drawn pixels are color 3
-  ld a, [render_row]
+  ld a, [render_block]
   add a, a
   ld c, a
   ld b, 0
-  ld hl, RowTileAddress
+  ld hl, BlockTileAddress
   add hl, bc
   ld a, [hli]
   ld e, a

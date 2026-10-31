@@ -22,6 +22,13 @@ extern void SetFont(unsigned char font);
 extern void EditorDraw(unsigned char split); // rows below split use FONT_MONO (on screen keyboard)
 extern void EditorRedraw(void); // redraw every row next EditorDraw
 extern unsigned char RenderCursorX(unsigned char col); // x of col in tb_found_row
+extern void RenderSetMapRow(unsigned char map_row, unsigned char block);
+extern unsigned char render_block_top; // block of screen row 0
+extern unsigned char render_pending; // a staged scroll, applied at line 144
+extern unsigned char render_pending_scy;
+extern unsigned char render_pending_top_mode;
+extern unsigned char render_pending_split_count;
+extern unsigned char render_pending_splits[4]; // LY, mode
 
 // src/editor/osk.asm
 extern void OSKShow(unsigned char show);
@@ -64,6 +71,8 @@ extern unsigned char tb_NormalizeStep(void); // 1 when the gap is at the end
 extern unsigned int tb_RowStart(unsigned int pos);
 extern unsigned int tb_NextRow(unsigned int row);
 extern void tb_Render(unsigned int top);
+extern void tb_RenderRows(unsigned char first, unsigned char end); // from tb_row_starts[first]
+extern void tb_ScrollRows(unsigned char down); // shifts tile_buffer and the row tables one row
 
 void Editor(void);
 

@@ -382,6 +382,7 @@ GBCCopyPalettesFrom::;hl = source
 
 SECTION "Palettes", ROM0
 ;This should be a ROMX section, but sgb_PalTrn and several color copy functions expect them to be in ROM0
+;GBCCopyPalettesFrom loads the first 8 as background palettes and the next 8 as object palettes
 DefaultPalettes::
 PaletteGrey::
   ColorWhite:: COLOR_OFF_WHITE
@@ -399,215 +400,103 @@ DEF PALETTE_SEPIA EQU (PaletteSepia-DefaultPalettes)/8
 
 PaletteUI::
   COLOR_OFF_WHITE
-  COLOR_TAN    
-  COLOR_RED      
-  COLOR_BLACK 
+  COLOR_TAN
+  COLOR_RED
+  COLOR_BLACK
 DEF PALETTE_UI EQU (PaletteUI-DefaultPalettes)/8
-
-PaletteBaseball::
-  COLOR_WHITE
-  COLOR_OFF_WHITE    
-  COLOR_RED      
-  COLOR_DARK_RED 
-DEF PALETTE_BASEBALL EQU (PaletteBaseball-DefaultPalettes)/8
-
-PaletteField::
-  COLOR_OFF_WHITE
-  COLOR_DIRT    
-  COLOR_GRASS     
-  COLOR_DARK_BROWN
-DEF PALETTE_FIELD EQU (PaletteField-DefaultPalettes)/8
 
 PaletteDark::
   COLOR_OFF_WHITE
   COLOR_DARKER_GREY
   COLOR_ALMOST_BLACK
-  COLOR_BLACK 
+  COLOR_BLACK
 DEF PALETTE_DARK EQU (PaletteDark-DefaultPalettes)/8
-
-PaletteTownMap::
-  COLOR_OFF_WHITE
-  COLOR_BLUE_GREY    
-  COLOR_GREEN      
-  COLOR_BLACK 
-DEF PALETTE_TOWN_MAP EQU (PaletteTownMap-DefaultPalettes)/8
-
-PaletteTownMapLocation::
-  COLOR_OFF_WHITE
-  COLOR_RED    
-  COLOR_GREEN      
-  COLOR_BLACK 
-DEF PALETTE_TOWN_MAP_LOCATION EQU (PaletteTownMapLocation-DefaultPalettes)/8
 
 PaletteWarning::
   COLOR_OFF_WHITE
-  COLOR_TAN    
-  COLOR_WARNING      
-  COLOR_BLACK 
+  COLOR_TAN
+  COLOR_WARNING
+  COLOR_BLACK
 DEF PALETTE_WARNING EQU (PaletteWarning-DefaultPalettes)/8
 
 PaletteGood::
   COLOR_OFF_WHITE
-  COLOR_TAN    
-  COLOR_GREEN      
-  COLOR_BLACK 
+  COLOR_TAN
+  COLOR_GREEN
+  COLOR_BLACK
 DEF PALETTE_GOOD EQU (PaletteGood-DefaultPalettes)/8
 
-PaletteIntro::
-  COLOR_OFF_WHITE
-  RGB 30, 22, 28
-  RGB 13,  4,  9
-  RGB  3,  1,  7
-DEF PALETTE_INTRO EQU (PaletteIntro-DefaultPalettes)/8
-
-PaletteTitleScreen::
-  COLOR_OFF_WHITE
-  COLOR_YELLOW    
-  COLOR_BLUE      
-  COLOR_DARK_BLUE 
-DEF PALETTE_TITLE_SCREEN EQU (PaletteTitleScreen-DefaultPalettes)/8
-
-PaletteCalvin::
-  COLOR_OFF_WHITE
-  COLOR_GREEN
-  COLOR_BROWN
-  COLOR_BLACK
-DEF PALETTE_CALVIN EQU (PaletteCalvin-DefaultPalettes)/8
-
-PaletteLineupRedA::
-  COLOR_OFF_WHITE
-  COLOR_TAN
-  COLOR_RED
-  COLOR_BLACK
-DEF PALETTE_LINEUP_RED_A EQU (PaletteLineupRedA-DefaultPalettes)/8
-
-PaletteLineupBlueA::
-  COLOR_OFF_WHITE
-  COLOR_TAN
-  COLOR_BLUE
-  COLOR_BLACK
-DEF PALETTE_LINEUP_BLUE_A EQU (PaletteLineupBlueA-DefaultPalettes)/8
-
-PaletteLineupGreenA::
-  COLOR_OFF_WHITE
-  COLOR_TAN
-  COLOR_GREEN
-  COLOR_BLACK
-DEF PALETTE_LINEUP_GREEN_A EQU (PaletteLineupGreenA-DefaultPalettes)/8
-
-PaletteLineupRedB::
-  COLOR_OFF_WHITE
-  COLOR_BROWN
-  COLOR_RED
-  COLOR_BLACK
-DEF PALETTE_LINEUP_RED_B EQU (PaletteLineupRedB-DefaultPalettes)/8
-
-PaletteLineupBlueB::
-  COLOR_OFF_WHITE
-  COLOR_BROWN
-  COLOR_BLUE
-  COLOR_BLACK
-DEF PALETTE_LINEUP_BLUE_B EQU (PaletteLineupBlueB-DefaultPalettes)/8
-
-PaletteLineupGreenB::
-  COLOR_OFF_WHITE
-  COLOR_BROWN
-  COLOR_BLACK
-  COLOR_BLACK
-DEF PALETTE_LINEUP_GREEN_B EQU (PaletteLineupGreenB-DefaultPalettes)/8
-
-PaletteVersion::
-  COLOR_OFF_WHITE
-  COLOR_GREEN
-  COLOR_DARK_BROWN
-  COLOR_BLACK
-DEF PALETTE_VERSION EQU (PaletteVersion-DefaultPalettes)/8
-
-PaletteNolan::
-  COLOR_OFF_WHITE
-  COLOR_YELLOW
-  COLOR_BROWN
-  COLOR_DARK_BLUE
-DEF PALETTE_NOLAN EQU (PaletteNolan-DefaultPalettes)/8
-
-PaletteStartLights::
-  COLOR_OFF_WHITE
-  COLOR_TAN
-  COLOR_BROWN
-  COLOR_BLACK
-DEF PALETTE_START_LIGHTS EQU (PaletteStartLights-DefaultPalettes)/8
-
-;Players
 PaletteGreen::
   COLOR_OFF_WHITE
-  COLOR_LIGHT_GREEN     
+  COLOR_LIGHT_GREEN
   COLOR_BROWN
   COLOR_BLACK
-DEF PALETTE_BUBBI EQU (PaletteGreen-DefaultPalettes)/8
+DEF PALETTE_GREEN EQU (PaletteGreen-DefaultPalettes)/8
 
 PaletteRed::
   COLOR_OFF_WHITE
   COLOR_PEACH
   COLOR_SALMON
-  COLOR_BLACK 
-DEF PALETTE_GINGER EQU (PaletteRed-DefaultPalettes)/8
+  COLOR_BLACK
+DEF PALETTE_RED EQU (PaletteRed-DefaultPalettes)/8
+
+;object palettes
+PaletteObjectGrey::;the editor's cursor and keyboard highlight
+  COLOR_OFF_WHITE
+  COLOR_LIGHT_GREY
+  COLOR_DARK_GREY
+  COLOR_BLACK
+DEF PALETTE_OBJECT_GREY EQU (PaletteObjectGrey-DefaultPalettes)/8
 
 PaletteCyan::
   COLOR_OFF_WHITE
   COLOR_TAN
   COLOR_BLUE
   COLOR_DARK_BLUE
-DEF PALETTE_SQUIRT EQU (PaletteCyan-DefaultPalettes)/8
+DEF PALETTE_CYAN EQU (PaletteCyan-DefaultPalettes)/8
 
 PalettePurple::
   COLOR_OFF_WHITE
   COLOR_YELLOW
   COLOR_PURPLE_GREY
   COLOR_DEEP_PURPLE
-DEF PALETTE_MACOBB EQU (PalettePurple-DefaultPalettes)/8
+DEF PALETTE_PURPLE EQU (PalettePurple-DefaultPalettes)/8
 
 PalettePink::
   COLOR_OFF_WHITE
   COLOR_PINK
   COLOR_RED
   COLOR_BLACK
-DEF PALETTE_PUFF EQU (PalettePink-DefaultPalettes)/8
+DEF PALETTE_PINK EQU (PalettePink-DefaultPalettes)/8
 
 PaletteSlate::
   COLOR_OFF_WHITE
   COLOR_PINK
   COLOR_PURPLE_GREY
   COLOR_BLACK
-DEF PALETTE_MUCHACHO EQU (PaletteSlate-DefaultPalettes)/8
+DEF PALETTE_SLATE EQU (PaletteSlate-DefaultPalettes)/8
 
 PaletteYellow::
   COLOR_OFF_WHITE
   COLOR_YELLOW
   COLOR_TAN
   COLOR_DEEP_PURPLE
+DEF PALETTE_YELLOW EQU (PaletteYellow-DefaultPalettes)/8
 
 PaletteBlue::
   COLOR_OFF_WHITE
   COLOR_PEACH
   COLOR_BLUE
   COLOR_DEEP_PURPLE
+DEF PALETTE_BLUE EQU (PaletteBlue-DefaultPalettes)/8
 
 PaletteWarm::
   COLOR_OFF_WHITE
   COLOR_YELLOW
   COLOR_PURPLE_GREY
   COLOR_BLACK
+DEF PALETTE_WARM EQU (PaletteWarm-DefaultPalettes)/8
 
-PaletteBaseballLeather::
-  COLOR_WHITE
-  RGB 29, 29, 27
-  RGB 26, 25, 22
-  RGB 20, 20, 19
-
-PaletteBaseballLaces::
-  COLOR_WHITE
-  RGB 31, 31, 31
-  RGB 15, 0, 2
-  RGB 11, 3, 4
+ASSERT PaletteWarm+8-DefaultPalettes == 16*8, "GBCCopyPalettesFrom needs 8 background and 8 object palettes"
 
 ENDC ;COLOR_ASM

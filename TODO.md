@@ -9,9 +9,13 @@ Priority (v1)
 
 Editor
 
-- variable width font: up/down keep the character column, not the pixel x
 - variable width font: accented and UI glyphs in vwf_font.png are copied from ui_font.png, redraw them
-- rendering: scrolling redraws every row (~1 frame per row), speed up glyph shifting or scroll with SCY
+- rendering: drawing a row waits for 40 HBlanks (~18K cycles), use HDMA on GBC, interleave glyph drawing with the waits on DMG
+- page up/down redraw every row (~0.9M cycles), page up also scans back 17 rows from SRAM
+- without an EverDrive, the first edit after a pause moves the gap back from the end (~35 cycles per byte after the cursor)
+- loading a file is slow (20KB ~2.4s): CR removal in C, tb_Append computes an address per byte, FatFs cluster math uses the slow _mullong
+- the on screen keyboard rows are redrawn on every scroll while it's open
+- smooth (pixel) scrolling on GBC (DMG doesn't have tiles for a 19th row)
 - remember the chosen font
 
 - TBMoveGap does bank math per byte (~1s+ to move the gap across 24KB on DMG), copy in chunks
@@ -36,15 +40,9 @@ Later
 
 Cleanup (left over from Béisbol)
 
-- rename beisbol.inc
 - map_loader.asm still has item/team/encounter routines, commented out calls marked with ;;
 - src/world/scripts.asm map scripts are stubs, calls marked with ;;
 - src/world/map_constants.asm only exists so map data links
-- BoulderCityRockersTeam in world.asm is a stub for team data
-- scale_tile_data_2x.asm isn't included anywhere, hardcoded to calvin_back_2x
-- remove baseball/lineup palettes from color.asm
-- options menu animation option still says "AT-BAT ANIMATIONS"
-- img2rgbds.py has special cases for removed images (simulation, baseball_fx)
 - _GSINIT (static initializers) never runs, C must initialize globals in code
 - C in different files can't call each other unless they share a bank or use BANKED_C stubs (bank_split.py only splits a single file)
 

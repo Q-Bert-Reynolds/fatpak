@@ -8,8 +8,6 @@ SECTION "Text Buffer 2", SRAM, BANK[2]
 
 SECTION "Main Save", SRAM, BANK[MAIN_SRAM_BANK]
 sram_tb_signature:: DS 4
-sram_text_speed: DB
-sram_animation_style: DB
 
 sram_main_save:
 sram_hours: DW
@@ -23,28 +21,6 @@ sram_item_flags:: DS ITEM_FLAGS_SIZE
 sram_main_save_end:
 
 SECTION "Save/Load Code", ROM0
-LoadOptions::
-  di
-  SWITCH_RAM_MBC5 MAIN_SRAM_BANK
-  ENABLE_RAM_MBC5
-  ld hl, sram_text_speed
-  ld de, text_speed
-  ld bc, 2;text_speed and animation_style
-  call mem_Copy
-  DISABLE_RAM_MBC5
-  reti
-
-SaveOptions::
-  di
-  SWITCH_RAM_MBC5 MAIN_SRAM_BANK
-  ENABLE_RAM_MBC5
-  ld hl, text_speed
-  ld de, sram_text_speed
-  ld bc, 2;text_speed and animation_style
-  call mem_Copy
-  DISABLE_RAM_MBC5
-  reti
-
 LoadGame::
   di
   ENABLE_RAM_MBC5

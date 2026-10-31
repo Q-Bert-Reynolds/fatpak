@@ -17,6 +17,8 @@
 #define BASE_NAME_SIZE 8
 #define FILE_LIST_MAX  (TB_ROWS - 2)
 #define CANCEL         0xFF
+#define BG_MAP_ROWS      32
+#define LCDC_TILES_8000  0x10 // LCDCF_BG8000
 
 // FRESULT codes (src/fatfs/lib/ff.h)
 #define FR_NOT_READY     3
@@ -34,6 +36,11 @@ unsigned char want_x; // pixel x up and down try to keep
 unsigned char keep_x;
 unsigned char moved; // cursor moved, text didn't change
 unsigned char redraw; // rendered rows changed, text didn't
+unsigned char ring_top; // BG map row of screen row 0
+unsigned char edited; // one edit at edit_pos, rows from edit_row need rendering
+unsigned char edit_row;
+unsigned int edit_pos;
+signed char edit_delta;
 unsigned char pad_timer;
 unsigned char blink_timer;
 unsigned char dirty;
@@ -99,6 +106,97 @@ static unsigned int PosAtX(unsigned char row, unsigned char x) {
   return pos;
 }
 
+// stages the tile data mode switches for render_block_top (see src/editor/render.asm): blocks 0-5
+// need $8000 mode, 9-14 $8800, the rest work in either so switches go in the middle of them
+static void StageSplits(void) {
+  unsigned char row, block, mode, current = 0xFF, shared = 0xFF, count = 0;
+  for (row = 0; row < TB_ROWS; ++row) {
+    block = render_block_top + row;
+    if (block >= TB_ROWS) block -= TB_ROWS;
+    if ((block >= 6 && block < 9) || block >= 15) {
+      if (shared == 0xFF) shared = row;
+      continue;
+    }
+    mode = block < 6 ? LCDC_TILES_8000 : 0;
+    if (current == 0xFF) render_pending_top_mode = mode;
+    else if (mode != current) {
+      render_pending_splits[count++] = ((shared + row - 1) >> 1) << 3;
+      render_pending_splits[count++] = mode;
+    }
+    current = mode;
+    shared = 0xFF;
+  }
+  render_pending_split_count = count >> 1;
+}
+
+// scrolls the screen one row with SCY (dir 1 = down), the block leaving the screen draws the new row
+static void ScrollRing(unsigned char down) {
+  unsigned char block;
+  render_pending = 0;
+  if (down) {
+    block = render_block_top;
+    render_block_top = block == TB_ROWS - 1 ? 0 : block + 1;
+    ring_top = (ring_top + 1) & (BG_MAP_ROWS - 1);
+    RenderSetMapRow((ring_top + TB_ROWS - 1) & (BG_MAP_ROWS - 1), block);
+  } else {
+    render_block_top = render_block_top ? render_block_top - 1 : TB_ROWS - 1;
+    ring_top = (ring_top - 1) & (BG_MAP_ROWS - 1);
+    RenderSetMapRow(ring_top, render_block_top);
+  }
+  StageSplits();
+  render_pending_scy = ring_top << 3;
+  render_pending = 1;
+}
+
+// scrolls one row down, only the new bottom row is scanned and drawn
+static void ScrollDown(void) {
+  ScrollRing(1);
+  tb_ScrollRows(1);
+  tb_RenderRows(tb_rows - 1, tb_rows);
+  top = tb_row_starts[0];
+  redraw = 1;
+}
+
+// scrolls one row up to the row starting at new_top
+static void ScrollUp(unsigned int new_top) {
+  ScrollRing(0);
+  tb_ScrollRows(0);
+  tb_row_starts[0] = new_top;
+  tb_RenderRows(0, 1);
+  top = new_top;
+  redraw = 1;
+}
+
+// re-renders rows after an edit, stopping once a row starts where it used to (moved by the edit)
+// NOTE: SDCC 4.2 clobbered hl when edit_delta was read inside these expressions, so it's copied first
+static void RenderAfterEdit(void) {
+  unsigned char row = edit_row, end_row = tb_end_row, i;
+  unsigned int old_next, expected, delta = (unsigned int)(int)edit_delta;
+  if (row) --row; // the previous row's wrapping can change too
+  if (end_row != 0xFF && end_row >= row) tb_end_row = 0xFF; // found again while scanning
+  for (; row < tb_rows; ++row) {
+    old_next = tb_row_starts[row + 1];
+    expected = old_next + delta;
+    tb_RenderRows(row, row + 1);
+    if (old_next > edit_pos && tb_row_starts[row + 1] == expected) {
+      for (i = row + 2; i <= tb_rows; ++i) tb_row_starts[i] += delta; // rows below just moved
+      if (end_row != 0xFF && end_row > row) tb_end_row = end_row;
+      break;
+    }
+  }
+  redraw = 1;
+}
+
+// remembers an edit so only the rows it changed are rendered, more than one edit renders everything
+static void Edited(unsigned int pos, signed char delta) {
+  modified = 1;
+  if (edited) dirty = 1;
+  edited = 1;
+  edit_row = tb_found_row;
+  edit_pos = pos;
+  edit_delta = delta;
+}
+
 // sets the first rendered row and renders
 static void ScrollTo(unsigned int new_top) {
   top = new_top;
@@ -112,7 +210,7 @@ static void MoveUp(void) {
   if (row) cursor = PosAtX(row - 1, want_x);
   else if (!top) cursor = 0;
   else {
-    ScrollTo(tb_RowStart(top - 1));
+    ScrollUp(tb_RowStart(top - 1));
     cursor = PosAtX(0, want_x);
   }
 }
@@ -123,7 +221,7 @@ static void MoveDown(void) {
   if (tb_end_row == row) cursor = tb_Length(); // last row
   else if (row + 1 < tb_rows) cursor = PosAtX(row + 1, want_x);
   else {
-    ScrollTo(tb_row_starts[1]);
+    ScrollDown();
     cursor = PosAtX(row, want_x);
   }
 }
@@ -174,23 +272,19 @@ static void HandleKey(unsigned char key, unsigned char mods) {
     case KEY_END: MoveEnd(); return;
   }
   moved = 0;
-  dirty = 1;
   switch (key) {
     case KEY_BACKSPACE:
-      if (cursor && tb_Delete(--cursor)) modified = 1;
+      if (cursor && tb_Delete(cursor - 1)) Edited(--cursor, -1);
       break;
     case KEY_DELETE:
-      if (tb_Delete(cursor)) modified = 1;
+      if (tb_Delete(cursor)) Edited(cursor, -1);
       break;
     case KEY_ESCAPE:
     case KEY_INSERT: return;
     default:
       if (key < ' ' && key != ASCII_TAB && key != ASCII_LF) return;
       if (key >= KEY_LEFT && key < 0xA0) return; // unprintable in Latin-1
-      if (tb_Insert(cursor, key)) {
-        ++cursor;
-        modified = 1;
-      }
+      if (tb_Insert(cursor, key)) Edited(cursor++, 1);
   }
 }
 
@@ -502,15 +596,19 @@ static void Refresh(void) {
   Render();
   if (tb_found_row == 0xFF) {
     row = tb_RowStart(cursor);
-    if (cursor < top) top = row;
+    if (cursor < top) {
+      if (top && row == tb_RowStart(top - 1)) ScrollRing(0); // one row up
+      top = row;
+    }
     else { // scroll until the cursor is on the last row, jump if it's more than a screen away
-      bottom = tb_bottom;
+      bottom = tb_row_starts[tb_rows];
       for (i = tb_rows; i; --i) {
         top = tb_NextRow(top);
         if (bottom == row) break;
         bottom = tb_NextRow(bottom);
       }
       if (!i) top = row;
+      else if (i == tb_rows) ScrollRing(1); // one row down
     }
     Render();
   }
@@ -534,6 +632,8 @@ void Editor(void) {
   keep_x = 0;
   moved = 0;
   redraw = 0;
+  ring_top = 0;
+  edited = 0;
   pad_timer = 0;
   modified = 0;
   font = FONT_VWF;
@@ -550,7 +650,7 @@ void Editor(void) {
     WaitFrame();
     while ((key = (unsigned char)(event = KBPopEvent()))) {
       if (!HandleFileKey(key, (unsigned char)(event >> 8))) HandleKey(key, (unsigned char)(event >> 8));
-      if (dirty) break; // text changed, rows need rendering before more keys
+      if (dirty || edited) break; // text changed, rows need rendering before more keys
       if (moved) { // keeps tb_found_row current for the next key
         if (!PlaceCursor()) dirty = 1;
         moved = 0;
@@ -559,12 +659,27 @@ void Editor(void) {
     if ((key = PadKey())) {
       if (!HandleFileKey(key, 0)) HandleKey(key, 0);
     }
-    if (dirty || redraw || moved) idle_frames = 0;
+    if (dirty || edited || redraw || moved) idle_frames = 0;
     if (dirty) {
       Refresh();
       dirty = 0;
+      edited = 0;
       normalized = 0;
       continue;
+    }
+    if (edited) {
+      edited = 0;
+      normalized = 0;
+      RenderAfterEdit();
+      if (!PlaceCursor()) {
+        if (cursor >= tb_row_starts[tb_rows] && tb_RowStart(cursor) == tb_row_starts[tb_rows]) ScrollDown();
+        else if (top && cursor < top && tb_RowStart(cursor) == tb_RowStart(top - 1)) ScrollUp(tb_RowStart(cursor));
+        else {
+          Refresh();
+          continue;
+        }
+        PlaceCursor();
+      }
     }
     if (redraw) {
       EditorDraw(tb_rows);

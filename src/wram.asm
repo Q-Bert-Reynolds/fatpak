@@ -10,9 +10,8 @@ game_state:: DB
 ;UI
 list_selection:: DB
 
-;options
-text_speed:: DB
-animation_style:: DB
+;text
+text_speed:: DB;0 = fast, 1 = medium, 2 = slow (UIRevealText)
 
 ;main save data
 main_save::

@@ -431,7 +431,7 @@ __divulong::
 	SECTION FRAGMENT "src/fatfs/fatfs.c_CODE",ROMX
 ;src/fatfs/lib/ff.c:622: static WORD ld_16 (const BYTE* ptr)	/*	 Load a 2-byte little-endian word */
 ;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
+	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function ld_16
 ; ---------------------------------
 _ld_16:
@@ -587,7 +587,7 @@ _ExCvt:
 	DB $FF	; 255
 ;src/fatfs/lib/ff.c:631: static DWORD ld_32 (const BYTE* ptr)	/* Load a 4-byte little-endian word */
 ;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
+	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function ld_32
 ; ---------------------------------
 _ld_32:
@@ -730,7 +730,7 @@ _ld_32:
 	ret
 ;src/fatfs/lib/ff.c:660: static void st_16 (BYTE* ptr, WORD val)	/* Store a 2-byte word in little-endian */
 ;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
+	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function st_16
 ; ---------------------------------
 _st_16:
@@ -747,7 +747,7 @@ _st_16:
 	ret
 ;src/fatfs/lib/ff.c:666: static void st_32 (BYTE* ptr, DWORD val)	/* Store a 4-byte word in little-endian */
 ;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
+	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function st_32
 ; ---------------------------------
 _st_32:
@@ -813,7 +813,7 @@ _st_32:
 	jp hl 
 ;src/fatfs/lib/ff.c:696: static int dbc_1st (BYTE c)
 ;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
+	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function dbc_1st
 ; ---------------------------------
 _dbc_1st:
@@ -832,7 +832,7 @@ _dbc_1st:
 	ret
 ;src/fatfs/lib/ff.c:716: static int dbc_2nd (BYTE c)
 ;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
+	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function dbc_2nd
 ; ---------------------------------
 _dbc_2nd:
@@ -1198,7 +1198,7 @@ _sync_window:
 	ret
 ;src/fatfs/lib/ff.c:1082: static FRESULT move_window (	/* Returns FR_OK or FR_DISK_ERR */
 ;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
+	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function move_window
 ; ---------------------------------
 _move_window:
@@ -1264,7 +1264,7 @@ _move_window:
 	push	bc
 	ld	e, c
 	ld	d, b
-	call	_sync_window__far
+	call	_sync_window
 	pop	bc
 	ld	hl, sp+4
 	ld	[hl], a
@@ -2233,7 +2233,7 @@ _get_fat:
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_move_window
+	call	_move_window__far
 	pop	bc
 	or	a, a
 	jp	NZ, .l00116
@@ -2337,7 +2337,7 @@ _get_fat:
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_move_window
+	call	_move_window__far
 	pop	bc
 	or	a, a
 	jp	NZ, .l00116
@@ -2521,7 +2521,7 @@ _get_fat:
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_move_window
+	call	_move_window__far
 	or	a, a
 	jp	NZ, .l00116
 ;src/fatfs/lib/ff.c:1207: val = ld_16(fs->win + clst * 2 % SS(fs));		/* Simple WORD array */
@@ -2548,7 +2548,7 @@ _get_fat:
 	add	hl, de
 	ld	e, l
 	ld	d, h
-	call	_ld_16
+	call	_ld_16__far
 	ld	hl, sp+2
 	ld	[hl], c
 	inc	hl
@@ -2659,7 +2659,7 @@ _get_fat:
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_move_window
+	call	_move_window__far
 	or	a, a
 	jp	NZ, .l00116
 ;src/fatfs/lib/ff.c:1212: val = ld_32(fs->win + clst * 4 % SS(fs)) & 0x0FFFFFFF;	/* Simple DWORD array but mask out upper 4 bits */
@@ -2691,7 +2691,7 @@ _get_fat:
 	add	hl, de
 	ld	e, l
 	ld	d, h
-	call	_ld_32
+	call	_ld_32__far
 	ld	hl, sp+2
 	ld	[hl], c
 	inc	hl
@@ -7239,7 +7239,7 @@ _dir_alloc:
 	ret
 ;src/fatfs/lib/ff.c:1868: static DWORD ld_clust (	/* Returns the top cluster value of the SFN entry */
 ;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
+	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function ld_clust
 ; ---------------------------------
 _ld_clust:
@@ -7316,7 +7316,7 @@ _ld_clust:
 	ret
 ;src/fatfs/lib/ff.c:1885: static void st_clust (
 ;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
+	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function st_clust
 ; ---------------------------------
 _st_clust:
@@ -7472,7 +7472,7 @@ _dir_read:
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_move_window
+	call	_move_window__far
 	ld	hl, sp+4
 	ld	[hl], a
 ;src/fatfs/lib/ff.c:2351: if (res != FR_OK) break;
@@ -7708,7 +7708,7 @@ _dir_find:
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_move_window
+	call	_move_window__far
 	ld	hl, sp+10
 	ld	[hl], a
 ;src/fatfs/lib/ff.c:2454: if (res != FR_OK) break;
@@ -7800,7 +7800,7 @@ _dir_find:
 	ld	b, d
 	ld	e, l
 	ld	d, h
-	call	_memcmp
+	call	_memcmp__far
 	ld	a, b
 	or	a, c
 	jp	Z, .l00112
@@ -8243,7 +8243,7 @@ _get_fileinfo:
 	add	hl, bc
 	ld	e, l
 	ld	d, h
-	call	_ld_32
+	call	_ld_32__far
 	ld	hl, sp+5
 	ld	[hl], c
 	inc	hl
@@ -8302,7 +8302,7 @@ _get_fileinfo:
 	push	bc
 	ld	e, l
 	ld	d, h
-	call	_ld_16
+	call	_ld_16__far
 	ld	e, c
 	ld	d, b
 	pop	bc
@@ -8340,7 +8340,7 @@ _get_fileinfo:
 	push	bc
 	ld	e, l
 	ld	d, h
-	call	_ld_16
+	call	_ld_16__far
 	ld	e, c
 	ld	d, b
 	pop	bc
@@ -8403,7 +8403,7 @@ _create_name:
 	ld	bc, $000B
 	push	bc
 	ld	bc, $0020
-	call	_memset
+	call	_memset__far
 ;src/fatfs/lib/ff.c:3036: si = i = 0; ni = 8;
 	xor	a, a
 	ld	hl, sp+4
@@ -8566,7 +8566,7 @@ _create_name:
 ;src/fatfs/lib/ff.c:3076: if (dbc_1st(c)) {				/* Check if it is a DBC 1st byte */
 	ld	hl, sp+8
 	ld	a, [hl]
-	call	_dbc_1st
+	call	_dbc_1st__far
 ;src/fatfs/lib/ff.c:3079: sfn[i++] = c;
 	ld	hl, sp+5
 	dec	hl
@@ -8608,7 +8608,7 @@ _create_name:
 	ld	[hl], a
 ;src/fatfs/lib/ff.c:3078: if (!dbc_2nd(d) || i >= ni - 1) return FR_INVALID_NAME;	/* Reject invalid DBC */
 	ld	a, [hl]
-	call	_dbc_2nd
+	call	_dbc_2nd__far
 	ld	a, b
 	or	a, c
 	jp	Z, .l00118
@@ -8673,7 +8673,7 @@ _create_name:
 	ld	c, [hl]
 	ld	b, $00
 	ld	de, ___str_0
-	call	_strchr
+	call	_strchr__far
 	ld	a, b
 	or	a, c
 	jp	Z, .l00122
@@ -9117,7 +9117,7 @@ _follow_path:
 	ld	b, d
 	pop	de
 	push	de
-	call	_ld_clust
+	call	_ld_clust__far
 	ld	hl, sp+10
 	ld	[hl], c
 	inc	hl
@@ -11911,7 +11911,7 @@ _validate:
 	ld	a, [bc]
 	ld	c, a
 	ld	a, c
-	call	_disk_status
+	call	_disk_status__far
 	rrca
 	jp	C,.l00144
 	jp	.l00145
@@ -12312,7 +12312,7 @@ _f_open::
 	push	bc
 	ld	bc, $0000
 	push	bc
-	call	_st_32
+	call	_st_32__far
 ;src/fatfs/lib/ff.c:3881: st_32(dj.dir + DIR_ModTime, tm);	/* Set modified time (tmp setting) */
 	ld	hl, sp+26
 	ld	c, [hl]
@@ -12326,7 +12326,7 @@ _f_open::
 	push	bc
 	ld	bc, $0000
 	push	bc
-	call	_st_32
+	call	_st_32__far
 ;src/fatfs/lib/ff.c:3882: cl = ld_clust(fs, dj.dir);			/* Get current cluster chain */
 	ld	hl, sp+26
 	ld	c, [hl]
@@ -12336,7 +12336,7 @@ _f_open::
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_ld_clust
+	call	_ld_clust__far
 	ld	hl, sp+49
 	ld	[hl], c
 	inc	hl
@@ -12365,7 +12365,7 @@ _f_open::
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_st_clust
+	call	_st_clust__far
 ;src/fatfs/lib/ff.c:3885: st_32(dj.dir + DIR_FileSize, 0);
 	ld	hl, sp+26
 	ld	c, [hl]
@@ -12378,7 +12378,7 @@ _f_open::
 	ld	bc, $0000
 	push	bc
 	push	bc
-	call	_st_32
+	call	_st_32__far
 ;src/fatfs/lib/ff.c:3886: fs->wflag = 1;
 	ld	hl, sp+40
 	ld	c, [hl]
@@ -12461,7 +12461,7 @@ _f_open::
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_move_window
+	call	_move_window__far
 	ld	hl, sp+42
 	ld	[hl], a
 ;src/fatfs/lib/ff.c:3893: fs->last_clst = cl - 1;		/* Reuse the cluster hole */
@@ -12678,7 +12678,7 @@ _f_open::
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_ld_clust
+	call	_ld_clust__far
 	ld	hl, sp+49
 	ld	[hl], c
 	inc	hl
@@ -12731,7 +12731,7 @@ _f_open::
 	add	hl, bc
 	ld	e, l
 	ld	d, h
-	call	_ld_32
+	call	_ld_32__far
 	ld	hl, sp+49
 	ld	[hl], c
 	inc	hl
@@ -14061,7 +14061,7 @@ _f_read::
 	inc	hl
 	ld	d, [hl]
 	ld	a, c
-	call	_disk_read
+	call	_disk_read__far
 	or	a, a
 	jp	Z, .l00122
 	ld	hl, sp+4
@@ -14310,7 +14310,7 @@ _f_read::
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_move_window
+	call	_move_window__far
 	or	a, a
 	jp	Z, .l00133
 	ld	hl, sp+4
@@ -18128,7 +18128,7 @@ _f_opendir::
 	ld	b, [hl]
 	pop	de
 	push	de
-	call	_ld_clust
+	call	_ld_clust__far
 	ld	hl, sp+5
 	ld	[hl], c
 	inc	hl
@@ -18507,7 +18507,7 @@ ___memcpy::
 	jp hl 
 ;src/fatfs/fatfs.c:38: void* memset(void* dest, int c, size_t n) {
 ;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
+	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function memset
 ; ---------------------------------
 _memset::
@@ -18572,7 +18572,7 @@ _memset::
 	jp hl 
 ;src/fatfs/fatfs.c:44: int memcmp(const void* a, const void* b, size_t n) {
 ;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
+	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function memcmp
 ; ---------------------------------
 _memcmp::
@@ -18662,7 +18662,7 @@ _memcmp::
 	jp hl 
 ;src/fatfs/fatfs.c:53: char* strchr(const char* s, int c) {
 ;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
+	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function strchr
 ; ---------------------------------
 _strchr::
@@ -18767,7 +18767,7 @@ _strchr::
 	ret
 ;src/fatfs/fatfs.c:58: DSTATUS disk_status(BYTE pdrv) {
 ;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
+	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function disk_status
 ; ---------------------------------
 _disk_status::
@@ -18788,7 +18788,7 @@ _disk_status::
 	ret
 ;src/fatfs/fatfs.c:63: DSTATUS disk_initialize(BYTE pdrv) {
 ;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
+	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function disk_initialize
 ; ---------------------------------
 _disk_initialize::
@@ -18811,7 +18811,7 @@ _disk_initialize::
 	ret
 ;src/fatfs/fatfs.c:68: DRESULT disk_read(BYTE pdrv, BYTE* buff, LBA_t sector, UINT count) {
 ;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
+	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function disk_read
 ; ---------------------------------
 _disk_read::
@@ -18906,7 +18906,7 @@ _disk_read::
 	jp hl 
 ;src/fatfs/fatfs.c:77: DRESULT disk_write(BYTE pdrv, const BYTE* buff, LBA_t sector, UINT count) {
 ;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
+	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function disk_write
 ; ---------------------------------
 _disk_write::
@@ -19001,7 +19001,7 @@ _disk_write::
 	jp hl 
 ;src/fatfs/fatfs.c:86: DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void* buff) {
 ;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
+	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function disk_ioctl
 ; ---------------------------------
 _disk_ioctl::
@@ -19093,7 +19093,7 @@ _fs_NextFile::
 ;src/fatfs/fatfs.c:105: ext = strchr(info.fname, '.');
 	ld	bc, $002E
 	ld	de, (_info + 9)
-	call	_strchr
+	call	_strchr__far
 ;src/fatfs/fatfs.c:106: if (!ext || ext[1] != 'T' || ext[2] != 'X' || ext[3] != 'T' || ext[4]) continue;
 	ld	a, b
 	or	a, c
@@ -19663,6 +19663,22 @@ _create_chain__far:
 	ld [far_target+1], a
 	ld a, BANK(_create_chain)
 	jp FarCall
+_dbc_1st__far:
+	ld [far_a], a
+	ld a, LOW(_dbc_1st)
+	ld [far_target], a
+	ld a, HIGH(_dbc_1st)
+	ld [far_target+1], a
+	ld a, BANK(_dbc_1st)
+	jp FarCall
+_dbc_2nd__far:
+	ld [far_a], a
+	ld a, LOW(_dbc_2nd)
+	ld [far_target], a
+	ld a, HIGH(_dbc_2nd)
+	ld [far_target+1], a
+	ld a, BANK(_dbc_2nd)
+	jp FarCall
 _dir_clear__far:
 	ld [far_a], a
 	ld a, LOW(_dir_clear)
@@ -19694,6 +19710,22 @@ _dir_sdi__far:
 	ld a, HIGH(_dir_sdi)
 	ld [far_target+1], a
 	ld a, BANK(_dir_sdi)
+	jp FarCall
+_disk_read__far:
+	ld [far_a], a
+	ld a, LOW(_disk_read)
+	ld [far_target], a
+	ld a, HIGH(_disk_read)
+	ld [far_target+1], a
+	ld a, BANK(_disk_read)
+	jp FarCall
+_disk_status__far:
+	ld [far_a], a
+	ld a, LOW(_disk_status)
+	ld [far_target], a
+	ld a, HIGH(_disk_status)
+	ld [far_target+1], a
+	ld a, BANK(_disk_status)
 	jp FarCall
 _f_close__far:
 	ld [far_a], a
@@ -19727,6 +19759,46 @@ _get_fat__far:
 	ld [far_target+1], a
 	ld a, BANK(_get_fat)
 	jp FarCall
+_ld_16__far:
+	ld [far_a], a
+	ld a, LOW(_ld_16)
+	ld [far_target], a
+	ld a, HIGH(_ld_16)
+	ld [far_target+1], a
+	ld a, BANK(_ld_16)
+	jp FarCall
+_ld_32__far:
+	ld [far_a], a
+	ld a, LOW(_ld_32)
+	ld [far_target], a
+	ld a, HIGH(_ld_32)
+	ld [far_target+1], a
+	ld a, BANK(_ld_32)
+	jp FarCall
+_ld_clust__far:
+	ld [far_a], a
+	ld a, LOW(_ld_clust)
+	ld [far_target], a
+	ld a, HIGH(_ld_clust)
+	ld [far_target+1], a
+	ld a, BANK(_ld_clust)
+	jp FarCall
+_memcmp__far:
+	ld [far_a], a
+	ld a, LOW(_memcmp)
+	ld [far_target], a
+	ld a, HIGH(_memcmp)
+	ld [far_target+1], a
+	ld a, BANK(_memcmp)
+	jp FarCall
+_memset__far:
+	ld [far_a], a
+	ld a, LOW(_memset)
+	ld [far_target], a
+	ld a, HIGH(_memset)
+	ld [far_target+1], a
+	ld a, BANK(_memset)
+	jp FarCall
 _mount_volume__far:
 	ld [far_a], a
 	ld a, LOW(_mount_volume)
@@ -19734,6 +19806,14 @@ _mount_volume__far:
 	ld a, HIGH(_mount_volume)
 	ld [far_target+1], a
 	ld a, BANK(_mount_volume)
+	jp FarCall
+_move_window__far:
+	ld [far_a], a
+	ld a, LOW(_move_window)
+	ld [far_target], a
+	ld a, HIGH(_move_window)
+	ld [far_target+1], a
+	ld a, BANK(_move_window)
 	jp FarCall
 _remove_chain__far:
 	ld [far_a], a
@@ -19743,13 +19823,29 @@ _remove_chain__far:
 	ld [far_target+1], a
 	ld a, BANK(_remove_chain)
 	jp FarCall
-_sync_window__far:
+_st_32__far:
 	ld [far_a], a
-	ld a, LOW(_sync_window)
+	ld a, LOW(_st_32)
 	ld [far_target], a
-	ld a, HIGH(_sync_window)
+	ld a, HIGH(_st_32)
 	ld [far_target+1], a
-	ld a, BANK(_sync_window)
+	ld a, BANK(_st_32)
+	jp FarCall
+_st_clust__far:
+	ld [far_a], a
+	ld a, LOW(_st_clust)
+	ld [far_target], a
+	ld a, HIGH(_st_clust)
+	ld [far_target+1], a
+	ld a, BANK(_st_clust)
+	jp FarCall
+_strchr__far:
+	ld [far_a], a
+	ld a, LOW(_strchr)
+	ld [far_target], a
+	ld a, HIGH(_strchr)
+	ld [far_target+1], a
+	ld a, BANK(_strchr)
 	jp FarCall
 _validate__far:
 	ld [far_a], a

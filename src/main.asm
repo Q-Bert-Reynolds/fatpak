@@ -1,4 +1,4 @@
-INCLUDE "src/beisbol.inc"
+INCLUDE "src/text_editor.inc"
 
 SECTION "Crash Handler RST", ROM0[$0038]
   jp Main
@@ -90,9 +90,6 @@ Main::
   ldh [rIE], a
   ei
   TRAMPOLINE DetectKeyboard
-
-.loadOptions
-  call LoadOptions
 
 .startClock
   ld a, GAME_STATE_CLOCK_STARTED

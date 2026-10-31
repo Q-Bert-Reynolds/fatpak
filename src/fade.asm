@@ -1,4 +1,4 @@
-INCLUDE "src/beisbol.inc"
+INCLUDE "src/text_editor.inc"
 
 SECTION "Fade", ROMX
 
