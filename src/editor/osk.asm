@@ -1,4 +1,5 @@
-;On screen keyboard, drawn on the window below the text.
+;On screen keyboard, drawn into the last OSK_ROWS rows of tile_buffer (EditorDraw draws them
+;with FONT_MONO).
 ;Keys are 1 tile wide with a 1 tile gap, OSK_COLS keys per row. The last row is
 ;shift, symbols, space, menu, cursor left, cursor right for every layer.
 ;
@@ -12,6 +13,7 @@ DEF OSK_SPRITE       EQU 1
 DEF OSK_SPRITE_TILE  EQU 1
 DEF OSK_LAYOUT_SIZE  EQU OSK_COLS*(OSK_ROWS-1)
 DEF OSK_Y            EQU SCRN_Y-OSK_ROWS*8
+DEF OSK_FIRST_ROW    EQU TB_ROWS-OSK_ROWS
 
 SECTION "On Screen Keyboard", ROM0
 
@@ -21,17 +23,9 @@ OSKLayouts:
 .symbols DB "`~-_=+[]\{\}\\|'\"¡¿áéíóúñü",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 OSKBottomRow: DB "▲ # __________◆ ◀ ▶ "
 
-_OSKShow::;a = show
+_OSKShow::;a = show, hides the highlight
   and a
-  jr z, .hide
-  ld a, WX_OFS
-  ldh [rWX], a
-  ld a, OSK_Y
-  ldh [rWY], a
-  SHOW_WIN
-  ret
-.hide
-  HIDE_WIN
+  ret nz
   ld de, 0
   ld c, OSK_SPRITE
   jp gbdk_MoveSprite
@@ -49,29 +43,39 @@ OSKGetLayout:
   ret
 
 _OSKDraw::;a = layer
+  push af
+  ld a, ' '
+  ld hl, tile_buffer+OSK_FIRST_ROW*TB_STRIDE
+  ld bc, OSK_ROWS*TB_STRIDE
+  call mem_Set
+  pop af
   call OSKGetLayout
-  ld de, win_buffer
-  ld b, OSK_LAYOUT_SIZE
-.loop
-    ld a, [hli]
-    and a
-    jr nz, .key
-    ld a, ' '
+  ld de, tile_buffer+OSK_FIRST_ROW*TB_STRIDE
+  ld c, OSK_ROWS-1
+.row
+    ld b, OSK_COLS
   .key
-    ld [de], a
-    inc de
-    ld a, ' '
-    ld [de], a
-    inc de
-    dec b
-    jr nz, .loop
+      ld a, [hli]
+      and a
+      jr nz, .setKey
+      ld a, ' '
+    .setKey
+      ld [de], a
+      inc de
+      inc de;gap
+      dec b
+      jr nz, .key
+    ld a, e
+    add a, TB_STRIDE-OSK_COLS*2
+    ld e, a
+    ld a, d
+    adc a, 0
+    ld d, a
+    dec c
+    jr nz, .row
   ld hl, OSKBottomRow
   ld bc, SCRN_X_B
-  call mem_Copy
-  ld de, 0
-  ld hl, (SCRN_X_B << 8) | OSK_ROWS
-  ld bc, win_buffer
-  jp gbdk_SetWinTiles
+  jp mem_Copy
 
 _OSKSelect::;a = x, e = y
   swap a;x*16

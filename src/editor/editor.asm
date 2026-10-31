@@ -2,13 +2,13 @@ INCLUDE "src/beisbol.inc"
 
 INCLUDE "src/editor/text_buffer.asm"
 INCLUDE "src/editor/osk.asm"
+INCLUDE "src/editor/render.asm"
 INCLUDE "src/editor/sd.asm"
 
 SECTION "Editor ROM0", ROM0
 ;C functions (src/editor/editor.h)
 ;   EditorSetup
 ;   WaitFrame                   waits for vblank, updates input
-;   EditorDraw                  copies tile_buffer to the screen
 ;   EditorShowCursor            a = show, uses tb_found_col/row
 
 DEF CURSOR_SPRITE EQU 0
@@ -16,8 +16,10 @@ DEF CURSOR_SPRITE EQU 0
 _EditorSetup::
   DISPLAY_OFF
   SET_DEFAULT_PALETTE
-  TRAMPOLINE UILoadFontTiles
   CLEAR_SCREEN ' '
+  call RenderSetup
+  ld a, FONT_VWF
+  call _SetFont
 
   ld a, %10000000;cursor is a 1 pixel vertical line on the left
   ld hl, _VRAM8000
@@ -43,14 +45,6 @@ _WaitFrame::
   call gbdk_WaitVBL
   jp UpdateInput
 
-_EditorDraw::;copies visible rows
-  ld a, [_tb_rows]
-  ld l, a
-  ld h, TB_COLS
-  ld de, 0
-  ld bc, tile_buffer
-  jp gbdk_SetBkgTiles
-
 _EditorShowCursor::;a = show
   and a
   jr z, .hide
@@ -62,17 +56,11 @@ _EditorShowCursor::;a = show
   add a, a
   add a, OAM_Y_OFS
   ld e, a;y
+  push de
   ld a, [_tb_found_col]
-  cp a, TB_COLS
-  jr c, .setX
-  ld a, TB_COLS*8-1+OAM_X_OFS;hanging space or line feed, right edge of the screen
-  jr .moveSprite
-.setX
-  add a, a
-  add a, a
-  add a, a
+  call RenderCursorX
+  pop de
   add a, OAM_X_OFS
-.moveSprite
   ld d, a;x
   ld c, CURSOR_SPRITE
   jp gbdk_MoveSprite

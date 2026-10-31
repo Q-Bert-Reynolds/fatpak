@@ -38,10 +38,11 @@ unsigned char osk_layer;
 unsigned char osk_x;
 unsigned char osk_y;
 unsigned char modified;
+unsigned char font;
 char file_name[FILE_NAME_SIZE]; // current file, empty for new text
 char file_list[FILE_LIST_MAX][FILE_NAME_SIZE];
 
-static const char menu_items[][FILE_NAME_SIZE] = {"OPEN", "SAVE", "SAVE AS", "NEW"};
+static const char menu_items[][FILE_NAME_SIZE] = {"OPEN", "SAVE", "SAVE AS", "NEW", "FONT"};
 static const char discard_items[][FILE_NAME_SIZE] = {"NO", "YES"};
 
 static void Render(void);
@@ -144,6 +145,7 @@ static void ToggleOSK(void) {
 static void SetOSKLayer(unsigned char layer) {
   osk_layer = osk_layer == layer ? OSK_LOWER : layer;
   OSKDraw(osk_layer);
+  dirty = 1;
 }
 
 static unsigned char PressOSKKey(void) {
@@ -207,15 +209,15 @@ static unsigned char MenuKey(void) {
 
 static char* RowAddress(unsigned char row) {
   unsigned int offset = row;
-  return (char*)tile_buffer + (offset << 4) + (offset << 2); // row * TB_COLS
+  return (char*)tile_buffer + (offset << 5) + (offset << 3); // row * TB_STRIDE
 }
 
 // draws text at col on row, clearing the rest of the row
 static void DrawRow(unsigned char row, unsigned char col, const char* text) {
   char* dest = RowAddress(row);
   unsigned char i;
-  for (i = 0; i < TB_COLS; ++i) dest[i] = ' ';
-  for (dest += col; *text && col < TB_COLS; ++col) *dest++ = *text++;
+  for (i = 0; i < TB_STRIDE; ++i) dest[i] = ' ';
+  for (dest += col; *text && col < TB_STRIDE; ++col) *dest++ = *text++;
 }
 
 static void ClearScreen(void) {
@@ -251,7 +253,7 @@ static unsigned char Choose(const char* title, const char* items, unsigned char 
       DrawRow(i + 2, 2, items + (i << 3) + (i << 2) + i); // i * FILE_NAME_SIZE
       if (i == selected) RowAddress(i + 2)[1] = MARKER;
     }
-    EditorDraw();
+    EditorDraw(tb_rows);
     while (!(key = MenuKey()));
     if (key == KEY_UP) selected = selected ? selected - 1 : count - 1;
     else if (key == KEY_DOWN) selected = selected == count - 1 ? 0 : selected + 1;
@@ -270,7 +272,7 @@ static void ShowMessage(const char* text) {
   Render();
   EditorShowCursor(0);
   DrawRow(tb_rows - 1, 0, text);
-  EditorDraw();
+  EditorDraw(tb_rows);
   while (!MenuKey());
   dirty = 1;
 }
@@ -350,7 +352,7 @@ static unsigned char AskFileName(void) {
     for (i = 0; i < length; ++i) text[8 + i] = name[i];
     CopyName(text + 8 + length, "_.TXT");
     DrawRow(0, 0, text);
-    EditorDraw();
+    EditorDraw(tb_rows);
     do {
       WaitFrame();
       key = (unsigned char)KBPopEvent();
@@ -384,22 +386,31 @@ static void SaveFile(unsigned char ask) {
   ShowMessage("SAVED");
 }
 
+// switches between the fixed and variable width fonts
+static void ToggleFont(void) {
+  font = font == FONT_VWF ? FONT_MONO : FONT_VWF;
+  SetFont(font);
+  dirty = 1;
+}
+
 static void FileMenu(void) {
-  switch (Choose("FILE", menu_items[0], 4)) {
+  switch (Choose("MENU", menu_items[0], 5)) {
     case 0: OpenFile(); break;
     case 1: SaveFile(0); break;
     case 2: SaveFile(1); break;
     case 3: NewFile(); break;
+    case 4: ToggleFont(); break;
   }
 }
 
-// file shortcuts: escape or the keyboard's menu key, ctrl + O, S, N
+// shortcuts: escape or the keyboard's menu key, ctrl + O, S, N, F
 static unsigned char HandleFileKey(unsigned char key, unsigned char mods) {
   if (key == KEY_MENU || key == KEY_ESCAPE) FileMenu();
   else if (!(mods & KB_MOD_CTRL)) return 0;
   else if (key == 'o' || key == 'O') OpenFile();
   else if (key == 's' || key == 'S') SaveFile(0);
   else if (key == 'n' || key == 'N') NewFile();
+  else if (key == 'f' || key == 'F') ToggleFont();
   dirty = 1;
   return 1;
 }
@@ -430,7 +441,7 @@ static void Refresh(void) {
     }
     Render();
   }
-  EditorDraw();
+  EditorDraw(tb_rows);
   blink_timer = 0;
   EditorShowCursor(1);
 }
@@ -445,6 +456,7 @@ void Editor(void) {
   want_col = 0;
   pad_timer = 0;
   modified = 0;
+  font = FONT_VWF;
   file_name[0] = 0;
   fs_crlf = 0;
   osk_shown = 0;

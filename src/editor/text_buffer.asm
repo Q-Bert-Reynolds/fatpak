@@ -57,6 +57,7 @@ tb_row_start: DW
 tb_row_ptr: DW;0 = don't draw
 tb_row: DB
 tb_char: DB
+tb_x: DB
 _tb_find:: DW;position to find while scanning rows
 _tb_found_col:: DB;$FF = not found
 _tb_found_row:: DB;$FF = not found
@@ -541,23 +542,50 @@ TBCheckEnd:
   cp a, d
   ret
 
-;Scans one visual row. Rows are up to TB_COLS characters, end after a line feed,
-;and wrap after the last space when a word doesn't fit. Spaces and a line feed
-;after a full row hang off the end of it (found at column TB_COLS).
+;a = char, returns its width in pixels in a, control characters are drawn as spaces, only affects a
+TBCharWidth:
+  cp a, ' '
+  jr nc, .lookup
+  ld a, ' '
+.lookup
+  push hl
+  ld h, HIGH(_font_widths)
+  ld l, a
+  ld a, [hl]
+  pop hl
+  ret
+
+;Scans one visual row. Rows are up to TB_WIDTH pixels (character widths from _font_widths)
+;and TB_STRIDE characters, end after a line feed, and wrap after the last space when a word
+;doesn't fit. Spaces and a line feed after a full row hang off the end of it.
 ;de = row start, [tb_len] = length, returns next row start in de
 ;sets [_tb_found_col] if [_tb_find] is in the row and [_tb_found_col] is $FF
 TBScanRow:
   ST_DE_VAR tb_row_start
   call TBReadSeek
+  xor a
+  ld [tb_x], a
   ld b, 0;column
   ld c, 0;column after last space
 .loop
     ld a, b
-    cp a, TB_COLS
+    cp a, TB_STRIDE
     jr z, .full
-    call TBCheckFind
     call TBCheckEnd
-    ret z;end of text
+    jp z, TBCheckFind;end of text
+    ld a, [hl];next char
+    cp a, ASCII_LF
+    jr z, .fits
+    call TBCharWidth
+    push bc
+    ld b, a
+    ld a, [tb_x]
+    add a, b
+    pop bc
+    cp a, TB_WIDTH+1
+    jr nc, .full
+  .fits
+    call TBCheckFind
     push bc
     call TBReadNext
     pop bc
@@ -569,6 +597,13 @@ TBScanRow:
     ld a, ' ';control characters are drawn as spaces
   .draw
     call TBDrawChar
+    call TBCharWidth
+    push bc
+    ld b, a
+    ld a, [tb_x]
+    add a, b
+    ld [tb_x], a
+    pop bc
     inc b
     ld a, [tb_char]
     cp a, ' '
@@ -593,17 +628,19 @@ TBScanRow:
     pop af
     cp a, ASCII_LF
     ret z
-    ld c, TB_COLS;row ends with a space, no word to wrap
+    ld c, b;row ends with a space, no word to wrap
     jr .full
 
 .checkWrap
   ld a, c
   and a
   ret z;no spaces, wrap mid word
-  cp a, TB_COLS
+  cp a, b
   ret z;row ends with a space
 
 .wrapWord;next row starts after the last space
+  ld a, b
+  ld [tb_char], a;characters in the row
   LD_HL_VAR tb_row_start
   ld d, 0
   ld e, c
@@ -615,8 +652,8 @@ TBScanRow:
     ld a, ' '
     call TBDrawChar
     inc b
-    ld a, b
-    cp a, TB_COLS
+    ld a, [tb_char]
+    cp a, b
     jr nz, .clearWord
 .checkFindAfterWrap;if find was in the wrapped word, find it on the next row
   ld a, [_tb_find]
@@ -678,9 +715,21 @@ _tb_Render::;de = top, draws [_tb_rows] rows into tile_buffer, sets _tb_found_co
   push de
   call TBLength
   ST_HL_VAR tb_len
+  ld a, [_tb_rows];clear visible rows, rows below may be the on screen keyboard
+  ld l, a
+  ld h, 0
+  add hl, hl
+  add hl, hl
+  add hl, hl
+  ld b, h
+  ld c, l
+  add hl, hl
+  add hl, hl
+  add hl, bc
+  ld b, h
+  ld c, l;rows * TB_STRIDE
   ld a, ' '
   ld hl, tile_buffer
-  ld bc, TB_COLS*TB_ROWS
   call mem_Set
   pop de
   ld a, $FF
@@ -702,7 +751,7 @@ _tb_Render::;de = top, draws [_tb_rows] rows into tile_buffer, sets _tb_found_co
     ld [_tb_found_row], a
   .nextRow
     LD_HL_VAR tb_row_ptr
-    ld bc, TB_COLS
+    ld bc, TB_STRIDE
     add hl, bc
     ST_HL_VAR tb_row_ptr
     ld a, [tb_row]

@@ -14,8 +14,13 @@ extern unsigned int KBPopEvent(void); // key in low byte (KEY_NONE if empty), mo
 // src/editor/editor.asm
 extern void EditorSetup(void);
 extern void WaitFrame(void); // waits for vblank, updates input
-extern void EditorDraw(void); // copies tile_buffer to the screen
 extern void EditorShowCursor(unsigned char show); // uses tb_found_col/row
+
+// src/editor/render.asm
+extern unsigned char font_widths[256]; // current font
+extern void SetFont(unsigned char font);
+extern void EditorDraw(unsigned char split); // rows below split use FONT_MONO (on screen keyboard)
+extern void EditorRedraw(void); // redraw every row next EditorDraw
 
 // src/editor/osk.asm
 extern void OSKShow(unsigned char show);

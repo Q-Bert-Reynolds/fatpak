@@ -23,6 +23,7 @@ On screen keyboard bottom row: shift (one shot), symbols, space, file menu (◆)
 PS/2 keyboards type directly: arrows, home, end, page up/down, backspace, delete, enter.
 Escape opens the file menu (open, save, save as, new), Ctrl+O opens, Ctrl+S saves, Ctrl+N starts a new file.
 Files are .TXT files in the root of the SD card with 8.3 names. CR LF line endings are kept.
+Ctrl+F (or FONT in the menu) switches between the variable width and fixed width fonts.
 
 Text is kept in SRAM, so it's still there after turning the Game Boy off.
 
@@ -35,7 +36,14 @@ Text is kept in SRAM, so it's still there after turning the Game Boy off.
 - tile animations, fades, GBC palettes, SGB borders/palettes
 - translated strings from CSV (en, es, fr, it, pt, de, ja)
 
-# Font
+# Fonts
+The editor draws text as pixels, so fonts can be any width (src/editor/render.asm). fonts.py converts:
+- img/ui_font.png, the fixed width font (every character 8 pixels)
+- img/fonts/vwf_font.png, the variable width font. Glyphs are moved to the left edge of their cell
+  and each character's width is its last pixel + 2. Empty glyphs (space) are 4 pixels.
+
+Both are 16x16 grids of 8x8 glyphs indexed by character code, dark pixels are drawn.
+
 img/ui_font.png is 256 tiles. Tile index matches the character code:
 - 0-31: UI glyphs (box drawing, arrows, etc.)
 - 32-126: ASCII
@@ -72,6 +80,7 @@ MBC5, 1M ROM (64 banks), 32K SRAM (4 banks)
 - sgb.asm - Imanol Barriuso, Martin Ahrnbom
 - FatFs - ChaN (src/fatfs/lib, BSD style license)
 - sd.asm - based on TXTReaderGB's diskio by Toxa and RodrigoCard (MIT)
+- vwf_font.png - ASCII glyphs from Toxa's VWF (MIT)
 
 # Thanks
 

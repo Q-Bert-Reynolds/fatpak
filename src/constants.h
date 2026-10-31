@@ -43,8 +43,14 @@
 #define TB_HOLE_SIZE 0x10
 #define TB_BANK_SIZE (0x2000-TB_HOLE_SIZE)
 #define TB_SIZE      (TB_BANK_SIZE*TB_BANKS)
-#define TB_COLS  20
-#define TB_ROWS  18
+#define TB_COLS   20//tiles per row
+#define TB_ROWS   18
+#define TB_WIDTH  TB_COLS*8//pixels per row
+#define TB_STRIDE 40//characters per row in tile_buffer
+
+//fonts
+#define FONT_MONO 0
+#define FONT_VWF  1
 
 //on screen keyboard
 #define OSK_COLS    10

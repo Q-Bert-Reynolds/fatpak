@@ -17,6 +17,8 @@ def parse_all():
 
 def parse_files(root, files):
   name = os.path.basename(root)
+  if name == "fonts":
+    return #fonts.py
   if name in ["img", "players", "coaches", "maps"]:
     for name in files:
       path = os.path.join(root, name)

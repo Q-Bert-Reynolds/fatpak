@@ -9,7 +9,11 @@ Priority (v1)
 
 Editor
 
-- only redraw changed rows, copy during VBlank (whole screen redraw takes a few frames)
+- variable width font: up/down keep the character column, not the pixel x
+- variable width font: accented and UI glyphs in vwf_font.png are copied from ui_font.png, redraw them
+- rendering: scrolling redraws every row (~1 frame per row), speed up glyph shifting or scroll with SCY
+- remember the chosen font
+
 - TBMoveGap does bank math per byte (~1s+ to move the gap across 24KB on DMG), copy in chunks
 - tabs are drawn as a single space
 - function keys, ctrl shortcuts
@@ -25,7 +29,6 @@ Later
 
 - horizontal scrolling (no wrap) option
 - multiple encodings (CP437, CP1252, UTF-8)
-- variable width fonts (see untoxa/VWF)
 - rich text, colors, highlights
 - WorkBoy keyboard
 - iGKB (also supports mouse and gamepad), needs Gearboy emulation first
