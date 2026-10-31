@@ -72,6 +72,7 @@
 #define KEY_PAGE_UP   0x86
 #define KEY_PAGE_DOWN 0x87
 #define KEY_INSERT    0x88
+#define KEY_MENU      0x89//file menu (Escape, on screen keyboard)
 
 //kb_modifiers
 #define KB_MOD_SCROLL_LOCK 0b00000001//same as PS2_LED_SCROLL_LOCK
@@ -84,7 +85,7 @@
 #define KB_MOD_FUNCTION    0b10000000
 
 //sizes
-#define STACK_SIZE       128
+#define STACK_SIZE       1024//FatFs needs a deep stack
 #define ITEM_FLAGS_SIZE  32//256 items flags
 #define NAME_LENGTH      8
 #define NAME_BUFFER_SIZE 16

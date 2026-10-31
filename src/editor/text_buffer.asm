@@ -12,6 +12,8 @@
 ;   tb_Insert                   de = pos, a = char, returns a = 0 if buffer is full
 ;   tb_Delete                   de = pos, returns deleted char in a (0 = nothing deleted)
 ;   tb_Normalize                moves gap to the end so SRAM reads as plain text
+;   tb_Append                   de = buffer, bc = count, inserts at the gap skipping 0s, returns a = 0 if it filled up
+;   tb_Read                     de = buffer, bc = count, copies from tb_read_pos and advances it
 ;   tb_RowStart                 de = pos, returns start of the visual row containing pos in bc
 ;   tb_NextRow                  de = row start, returns start of the next visual row in bc
 ;   tb_Render                   de = top, draws tb_rows rows to tile_buffer, finds tb_find
@@ -60,6 +62,9 @@ _tb_found_col:: DB;$FF = not found
 _tb_found_row:: DB;$FF = not found
 _tb_bottom:: DW;start of the row after the last rendered row
 _tb_rows:: DB;visible rows
+_tb_read_pos:: DW
+tb_dest: DW
+tb_count: DW
 
 SECTION "Text Buffer Code", ROM0
 
@@ -384,6 +389,86 @@ _tb_Delete::;de = pos, returns deleted char in a (0 = nothing deleted)
 .done
   SRAM_OFF
   ld a, b
+  ret
+
+_tb_Append::;de = buffer, bc = count, inserts at the gap skipping 0s, returns a = 0 if it filled up
+  SRAM_ON
+.loop
+    ld a, b
+    or a, c
+    jr z, .done
+    dec bc
+    ld a, [de]
+    inc de
+    and a
+    jr z, .loop;text never contains 0
+    push de
+    ld d, a;char
+    ld a, [tb_gap_start]
+    ld e, a
+    ld a, [tb_gap_end]
+    cp a, e
+    jr nz, .write
+    ld a, [tb_gap_start+1]
+    ld e, a
+    ld a, [tb_gap_end+1]
+    cp a, e
+    jr z, .full
+  .write
+    LD_HL_VAR tb_gap_start
+    push hl
+    inc hl
+    ST_HL_VAR tb_gap_start
+    pop hl
+    call TBPhysAddr
+    ld [hl], d
+    pop de
+    jr .loop
+.full
+  pop de
+  SRAM_OFF
+  xor a
+  ret
+.done
+  SRAM_OFF
+  ld a, 1
+  ret
+
+_tb_Read::;de = buffer, bc = count, copies from [_tb_read_pos] and advances it
+  SRAM_ON
+  ST_DE_VAR tb_dest
+  ld a, c
+  ld [tb_count], a
+  ld a, b
+  ld [tb_count+1], a
+  LD_HL_VAR _tb_read_pos
+  ld d, h
+  ld e, l
+  call TBReadSeek
+.loop
+    ld a, [tb_count]
+    ld c, a
+    ld a, [tb_count+1]
+    ld b, a
+    or a, c
+    jr z, .done
+    dec bc
+    ld a, c
+    ld [tb_count], a
+    ld a, b
+    ld [tb_count+1], a
+    call TBReadNext
+    push hl
+    push af;char
+    LD_HL_VAR tb_dest
+    pop af;char
+    ld [hli], a
+    ST_HL_VAR tb_dest
+    pop hl
+    jr .loop
+.done
+  ST_DE_VAR _tb_read_pos
+  SRAM_OFF
   ret
 
 _tb_Normalize::

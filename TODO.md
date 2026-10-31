@@ -1,9 +1,8 @@
 Priority (v1)
 
 - call tb_Normalize before saving/menus so the .sav reads as plain text
-- FatFs (C) on top of src/editor/sd.asm, file browser
-- SDCC runtime helpers (32 bit multiply/divide) compiled through the rgbds pipeline for FatFs
-- banked calls from C (ROM0 stubs) so FatFs can live in its own bank
+- test SD read/write on the X7
+- remember the open file's name in SRAM (text survives power off, its name doesn't)
 - test on the X7: does writing $A5 to $BD0A unlock the registers while SRAM is enabled? (the text buffer skips $BD00-$BD0F either way)
 - faster sector reads with auto-read streaming ($BD01 bit 2 + $BD06 bit 0, reading $BD00 clocks the next byte)
 - open/save .txt files
@@ -17,6 +16,8 @@ Editor
 - select text (shift + arrows / A + d-pad), delete, cut, copy, paste
 - status line (file name, modified, free space)
 - iGKB handlers don't send home/end/page/delete keys
+- file browser: subfolders, more than 16 files, long file names (FF_USE_LFN)
+- messages swallow the key that dismisses them, maybe time out instead
 - PS/2 keyboard is only detected at boot, re-detect when plugged in later
 - on screen keyboard: hold A to repeat, a way to move the cursor up/down while it's open
 
@@ -41,7 +42,8 @@ Cleanup (left over from Béisbol)
 - remove baseball/lineup palettes from color.asm
 - options menu animation option still says "AT-BAT ANIMATIONS"
 - img2rgbds.py has special cases for removed images (simulation, baseball_fx)
-- C code is placed in ROMX with no banked calls, and _GSINIT (static initializers) never runs
+- _GSINIT (static initializers) never runs, C must initialize globals in code
+- C in different files can't call each other unless they share a bank or use BANKED_C stubs (bank_split.py only splits a single file)
 
 Optimization
 
@@ -57,7 +59,9 @@ Optimization
 - palette ids are at most 7, so two palettes could fit in a byte, cutting palette data in half
 - use halt and stop where appropriate (see https://gbdev.io/pandocs/Reducing_Power_Consumption.html)
 - use HDMA transfers on GBC (see https://gbdev.io/pandocs/CGB_Registers.html#lcd-vram-dma-transfers)
-- running out of room in ROM0, move stuff to other banks
+- running out of room in ROM0 (~1KB left), move stuff to other banks
+  - bank_split.py keeps FatFs helpers in ROM0, some could go in a bank behind far calls
+  - f_lseek is unused but FF_FS_MINIMIZE can't remove it without removing directory functions
   - move map_stamps out of ROM0
   - move color palettes out of ROM0
   - core.asm should not include core_strings.asm

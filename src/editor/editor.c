@@ -12,6 +12,17 @@
 #define PADF_A      0x01
 #define PADF_DPAD   0xF0
 
+#define MARKER         13 // ▶
+#define FILE_NAME_SIZE 13 // 8.3 + 0
+#define BASE_NAME_SIZE 8
+#define FILE_LIST_MAX  (TB_ROWS - 2)
+#define CANCEL         0xFF
+
+// FRESULT codes (src/fatfs/lib/ff.h)
+#define FR_NOT_READY     3
+#define FR_DENIED        7
+#define FR_NO_FILESYSTEM 13
+
 #define PAD_REPEAT_DELAY 20
 #define PAD_REPEAT_RATE  4
 #define CURSOR_BLINK     30
@@ -26,6 +37,14 @@ unsigned char osk_shown;
 unsigned char osk_layer;
 unsigned char osk_x;
 unsigned char osk_y;
+unsigned char modified;
+char file_name[FILE_NAME_SIZE]; // current file, empty for new text
+char file_list[FILE_LIST_MAX][FILE_NAME_SIZE];
+
+static const char menu_items[][FILE_NAME_SIZE] = {"OPEN", "SAVE", "SAVE AS", "NEW"};
+static const char discard_items[][FILE_NAME_SIZE] = {"NO", "YES"};
+
+static void Render(void);
 
 // is row the last visual row, given its next row start
 static unsigned char IsLastRow(unsigned int row, unsigned int next) {
@@ -82,14 +101,21 @@ static void HandleKey(unsigned char key, unsigned char mods) {
     case KEY_RIGHT: if (cursor != tb_Length()) ++cursor; break;
     case KEY_HOME: cursor = tb_RowStart(cursor); break;
     case KEY_END: MoveEnd(); break;
-    case KEY_BACKSPACE: if (cursor) tb_Delete(--cursor); break;
-    case KEY_DELETE: tb_Delete(cursor); break;
+    case KEY_BACKSPACE:
+      if (cursor && tb_Delete(--cursor)) modified = 1;
+      break;
+    case KEY_DELETE:
+      if (tb_Delete(cursor)) modified = 1;
+      break;
     case KEY_ESCAPE:
     case KEY_INSERT: return;
     default:
       if (key < ' ' && key != ASCII_TAB && key != ASCII_LF) return;
       if (key >= KEY_LEFT && key < 0xA0) return; // unprintable in Latin-1
-      if (tb_Insert(cursor, key)) ++cursor;
+      if (tb_Insert(cursor, key)) {
+        ++cursor;
+        modified = 1;
+      }
   }
   want_col = (unsigned char)(cursor - tb_RowStart(cursor));
 }
@@ -125,6 +151,7 @@ static unsigned char PressOSKKey(void) {
   if (osk_y == OSK_ROWS - 1) {
     if (osk_x == 0) SetOSKLayer(OSK_SHIFT);
     else if (osk_x == 1) SetOSKLayer(OSK_SYMBOLS);
+    else if (osk_x == OSK_COLS - 3) return KEY_MENU;
     else if (osk_x == OSK_COLS - 2) return KEY_LEFT;
     else if (osk_x == OSK_COLS - 1) return KEY_RIGHT;
     else return ' ';
@@ -162,6 +189,219 @@ static unsigned char PadKey(void) {
   if (held & PADF_DOWN) return KEY_DOWN;
   if (held & PADF_LEFT) return KEY_LEFT;
   return KEY_RIGHT;
+}
+
+// waits a frame, returns a key from the keyboard or d-pad (A, START = enter, B = escape)
+static unsigned char MenuKey(void) {
+  unsigned char key, pressed, held;
+  WaitFrame();
+  if ((key = (unsigned char)KBPopEvent())) return key;
+  pressed = PadPressed();
+  if (pressed & (PADF_A | PADF_START)) return KEY_ENTER;
+  if (pressed & PADF_B) return KEY_ESCAPE;
+  held = DpadRepeat(pressed);
+  if (held & PADF_UP) return KEY_UP;
+  if (held & PADF_DOWN) return KEY_DOWN;
+  return KEY_NONE;
+}
+
+static char* RowAddress(unsigned char row) {
+  unsigned int offset = row;
+  return (char*)tile_buffer + (offset << 4) + (offset << 2); // row * TB_COLS
+}
+
+// draws text at col on row, clearing the rest of the row
+static void DrawRow(unsigned char row, unsigned char col, const char* text) {
+  char* dest = RowAddress(row);
+  unsigned char i;
+  for (i = 0; i < TB_COLS; ++i) dest[i] = ' ';
+  for (dest += col; *text && col < TB_COLS; ++col) *dest++ = *text++;
+}
+
+static void ClearScreen(void) {
+  unsigned char row;
+  for (row = 0; row < TB_ROWS; ++row) DrawRow(row, 0, "");
+}
+
+// hides the on screen keyboard and cursor for full screen UI, redraws the text afterwards
+static void BeginFullScreen(void) {
+  EditorShowCursor(0);
+  if (osk_shown) OSKShow(0);
+  tb_rows = TB_ROWS;
+  dirty = 1;
+}
+
+static void EndFullScreen(void) {
+  if (osk_shown) {
+    tb_rows = TB_ROWS - OSK_ROWS;
+    OSKDraw(osk_layer);
+    OSKSelect(osk_x, osk_y);
+    OSKShow(1);
+  }
+}
+
+// shows a list of FILE_NAME_SIZE strings, returns the chosen index or CANCEL
+static unsigned char Choose(const char* title, const char* items, unsigned char count) {
+  unsigned char i, key, selected = 0;
+  BeginFullScreen();
+  while (1) {
+    ClearScreen();
+    DrawRow(0, 0, title);
+    for (i = 0; i < count; ++i) {
+      DrawRow(i + 2, 2, items + (i << 3) + (i << 2) + i); // i * FILE_NAME_SIZE
+      if (i == selected) RowAddress(i + 2)[1] = MARKER;
+    }
+    EditorDraw();
+    while (!(key = MenuKey()));
+    if (key == KEY_UP) selected = selected ? selected - 1 : count - 1;
+    else if (key == KEY_DOWN) selected = selected == count - 1 ? 0 : selected + 1;
+    else if (key == KEY_ENTER) break;
+    else if (key == KEY_ESCAPE) {
+      selected = CANCEL;
+      break;
+    }
+  }
+  EndFullScreen();
+  return selected;
+}
+
+// shows text on the last visible row until a key is pressed
+static void ShowMessage(const char* text) {
+  Render();
+  EditorShowCursor(0);
+  DrawRow(tb_rows - 1, 0, text);
+  EditorDraw();
+  while (!MenuKey());
+  dirty = 1;
+}
+
+static void ShowError(unsigned char result, const char* denied) {
+  char text[12] = "SD ERROR ";
+  if (result == FR_NOT_READY) ShowMessage("NO SD CARD");
+  else if (result == FR_NO_FILESYSTEM) ShowMessage("NO FAT VOLUME");
+  else if (result == FR_DENIED) ShowMessage(denied);
+  else {
+    text[9] = '0';
+    while (result >= 10) {
+      ++text[9];
+      result -= 10;
+    }
+    text[10] = '0' + result;
+    text[11] = 0;
+    ShowMessage(text);
+  }
+}
+
+static void CopyName(char* dest, const char* src) {
+  while ((*dest++ = *src++));
+}
+
+// returns 1 if there are no unsaved changes or the user wants to lose them
+static unsigned char CanDiscard(void) {
+  return !modified || Choose("DISCARD CHANGES?", discard_items[0], 2) == 1;
+}
+
+static void ResetCursor(void) {
+  cursor = 0;
+  top = 0;
+  want_col = 0;
+  modified = 0;
+  dirty = 1;
+}
+
+static void NewFile(void) {
+  if (!CanDiscard()) return;
+  tb_Clear();
+  file_name[0] = 0;
+  fs_crlf = 0;
+  ResetCursor();
+}
+
+static void OpenFile(void) {
+  unsigned char count = 0, selected, result;
+  if (!CanDiscard()) return;
+  if ((result = FileMount()) || (result = FileOpenDir())) {
+    ShowError(result, "");
+    return;
+  }
+  while (count < FILE_LIST_MAX && FileNext(file_list[count])) ++count;
+  if (!count) {
+    ShowMessage("NO .TXT FILES");
+    return;
+  }
+  selected = Choose("OPEN", file_list[0], count);
+  if (selected == CANCEL) return;
+  result = FileLoad(file_list[selected]);
+  CopyName(file_name, file_list[selected]);
+  ResetCursor();
+  if (result) ShowError(result, "FILE TOO BIG");
+}
+
+// asks for an 8 character name, sets file_name to NAME.TXT, returns 0 if cancelled
+static unsigned char AskFileName(void) {
+  char name[BASE_NAME_SIZE + 1];
+  char text[TB_COLS + 1];
+  unsigned char length = 0, key, i;
+  for (; file_name[length] && file_name[length] != '.'; ++length) name[length] = file_name[length];
+  Render();
+  EditorShowCursor(0);
+  while (1) {
+    CopyName(text, "SAVE AS ");
+    for (i = 0; i < length; ++i) text[8 + i] = name[i];
+    CopyName(text + 8 + length, "_.TXT");
+    DrawRow(0, 0, text);
+    EditorDraw();
+    do {
+      WaitFrame();
+      key = (unsigned char)KBPopEvent();
+      if (!key) key = PadKey();
+    } while (!key);
+    if (key == KEY_ENTER && length) break;
+    if (key == KEY_ESCAPE || (key == KEY_BACKSPACE && !length)) {
+      dirty = 1;
+      return 0;
+    }
+    if (key == KEY_BACKSPACE) --length;
+    if (key >= 'a' && key <= 'z') key -= 'a' - 'A';
+    if (length < BASE_NAME_SIZE && ((key >= 'A' && key <= 'Z') || (key >= '0' && key <= '9') || key == '_' || key == '-')) {
+      name[length++] = key;
+    }
+  }
+  for (i = 0; i < length; ++i) file_name[i] = name[i];
+  CopyName(file_name + length, ".TXT");
+  dirty = 1;
+  return 1;
+}
+
+static void SaveFile(unsigned char ask) {
+  unsigned char result;
+  if ((ask || !file_name[0]) && !AskFileName()) return;
+  if ((result = FileMount()) || (result = FileSave(file_name))) {
+    ShowError(result, "DISK FULL");
+    return;
+  }
+  modified = 0;
+  ShowMessage("SAVED");
+}
+
+static void FileMenu(void) {
+  switch (Choose("FILE", menu_items[0], 4)) {
+    case 0: OpenFile(); break;
+    case 1: SaveFile(0); break;
+    case 2: SaveFile(1); break;
+    case 3: NewFile(); break;
+  }
+}
+
+// file shortcuts: escape or the keyboard's menu key, ctrl + O, S, N
+static unsigned char HandleFileKey(unsigned char key, unsigned char mods) {
+  if (key == KEY_MENU || key == KEY_ESCAPE) FileMenu();
+  else if (!(mods & KB_MOD_CTRL)) return 0;
+  else if (key == 'o' || key == 'O') OpenFile();
+  else if (key == 's' || key == 'S') SaveFile(0);
+  else if (key == 'n' || key == 'N') NewFile();
+  dirty = 1;
+  return 1;
 }
 
 static void Render(void) {
@@ -204,6 +444,9 @@ void Editor(void) {
   top = 0;
   want_col = 0;
   pad_timer = 0;
+  modified = 0;
+  file_name[0] = 0;
+  fs_crlf = 0;
   osk_shown = 0;
   osk_layer = OSK_LOWER;
   osk_x = 0;
@@ -214,11 +457,11 @@ void Editor(void) {
   while (1) {
     WaitFrame();
     while ((key = (unsigned char)(event = KBPopEvent()))) {
-      HandleKey(key, (unsigned char)(event >> 8));
+      if (!HandleFileKey(key, (unsigned char)(event >> 8))) HandleKey(key, (unsigned char)(event >> 8));
       dirty = 1;
     }
     if ((key = PadKey())) {
-      HandleKey(key, 0);
+      if (!HandleFileKey(key, 0)) HandleKey(key, 0);
       dirty = 1;
     }
     if (dirty) {

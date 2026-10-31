@@ -23,6 +23,17 @@ extern void OSKDraw(unsigned char layer);
 extern void OSKSelect(unsigned char x, unsigned char y);
 extern unsigned char OSKGetKey(unsigned char layer, unsigned char index); // 0 = no key
 
+// src/fatfs/fatfs.asm (stubs into the FatFs banks)
+extern unsigned char FileMount(void); // FRESULT
+extern unsigned char FileOpenDir(void); // FRESULT
+extern unsigned char FileNext(char* name); // next .TXT name (13 bytes), 0 = no more
+extern unsigned char FileLoad(const char* name); // FRESULT, replaces the text buffer
+extern unsigned char FileSave(const char* name); // FRESULT
+extern unsigned char fs_crlf; // loaded file used CR LF, saving writes CR LF
+
+// src/wram.asm
+extern unsigned char tile_buffer[];
+
 // src/editor/text_buffer.asm
 extern unsigned char tb_rows; // visible rows
 extern unsigned int tb_find;

@@ -1,6 +1,6 @@
 ;On screen keyboard, drawn on the window below the text.
 ;Keys are 1 tile wide with a 1 tile gap, OSK_COLS keys per row. The last row is
-;shift, symbols, space, cursor left, cursor right for every layer.
+;shift, symbols, space, menu, cursor left, cursor right for every layer.
 ;
 ;C functions (src/editor/editor.h)
 ;   OSKShow                     a = show
@@ -19,7 +19,7 @@ OSKLayouts:
 .lower   DB "1234567890qwertyuiopasdfghjkl;zxcvbnm,./"
 .shift   DB "!@#$%^&*()QWERTYUIOPASDFGHJKL:ZXCVBNM<>?"
 .symbols DB "`~-_=+[]\{\}\\|'\"¡¿áéíóúñü",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-OSKBottomRow: DB "▲ # ____________◀ ▶ "
+OSKBottomRow: DB "▲ # __________◆ ◀ ▶ "
 
 _OSKShow::;a = show
   and a

@@ -18,13 +18,16 @@ Later: more encodings, variable width fonts, rich text, WorkBoy keyboard, iGKB, 
 | START | new line |
 | SELECT | show/hide the on screen keyboard |
 
-On screen keyboard bottom row: shift (one shot), symbols, space, cursor left, cursor right.
+On screen keyboard bottom row: shift (one shot), symbols, space, file menu (◆), cursor left, cursor right.
 
 PS/2 keyboards type directly: arrows, home, end, page up/down, backspace, delete, enter.
+Escape opens the file menu (open, save, save as, new), Ctrl+O opens, Ctrl+S saves, Ctrl+N starts a new file.
+Files are .TXT files in the root of the SD card with 8.3 names. CR LF line endings are kept.
 
 Text is kept in SRAM, so it's still there after turning the Game Boy off.
 
 # Engine
+- FatFs (ChaN) for the SD card, split across ROM0 and two banks by bank_split.py
 - asm for core routines (drawing, input, math, memory, audio), C (SDCC) for higher level logic
 - PS/2 and iGKB keyboard drivers (src/keyboard)
 - gbt_player music (.mod) and FX Hammer sfx
@@ -67,6 +70,8 @@ MBC5, 1M ROM (64 banks), 32K SRAM (4 banks)
 - gbdk.asm - Pascal Felber, Lars Malmborg, Michael Hope
 - gbt_player.asm - Antonio Niño Díaz
 - sgb.asm - Imanol Barriuso, Martin Ahrnbom
+- FatFs - ChaN (src/fatfs/lib, BSD style license)
+- sd.asm - based on TXTReaderGB's diskio by Toxa and RodrigoCard (MIT)
 
 # Thanks
 

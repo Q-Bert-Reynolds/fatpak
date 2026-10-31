@@ -2,6 +2,7 @@
 ; Macro                                 Arguments
 ;   SET_BANK
 ;   TRAMPOLINE                            AddressInAnotherBank
+;   BANKED_C                              CFunctionInAnotherBank
 ;   PUSH_VAR                              WRAMAddressToStore
 ;   POP_VAR                               WRAMAddressToRestore
 ;   DEBUG_LOG_STRING                      "string"
@@ -41,6 +42,23 @@ MACRO TRAMPOLINE ;\1 = jump address
   ld b, BANK(\1)
   ld hl, \1
   call Trampoline
+ENDM
+
+;ROM0 stub body for calling C in another bank from C, keeps a, de, bc args and a, bc returns
+;C functions called this way can't take stack args (more than 2 args, or a 32 bit first arg)
+MACRO BANKED_C ;\1 = C function
+  ld h, a
+  ldh a, [loaded_bank]
+  push af
+  ld a, BANK(\1)
+  SET_BANK
+  ld a, h
+  call \1
+  ld h, a
+  pop af
+  SET_BANK
+  ld a, h
+  ret
 ENDM
 
 MACRO PUSH_VAR ;\1 = WRAM address

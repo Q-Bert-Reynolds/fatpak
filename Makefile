@@ -24,15 +24,18 @@ endif
 
 C_SOURCES = $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/**/*.c) $(wildcard $(DATA_DIR)/**/*.c) 
 C_HEADERS = $(wildcard $(SRC_DIR)/*.h) $(wildcard $(SRC_DIR)/**/*.h)
+# included by C sources, not compiled on their own
+C_LIBS    = $(wildcard $(SRC_DIR)/*/lib/*.c) $(wildcard $(SRC_DIR)/*/lib/*.h)
 C_ASM     = $(join $(dir $(C_SOURCES)), $(patsubst %.c, _%.asm, $(notdir $(C_SOURCES))))
 
 all: clean assets assemble run
 
 code: assemble run
 
-_%.asm: %.c $(C_HEADERS)
+_%.asm: %.c $(C_HEADERS) $(C_LIBS)
 	@mkdir -p $(BUILD_DIR)
-	sdcc $< -msm83 --asm=rgbds --opt-code-size --no-peep --peep-file peephole.def $(DEFINES) --disable-warning 218 -S -o $@
+	sdcc $< -msm83 --asm=rgbds --opt-code-size --dataseg WRAM0 --no-peep --peep-file peephole.def $(DEFINES) --disable-warning 218 -S -o $@
+	@if [ -f $(dir $<)banks.txt ]; then $(PYTHON) bank_split.py $@ $(dir $<)banks.txt; fi
 
 assemble: $(C_ASM)
 	rgbasm $(DEFINES) -o $(BUILD_DIR)/main.o $(SRC_DIR)/main.asm
