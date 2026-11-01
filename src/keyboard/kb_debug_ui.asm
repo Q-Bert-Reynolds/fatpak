@@ -41,6 +41,40 @@ DrawHexNumber::;a = number, bc = screen address
 
   ret
 
+;the buffers are shown KB_DEBUG_ENTRIES at a time, an entry always in the same column
+DEF KB_DEBUG_ENTRIES EQU 8;must be a power of 2
+
+;returns the first index of the page holding the last entry written in a
+KBDebugPage:
+  ld a, [kb_buffer_write]
+  dec a
+  and a, (KB_SCAN_CODE_COUNT-1) & ~(KB_DEBUG_ENTRIES-1)
+  ret
+
+;hl = ring buffer (KB_SCAN_CODE_COUNT bytes), bc = screen address, draws the page holding the
+;last entry written in hex
+DrawBufferPage:
+  call KBDebugPage
+  ld e, a;index
+  ld d, KB_DEBUG_ENTRIES
+.loop
+    push hl
+    push de
+    ld a, e
+    add a, l
+    ld l, a
+    adc a, h
+    sub a, l
+    ld h, a
+    ld a, [hl]
+    call DrawHexNumber
+    pop de
+    pop hl
+    inc e
+    dec d
+    jr nz, .loop
+  ret
+
 BlankSpace: DB "  ",0
 InterruptsText: DB " int ",0
 ErrorsText: DB " err",0
@@ -100,57 +134,42 @@ DrawKeyboardDebugData::
   call DrawBinaryNumber
 
 .drawScanCodeBuffer
+  LCD_WAIT_VRAM
   ld a, 'S'
   ld [_SCRN1+32], a
   ld hl, kb_scan_code_buffer
-  ld a, 8
   ld bc, _SCRN1+32+2
-.drawScanCodeBufferLoop
-    push af; scan codes left to draw
-    ld a, [hli]
-    push hl
-    call DrawHexNumber
-    pop hl
-    pop af
-    dec a
-    jr nz, .drawScanCodeBufferLoop
+  call DrawBufferPage
 
 .drawErrorBuffer
+  LCD_WAIT_VRAM
   ld a, 'E'
   ld [_SCRN1+32*2], a
   ld hl, kb_error_buffer
-  ld a, 8
   ld bc, _SCRN1+32*2+2
-.drawErrorBufferLoop
-    push af; scan codes left to draw
-    ld a, [hli]
-    push hl
-    call DrawHexNumber
-    pop hl
-    pop af
-    dec a
-    jr nz, .drawErrorBufferLoop
-    
+  call DrawBufferPage
+
+.drawWritePosition;arrow under the next entry written, the page's first index on the right
   ld a, ' '
   ld hl, str_buffer
-  ld bc, 20
+  ld bc, 18
   call mem_Set
-
-  ld hl, str_buffer
   ld a, [kb_buffer_write]
-  ld b, 0
-  ld c, a
-  add hl, bc
-  add hl, bc
-  inc hl
-  inc hl
-  ld a, '<up arrow>'
-  ld [hl], a
-
+  and a, KB_DEBUG_ENTRIES-1
+  add a, a
+  add a, 2
+  ld e, a
+  ld d, 0
+  ld hl, str_buffer
+  add hl, de
+  ld [hl], '<up arrow>'
   ld hl, str_buffer
   ld de, _SCRN1+32*3
-  ld bc, 20
+  ld bc, 18
   call mem_CopyVRAM
+  call KBDebugPage
+  ld bc, _SCRN1+32*3+18
+  call DrawHexNumber
 
 .drawInterruptCount
   ld a, [kb_interrupt_count]
