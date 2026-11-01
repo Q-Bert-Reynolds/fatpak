@@ -38,9 +38,8 @@ Text is kept in SRAM, so it's still there after turning the Game Boy off.
 - FatFs (ChaN) for the SD card, split across ROM0 and two banks by bank_split.py
 - asm for core routines (drawing, input, math, memory, audio), C (SDCC) for higher level logic
 - PS/2 and iGKB keyboard drivers (src/keyboard)
-- gbt_player music (.mod) and FX Hammer sfx
-- map loader for maps exported from gbmapeditor (.gbmap, .gbms, .gbstamp, .gbavatar)
-- tile animations, fades, GBC palettes, SGB borders/palettes
+- FX Hammer sfx (for error and confirmation sounds)
+- fades, GBC palettes, SGB borders/palettes
 - translated strings from CSV (en, es, fr, it, pt, de, ja)
 
 # Fonts
@@ -62,7 +61,6 @@ Set in src/constants.asm, run before the editor starts:
 - TESTS_ENABLED
 - SOUND_TEST_ENABLED
 - KEYBOARD_TEST_ENABLED
-- MAP_TEST_ENABLED
 - SD_TEST_ENABLED (inits the card, checks the MBR and FAT32 boot sector, writes and reads back sector 1)
 
 # SD card
@@ -83,7 +81,6 @@ MBC5, 1M ROM (64 banks), 32K SRAM (4 banks)
 - hardware.inc - Jones, Carsten Sorenson, Jeff Frohwein, Antonio Niño Díaz
 - memory1.asm - Jeff Frohwein, Carsten Sorensen
 - gbdk.asm - Pascal Felber, Lars Malmborg, Michael Hope
-- gbt_player.asm - Antonio Niño Díaz
 - sgb.asm - Imanol Barriuso, Martin Ahrnbom
 - FatFs - ChaN (src/fatfs/lib, BSD style license)
 - sd.asm - based on TXTReaderGB's diskio by Toxa and RodrigoCard (MIT)

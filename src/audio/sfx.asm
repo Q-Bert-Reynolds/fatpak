@@ -1,7 +1,7 @@
 
 DEF SFX_TRIGGER EQU $8000
 
-;\1 = steps, \2 = gbt_channels_enabled, \3 = priority
+;\1 = steps, \2 = channels the sfx doesn't use (bit 0 = channel 1), \3 = priority
 MACRO SFX_HEADER
   DB LOW(\3 << 4 | \2), \1
 ENDM

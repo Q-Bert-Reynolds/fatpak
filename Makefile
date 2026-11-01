@@ -8,7 +8,6 @@ SYM_FILE  = $(BIN_DIR)/$(GAME_NAME).sym
 
 SRC_DIR   = src
 DATA_DIR  = data
-MUSIC_DIR = music
 BIN_DIR   = bin
 BUILD_DIR = build
 SD_DIR    = sd
@@ -16,10 +15,8 @@ SD_IMAGE  = $(BIN_DIR)/sdcard.img
 
 ifeq ($(OS), Windows_NT)
 PYTHON	  = python
-MOD2GBT   = $(BIN_DIR)/mod2gbt.exe
 else
 PYTHON	  = python3
-MOD2GBT   = $(BIN_DIR)/mod2gbt
 endif
 
 C_SOURCES = $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/**/*.c) $(wildcard $(DATA_DIR)/**/*.c) 
@@ -56,12 +53,7 @@ assets:
 	@mkdir -p $(BUILD_DIR)
 	@mkdir -p $(BIN_DIR)
 
-ifeq ("$(wildcard $(MOD2GBT))","")
-	gcc -o $(MOD2GBT) mod2gbt.c
-endif
-
 	$(PYTHON) build.py 
-	$(PYTHON) mod2gbt.py
 	$(PYTHON) fxhammer.py
 	$(PYTHON) img2rgbds.py
 	$(PYTHON) fonts.py

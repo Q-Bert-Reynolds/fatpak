@@ -2,22 +2,7 @@ IF !DEF(AUDIO_ASM)
 DEF AUDIO_ASM EQU 1
 
 INCLUDE "src/text_editor.inc"
-INCLUDE "src/audio/gbt_player/gbt_player.asm"
-INCLUDE "src/audio/gbt_player/gbt_player_bank1.asm"
-
-INCLUDE "music/tessie.asm"
-
 INCLUDE "src/audio/sfx.asm"
-
-MACRO PLAY_SONG ;\1 load address, \2 loop
-  di
-  ld a, BANK(\1)
-  ld hl, \1
-  call PlaySong
-  ei
-  ld a, \2
-  ld [gbt_loop_enabled], a
-ENDM
 
 MACRO PLAY_SFX ;\1  = load address
   push hl
@@ -36,6 +21,7 @@ sfx_priority:: DB;stored in high nibble
 sfx_step:: DB
 sfx_step_count:: DB
 sfx_ticks:: DB
+sfx_free_channels:: DB;channels the sfx doesn't use (bit 0 = channel 1), the rest are muted when it ends
 
 SECTION "Audio Code", ROM0
 UpdateAudio::
@@ -43,15 +29,14 @@ UpdateAudio::
   push af
   
   call UpdateSFX
-  call gbt_update
-  
+
   pop af
   SET_BANK
   ret
 
-StopSFX:;stops current sfx, resets sfx_priority and gbt_channels_enabled, only af affected
+StopSFX:;stops current sfx, resets sfx_priority and sfx_free_channels, only af affected
 .testChannel1
-  ldh a, [gbt_channels_enabled]
+  ld a, [sfx_free_channels]
   bit 0, a
   jr nz, .testChannel2
 	ld	a,$08;volume zero but don't turn off DAC
@@ -59,7 +44,7 @@ StopSFX:;stops current sfx, resets sfx_priority and gbt_channels_enabled, only a
 	ld	a,$80;trigger sound to mute
 	ldh	[rNR14],a
 .testChannel2
-  ldh a, [gbt_channels_enabled]
+  ld a, [sfx_free_channels]
   bit 1, a
   jr nz, .testChannel3
 	ld	a,$08
@@ -67,7 +52,7 @@ StopSFX:;stops current sfx, resets sfx_priority and gbt_channels_enabled, only a
 	ld	a,$80
 	ldh	[rNR24],a
 .testChannel3
-  ldh a, [gbt_channels_enabled]
+  ld a, [sfx_free_channels]
   bit 2, a
   jr nz, .testChannel4
 	ld	a,$08
@@ -75,7 +60,7 @@ StopSFX:;stops current sfx, resets sfx_priority and gbt_channels_enabled, only a
 	ld	a,$80
 	ldh	[rNR34],a
 .testChannel4
-  ldh a, [gbt_channels_enabled]
+  ld a, [sfx_free_channels]
   bit 3, a
   jr nz, .resetState
 	ld	a,$08
@@ -86,7 +71,7 @@ StopSFX:;stops current sfx, resets sfx_priority and gbt_channels_enabled, only a
   xor a
   ld [sfx_priority], a
   ld a, %1111
-  ldh [gbt_channels_enabled], a
+  ld [sfx_free_channels], a
   ret
 
 UpdateSFX:
@@ -160,8 +145,8 @@ PlaySFX:: ; a = bank, hl = sfx address
 .checkPriority
   ld a, [sfx_priority]
   ld d, a;old priority
-  ld a, [hli];priority and gbt flags
-  ld e, a;gbt flags
+  ld a, [hli];priority and free channels
+  ld e, a;free channels
   and a, $F0;new priority
   cp a, d;compare priority
   ld d, a;new priority
@@ -175,13 +160,13 @@ PlaySFX:: ; a = bank, hl = sfx address
   ld a, 1
   ld [sfx_ticks], a
 
-  call StopSFX;resets sfx_priority and gbt_channels_enabled
+  call StopSFX;resets sfx_priority and sfx_free_channels
   ld a, d;new priority
   ld [sfx_priority], a;save priority
 
-  ld a, e;priority and gbt flags
+  ld a, e;priority and free channels
   and a, $F;discard priority
-  ldh [gbt_channels_enabled], a
+  ld [sfx_free_channels], a
 
   ld a, [hli];step count
   ld [sfx_step_count], a
@@ -201,21 +186,5 @@ PlaySFX:: ; a = bank, hl = sfx address
   pop af;bank
   SET_BANK
   reti
-
-PlaySong:: ; a = bank, hl = song address
-  ld d, h
-  ld e, l ;de = pointer to song data
-  ld b, 0
-  ld c, a ;data bank
-
-  ldh a, [loaded_bank]
-  push af;bank
-
-  ld a, 1 ;song speed
-  call gbt_play
-
-  pop af;bank
-  SET_BANK
-  ret
 
 ENDC ;AUDIO_ASM

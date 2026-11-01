@@ -1,6 +1,6 @@
 # Architecture
 
-TEXT EDITOR is a Game Boy text editor built on the Béisbol game engine. It runs on DMG, GBC, and SGB, and is meant for the EverDrive GB X-series flash carts, which let it read and write `.txt` files on the SD card. The editor lives in `src/editor` and `src/fatfs`. Everything else in `src` is the engine: graphics, audio, input, maps, UI, and so on. The engine is kept so that future projects can do more than edit text.
+TEXT EDITOR is a Game Boy text editor built on the Béisbol game engine. It runs on DMG, GBC, and SGB, and is meant for the EverDrive GB X-series flash carts, which let it read and write `.txt` files on the SD card. The editor lives in `src/editor` and `src/fatfs`. Everything else in `src` is the engine: graphics, sound effects, input, UI, and so on. The engine is kept so that future projects can do more than edit text.
 
 This document explains how the pieces fit together. [README.md](README.md) covers controls and build commands, and [TODO.md](TODO.md) tracks known issues.
 
@@ -10,8 +10,7 @@ This document explains how the pieces fit together. [README.md](README.md) cover
 | --- | --- |
 | [RGBDS](https://rgbds.gbdev.io/) 1.0 | Assembling (`rgbasm`), linking (`rgblink`), and fixing the header (`rgbfix`) |
 | [SDCC](https://sdcc.sourceforge.net/) 4.2 (`-msm83 --asm=rgbds`) | Compiling the C files to RGBDS assembly |
-| Python 3 + Pillow | Converting assets (images, fonts, music, sfx, maps, strings) |
-| `gcc` | Building `mod2gbt` once |
+| Python 3 + Pillow | Converting assets (images, fonts, sfx, strings) |
 | `sfdisk`, `mkfs.fat`, `mtools` | Building the SD card image (`make sdcard`) |
 | [Gearboy](https://github.com/drhelius/Gearboy) fork | Emulating the PS/2 keyboard and the EverDrive SD card, and debugging over MCP |
 
@@ -25,10 +24,8 @@ flowchart LR
     png[img/*.png] -->|img2rgbds.py| imgasm[img/**/*.asm, .tiles, .tilemap]
     fontpng[ui_font.png, fonts/vwf_font.png] -->|fonts.py| fontasm[img/fonts/font_*.asm]
     border[default_sgb_border.png] -->|sgb_border.py| borderasm[default_sgb_border.asm]
-    mod[music/*.mod] -->|mod2gbt.py| musicasm[music/*.asm]
     sav[sfx/*.sav] -->|fxhammer.py| sfxasm[sfx/*.asm]
     csv[data/strings/*.csv] -->|translate.py| strasm[data/strings/*.LANG.asm]
-    gbmap[maps/*.gbmap] -->|maps.py| mapasm[data/map_data.asm]
     consts[src/constants.asm] -->|build.py| consth[src/constants.h]
   end
   subgraph c["C (per file)"]
@@ -36,7 +33,7 @@ flowchart LR
     casm -->|bank_split.py, if banks.txt exists| casm
   end
   main[src/main.asm] -->|rgbasm| obj[build/main.o]
-  imgasm & fontasm & borderasm & musicasm & sfxasm & strasm & mapasm & casm --> main
+  imgasm & fontasm & borderasm & sfxasm & strasm & casm --> main
   obj -->|rgblink, rgbfix| rom[bin/TEXT_EDITOR.gbc + .sym]
 ```
 
@@ -55,16 +52,15 @@ flowchart LR
 | `src/editor/` | The editor: main loop and menus (`editor.c`), text buffer, renderer, on screen keyboard, SD card driver |
 | `src/fatfs/` | FatFs, its disk glue, and the file API (`fatfs.c` includes everything in `lib/`) |
 | `src/keyboard/` | PS/2 and iGKB keyboard drivers |
-| `src/audio/` | gbt_player (music) and the FX Hammer sfx player |
-| `src/world/` | Map data, map scripts, and meta sprites used by the map loader |
+| `src/audio/` | The FX Hammer sfx player |
 | `src/tests/` | Optional tests that run before the editor (see Testing) |
-| `src/core.asm`, `ui.asm`, `color.asm`, `sgb.asm`, `fade.asm`, `tile_anim.asm`, `map_loader.asm` | Engine: drawing helpers, UI widgets, palettes, SGB, fades, tile animations, maps |
+| `src/core.asm`, `ui.asm`, `color.asm`, `sgb.asm`, `fade.asm` | Engine: drawing helpers, UI widgets, palettes, SGB, fades |
 | `src/gbdk.asm`, `memory1.asm`, `math.asm`, `strings.asm` | Low level helpers (VBlank waits, sprite/tile copies, memory, 8-32 bit math, strings) |
 | `src/far_call.asm` | `FarCall`, used by C split across banks |
 | `src/input.asm`, `interrupts.asm` | Joypad, interrupt vectors and handlers |
 | `src/charmap.asm`, `constants.asm`, `macros.asm`, `hardware.inc` | Character map, constants, macros, hardware registers |
 | `src/wram.asm`, `sram.asm` | Shared WRAM variables and buffers, SRAM layout |
-| `img/`, `music/`, `sfx/`, `maps/`, `data/` | Asset sources and their generated assembly |
+| `img/`, `sfx/`, `data/` | Asset sources and their generated assembly |
 | `sd/` | Files copied into `bin/sdcard.img` |
 | `*.py` | Asset converters (see Building) and `bank_split.py` |
 
@@ -83,7 +79,7 @@ flowchart LR
 
 ### ROM
 
-- **ROM0** (`$0000-$3FFF`, always mapped) holds the interrupt handlers, the boot code, and anything called from more than one ROM bank: memory/math/string helpers, the text buffer, the SD driver, the on screen keyboard, the far call thunks, and the editor's C-callable asm. **It's nearly full** (under 1KB free). Move things out when possible.
+- **ROM0** (`$0000-$3FFF`, always mapped) holds the interrupt handlers, the boot code, and anything called from more than one ROM bank: memory/math/string helpers, the text buffer, the SD driver, the on screen keyboard, the far call thunks, and the editor's C-callable asm. About 6KB is free. Put new code in ROMX unless it has to be called from several banks.
 - **ROMX** (`$4000-$7FFF`, banked) holds everything else. `rgblink` picks the banks. A section is never split across banks, so a section must be under 16KB.
 
 ### WRAM
@@ -93,7 +89,7 @@ flowchart LR
 
 ### HRAM
 
-`loaded_bank`, input state, `pad_latch`, interrupt vars, the OAM DMA routine, `vbl_done`, `sys_info`, map loader vars. HRAM is cleared at boot.
+`loaded_bank`, input state, `pad_latch`, interrupt vars, the OAM DMA routine, `vbl_done`, `sys_info`. HRAM is cleared at boot.
 
 ### SRAM (MBC5, 4 x 8KB banks, battery backed)
 
@@ -121,7 +117,7 @@ SRAM is only enabled (`SRAM_ON`) while it's being read or written, so a power lo
 
 | Vector | Handler | Does |
 | --- | --- | --- |
-| VBlank | `VBLInterrupt` | OAM DMA, `LatchPad` (records new button presses), time, map/sprite animations (paused by the editor), audio |
+| VBlank | `VBLInterrupt` | OAM DMA, `LatchPad` (records new button presses), time, sound effects |
 | STAT | `LCDInterrupt` | Jumps to the address in `rLCDInterrupt` (`SetLCDInterrupt`). The editor uses `RenderLCDInterrupt` |
 | Serial | `SerialInterrupt` | Reads the rest of a PS/2 scan code bit by bit and queues it |
 | Timer, joypad | | unused |
@@ -212,16 +208,14 @@ flowchart LR
 
 These aren't used by the editor yet, but they work and are kept for future projects:
 
-- **Maps** (`map_loader.asm`, `src/world`, `maps/`): chunked maps with stamps, tile fills, avatars, meta sprites, collisions, doors, text, and scripts, made in gbmapeditor, a Unity project: edit a scene (`MapTest.unity` started as a copy of `Overworld.unity`) and export it as a `.gbmap`. `MAP_TEST_ENABLED` loads `MapTest.gbmap`.
-- **Audio** (`src/audio`): gbt_player plays `.mod` music converted by `mod2gbt`, and FX Hammer sound effects (`sfx/`) play on top, muting music channels by priority.
+- **Sound effects** (`src/audio`): FX Hammer sound effects (`sfx/*.sav`, converted by `fxhammer.py`) and the built-in ones in `sfx.asm`, played with `PLAY_SFX` and updated in VBlank. A higher priority effect interrupts a lower one, and the channels an effect used are muted when it ends.
 - **UI** (`ui.asm`): boxes, revealed text, list menus, number pickers, and the text entry screen with its own on screen keyboard. These use the 8x8 font tiles (`UILoadFontTiles`), not the editor's renderer.
 - **Color and SGB** (`color.asm`, `sgb.asm`, `fade.asm`): GBC palettes and attribute maps, SGB packets (palettes, attribute blocks, borders, sound), and fades. The palette routines and `DefaultPalettes` are in the ROMX section `"Color"`: call them with `TRAMPOLINE`, or put code that uses them in the same bank with `SECTION FRAGMENT "Color", ROMX` (as `fade.asm` and the editor's `EditorSetPalettes` do).
-- **Tile animations** (`tile_anim.asm`): scrolling, sine, and texture animations on tile data.
 - **Text and translations:** `src/charmap.asm` maps characters to tile indices. Tile index matches the character code (ASCII, Latin-1 for accents, UI glyphs in 0-31). Engine strings come from CSVs in `data/strings`, converted by `translate.py`, and use 128 for a new line. The editor's text uses 10.
 
 ## Testing and debugging
 
-- Enable `TESTS_ENABLED` and one of `SOUND_TEST_ENABLED`, `KEYBOARD_TEST_ENABLED`, `MAP_TEST_ENABLED`, or `SD_TEST_ENABLED` in `src/constants.asm`. Tests run before the editor starts. The keyboard test shows the last scan code (ASCII, hex, decimal, binary), the scan code and error ring buffers, and the interrupt and error counts; A switches between PS/2 and iGKB, B continues to the editor. It's a `SECTION FRAGMENT` of the keyboard's ROMX section because the key handlers jump into it.
+- Enable `TESTS_ENABLED` and one of `SOUND_TEST_ENABLED`, `KEYBOARD_TEST_ENABLED`, or `SD_TEST_ENABLED` in `src/constants.asm`. Tests run before the editor starts. The keyboard test shows the last scan code (ASCII, hex, decimal, binary), the scan code and error ring buffers, and the interrupt and error counts; A switches between PS/2 and iGKB, B continues to the editor. It's a `SECTION FRAGMENT` of the keyboard's ROMX section because the key handlers jump into it.
 - `bin/TEXT_EDITOR.sym` has every label, so emulators show symbols. `build/main.map` shows where every section landed and how much space each bank has left.
 - Gearboy can be driven by an AI assistant or script over MCP (`--mcp-stdio` or `--mcp-http`, add `--headless` to run without a window). Its profiler shows cycles per function, which is how the editor's performance work was measured.
 - When changing the text buffer or renderer, compare the screen after an incremental update with a full redraw (open and cancel the menu forces one), and compare saved files byte for byte. Check SD images with `fsck.fat -n` after writing to them.

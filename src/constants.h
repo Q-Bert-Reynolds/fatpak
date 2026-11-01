@@ -13,8 +13,6 @@
 
 // rom banks
 #define MAX_ROM_BANKS        64//1MB
-#define GBT_PLAYER_BANK      1
-#define FX_HAMMER_BANK       2
 
 // ram banks 
 #define MAX_RAM_BANKS  4//32KB
