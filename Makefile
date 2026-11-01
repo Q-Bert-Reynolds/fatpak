@@ -67,7 +67,6 @@ endif
 	$(PYTHON) fonts.py
 	$(PYTHON) sgb_border.py img/default_sgb_border.png img/default_sgb_border.asm
 	$(PYTHON) translate.py 
-	$(PYTHON) maps.py
 
 # SD card image for Gearboy's EverDrive X emulation, 64MB MBR + FAT32 with the files in sd/
 sdcard:

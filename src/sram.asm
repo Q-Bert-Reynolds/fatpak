@@ -13,11 +13,6 @@ sram_main_save:
 sram_hours: DW
 sram_minutes: DB
 sram_seconds: DB
-sram_map: DB
-sram_map_chunk: DB
-sram_map_x: DB
-sram_map_y: DB
-sram_item_flags:: DS ITEM_FLAGS_SIZE
 sram_main_save_end:
 
 SECTION "Clipboard", SRAM[TB_CLIP_ADDR], BANK[MAIN_SRAM_BANK];see tb_Copy

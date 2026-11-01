@@ -21,7 +21,6 @@ INCLUDE "src/audio/audio.asm"
 INCLUDE "src/ui.asm"
 
 INCLUDE "src/core.asm"
-INCLUDE "src/map_loader.asm"
 
 INCLUDE "src/tests/test.asm"
 

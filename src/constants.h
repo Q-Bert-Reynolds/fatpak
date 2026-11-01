@@ -5,7 +5,6 @@
 #define TESTS_ENABLED         0
 #define SOUND_TEST_ENABLED    0
 #define KEYBOARD_TEST_ENABLED 0
-#define MAP_TEST_ENABLED      0
 #define SD_TEST_ENABLED       0
 
 // game_state masks
@@ -94,7 +93,6 @@
 
 //sizes
 #define STACK_SIZE       1024//FatFs needs a deep stack
-#define ITEM_FLAGS_SIZE  32//256 items flags
 #define NAME_LENGTH      8
 #define NAME_BUFFER_SIZE 16
 #define STR_BUFFER_SIZE  64

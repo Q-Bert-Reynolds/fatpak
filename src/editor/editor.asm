@@ -15,9 +15,6 @@ SECTION "Editor ROM0", ROM0
 DEF CURSOR_SPRITE EQU 0
 
 _EditorSetup::
-  ld a, [game_state];skips map and sprite animations in VBlank
-  or a, GAME_STATE_PAUSED
-  ld [game_state], a
   DISPLAY_OFF
   SET_DEFAULT_PALETTE
   TRAMPOLINE EditorSetPalettes

@@ -18,13 +18,6 @@ main_save::
 hours:: DW
 minutes:: DB
 seconds:: DB
-map:: DB
-map_chunk:: DB
-map_x:: DB
-map_y:: DB
-game_event_flags::
-item_flags:: DS ITEM_FLAGS_SIZE;used by map items
-game_event_flags_end::
 main_save_end::
 
 ;drawing
