@@ -1,6 +1,8 @@
 ;4 CPU cycles at 4.194304 MHz is 0.953674316 μs
 ;PS/2 keyboard clock is ~100 μs between clock pulses
 
+DEF PS2_LAST_BITS_MARKER EQU %00010000;SB = 10000 7PF once the last 3 bits are in
+
 PS2KeyboardInterrupt::
   ld a, [kb_type]
   cp a, KB_TYPE_PS2
@@ -17,34 +19,31 @@ PS2KeyboardInterrupt::
   ld [kb_error], a
   jp .checkAllErrors;bail early if start bit not 0
 
-.waitForLastBits
+.waitForLastBits;the marker reaches bit 7 after exactly 3 more bits (comparing SB with the
+  ;bits expected after the shift could match early, $5B matched before any new bits arrived)
+  ld a, PS2_LAST_BITS_MARKER
+  ldh [rSB], a
   ld a, SCF_START
   ldh [rSC], a      ;ask for more bits using keyboard clock 
   xor a
   ld [kb_error], a ;reset current error code
-  ld a, b          ;S0123456
-  swap a           ;3456S012
-  rrca             ;23456S01
-  and a, %11111001 ;23456xxx, bit 7 and parity unknown
-  or  a, %00000001 ;23456xxF, finish bit is always 1
-  ld c, a          ;expected value after shift
   ld e, 255          ;timer
 .pollBitsLoop
     ldh a, [rSB]
     ld d, a;actual value
-    and a, %11111001;exit condition
-    cp a, c;if bits & exit == expected, done
-    jr z, .allBitsRead
+    bit 7, a
+    jr nz, .allBitsRead
     dec e
-    jr z, .timeout
-    jr .pollBitsLoop
+    jr nz, .pollBitsLoop
 .timeout
   ld a, [kb_error]
   or a, PS2_ERROR_TIMEOUT
   ld [kb_error], a
   
 .allBitsRead
-  ld c, d;replace incomplete expected value with actual value (234567PF)
+  ld a, d
+  and a, %00000111
+  ld c, a;xxxxx7PF
   ld a, SCF_SOURCE
   ldh [rSC], a;stop asking for stuff, use internal clock
 
@@ -64,9 +63,9 @@ PS2KeyboardInterrupt::
 
 .storeDataBits
   sla b  ;0123456x
-  ld a, c;234567PF
-  srl a  ;x234567P
-  srl a  ;xx234567
+  ld a, c;xxxxx7PF
+  srl a  ;xxxxxx7P
+  srl a  ;xxxxxxx7
   or a, b;01234567
   ld d, a;data bits
 
