@@ -20,11 +20,14 @@ extern void EditorInvertCursor(unsigned char invert); // white cursor, for the s
 // src/editor/render.asm
 extern unsigned char font_widths[256]; // current font
 extern void SetFont(unsigned char font);
-extern void EditorDraw(unsigned char split); // rows below split use FONT_MONO (on screen keyboard)
+extern void EditorDraw(void); // draws screen rows whose characters, font or selection changed
 extern void EditorRedraw(void); // redraw every row next EditorDraw
 extern unsigned char RenderCursorX(unsigned char col); // x of col in tb_found_row
 extern void RenderSetMapRow(unsigned char map_row, unsigned char block);
-extern unsigned char render_block_top; // block of screen row 0
+extern unsigned char render_row_blocks[TB_ROWS]; // block each screen row draws into
+extern unsigned char render_row_lines[TB_ROWS]; // tile_buffer row each screen row shows
+extern unsigned char render_row_fonts[TB_ROWS]; // font each screen row uses
+extern unsigned char render_text_top; // screen row of text row 0
 extern unsigned char render_pending; // a staged scroll, applied at line 144
 extern unsigned char render_pending_scy;
 extern unsigned char render_pending_top_mode;
@@ -34,7 +37,7 @@ extern unsigned char render_sel[TB_ROWS * 2]; // selected columns of each row (f
 
 // src/editor/osk.asm
 extern void OSKShow(unsigned char show);
-extern void OSKDraw(unsigned char layer);
+extern void OSKDraw(unsigned char layer, unsigned char first_row); // into tile_buffer rows first_row and on
 extern void OSKSelect(unsigned char x, unsigned char y);
 extern unsigned char OSKGetKey(unsigned char layer, unsigned char index); // 0 = no key
 
@@ -74,6 +77,8 @@ extern unsigned char tb_Paste(unsigned int pos); // 0 if it doesn't fit
 extern unsigned int tb_ClipLength(void);
 extern void tb_Normalize(void);
 extern unsigned char tb_NormalizeStep(void); // 1 when the gap is at the end
+extern unsigned int tb_CountLines(unsigned int start, unsigned int end); // line feeds in [start, end)
+extern unsigned int tb_LineStart(unsigned int pos); // after the line feed before pos
 extern unsigned int tb_RowStart(unsigned int pos);
 extern unsigned int tb_NextRow(unsigned int row);
 extern void tb_Render(unsigned int top);

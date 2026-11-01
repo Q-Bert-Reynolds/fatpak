@@ -1,19 +1,20 @@
-;On screen keyboard, drawn into the last OSK_ROWS rows of tile_buffer (EditorDraw draws them
-;with FONT_MONO).
+;On screen keyboard, drawn into OSK_ROWS rows of tile_buffer below the text (the editor draws
+;them with FONT_MONO).
 ;Keys are 1 tile wide with a 1 tile gap, OSK_COLS keys per row. The last row is
 ;shift, symbols, space, menu, cursor left, cursor right for every layer.
 ;
 ;C functions (src/editor/editor.h)
 ;   OSKShow                     a = show
-;   OSKDraw                     a = layer
+;   OSKDraw                     a = layer, e = first tile_buffer row
 ;   OSKSelect                   a = x, e = y, moves the highlight sprite
 ;   OSKGetKey                   a = layer, e = key index, returns char in a (0 = no key)
 
 DEF OSK_SPRITE       EQU 1
 DEF OSK_SPRITE_TILE  EQU 1
 DEF OSK_LAYOUT_SIZE  EQU OSK_COLS*(OSK_ROWS-1)
-DEF OSK_Y            EQU SCRN_Y-OSK_ROWS*8
-DEF OSK_FIRST_ROW    EQU TB_ROWS-OSK_ROWS
+
+SECTION "On Screen Keyboard Vars", WRAM0
+osk_first_row: DB;tile_buffer row, the screen row is [_render_text_top] rows lower
 
 SECTION "On Screen Keyboard", ROM0
 
@@ -42,15 +43,20 @@ OSKGetLayout:
     jr nz, .loop
   ret
 
-_OSKDraw::;a = layer
+_OSKDraw::;a = layer, e = first tile_buffer row
   push af
+  ld a, e
+  ld [osk_first_row], a
+  call RenderRowAddress
+  ld de, tile_buffer
+  add hl, de
+  push hl;first row
   ld a, ' '
-  ld hl, tile_buffer+OSK_FIRST_ROW*TB_STRIDE
   ld bc, OSK_ROWS*TB_STRIDE
   call mem_Set
+  pop de;first row
   pop af
   call OSKGetLayout
-  ld de, tile_buffer+OSK_FIRST_ROW*TB_STRIDE
   ld c, OSK_ROWS-1
 .row
     ld b, OSK_COLS
@@ -81,11 +87,14 @@ _OSKSelect::;a = x, e = y
   swap a;x*16
   add a, OAM_X_OFS
   ld d, a
-  ld a, e
+  ld a, [osk_first_row]
+  add a, e
+  ld hl, _render_text_top
+  add a, [hl]
   add a, a
   add a, a
   add a, a
-  add a, OSK_Y+OAM_Y_OFS
+  add a, OAM_Y_OFS
   ld e, a
   ld c, OSK_SPRITE
   jp gbdk_MoveSprite

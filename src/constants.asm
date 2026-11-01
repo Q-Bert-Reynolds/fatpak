@@ -75,6 +75,18 @@ DEF KEY_PAGE_UP   EQU $86
 DEF KEY_PAGE_DOWN EQU $87
 DEF KEY_INSERT    EQU $88
 DEF KEY_MENU      EQU $89;file menu (Escape, on screen keyboard)
+DEF KEY_F1        EQU $90;function keys are KEY_F1 + n - 1
+DEF KEY_F2        EQU $91
+DEF KEY_F3        EQU $92
+DEF KEY_F4        EQU $93
+DEF KEY_F5        EQU $94
+DEF KEY_F6        EQU $95
+DEF KEY_F7        EQU $96
+DEF KEY_F8        EQU $97
+DEF KEY_F9        EQU $98
+DEF KEY_F10       EQU $99
+DEF KEY_F11       EQU $9A
+DEF KEY_F12       EQU $9B
 
 ;kb_modifiers
 DEF KB_MOD_SCROLL_LOCK EQU %00000001;same as PS2_LED_SCROLL_LOCK

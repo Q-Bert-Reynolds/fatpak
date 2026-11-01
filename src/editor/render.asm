@@ -1,22 +1,24 @@
 ;Draws rows of characters from tile_buffer (TB_STRIDE per row) as pixels, so fonts can have
 ;any width. Every screen cell has its own tile: 360 tiles is more than the background can
 ;address at once, so an LCD interrupt switches between $8000 and $8800 tile data partway down.
-;Rows draw into 18 blocks of 20 tiles kept in a ring, scrolling a row rotates the ring by one
-;(SCY moves 8 pixels and only the new row is drawn). Blocks between the $8000 only and $8800
-;only blocks use tiles both modes share, so a switch can happen anywhere in them (the PS/2
-;interrupt can delay it).
+;Rows draw into 18 blocks of 20 tiles. Text rows use a ring of blocks, scrolling a row rotates the
+;ring by one (SCY moves 8 pixels and only the new row is drawn), the file name and status bars
+;keep their own blocks (see Layout in editor.c). Blocks between the $8000 only and $8800 only
+;blocks use tiles both modes share, so a switch can happen anywhere in them (the PS/2 interrupt
+;can delay it).
 ;   blocks 0-5    tiles 2-121     $8000 mode only (tiles 0 and 1 are sprites)
 ;   blocks 6-8    tiles 128-187   either mode
 ;   blocks 9-14   tiles 256-375   $8800 mode only
 ;   blocks 15-17  tiles 188-247   either mode
-;Screen row r draws into block (render_block_top + r) % TB_ROWS. Mode switches (at most 2) are
-;staged in render_pending_* and applied with SCY at line 144.
+;Screen row r draws tile_buffer row render_row_lines[r] into block render_row_blocks[r] with font
+;render_row_fonts[r]. Mode switches (at most 2) are staged in render_pending_* and applied with
+;SCY at line 144.
 ;Text is color 3 on color 0. Selected pixels use color 2 on color 1 (bitplane 0 is inverted),
 ;which the palettes set up in EditorSetup show as inverted on DMG and highlighted on GBC and SGB.
 ;
 ;C functions (src/editor/editor.h)
 ;   SetFont                     a = font, sets _font_widths and redraws rows using it
-;   EditorDraw                  a = rows drawn with the editor's font, the rest use FONT_MONO
+;   EditorDraw                  draws the screen rows whose characters, font or selection changed
 ;   EditorRedraw                forgets which rows are drawn so EditorDraw redraws all of them
 ;   RenderSetMapRow             a = BG map row, e = block, points the map row at the block's tiles
 
@@ -25,7 +27,6 @@ SECTION "Font Widths", WRAM0, ALIGN[8]
 _font_widths:: DS 256;current font's widths, used to wrap rows
 
 SECTION "Render Vars", WRAM0
-render_font: DB;current font
 row_font: DS TB_ROWS;font each row was drawn with, $FF = not drawn
 render_row: DB
 render_row_font: DB
@@ -36,10 +37,12 @@ render_x: DB
 render_w: DB
 render_shift: DB
 render_col: DB
-draw_split: DB
 draw_row: DB
 render_block: DB
-_render_block_top:: DB;block of screen row 0
+_render_row_blocks:: DS TB_ROWS;block each screen row draws into
+_render_row_lines:: DS TB_ROWS;tile_buffer row each screen row shows
+_render_row_fonts:: DS TB_ROWS;font each screen row uses
+_render_text_top:: DB;screen row of text row 0
 render_top_mode: DB;LCDCF_BG8000 or 0 at the top of the screen
 render_split_count: DB
 render_splits: DS 4;LY, mode
@@ -64,7 +67,6 @@ DEF RENDER_BURST EQU 4;bytes written to VRAM per HBlank (8 writes)
 SECTION "Render ROM0", ROM0
 
 _SetFont::;a = font
-  ld [render_font], a
   ld b, a
   ldh a, [loaded_bank]
   push af
@@ -89,8 +91,7 @@ _EditorRedraw::
   ld bc, TB_ROWS
   jp mem_Set
 
-_EditorDraw::;a = rows drawn with the editor's font, the rest use FONT_MONO
-  ld [draw_split], a
+_EditorDraw::
   ldh a, [loaded_bank]
   push af
   ld a, BANK(RenderRow)
@@ -98,14 +99,11 @@ _EditorDraw::;a = rows drawn with the editor's font, the rest use FONT_MONO
   xor a
 .loop
     ld [draw_row], a
-    ld hl, draw_split
-    cp a, [hl]
-    ld e, FONT_MONO
-    jr nc, .render
-    ld a, [render_font]
-    ld e, a
-  .render
-    ld a, [draw_row]
+    ld c, a
+    ld b, 0
+    ld hl, _render_row_fonts
+    add hl, bc
+    ld e, [hl]
     call RenderRow
     ld a, [draw_row]
     inc a
@@ -291,7 +289,6 @@ RenderSetup::
   call _EditorRedraw
   HIDE_WIN
   xor a
-  ld [_render_block_top], a
   ld [_render_pending], a
   ld [render_split_index], a
   ldh [rSCY], a
@@ -359,20 +356,21 @@ ELSE
 ENDC
 ENDR
 
-;a = screen row, e = font, draws the row's characters into its block if they or the font changed
+;a = screen row, e = font, draws the row's characters into its block if they, the font or the
+;selection changed
 RenderRow:
   ld [render_row], a
+  ld c, a
+  ld b, 0
   ld a, e
   ld [render_row_font], a
-  ld a, [_render_block_top]
-  ld hl, render_row
-  add a, [hl]
-  cp a, TB_ROWS
-  jr c, .setBlock
-  sub a, TB_ROWS
-.setBlock
+  ld hl, _render_row_blocks
+  add hl, bc
+  ld a, [hl]
   ld [render_block], a
-  ld a, [render_row]
+  ld hl, _render_row_lines
+  add hl, bc
+  ld a, [hl]
   call RenderRowAddress
   ld de, tile_buffer
   add hl, de

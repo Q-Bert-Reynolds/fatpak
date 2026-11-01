@@ -201,7 +201,7 @@ KBHandleDelete::
   EDITOR_KEY KEY_DELETE
   ret
 
-KBHandleFunctionKey::;a = function key
-  ;TODO: jump between scenes
-  ret
+KBHandleFunctionKey::;a = function key - 1 (0 = F1), queued as KEY_F1 + a in editor mode
+  add a, KEY_F1
+  jp KBHandleEditorKey
 

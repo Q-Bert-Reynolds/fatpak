@@ -153,10 +153,12 @@ Each frame `Editor()` waits for VBlank, pops keyboard events, and reads the joyp
 | --- | --- | --- |
 | `moved` | The cursor moved, the text didn't change | `PlaceCursor` finds the cursor's row in `tb_row_starts` and moves the sprite |
 | `edited` | One insert or delete | `RenderAfterEdit` rescans from the row before the edit until a row starts where it used to, plus or minus the edit |
-| `redraw` | Rows were scanned without the text changing (scrolling) | `EditorDraw` |
+| `redraw` | Rows were scanned without the text changing (scrolling) | `Draw`: selection, bars, `EditorDraw` |
 | `dirty` | Anything else (menus, loading, several edits at once) | `Refresh` renders every row and scrolls to keep the cursor visible |
 
-Menus (`Choose`), messages, and the save as prompt draw characters straight into `tile_buffer` rows and call `EditorDraw`. File operations call into FatFs through the `File*` stubs. When the editor isn't running on an EverDrive, it moves the text buffer's gap to the end a little at a time once input stops (`tb_NormalizeStep`).
+Moving the cursor sets `bars_changed`, so the status bar is redrawn at the start of the next frame. The status bar's line number is `LinesBefore(top)` plus the rows above the cursor that end with a line feed. `LinesBefore` remembers the last position it counted to (`counted_pos`) and only counts the line feeds between that and the new position with `tb_CountLines`, which reads SRAM a run at a time. Single character edits before `counted_pos` adjust it, and bigger ones reset it to 0.
+
+Menus (`Choose`), the help screen, messages, and the save as prompt draw characters straight into `tile_buffer` rows and call `EditorDraw`. Menus and help hide the bars (`BeginFullScreen`). Messages go in the status bar and the save as prompt in the file name bar when they're shown. File operations call into FatFs through the `File*` stubs. When the editor isn't running on an EverDrive, it moves the text buffer's gap to the end a little at a time once input stops (`tb_NormalizeStep`).
 
 ### Text buffer (`src/editor/text_buffer.asm`)
 
@@ -173,13 +175,14 @@ A [gap buffer](https://en.wikipedia.org/wiki/Gap_buffer) in SRAM banks 0-2. Posi
 
 Text is drawn as pixels so fonts can be any width. Every screen cell has its own tile, which takes 360 tiles, but the background can only address 256 at a time. So:
 
-- **Tile blocks:** each row draws into a block of 20 tiles. The 18 blocks are kept in a ring: blocks 0-5 are only reachable with `$8000` tile data, 9-14 only with `$8800`, and 6-8 and 15-17 use tiles both modes can reach. Tiles 0 and 1 are the cursor and keyboard highlight sprites.
+- **Tile blocks:** each row draws into a block of 20 tiles. Blocks 0-5 are only reachable with `$8000` tile data, 9-14 only with `$8800`, and 6-8 and 15-17 use tiles both modes can reach. Tiles 0 and 1 are the cursor and keyboard highlight sprites.
+- **Layout:** `Layout` in `editor.c` fills `render_row_blocks`, `render_row_lines` (the `tile_buffer` row to show) and `render_row_fonts` for each screen row, and points the BG map rows on screen at their blocks. Text rows use the blocks in a ring starting at `ring_pos`. With the bars shown, the file name bar (screen row 0, `tile_buffer` row 18) keeps block 8 and the status bar (row 17, `tile_buffer` row 19) keeps block 17, so text uses the other 16. Both bars are drawn fully selected. `render_text_top` is the screen row of text row 0, used by the cursor and the on screen keyboard, which is drawn into the `tile_buffer` rows after the text (`tb_rows`).
 - **Mode switches:** `RenderLCDInterrupt` switches the tile data mode partway down the screen, at most twice per frame, in the middle of a shared band. The PS/2 interrupt can delay the switch by several lines without anything showing.
-- **Scrolling** rotates the ring by one block: the block that leaves the screen draws the new row, its BG map row is pointed at it, and SCY moves 8 pixels. The new SCY and switch points are staged in `render_pending_*` and applied together at line 144. Only whole rows scroll, because there aren't tiles for a 19th row on DMG.
+- **Scrolling** rotates the ring by one block: the block that leaves the screen draws the new row and SCY moves 8 pixels. `Layout` then re-points the BG map rows whose block changed: the new row's, and the bars', which don't have to be drawn again. The new SCY and switch points are staged in `render_pending_*` and applied together at line 144. Only whole rows scroll, because there aren't tiles for a 19th row on DMG.
 - **Row cache:** `bkg_buffer` holds the characters each block shows and `row_font` its font. `RenderRow` skips rows that haven't changed, so after a scroll or an edit only one or two rows are drawn.
 - **Drawing a row:** glyphs are ORed into a 160x8 1bpp bitmap with 4KB of precomputed shift tables (in the renderer's bank, 4KB aligned), then each byte is written to VRAM, 4 bytes per HBlank. Bitplane 1 is the byte and bitplane 0 is the byte XOR the tile's selection mask, so text is color 3 on color 0 and selected text is color 2 on color 1.
 - **Selection:** before drawing, the editor sets `render_sel` (first and end column of each row, end `$FF` for the right edge) from the selection and the row tables. A row whose selection changed is redrawn. The palettes set in `EditorSetup` show colors 1 and 2 as inverted on DMG (BGP) and as a blue highlight on GBC and SGB (palette 0). The cursor turns white at the start of a selection (OBP1) so it shows on DMG.
-- **Fonts:** `fonts.py` converts `img/ui_font.png` (fixed width, 8 pixels) and `img/fonts/vwf_font.png` (variable width) into 8 bytes of 1bpp glyph rows and a width per character code. Rows below `tb_rows` (the on screen keyboard) always use the fixed width font.
+- **Fonts:** `fonts.py` converts `img/ui_font.png` (fixed width, 8 pixels) and `img/fonts/vwf_font.png` (variable width) into 8 bytes of 1bpp glyph rows and a width per character code. Rows below `tb_rows` (the on screen keyboard) always use the fixed width font, and the bars and help screen the variable width font.
 - **Cursor:** sprite 0, a 1 pixel line. `RenderCursorX` adds up character widths in the cursor's row.
 
 ### On screen keyboard (`src/editor/osk.asm`)

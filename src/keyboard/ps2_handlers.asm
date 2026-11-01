@@ -100,12 +100,29 @@ PS2HandleError:;a = scan code
   ld [kb_button_state], a
   ret 
 
-PS2HandleFunctionKey:
+PS2HandleFunctionKey:;a = scan code
+  ld b, a
   ld a, [kb_flags]
   and a, KB_FLAG_RELEASE
   ret nz;if release flag set, return early
-  ;TODO convert scan code to function key number
+  ld hl, PS2FunctionKeys
+  ld c, 0;function key - 1
+.find
+    ld a, [hli]
+    cp a, b
+    jr z, .found
+    inc c
+    ld a, c
+    cp a, 12
+    jr c, .find
+  ret
+.found
+  ld a, c
   jp KBHandleFunctionKey
+
+PS2FunctionKeys:
+  DB PS2_KEY_F1, PS2_KEY_F2, PS2_KEY_F3, PS2_KEY_F4, PS2_KEY_F5, PS2_KEY_F6
+  DB PS2_KEY_F7, PS2_KEY_F8, PS2_KEY_F9, PS2_KEY_F10, PS2_KEY_F11, PS2_KEY_F12
 
 PS2HandleTab:
   jp KBHandleTab

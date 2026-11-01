@@ -1,10 +1,5 @@
 Priority
 
-- add UI overlay:
-  - line 1 shows filename and indicates if there are changes with an asterisk (ie. FILENAME.TXT*)
-  - line 18 shows file stats (ie. line/column or number of characters selected) 
-  - F11 to switch between fullscreen and overlay modes
-- add a help screen, open with F1
 - call tb_Normalize before saving/menus so the .sav reads as plain text
 - test SD read/write on the X7
 - remember the open file's name in SRAM (text survives power off, its name doesn't)
@@ -24,11 +19,10 @@ Editor
 - remember the chosen font
 - TBMoveGap does bank math per byte (~1s+ to move the gap across 24KB on DMG), copy in chunks
 - tabs are drawn as a single space
-- function keys
 - select text with the d-pad (A + d-pad?) and cut/copy/paste from the on screen keyboard or menu
 - clipboard is limited to 7356 characters (SRAM bank 3), use WRAM banks 2-7 on GBC too?
 - undo
-- status line (file name, modified, free space)
+- status bar: free space, remember full screen mode
 - iGKB handlers don't send home/end/page/delete keys
 - file browser: subfolders, more than 16 files, long file names (FF_USE_LFN)
 - messages swallow the key that dismisses them, maybe time out instead

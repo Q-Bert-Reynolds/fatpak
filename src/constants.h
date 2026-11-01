@@ -78,6 +78,18 @@
 #define KEY_PAGE_DOWN 0x87
 #define KEY_INSERT    0x88
 #define KEY_MENU      0x89//file menu (Escape, on screen keyboard)
+#define KEY_F1        0x90//function keys are KEY_F1 + n - 1
+#define KEY_F2        0x91
+#define KEY_F3        0x92
+#define KEY_F4        0x93
+#define KEY_F5        0x94
+#define KEY_F6        0x95
+#define KEY_F7        0x96
+#define KEY_F8        0x97
+#define KEY_F9        0x98
+#define KEY_F10       0x99
+#define KEY_F11       0x9A
+#define KEY_F12       0x9B
 
 //kb_modifiers
 #define KB_MOD_SCROLL_LOCK 0b00000001//same as PS2_LED_SCROLL_LOCK

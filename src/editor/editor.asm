@@ -62,6 +62,8 @@ _EditorShowCursor::;a = show
   ld a, [_tb_found_row]
   cp a, $FF
   jr z, .hide
+  ld hl, _render_text_top
+  add a, [hl]
   add a, a
   add a, a
   add a, a

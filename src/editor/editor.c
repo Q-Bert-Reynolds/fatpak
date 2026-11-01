@@ -19,6 +19,12 @@
 #define CANCEL         0xFF
 #define BG_MAP_ROWS      32
 #define LCDC_TILES_8000  0x10 // LCDCF_BG8000
+#define HEADER_LINE      TB_ROWS // tile_buffer rows of the file name and status bars
+#define STATUS_LINE      (TB_ROWS + 1)
+#define HEADER_BLOCK     8 // the bars' blocks work in either tile data mode (see src/editor/render.asm)
+#define STATUS_BLOCK     17
+#define HELP_ROWS        18
+#define HELP_COLS        36
 
 // FRESULT codes (src/fatfs/lib/ff.h)
 #define FR_NOT_READY     3
@@ -41,6 +47,13 @@ unsigned char keep_x;
 unsigned char moved; // cursor moved, text didn't change
 unsigned char redraw; // rendered rows changed, text didn't
 unsigned char ring_top; // BG map row of screen row 0
+unsigned char ring_pos; // index in the ring of text blocks of text row 0's block
+unsigned char map_blocks[BG_MAP_ROWS]; // block each BG map row shows, 0xFF = none
+unsigned char bars_on; // file name and status bars (F11)
+unsigned char bars; // bars are shown now (not in menus)
+unsigned char bars_changed; // the cursor moved, the status bar needs updating
+unsigned int counted_pos; // counted_lines line feeds are before counted_pos
+unsigned int counted_lines;
 unsigned char edited; // one edit at edit_pos, rows from edit_row need rendering
 unsigned char edit_row;
 unsigned int edit_pos;
@@ -60,12 +73,33 @@ unsigned char normalized;
 char file_name[FILE_NAME_SIZE]; // current file, empty for new text
 char file_list[FILE_LIST_MAX][FILE_NAME_SIZE];
 
-static const char menu_items[][FILE_NAME_SIZE] = {"OPEN", "SAVE", "SAVE AS", "NEW", "FONT"};
+static const char menu_items[][FILE_NAME_SIZE] = {"OPEN", "SAVE", "SAVE AS", "NEW", "FONT", "FULL SCREEN", "HELP"};
 static const char discard_items[][FILE_NAME_SIZE] = {"NO", "YES"};
+static const char help_lines[HELP_ROWS][HELP_COLS] = {
+  "HELP",
+  "Esc  menu      F1  help",
+  "F11  full screen",
+  "Ctrl+O, S, N  open, save, new",
+  "Ctrl+F  switch font",
+  "Shift + moving  select",
+  "Ctrl+A  select all",
+  "Ctrl+X, C, V  cut, copy, paste",
+  "Ctrl+Left, Right  move by word",
+  "Ctrl+Up, Down  scroll",
+  "Ctrl+Home, End  start or end",
+  "",
+  "Select  on screen keyboard",
+  "A  type the selected key",
+  "B  backspace    Start  new line",
+  "D-pad  move",
+  "",
+  "Press any key to close",
+};
 
 static void Render(void);
 
 static char* RowAddress(unsigned char row);
+static void DrawRow(unsigned char row, unsigned char col, const char* text);
 static void ShowMessage(const char* text);
 
 // rendered row pos is on, 0xFF if it isn't on screen
@@ -94,6 +128,7 @@ static unsigned char PlaceCursor(void) {
   blink_timer = 0;
   EditorInvertCursor(GetSelection() && cursor == sel_start); // the selection starts at the cursor's x
   EditorShowCursor(1);
+  bars_changed = 1;
   return 1;
 }
 
@@ -113,13 +148,12 @@ static unsigned int PosAtX(unsigned char row, unsigned char x) {
   return pos;
 }
 
-// stages the tile data mode switches for render_block_top (see src/editor/render.asm): blocks 0-5
+// stages the tile data mode switches for render_row_blocks (see src/editor/render.asm): blocks 0-5
 // need $8000 mode, 9-14 $8800, the rest work in either so switches go in the middle of them
 static void StageSplits(void) {
   unsigned char row, block, mode, current = 0xFF, shared = 0xFF, count = 0;
   for (row = 0; row < TB_ROWS; ++row) {
-    block = render_block_top + row;
-    if (block >= TB_ROWS) block -= TB_ROWS;
+    block = render_row_blocks[row];
     if ((block >= 6 && block < 9) || block >= 15) {
       if (shared == 0xFF) shared = row;
       continue;
@@ -136,23 +170,60 @@ static void StageSplits(void) {
   render_pending_split_count = count >> 1;
 }
 
-// scrolls the screen one row with SCY (dir 1 = down), the block leaving the screen draws the new row
-static void ScrollRing(unsigned char down) {
-  unsigned char block;
+// blocks text rows use, all of them or all but the bars'
+static unsigned char RingLength(void) {
+  return bars ? TB_ROWS - 2 : TB_ROWS;
+}
+
+// text rows above the on screen keyboard
+static unsigned char TextRows(void) {
+  return RingLength() - (osk_shown ? OSK_ROWS : 0);
+}
+
+// sets each screen row's block, tile_buffer row and font (the bars keep their blocks, text rows
+// use the rest in a ring starting at ring_pos), points the BG map rows that show the screen at
+// them and stages the tile data mode switches, applied with SCY at line 144
+static void Layout(void) {
+  unsigned char row, line, block, map_row, i = ring_pos, length = RingLength();
   render_pending = 0;
-  if (down) {
-    block = render_block_top;
-    render_block_top = block == TB_ROWS - 1 ? 0 : block + 1;
-    ring_top = (ring_top + 1) & (BG_MAP_ROWS - 1);
-    RenderSetMapRow((ring_top + TB_ROWS - 1) & (BG_MAP_ROWS - 1), block);
-  } else {
-    render_block_top = render_block_top ? render_block_top - 1 : TB_ROWS - 1;
-    ring_top = (ring_top - 1) & (BG_MAP_ROWS - 1);
-    RenderSetMapRow(ring_top, render_block_top);
+  render_text_top = bars;
+  for (row = 0; row < TB_ROWS; ++row) {
+    if (bars && (!row || row == TB_ROWS - 1)) {
+      block = row ? STATUS_BLOCK : HEADER_BLOCK;
+      line = row ? STATUS_LINE : HEADER_LINE;
+      render_row_fonts[row] = FONT_VWF;
+    }
+    else {
+      block = bars && i >= HEADER_BLOCK ? i + 1 : i;
+      if (++i == length) i = 0;
+      line = row - bars;
+      render_row_fonts[row] = line < tb_rows ? font : FONT_MONO; // on screen keyboard
+    }
+    render_row_blocks[row] = block;
+    render_row_lines[row] = line;
+    map_row = (ring_top + row) & (BG_MAP_ROWS - 1);
+    if (map_blocks[map_row] != block) {
+      map_blocks[map_row] = block;
+      RenderSetMapRow(map_row, block);
+    }
   }
   StageSplits();
   render_pending_scy = ring_top << 3;
   render_pending = 1;
+}
+
+// scrolls the screen one row with SCY (dir 1 = down), the block leaving the screen draws the new row
+static void ScrollRing(unsigned char down) {
+  unsigned char length = RingLength();
+  if (down) {
+    ring_pos = ring_pos == length - 1 ? 0 : ring_pos + 1;
+    ring_top = (ring_top + 1) & (BG_MAP_ROWS - 1);
+  }
+  else {
+    ring_pos = ring_pos ? ring_pos - 1 : length - 1;
+    ring_top = (ring_top - 1) & (BG_MAP_ROWS - 1);
+  }
+  Layout();
 }
 
 // scrolls one row down, only the new bottom row is scanned and drawn
@@ -223,9 +294,11 @@ static void ClearSelection(void) {
   selecting = 0;
 }
 
+// no selection, the bars are drawn selected
 static void NoHighlight(void) {
   unsigned char i;
   for (i = 0; i < TB_ROWS * 2; ++i) render_sel[i] = 0;
+  if (bars) render_sel[1] = render_sel[(TB_ROWS << 1) - 1] = 0xFF;
 }
 
 // sets the selected columns of each rendered row for EditorDraw
@@ -247,14 +320,109 @@ static void SetHighlight(void) {
       if (end <= first) continue;
     }
     else end = 0xFF; // continues, so the line feed or wrap is selected too
-    render_sel[row << 1] = first;
-    render_sel[(row << 1) + 1] = end;
+    render_sel[(row + bars) << 1] = first;
+    render_sel[((row + bars) << 1) + 1] = end;
   }
+}
+
+// line feeds before pos, counting from the last position asked about
+static unsigned int LinesBefore(unsigned int pos) {
+  if (pos >= counted_pos) counted_lines += tb_CountLines(counted_pos, pos);
+  else if (pos < counted_pos - pos) counted_lines = tb_CountLines(0, pos);
+  else counted_lines -= tb_CountLines(pos, counted_pos);
+  counted_pos = pos;
+  return counted_lines;
+}
+
+// keeps counted_pos and counted_lines right after inserting or deleting c at pos
+static void CountEdit(unsigned int pos, unsigned char c, unsigned char inserted) {
+  if (pos >= counted_pos) return;
+  if (inserted) {
+    ++counted_pos;
+    if (c == ASCII_LF) ++counted_lines;
+  }
+  else {
+    --counted_pos;
+    if (c == ASCII_LF) --counted_lines;
+  }
+}
+
+// after an edit of more than one char at pos
+static void Uncount(unsigned int pos) {
+  if (pos < counted_pos) counted_pos = counted_lines = 0;
+}
+
+// 1 if a rendered row ends with a line feed instead of wrapping
+static unsigned char RowEndsLine(unsigned char row) {
+  return tb_GetChar(tb_row_starts[row + 1] - 1) == ASCII_LF;
+}
+
+static unsigned int CursorLine(void) {
+  unsigned int line = LinesBefore(top) + 1;
+  unsigned char row;
+  for (row = 0; row < tb_found_row; ++row) if (RowEndsLine(row)) ++line;
+  return line;
+}
+
+static unsigned int CursorColumn(void) {
+  unsigned char row = tb_found_row;
+  unsigned int start;
+  while (row && !RowEndsLine(row - 1)) --row;
+  start = tb_row_starts[row];
+  if (!row && start && tb_GetChar(start - 1) != ASCII_LF) start = tb_LineStart(start);
+  return cursor - start + 1;
+}
+
+static char* PutText(char* dest, const char* text) {
+  while (*text) *dest++ = *text++;
+  return dest;
+}
+
+static const unsigned int powers_of_ten[] = {10000, 1000, 100, 10};
+
+static char* PutNumber(char* dest, unsigned int n) {
+  unsigned char i, digit, started = 0;
+  for (i = 0; i < 4; ++i) {
+    digit = '0';
+    while (n >= powers_of_ten[i]) {
+      n -= powers_of_ten[i];
+      ++digit;
+    }
+    if (started || digit != '0') {
+      *dest++ = digit;
+      started = 1;
+    }
+  }
+  *dest++ = '0' + (unsigned char)n;
+  return dest;
+}
+
+// file name (* = unsaved changes) and line and column, or how many chars are selected
+static void UpdateBars(void) {
+  char text[TB_STRIDE];
+  char* end = PutText(text, file_name[0] ? file_name : "Untitled");
+  if (modified) *end++ = '*';
+  *end = 0;
+  DrawRow(HEADER_LINE, 1, text);
+  if (tb_found_row == 0xFF) return; // cursor isn't on screen
+  if (GetSelection()) {
+    end = PutNumber(text, sel_end - sel_start);
+    end = PutText(end, " selected");
+  }
+  else {
+    end = PutText(text, "Line ");
+    end = PutNumber(end, CursorLine());
+    end = PutText(end, ", Col ");
+    end = PutNumber(end, CursorColumn());
+  }
+  *end = 0;
+  DrawRow(STATUS_LINE, 1, text);
 }
 
 static void Draw(void) {
   SetHighlight();
-  EditorDraw(tb_rows);
+  if (bars) UpdateBars();
+  EditorDraw();
 }
 
 // sets the first rendered row and renders
@@ -318,6 +486,7 @@ static void MoveEnd(void) {
 }
 
 static void DeleteSelection(void) {
+  Uncount(sel_start);
   tb_DeleteRange(sel_start, sel_end - sel_start);
   cursor = sel_start;
   selecting = 0;
@@ -341,6 +510,7 @@ static void Paste(void) {
     return;
   }
   if (GetSelection()) DeleteSelection();
+  Uncount(cursor);
   tb_Paste(cursor);
   cursor += length;
   modified = 1;
@@ -407,7 +577,7 @@ static void HandleCtrlKey(unsigned char key) {
 
 // ctrl + left/right move by token, ctrl + up/down scroll, ctrl + home/end go to the start/end
 static void HandleKey(unsigned char key, unsigned char mods) {
-  unsigned char ctrl = mods & KB_MOD_CTRL;
+  unsigned char ctrl = mods & KB_MOD_CTRL, c;
   if (mods & (KB_MOD_ALT | KB_MOD_SUPER)) return;
   if (key < KEY_LEFT || key > KEY_PAGE_DOWN) {
     if (ctrl) {
@@ -457,15 +627,24 @@ static void HandleKey(unsigned char key, unsigned char mods) {
   selecting = 0;
   switch (key) {
     case KEY_BACKSPACE:
-      if (cursor && tb_Delete(cursor - 1)) Edited(--cursor, -1);
+      if (cursor && (c = tb_Delete(cursor - 1))) {
+        CountEdit(cursor - 1, c, 0);
+        Edited(--cursor, -1);
+      }
       break;
     case KEY_DELETE:
-      if (tb_Delete(cursor)) Edited(cursor, -1);
+      if ((c = tb_Delete(cursor))) {
+        CountEdit(cursor, c, 0);
+        Edited(cursor, -1);
+      }
       break;
     default:
       if (key < ' ' && key != ASCII_TAB && key != ASCII_LF) return;
       if (key >= KEY_LEFT && key < 0xA0) return; // unprintable in Latin-1
-      if (tb_Insert(cursor, key)) Edited(cursor++, 1);
+      if (tb_Insert(cursor, key)) {
+        CountEdit(cursor, key, 1);
+        Edited(cursor++, 1);
+      }
   }
 }
 
@@ -479,20 +658,33 @@ static unsigned char DpadRepeat(unsigned char pressed) {
   return held;
 }
 
-static void ToggleOSK(void) {
-  osk_shown = !osk_shown;
-  tb_rows = osk_shown ? TB_ROWS - OSK_ROWS : TB_ROWS;
+// sets the text rows and lays out the screen for bars_on and osk_shown
+static void SetRows(void) {
+  bars = bars_on;
+  tb_rows = TextRows();
+  Layout();
   if (osk_shown) {
-    OSKDraw(osk_layer);
+    OSKDraw(osk_layer, tb_rows);
     OSKSelect(osk_x, osk_y);
   }
   OSKShow(osk_shown);
   dirty = 1;
 }
 
+static void ToggleOSK(void) {
+  osk_shown = !osk_shown;
+  SetRows();
+}
+
+// F11
+static void ToggleBars(void) {
+  bars_on = !bars_on;
+  SetRows();
+}
+
 static void SetOSKLayer(unsigned char layer) {
   osk_layer = osk_layer == layer ? OSK_LOWER : layer;
-  OSKDraw(osk_layer);
+  OSKDraw(osk_layer, tb_rows);
   dirty = 1;
 }
 
@@ -573,22 +765,19 @@ static void ClearScreen(void) {
   for (row = 0; row < TB_ROWS; ++row) DrawRow(row, 0, "");
 }
 
-// hides the on screen keyboard and cursor for full screen UI, redraws the text afterwards
+// hides the bars, on screen keyboard and cursor for full screen UI, redraws the text afterwards
 static void BeginFullScreen(void) {
   EditorShowCursor(0);
-  NoHighlight();
   if (osk_shown) OSKShow(0);
+  bars = 0;
   tb_rows = TB_ROWS;
+  Layout();
+  NoHighlight();
   dirty = 1;
 }
 
 static void EndFullScreen(void) {
-  if (osk_shown) {
-    tb_rows = TB_ROWS - OSK_ROWS;
-    OSKDraw(osk_layer);
-    OSKSelect(osk_x, osk_y);
-    OSKShow(1);
-  }
+  SetRows();
 }
 
 // shows a list of FILE_NAME_SIZE strings, returns the chosen index or CANCEL
@@ -602,7 +791,7 @@ static unsigned char Choose(const char* title, const char* items, unsigned char 
       DrawRow(i + 2, 2, items + (i << 3) + (i << 2) + i); // i * FILE_NAME_SIZE
       if (i == selected) RowAddress(i + 2)[1] = MARKER;
     }
-    EditorDraw(tb_rows);
+    EditorDraw();
     while (!(key = MenuKey()));
     if (key == KEY_UP) selected = selected ? selected - 1 : count - 1;
     else if (key == KEY_DOWN) selected = selected == count - 1 ? 0 : selected + 1;
@@ -616,13 +805,17 @@ static unsigned char Choose(const char* title, const char* items, unsigned char 
   return selected;
 }
 
-// shows text on the last visible row until a key is pressed
+// shows text in the status bar or on the last text row until a key is pressed
 static void ShowMessage(const char* text) {
   Render();
   EditorShowCursor(0);
   NoHighlight();
-  DrawRow(tb_rows - 1, 0, text);
-  EditorDraw(tb_rows);
+  if (bars) {
+    UpdateBars();
+    DrawRow(STATUS_LINE, 1, text);
+  }
+  else DrawRow(tb_rows - 1, 0, text);
+  EditorDraw();
   while (!MenuKey());
   dirty = 1;
 }
@@ -655,6 +848,8 @@ static unsigned char CanDiscard(void) {
 
 static void ResetCursor(void) {
   cursor = 0;
+  counted_pos = 0;
+  counted_lines = 0;
   selecting = 0;
   top = 0;
   want_x = 0;
@@ -703,8 +898,9 @@ static unsigned char AskFileName(void) {
     CopyName(text, "SAVE AS ");
     for (i = 0; i < length; ++i) text[8 + i] = name[i];
     CopyName(text + 8 + length, "_.TXT");
-    DrawRow(0, 0, text);
-    EditorDraw(tb_rows);
+    if (bars) DrawRow(HEADER_LINE, 1, text);
+    else DrawRow(0, 0, text);
+    EditorDraw();
     do {
       WaitFrame();
       key = (unsigned char)KBPopEvent();
@@ -745,19 +941,37 @@ static void ToggleFont(void) {
   dirty = 1;
 }
 
+// F1, shown with the variable width font
+static void ShowHelp(void) {
+  unsigned char row, editor_font = font;
+  font = FONT_VWF;
+  SetFont(font);
+  BeginFullScreen();
+  for (row = 0; row < HELP_ROWS; ++row) DrawRow(row, 0, help_lines[row]);
+  EditorDraw();
+  while (!MenuKey());
+  font = editor_font;
+  SetFont(font);
+  EndFullScreen();
+}
+
 static void FileMenu(void) {
-  switch (Choose("MENU", menu_items[0], 5)) {
+  switch (Choose("MENU", menu_items[0], 7)) {
     case 0: OpenFile(); break;
     case 1: SaveFile(0); break;
     case 2: SaveFile(1); break;
     case 3: NewFile(); break;
     case 4: ToggleFont(); break;
+    case 5: ToggleBars(); break;
+    case 6: ShowHelp(); break;
   }
 }
 
-// shortcuts: escape or the keyboard's menu key, ctrl + O, S, N, F
+// shortcuts: escape or the keyboard's menu key, F1, F11, ctrl + O, S, N, F
 static unsigned char HandleFileKey(unsigned char key, unsigned char mods) {
   if (key == KEY_MENU || key == KEY_ESCAPE) FileMenu();
+  else if (key == KEY_F1) ShowHelp();
+  else if (key == KEY_F11) ToggleBars();
   else if (!(mods & KB_MOD_CTRL)) return 0;
   else if (key == 'o' || key == 'O') OpenFile();
   else if (key == 's' || key == 'S') SaveFile(0);
@@ -812,6 +1026,7 @@ void Editor(void) {
   unsigned char key;
 
   EditorSetup();
+  for (key = 0; key < BG_MAP_ROWS; ++key) map_blocks[key] = key < TB_ROWS ? key : 0xFF; // set by RenderSetup
   everdrive = sd_Detect();
   idle_frames = 0;
   normalized = 0;
@@ -823,6 +1038,10 @@ void Editor(void) {
   moved = 0;
   redraw = 0;
   ring_top = 0;
+  ring_pos = 0;
+  counted_pos = 0;
+  counted_lines = 0;
+  bars_changed = 0;
   edited = 0;
   pad_timer = 0;
   modified = 0;
@@ -833,10 +1052,15 @@ void Editor(void) {
   osk_layer = OSK_LOWER;
   osk_x = 0;
   osk_y = 0;
-  tb_rows = TB_ROWS;
+  bars_on = 1;
+  SetRows();
   Refresh();
 
   while (1) {
+    if (bars_changed) { // status bar follows the cursor
+      bars_changed = 0;
+      if (bars) Draw();
+    }
     WaitFrame();
     while ((key = (unsigned char)(event = KBPopEvent()))) {
       if (!HandleFileKey(key, (unsigned char)(event >> 8))) HandleKey(key, (unsigned char)(event >> 8));

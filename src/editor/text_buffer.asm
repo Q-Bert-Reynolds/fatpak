@@ -19,6 +19,8 @@
 ;   tb_Copy                     de = pos, bc = count, copies text to the clipboard, returns a = 0 if it's too big
 ;   tb_Paste                    de = pos, inserts the clipboard, returns a = 0 if it doesn't fit
 ;   tb_ClipLength               returns clipboard length in bc (in SRAM bank 3, see src/sram.asm)
+;   tb_CountLines               de = start, bc = end, returns the line feeds in [start, end) in bc
+;   tb_LineStart                de = pos, returns the start of its line (after the line feed before it) in bc
 ;   tb_RowStart                 de = pos, returns start of the visual row containing pos in bc
 ;   tb_NextRow                  de = row start, returns start of the next visual row in bc
 ;   tb_Render                   de = top, draws tb_rows rows to tile_buffer, finds tb_find
@@ -101,6 +103,7 @@ tb_dst_addr: DW
 tb_src_bank: DB
 tb_dst_bank: DB
 tb_clip_left: DW
+tb_lines: DW
 tb_clip_ptr: DW
 
 SECTION "Text Buffer Code", ROM0
@@ -1107,6 +1110,94 @@ TBStartScan:
   xor a
   ld [tb_row_ptr], a
   ld [tb_row_ptr+1], a
+  ret
+
+_tb_CountLines::;de = start, bc = end, returns the line feeds in [start, end) in bc
+  ld a, c
+  sub a, e
+  ld [tb_count], a
+  ld a, b
+  sbc a, d
+  ld [tb_count+1], a
+  ld hl, 0
+  ST_HL_VAR tb_lines
+  SRAM_ON
+.run;a run is in one bank, on one side of the gap and the register hole
+    ld a, [tb_count]
+    ld c, a
+    ld a, [tb_count+1]
+    or a, c
+    jp z, .done
+    ST_DE_VAR tb_target;position
+    LD_HL_VAR tb_gap_start
+    ld a, e
+    sub a, l
+    ld a, d
+    sbc a, h
+    jr nc, .afterGap
+    ld a, l;stop at the gap
+    sub a, e
+    ld l, a
+    ld a, h
+    sbc a, d
+    ld h, a
+    LD_DE_VAR tb_count
+    call TBMin
+    jr .setLength
+  .afterGap
+    LD_HL_VAR tb_count
+  .setLength
+    ST_HL_VAR tb_k
+    LD_DE_VAR tb_target
+    call TBLogToPhys
+    call TBPhysRun
+    ld a, b
+    ld [rRAMB], a
+    push hl;address
+    ld h, d
+    ld l, e
+    LD_DE_VAR tb_k
+    call TBMin
+    ST_HL_VAR tb_k
+    ld b, h
+    ld c, l
+    pop hl;address
+    LD_DE_VAR tb_lines
+  .count
+      ld a, [hli]
+      cp a, ASCII_LF
+      jr nz, .next
+      inc de
+    .next
+      dec bc
+      ld a, b
+      or a, c
+      jr nz, .count
+    ST_DE_VAR tb_lines
+    LD_DE_VAR tb_k
+    LD_HL_VAR tb_count
+    ld a, l
+    sub a, e
+    ld [tb_count], a
+    ld a, h
+    sbc a, d
+    ld [tb_count+1], a
+    LD_HL_VAR tb_target
+    add hl, de
+    ld d, h
+    ld e, l
+    jp .run
+.done
+  SRAM_OFF
+  LD_BC_VAR tb_lines
+  ret
+
+_tb_LineStart::;de = pos, returns the start of its line in bc
+  SRAM_ON
+  call TBLineStart
+  SRAM_OFF
+  ld b, d
+  ld c, e
   ret
 
 _tb_RowStart::;de = pos, returns start of the visual row containing pos in bc

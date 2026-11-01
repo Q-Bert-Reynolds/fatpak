@@ -22,8 +22,11 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for how the code is organized.
 
 On screen keyboard bottom row: shift (one shot), symbols, space, file menu (◆), cursor left, cursor right.
 
+The top bar shows the file name (* = unsaved changes), the bottom bar the line and column, or how many
+characters are selected. F11 (or FULL SCREEN in the menu) hides them. F1 (or HELP) shows the controls.
+
 PS/2 keyboards type directly: arrows, home, end, page up/down, backspace, delete, enter.
-Escape opens the file menu (open, save, save as, new), Ctrl+O opens, Ctrl+S saves, Ctrl+N starts a new file.
+Escape opens the menu (open, save, save as, new, font, full screen, help), Ctrl+O opens, Ctrl+S saves, Ctrl+N starts a new file.
 Files are .TXT files in the root of the SD card with 8.3 names. CR LF line endings are kept.
 Ctrl+F (or FONT in the menu) switches between the variable width and fixed width fonts.
 Ctrl+Left/Right move a word (or run of punctuation) at a time, Ctrl+Up/Down scroll a row without moving
