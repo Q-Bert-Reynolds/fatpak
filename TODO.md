@@ -24,7 +24,9 @@ Editor
 - undo
 - status bar: free space, remember full screen mode
 - iGKB handlers don't send home/end/page/delete keys
-- file browser: subfolders, more than 16 files, long file names (FF_USE_LFN)
+- file browser: sort by name (needs the names in memory), make folders, delete and rename files
+- save as into another folder
+- show UTF-8 text (files are loaded as bytes, a UTF-8 é shows as two Latin-1 chars)
 - messages swallow the key that dismisses them, maybe time out instead
 - PS/2 keyboard is only detected at boot, re-detect when plugged in later
 - on screen keyboard: hold A to repeat, a way to move the cursor up/down while it's open

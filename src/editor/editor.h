@@ -2,6 +2,7 @@
 #define EDITOR
 
 #include "../constants.h"
+#include "../fatfs/file_api.h"
 
 // src/input.asm
 extern volatile unsigned char button_state;
@@ -46,10 +47,10 @@ extern unsigned char sd_Detect(void); // 1 on an EverDrive X
 
 // src/fatfs/fatfs.asm (stubs into the FatFs banks)
 extern unsigned char FileMount(void); // FRESULT
-extern unsigned char FileOpenDir(void); // FRESULT
-extern unsigned char FileNext(char* name); // next .TXT name (13 bytes), 0 = no more
-extern unsigned char FileLoad(const char* name); // FRESULT, replaces the text buffer
-extern unsigned char FileSave(const char* name); // FRESULT
+extern unsigned char FileOpenDir(const char* path); // FRESULT, UTF-8 path, "" = root
+extern unsigned char FileNext(FileEntry* entry); // next visible file or folder, 0 = no more
+extern unsigned char FileLoad(const char* path); // FRESULT, replaces the text buffer
+extern unsigned char FileSave(const char* path); // FRESULT
 extern unsigned char fs_crlf; // loaded file used CR LF, saving writes CR LF
 
 // src/wram.asm

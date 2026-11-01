@@ -27,7 +27,10 @@ characters are selected. F11 (or FULL SCREEN in the menu) hides them. F1 (or HEL
 
 PS/2 keyboards type directly: arrows, home, end, page up/down, backspace, delete, enter.
 Escape opens the menu (open, save, save as, new, font, full screen, help), Ctrl+O opens, Ctrl+S saves, Ctrl+N starts a new file.
-Files are .TXT files in the root of the SD card with 8.3 names. CR LF line endings are kept.
+OPEN (Ctrl+O) browses the SD card: the top bar shows the folder, the bottom bar the selected file's size and date.
+Folders come first, enter or A opens, left, backspace or B goes up a folder, escape or B in the root cancels.
+Any file up to 24KB opens as text, long file names (up to 64 characters) are shown. SAVE AS saves in the open
+file's folder. CR LF line endings are kept.
 Ctrl+F (or FONT in the menu) switches between the variable width and fixed width fonts.
 Ctrl+Left/Right move a word (or run of punctuation) at a time, Ctrl+Up/Down scroll a row without moving
 the cursor, Ctrl+Home/End go to the start/end of the text.
@@ -38,7 +41,7 @@ and is kept in SRAM. Selected text is inverted on DMG and highlighted on GBC and
 Text is kept in SRAM, so it's still there after turning the Game Boy off.
 
 # Engine
-- FatFs (ChaN) for the SD card, split across ROM0 and two banks by bank_split.py
+- FatFs (ChaN) with long file names for the SD card, split across ROM0 and three banks by bank_split.py
 - asm for core routines (drawing, input, math, memory, audio), C (SDCC) for higher level logic
 - PS/2 and iGKB keyboard drivers (src/keyboard)
 - FX Hammer sfx (for error and confirmation sounds)
@@ -67,7 +70,10 @@ Set in src/constants.asm, run before the editor starts:
 - SD_TEST_ENABLED (inits the card, checks the MBR and FAT32 boot sector, writes and reads back sector 1)
 
 # SD card
-`make sdcard` builds bin/sdcard.img (64MB, MBR + FAT32) from the files in sd/. Gearboy emulates the EverDrive X SD card using sdcard.img next to the ROM, or the GEARBOY_SD_IMAGE environment variable.
+Gearboy (the ps2keyboard branch of the fork) emulates the EverDrive X SD card with a folder on your computer, the
+home folder unless EverDrive X SD Folder... in its menu picks another (or GEARBOY_SD_DIR for one run). The Game Boy
+can read everything in it, saving writes the file straight to that folder. Nothing on your computer is ever deleted.
+`make sdcard` still builds bin/sdcard.img (64MB, MBR + FAT32) from sd/, GEARBOY_SD_IMAGE=bin/sdcard.img uses it instead.
 
 # Compiling:
     make clean

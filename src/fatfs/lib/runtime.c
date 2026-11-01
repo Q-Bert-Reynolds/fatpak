@@ -26,3 +26,18 @@ unsigned long _divulong(unsigned long x, unsigned long y) {
   }
   return quotient;
 }
+
+unsigned int _divuint(unsigned int x, unsigned int y) {
+  unsigned int quotient = 0, remainder = 0;
+  unsigned char i;
+  for (i = 16; i; --i) {
+    remainder = (remainder << 1) | (x >> 15);
+    x <<= 1;
+    quotient <<= 1;
+    if (remainder >= y) {
+      remainder -= y;
+      quotient |= 1;
+    }
+  }
+  return quotient;
+}

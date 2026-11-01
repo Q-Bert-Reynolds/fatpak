@@ -13,9 +13,14 @@
 #define PADF_DPAD   0xF0
 
 #define MARKER         13 // ▶
-#define FILE_NAME_SIZE 13 // 8.3 + 0
-#define BASE_NAME_SIZE 8
-#define FILE_LIST_MAX  (TB_ROWS - 2)
+#define ITEM_SIZE      13 // menu items
+#define NAME_CHARS     32 // save as, Latin-1 chars are 2 bytes in UTF-8 so they fit in FS_NAME_SIZE
+#define PATH_SIZE      128
+#define LIST_ROWS      (TB_ROWS - 2) // file browser rows between the bars
+#define LIST_ALL       0xFFFF
+#define KIND_UP        0
+#define KIND_FOLDER    1
+#define KIND_FILE      2
 #define CANCEL         0xFF
 #define BG_MAP_ROWS      32
 #define LCDC_TILES_8000  0x10 // LCDCF_BG8000
@@ -70,11 +75,17 @@ unsigned char font;
 unsigned char everdrive; // text is saved to SD, otherwise SRAM is the only copy so the gap is closed when idle
 unsigned char idle_frames;
 unsigned char normalized;
-char file_name[FILE_NAME_SIZE]; // current file, empty for new text
-char file_list[FILE_LIST_MAX][FILE_NAME_SIZE];
+char file_name[FS_NAME_SIZE]; // current file (UTF-8), empty for new text
+char file_dir[PATH_SIZE]; // its folder, "" = root, new text is saved here too
+FileEntry entry;
+unsigned char list_result; // FRESULT of the last folder listed
+unsigned char list_kinds[LIST_ROWS]; // file browser rows
+unsigned long list_sizes[LIST_ROWS];
+unsigned int list_dates[LIST_ROWS];
+unsigned int list_times[LIST_ROWS];
 
-static const char menu_items[][FILE_NAME_SIZE] = {"OPEN", "SAVE", "SAVE AS", "NEW", "FONT", "FULL SCREEN", "HELP"};
-static const char discard_items[][FILE_NAME_SIZE] = {"NO", "YES"};
+static const char menu_items[][ITEM_SIZE] = {"OPEN", "SAVE", "SAVE AS", "NEW", "FONT", "FULL SCREEN", "HELP"};
+static const char discard_items[][ITEM_SIZE] = {"NO", "YES"};
 static const char help_lines[HELP_ROWS][HELP_COLS] = {
   "HELP",
   "Esc  menu      F1  help",
@@ -397,10 +408,78 @@ static char* PutNumber(char* dest, unsigned int n) {
   return dest;
 }
 
+// pads n to 2 digits
+static char* PutNumber2(char* dest, unsigned int n) {
+  if (n < 10) *dest++ = '0';
+  return PutNumber(dest, n);
+}
+
+// UTF-8 to Latin-1 (? for chars it doesn't have), at most count chars, returns the end (no 0)
+static char* ToLatin1(char* dest, const char* text, unsigned char count) {
+  unsigned char c, next;
+  while ((c = *text++) && count--) {
+    if (c >= 0x80) {
+      next = *text;
+      if ((c & 0xFE) == 0xC2 && (next & 0xC0) == 0x80) { // U+0080-U+00FF
+        ++text;
+        c = (c << 6) | (next & 0x3F);
+        if (c < 0xA0) c = '?';
+      }
+      else {
+        while ((*text & 0xC0) == 0x80) ++text;
+        c = '?';
+      }
+    }
+    *dest++ = c;
+  }
+  return dest;
+}
+
+// Latin-1 to UTF-8, with a 0
+static void ToUtf8(char* dest, const char* text) {
+  unsigned char c;
+  while ((c = *text++)) {
+    if (c >= 0x80) {
+      *dest++ = 0xC0 | (c >> 6);
+      c = 0x80 | (c & 0x3F);
+    }
+    *dest++ = c;
+  }
+  *dest = 0;
+}
+
+// path with a 0, "/" for the root, its end with ... if it's longer than count chars
+static void PutPath(char* dest, const char* path, unsigned char count) {
+  unsigned char length = 0;
+  while (path[length]) ++length;
+  if (!length) path = "/";
+  else if (length > count) {
+    dest = PutText(dest, "...");
+    path += length - count;
+  }
+  *ToLatin1(dest, path, count) = 0;
+}
+
+// dir + "/" + name with a 0, returns 0 if it doesn't fit in size bytes
+static unsigned char JoinPath(char* dest, const char* dir, const char* name, unsigned char size) {
+  while (*dir) {
+    if (!--size) return 0;
+    *dest++ = *dir++;
+  }
+  if (!--size) return 0;
+  *dest++ = '/';
+  while (*name) {
+    if (!--size) return 0;
+    *dest++ = *name++;
+  }
+  *dest = 0;
+  return 1;
+}
+
 // file name (* = unsaved changes) and line and column, or how many chars are selected
 static void UpdateBars(void) {
   char text[TB_STRIDE];
-  char* end = PutText(text, file_name[0] ? file_name : "Untitled");
+  char* end = file_name[0] ? ToLatin1(text, file_name, TB_STRIDE - 3) : PutText(text, "Untitled");
   if (modified) *end++ = '*';
   *end = 0;
   DrawRow(HEADER_LINE, 1, text);
@@ -744,6 +823,8 @@ static unsigned char MenuKey(void) {
   held = DpadRepeat(pressed);
   if (held & PADF_UP) return KEY_UP;
   if (held & PADF_DOWN) return KEY_DOWN;
+  if (held & PADF_LEFT) return KEY_LEFT;
+  if (held & PADF_RIGHT) return KEY_RIGHT;
   return KEY_NONE;
 }
 
@@ -780,7 +861,7 @@ static void EndFullScreen(void) {
   SetRows();
 }
 
-// shows a list of FILE_NAME_SIZE strings, returns the chosen index or CANCEL
+// shows a list of ITEM_SIZE strings, returns the chosen index or CANCEL
 static unsigned char Choose(const char* title, const char* items, unsigned char count) {
   unsigned char i, key, selected = 0;
   BeginFullScreen();
@@ -788,7 +869,7 @@ static unsigned char Choose(const char* title, const char* items, unsigned char 
     ClearScreen();
     DrawRow(0, 0, title);
     for (i = 0; i < count; ++i) {
-      DrawRow(i + 2, 2, items + (i << 3) + (i << 2) + i); // i * FILE_NAME_SIZE
+      DrawRow(i + 2, 2, items + (i << 3) + (i << 2) + i); // i * ITEM_SIZE
       if (i == selected) RowAddress(i + 2)[1] = MARKER;
     }
     EditorDraw();
@@ -865,40 +946,215 @@ static void NewFile(void) {
   ResetCursor();
 }
 
+// file browser row for list index, if it's on screen (first is the top row's index)
+static void ListRow(unsigned int index, unsigned int first, unsigned char kind, const char* name) {
+  unsigned char row;
+  char* dest;
+  if (index < first || index >= first + LIST_ROWS) return;
+  row = (unsigned char)(index - first);
+  list_kinds[row] = kind;
+  list_sizes[row] = entry.size;
+  list_dates[row] = entry.date;
+  list_times[row] = entry.time;
+  dest = ToLatin1(RowAddress(row) + 1, name, TB_STRIDE - 3);
+  if (kind == KIND_FOLDER) *dest = '/';
+}
+
+// walks path's entries in list order (".." below the root, folders, then files), drawing the ones
+// from first on, and stops at index stop or the folder named find, leaving it in entry; returns
+// the index it stopped at or how many there are, list_result is set if the folder can't be read
+static unsigned int ListFolder(const char* path, unsigned int first, unsigned int stop, const char* find) {
+  unsigned int index = 0;
+  unsigned char pass, i;
+  for (pass = 0; pass < LIST_ROWS; ++pass) DrawRow(pass, 0, "");
+  list_result = 0;
+  entry.size = 0;
+  if (path[0]) {
+    if (!stop) return 0;
+    ListRow(index++, first, KIND_UP, "..");
+  }
+  for (pass = 0; pass < 2; ++pass) {
+    if ((list_result = FileOpenDir(path))) return index;
+    while (FileNext(&entry)) {
+      if (entry.dir == pass) continue; // folders on the first pass
+      if (index == stop) return index;
+      if (find && entry.dir) {
+        for (i = 0; find[i] && find[i] == entry.name[i]; ++i);
+        if (!find[i] && !entry.name[i]) return index;
+      }
+      ListRow(index, first, pass ? KIND_FILE : KIND_FOLDER, entry.name);
+      ++index;
+    }
+  }
+  return find ? 0 : index;
+}
+
+// path in the file name bar, what's on row in the status bar
+static void ListBars(const char* path, unsigned char row, unsigned char count) {
+  char text[TB_STRIDE];
+  char* end = text;
+  unsigned long size = list_sizes[row];
+  unsigned char* bytes = (unsigned char*)&size;
+  unsigned int date = list_dates[row], time = list_times[row];
+  PutPath(text, path, 30);
+  DrawRow(HEADER_LINE, 1, text);
+  if (!count) end = PutText(end, "Empty folder");
+  else if (list_kinds[row] == KIND_UP) end = PutText(end, "Parent folder");
+  else if (list_kinds[row] == KIND_FOLDER) end = PutText(end, "Folder");
+  else {
+    if (size < 10000) end = PutText(PutNumber(end, (unsigned int)size), " bytes  ");
+    else if (size < 10485760) end = PutText(PutNumber(end, (bytes[1] >> 2) | (bytes[2] << 6)), " KB  ");
+    else end = PutText(PutNumber(end, (bytes[2] >> 4) | (bytes[3] << 4)), " MB  ");
+    end = PutNumber(end, (date >> 9) + 1980);
+    *end++ = '-';
+    end = PutNumber2(end, (date >> 5) & 15);
+    *end++ = '-';
+    end = PutNumber2(end, date & 31);
+    *end++ = ' ';
+    end = PutNumber2(end, time >> 11);
+    *end++ = ':';
+    end = PutNumber2(end, (time >> 5) & 63);
+    if (size > TB_SIZE) end = PutText(end, "  too big");
+  }
+  *end = 0;
+  DrawRow(STATUS_LINE, 1, text);
+}
+
+// shows text in the status bar until a key is pressed
+static void ListMessage(const char* text) {
+  DrawRow(STATUS_LINE, 1, text);
+  EditorDraw();
+  while (!MenuKey());
+}
+
+// file browser, opens the chosen file into the text buffer, returns 1 if it did
+// up, down, page up/down, home, end move, enter/right/A opens, left/backspace/B goes up, escape/B at the root cancels
+static unsigned char Browse(void) {
+  char path[PATH_SIZE + FS_NAME_SIZE]; // folder, and the file's path when opening it
+  char name[FS_NAME_SIZE];
+  unsigned int count = 0, selected = 0, first = 0, drawn = LIST_ALL;
+  unsigned char key, result, row, opened = 0, editor_font = font, length;
+  CopyName(path, file_dir);
+  font = FONT_VWF;
+  SetFont(font);
+  EditorShowCursor(0);
+  if (osk_shown) OSKShow(0);
+  bars = 1;
+  tb_rows = LIST_ROWS;
+  Layout();
+  while (1) {
+    if (selected < first) first = selected;
+    else if (selected >= first + LIST_ROWS) first = selected - LIST_ROWS + 1;
+    if (first != drawn) {
+      count = ListFolder(path, first, LIST_ALL, 0);
+      drawn = first;
+      if (list_result) {
+        if (!path[0]) { // can't read the card
+          ShowError(list_result, "");
+          break;
+        }
+        path[0] = 0; // folder is gone, back to the root
+        selected = 0;
+        drawn = LIST_ALL;
+        continue;
+      }
+    }
+    row = (unsigned char)(selected - first);
+    ListBars(path, row, count);
+    NoHighlight();
+    if (count) render_sel[(row + 1) << 1] = 0, render_sel[((row + 1) << 1) + 1] = 0xFF;
+    EditorDraw();
+    while (!(key = MenuKey()));
+    if (key == KEY_UP && selected) --selected;
+    else if (key == KEY_DOWN && selected + 1 < count) ++selected;
+    else if (key == KEY_PAGE_UP) selected = selected > LIST_ROWS ? selected - LIST_ROWS : 0;
+    else if (key == KEY_PAGE_DOWN && count) selected = selected + LIST_ROWS < count ? selected + LIST_ROWS : count - 1;
+    else if (key == KEY_HOME) selected = 0;
+    else if (key == KEY_END && count) selected = count - 1;
+    else if ((key == KEY_ENTER || key == KEY_RIGHT) && count && list_kinds[row] != KIND_UP) {
+      ListFolder(path, first, selected, 0);
+      for (length = 0; path[length]; ++length);
+      if (entry.dir) {
+        if (JoinPath(path + length, "", entry.name, PATH_SIZE - length)) {
+          selected = 0;
+          drawn = LIST_ALL;
+        }
+        else {
+          path[length] = 0;
+          ListMessage("Path is too long");
+        }
+      }
+      else if (entry.size > TB_SIZE) ListMessage("Too big to open");
+      else {
+        JoinPath(path + length, "", entry.name, FS_NAME_SIZE + 1);
+        result = FileLoad(path);
+        path[length] = 0;
+        if (result) {
+          file_name[0] = 0; // the text buffer only has part of it, don't save over the file
+          ShowError(result, "TOO BIG");
+        }
+        else {
+          CopyName(file_dir, path);
+          CopyName(file_name, entry.name);
+        }
+        opened = 1;
+        break;
+      }
+    }
+    else if (path[0] && (key == KEY_LEFT || key == KEY_BACKSPACE || key == KEY_ESCAPE ||
+                         ((key == KEY_ENTER || key == KEY_RIGHT) && count && list_kinds[row] == KIND_UP))) {
+      for (length = 0; path[length]; ++length);
+      while (path[--length] != '/');
+      CopyName(name, path + length + 1);
+      path[length] = 0;
+      selected = ListFolder(path, 0, LIST_ALL, name); // back on the folder it came from
+      drawn = LIST_ALL;
+    }
+    else if (key == KEY_ESCAPE) break;
+  }
+  font = editor_font;
+  SetFont(font);
+  SetRows();
+  return opened;
+}
+
 static void OpenFile(void) {
-  unsigned char count = 0, selected, result;
+  unsigned char result;
   if (!CanDiscard()) return;
-  if ((result = FileMount()) || (result = FileOpenDir())) {
+  if ((result = FileMount())) {
     ShowError(result, "");
     return;
   }
-  while (count < FILE_LIST_MAX && FileNext(file_list[count])) ++count;
-  if (!count) {
-    ShowMessage("NO .TXT FILES");
-    return;
-  }
-  selected = Choose("OPEN", file_list[0], count);
-  if (selected == CANCEL) return;
-  result = FileLoad(file_list[selected]);
-  CopyName(file_name, file_list[selected]);
-  ResetCursor();
-  if (result) ShowError(result, "FILE TOO BIG");
+  if (Browse()) ResetCursor();
 }
 
-// asks for an 8 character name, sets file_name to NAME.TXT, returns 0 if cancelled
+// file name chars, not / \ : * ? " < > |
+static unsigned char NameChar(unsigned char c) {
+  if (c < ' ' || (c >= 0x7F && c < 0xA0)) return 0;
+  return c != '/' && c != 0x5C && c != ':' && c != '*' && c != '?' && c != '"' && c != '<' && c != '>' && c != '|';
+}
+
+// asks for a name, sets file_name, returns 0 if cancelled
 static unsigned char AskFileName(void) {
-  char name[BASE_NAME_SIZE + 1];
-  char text[TB_COLS + 1];
-  unsigned char length = 0, key, i;
-  for (; file_name[length] && file_name[length] != '.'; ++length) name[length] = file_name[length];
+  char name[NAME_CHARS + 1];
+  char text[TB_STRIDE + 1];
+  unsigned char length, key, i;
+  char* end;
+  length = (unsigned char)(ToLatin1(name, file_name, NAME_CHARS) - name);
   Render();
   EditorShowCursor(0);
   NoHighlight();
   while (1) {
-    CopyName(text, "SAVE AS ");
-    for (i = 0; i < length; ++i) text[8 + i] = name[i];
-    CopyName(text + 8 + length, "_.TXT");
-    if (bars) DrawRow(HEADER_LINE, 1, text);
+    end = PutText(text, "Save as ");
+    for (i = 0; i < length; ++i) *end++ = name[i];
+    *end++ = '_';
+    *end = 0;
+    if (bars) {
+      DrawRow(HEADER_LINE, 1, text);
+      end = PutText(text, "in ");
+      PutPath(end, file_dir, 28);
+      DrawRow(STATUS_LINE, 1, text);
+    }
     else DrawRow(0, 0, text);
     EditorDraw();
     do {
@@ -912,21 +1168,20 @@ static unsigned char AskFileName(void) {
       return 0;
     }
     if (key == KEY_BACKSPACE) --length;
-    if (key >= 'a' && key <= 'z') key -= 'a' - 'A';
-    if (length < BASE_NAME_SIZE && ((key >= 'A' && key <= 'Z') || (key >= '0' && key <= '9') || key == '_' || key == '-')) {
-      name[length++] = key;
-    }
+    else if (length < NAME_CHARS && NameChar(key)) name[length++] = key;
   }
-  for (i = 0; i < length; ++i) file_name[i] = name[i];
-  CopyName(file_name + length, ".TXT");
+  name[length] = 0;
+  ToUtf8(file_name, name);
   dirty = 1;
   return 1;
 }
 
 static void SaveFile(unsigned char ask) {
+  char path[PATH_SIZE + FS_NAME_SIZE];
   unsigned char result;
   if ((ask || !file_name[0]) && !AskFileName()) return;
-  if ((result = FileMount()) || (result = FileSave(file_name))) {
+  JoinPath(path, file_dir, file_name, PATH_SIZE + FS_NAME_SIZE);
+  if ((result = FileMount()) || (result = FileSave(path))) {
     ShowError(result, "DISK FULL");
     return;
   }
@@ -1047,6 +1302,7 @@ void Editor(void) {
   modified = 0;
   font = FONT_VWF;
   file_name[0] = 0;
+  file_dir[0] = 0;
   fs_crlf = 0;
   osk_shown = 0;
   osk_layer = OSK_LOWER;

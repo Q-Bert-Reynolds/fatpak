@@ -61,7 +61,7 @@ flowchart LR
 | `src/charmap.asm`, `constants.asm`, `macros.asm`, `hardware.inc` | Character map, constants, macros, hardware registers |
 | `src/wram.asm`, `sram.asm` | Shared WRAM variables and buffers, SRAM layout |
 | `img/`, `sfx/`, `data/` | Asset sources and their generated assembly |
-| `sd/` | Files copied into `bin/sdcard.img` |
+| `sd/` | Files copied into `bin/sdcard.img` (`make sdcard`, for `GEARBOY_SD_IMAGE`) |
 | `*.py` | Asset converters (see Building) and `bank_split.py` |
 
 ## Boot
@@ -106,7 +106,7 @@ SRAM is only enabled (`SRAM_ON`) while it's being read or written, so a power lo
 - **`TRAMPOLINE Label`** calls `Label` in another bank from asm and switches back. Arguments can only go in `a`, `de`, and RAM.
 - **C calling convention** (SDCC 4.2, `sdcccall(1)`): the first argument goes in `a` (8 bit) or `de` (16 bit). The second goes in `e` if the first was in `a`, otherwise `a` (8 bit) or `bc` (16 bit). The rest go on the stack, and the callee removes them. Return values: 8 bit in `a`, 16 bit in `bc`, 32 bit in `debc`. C sees asm labels that start with `_` (`_tb_Insert::` is `tb_Insert()` in C).
 - **C code is banked.** Each C file's code lands in a ROMX section. C can call ROM0 asm, and C in its own bank, but not code in other banks. To call C in another bank from C, add a ROM0 stub with `BANKED_C` (`src/macros.asm`). It keeps `a`, `de`, `bc` arguments and return values, so it only works for functions with no stack arguments. The FatFs file API (`FileLoad` etc. in `src/fatfs/fatfs.asm`) is called this way.
-- **C files too big for one bank** (FatFs, ~21KB) are split by `bank_split.py`, which runs after SDCC when a `banks.txt` sits next to the `.c` file. It moves listed functions into `ROM0` or a second bank `B` (unlisted functions stay in `A`, data goes to ROM0), and rewrites every call or jump between banks to go through a generated ROM0 thunk. The thunk saves the caller's bank and return address on a WRAM stack and jumps to `FarCall`, so stack arguments stay where the callee expects them.
+- **C files too big for one bank** (FatFs, ~21KB) are split by `bank_split.py`, which runs after SDCC when a `banks.txt` sits next to the `.c` file. It moves listed functions into `ROM0` or other banks (`B`, `C`, ..., unlisted functions stay in `A`, data goes to ROM0), and rewrites every call or jump between banks to go through a generated ROM0 thunk. The thunk saves the caller's bank and return address on a WRAM stack and jumps to `FarCall`, so stack arguments stay where the callee expects them.
 - **C restrictions** (SDCC's libraries aren't linked, only RGBDS objects are):
   - Static initializers don't run (`_GSINIT` is never called). Initialize globals in code. WRAM is zeroed at boot.
   - 32 bit multiply and divide use our own `_mullong`/`_divulong` in `src/fatfs/lib/runtime.c`. `memcpy`, `memset`, `memcmp`, `strchr` are in `src/fatfs/fatfs.c`. Avoid 16 bit `*` and `/` in other C.
@@ -193,8 +193,8 @@ Five rows of ten keys drawn into the bottom rows of `tile_buffer` (the text area
 
 ```mermaid
 flowchart LR
-  editorc[editor.c] -->|File* stubs, BANKED_C| api[fs_Load / fs_Save / fs_NextFile in fatfs.c]
-  api --> ff[FatFs, banks A and B + ROM0 thunks]
+  editorc[editor.c] -->|File* stubs, BANKED_C| api[fs_Load / fs_Save / fs_OpenDir / fs_NextEntry in fatfs.c]
+  api --> ff[FatFs, banks A, B and C + ROM0 thunks]
   ff --> glue[disk_read / disk_write]
   glue --> sd[sd.asm: SD over SPI]
   sd --> regs[EverDrive registers $BD00 $BD01 $BD0A]
@@ -203,9 +203,10 @@ flowchart LR
 
 - **EverDrive registers** live in cartridge RAM space and respond after `$A5` is written to `$BD0A`: `$BD00` SPI data, `$BD01` SPI control (busy, auto read, slow clock, chip select). `sd.asm` disables SRAM before using them and locks them again afterwards. In case writing `$A5` to `$BD0A` unlocks them even while SRAM is enabled, the text buffer never stores anything at `$BD00-$BD0F`. `~/Projects/everdrive-gb` (a disassembly of the EverDrive OS) documents the rest of the registers.
 - **`sd.asm`** detects the EverDrive (`sd_Detect` reads back the SPI control register), initializes SD v1/v2/SDHC cards, and reads and writes 512 byte sectors. It's based on TXTReaderGB's diskio.
-- **FatFs** R0.16 (`src/fatfs/lib`, configured in `ffconf.h`: FAT only, 8.3 names, minimized, tiny buffers) is compiled as part of `fatfs.c`, a single C file that also holds the disk glue, the SDCC runtime helpers, and the file API. `banks.txt` splits it across two ROM banks.
-- **File API:** `fs_Load` replaces the text buffer with a file, dropping CRs and remembering that the file used CR LF (`fs_crlf`). `fs_Save` writes the buffer (around the gap) and adds the CRs back. `fs_NextFile` lists `.TXT` files in the root folder.
-- **Gearboy** emulates the EverDrive's SD card on MBC5 carts (menu "EverDrive X SD Card", or `GEARBOY_EVERDRIVE=0` to turn it off) using `sdcard.img` next to the ROM or `GEARBOY_SD_IMAGE`.
+- **FatFs** R0.16 (`src/fatfs/lib`, configured in `ffconf.h`: FAT only, long file names up to 64 characters as UTF-8 with code page 437 short names, minimized, tiny buffers) is compiled as part of `fatfs.c`, a single C file that also holds `ffunicode.c`, the disk glue, the SDCC runtime helpers (`_mullong`, `_divulong`, `_divuint`), and the file API. `banks.txt` splits it across three ROM banks: the read side in A, the write side and mount in B, long names in C.
+- **File API:** `fs_Load` replaces the text buffer with a file, dropping CRs and remembering that the file used CR LF (`fs_crlf`). `fs_Save` writes the buffer (around the gap) and adds the CRs back. `fs_OpenDir` and `fs_NextEntry` list a folder's files and folders (`FileEntry` in `src/fatfs/file_api.h`: UTF-8 name, size, date), skipping hidden, system and dot names.
+- **File browser** (`Browse` in `editor.c`): lists folders, then files, with `..` below the root. Names aren't kept in memory: the folder is read twice (folders, then files) each time the visible rows change, and again up to the chosen entry when opening it. Each visible row keeps its kind, size and date for the status bar. The editor keeps the open file's folder (`file_dir`) and name (`file_name`), both UTF-8, and shows them in Latin-1.
+- **Gearboy** emulates the EverDrive's SD card on MBC5 carts (menu "EverDrive X SD Card", or `GEARBOY_EVERDRIVE=0` to turn it off). `VirtualFat` (in the Gearboy fork) makes a FAT32 card out of a host folder ("EverDrive X SD Folder...", `GEARBOY_SD_DIR`, or the home folder): folders are listed the first time they're read, files are read from the host, and when the Game Boy writes a folder's entries its new and changed files are written back. `GEARBOY_SD_IMAGE` uses a disk image instead.
 
 ## Engine modules
 

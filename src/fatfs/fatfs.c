@@ -4,6 +4,9 @@
 // NOTE: no static initializers (_GSINIT doesn't run)
 #include "fatfs.h"
 #include "lib/ff.c"
+#include "lib/ffunicode.c"
+
+typedef char check_name_size[FS_NAME_SIZE == FF_LFN_BUF + 1 ? 1 : -1];
 
 #define BUFFER_SIZE 512
 
@@ -93,18 +96,20 @@ unsigned char fs_Mount(void) {
   return f_mount(&fs, "", 1);
 }
 
-unsigned char fs_OpenDir(void) {
-  return f_opendir(&dir, "");
+// path is UTF-8, "" for the root folder
+unsigned char fs_OpenDir(const char* path) {
+  return f_opendir(&dir, path);
 }
 
-// copies the next .TXT file name in the root directory to name (13 bytes), returns 0 when there are no more
-unsigned char fs_NextFile(char* name) {
-  char* ext;
+// next file or folder in the open folder, skipping hidden, system and dot names, returns 0 when there are no more
+unsigned char fs_NextEntry(FileEntry* entry) {
   while (f_readdir(&dir, &info) == FR_OK && info.fname[0]) {
-    if (info.fattrib & (AM_DIR | AM_HID | AM_SYS)) continue;
-    ext = strchr(info.fname, '.');
-    if (!ext || ext[1] != 'T' || ext[2] != 'X' || ext[3] != 'T' || ext[4]) continue;
-    memcpy(name, info.fname, sizeof info.fname);
+    if ((info.fattrib & (AM_HID | AM_SYS)) || info.fname[0] == '.') continue;
+    memcpy(entry->name, info.fname, FS_NAME_SIZE);
+    entry->size = info.fsize;
+    entry->date = info.fdate;
+    entry->time = info.ftime;
+    entry->dir = (info.fattrib & AM_DIR) != 0;
     return 1;
   }
   f_closedir(&dir);
@@ -123,9 +128,9 @@ static UINT RemoveCR(UINT count) {
 }
 
 // replaces the text buffer with the file, returns an FRESULT (FR_DENIED if it doesn't fit)
-unsigned char fs_Load(const char* name) {
+unsigned char fs_Load(const char* path) {
   UINT count;
-  FRESULT result = f_open(&file, name, FA_READ);
+  FRESULT result = f_open(&file, path, FA_READ);
   if (result) return result;
   tb_Clear();
   fs_crlf = 0;
@@ -155,10 +160,10 @@ static UINT AddCR(UINT count) {
 }
 
 // writes the text buffer to the file, returns an FRESULT
-unsigned char fs_Save(const char* name) {
+unsigned char fs_Save(const char* path) {
   UINT count, size, written;
   unsigned int left;
-  FRESULT result = f_open(&file, name, FA_WRITE | FA_CREATE_ALWAYS);
+  FRESULT result = f_open(&file, path, FA_WRITE | FA_CREATE_ALWAYS);
   if (result) return result;
   left = tb_Length();
   tb_read_pos = 0;
