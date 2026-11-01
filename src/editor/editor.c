@@ -347,6 +347,49 @@ static void Paste(void) {
   dirty = 1;
 }
 
+// 0 = space, 1 = word (letters, digits, _), 2 = punctuation
+static unsigned char CharClass(unsigned char c) {
+  if (c == ' ' || c == ASCII_TAB || c == ASCII_LF) return 0;
+  if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_' || c >= 0xC0) return 1;
+  return 2;
+}
+
+// to the end of the next token, skipping spaces
+static void WordRight(void) {
+  unsigned int length = tb_Length();
+  unsigned char token;
+  while (cursor < length && !CharClass(tb_GetChar(cursor))) ++cursor;
+  if (cursor == length) return;
+  token = CharClass(tb_GetChar(cursor));
+  do ++cursor;
+  while (cursor < length && CharClass(tb_GetChar(cursor)) == token);
+}
+
+// to the start of the previous token, skipping spaces
+static void WordLeft(void) {
+  unsigned char token;
+  while (cursor && !CharClass(tb_GetChar(cursor - 1))) --cursor;
+  if (!cursor) return;
+  token = CharClass(tb_GetChar(cursor - 1));
+  do --cursor;
+  while (cursor && CharClass(tb_GetChar(cursor - 1)) == token);
+}
+
+// scrolls one row, the cursor only moves if its row leaves the screen
+static void ScrollLine(unsigned char down) {
+  unsigned char row = tb_found_row;
+  keep_x = 1;
+  if (down) {
+    if (tb_end_row != 0xFF) return; // the end of the text is on screen
+    ScrollDown();
+    if (!row) cursor = PosAtX(0, want_x);
+  }
+  else if (top) {
+    ScrollUp(tb_RowStart(top - 1));
+    if (row == tb_rows - 1) cursor = PosAtX(row, want_x);
+  }
+}
+
 // ctrl + A, X, C, V
 static void HandleCtrlKey(unsigned char key) {
   if (key >= 'A' && key <= 'Z') key += 'a' - 'A';
@@ -362,28 +405,39 @@ static void HandleCtrlKey(unsigned char key) {
   else if (key == 'v') Paste();
 }
 
+// ctrl + left/right move by token, ctrl + up/down scroll, ctrl + home/end go to the start/end
 static void HandleKey(unsigned char key, unsigned char mods) {
-  if (mods & KB_MOD_CTRL) {
-    HandleCtrlKey(key);
-    return;
-  }
+  unsigned char ctrl = mods & KB_MOD_CTRL;
   if (mods & (KB_MOD_ALT | KB_MOD_SUPER)) return;
-
-  if (key >= KEY_LEFT && key <= KEY_PAGE_DOWN) { // shift + movement selects
-    if (mods & KB_MOD_SHIFT) {
-      if (!selecting) anchor = cursor;
-      selecting = 1;
-      redraw = 1;
-    }
-    else if (GetSelection() && (key == KEY_LEFT || key == KEY_RIGHT)) { // to that end of the selection
-      cursor = key == KEY_LEFT ? sel_start : sel_end;
-      ClearSelection();
-      moved = 1;
+  if (key < KEY_LEFT || key > KEY_PAGE_DOWN) {
+    if (ctrl) {
+      HandleCtrlKey(key);
       return;
     }
-    else ClearSelection();
   }
+  else if (mods & KB_MOD_SHIFT) { // shift + movement selects
+    if (!selecting) anchor = cursor;
+    selecting = 1;
+    redraw = 1;
+  }
+  else if (!ctrl && GetSelection() && (key == KEY_LEFT || key == KEY_RIGHT)) { // to that end of the selection
+    cursor = key == KEY_LEFT ? sel_start : sel_end;
+    ClearSelection();
+    moved = 1;
+    return;
+  }
+  else ClearSelection();
   moved = 1;
+  if (ctrl) {
+    switch (key) {
+      case KEY_LEFT: WordLeft(); return;
+      case KEY_RIGHT: WordRight(); return;
+      case KEY_UP: ScrollLine(0); return;
+      case KEY_DOWN: ScrollLine(1); return;
+      case KEY_HOME: cursor = 0; return;
+      case KEY_END: cursor = tb_Length(); return;
+    }
+  }
   switch (key) {
     case KEY_UP: MoveUp(); return;
     case KEY_DOWN: MoveDown(); return;
@@ -739,7 +793,10 @@ static void Refresh(void) {
         if (bottom == row) break;
         bottom = tb_NextRow(bottom);
       }
-      if (!i) top = row;
+      if (!i) { // the cursor's row goes at the bottom
+        top = row;
+        for (i = tb_rows - 1; i && top; --i) top = tb_RowStart(top - 1);
+      }
       else if (i == tb_rows) ScrollRing(1); // one row down
     }
     Render();

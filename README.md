@@ -26,7 +26,9 @@ PS/2 keyboards type directly: arrows, home, end, page up/down, backspace, delete
 Escape opens the file menu (open, save, save as, new), Ctrl+O opens, Ctrl+S saves, Ctrl+N starts a new file.
 Files are .TXT files in the root of the SD card with 8.3 names. CR LF line endings are kept.
 Ctrl+F (or FONT in the menu) switches between the variable width and fixed width fonts.
-Shift + arrows, home, end, page up/down select text, Ctrl+A selects everything. Ctrl+X cuts, Ctrl+C copies,
+Ctrl+Left/Right move a word (or run of punctuation) at a time, Ctrl+Up/Down scroll a row without moving
+the cursor, Ctrl+Home/End go to the start/end of the text.
+Shift + any of those keys selects text, Ctrl+A selects everything. Ctrl+X cuts, Ctrl+C copies,
 Ctrl+V pastes. Typing, backspace or delete replace the selection. The clipboard holds up to 7356 characters
 and is kept in SRAM. Selected text is inverted on DMG and highlighted on GBC and SGB.
 
