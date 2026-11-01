@@ -6,7 +6,7 @@ SECTION "Text Buffer 1", SRAM, BANK[1]
 SECTION "Text Buffer 2", SRAM, BANK[2]
   DS $2000
 
-SECTION "Main Save", SRAM, BANK[MAIN_SRAM_BANK]
+SECTION "Main Save", SRAM[_SRAM], BANK[MAIN_SRAM_BANK]
 sram_tb_signature:: DS 4
 
 sram_main_save:
@@ -19,6 +19,13 @@ sram_map_x: DB
 sram_map_y: DB
 sram_item_flags:: DS ITEM_FLAGS_SIZE
 sram_main_save_end:
+
+SECTION "Clipboard", SRAM[TB_CLIP_ADDR], BANK[MAIN_SRAM_BANK];see tb_Copy
+sram_clip_length:: DW
+sram_clip_check:: DW;~length, the clipboard is empty if they don't match
+sram_clip:: DS TB_CLIP_SIZE
+ASSERT sram_main_save_end <= sram_clip_length
+ASSERT sram_clip+TB_CLIP_SIZE == _SRAM+TB_HOLE, "the clipboard must end before the EverDrive registers"
 
 SECTION "Save/Load Code", ROM0
 LoadGame::

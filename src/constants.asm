@@ -40,6 +40,8 @@ DEF TB_HOLE      EQU $1D00;$BD00-$BD0F are EverDrive registers, never stored to
 DEF TB_HOLE_SIZE EQU $10
 DEF TB_BANK_SIZE EQU ($2000-TB_HOLE_SIZE)
 DEF TB_SIZE      EQU (TB_BANK_SIZE*TB_BANKS)
+DEF TB_CLIP_ADDR EQU $A040;clipboard in SRAM bank 3, up to the EverDrive registers at $BD00
+DEF TB_CLIP_SIZE EQU ($BD00-TB_CLIP_ADDR-4)
 DEF TB_COLS   EQU 20;tiles per row
 DEF TB_ROWS   EQU 18
 DEF TB_WIDTH  EQU TB_COLS*8;pixels per row

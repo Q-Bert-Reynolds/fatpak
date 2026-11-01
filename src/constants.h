@@ -43,6 +43,8 @@
 #define TB_HOLE_SIZE 0x10
 #define TB_BANK_SIZE (0x2000-TB_HOLE_SIZE)
 #define TB_SIZE      (TB_BANK_SIZE*TB_BANKS)
+#define TB_CLIP_ADDR 0xA040//clipboard in SRAM bank 3, up to the EverDrive registers at 0xBD00
+#define TB_CLIP_SIZE (0xBD00-TB_CLIP_ADDR-4)
 #define TB_COLS   20//tiles per row
 #define TB_ROWS   18
 #define TB_WIDTH  TB_COLS*8//pixels per row

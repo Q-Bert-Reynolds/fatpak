@@ -100,7 +100,7 @@ flowchart LR
 | Bank | Contents |
 | --- | --- |
 | 0-2 | The text buffer (24,528 bytes). `$BD00-$BD0F` is never used in any bank (see EverDrive registers) |
-| 3 | `sram_tb_signature` ("TXT2"), then the engine's save data |
+| 3 | `sram_tb_signature` ("TXT2") and the engine's save data at `$A000`, the clipboard at `$A040-$BCFF` (length, its complement, then up to 7356 characters) |
 
 SRAM is only enabled (`SRAM_ON`) while it's being read or written, so a power loss is less likely to corrupt it.
 
@@ -170,6 +170,7 @@ A [gap buffer](https://en.wikipedia.org/wiki/Gap_buffer) in SRAM banks 0-2. Posi
 - **Gap moves** (`TBMoveGap`) copy runs of up to 256 bytes that don't cross a bank or the register hole, through `win_buffer` when the banks differ, and zero what they leave behind. The gap only moves when text is edited away from it. On an EverDrive, where files are saved to SD, the gap stays put. Elsewhere it's moved to the end when idle so the `.sav` is the only copy you need.
 - **Rows** (`TBScanRow`) are up to 160 pixels (character widths from `_font_widths`) and 40 characters. A row ends after a line feed, wraps after the last space when a word doesn't fit, and lets spaces and a line feed after a full row hang off its end. Control characters are drawn as spaces.
 - **Row tables:** rendering records `tb_row_starts` (where each visible row starts, then the row after the last), `tb_row_counts` (characters drawn), and `tb_end_row` (the row the end of the text is on). Cursor movement, partial rendering, and scrolling all work from these instead of scanning SRAM.
+- **Selection and clipboard:** `tb_DeleteRange` grows the gap over a range, `tb_Copy` copies a range to the clipboard in SRAM bank 3 and `tb_Paste` inserts it, both 256 bytes at a time through `win_buffer`. The editor keeps the selection as `anchor` and `cursor`.
 - `tb_Render` (all rows), `tb_RenderRows` (a range), and `tb_ScrollRows` (shift `tile_buffer` and the tables one row) fill `tile_buffer`, which holds 18 rows of `TB_STRIDE` (40) characters.
 
 ### Rendering (`src/editor/render.asm`)
@@ -180,7 +181,8 @@ Text is drawn as pixels so fonts can be any width. Every screen cell has its own
 - **Mode switches:** `RenderLCDInterrupt` switches the tile data mode partway down the screen, at most twice per frame, in the middle of a shared band. The PS/2 interrupt can delay the switch by several lines without anything showing.
 - **Scrolling** rotates the ring by one block: the block that leaves the screen draws the new row, its BG map row is pointed at it, and SCY moves 8 pixels. The new SCY and switch points are staged in `render_pending_*` and applied together at line 144. Only whole rows scroll, because there aren't tiles for a 19th row on DMG.
 - **Row cache:** `bkg_buffer` holds the characters each block shows and `row_font` its font. `RenderRow` skips rows that haven't changed, so after a scroll or an edit only one or two rows are drawn.
-- **Drawing a row:** glyphs are ORed into a 160x8 1bpp bitmap with 4KB of precomputed shift tables (in the renderer's bank, 4KB aligned), then each byte is written to both bitplanes in VRAM, 4 bytes per HBlank.
+- **Drawing a row:** glyphs are ORed into a 160x8 1bpp bitmap with 4KB of precomputed shift tables (in the renderer's bank, 4KB aligned), then each byte is written to VRAM, 4 bytes per HBlank. Bitplane 1 is the byte and bitplane 0 is the byte XOR the tile's selection mask, so text is color 3 on color 0 and selected text is color 2 on color 1.
+- **Selection:** before drawing, the editor sets `render_sel` (first and end column of each row, end `$FF` for the right edge) from the selection and the row tables. A row whose selection changed is redrawn. The palettes set in `EditorSetup` show colors 1 and 2 as inverted on DMG (BGP) and as a blue highlight on GBC and SGB (palette 0). The cursor turns white at the start of a selection (OBP1) so it shows on DMG.
 - **Fonts:** `fonts.py` converts `img/ui_font.png` (fixed width, 8 pixels) and `img/fonts/vwf_font.png` (variable width) into 8 bytes of 1bpp glyph rows and a width per character code. Rows below `tb_rows` (the on screen keyboard) always use the fixed width font.
 - **Cursor:** sprite 0, a 1 pixel line. `RenderCursorX` adds up character widths in the cursor's row.
 

@@ -11,6 +11,8 @@
 ;   blocks 15-17  tiles 188-247   either mode
 ;Screen row r draws into block (render_block_top + r) % TB_ROWS. Mode switches (at most 2) are
 ;staged in render_pending_* and applied with SCY at line 144.
+;Text is color 3 on color 0. Selected pixels use color 2 on color 1 (bitplane 0 is inverted),
+;which the palettes set up in EditorSetup show as inverted on DMG and highlighted on GBC and SGB.
 ;
 ;C functions (src/editor/editor.h)
 ;   SetFont                     a = font, sets _font_widths and redraws rows using it
@@ -48,8 +50,15 @@ _render_pending_top_mode:: DB
 _render_pending_split_count:: DB
 _render_pending_splits:: DS 4
 render_map_row: DS TB_COLS
+_render_sel:: DS TB_ROWS*2;selected columns of each screen row (first, end), end $FF = right edge, first = end for none
+block_sel: DS TB_ROWS*2;selection each block was drawn with
+render_sel_first: DB
+render_sel_end: DB
+render_sel_x: DB
+render_sel_end_x: DB
 
 DEF render_bitmap EQUS "cmd_buffer";160 bytes, 20 tiles of 8 lines (1bpp), must start a page
+DEF render_mask EQUS "(cmd_buffer+TB_WIDTH)";selected pixels of each tile, in the same page
 DEF RENDER_BURST EQU 4;bytes written to VRAM per HBlank (8 writes)
 
 SECTION "Render ROM0", ROM0
@@ -378,6 +387,41 @@ RenderRow:
   ld d, h
   ld e, l
 
+.checkSelection;a change makes the font check fail
+  ld a, [render_row]
+  add a, a
+  ld c, a
+  ld b, 0
+  ld hl, _render_sel
+  add hl, bc
+  ld a, [hli]
+  ld [render_sel_first], a
+  ld a, [hl]
+  ld [render_sel_end], a
+  ld a, [render_block]
+  add a, a
+  ld c, a
+  ld hl, block_sel
+  add hl, bc
+  ld a, [render_sel_first]
+  cp a, [hl]
+  jr nz, .selectionChanged
+  inc hl
+  ld a, [render_sel_end]
+  cp a, [hl]
+  jr z, .checkFont
+  dec hl
+.selectionChanged
+  ld a, [render_sel_first]
+  ld [hli], a
+  ld a, [render_sel_end]
+  ld [hl], a
+  ld a, [render_block]
+  ld c, a
+  ld hl, row_font
+  add hl, bc
+  ld [hl], $FF
+
 .checkFont
   ld a, [render_block]
   ld c, a
@@ -433,6 +477,7 @@ RenderRow:
   ld [render_widths], a
   ld a, d
   ld [render_widths+1], a
+  call RenderSelectionMask
 
   xor a
   ld [render_x], a
@@ -452,7 +497,7 @@ RenderRow:
     dec b
     jr nz, .char
 
-.toVRAM;both bitplanes are the 1bpp byte, drawn pixels are color 3
+.toVRAM;bitplane 1 is the 1bpp byte, bitplane 0 is it XOR the tile's mask
   ld a, [render_block]
   add a, a
   ld c, a
@@ -465,12 +510,22 @@ RenderRow:
   ld hl, render_bitmap
   ld c, TB_WIDTH/RENDER_BURST
 .burst
+    push hl
+    ld a, l
+    rrca
+    rrca
+    rrca
+    and a, %00011111;tile
+    add a, LOW(render_mask)
+    ld l, a
+    ld b, [hl]
+    pop hl
     ldh a, [rLY]
     cp a, SCRN_Y
     jr c, .waitForHBlank
     cp a, SCRN_Y+8
     jr c, .write;VBlank with time left
-  .waitForHBlank;start of mode 0, then mode 0 and 2 leave at least ~160 cycles
+  .waitForHBlank;start of mode 0, then mode 0 and 2 last at least ~260 dots with one sprite on the line
       ldh a, [rSTAT]
       and a, STATF_BUSY
       jr z, .waitForHBlank
@@ -480,10 +535,12 @@ RenderRow:
       jr nz, .waitForNotBusy
   .write
     di
-REPT RENDER_BURST;tiles are 16 byte aligned, so a burst never crosses a page
+REPT RENDER_BURST;40 cycles, tiles are 16 byte aligned so a burst never crosses a page
     ld a, [hli]
+    xor a, b
     ld [de], a
     inc e
+    xor a, b
     ld [de], a
     inc e
 ENDR
@@ -495,6 +552,98 @@ ENDR
 .nextBurst
     dec c
     jr nz, .burst
+  ret
+
+;sets render_mask to the pixels from column [render_sel_first] to [render_sel_end]
+RenderSelectionMask:
+  ld a, [render_sel_first]
+  ld hl, render_sel_end
+  cp a, [hl]
+  jr nz, .selected
+  xor a
+  ld hl, render_mask
+  ld bc, TB_COLS
+  jp mem_Set
+.selected
+  call RenderColumnX
+  ld [render_sel_x], a
+  ld a, [render_sel_end]
+  cp a, $FF
+  ld a, TB_WIDTH
+  jr z, .setEnd
+  ld a, [render_sel_end]
+  call RenderColumnX
+.setEnd
+  ld [render_sel_end_x], a
+  ld hl, render_mask
+  ld c, 0;tile's x
+.tile
+    ld a, [render_sel_x]
+    call .clampToTile
+    ld e, a;selected pixels start
+    ld a, [render_sel_end_x]
+    call .clampToTile;and end
+    push hl
+    ld hl, RenderMaskBits
+    ld d, 0
+    add hl, de
+    ld d, [hl]
+    ld hl, RenderMaskBits
+    add a, l
+    ld l, a
+    adc a, h
+    sub a, l
+    ld h, a
+    ld a, [hl]
+    xor a, d
+    pop hl
+    ld [hli], a
+    ld a, c
+    add a, 8
+    ld c, a
+    cp a, TB_WIDTH
+    jr c, .tile
+  ret
+.clampToTile;a = x, returns a - c clamped to 0-8
+  sub a, c
+  jr nc, .notBefore
+  xor a
+  ret
+.notBefore
+  cp a, 8
+  ret c
+  ld a, 8
+  ret
+
+;$FF >> n, so pixels n to m of a tile are RenderMaskBits[n] ^ RenderMaskBits[m]
+RenderMaskBits: DB $FF, $7F, $3F, $1F, $0F, $07, $03, $01, $00
+
+;a = column, returns its x in the row at [render_src] in the row's font, at most TB_WIDTH
+RenderColumnX:
+  and a
+  ret z
+  ld c, a
+  ld b, 0;x
+  LD_HL_VAR render_src
+.sum
+    ld a, [hli]
+    push hl
+    ld e, a
+    ld d, 0
+    LD_HL_VAR render_widths
+    add hl, de
+    ld a, [hl]
+    pop hl
+    add a, b
+    jr c, .clamp
+    ld b, a
+    dec c
+    jr nz, .sum
+  ld a, b
+  cp a, TB_WIDTH
+  ret c
+.clamp
+  ld a, TB_WIDTH
   ret
 
 ;a = character, ORs its glyph into render_bitmap at [render_x] and advances it

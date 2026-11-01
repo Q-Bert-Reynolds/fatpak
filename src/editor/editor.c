@@ -32,6 +32,10 @@
 
 unsigned int cursor;
 unsigned int top;
+unsigned int anchor; // other end of the selection
+unsigned char selecting;
+unsigned int sel_start; // set by GetSelection
+unsigned int sel_end;
 unsigned char want_x; // pixel x up and down try to keep
 unsigned char keep_x;
 unsigned char moved; // cursor moved, text didn't change
@@ -62,7 +66,7 @@ static const char discard_items[][FILE_NAME_SIZE] = {"NO", "YES"};
 static void Render(void);
 
 static char* RowAddress(unsigned char row);
-static void Render(void);
+static void ShowMessage(const char* text);
 
 // rendered row pos is on, 0xFF if it isn't on screen
 static unsigned char FindRow(unsigned int pos) {
@@ -73,6 +77,8 @@ static unsigned char FindRow(unsigned int pos) {
   }
   return pos == tb_Length() ? tb_end_row : 0xFF;
 }
+
+static unsigned char GetSelection(void);
 
 // moves the cursor sprite to the cursor, returns 0 if it isn't on screen
 static unsigned char PlaceCursor(void) {
@@ -86,6 +92,7 @@ static unsigned char PlaceCursor(void) {
   if (!keep_x) want_x = RenderCursorX(tb_found_col);
   keep_x = 0;
   blink_timer = 0;
+  EditorInvertCursor(GetSelection() && cursor == sel_start); // the selection starts at the cursor's x
   EditorShowCursor(1);
   return 1;
 }
@@ -197,6 +204,59 @@ static void Edited(unsigned int pos, signed char delta) {
   edit_delta = delta;
 }
 
+// sets sel_start and sel_end, returns 0 if nothing is selected
+static unsigned char GetSelection(void) {
+  if (!selecting || anchor == cursor) return 0;
+  if (anchor < cursor) {
+    sel_start = anchor;
+    sel_end = cursor;
+  }
+  else {
+    sel_start = cursor;
+    sel_end = anchor;
+  }
+  return 1;
+}
+
+static void ClearSelection(void) {
+  if (selecting) redraw = 1;
+  selecting = 0;
+}
+
+static void NoHighlight(void) {
+  unsigned char i;
+  for (i = 0; i < TB_ROWS * 2; ++i) render_sel[i] = 0;
+}
+
+// sets the selected columns of each rendered row for EditorDraw
+static void SetHighlight(void) {
+  unsigned char row, first, end, count;
+  unsigned int row_start, next;
+  NoHighlight();
+  if (!GetSelection()) return;
+  for (row = 0; row < tb_rows; ++row) {
+    row_start = tb_row_starts[row];
+    next = tb_row_starts[row + 1];
+    if (sel_end <= row_start) break;
+    if (sel_start >= next) continue;
+    count = tb_row_counts[row];
+    first = 0;
+    if (sel_start > row_start) first = sel_start - row_start > count ? count : (unsigned char)(sel_start - row_start);
+    if (sel_end < next || row == tb_end_row) { // ends in this row
+      end = sel_end - row_start > count ? count : (unsigned char)(sel_end - row_start);
+      if (end <= first) continue;
+    }
+    else end = 0xFF; // continues, so the line feed or wrap is selected too
+    render_sel[row << 1] = first;
+    render_sel[(row << 1) + 1] = end;
+  }
+}
+
+static void Draw(void) {
+  SetHighlight();
+  EditorDraw(tb_rows);
+}
+
 // sets the first rendered row and renders
 static void ScrollTo(unsigned int new_top) {
   top = new_top;
@@ -257,9 +317,72 @@ static void MoveEnd(void) {
   if (count && cursor == tb_row_starts[row + 1] && tb_end_row != row && RowAddress(row)[count - 1] == ' ') --cursor;
 }
 
-static void HandleKey(unsigned char key, unsigned char mods) {
-  if (mods & (KB_MOD_CTRL | KB_MOD_ALT | KB_MOD_SUPER)) return; // TODO: shortcuts
+static void DeleteSelection(void) {
+  tb_DeleteRange(sel_start, sel_end - sel_start);
+  cursor = sel_start;
+  selecting = 0;
+  modified = 1;
+  dirty = 1;
+}
 
+static unsigned char Copy(void) {
+  if (!GetSelection()) return 0;
+  if (tb_Copy(sel_start, sel_end - sel_start)) return 1;
+  ShowMessage("TOO BIG TO COPY");
+  return 0;
+}
+
+static void Paste(void) {
+  unsigned int length = tb_ClipLength(), room = TB_SIZE - tb_Length();
+  if (!length) return;
+  if (GetSelection()) room += sel_end - sel_start;
+  if (length > room) {
+    ShowMessage("TEXT FULL");
+    return;
+  }
+  if (GetSelection()) DeleteSelection();
+  tb_Paste(cursor);
+  cursor += length;
+  modified = 1;
+  dirty = 1;
+}
+
+// ctrl + A, X, C, V
+static void HandleCtrlKey(unsigned char key) {
+  if (key >= 'A' && key <= 'Z') key += 'a' - 'A';
+  if (key == 'a') {
+    anchor = 0;
+    cursor = tb_Length();
+    selecting = 1;
+    moved = 1;
+    redraw = 1;
+  }
+  else if (key == 'c') Copy();
+  else if (key == 'x' && Copy()) DeleteSelection();
+  else if (key == 'v') Paste();
+}
+
+static void HandleKey(unsigned char key, unsigned char mods) {
+  if (mods & KB_MOD_CTRL) {
+    HandleCtrlKey(key);
+    return;
+  }
+  if (mods & (KB_MOD_ALT | KB_MOD_SUPER)) return;
+
+  if (key >= KEY_LEFT && key <= KEY_PAGE_DOWN) { // shift + movement selects
+    if (mods & KB_MOD_SHIFT) {
+      if (!selecting) anchor = cursor;
+      selecting = 1;
+      redraw = 1;
+    }
+    else if (GetSelection() && (key == KEY_LEFT || key == KEY_RIGHT)) { // to that end of the selection
+      cursor = key == KEY_LEFT ? sel_start : sel_end;
+      ClearSelection();
+      moved = 1;
+      return;
+    }
+    else ClearSelection();
+  }
   moved = 1;
   switch (key) {
     case KEY_UP: MoveUp(); return;
@@ -272,6 +395,12 @@ static void HandleKey(unsigned char key, unsigned char mods) {
     case KEY_END: MoveEnd(); return;
   }
   moved = 0;
+  if (key == KEY_ESCAPE || key == KEY_INSERT) return;
+  if (GetSelection()) { // typing replaces the selection
+    DeleteSelection();
+    if (key == KEY_BACKSPACE || key == KEY_DELETE) return;
+  }
+  selecting = 0;
   switch (key) {
     case KEY_BACKSPACE:
       if (cursor && tb_Delete(cursor - 1)) Edited(--cursor, -1);
@@ -279,8 +408,6 @@ static void HandleKey(unsigned char key, unsigned char mods) {
     case KEY_DELETE:
       if (tb_Delete(cursor)) Edited(cursor, -1);
       break;
-    case KEY_ESCAPE:
-    case KEY_INSERT: return;
     default:
       if (key < ' ' && key != ASCII_TAB && key != ASCII_LF) return;
       if (key >= KEY_LEFT && key < 0xA0) return; // unprintable in Latin-1
@@ -395,6 +522,7 @@ static void ClearScreen(void) {
 // hides the on screen keyboard and cursor for full screen UI, redraws the text afterwards
 static void BeginFullScreen(void) {
   EditorShowCursor(0);
+  NoHighlight();
   if (osk_shown) OSKShow(0);
   tb_rows = TB_ROWS;
   dirty = 1;
@@ -438,6 +566,7 @@ static unsigned char Choose(const char* title, const char* items, unsigned char 
 static void ShowMessage(const char* text) {
   Render();
   EditorShowCursor(0);
+  NoHighlight();
   DrawRow(tb_rows - 1, 0, text);
   EditorDraw(tb_rows);
   while (!MenuKey());
@@ -472,6 +601,7 @@ static unsigned char CanDiscard(void) {
 
 static void ResetCursor(void) {
   cursor = 0;
+  selecting = 0;
   top = 0;
   want_x = 0;
   modified = 0;
@@ -514,6 +644,7 @@ static unsigned char AskFileName(void) {
   for (; file_name[length] && file_name[length] != '.'; ++length) name[length] = file_name[length];
   Render();
   EditorShowCursor(0);
+  NoHighlight();
   while (1) {
     CopyName(text, "SAVE AS ");
     for (i = 0; i < length; ++i) text[8 + i] = name[i];
@@ -578,6 +709,7 @@ static unsigned char HandleFileKey(unsigned char key, unsigned char mods) {
   else if (key == 's' || key == 'S') SaveFile(0);
   else if (key == 'n' || key == 'N') NewFile();
   else if (key == 'f' || key == 'F') ToggleFont();
+  else return 0;
   dirty = 1;
   return 1;
 }
@@ -612,7 +744,7 @@ static void Refresh(void) {
     }
     Render();
   }
-  EditorDraw(tb_rows);
+  Draw();
   redraw = 0;
   moved = 0;
   PlaceCursor();
@@ -628,6 +760,7 @@ void Editor(void) {
   normalized = 0;
   cursor = 0;
   top = 0;
+  selecting = 0;
   want_x = 0;
   keep_x = 0;
   moved = 0;
@@ -682,7 +815,7 @@ void Editor(void) {
       }
     }
     if (redraw) {
-      EditorDraw(tb_rows);
+      Draw();
       redraw = 0;
     }
     if (moved) {

@@ -39,6 +39,7 @@ DEF DMG_PAL_WLDB EQU %00100111 ;inverted
 DEF DMG_PAL_BDLL EQU %11100101 ;black, dark,  light, light/transparent
 DEF DMG_PAL_DLWW EQU %10010000 ;dark,  light, white, white/transparent
 DEF DMG_PAL_BDWW EQU %11100000 ;black, dark,  white, white/transparent
+DEF DMG_PAL_BWBW EQU %11001100 ;black, white, black, white (the editor's selection)
 DEF DMG_PAL_BLWW EQU %11010000 ;black, light, white, white/transparent
 DEF DMG_PAL_BLBW EQU %11011100 ;black, light, black, white/transparent
 DEF DMG_PAL_WLBW EQU %00011100 ;white, light, black, white/transparent

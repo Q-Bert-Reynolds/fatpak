@@ -10,6 +10,7 @@ SECTION "Editor ROM0", ROM0
 ;   EditorSetup
 ;   WaitFrame                   waits for vblank, updates input
 ;   EditorShowCursor            a = show, uses tb_found_col/row
+;   EditorInvertCursor          a = 1 for a white cursor (on selected text on DMG and SGB)
 
 DEF CURSOR_SPRITE EQU 0
 
@@ -19,6 +20,7 @@ _EditorSetup::
   ld [game_state], a
   DISPLAY_OFF
   SET_DEFAULT_PALETTE
+  call EditorSetPalettes
   CLEAR_SCREEN ' '
   call RenderSetup
   ld a, FONT_VWF
@@ -32,7 +34,7 @@ _EditorSetup::
   ld d, 0
   call gbdk_SetSpriteTile
   ld c, CURSOR_SPRITE
-  ld d, 0
+  ld d, OAMF_PAL1
   call gbdk_SetSpriteProp
   call OSKSetup
 
@@ -43,6 +45,43 @@ _EditorSetup::
 
   DISPLAY_ON
   ret
+
+_EditorInvertCursor::;a = 1 for a white cursor
+  and a
+  ld a, DMG_PAL_BDLW
+  jr z, .setPalette
+  ld a, DMG_PAL_WLDB
+.setPalette
+  ldh [rOBP1], a
+  ret
+
+;selected pixels are colors 1 and 2 (see src/editor/render.asm)
+EditorSetPalettes:
+  ldh a, [sys_info]
+  and a, SYS_INFO_GBC
+  jr z, .notGBC
+  xor a
+  ld hl, EditorPalette
+  jp GBCSetPalette
+.notGBC
+  ldh a, [sys_info]
+  and a, SYS_INFO_SGB
+  jr z, .dmg
+  ld a, PAL01
+  ld bc, EditorPalette
+  ld d, b
+  ld e, c
+  jp sgb_SetPal
+.dmg
+  ld a, DMG_PAL_BWBW;inverts selected pixels
+  ldh [rBGP], a
+  ret
+
+EditorPalette:
+  COLOR_OFF_WHITE
+  COLOR_BLUE;selection
+  COLOR_OFF_WHITE;selected text
+  COLOR_BLACK
 
 _WaitFrame::
   call gbdk_WaitVBL

@@ -15,6 +15,7 @@ extern unsigned int KBPopEvent(void); // key in low byte (KEY_NONE if empty), mo
 extern void EditorSetup(void);
 extern void WaitFrame(void); // waits for vblank, updates input
 extern void EditorShowCursor(unsigned char show); // uses tb_found_col/row
+extern void EditorInvertCursor(unsigned char invert); // white cursor, for the start of a selection
 
 // src/editor/render.asm
 extern unsigned char font_widths[256]; // current font
@@ -29,6 +30,7 @@ extern unsigned char render_pending_scy;
 extern unsigned char render_pending_top_mode;
 extern unsigned char render_pending_split_count;
 extern unsigned char render_pending_splits[4]; // LY, mode
+extern unsigned char render_sel[TB_ROWS * 2]; // selected columns of each row (first, end), end 0xFF = right edge
 
 // src/editor/osk.asm
 extern void OSKShow(unsigned char show);
@@ -66,6 +68,10 @@ extern unsigned int tb_Length(void);
 extern unsigned char tb_GetChar(unsigned int pos);
 extern unsigned char tb_Insert(unsigned int pos, unsigned char c);
 extern unsigned char tb_Delete(unsigned int pos);
+extern void tb_DeleteRange(unsigned int pos, unsigned int count);
+extern unsigned char tb_Copy(unsigned int pos, unsigned int count); // to the clipboard, 0 if it's too big
+extern unsigned char tb_Paste(unsigned int pos); // 0 if it doesn't fit
+extern unsigned int tb_ClipLength(void);
 extern void tb_Normalize(void);
 extern unsigned char tb_NormalizeStep(void); // 1 when the gap is at the end
 extern unsigned int tb_RowStart(unsigned int pos);

@@ -15,6 +15,10 @@
 ;   tb_NormalizeStep            moves gap up to TB_NORMALIZE_STEP bytes toward the end, returns a = 1 when it's there
 ;   tb_Append                   de = buffer, bc = count, inserts at the gap skipping 0s, returns a = 0 if it filled up
 ;   tb_Read                     de = buffer, bc = count, copies from tb_read_pos and advances it
+;   tb_DeleteRange              de = pos, bc = count, deletes count chars (they must exist)
+;   tb_Copy                     de = pos, bc = count, copies text to the clipboard, returns a = 0 if it's too big
+;   tb_Paste                    de = pos, inserts the clipboard, returns a = 0 if it doesn't fit
+;   tb_ClipLength               returns clipboard length in bc (in SRAM bank 3, see src/sram.asm)
 ;   tb_RowStart                 de = pos, returns start of the visual row containing pos in bc
 ;   tb_NextRow                  de = row start, returns start of the next visual row in bc
 ;   tb_Render                   de = top, draws tb_rows rows to tile_buffer, finds tb_find
@@ -96,6 +100,8 @@ tb_src_addr: DW
 tb_dst_addr: DW
 tb_src_bank: DB
 tb_dst_bank: DB
+tb_clip_left: DW
+tb_clip_ptr: DW
 
 SECTION "Text Buffer Code", ROM0
 
@@ -707,6 +713,193 @@ _tb_Normalize::
   ld e, l
   call TBMoveGap
   SRAM_OFF
+  ret
+
+_tb_DeleteRange::;de = pos, bc = count, deletes count chars at pos (they must exist)
+  ld a, c
+  ld [tb_count], a
+  ld a, b
+  ld [tb_count+1], a
+  or a, c
+  ret z
+  SRAM_ON
+  call TBMoveGap
+.loop;zero runs after the gap and grow it over them
+    LD_HL_VAR tb_gap_end
+    call TBPhysRun
+    ld a, b
+    ld [rRAMB], a
+    push hl
+    ld h, d
+    ld l, e
+    LD_DE_VAR tb_count
+    call TBMin
+    ld b, h
+    ld c, l
+    pop hl
+    push bc
+    xor a
+    call mem_Set
+    pop bc
+    LD_HL_VAR tb_gap_end
+    add hl, bc
+    ST_HL_VAR tb_gap_end
+    ld a, [tb_count]
+    sub a, c
+    ld [tb_count], a
+    ld c, a
+    ld a, [tb_count+1]
+    sbc a, b
+    ld [tb_count+1], a
+    or a, c
+    jr nz, .loop
+  SRAM_OFF
+  ret
+
+DEF TB_CLIP_CHUNK EQU 256;bytes copied at a time through win_buffer
+
+_tb_ClipLength::;returns clipboard length in bc, 0 if it's empty or was never set
+  SRAM_ON
+  ld a, MAIN_SRAM_BANK
+  ld [rRAMB], a
+  ld hl, sram_clip_length
+  ld a, [hli]
+  ld c, a
+  ld a, [hli]
+  ld b, a
+  ld a, [hli]
+  cpl
+  cp a, c
+  jr nz, .empty
+  ld a, [hl]
+  cpl
+  cp a, b
+  jr z, .done
+.empty
+  ld bc, 0
+.done
+  SRAM_OFF
+  ret
+
+;returns min([tb_clip_left], TB_CLIP_CHUNK) in bc, z if it's 0, affects a, de, hl
+TBClipChunk:
+  LD_HL_VAR tb_clip_left
+  ld de, TB_CLIP_CHUNK
+  call TBMin
+  ld b, h
+  ld c, l
+  ld a, b
+  or a, c
+  ret
+
+;subtracts bc from [tb_clip_left] and adds it to [tb_clip_ptr], affects a, hl
+TBClipAdvance:
+  LD_HL_VAR tb_clip_ptr
+  add hl, bc
+  ST_HL_VAR tb_clip_ptr
+  ld a, [tb_clip_left]
+  sub a, c
+  ld [tb_clip_left], a
+  ld a, [tb_clip_left+1]
+  sbc a, b
+  ld [tb_clip_left+1], a
+  ret
+
+_tb_Copy::;de = pos, bc = count, copies text to the clipboard, returns a = 0 if it's too big
+  ld a, LOW(TB_CLIP_SIZE)
+  sub a, c
+  ld a, HIGH(TB_CLIP_SIZE)
+  sbc a, b
+  jr nc, .fits
+  xor a
+  ret
+.fits
+  ST_DE_VAR _tb_read_pos
+  ld a, c
+  ld [tb_clip_left], a
+  ld a, b
+  ld [tb_clip_left+1], a
+  SRAM_ON
+  ld a, MAIN_SRAM_BANK
+  ld [rRAMB], a
+  ld hl, sram_clip_length
+  ld a, c
+  ld [hli], a
+  ld a, b
+  ld [hli], a
+  ld a, c
+  cpl
+  ld [hli], a
+  ld a, b
+  cpl
+  ld [hli], a
+  ST_HL_VAR tb_clip_ptr
+.loop
+    call TBClipChunk
+    jr z, .done
+    push bc
+    ld de, win_buffer
+    call _tb_Read
+    SRAM_ON
+    ld a, MAIN_SRAM_BANK
+    ld [rRAMB], a
+    pop bc
+    push bc
+    LD_DE_VAR tb_clip_ptr
+    ld hl, win_buffer
+    call mem_Copy
+    pop bc
+    call TBClipAdvance
+    jr .loop
+.done
+  SRAM_OFF
+  ld a, 1
+  ret
+
+_tb_Paste::;de = pos, inserts the clipboard, returns a = 0 if it doesn't fit (nothing is inserted)
+  push de
+  call _tb_ClipLength
+  ld a, c
+  ld [tb_clip_left], a
+  ld a, b
+  ld [tb_clip_left+1], a
+  pop de
+  SRAM_ON
+  call TBMoveGap
+  call TBGapLength
+  ld hl, tb_clip_left
+  ld a, c
+  sub a, [hl]
+  inc hl
+  ld a, b
+  sbc a, [hl]
+  jr nc, .fits
+  SRAM_OFF
+  xor a
+  ret
+.fits
+  ld hl, sram_clip
+  ST_HL_VAR tb_clip_ptr
+.loop
+    call TBClipChunk
+    jr z, .done
+    push bc
+    ld a, MAIN_SRAM_BANK
+    ld [rRAMB], a
+    LD_HL_VAR tb_clip_ptr
+    ld de, win_buffer
+    call mem_Copy
+    pop bc
+    push bc
+    ld de, win_buffer
+    call _tb_Append
+    SRAM_ON
+    pop bc
+    call TBClipAdvance
+    jr .loop
+.done
+  SRAM_OFF
+  ld a, 1
   ret
 
 ;de = logical position, returns start of its line in de, affects a, bc, hl
