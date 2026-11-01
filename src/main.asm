@@ -57,8 +57,7 @@ Main::
   and a, SYS_INFO_GBC
   jr z, .initializeRAM
   call gbdk_CPUFast; GBC always in fast mode
-  ld hl, DefaultPalettes
-  call GBCCopyPalettesFrom
+  TRAMPOLINE GBCSetDefaultPalettes
 
 .initializeRAM
   xor a

@@ -1,4 +1,3 @@
-SECTION "Keyboard Demo", ROM0
 
 KeyboardDemo::
   DISPLAY_OFF

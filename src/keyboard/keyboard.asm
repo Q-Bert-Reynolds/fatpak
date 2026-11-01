@@ -77,7 +77,7 @@ KBPopEvent::;returns key in c (KEY_NONE if queue is empty), modifiers in b
   ld b, [hl]
   ret
 
-SECTION "Keyboard Code Bank X", ROMX
+SECTION FRAGMENT "Keyboard Code Bank X", ROMX;the keyboard test adds to it (src/tests/test.asm)
 INCLUDE "src/keyboard/kb_jump_table.asm"
 INCLUDE "src/keyboard/kb_handlers.asm"
 INCLUDE "src/keyboard/ps2_ascii_keymaps.asm"

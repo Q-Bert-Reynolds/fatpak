@@ -1,11 +1,18 @@
 ;
 ; color.asm
 ;
+; Everything here is in a ROMX section, other banks reach it with TRAMPOLINE or by adding
+; code to it with SECTION FRAGMENT "Color", ROMX (fade.asm and the editor's palettes do)
+;
 ; SGB + GBC
 ;   SetPalettesIndirect             hl = palettes in PAL_SET (SGB) fromat
 ;   SetPalettesDirect               a = SGB packet header, bc = paletteA, de = paletteB
 
+; SGB only
+;   SGBTransferPalettes             sends DefaultPalettes to the SNES for PAL_SET (sgb_Init)
+
 ; GBC only
+;   GBCSetDefaultPalettes
 ;   GBCCopyPalettesTo               hl = destination
 ;   GBCCopyPalettesFrom             hl = source
 ;   GBCSetTwoColorBGPalettes        b = first pal index, c = num palettes, hl = source
@@ -86,7 +93,7 @@ DEF_RGB  COLOR_PURPLE_GREY,  10,  9, 12
 SECTION "Color Vars", WRAMX
 palette_buffer:: DS 8;4 colors, 2 bytes each
 
-SECTION "Color Code", ROM0
+SECTION FRAGMENT "Color", ROMX
 ;----------------------------------------------------------------------
 ;
 ; SetPalettesIndirect - sets first 4 palettes by index
@@ -334,6 +341,15 @@ GBCSetWinPaletteMap::;hl = wh, de = xy, bc = firstTile
   ldh [rVBK], a
   ret
 
+SGBTransferPalettes::
+  ld de, sgb_PalTrn
+  ld hl, DefaultPalettes
+  jp sgb_VRAMTransfer
+
+GBCSetDefaultPalettes::
+  ld hl, DefaultPalettes
+  jr GBCCopyPalettesFrom
+
 GBCCopyPalettesTo::;hl = dest
   push hl;dest
   ld bc, 8*2*4
@@ -381,8 +397,6 @@ GBCCopyPalettesFrom::;hl = source
     jr nz, .loop
   ret
 
-SECTION "Palettes", ROM0
-;This should be a ROMX section, but sgb_PalTrn and several color copy functions expect them to be in ROM0
 ;GBCCopyPalettesFrom loads the first 8 as background palettes and the next 8 as object palettes
 DefaultPalettes::
 PaletteGrey::

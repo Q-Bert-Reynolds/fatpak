@@ -237,9 +237,7 @@ ENDC
   ld hl, DefaultSgbBorderTileMap
   call _sgb_VRAMTransfer          ; Copies frame map to SNES RAM 
 
-  ld de, sgb_PalTrn
-  ld hl, DefaultPalettes
-  call _sgb_VRAMTransfer          ; Copies custom game palettes to SNES RAM
+  TRAMPOLINE SGBTransferPalettes  ; Copies custom game palettes to SNES RAM
 
   ld hl, sgb_PalSetDefault               
   call _sgb_PacketTransfer        ; Default game palette set
@@ -312,7 +310,7 @@ SECTION "Super GameBoy Main", ROM0
 sgb_ChrTrn1:      CHR_TRN 0, 0 ; First 128 tile block transfer
 sgb_ChrTrn2:      CHR_TRN 1, 0 ; Second 128 tile block transfer
 sgb_PctTrn:       PCT_TRN
-sgb_PalTrn:       PAL_TRN
+sgb_PalTrn::      PAL_TRN
 sgb_MaskEnFreeze: MASK_EN 1
 sgb_MaskEnCancel: MASK_EN 0
 sgb_PalPriGame:   PAL_RPI 1

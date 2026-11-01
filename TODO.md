@@ -66,7 +66,6 @@ Optimization
   - bank_split.py keeps FatFs helpers in ROM0, some could go in a bank behind far calls
   - f_lseek is unused but FF_FS_MINIMIZE can't remove it without removing directory functions
   - move map_stamps out of ROM0
-  - move color palettes out of ROM0
   - core.asm should not include core_strings.asm
   - move collision response code (doors, items, etc.) from map_loader to world
   - helper routines that don't take any args should use TRAMPOLINE instead

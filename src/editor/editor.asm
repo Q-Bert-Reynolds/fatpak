@@ -20,7 +20,7 @@ _EditorSetup::
   ld [game_state], a
   DISPLAY_OFF
   SET_DEFAULT_PALETTE
-  call EditorSetPalettes
+  TRAMPOLINE EditorSetPalettes
   CLEAR_SCREEN ' '
   call RenderSetup
   ld a, FONT_VWF
@@ -55,34 +55,6 @@ _EditorInvertCursor::;a = 1 for a white cursor
   ldh [rOBP1], a
   ret
 
-;selected pixels are colors 1 and 2 (see src/editor/render.asm)
-EditorSetPalettes:
-  ldh a, [sys_info]
-  and a, SYS_INFO_GBC
-  jr z, .notGBC
-  xor a
-  ld hl, EditorPalette
-  jp GBCSetPalette
-.notGBC
-  ldh a, [sys_info]
-  and a, SYS_INFO_SGB
-  jr z, .dmg
-  ld a, PAL01
-  ld bc, EditorPalette
-  ld d, b
-  ld e, c
-  jp sgb_SetPal
-.dmg
-  ld a, DMG_PAL_BWBW;inverts selected pixels
-  ldh [rBGP], a
-  ret
-
-EditorPalette:
-  COLOR_OFF_WHITE
-  COLOR_BLUE;selection
-  COLOR_OFF_WHITE;selected text
-  COLOR_BLACK
-
 _WaitFrame::
   call gbdk_WaitVBL
   jp UpdateInput
@@ -110,5 +82,35 @@ _EditorShowCursor::;a = show
   ld de, 0
   ld c, CURSOR_SPRITE
   jp gbdk_MoveSprite
+
+SECTION FRAGMENT "Color", ROMX;GBCSetPalette and EditorPalette are in this bank
+
+;selected pixels are colors 1 and 2 (see src/editor/render.asm)
+EditorSetPalettes:
+  ldh a, [sys_info]
+  and a, SYS_INFO_GBC
+  jr z, .notGBC
+  xor a
+  ld hl, EditorPalette
+  jp GBCSetPalette
+.notGBC
+  ldh a, [sys_info]
+  and a, SYS_INFO_SGB
+  jr z, .dmg
+  ld a, PAL01
+  ld bc, EditorPalette
+  ld d, b
+  ld e, c
+  jp sgb_SetPal
+.dmg
+  ld a, DMG_PAL_BWBW;inverts selected pixels
+  ldh [rBGP], a
+  ret
+
+EditorPalette:
+  COLOR_OFF_WHITE
+  COLOR_BLUE;selection
+  COLOR_OFF_WHITE;selected text
+  COLOR_BLACK
 
 INCLUDE "src/editor/_editor.asm";generated from editor.c

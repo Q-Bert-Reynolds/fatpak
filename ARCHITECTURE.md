@@ -215,13 +215,13 @@ These aren't used by the editor yet, but they work and are kept for future proje
 - **Maps** (`map_loader.asm`, `src/world`, `maps/`): chunked maps with stamps, tile fills, avatars, meta sprites, collisions, doors, text, and scripts, made in gbmapeditor, a Unity project: edit a scene (`MapTest.unity` started as a copy of `Overworld.unity`) and export it as a `.gbmap`. `MAP_TEST_ENABLED` loads `MapTest.gbmap`.
 - **Audio** (`src/audio`): gbt_player plays `.mod` music converted by `mod2gbt`, and FX Hammer sound effects (`sfx/`) play on top, muting music channels by priority.
 - **UI** (`ui.asm`): boxes, revealed text, list menus, number pickers, and the text entry screen with its own on screen keyboard. These use the 8x8 font tiles (`UILoadFontTiles`), not the editor's renderer.
-- **Color and SGB** (`color.asm`, `sgb.asm`, `fade.asm`): GBC palettes and attribute maps, SGB packets (palettes, attribute blocks, borders, sound), and fades.
+- **Color and SGB** (`color.asm`, `sgb.asm`, `fade.asm`): GBC palettes and attribute maps, SGB packets (palettes, attribute blocks, borders, sound), and fades. The palette routines and `DefaultPalettes` are in the ROMX section `"Color"`: call them with `TRAMPOLINE`, or put code that uses them in the same bank with `SECTION FRAGMENT "Color", ROMX` (as `fade.asm` and the editor's `EditorSetPalettes` do).
 - **Tile animations** (`tile_anim.asm`): scrolling, sine, and texture animations on tile data.
 - **Text and translations:** `src/charmap.asm` maps characters to tile indices. Tile index matches the character code (ASCII, Latin-1 for accents, UI glyphs in 0-31). Engine strings come from CSVs in `data/strings`, converted by `translate.py`, and use 128 for a new line. The editor's text uses 10.
 
 ## Testing and debugging
 
-- Enable `TESTS_ENABLED` and one of `SOUND_TEST_ENABLED`, `KEYBOARD_TEST_ENABLED`, `MAP_TEST_ENABLED`, or `SD_TEST_ENABLED` in `src/constants.asm`. Tests run before the editor starts.
+- Enable `TESTS_ENABLED` and one of `SOUND_TEST_ENABLED`, `KEYBOARD_TEST_ENABLED`, `MAP_TEST_ENABLED`, or `SD_TEST_ENABLED` in `src/constants.asm`. Tests run before the editor starts. The keyboard test shows the last scan code (ASCII, hex, decimal, binary), the scan code and error ring buffers, and the interrupt and error counts; A switches between PS/2 and iGKB, B continues to the editor. It's a `SECTION FRAGMENT` of the keyboard's ROMX section because the key handlers jump into it.
 - `bin/TEXT_EDITOR.sym` has every label, so emulators show symbols. `build/main.map` shows where every section landed and how much space each bank has left.
 - Gearboy can be driven by an AI assistant or script over MCP (`--mcp-stdio` or `--mcp-http`, add `--headless` to run without a window). Its profiler shows cycles per function, which is how the editor's performance work was measured.
 - When changing the text buffer or renderer, compare the screen after an incremental update with a full redraw (open and cancel the menu forces one), and compare saved files byte for byte. Check SD images with `fsck.fat -n` after writing to them.

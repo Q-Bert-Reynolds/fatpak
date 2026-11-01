@@ -4,7 +4,7 @@ IF SOUND_TEST_ENABLED
 ENDC
 
 IF KEYBOARD_TEST_ENABLED
-  call KeyboardDemo
+  TRAMPOLINE KeyboardDemo
 ENDC
 
 IF MAP_TEST_ENABLED
@@ -22,7 +22,7 @@ INCLUDE "src/tests/sfx_test.asm"
 ENDC
 
 IF KEYBOARD_TEST_ENABLED
-SECTION "Keyboard Test", ROM0
+SECTION FRAGMENT "Keyboard Code Bank X", ROMX;the handlers jump to the demo and it reads their keymaps
 INCLUDE "src/keyboard/kb_demo.asm"
 INCLUDE "src/keyboard/kb_debug_ui.asm"
 ENDC
