@@ -4,7 +4,7 @@ Priority
 - test SD read/write on the X7
 - remember the open file's name in SRAM (text survives power off, its name doesn't)
 - test on the X7: does writing $A5 to $BD0A unlock the registers while SRAM is enabled? (the text buffer skips $BD00-$BD0F either way)
-- faster sector reads with auto-read streaming ($BD01 bit 2 + $BD06 bit 0, reading $BD00 clocks the next byte)
+- faster sector reads with auto-read streaming ($BD01 bit 2 + $BD06 bit 0, reading $BD00 clocks the next byte), and without checking the busy bit for each byte if the X7's SPI is fast enough at double speed
 - open/save .txt files
 
 Editor
@@ -13,7 +13,7 @@ Editor
 - rendering: drawing a row waits for 40 HBlanks (~18K cycles), use HDMA on GBC, interleave glyph drawing with the waits on DMG
 - page up/down redraw every row (~0.9M cycles), page up also scans back 17 rows from SRAM
 - without an EverDrive, the first edit after a pause moves the gap back from the end (~35 cycles per byte after the cursor)
-- loading a file is slow (20KB ~2.4s): CR removal in C, tb_Append computes an address per byte, FatFs cluster math uses the slow _mullong
+- FatFs cluster math uses the slow _mullong (once per sector read or written)
 - the on screen keyboard rows are redrawn on every scroll while it's open
 - smooth (pixel) scrolling on GBC (DMG doesn't have tiles for a 19th row)
 - remember the chosen font

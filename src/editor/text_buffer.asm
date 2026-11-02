@@ -13,8 +13,11 @@
 ;   tb_Delete                   de = pos, returns deleted char in a (0 = nothing deleted)
 ;   tb_Normalize                moves gap to the end so SRAM reads as plain text
 ;   tb_NormalizeStep            moves gap up to TB_NORMALIZE_STEP bytes toward the end, returns a = 1 when it's there
-;   tb_Append                   de = buffer, bc = count, inserts at the gap skipping 0s, returns a = 0 if it filled up
-;   tb_Read                     de = buffer, bc = count, copies from tb_read_pos and advances it
+;   tb_Append                   de = buffer, bc = count, inserts at the gap dropping 0s and CRs (sets tb_cr if it drops a CR),
+;                               returns a = 0 if it filled up
+;   tb_Read                     de = buffer, bc = size, copies text from tb_read_pos until the buffer is full or the text ends,
+;                               advances it, returns bytes copied in bc
+;   tb_ReadLines                de = buffer, bc = size, like tb_Read but line feeds are written as CR LF
 ;   tb_DeleteRange              de = pos, bc = count, deletes count chars (they must exist)
 ;   tb_Copy                     de = pos, bc = count, copies text to the clipboard, returns a = 0 if it's too big
 ;   tb_Paste                    de = pos, inserts the clipboard, returns a = 0 if it doesn't fit
@@ -92,6 +95,8 @@ tb_row_chars: DB
 tb_end: DB
 _tb_end_row:: DB;rendered row the end of the text is on, $FF = not on screen
 _tb_read_pos:: DW
+_tb_cr:: DB;tb_Append dropped a CR
+tb_crlf: DB;tb_ReadLines
 tb_dest: DW
 tb_count: DW
 tb_target: DW
@@ -600,83 +605,235 @@ _tb_Delete::;de = pos, returns deleted char in a (0 = nothing deleted)
   ld a, b
   ret
 
-_tb_Append::;de = buffer, bc = count, inserts at the gap skipping 0s, returns a = 0 if it filled up
+_tb_Append::;de = buffer, bc = count, inserts at the gap dropping 0s and CRs (sets tb_cr if it drops a CR), returns a = 0 if it filled up
   SRAM_ON
-.loop
+  ST_DE_VAR tb_dest;source
+  ld a, c
+  ld [tb_count], a
+  ld a, b
+  ld [tb_count+1], a;source bytes left
+.run;as much as fits in the gap's run before the register hole or the bank end
+    LD_HL_VAR tb_count
+    ld a, h
+    or a, l
+    jp z, .done
+    call TBGapLength
     ld a, b
     or a, c
-    jr z, .done
-    dec bc
+    jp z, .gapFull
+    ld d, b
+    ld e, c
+    call TBMin
+    push hl
+    LD_HL_VAR tb_gap_start
+    call TBPhysRun
+    ld a, b
+    ld [rRAMB], a
+    ld b, h
+    ld c, l
+    pop hl
+    call TBMin
+    push hl;source bytes this run
+    ld h, b
+    ld l, c
+    pop bc
+    push bc
+    push hl;run start
+    LD_DE_VAR tb_dest
+    inc b
+    inc c
+    jr .next
+.byte
+      ld a, [de]
+      inc de
+      and a
+      jr z, .next;text never contains 0
+      cp a, ASCII_CR
+      jr z, .cr
+      ld [hli], a
+.next
+      dec c
+      jr nz, .byte
+      dec b
+      jr nz, .byte
+    ST_DE_VAR tb_dest
+    pop de;run start
+    ld a, l
+    sub a, e
+    ld e, a
+    ld a, h
+    sbc a, d
+    ld d, a;bytes written
+    LD_HL_VAR tb_gap_start
+    add hl, de
+    ST_HL_VAR tb_gap_start
+    pop bc;source bytes this run
+    ld hl, tb_count
+    ld a, [hl]
+    sub a, c
+    ld [hli], a
+    ld a, [hl]
+    sbc a, b
+    ld [hl], a
+    jp .run
+.cr
+      ld a, 1
+      ld [_tb_cr], a
+      jr .next
+.gapFull;full unless the rest is 0s and CRs
+  LD_DE_VAR tb_dest
+  LD_BC_VAR tb_count
+.check
     ld a, [de]
     inc de
     and a
-    jr z, .loop;text never contains 0
-    push de
-    ld d, a;char
-    ld a, [tb_gap_start]
-    ld e, a
-    ld a, [tb_gap_end]
-    cp a, e
-    jr nz, .write
-    ld a, [tb_gap_start+1]
-    ld e, a
-    ld a, [tb_gap_end+1]
-    cp a, e
-    jr z, .full
-  .write
-    LD_HL_VAR tb_gap_start
-    push hl
-    inc hl
-    ST_HL_VAR tb_gap_start
-    pop hl
-    call TBPhysAddr
-    ld [hl], d
-    pop de
-    jr .loop
-.full
-  pop de
-  SRAM_OFF
-  xor a
-  ret
+    jr z, .checkNext
+    cp a, ASCII_CR
+    jr nz, .full
+    ld a, 1
+    ld [_tb_cr], a
+.checkNext
+    dec bc
+    ld a, b
+    or a, c
+    jr nz, .check
 .done
   SRAM_OFF
   ld a, 1
   ret
+.full
+  SRAM_OFF
+  xor a
+  ret
 
-_tb_Read::;de = buffer, bc = count, copies from [_tb_read_pos] and advances it
+_tb_ReadLines::;de = buffer, bc = size, like tb_Read but line feeds are written as CR LF
+  ld a, 1
+  jr TBRead
+
+_tb_Read::;de = buffer, bc = size, copies text from [_tb_read_pos] until the buffer is full or the text ends, advances it, returns bytes copied in bc
+  xor a
+TBRead:
+  ld [tb_crlf], a
   SRAM_ON
   ST_DE_VAR tb_dest
   ld a, c
   ld [tb_count], a
   ld a, b
-  ld [tb_count+1], a
-  LD_HL_VAR _tb_read_pos
-  ld d, h
-  ld e, l
-  call TBReadSeek
-.loop
-    ld a, [tb_count]
-    ld c, a
-    ld a, [tb_count+1]
-    ld b, a
-    or a, c
-    jr z, .done
-    dec bc
-    ld a, c
-    ld [tb_count], a
-    ld a, b
-    ld [tb_count+1], a
-    call TBReadNext
+  ld [tb_count+1], a;buffer bytes left
+  push bc
+.run;as much as fits from the text's run before the gap, the register hole or the bank end
+    LD_HL_VAR tb_count
+    ld a, [tb_crlf]
+    and a
+    jr z, .fits
+    srl h;a char can take 2 bytes
+    rr l
+.fits
     push hl
-    push af;char
-    LD_HL_VAR tb_dest
-    pop af;char
-    ld [hli], a
-    ST_HL_VAR tb_dest
+    call TBLength
+    LD_DE_VAR _tb_read_pos
+    ld a, l
+    sub a, e
+    ld l, a
+    ld a, h
+    sbc a, d
+    ld h, a;chars left
+    pop de
+    call TBMin
+    ld a, h
+    or a, l
+    jp z, .done
+    push hl
+    LD_DE_VAR _tb_read_pos
+    ld a, [tb_gap_start]
+    sub a, e
+    ld l, a
+    ld a, [tb_gap_start+1]
+    sbc a, d
+    ld h, a;chars before the gap
+    jr c, .afterGap
+    or a, l
+    jr nz, .beforeGap
+.afterGap
+    ld hl, $FFFF
+.beforeGap
+    pop de
+    call TBMin
+    push hl
+    LD_DE_VAR _tb_read_pos
+    call TBLogToPhys
+    call TBPhysRun
+    ld a, b
+    ld [rRAMB], a
+    ld b, h
+    ld c, l
     pop hl
-    jr .loop
+    call TBMin;chars this run
+    push hl
+    LD_DE_VAR _tb_read_pos
+    add hl, de
+    ST_HL_VAR _tb_read_pos
+    pop de
+    ld h, b
+    ld l, c
+    ld b, d
+    ld c, e
+    LD_DE_VAR tb_dest
+    ld a, [tb_crlf]
+    and a
+    jr nz, .lines
+    call mem_Copy
+    jr .copied
+.lines
+    inc b
+    inc c
+    jr .next
+.byte
+      ld a, [hli]
+      cp a, ASCII_LF
+      jr nz, .char
+      ld a, ASCII_CR
+      ld [de], a
+      inc de
+      ld a, ASCII_LF
+.char
+      ld [de], a
+      inc de
+.next
+      dec c
+      jr nz, .byte
+      dec b
+      jr nz, .byte
+.copied
+    ld hl, tb_dest
+    ld a, e
+    sub a, [hl]
+    ld c, a
+    inc hl
+    ld a, d
+    sbc a, [hl]
+    ld b, a;bytes written
+    ST_DE_VAR tb_dest
+    ld hl, tb_count
+    ld a, [hl]
+    sub a, c
+    ld [hli], a
+    ld a, [hl]
+    sbc a, b
+    ld [hl], a
+    jp .run
 .done
-  ST_DE_VAR _tb_read_pos
+  pop hl;size
+  ld a, [tb_count]
+  ld c, a
+  ld a, [tb_count+1]
+  ld b, a
+  ld a, l
+  sub a, c
+  ld c, a
+  ld a, h
+  sbc a, b
+  ld b, a
   SRAM_OFF
   ret
 

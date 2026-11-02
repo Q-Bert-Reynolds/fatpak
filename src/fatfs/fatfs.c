@@ -18,10 +18,11 @@ extern unsigned char sd_WriteSector(const unsigned char* buffer);
 
 // src/editor/text_buffer.asm
 extern void tb_Clear(void);
-extern unsigned int tb_Length(void);
 extern unsigned int tb_read_pos;
-extern unsigned char tb_Append(const unsigned char* buffer, unsigned int count); // 0 = buffer full
-extern void tb_Read(unsigned char* buffer, unsigned int count); // from tb_read_pos, advances it
+extern unsigned char tb_cr; // tb_Append dropped a CR
+extern unsigned char tb_Append(const unsigned char* buffer, unsigned int count); // drops 0s and CRs, 0 = buffer full
+extern unsigned int tb_Read(unsigned char* buffer, unsigned int size); // from tb_read_pos, returns bytes copied (0 at the end)
+extern unsigned int tb_ReadLines(unsigned char* buffer, unsigned int size); // tb_Read with line feeds as CR LF
 
 FATFS fs;
 FIL file;
@@ -286,17 +287,6 @@ unsigned char fs_ListEntry(unsigned int index, FileEntry* entry) {
   return FR_OK;
 }
 
-// removes CRs from buffer, returns the new count
-static UINT RemoveCR(UINT count) {
-  BYTE* src = buffer;
-  BYTE* dest = buffer;
-  for (; count; --count, ++src) {
-    if (*src == '\r') fs_crlf = 1;
-    else *dest++ = *src;
-  }
-  return (UINT)(dest - buffer);
-}
-
 // f_open, again after a disk error (which mounts the card again, it may have been swapped)
 static FRESULT Open(const char* path, BYTE mode) {
   FRESULT result = f_open(&file, path, mode);
@@ -309,56 +299,32 @@ unsigned char fs_Load(const char* path) {
   FRESULT result = Open(path, FA_READ);
   if (result) return result;
   tb_Clear();
-  fs_crlf = 0;
+  tb_cr = 0;
   do {
     result = f_read(&file, buffer, BUFFER_SIZE, &count);
     if (result) break;
-    if (!tb_Append(buffer, RemoveCR(count))) {
+    if (!tb_Append(buffer, count)) {
       result = FR_DENIED;
       break;
     }
   } while (count == BUFFER_SIZE);
+  fs_crlf = tb_cr;
   f_close(&file);
   return result;
 }
 
-// reads count chars from the text buffer into the second half of buffer and expands
-// line feeds to CR LF from the start of buffer, returns the new count
-static UINT AddCR(UINT count) {
-  BYTE* src = buffer + BUFFER_SIZE / 2;
-  BYTE* dest = buffer;
-  tb_Read(src, count);
-  for (; count; --count) {
-    if (*src == '\n') *dest++ = '\r';
-    *dest++ = *src++;
-  }
-  return (UINT)(dest - buffer);
-}
-
-// writes the text buffer to the file, returns an FRESULT
+// writes the text buffer to the file, with CR LF line endings if fs_crlf is set, returns an FRESULT
 unsigned char fs_Save(const char* path) {
-  UINT count, size, written;
-  unsigned int left;
+  UINT size, written;
   FRESULT result = Open(path, FA_WRITE | FA_CREATE_ALWAYS);
   if (result) return result;
-  left = tb_Length();
   tb_read_pos = 0;
-  while (left) {
-    if (fs_crlf) {
-      count = left < BUFFER_SIZE / 2 ? left : BUFFER_SIZE / 2;
-      size = AddCR(count);
-    } else {
-      count = left < BUFFER_SIZE ? left : BUFFER_SIZE;
-      tb_Read(buffer, count);
-      size = count;
-    }
-    result = f_write(&file, buffer, size, &written);
-    if (result) break;
+  while ((size = fs_crlf ? tb_ReadLines(buffer, BUFFER_SIZE) : tb_Read(buffer, BUFFER_SIZE))) {
+    if ((result = f_write(&file, buffer, size, &written))) break;
     if (written != size) {
       result = FR_DENIED; // disk full
       break;
     }
-    left -= count;
   }
   if (f_close(&file) && !result) result = FR_DISK_ERR;
   return result;
