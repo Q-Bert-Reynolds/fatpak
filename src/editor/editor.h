@@ -54,9 +54,11 @@ extern unsigned char OSKGetKey(unsigned char layer, unsigned char index); // 0 =
 extern unsigned char sd_Detect(void); // 1 on an EverDrive X
 
 // src/fatfs/fatfs.asm (stubs into the FatFs banks)
-extern unsigned char FileMount(void); // FRESULT
-extern unsigned char FileOpenDir(const char* path); // FRESULT, UTF-8 path, "" = root
-extern unsigned char FileNext(FileEntry* entry); // next visible file or folder, 0 = no more
+extern unsigned char FileMount(void); // FRESULT, mounts the card if it isn't
+extern unsigned char FileList(const char* path, const char* find); // FRESULT, UTF-8 path, "" = root
+extern unsigned char FileListEntry(unsigned int index, FileEntry* entry); // FRESULT, folders first
+extern unsigned int fs_count; // entries FileList found
+extern unsigned int fs_found; // index of the folder it was asked to find, 0xFFFF if it isn't there
 extern unsigned char FileLoad(const char* path); // FRESULT, replaces the text buffer
 extern unsigned char FileSave(const char* path); // FRESULT
 extern unsigned char fs_crlf; // loaded file used CR LF, saving writes CR LF

@@ -2,18 +2,19 @@ INCLUDE "src/text_editor.inc"
 
 ;FatFs lives in its own bank (src/fatfs/fatfs.c), C in other banks calls it through these
 ;C functions (src/editor/editor.h)
-;   FileMount                   returns FRESULT in a
-;   FileOpenDir                 de = UTF-8 path ("" = root), returns FRESULT in a
-;   FileNext                    de = FileEntry (src/fatfs/file_api.h), returns a = 0 when there are no more
+;   FileMount                   mounts the card if it isn't, returns FRESULT in a
+;   FileList                    de = UTF-8 path ("" = root), bc = name of a folder in it to find or 0,
+;                               lists it for FileListEntry (sets fs_count and fs_found), returns FRESULT in a
+;   FileListEntry               de = index, bc = FileEntry (src/fatfs/file_api.h), returns FRESULT in a
 ;   FileLoad                    de = path, replaces the text buffer, returns FRESULT in a
 ;   FileSave                    de = path, returns FRESULT in a
 
 SECTION "FatFs Stubs", ROM0
-_FileMount::   BANKED_C _fs_Mount
-_FileOpenDir:: BANKED_C _fs_OpenDir
-_FileNext::    BANKED_C _fs_NextEntry
-_FileLoad::    BANKED_C _fs_Load
-_FileSave::    BANKED_C _fs_Save
+_FileMount::     BANKED_C _fs_Mount
+_FileList::      BANKED_C _fs_List
+_FileListEntry:: BANKED_C _fs_ListEntry
+_FileLoad::      BANKED_C _fs_Load
+_FileSave::      BANKED_C _fs_Save
 
 ;C library functions FatFs uses (SDCC's string.h calls memcpy __memcpy), callers in any bank
 ;SDCC passes the first two args in de and bc and the third on the stack, which the callee pops

@@ -19,6 +19,16 @@
 	EXPORT _memset
 	EXPORT _strchr
 	EXPORT _memcmp
+	EXPORT _list_error
+	EXPORT _mark_shift
+	EXPORT _read_kind
+	EXPORT _read_next
+	EXPORT _mark_mask
+	EXPORT _list_start
+	EXPORT _list_slot
+	EXPORT _list_counts
+	EXPORT _fs_found
+	EXPORT _fs_count
 	EXPORT _fs_crlf
 	EXPORT _buffer
 	EXPORT _disk_ready
@@ -48,8 +58,8 @@
 	EXPORT _disk_write
 	EXPORT _disk_ioctl
 	EXPORT _fs_Mount
-	EXPORT _fs_OpenDir
-	EXPORT _fs_NextEntry
+	EXPORT _fs_List
+	EXPORT _fs_ListEntry
 	EXPORT _fs_Load
 	EXPORT _fs_Save
 ;--------------------------------------------------------
@@ -78,6 +88,26 @@ _disk_ready:
 _buffer:
 	DS 512
 _fs_crlf:
+	DS 1
+_fs_count:
+	DS 2
+_fs_found:
+	DS 2
+_list_counts:
+	DS 4
+_list_slot:
+	DS 2
+_list_start:
+	DS 2
+_mark_mask:
+	DS 2
+_read_next:
+	DS 2
+_read_kind:
+	DS 1
+_mark_shift:
+	DS 1
+_list_error:
 	DS 1
 ;--------------------------------------------------------
 ; ram data
@@ -9912,7 +9942,7 @@ _gen_numname:
 	jp hl 
 ;src/fatfs/lib/ff.c:2073: static BYTE sum_sfn (
 ;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c C",ROMX
+	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
 ; Function sum_sfn
 ; ---------------------------------
 _sum_sfn:
@@ -10402,7 +10432,7 @@ _dir_read:
 	ld	b, a
 	ld	e, c
 	ld	d, b
-	call	_sum_sfn__far
+	call	_sum_sfn
 	ld	c, a
 	ld	hl, sp+7
 	ld	a, [hl]
@@ -10981,7 +11011,7 @@ _dir_find:
 	ld	b, a
 	ld	e, c
 	ld	d, b
-	call	_sum_sfn__far
+	call	_sum_sfn
 	ld	c, a
 	ld	hl, sp+2
 	ld	a, [hl]
@@ -11575,7 +11605,7 @@ _dir_register:
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_sum_sfn__far
+	call	_sum_sfn
 	ld	hl, sp+36
 	ld	[hl], a
 ;src/fatfs/lib/ff.c:2570: do {					/* Store LFN entries in bottom first */
@@ -25140,7 +25170,7 @@ _disk_initialize::
 .l00101:
 ;src/fatfs/fatfs.c:45: }
 	ret
-;src/fatfs/fatfs.c:47: DRESULT disk_read(BYTE pdrv, BYTE* buff, LBA_t sector, UINT count) {
+;src/fatfs/fatfs.c:49: DRESULT disk_read(BYTE pdrv, BYTE* buff, LBA_t sector, UINT count) {
 ;	---------------------------------
 	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function disk_read
@@ -25150,7 +25180,7 @@ _disk_read::
 	inc	sp
 	inc	sp
 	push	de
-;src/fatfs/fatfs.c:48: (void)pdrv;
+;src/fatfs/fatfs.c:50: (void)pdrv;
 	ld	hl, sp+12
 	ld	c, [hl]
 	inc	hl
@@ -25171,11 +25201,11 @@ _disk_read::
 	ld	a, [de]
 	ld	[hl], a
 .l00105:
-;src/fatfs/fatfs.c:49: for (; count; --count, ++sector, buff += FF_MAX_SS) {
+;src/fatfs/fatfs.c:51: for (; count; --count, ++sector, buff += FF_MAX_SS) {
 	ld	a, b
 	or	a, c
 	jp	Z, .l00103
-;src/fatfs/fatfs.c:50: sd_sector = sector;
+;src/fatfs/fatfs.c:52: sd_sector = sector;
 	ld	hl, sp+2
 	ld	d, h
 	ld	e, l
@@ -25191,7 +25221,7 @@ _disk_read::
 	inc	de
 	ld	a, [de]
 	ld	[hl], a
-;src/fatfs/fatfs.c:51: if (sd_ReadSector(buff)) return RES_ERROR;
+;src/fatfs/fatfs.c:53: if (sd_ReadSector(buff)) {
 	push	bc
 	pop	hl
 	pop	de
@@ -25201,10 +25231,14 @@ _disk_read::
 	pop	bc
 	or	a, a
 	jp	Z, .l00106
+;src/fatfs/fatfs.c:54: disk_ready = 0;
+	ld	hl, _disk_ready
+	ld	[hl], $00
+;src/fatfs/fatfs.c:55: return RES_ERROR;
 	ld	a, $01
 	jp	.l00107
 .l00106:
-;src/fatfs/fatfs.c:49: for (; count; --count, ++sector, buff += FF_MAX_SS) {
+;src/fatfs/fatfs.c:51: for (; count; --count, ++sector, buff += FF_MAX_SS) {
 	dec	bc
 	ld	hl, sp+2
 	inc	[hl]
@@ -25227,15 +25261,15 @@ _disk_read::
 	push	hl
 	jp	.l00105
 .l00103:
-;src/fatfs/fatfs.c:53: return RES_OK;
+;src/fatfs/fatfs.c:58: return RES_OK;
 	xor	a, a
 .l00107:
-;src/fatfs/fatfs.c:54: }
+;src/fatfs/fatfs.c:59: }
 	add	sp, 6
 	pop	hl
 	add	sp, 6
 	jp hl 
-;src/fatfs/fatfs.c:56: DRESULT disk_write(BYTE pdrv, const BYTE* buff, LBA_t sector, UINT count) {
+;src/fatfs/fatfs.c:61: DRESULT disk_write(BYTE pdrv, const BYTE* buff, LBA_t sector, UINT count) {
 ;	---------------------------------
 	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function disk_write
@@ -25245,7 +25279,7 @@ _disk_write::
 	inc	sp
 	inc	sp
 	push	de
-;src/fatfs/fatfs.c:57: (void)pdrv;
+;src/fatfs/fatfs.c:62: (void)pdrv;
 	ld	hl, sp+12
 	ld	c, [hl]
 	inc	hl
@@ -25266,11 +25300,11 @@ _disk_write::
 	ld	a, [de]
 	ld	[hl], a
 .l00105:
-;src/fatfs/fatfs.c:58: for (; count; --count, ++sector, buff += FF_MAX_SS) {
+;src/fatfs/fatfs.c:63: for (; count; --count, ++sector, buff += FF_MAX_SS) {
 	ld	a, b
 	or	a, c
 	jp	Z, .l00103
-;src/fatfs/fatfs.c:59: sd_sector = sector;
+;src/fatfs/fatfs.c:64: sd_sector = sector;
 	ld	hl, sp+2
 	ld	d, h
 	ld	e, l
@@ -25286,7 +25320,7 @@ _disk_write::
 	inc	de
 	ld	a, [de]
 	ld	[hl], a
-;src/fatfs/fatfs.c:60: if (sd_WriteSector(buff)) return RES_ERROR;
+;src/fatfs/fatfs.c:65: if (sd_WriteSector(buff)) {
 	push	bc
 	pop	hl
 	pop	de
@@ -25296,10 +25330,14 @@ _disk_write::
 	pop	bc
 	or	a, a
 	jp	Z, .l00106
+;src/fatfs/fatfs.c:66: disk_ready = 0;
+	ld	hl, _disk_ready
+	ld	[hl], $00
+;src/fatfs/fatfs.c:67: return RES_ERROR;
 	ld	a, $01
 	jp	.l00107
 .l00106:
-;src/fatfs/fatfs.c:58: for (; count; --count, ++sector, buff += FF_MAX_SS) {
+;src/fatfs/fatfs.c:63: for (; count; --count, ++sector, buff += FF_MAX_SS) {
 	dec	bc
 	ld	hl, sp+2
 	inc	[hl]
@@ -25322,21 +25360,21 @@ _disk_write::
 	push	hl
 	jp	.l00105
 .l00103:
-;src/fatfs/fatfs.c:62: return RES_OK;
+;src/fatfs/fatfs.c:70: return RES_OK;
 	xor	a, a
 .l00107:
-;src/fatfs/fatfs.c:63: }
+;src/fatfs/fatfs.c:71: }
 	add	sp, 6
 	pop	hl
 	add	sp, 6
 	jp hl 
-;src/fatfs/fatfs.c:65: DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void* buff) {
+;src/fatfs/fatfs.c:73: DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void* buff) {
 ;	---------------------------------
 	SECTION FRAGMENT "src/fatfs/fatfs.c B",ROMX
 ; Function disk_ioctl
 ; ---------------------------------
 _disk_ioctl::
-;src/fatfs/fatfs.c:68: return cmd == CTRL_SYNC ? RES_OK : RES_PARERR;
+;src/fatfs/fatfs.c:76: return cmd == CTRL_SYNC ? RES_OK : RES_PARERR;
 	ld	a, e
 	or	a, a
 	jp	NZ, .l00103
@@ -25348,90 +25386,2179 @@ _disk_ioctl::
 	ld	c, $00
 .l00104:
 .l00101:
-;src/fatfs/fatfs.c:69: }
+;src/fatfs/fatfs.c:77: }
 	pop	hl
 	inc	sp
 	inc	sp
 	jp hl 
-;src/fatfs/fatfs.c:71: unsigned char fs_Mount(void) {
+;src/fatfs/fatfs.c:80: unsigned char fs_Mount(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "src/fatfs/fatfs.c A",ROMX
 ; Function fs_Mount
 ; ---------------------------------
 _fs_Mount::
-;src/fatfs/fatfs.c:72: return f_mount(&fs, "", 1);
+;src/fatfs/fatfs.c:81: if (fs.fs_type && disk_ready) return FR_OK;
+	ld	a, [_fs + 0]
+	or	a, a
+	jp	Z, .l00102
+	ld	hl, _disk_ready
+	ld	a, [hl]
+	or	a, a
+	jp	Z, .l00102
+	xor	a, a
+	jp	.l00104
+.l00102:
+;src/fatfs/fatfs.c:82: return f_mount(&fs, "", 1);
 	ld	a, $01
 	push	af
 	inc	sp
 	ld	bc, ___str_3
 	ld	de, _fs
 	call	_f_mount__far
-.l00101:
-;src/fatfs/fatfs.c:73: }
+.l00104:
+;src/fatfs/fatfs.c:83: }
 	ret
 	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
 ___str_3:
 	DB $00
-;src/fatfs/fatfs.c:76: unsigned char fs_OpenDir(const char* path) {
+;src/fatfs/fatfs.c:103: static FRESULT Seek(WORD slot) {
 ;	---------------------------------
 	SECTION FRAGMENT "src/fatfs/fatfs.c A",ROMX
-; Function fs_OpenDir
+; Function Seek
 ; ---------------------------------
-_fs_OpenDir::
-	ld	c, e
-	ld	b, d
-;src/fatfs/fatfs.c:77: return f_opendir(&dir, path);
-	ld	de, _dir
-	jp	_f_opendir
-.l00101:
-;src/fatfs/fatfs.c:78: }
-	ret
-;src/fatfs/fatfs.c:81: unsigned char fs_NextEntry(FileEntry* entry) {
-;	---------------------------------
-	SECTION FRAGMENT "src/fatfs/fatfs.c A",ROMX
-; Function fs_NextEntry
-; ---------------------------------
-_fs_NextEntry::
-	add	sp, -9
-	ld	hl, sp+7
+_Seek:
+;src/fatfs/fatfs.c:104: list_slot = slot;
+	ld	hl, _list_slot
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/fatfs/fatfs.c:82: while (f_readdir(&dir, &info) == FR_OK && info.fname[0]) {
-.l00105:
-	ld	bc, _info
+;src/fatfs/fatfs.c:105: return dir_sdi(&dir, (DWORD)slot << 5);
+	ld	bc, $0000
+	ld	a, $05
+.l00103:
+	sla	e
+	rl	d
+	rl	c
+	rl	b
+.l00104:
+	dec	a
+	jr	NZ,.l00103
+	push	bc
+	push	de
 	ld	de, _dir
-	call	_f_readdir
-	ld	hl, sp+6
+	call	_dir_sdi
+.l00101:
+;src/fatfs/fatfs.c:106: }
+	ret
+;src/fatfs/fatfs.c:110: static BYTE NextSlot(void) {
+;	---------------------------------
+	SECTION FRAGMENT "src/fatfs/fatfs.c A",ROMX
+; Function NextSlot
+; ---------------------------------
+_NextSlot:
+	add	sp, -8
+;src/fatfs/fatfs.c:112: if (((BYTE)list_slot++ & (SS(&fs) / SZDIRE - 1)) != SS(&fs) / SZDIRE - 1) { // same sector
+	ld	hl, _list_slot
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
+	dec	hl
+	inc	[hl]
+	jp	NZ, .l00130
+	inc	hl
+	inc	[hl]
+.l00130:
+	ld	a, c
+	ld	b, $00
+	and	a, $0F
+	ld	c, a
+	ld	b, $00
+	ld	a, c
+	sub	a, $0F
+	or	a, b
+	jp	NZ,.l00131
+	jp	.l00102
+.l00131:
+;src/fatfs/fatfs.c:113: dir.dptr += SZDIRE;
+	ld	bc, _dir + 14
+	ld	e, c
+	ld	d, b
+	ld	a, [de]
+	ld	hl, sp+0
 	ld	[hl], a
-	ld	hl, sp+6
-	ld	a, [hl]
-	or	a, a
-	jp	NZ, .l00107
-	ld	hl, (_info + 22) + 0
-	ld	a, [hl]
-	ld	hl, sp+6
+	inc	de
+	ld	a, [de]
+	inc	hl
 	ld	[hl], a
-	ld	hl, sp+6
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	pop	de
+	push	de
+	ld	a, e
+	add	a, $20
+	ld	e, a
+	ld	a, d
+	adc	a, $00
+	push	af
+	inc	hl
+	inc	hl
+	ld	[hl], a
+	dec	hl
+	ld	[hl], e
+	dec	hl
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	pop	af
+	ld	a, e
+	adc	a, $00
+	ld	e, a
+	ld	a, d
+	adc	a, $00
+	ld	hl, sp+7
+	ld	[hl], a
+	dec	hl
+	ld	[hl], e
+	dec	hl
+	dec	hl
 	ld	a, [hl]
+	ld	[bc], a
+	inc	bc
+	inc	hl
+	ld	a, [hl]
+	ld	[bc], a
+	inc	bc
+	inc	hl
+	ld	a, [hl]
+	ld	[bc], a
+	inc	bc
+	inc	hl
+	ld	a, [hl]
+	ld	[bc], a
+;src/fatfs/fatfs.c:114: dir.dir += SZDIRE;
+	ld	hl, (_dir + 26) + 0
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
+	ld	hl, $0020
+	add	hl, bc
+	ld	c, l
+	ld	b, h
+	ld	hl, (_dir + 26)
+	ld	[hl], c
+	inc	hl
+	ld	[hl], b
+;src/fatfs/fatfs.c:115: return 1;
+	ld	a, $01
+	jp	.l00108
+.l00102:
+;src/fatfs/fatfs.c:117: if (!(result = dir_next(&dir, 0)) && !(result = move_window(&fs, dir.sect))) return 1;
+	ld	bc, $0000
+	ld	de, _dir
+	call	_dir_next
+	ld	e, a
+	ld	c, e
+	ld	a, e
 	or	a, a
-	jp	Z, .l00107
-;src/fatfs/fatfs.c:83: if ((info.fattrib & (AM_HID | AM_SYS)) || info.fname[0] == '.') continue;
-	ld	a, [(_info + 8) + 0]
-	and	a, $06
-	jp	NZ,.l00135
-	jp	.l00136
+	jp	NZ, .l00104
+	ld	de, (_dir + 22) + 0
+	ld	a, [de]
+	ld	hl, sp+4
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	push	de
+	ld	hl, sp+6
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	push	de
+	ld	de, _fs
+	call	_move_window__far
+	ld	c, a
+	or	a, a
+	jp	NZ, .l00104
+	ld	a, $01
+	jp	.l00108
+.l00104:
+;src/fatfs/fatfs.c:118: if (result != FR_NO_FILE) list_error = result;
+	ld	a, c
+	sub	a, $04
+	jp	NZ,.l00132
+	jp	.l00107
+.l00132:
+	ld	hl, _list_error
+	ld	[hl], c
+.l00107:
+;src/fatfs/fatfs.c:119: dir.sect = 0;
+	ld	hl, (_dir + 22)
+	xor	a, a
+	ld	[hl], a
+	inc	hl
+	ld	[hl], a
+	inc	hl
+	ld	[hl], a
+	inc	hl
+	ld	[hl], a
+;src/fatfs/fatfs.c:120: return 0;
+	xor	a, a
+.l00108:
+;src/fatfs/fatfs.c:121: }
+	add	sp, 8
+	ret
+;src/fatfs/fatfs.c:126: static BYTE NextEntry(BYTE name) {
+;	---------------------------------
+	SECTION FRAGMENT "src/fatfs/fatfs.c A",ROMX
+; Function NextEntry
+; ---------------------------------
+_NextEntry:
+	add	sp, -13
+	ld	hl, sp+11
+	ld	[hl], a
+;src/fatfs/fatfs.c:127: BYTE c, attr, ord = 0xFF, sum = 0, dot = 0, named = 0, lfn;
+	inc	hl
+	ld	[hl], $FF
+	ld	hl, sp+4
+	ld	[hl], $00
+	inc	hl
+	ld	[hl], $00
+	inc	hl
+	ld	[hl], $00
+;src/fatfs/fatfs.c:130: if (!dir.sect) return 0;
+	ld	de, (_dir + 22) + 0
+	ld	a, [de]
+	ld	hl, sp+0
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	ld	a, [hl]
+	dec	hl
+	or	a, [hl]
+	dec	hl
+	or	a, [hl]
+	dec	hl
+	or	a, [hl]
+	jp	NZ, .l00102
+	xor	a, a
+	jp	.l00138
+.l00102:
+;src/fatfs/fatfs.c:131: if (dir.sect != fs.winsect && (result = move_window(&fs, dir.sect))) { // after a seek
+	ld	de, (_fs + 30) + 0
+	ld	a, [de]
+	ld	hl, sp+7
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	ld	hl, sp+0
+	ld	a, [hl]
+	ld	hl, sp+7
+	sub	a, [hl]
+	jp	NZ,.l00272
+	ld	hl, sp+1
+	ld	a, [hl]
+	ld	hl, sp+8
+	sub	a, [hl]
+	jp	NZ,.l00272
+	ld	hl, sp+2
+	ld	a, [hl]
+	ld	hl, sp+9
+	sub	a, [hl]
+	jp	NZ,.l00272
+	ld	hl, sp+3
+	ld	a, [hl]
+	ld	hl, sp+10
+	sub	a, [hl]
+	jp	NZ,.l00272
+	jp	.l00175
+.l00272:
+	pop	hl
+	pop	de
+	push	de
+	push	hl
+	push	de
+	pop	hl
+	pop	de
+	push	de
+	push	hl
+	push	de
+	ld	de, _fs
+	call	_move_window__far
+	ld	c, a
+	or	a, a
+	jp	Z, .l00175
+;src/fatfs/fatfs.c:132: list_error = result;
+	ld	hl, _list_error
+	ld	[hl], c
+;src/fatfs/fatfs.c:133: return 0;
+	xor	a, a
+	jp	.l00138
+;src/fatfs/fatfs.c:135: do {
+.l00175:
 .l00135:
-	jp	.l00105
-.l00136:
-	ld	hl, sp+6
+;src/fatfs/fatfs.c:136: entry = dir.dir;
+	ld	de, (_dir + 26) + 0
+	ld	a, [de]
+	ld	hl, sp+7
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+;src/fatfs/fatfs.c:137: if (!(c = entry[DIR_Name])) break; // end of the folder
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	ld	a, [hl]
+	inc	hl
+	ld	[hl], a
+	dec	hl
+	ld	a, [hl]
+	or	a, a
+	jp	Z, .l00137
+;src/fatfs/fatfs.c:138: attr = entry[DIR_Attr] & AM_MASK;
+	dec	hl
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	hl, $000B
+	add	hl, de
+	push	hl
+	ld	a, l
+	ld	hl, sp+4
+	ld	[hl], a
+	pop	hl
+	ld	a, h
+	ld	hl, sp+3
+	ld	[hl], a
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	a, [de]
+	and	a, $3F
+	ld	hl, sp+9
+	ld	[hl], a
+;src/fatfs/fatfs.c:139: if (c == DDEM || c == '.' || (BYTE)(attr & ~AM_ARC) == AM_VOL) ord = 0xFF;
+	inc	hl
+	ld	a, [hl]
+	sub	a, $E5
+	jp	NZ,.l00273
+	jp	.l00130
+.l00273:
+	ld	hl, sp+10
 	ld	a, [hl]
 	sub	a, $2E
-	jp	NZ,.l00137
-	jp	.l00105
-.l00137:
-;src/fatfs/fatfs.c:84: memcpy(entry->name, info.fname, FS_NAME_SIZE);
+	jp	NZ,.l00274
+	jp	.l00130
+.l00274:
+	ld	hl, sp+9
+	ld	a, [hl]
+	res	5, a
+	sub	a, $08
+	jp	NZ,.l00275
+	jp	.l00276
+.l00275:
+	jp	.l00131
+.l00276:
+.l00130:
+	ld	hl, sp+12
+	ld	[hl], $FF
+	jp	.l00136
+.l00131:
+;src/fatfs/fatfs.c:140: else if (attr == AM_LFN) {
+	ld	hl, sp+9
+	ld	a, [hl]
+	sub	a, $0F
+	jp	NZ,.l00277
+	jp	.l00278
+.l00277:
+	jp	.l00128
+.l00278:
+;src/fatfs/fatfs.c:144: sum = entry[LDIR_Chksum];
+	ld	hl, sp+8
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	hl, $000D
+	add	hl, de
+	push	hl
+	ld	a, l
+	ld	hl, sp+4
+	ld	[hl], a
+	pop	hl
+	ld	a, h
+	ld	hl, sp+3
+	ld	[hl], a
+;src/fatfs/fatfs.c:141: if (c & LLEF) { // first slot of an LFN (its last part)
+	push	hl
+	ld	hl, sp+12
+	bit	6, [hl]
+	pop	hl
+	jp	NZ,.l00279
+	jp	.l00109
+.l00279:
+;src/fatfs/fatfs.c:142: c &= (BYTE)~LLEF;
+	ld	hl, sp+10
+	ld	a, [hl]
+	and	a, $BF
+	ld	[hl], a
+;src/fatfs/fatfs.c:143: ord = c;
+	ld	a, [hl]
+	inc	hl
+	inc	hl
+	ld	[hl], a
+;src/fatfs/fatfs.c:144: sum = entry[LDIR_Chksum];
+	ld	hl, sp+3
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+;src/fatfs/fatfs.c:145: named = name;
+	ld	hl, sp+11
+	ld	a, [hl]
+	ld	hl, sp+6
+	ld	[hl], a
+;src/fatfs/fatfs.c:146: list_start = list_slot;
+	ld	hl, _list_slot
+	ld	a, [hl]
+	ld	hl, _list_start
+	ld	[hl], a
+	ld	hl, _list_slot + 1
+	ld	a, [hl]
+	ld	hl, _list_start + 1
+	ld	[hl], a
+.l00109:
+;src/fatfs/fatfs.c:148: if (c == ord && sum == entry[LDIR_Chksum] && !entry[LDIR_FstClusLO] && !entry[LDIR_FstClusLO + 1]) {
+	ld	hl, sp+10
+	ld	a, [hl]
+	inc	hl
+	inc	hl
+	sub	a, [hl]
+	jp	NZ,.l00280
+	jp	.l00281
+.l00280:
+	jp	.l00116
+.l00281:
+	ld	hl, sp+3
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	a, [de]
+	ld	c, a
+	inc	hl
+	ld	a, [hl]
+	sub	a, c
+	jp	NZ,.l00282
+	jp	.l00283
+.l00282:
+	jp	.l00116
+.l00283:
+	ld	hl, sp+8
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	hl, $001A
+	add	hl, de
+	push	hl
+	ld	a, l
+	ld	hl, sp+11
+	ld	[hl], a
+	pop	hl
+	ld	a, h
+	ld	hl, sp+10
+	ld	[hl], a
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	a, [de]
+	ld	[hl], a
+	ld	a, [hl]
+	or	a, a
+	jp	NZ, .l00116
+	dec	hl
+	dec	hl
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	hl, $001B
+	add	hl, de
+	push	hl
+	ld	a, l
+	ld	hl, sp+11
+	ld	[hl], a
+	pop	hl
+	ld	a, h
+	ld	hl, sp+10
+	ld	[hl], a
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	a, [de]
+	or	a, a
+	jp	NZ, .l00116
+;src/fatfs/fatfs.c:149: if (named && !pick_lfn(fs.lfnbuf, entry)) named = 0; // too long, the SFN is shown
+	ld	hl, sp+6
+	ld	a, [hl]
+	or	a, a
+	jp	Z, .l00111
+	ld	hl, (_fs + 12) + 0
+	ld	a, [hl+]
+	ld	h, [hl]
+;	spillPairReg hl
+	ld	l, a
+;	spillPairReg hl
+;	spillPairReg hl
+	push	hl
+	ld	hl, sp+9
+	ld	c, [hl]
+	pop	hl
+	push	hl
+	ld	hl, sp+10
+	ld	b, [hl]
+	pop	hl
+	ld	e, l
+	ld	d, h
+	call	_pick_lfn__far
+	ld	a, b
+	or	a, c
+	jp	NZ, .l00111
+	ld	hl, sp+6
+	ld	[hl], $00
+.l00111:
+;src/fatfs/fatfs.c:150: if (!--ord) dot = entry[1] == '.' && !entry[2]; // first character
+	ld	hl, sp+12
+	dec	[hl]
+	ld	a, [hl]
+	or	a, a
+	jp	NZ, .l00136
 	ld	hl, sp+7
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
+	inc	bc
+	ld	a, [bc]
+	sub	a, $2E
+	jp	NZ,.l00284
+	jp	.l00285
+.l00284:
+	jp	.l00140
+.l00285:
+	dec	hl
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
+	inc	bc
+	inc	bc
+	ld	a, [bc]
+	or	a, a
+	jp	Z, .l00141
+.l00140:
+	ld	hl, sp+10
+	ld	[hl], $00
+	jp	.l00142
+.l00141:
+	ld	hl, sp+10
+	ld	[hl], $01
+.l00142:
+	ld	hl, sp+10
+	ld	a, [hl]
+	ld	hl, sp+5
+	ld	[hl], a
+	jp	.l00136
+.l00116:
+;src/fatfs/fatfs.c:152: else ord = 0xFF;
+	ld	hl, sp+12
+	ld	[hl], $FF
+	jp	.l00136
+.l00128:
+;src/fatfs/fatfs.c:155: lfn = !ord && sum == sum_sfn(entry);
+	ld	hl, sp+12
+	ld	a, [hl]
+	or	a, a
+	jp	NZ, .l00143
+	ld	hl, sp+7
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	call	_sum_sfn
+	ld	c, a
+	ld	hl, sp+4
+	ld	a, [hl]
+	sub	a, c
+	jp	NZ,.l00286
+	jp	.l00144
+.l00286:
+.l00143:
+	ld	e, $00
+	jp	.l00145
+.l00144:
+	ld	e, $01
+.l00145:
+	ld	hl, sp+12
+	ld	[hl], e
+;src/fatfs/fatfs.c:156: if (!lfn) list_start = list_slot;
+	ld	a, [hl]
+	or	a, a
+	jp	NZ, .l00122
+	ld	hl, _list_slot
+	ld	a, [hl]
+	ld	hl, _list_start
+	ld	[hl], a
+	ld	hl, _list_slot + 1
+	ld	a, [hl]
+	ld	hl, _list_start + 1
+	ld	[hl], a
+.l00122:
+;src/fatfs/fatfs.c:157: if (!(attr & (AM_HID | AM_SYS)) && !(lfn && dot)) {
+	ld	hl, sp+9
+	ld	a, [hl]
+	and	a, $06
+	jp	NZ,.l00287
+	jp	.l00288
+.l00287:
+	jp	.l00124
+.l00288:
+	ld	hl, sp+12
+	ld	a, [hl]
+	or	a, a
+	jp	Z, .l00123
+	ld	hl, sp+5
+	ld	a, [hl]
+	or	a, a
+	jp	NZ, .l00124
+.l00123:
+;src/fatfs/fatfs.c:158: dir.blk_ofs = lfn && named ? (DWORD)list_start << 5 : 0xFFFFFFFF;
+	ld	hl, sp+12
+	ld	a, [hl]
+	or	a, a
+	jp	Z, .l00146
+	ld	hl, sp+6
+	ld	a, [hl]
+	or	a, a
+	jp	Z, .l00146
+	ld	hl, _list_start
+	ld	a, [hl]
+	ld	hl, sp+5
+	ld	[hl], a
+	ld	hl, _list_start + 1
+	ld	a, [hl]
+	ld	hl, sp+6
+	ld	[hl], a
+	xor	a, a
+	inc	hl
+	ld	[hl], a
+	inc	hl
+	ld	[hl], a
+	ld	a, $05
+.l00289:
+	ld	hl, sp+5
+	sla	[hl]
+	inc	hl
+	rl	[hl]
+	inc	hl
+	rl	[hl]
+	inc	hl
+	rl	[hl]
+.l00290:
+	dec	a
+	jr	NZ,.l00289
+	jp	.l00147
+.l00146:
+	ld	hl, sp+5
+	ld	[hl], $FF
+	inc	hl
+	ld	[hl], $FF
+	inc	hl
+	ld	[hl], $FF
+	inc	hl
+	ld	[hl], $FF
+.l00147:
+	ld	de, (_dir + 40)
+	ld	hl, sp+5
+	ld	a, [hl]
+	ld	[de], a
+	inc	de
+	inc	hl
+	ld	a, [hl]
+	ld	[de], a
+	inc	de
+	inc	hl
+	ld	a, [hl]
+	ld	[de], a
+	inc	de
+	inc	hl
+	ld	a, [hl]
+	ld	[de], a
+;src/fatfs/fatfs.c:159: return attr & AM_DIR ? 1 : 2;
+	push	hl
+	inc	hl
+	bit	4, [hl]
+	pop	hl
+	jp	NZ,.l00291
+	jp	.l00151
+.l00291:
+	ld	bc, $0001
+	jp	.l00152
+.l00151:
+	ld	bc, $0002
+.l00152:
+	ld	a, c
+	jp	.l00138
+.l00124:
+;src/fatfs/fatfs.c:161: ord = 0xFF;
+	ld	hl, sp+12
+	ld	[hl], $FF
+.l00136:
+;src/fatfs/fatfs.c:163: } while (NextSlot());
+	call	_NextSlot
+	ld	hl, sp+10
+	ld	[hl], a
+	ld	hl, sp+10
+	ld	a, [hl]
+	or	a, a
+	jp	NZ, .l00135
+.l00137:
+;src/fatfs/fatfs.c:164: return 0;
+	xor	a, a
+.l00138:
+;src/fatfs/fatfs.c:165: }
+	add	sp, 13
+	ret
+;src/fatfs/fatfs.c:168: static void HalveMarks(void) {
+;	---------------------------------
+	SECTION FRAGMENT "src/fatfs/fatfs.c A",ROMX
+; Function HalveMarks
+; ---------------------------------
+_HalveMarks:
+	add	sp, -5
+;src/fatfs/fatfs.c:170: for (i = 0; i < MARKS / 2; ++i) {
+	ld	hl, sp+4
+	ld	[hl], $00
+.l00102:
+;src/fatfs/fatfs.c:171: MARK(0)[i] = MARK(0)[i << 1];
+	ld	hl, sp+4
+	ld	c, [hl]
+	ld	b, $00
+	sla	c
+	rl	b
+	ld	hl, _buffer
+	add	hl, bc
+	inc	sp
+	inc	sp
+	push	hl
+	ld	de, _buffer
+	ld	l, c
+;	spillPairReg hl
+;	spillPairReg hl
+	ld	h, b
+;	spillPairReg hl
+;	spillPairReg hl
+	add	hl, hl
+	add	hl, de
+	ld	e, l
+	ld	d, h
+	ld	a, [de]
+	ld	hl, sp+2
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	pop	de
+	push	de
+	ld	hl, sp+2
+	ld	a, [hl]
+	ld	[de], a
+	inc	de
+	inc	hl
+	ld	a, [hl]
+	ld	[de], a
+;src/fatfs/fatfs.c:172: MARK(1)[i] = MARK(1)[i << 1];
+	ld	hl, (_buffer + 256)
+	add	hl, bc
+	push	hl
+	ld	a, l
+	ld	hl, sp+4
+	ld	[hl], a
+	pop	hl
+	ld	a, h
+	ld	hl, sp+3
+	ld	[hl], a
+	ld	de, _buffer + 256
+	ld	l, c
+	ld	h, b
+	add	hl, hl
+	add	hl, de
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
+	ld	hl, sp+2
+	ld	a, [hl+]
+	ld	h, [hl]
+	ld	l, a
+	ld	[hl], c
+	inc	hl
+	ld	[hl], b
+;src/fatfs/fatfs.c:170: for (i = 0; i < MARKS / 2; ++i) {
+	ld	hl, sp+4
+	inc	[hl]
+	ld	a, [hl]
+	sub	a, $40
+	jp	C, .l00102
+;src/fatfs/fatfs.c:174: ++mark_shift;
+	ld	hl, _mark_shift
+	inc	[hl]
+;src/fatfs/fatfs.c:175: mark_mask = mark_mask << 1 | 1;
+	ld	hl, _mark_mask
+	ld	a, [hl]
+	inc	hl
+	ld	c, [hl]
+	add	a, a
+	rl	c
+	set	0, a
+	dec	hl
+	ld	[hl], a
+	inc	hl
+	ld	[hl], c
+.l00104:
+;src/fatfs/fatfs.c:176: }
+	add	sp, 5
+	ret
+;src/fatfs/fatfs.c:178: static FRESULT List(const char* path, const char* find) {
+;	---------------------------------
+	SECTION FRAGMENT "src/fatfs/fatfs.c A",ROMX
+; Function List
+; ---------------------------------
+_List:
+	add	sp, -7
+	ld	hl, sp+5
+	ld	[hl], c
+	inc	hl
+	ld	[hl], b
+;src/fatfs/fatfs.c:179: WORD find_slot = 0xFFFF, n;
+	ld	hl, sp+0
+	ld	[hl], $FF
+	inc	hl
+	ld	[hl], $FF
+;src/fatfs/fatfs.c:181: FRESULT result = f_opendir(&dir, path);
+	ld	c, e
+	ld	b, d
+	ld	de, _dir
+	call	_f_opendir
+	ld	c, a
+;src/fatfs/fatfs.c:182: if (result) return result;
+	ld	a, c
+	or	a, a
+	jp	Z, .l00102
+	ld	a, c
+	jp	.l00118
+.l00102:
+;src/fatfs/fatfs.c:183: if (find && !create_name(&dir, &find) && !dir_find(&dir)) find_slot = (WORD)(dir.dptr >> 5);
+	ld	hl, sp+6
+	ld	a, [hl]
+	dec	hl
+	or	a, [hl]
+	jp	Z, .l00104
+	ld	hl, sp+5
+	ld	c, l
+	ld	b, h
+	ld	de, _dir
+	call	_create_name__far
+	or	a, a
+	jp	NZ, .l00104
+	ld	de, _dir
+	call	_dir_find
+	or	a, a
+	jp	NZ, .l00104
+	ld	hl, _dir + 14
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
+	inc	hl
+	inc	hl
+	ld	a, [hl]
+	dec	hl
+	ld	l, [hl]
+;	spillPairReg hl
+	ld	h, a
+;	spillPairReg hl
+;	spillPairReg hl
+	ld	e, l
+	ld	d, h
+	ld	a, $05
+.l00177:
+	srl	d
+	rr	e
+	rr	b
+	rr	c
+.l00178:
+	dec	a
+	jr	NZ, .l00177
+	inc	sp
+	inc	sp
+	push	bc
+.l00104:
+;src/fatfs/fatfs.c:184: if ((result = Seek(0))) return result;
+	ld	de, $0000
+	call	_Seek
+	ld	c, a
+	or	a, a
+	jp	Z, .l00108
+	ld	a, c
+	jp	.l00118
+.l00108:
+;src/fatfs/fatfs.c:185: list_counts[0] = list_counts[1] = 0;
+	ld	hl, (_list_counts + 2)
+	xor	a, a
+	ld	[hl], a
+	inc	hl
+	ld	[hl], a
+	ld	hl, _list_counts
+	xor	a, a
+	ld	[hl], a
+	inc	hl
+	ld	[hl], a
+;src/fatfs/fatfs.c:186: read_kind = 0xFF;
+	ld	hl, _read_kind
+	ld	[hl], $FF
+;src/fatfs/fatfs.c:187: mark_shift = 4;
+	ld	hl, _mark_shift
+	ld	[hl], $04
+;src/fatfs/fatfs.c:188: mark_mask = 15;
+	ld	hl, _mark_mask
+	ld	[hl], $0F
+	xor	a, a
+	inc	hl
+	ld	[hl], a
+;src/fatfs/fatfs.c:189: list_error = FR_OK;
+	ld	hl, _list_error
+	ld	[hl], $00
+;src/fatfs/fatfs.c:190: fs_found = 0xFFFF;
+	ld	hl, _fs_found
+	ld	[hl], $FF
+	inc	hl
+	ld	[hl], $FF
+;src/fatfs/fatfs.c:191: while ((kind = NextEntry(0))) {
+.l00115:
+	xor	a, a
+	call	_NextEntry
+	ld	c, a
+	ld	hl, sp+4
+	ld	[hl], c
+	ld	a, c
+	or	a, a
+	jp	Z, .l00117
+;src/fatfs/fatfs.c:192: n = list_counts[--kind]++;
+	ld	a, [hl]
+	add	a, $FF
+	dec	hl
+	dec	hl
+	ld	[hl], a
+	ld	a, [hl]
+	ld	b, $00
+	add	a, a
+	rl	b
+	add	a, LOW(_list_counts)
+	ld	c, a
+	ld	a, b
+	adc	a, HIGH(_list_counts)
+	ld	b, a
+	ld	e, c
+	ld	d, b
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	inc	de
+	ld	a, e
+	ld	[bc], a
+	inc	bc
+	ld	a, d
+	ld	[bc], a
+;src/fatfs/fatfs.c:193: if (list_slot == find_slot) fs_found = n; // a folder, so n is its index
+	ld	hl, _list_slot
+	ld	a, [hl]
+	ld	hl, sp+0
+	sub	a, [hl]
+	jp	NZ,.l00180
+	ld	hl, _list_slot + 1
+	ld	a, [hl]
+	ld	hl, sp+1
+	sub	a, [hl]
+	jp	NZ,.l00180
+	jp	.l00181
+.l00180:
+	jp	.l00110
+.l00181:
+	ld	hl, sp+3
+	ld	a, [hl]
+	ld	hl, _fs_found
+	ld	[hl], a
+	ld	hl, sp+4
+	ld	a, [hl]
+	ld	hl, _fs_found + 1
+	ld	[hl], a
+.l00110:
+;src/fatfs/fatfs.c:194: if (!(n & mark_mask)) {
+	ld	hl, sp+3
+	ld	a, [hl]
+	ld	hl, _mark_mask
+	and	a, [hl]
+	ld	c, a
+	ld	hl, sp+4
+	ld	a, [hl]
+	ld	hl, _mark_mask + 1
+	and	a, [hl]
+	ld	b, a
+	ld	a, b
+	or	a, c
+	jp	NZ, .l00114
+;src/fatfs/fatfs.c:195: if (n >> mark_shift == MARKS) HalveMarks();
+	ld	hl, _mark_shift
+	ld	a, [hl]
+	push	af
+	ld	hl, sp+5
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
+	pop	af
+	inc	a
+	jp	.l00183
+.l00182:
+	srl	b
+	rr	c
+.l00183:
+	dec	a
+	jr	NZ, .l00182
+	ld	a, c
+	sub	a, $80
+	or	a, b
+	jp	NZ,.l00184
+	jp	.l00185
+.l00184:
+	jp	.l00112
+.l00185:
+	call	_HalveMarks
+.l00112:
+;src/fatfs/fatfs.c:196: MARK(kind)[n >> mark_shift] = list_start;
+	ld	bc, _buffer
+	ld	hl, sp+2
+	ld	a, [hl]
+	or	a, a
+	jp	Z, .l00120
+	ld	hl, $0080
+	jp	.l00121
+.l00120:
+	ld	hl, $0000
+.l00121:
+	add	hl, hl
+	add	hl, bc
+	ld	c, l
+	ld	b, h
+	ld	hl, _mark_shift
+	ld	a, [hl]
+	push	af
+	ld	hl, sp+5
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	pop	af
+	inc	a
+	jp	.l00187
+.l00186:
+	srl	d
+	rr	e
+.l00187:
+	dec	a
+	jr	NZ, .l00186
+	ld	l, e
+	ld	h, d
+	add	hl, hl
+	add	hl, bc
+	ld	c, l
+	ld	b, h
+	ld	hl, _list_start
+	ld	a, [hl]
+	ld	[bc], a
+	inc	bc
+	inc	hl
+	ld	a, [hl]
+	ld	[bc], a
+.l00114:
+;src/fatfs/fatfs.c:198: NextSlot();
+	call	_NextSlot
+	jp	.l00115
+.l00117:
+;src/fatfs/fatfs.c:200: fs_count = list_counts[0] + list_counts[1];
+	ld	hl, _list_counts + 0
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
+	ld	hl, (_list_counts + 2) + 0
+	ld	a, [hl+]
+	ld	h, [hl]
+;	spillPairReg hl
+	ld	l, a
+;	spillPairReg hl
+;	spillPairReg hl
+	add	hl, bc
+	ld	c, l
+	ld	a, h
+	ld	hl, _fs_count
+	ld	[hl], c
+	inc	hl
+	ld	[hl], a
+;src/fatfs/fatfs.c:201: return list_error;
+	ld	hl, _list_error
+	ld	a, [hl]
+.l00118:
+;src/fatfs/fatfs.c:202: }
+	add	sp, 7
+	ret
+;src/fatfs/fatfs.c:206: unsigned char fs_List(const char* path, const char* find) {
+;	---------------------------------
+	SECTION FRAGMENT "src/fatfs/fatfs.c A",ROMX
+; Function fs_List
+; ---------------------------------
+_fs_List::
+	ld	l, c
+;	spillPairReg hl
+;	spillPairReg hl
+	ld	h, b
+;	spillPairReg hl
+;	spillPairReg hl
+;src/fatfs/fatfs.c:207: FRESULT result = List(path, find);
+	push	hl
+	push	de
+	ld	c, l
+	ld	b, h
+	call	_List
+	pop	de
+	pop	hl
+;src/fatfs/fatfs.c:208: if (result == FR_DISK_ERR) result = List(path, find); // mounts the card again (it may have been swapped)
+	cp	a, $01
+	jp	NZ,.l00110
+	jp	.l00111
+.l00110:
+	jp	.l00102
+.l00111:
+	ld	c, l
+	ld	b, h
+	call	_List
+.l00102:
+;src/fatfs/fatfs.c:209: return result;
+.l00103:
+;src/fatfs/fatfs.c:210: }
+	ret
+;src/fatfs/fatfs.c:215: static BYTE GetName(char* name) {
+;	---------------------------------
+	SECTION FRAGMENT "src/fatfs/fatfs.c A",ROMX
+; Function GetName
+; ---------------------------------
+_GetName:
+	add	sp, -16
+	ld	hl, sp+12
+	ld	[hl], e
+	inc	hl
+	ld	[hl], d
+;src/fatfs/fatfs.c:216: char* start = name;
+	dec	hl
+	ld	a, [hl]
+	ld	hl, sp+0
+	ld	[hl], a
+	ld	hl, sp+13
+	ld	a, [hl]
+	ld	hl, sp+1
+	ld	[hl], a
+;src/fatfs/fatfs.c:217: char* end = name + FF_LFN_BUF;
+	ld	hl, sp+13
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	hl, $0040
+	add	hl, de
+	push	hl
+	ld	a, l
+	ld	hl, sp+4
+	ld	[hl], a
+	pop	hl
+	ld	a, h
+	ld	hl, sp+3
+	ld	[hl], a
+;src/fatfs/fatfs.c:218: WCHAR* lfn = fs.lfnbuf;
+	ld	de, (_fs + 12) + 0
+	ld	a, [de]
+	ld	hl, sp+10
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+;src/fatfs/fatfs.c:220: BYTE i, lower = NS_BODY;
+	ld	hl, sp+14
+	ld	[hl], $08
+;src/fatfs/fatfs.c:221: if (dir.blk_ofs != 0xFFFFFFFF) {
+	ld	hl, _dir + 40
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
+	inc	hl
+	inc	hl
+	ld	a, [hl]
+	dec	hl
+	ld	l, [hl]
+;	spillPairReg hl
+	ld	h, a
+;	spillPairReg hl
+;	spillPairReg hl
+	ld	a, c
+	and	a, b
+	and	a, l
+	and	a, h
+	inc	a
+	jp	NZ,.l00226
+	jp	.l00150
+.l00226:
+;src/fatfs/fatfs.c:222: while ((c = *lfn++)) {
+	ld	hl, sp+10
+	ld	a, [hl]
+	ld	hl, sp+14
+	ld	[hl], a
+	ld	hl, sp+11
+	ld	a, [hl]
+	ld	hl, sp+15
+	ld	[hl], a
+.l00115:
+	ld	hl, sp+15
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	a, [de]
+	ld	c, a
+	inc	de
+	ld	a, [de]
+	ld	b, a
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	hl, $0002
+	add	hl, de
+	push	hl
+	ld	a, l
+	ld	hl, sp+16
+	ld	[hl], a
+	pop	hl
+	ld	a, h
+	ld	hl, sp+15
+	ld	[hl], a
+	ld	hl, sp+4
+	ld	[hl], c
+	inc	hl
+	ld	[hl], b
+	ld	a, b
+	or	a, c
+	jp	Z, .l00133
+;src/fatfs/fatfs.c:223: if (c < 0x80) {
+	dec	hl
+	ld	a, [hl]
+	inc	hl
+	inc	hl
+	ld	[hl], a
+	dec	hl
+	ld	a, [hl]
+	inc	hl
+	inc	hl
+	ld	[hl], a
+;src/fatfs/fatfs.c:225: *name++ = (char)c;
+	ld	hl, sp+13
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	hl, $0001
+	add	hl, de
+	push	hl
+	ld	a, l
+	ld	hl, sp+10
+	ld	[hl], a
+	pop	hl
+	ld	a, h
+	ld	hl, sp+9
+	ld	[hl], a
+;src/fatfs/fatfs.c:223: if (c < 0x80) {
+	ld	hl, sp+6
+	ld	a, [hl]
+	sub	a, $80
+	inc	hl
+	ld	a, [hl]
+	sbc	a, $00
+	jp	NC, .l00113
+;src/fatfs/fatfs.c:224: if (name == end) return 0;
+	ld	hl, sp+12
+	ld	a, [hl]
+	ld	hl, sp+2
+	sub	a, [hl]
+	jp	NZ,.l00227
+	ld	hl, sp+13
+	ld	a, [hl]
+	ld	hl, sp+3
+	sub	a, [hl]
+	jp	NZ,.l00227
+	jp	.l00228
+.l00227:
+	jp	.l00102
+.l00228:
+	xor	a, a
+	jp	.l00135
+.l00102:
+;src/fatfs/fatfs.c:225: *name++ = (char)c;
+	ld	hl, sp+4
+	ld	c, [hl]
+	ld	hl, sp+12
+	ld	a, [hl+]
+	ld	h, [hl]
+	ld	l, a
+	ld	[hl], c
+	ld	hl, sp+8
+	ld	a, [hl]
+	ld	hl, sp+12
+	ld	[hl], a
+	ld	hl, sp+9
+	ld	a, [hl]
+	ld	hl, sp+13
+	ld	[hl], a
+	jp	.l00115
+.l00113:
+;src/fatfs/fatfs.c:228: if (end - name < 2) return 0;
+	ld	hl, sp+3
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	hl, sp+12
+	ld	a, [hl+]
+	ld	h, [hl]
+	ld	l, a
+	ld	a, e
+	sub	a, l
+	ld	e, a
+	ld	a, d
+	sbc	a, h
+	ld	b, a
+	ld	c, e
+;src/fatfs/fatfs.c:229: *name++ = (char)(0xC0 | (c >> 6));
+	ld	hl, sp+5
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	a, $06
+.l00229:
+	srl	d
+	rr	e
+	dec	a
+	jp	NZ, .l00229
+;src/fatfs/fatfs.c:230: *name++ = (char)(0x80 | (c & 0x3F));
+	dec	hl
+	ld	a, [hl]
+;src/fatfs/fatfs.c:229: *name++ = (char)(0xC0 | (c >> 6));
+	ld	hl, sp+10
+	ld	[hl], e
+;src/fatfs/fatfs.c:230: *name++ = (char)(0x80 | (c & 0x3F));
+	and	a, $3F
+	or	a, $80
+	inc	hl
+	ld	[hl], a
+;src/fatfs/fatfs.c:227: else if (c < 0x800) {
+	ld	hl, sp+6
+	ld	a, [hl]
+	sub	a, $00
+	inc	hl
+	ld	a, [hl]
+	sbc	a, $08
+	jp	NC, .l00110
+;src/fatfs/fatfs.c:228: if (end - name < 2) return 0;
+	ld	a, c
+	sub	a, $02
+	ld	a, b
+	rla
+	ccf
+	rra
+	sbc	a, $80
+	jp	NC, .l00104
+	xor	a, a
+	jp	.l00135
+.l00104:
+;src/fatfs/fatfs.c:229: *name++ = (char)(0xC0 | (c >> 6));
+	ld	hl, sp+10
+	ld	a, [hl]
+	or	a, $C0
+	inc	hl
+	inc	hl
+	push	af
+	ld	a, [hl+]
+	ld	h, [hl]
+	ld	l, a
+	pop	af
+	ld	[hl], a
+	ld	hl, sp+8
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
+;src/fatfs/fatfs.c:230: *name++ = (char)(0x80 | (c & 0x3F));
+	inc	hl
+	inc	hl
+	ld	a, [hl]
+	ld	[bc], a
+	inc	bc
+	inc	hl
+	ld	[hl], c
+	inc	hl
+	ld	[hl], b
+	jp	.l00115
+.l00110:
+;src/fatfs/fatfs.c:233: if (IsSurrogate(c) || end - name < 3) return 0;
+	ld	hl, sp+6
+	ld	a, [hl]
+	sub	a, $00
+	inc	hl
+	ld	a, [hl]
+	sbc	a, $D8
+	jp	C, .l00108
+	dec	hl
+	ld	a, $FF
+	sub	a, [hl]
+	inc	hl
+	ld	a, $DF
+	sbc	a, [hl]
+	jp	NC, .l00105
+.l00108:
+	ld	a, c
+	sub	a, $03
+	ld	a, b
+	rla
+	ccf
+	rra
+	sbc	a, $80
+	jp	NC, .l00106
+.l00105:
+	xor	a, a
+	jp	.l00135
+.l00106:
+;src/fatfs/fatfs.c:234: *name++ = (char)(0xE0 | (c >> 12));
+	ld	hl, sp+5
+	ld	a, [hl]
+	swap	a
+	and	a, $0F
+	ld	c, a
+	ld	b, $00
+	ld	a, c
+	or	a, $E0
+	ld	c, a
+	ld	hl, sp+12
+	ld	a, [hl+]
+	ld	h, [hl]
+	ld	l, a
+	ld	[hl], c
+	ld	hl, sp+8
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
+;src/fatfs/fatfs.c:235: *name++ = (char)(0x80 | ((c >> 6) & 0x3F));
+	inc	hl
+	ld	a, [hl]
+	and	a, $3F
+	set	7, a
+	ld	[bc], a
+	inc	bc
+;src/fatfs/fatfs.c:236: *name++ = (char)(0x80 | (c & 0x3F));
+	inc	hl
+	ld	a, [hl]
+	ld	[bc], a
+	inc	bc
+	inc	hl
+	ld	[hl], c
+	inc	hl
+	ld	[hl], b
+	jp	.l00115
+;src/fatfs/fatfs.c:241: for (i = 0; i < 11; ++i) {
+.l00150:
+	ld	hl, sp+15
+	ld	[hl], $00
+.l00134:
+;src/fatfs/fatfs.c:242: c = dir.dir[i];
+	ld	hl, (_dir + 26) + 0
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
+	ld	hl, sp+15
+	ld	l, [hl]
+	ld	h, $00
+	add	hl, bc
+	ld	c, l
+	ld	b, h
+	ld	a, [bc]
+	ld	hl, sp+8
+	ld	[hl], a
+	inc	hl
+	ld	[hl], $00
+;src/fatfs/fatfs.c:223: if (c < 0x80) {
+	dec	hl
+	ld	a, [hl]
+	inc	hl
+	inc	hl
+	ld	[hl], a
+	dec	hl
+	ld	a, [hl]
+	inc	hl
+	inc	hl
+	ld	[hl], a
+;src/fatfs/fatfs.c:243: if (c == ' ') continue;
+	dec	hl
+	ld	a, [hl]
+	sub	a, $20
+	inc	hl
+	or	a, [hl]
+	jp	NZ,.l00230
+	jp	.l00129
+.l00230:
+;src/fatfs/fatfs.c:244: if (c >= 0x80 || c == RDDEM) return 0;
+	ld	hl, sp+10
+	ld	a, [hl]
+	sub	a, $80
+	inc	hl
+	ld	a, [hl]
+	sbc	a, $00
+	jp	NC, .l00120
+	dec	hl
+	ld	a, [hl]
+	sub	a, $05
+	inc	hl
+	or	a, [hl]
+	jp	NZ,.l00231
+	jp	.l00232
+.l00231:
+	jp	.l00121
+.l00232:
+.l00120:
+	xor	a, a
+	jp	.l00135
+.l00121:
+;src/fatfs/fatfs.c:245: if (i == 8) {
+	ld	hl, sp+15
+	ld	a, [hl]
+	sub	a, $08
+	jp	NZ,.l00233
+	jp	.l00234
+.l00233:
+	jp	.l00124
+.l00234:
+;src/fatfs/fatfs.c:246: *name++ = '.';
+	ld	hl, sp+12
+	ld	a, [hl+]
+	ld	h, [hl]
+	ld	l, a
+	ld	[hl], $2E
+	ld	hl, sp+12
+	inc	[hl]
+	jp	NZ, .l00235
+	inc	hl
+	inc	[hl]
+.l00235:
+;src/fatfs/fatfs.c:247: lower = NS_EXT;
+	ld	hl, sp+14
+	ld	[hl], $10
+.l00124:
+;src/fatfs/fatfs.c:249: if (IsUpper(c) && (dir.dir[DIR_NTres] & lower)) c += 0x20;
+	ld	hl, sp+10
+	ld	a, [hl]
+	sub	a, $41
+	inc	hl
+	ld	a, [hl]
+	sbc	a, $00
+	jp	C, .l00126
+	dec	hl
+	ld	a, $5A
+	sub	a, [hl]
+	inc	hl
+	ld	a, $00
+	sbc	a, [hl]
+	jp	C, .l00126
+	ld	hl, (_dir + 26) + 0
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
+	ld	hl, $000C
+	add	hl, bc
+	ld	a, [hl]
+	ld	hl, sp+14
+	and	a, [hl]
+	or	a, a
+	jp	Z, .l00126
+	ld	hl, sp+11
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	hl, $0020
+	add	hl, de
+	ld	c, l
+	ld	a, h
+	ld	hl, sp+8
+	ld	[hl], c
+	inc	hl
+	ld	[hl], a
+.l00126:
+;src/fatfs/fatfs.c:250: *name++ = (char)c;
+	ld	hl, sp+8
+	ld	c, [hl]
+	ld	hl, sp+12
+	ld	a, [hl+]
+	ld	h, [hl]
+	ld	l, a
+	ld	[hl], c
+	ld	hl, sp+12
+	inc	[hl]
+	jp	NZ, .l00236
+	inc	hl
+	inc	[hl]
+.l00236:
+.l00129:
+;src/fatfs/fatfs.c:241: for (i = 0; i < 11; ++i) {
+	ld	hl, sp+15
+	inc	[hl]
+	ld	a, [hl]
+	sub	a, $0B
+	jp	C, .l00134
+.l00133:
+;src/fatfs/fatfs.c:253: *name = 0;
+	ld	hl, sp+12
+	ld	a, [hl+]
+	ld	h, [hl]
+	ld	l, a
+	ld	[hl], $00
+;src/fatfs/fatfs.c:254: return name != start;
+	ld	hl, sp+12
+	ld	a, [hl]
+	ld	hl, sp+0
+	sub	a, [hl]
+	jp	NZ,.l00237
+	ld	hl, sp+13
+	ld	a, [hl]
+	ld	hl, sp+1
+	sub	a, [hl]
+	jp	NZ,.l00237
+	ld	a,$01
+	jp	.l00238
+.l00237:
+	xor	a,a
+.l00238:
+	xor	a, $01
+.l00135:
+;src/fatfs/fatfs.c:255: }
+	add	sp, 16
+	ret
+;src/fatfs/fatfs.c:258: unsigned char fs_ListEntry(unsigned int index, FileEntry* entry) {
+;	---------------------------------
+	SECTION FRAGMENT "src/fatfs/fatfs.c A",ROMX
+; Function fs_ListEntry
+; ---------------------------------
+_fs_ListEntry::
+	add	sp, -13
+	ld	hl, sp+11
+	ld	[hl], e
+	inc	hl
+	ld	[hl], d
+	ld	hl, sp+9
+	ld	[hl], c
+	inc	hl
+	ld	[hl], b
+;src/fatfs/fatfs.c:259: BYTE kind = index >= list_counts[0], found;
+	ld	de, _list_counts + 0
+	ld	a, [de]
+	ld	hl, sp+3
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	ld	hl, sp+11
+	ld	a, [hl]
+	ld	hl, sp+5
+	ld	[hl], a
+	ld	hl, sp+12
+	ld	a, [hl]
+	ld	hl, sp+6
+	ld	[hl], a
+	ld	hl, sp+5
+	ld	e, l
+	ld	d, h
+	ld	hl, sp+3
+	ld	a, [de]
+	inc	de
+	sub	a, [hl]
+	inc	hl
+	ld	a, [de]
+	sbc	a, [hl]
+	ld	a, $00
+	rla
+	xor	a, $01
+	ld	hl, sp+0
+	ld	[hl], a
+;src/fatfs/fatfs.c:261: if (!fs.fs_type || dir.obj.id != fs.id || index >= fs_count) return FR_INVALID_OBJECT;
+	ld	hl, _fs + 0
+	ld	a, [hl]
+	ld	hl, sp+8
+	ld	[hl], a
+	ld	hl, sp+8
+	ld	a, [hl]
+	or	a, a
+	jp	Z, .l00101
+	ld	de, (_dir + 2) + 0
+	ld	a, [de]
+	dec	hl
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	ld	hl, (_fs + 6) + 0
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
+	ld	hl, sp+7
+	ld	a, [hl]
+	sub	a, c
+	jp	NZ,.l00194
+	inc	hl
+	ld	a, [hl]
+	sub	a, b
+	jp	NZ,.l00194
+	jp	.l00195
+.l00194:
+	jp	.l00101
+.l00195:
+	ld	hl, sp+11
+	ld	e, l
+	ld	d, h
+	ld	hl, _fs_count
+	ld	a, [de]
+	inc	de
+	sub	a, [hl]
+	inc	hl
+	ld	a, [de]
+	sbc	a, [hl]
+	jp	C, .l00102
+.l00101:
+	ld	a, $09
+	jp	.l00123
+.l00102:
+;src/fatfs/fatfs.c:262: if (kind) index -= list_counts[0];
+	ld	hl, sp+0
+	ld	a, [hl]
+	or	a, a
+	jp	Z, .l00106
+	ld	hl, sp+6
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	hl, sp+3
+	ld	a, [hl+]
+	ld	h, [hl]
+	ld	l, a
+	ld	a, e
+	sub	a, l
+	ld	e, a
+	ld	a, d
+	sbc	a, h
+	ld	c, e
+	ld	hl, sp+11
+	ld	[hl], c
+	inc	hl
+	ld	[hl], a
+.l00106:
+;src/fatfs/fatfs.c:259: BYTE kind = index >= list_counts[0], found;
+	ld	hl, sp+11
+	ld	a, [hl]
+	ld	hl, sp+1
+	ld	[hl], a
+	ld	hl, sp+12
+	ld	a, [hl]
+	ld	hl, sp+2
+	ld	[hl], a
+;src/fatfs/fatfs.c:263: if (kind != read_kind || index < read_next || (index ^ read_next) > mark_mask) { // from the mark before it
+	dec	hl
+	dec	hl
+	ld	a, [hl]
+	ld	hl, _read_kind
+	sub	a, [hl]
+	jp	NZ,.l00196
+	jp	.l00197
+.l00196:
+	jp	.l00109
+.l00197:
+	ld	hl, sp+1
+	ld	e, l
+	ld	d, h
+	ld	hl, _read_next
+	ld	a, [de]
+	inc	de
+	sub	a, [hl]
+	inc	hl
+	ld	a, [de]
+	sbc	a, [hl]
+	jp	C, .l00109
+	ld	hl, sp+1
+	ld	a, [hl]
+	ld	hl, _read_next
+	xor	a, [hl]
+	ld	c, a
+	ld	hl, sp+2
+	ld	a, [hl]
+	ld	hl, _read_next + 1
+	xor	a, [hl]
+	ld	b, a
+	ld	hl, _mark_mask
+	ld	a, [hl]
+	sub	a, c
+	inc	hl
+	ld	a, [hl]
+	sbc	a, b
+	jp	NC, .l00110
+.l00109:
+;src/fatfs/fatfs.c:264: if ((result = Seek(MARK(kind)[index >> mark_shift]))) return result;
+	ld	hl, sp+0
+	ld	a, [hl]
+	or	a, a
+	jp	Z, .l00125
+	ld	hl, sp+7
+	ld	[hl], $80
+	xor	a, a
+	inc	hl
+	ld	[hl], a
+	jp	.l00126
+.l00125:
+	xor	a, a
+	ld	hl, sp+7
+	ld	[hl], a
+	inc	hl
+	ld	[hl], a
+.l00126:
+	ld	hl, sp+7
+	sla	[hl]
+	inc	hl
+	rl	[hl]
+	ld	de, _buffer
+	dec	hl
+	ld	a, [hl+]
+	ld	h, [hl]
+	ld	l, a
+	add	hl, de
+	push	hl
+	ld	a, l
+	ld	hl, sp+5
+	ld	[hl], a
+	pop	hl
+	ld	a, h
+	ld	hl, sp+4
+	ld	[hl], a
+	ld	hl, _mark_shift
+	ld	a, [hl]
+	push	af
+	ld	hl, sp+13
+	ld	a, [hl]
+	ld	hl, sp+9
+	ld	[hl], a
+	ld	hl, sp+14
+	ld	a, [hl]
+	ld	hl, sp+10
+	ld	[hl], a
+	pop	af
+	inc	a
+	jp	.l00200
+.l00199:
+	ld	hl, sp+8
+	srl	[hl]
+	dec	hl
+	rr	[hl]
+.l00200:
+	dec	a
+	jr	NZ, .l00199
+	ld	hl, sp+7
+	ld	a, [hl]
+	dec	hl
+	dec	hl
+	ld	[hl], a
+	ld	hl, sp+8
+	ld	a, [hl]
+	dec	hl
+	dec	hl
+	ld	[hl], a
+	dec	hl
+	sla	[hl]
+	inc	hl
+	rl	[hl]
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	hl, sp+3
+	ld	a, [hl+]
+	ld	h, [hl]
+	ld	l, a
+	add	hl, de
+	push	hl
+	ld	a, l
+	ld	hl, sp+9
+	ld	[hl], a
+	pop	hl
+	ld	a, h
+	ld	hl, sp+8
+	ld	[hl], a
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	a, [de]
+	dec	hl
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	call	_Seek
+	ld	hl, sp+8
+	ld	[hl], a
+	ld	hl, sp+8
+	ld	c, [hl]
+	ld	a, [hl]
+	or	a, a
+	jp	Z, .l00108
+	ld	a, c
+	jp	.l00123
+.l00108:
+;src/fatfs/fatfs.c:265: read_kind = kind;
+	ld	hl, sp+0
+	ld	a, [hl]
+	ld	hl, _read_kind
+	ld	[hl], a
+;src/fatfs/fatfs.c:266: read_next = index & ~mark_mask;
+	ld	hl, _mark_mask
+	ld	a, [hl]
+	cpl
+	ld	c, a
+	inc	hl
+	ld	a, [hl]
+	cpl
+	ld	b, a
+	ld	hl, sp+1
+	ld	a, [hl]
+	and	a, c
+	ld	hl, _read_next
+	ld	[hl], a
+	ld	hl, sp+2
+	ld	a, [hl]
+	and	a, b
+	ld	hl, _read_next + 1
+	ld	[hl], a
+.l00110:
+;src/fatfs/fatfs.c:268: list_error = FR_OK;
+	ld	hl, _list_error
+	ld	[hl], $00
+;src/fatfs/fatfs.c:269: while ((found = NextEntry(read_next == index))) {
+.l00116:
+	ld	hl, _read_next
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
+	ld	hl, sp+11
+	ld	a, [hl]
+	sub	a, c
+	jp	NZ,.l00202
+	inc	hl
+	ld	a, [hl]
+	sub	a, b
+	jp	NZ,.l00202
+	ld	a,$01
+	jp	.l00203
+.l00202:
+	xor	a,a
+.l00203:
+	ld	c, a
+	ld	a, c
+	call	_NextEntry
+	ld	c, a
+	or	a, a
+	jp	Z, .l00118
+;src/fatfs/fatfs.c:270: if (found - 1 == kind && read_next++ == index) break;
+	ld	e, c
+	ld	d, $00
+	dec	de
+	ld	hl, sp+0
+	ld	a, [hl]
+	ld	hl, sp+7
+	ld	[hl], a
+	inc	hl
+	ld	[hl], $00
+	dec	hl
+	ld	a, [hl]
+	sub	a, e
+	jp	NZ,.l00204
+	inc	hl
+	ld	a, [hl]
+	sub	a, d
+	jp	NZ,.l00204
+	jp	.l00205
+.l00204:
+	jp	.l00114
+.l00205:
+	ld	hl, _read_next
+	ld	b, [hl]
+	inc	hl
+	ld	d, [hl]
+	dec	hl
+	inc	[hl]
+	jp	NZ, .l00206
+	inc	hl
+	inc	[hl]
+.l00206:
+	ld	hl, sp+11
+	ld	a, [hl]
+	sub	a, b
+	jp	NZ,.l00207
+	inc	hl
+	ld	a, [hl]
+	sub	a, d
+	jp	NZ,.l00207
+	jp	.l00118
+.l00207:
+.l00114:
+;src/fatfs/fatfs.c:271: NextSlot();
+	call	_NextSlot
+	jp	.l00116
+.l00118:
+;src/fatfs/fatfs.c:273: if (!found) {
+	ld	a, c
+	or	a, a
+	jp	NZ, .l00120
+;src/fatfs/fatfs.c:274: read_kind = 0xFF;
+	ld	hl, _read_kind
+	ld	[hl], $FF
+;src/fatfs/fatfs.c:275: return list_error ? list_error : FR_NO_FILE; // the folder changed
+	ld	hl, _list_error
+	ld	a, [hl]
+	or	a, a
+	jp	Z, .l00127
+	ld	a, [hl]
+	ld	hl, sp+8
+	ld	[hl], a
+	jp	.l00128
+.l00127:
+	ld	hl, sp+8
+	ld	[hl], $04
+.l00128:
+	ld	hl, sp+8
+	ld	a, [hl]
+	jp	.l00123
+.l00120:
+;src/fatfs/fatfs.c:277: if (!GetName(entry->name)) {
+	ld	hl, sp+9
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	call	_GetName
+	ld	hl, sp+8
+	ld	[hl], a
+	ld	hl, sp+8
+	ld	a, [hl]
+	or	a, a
+	jp	NZ, .l00122
+;src/fatfs/fatfs.c:278: get_fileinfo(&dir, &info);
+	ld	bc, _info
+	ld	de, _dir
+	call	_get_fileinfo__far
+;src/fatfs/fatfs.c:279: memcpy(entry->name, info.fname, FS_NAME_SIZE);
+	ld	hl, sp+9
+	ld	a, [hl]
+	dec	hl
+	dec	hl
+	ld	[hl], a
+	ld	hl, sp+10
+	ld	a, [hl]
+	dec	hl
+	dec	hl
+	ld	[hl], a
+	dec	hl
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
@@ -25439,17 +27566,96 @@ _fs_NextEntry::
 	push	bc
 	ld	bc, (_info + 22)
 	call	___memcpy
-;src/fatfs/fatfs.c:85: entry->size = info.fsize;
-	ld	hl, sp+8
+.l00122:
+;src/fatfs/fatfs.c:281: entry->size = ld_32(dir.dir + DIR_FileSize);
+	ld	hl, sp+10
 	dec	hl
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	ld	hl, $0041
 	add	hl, de
-	ld	c, l
-	ld	b, h
-	ld	de, _info + 0
+	push	hl
+	ld	a, l
+	ld	hl, sp+5
+	ld	[hl], a
+	pop	hl
+	ld	a, h
+	ld	hl, sp+4
+	ld	[hl], a
+	ld	de, (_dir + 26) + 0
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
+	inc	hl
+	ld	[hl], a
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	hl, $001C
+	add	hl, de
+	push	hl
+	ld	a, l
+	ld	hl, sp+9
+	ld	[hl], a
+	pop	hl
+	ld	a, h
+	ld	hl, sp+8
+	ld	[hl], a
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	call	_ld_32
+	ld	hl, sp+5
+	ld	[hl], c
+	inc	hl
+	ld	[hl], b
+	inc	hl
+	ld	[hl], e
+	inc	hl
+	ld	[hl], d
+	ld	hl, sp+4
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	inc	hl
+	ld	a, [hl]
+	ld	[de], a
+	inc	de
+	inc	hl
+	ld	a, [hl]
+	ld	[de], a
+	inc	de
+	inc	hl
+	ld	a, [hl]
+	ld	[de], a
+	inc	de
+	inc	hl
+	ld	a, [hl]
+	ld	[de], a
+;src/fatfs/fatfs.c:282: entry->time = ld_16(dir.dir + DIR_ModTime);
+	inc	hl
+	inc	hl
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	ld	hl, $0047
+	add	hl, de
+	push	hl
+	ld	a, l
+	ld	hl, sp+7
+	ld	[hl], a
+	pop	hl
+	ld	a, h
+	ld	hl, sp+6
+	ld	[hl], a
+	ld	de, (_dir + 26) + 0
 	ld	a, [de]
 	ld	hl, sp+3
 	ld	[hl], a
@@ -25457,30 +27663,42 @@ _fs_NextEntry::
 	ld	a, [de]
 	inc	hl
 	ld	[hl], a
-	inc	de
-	ld	a, [de]
+	dec	hl
+	ld	e, [hl]
 	inc	hl
+	ld	d, [hl]
+	ld	hl, $0016
+	add	hl, de
+	push	hl
+	ld	a, l
+	ld	hl, sp+9
 	ld	[hl], a
-	inc	de
-	ld	a, [de]
-	inc	hl
+	pop	hl
+	ld	a, h
+	ld	hl, sp+8
 	ld	[hl], a
-	ld	hl, sp+3
-	ld	a, [hl]
-	ld	[bc], a
-	inc	bc
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	call	_ld_16
+	ld	hl, sp+7
+	ld	[hl], c
+	inc	hl
+	ld	[hl], b
+	ld	hl, sp+6
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
 	inc	hl
 	ld	a, [hl]
-	ld	[bc], a
-	inc	bc
+	ld	[de], a
+	inc	de
 	inc	hl
 	ld	a, [hl]
-	ld	[bc], a
-	inc	bc
-	inc	hl
-	ld	a, [hl]
-	ld	[bc], a
-;src/fatfs/fatfs.c:86: entry->date = info.fdate;
+	ld	[de], a
+;src/fatfs/fatfs.c:283: entry->date = ld_16(dir.dir + DIR_ModTime + 2);
 	inc	hl
 	inc	hl
 	dec	hl
@@ -25489,44 +27707,60 @@ _fs_NextEntry::
 	ld	d, [hl]
 	ld	hl, $0045
 	add	hl, de
-	ld	c, l
-	ld	b, h
-	ld	hl, _info + 4
-	ld	a, [hl]
+	push	hl
+	ld	a, l
+	ld	hl, sp+7
+	ld	[hl], a
+	pop	hl
+	ld	a, h
+	ld	hl, sp+6
+	ld	[hl], a
+	ld	de, (_dir + 26) + 0
+	ld	a, [de]
+	ld	hl, sp+3
+	ld	[hl], a
+	inc	de
+	ld	a, [de]
 	inc	hl
-	ld	l, [hl]
-;	spillPairReg hl
-	ld	e, a
-	ld	d, l
-	ld	a, e
-	ld	[bc], a
-	inc	bc
-	ld	a, d
-	ld	[bc], a
-;src/fatfs/fatfs.c:87: entry->time = info.ftime;
-	ld	hl, sp+8
+	ld	[hl], a
 	dec	hl
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	ld	hl, $0047
+	ld	hl, $0018
 	add	hl, de
-	ld	c, l
-	ld	b, h
-	ld	hl, _info + 6
-	ld	a, [hl]
-	inc	hl
-	ld	l, [hl]
-;	spillPairReg hl
-	ld	e, a
-	ld	d, l
-	ld	a, e
-	ld	[bc], a
-	inc	bc
-	ld	a, d
-	ld	[bc], a
-;src/fatfs/fatfs.c:88: entry->dir = (info.fattrib & AM_DIR) != 0;
+	push	hl
+	ld	a, l
+	ld	hl, sp+9
+	ld	[hl], a
+	pop	hl
+	ld	a, h
 	ld	hl, sp+8
+	ld	[hl], a
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	call	_ld_16
+	ld	hl, sp+7
+	ld	[hl], c
+	inc	hl
+	ld	[hl], b
+	ld	hl, sp+6
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
+	inc	hl
+	ld	a, [hl]
+	ld	[de], a
+	inc	de
+	inc	hl
+	ld	a, [hl]
+	ld	[de], a
+;src/fatfs/fatfs.c:284: entry->dir = kind == 0;
+	inc	hl
+	inc	hl
 	dec	hl
 	ld	e, [hl]
 	inc	hl
@@ -25535,63 +27769,36 @@ _fs_NextEntry::
 	add	hl, de
 	push	hl
 	ld	a, l
-	ld	hl, sp+6
+	ld	hl, sp+9
 	ld	[hl], a
 	pop	hl
 	ld	a, h
-	ld	hl, sp+5
+	ld	hl, sp+8
 	ld	[hl], a
-	ld	hl, (_info + 8) + 0
-	ld	a, [hl]
-	ld	hl, sp+6
-	ld	[hl], a
-	ld	hl, sp+6
-	ld	a, [hl]
 	ld	hl, sp+0
-	ld	[hl], a
-	inc	hl
-	ld	[hl], $00
-	dec	hl
 	ld	a, [hl]
-	and	a, $10
-	inc	hl
-	inc	hl
-	ld	[hl], a
-	inc	hl
-	ld	[hl], $00
-	ld	a, [hl]
-	dec	hl
-	or	a, [hl]
-	sub	a,$01
-	ld	a, $00
-	rla
-	ld	hl, sp+6
-	ld	[hl], a
-	ld	a, [hl]
-	xor	a, $01
-	ld	[hl], a
-	dec	hl
-	dec	hl
-	ld	e, [hl]
-	inc	hl
-	ld	d, [hl]
-	inc	hl
-	ld	a, [hl]
-	ld	[de], a
-;src/fatfs/fatfs.c:89: return 1;
-	ld	a, $01
-	jp	.l00108
-.l00107:
-;src/fatfs/fatfs.c:91: f_closedir(&dir);
-	ld	de, _dir
-	call	_f_closedir
-;src/fatfs/fatfs.c:92: return 0;
+	or	a, a
+	jp	NZ,.l00208
+	ld	a,$01
+	jp	.l00209
+.l00208:
+	xor	a,a
+.l00209:
+	ld	c, a
+	ld	hl, sp+7
+	ld	a, [hl+]
+	ld	h, [hl]
+	ld	l, a
+	ld	[hl], c
+;src/fatfs/fatfs.c:285: NextSlot();
+	call	_NextSlot
+;src/fatfs/fatfs.c:286: return FR_OK;
 	xor	a, a
-.l00108:
-;src/fatfs/fatfs.c:93: }
-	add	sp, 9
+.l00123:
+;src/fatfs/fatfs.c:287: }
+	add	sp, 13
 	ret
-;src/fatfs/fatfs.c:96: static UINT RemoveCR(UINT count) {
+;src/fatfs/fatfs.c:290: static UINT RemoveCR(UINT count) {
 ;	---------------------------------
 	SECTION FRAGMENT "src/fatfs/fatfs.c A",ROMX
 ; Function RemoveCR
@@ -25601,24 +27808,24 @@ _RemoveCR:
 	inc	sp
 	inc	sp
 	push	de
-;src/fatfs/fatfs.c:97: BYTE* src = buffer;
+;src/fatfs/fatfs.c:291: BYTE* src = buffer;
 	ld	bc, _buffer
-;src/fatfs/fatfs.c:98: BYTE* dest = buffer;
+;src/fatfs/fatfs.c:292: BYTE* dest = buffer;
 	ld	hl, sp+2
 	ld	a, LOW(_buffer)
 	ld	[hl], a
 	inc	hl
 	ld	a, HIGH(_buffer)
 	ld	[hl], a
-;src/fatfs/fatfs.c:103: return (UINT)(dest - buffer);
+;src/fatfs/fatfs.c:297: return (UINT)(dest - buffer);
 .l00106:
-;src/fatfs/fatfs.c:99: for (; count; --count, ++src) {
+;src/fatfs/fatfs.c:293: for (; count; --count, ++src) {
 	ld	hl, sp+1
 	ld	a, [hl]
 	dec	hl
 	or	a, [hl]
 	jp	Z, .l00104
-;src/fatfs/fatfs.c:100: if (*src == '\r') fs_crlf = 1;
+;src/fatfs/fatfs.c:294: if (*src == '\r') fs_crlf = 1;
 	ld	a, [bc]
 	cp	a, $0D
 	jp	NZ,.l00126
@@ -25630,7 +27837,7 @@ _RemoveCR:
 	ld	[hl], $01
 	jp	.l00107
 .l00102:
-;src/fatfs/fatfs.c:101: else *dest++ = *src;
+;src/fatfs/fatfs.c:295: else *dest++ = *src;
 	ld	hl, sp+2
 	push	af
 	ld	a, [hl+]
@@ -25645,7 +27852,7 @@ _RemoveCR:
 	inc	[hl]
 .l00128:
 .l00107:
-;src/fatfs/fatfs.c:99: for (; count; --count, ++src) {
+;src/fatfs/fatfs.c:293: for (; count; --count, ++src) {
 	pop	de
 	push	de
 	dec	de
@@ -25655,7 +27862,7 @@ _RemoveCR:
 	inc	bc
 	jp	.l00106
 .l00104:
-;src/fatfs/fatfs.c:103: return (UINT)(dest - buffer);
+;src/fatfs/fatfs.c:297: return (UINT)(dest - buffer);
 	ld	hl, sp+3
 	dec	hl
 	ld	e, [hl]
@@ -25670,74 +27877,111 @@ _RemoveCR:
 	ld	c, e
 	ld	b, a
 .l00108:
-;src/fatfs/fatfs.c:104: }
+;src/fatfs/fatfs.c:298: }
 	add	sp, 4
 	ret
-;src/fatfs/fatfs.c:107: unsigned char fs_Load(const char* path) {
+;src/fatfs/fatfs.c:301: static FRESULT Open(const char* path, BYTE mode) {
+;	---------------------------------
+	SECTION FRAGMENT "src/fatfs/fatfs.c A",ROMX
+; Function Open
+; ---------------------------------
+_Open:
+	dec	sp
+	ld	hl, sp+0
+	ld	[hl], a
+;src/fatfs/fatfs.c:302: FRESULT result = f_open(&file, path, mode);
+	push	de
+	ld	a, [hl]
+	push	af
+	inc	sp
+	ld	c, e
+	ld	b, d
+	ld	de, _file
+	call	_f_open
+	pop	de
+;src/fatfs/fatfs.c:303: return result == FR_DISK_ERR ? f_open(&file, path, mode) : result;
+	cp	a, $01
+	jp	NZ,.l00110
+	jp	.l00111
+.l00110:
+	jp	.l00103
+.l00111:
+	ld	hl, sp+0
+	ld	a, [hl]
+	push	af
+	inc	sp
+	ld	c, e
+	ld	b, d
+	ld	de, _file
+	call	_f_open
+	jp	.l00104
+.l00103:
+.l00104:
+.l00101:
+;src/fatfs/fatfs.c:304: }
+	inc	sp
+	ret
+;src/fatfs/fatfs.c:307: unsigned char fs_Load(const char* path) {
 ;	---------------------------------
 	SECTION FRAGMENT "src/fatfs/fatfs.c A",ROMX
 ; Function fs_Load
 ; ---------------------------------
 _fs_Load::
-	add	sp, -5
-	ld	c, e
-	ld	b, d
-;src/fatfs/fatfs.c:109: FRESULT result = f_open(&file, path, FA_READ);
+	add	sp, -3
+;src/fatfs/fatfs.c:309: FRESULT result = Open(path, FA_READ);
 	ld	a, $01
-	push	af
-	inc	sp
-	ld	de, _file
-	call	_f_open
-;src/fatfs/fatfs.c:110: if (result) return result;
+	call	_Open
+;src/fatfs/fatfs.c:310: if (result) return result;
 	or	a, a
 	jp	Z, .l00102
 	jp	.l00110
 .l00102:
-;src/fatfs/fatfs.c:111: tb_Clear();
+;src/fatfs/fatfs.c:311: tb_Clear();
 	call	_tb_Clear
-;src/fatfs/fatfs.c:112: fs_crlf = 0;
+;src/fatfs/fatfs.c:312: fs_crlf = 0;
 	ld	hl, _fs_crlf
 	ld	[hl], $00
-;src/fatfs/fatfs.c:113: do {
+;src/fatfs/fatfs.c:313: do {
+	ld	de, _file+0
 .l00107:
-;src/fatfs/fatfs.c:114: result = f_read(&file, buffer, BUFFER_SIZE, &count);
+;src/fatfs/fatfs.c:314: result = f_read(&file, buffer, BUFFER_SIZE, &count);
 	ld	bc, _buffer
-	ld	de, _file
-	ld	hl, 0
+	push	de
+	ld	hl, 2
 	add	hl, sp
 	push	hl
 	ld	hl, $0200
 	push	hl
+	ld	de, _file
 	call	_f_read
+	pop	de
 	ld	hl, sp+2
 	ld	[hl], a
-;src/fatfs/fatfs.c:115: if (result) break;
+;src/fatfs/fatfs.c:315: if (result) break;
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00109
-;src/fatfs/fatfs.c:116: if (!tb_Append(buffer, RemoveCR(count))) {
+;src/fatfs/fatfs.c:316: if (!tb_Append(buffer, RemoveCR(count))) {
+	push	de
+	pop	hl
 	pop	de
 	push	de
+	push	hl
 	call	_RemoveCR
-	ld	hl, sp+3
-	ld	[hl], c
-	inc	hl
-	ld	[hl], b
-	ld	hl, sp+3
-	ld	c, [hl]
-	inc	hl
-	ld	b, [hl]
+	pop	de
+	push	de
 	ld	de, _buffer
 	call	_tb_Append
+	pop	de
 	or	a, a
 	jp	NZ, .l00108
-;src/fatfs/fatfs.c:117: result = FR_DENIED;
+;src/fatfs/fatfs.c:317: result = FR_DENIED;
 	ld	hl, sp+2
 	ld	[hl], $07
-;src/fatfs/fatfs.c:118: break;
+;src/fatfs/fatfs.c:318: break;
 	jp	.l00109
 .l00108:
-;src/fatfs/fatfs.c:120: } while (count == BUFFER_SIZE);
+;src/fatfs/fatfs.c:320: } while (count == BUFFER_SIZE);
 	ld	hl, sp+0
 	ld	a, [hl]
 	or	a, a
@@ -25749,32 +27993,31 @@ _fs_Load::
 	jp	.l00107
 .l00132:
 .l00109:
-;src/fatfs/fatfs.c:121: f_close(&file);
-	ld	de, _file
+;src/fatfs/fatfs.c:321: f_close(&file);
 	call	_f_close__far
-;src/fatfs/fatfs.c:122: return result;
+;src/fatfs/fatfs.c:322: return result;
 	ld	hl, sp+2
 	ld	a, [hl]
 .l00110:
-;src/fatfs/fatfs.c:123: }
-	add	sp, 5
+;src/fatfs/fatfs.c:323: }
+	add	sp, 3
 	ret
-;src/fatfs/fatfs.c:127: static UINT AddCR(UINT count) {
+;src/fatfs/fatfs.c:327: static UINT AddCR(UINT count) {
 ;	---------------------------------
 	SECTION FRAGMENT "src/fatfs/fatfs.c A",ROMX
 ; Function AddCR
 ; ---------------------------------
 _AddCR:
 	add	sp, -4
-;src/fatfs/fatfs.c:128: BYTE* src = buffer + BUFFER_SIZE / 2;
-;src/fatfs/fatfs.c:129: BYTE* dest = buffer;
+;src/fatfs/fatfs.c:328: BYTE* src = buffer + BUFFER_SIZE / 2;
+;src/fatfs/fatfs.c:329: BYTE* dest = buffer;
 	ld	hl, sp+0
 	ld	a, LOW(_buffer)
 	ld	[hl], a
 	inc	hl
 	ld	a, HIGH(_buffer)
 	ld	[hl], a
-;src/fatfs/fatfs.c:130: tb_Read(src, count);
+;src/fatfs/fatfs.c:330: tb_Read(src, count);
 	push	de
 	ld	c, e
 	ld	b, d
@@ -25787,13 +28030,13 @@ _AddCR:
 	inc	hl
 	ld	[hl], d
 .l00105:
-;src/fatfs/fatfs.c:131: for (; count; --count) {
+;src/fatfs/fatfs.c:331: for (; count; --count) {
 	ld	hl, sp+3
 	ld	a, [hl]
 	dec	hl
 	or	a, [hl]
 	jp	Z, .l00103
-;src/fatfs/fatfs.c:132: if (*src == '\n') *dest++ = '\r';
+;src/fatfs/fatfs.c:332: if (*src == '\n') *dest++ = '\r';
 	ld	a, [bc]
 	sub	a, $0A
 	jp	NZ,.l00125
@@ -25811,7 +28054,7 @@ _AddCR:
 	inc	[hl]
 .l00127:
 .l00102:
-;src/fatfs/fatfs.c:133: *dest++ = *src++;
+;src/fatfs/fatfs.c:333: *dest++ = *src++;
 	ld	a, [bc]
 	inc	bc
 	pop	hl
@@ -25823,7 +28066,7 @@ _AddCR:
 	inc	hl
 	inc	[hl]
 .l00128:
-;src/fatfs/fatfs.c:131: for (; count; --count) {
+;src/fatfs/fatfs.c:331: for (; count; --count) {
 	ld	hl, sp+3
 	dec	hl
 	ld	e, [hl]
@@ -25836,7 +28079,7 @@ _AddCR:
 	ld	[hl], d
 	jp	.l00105
 .l00103:
-;src/fatfs/fatfs.c:135: return (UINT)(dest - buffer);
+;src/fatfs/fatfs.c:335: return (UINT)(dest - buffer);
 	pop	de
 	push	de
 	ld	hl, _buffer
@@ -25848,58 +28091,53 @@ _AddCR:
 	ld	c, e
 	ld	b, a
 .l00107:
-;src/fatfs/fatfs.c:136: }
+;src/fatfs/fatfs.c:336: }
 	add	sp, 4
 	ret
-;src/fatfs/fatfs.c:139: unsigned char fs_Save(const char* path) {
+;src/fatfs/fatfs.c:339: unsigned char fs_Save(const char* path) {
 ;	---------------------------------
 	SECTION FRAGMENT "src/fatfs/fatfs.c A",ROMX
 ; Function fs_Save
 ; ---------------------------------
 _fs_Save::
 	add	sp, -9
-	ld	c, e
-	ld	b, d
-;src/fatfs/fatfs.c:142: FRESULT result = f_open(&file, path, FA_WRITE | FA_CREATE_ALWAYS);
+;src/fatfs/fatfs.c:342: FRESULT result = Open(path, FA_WRITE | FA_CREATE_ALWAYS);
 	ld	a, $0A
-	push	af
-	inc	sp
-	ld	de, _file
-	call	_f_open
+	call	_Open
 	ld	hl, sp+6
 	ld	[hl], a
-;src/fatfs/fatfs.c:143: if (result) return result;
+;src/fatfs/fatfs.c:343: if (result) return result;
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00102
 	ld	a, [hl]
 	jp	.l00116
 .l00102:
-;src/fatfs/fatfs.c:144: left = tb_Length();
+;src/fatfs/fatfs.c:344: left = tb_Length();
 	call	_tb_Length
 	ld	hl, sp+7
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/fatfs/fatfs.c:145: tb_read_pos = 0;
+;src/fatfs/fatfs.c:345: tb_read_pos = 0;
 	xor	a, a
 	ld	hl, _tb_read_pos
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/fatfs/fatfs.c:146: while (left) {
+;src/fatfs/fatfs.c:346: while (left) {
 .l00110:
 	ld	hl, sp+8
 	ld	a, [hl]
 	dec	hl
 	or	a, [hl]
 	jp	Z, .l00112
-;src/fatfs/fatfs.c:147: if (fs_crlf) {
+;src/fatfs/fatfs.c:347: if (fs_crlf) {
 	ld	hl, _fs_crlf
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00104
-;src/fatfs/fatfs.c:148: count = left < BUFFER_SIZE / 2 ? left : BUFFER_SIZE / 2;
+;src/fatfs/fatfs.c:348: count = left < BUFFER_SIZE / 2 ? left : BUFFER_SIZE / 2;
 	ld	hl, sp+7
 	ld	a, [hl]
 	sub	a, $00
@@ -25932,7 +28170,7 @@ _fs_Save::
 	ld	a, [hl]
 	ld	hl, sp+3
 	ld	[hl], a
-;src/fatfs/fatfs.c:149: size = AddCR(count);
+;src/fatfs/fatfs.c:349: size = AddCR(count);
 	pop	hl
 	pop	de
 	push	de
@@ -25944,7 +28182,7 @@ _fs_Save::
 	ld	[hl], b
 	jp	.l00105
 .l00104:
-;src/fatfs/fatfs.c:151: count = left < BUFFER_SIZE ? left : BUFFER_SIZE;
+;src/fatfs/fatfs.c:351: count = left < BUFFER_SIZE ? left : BUFFER_SIZE;
 	ld	hl, sp+7
 	ld	a, [hl]
 	sub	a, $00
@@ -25964,14 +28202,14 @@ _fs_Save::
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/fatfs/fatfs.c:152: tb_Read(buffer, count);
+;src/fatfs/fatfs.c:352: tb_Read(buffer, count);
 	pop	hl
 	pop	bc
 	push	bc
 	push	hl
 	ld	de, _buffer
 	call	_tb_Read
-;src/fatfs/fatfs.c:153: size = count;
+;src/fatfs/fatfs.c:353: size = count;
 	ld	hl, sp+2
 	ld	a, [hl]
 	inc	hl
@@ -25983,7 +28221,7 @@ _fs_Save::
 	inc	hl
 	ld	[hl], a
 .l00105:
-;src/fatfs/fatfs.c:155: result = f_write(&file, buffer, size, &written);
+;src/fatfs/fatfs.c:355: result = f_write(&file, buffer, size, &written);
 	ld	hl, 0
 	add	hl, sp
 	ld	e, l
@@ -25999,12 +28237,12 @@ _fs_Save::
 	call	_f_write__far
 	ld	hl, sp+6
 	ld	[hl], a
-;src/fatfs/fatfs.c:156: if (result) break;
+;src/fatfs/fatfs.c:356: if (result) break;
 	ld	hl, sp+6
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00112
-;src/fatfs/fatfs.c:157: if (written != size) {
+;src/fatfs/fatfs.c:357: if (written != size) {
 	ld	hl, sp+0
 	ld	a, [hl]
 	ld	hl, sp+4
@@ -26017,13 +28255,13 @@ _fs_Save::
 	jp	NZ,.l00172
 	jp	.l00109
 .l00172:
-;src/fatfs/fatfs.c:158: result = FR_DENIED; // disk full
+;src/fatfs/fatfs.c:358: result = FR_DENIED; // disk full
 	ld	hl, sp+6
 	ld	[hl], $07
-;src/fatfs/fatfs.c:159: break;
+;src/fatfs/fatfs.c:359: break;
 	jp	.l00112
 .l00109:
-;src/fatfs/fatfs.c:161: left -= count;
+;src/fatfs/fatfs.c:361: left -= count;
 	ld	hl, sp+8
 	dec	hl
 	ld	e, [hl]
@@ -26044,7 +28282,7 @@ _fs_Save::
 	ld	[hl], e
 	jp	.l00110
 .l00112:
-;src/fatfs/fatfs.c:163: if (f_close(&file) && !result) result = FR_DISK_ERR;
+;src/fatfs/fatfs.c:363: if (f_close(&file) && !result) result = FR_DISK_ERR;
 	ld	de, _file
 	call	_f_close__far
 	or	a, a
@@ -26055,11 +28293,11 @@ _fs_Save::
 	jp	NZ, .l00114
 	ld	[hl], $01
 .l00114:
-;src/fatfs/fatfs.c:164: return result;
+;src/fatfs/fatfs.c:364: return result;
 	ld	hl, sp+6
 	ld	a, [hl]
 .l00116:
-;src/fatfs/fatfs.c:165: }
+;src/fatfs/fatfs.c:365: }
 	add	sp, 9
 	ret
 	SECTION FRAGMENT "src/fatfs/fatfs.c A",ROMX
@@ -26267,14 +28505,6 @@ _st_clust__far:
 	ld a, HIGH(_st_clust)
 	ld [far_target+1], a
 	ld a, BANK(_st_clust)
-	jp FarCall
-_sum_sfn__far:
-	ld [far_a], a
-	ld a, LOW(_sum_sfn)
-	ld [far_target], a
-	ld a, HIGH(_sum_sfn)
-	ld [far_target+1], a
-	ld a, BANK(_sum_sfn)
 	jp FarCall
 _uni2oem_sbcs__far:
 	ld [far_a], a

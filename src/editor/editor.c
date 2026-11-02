@@ -79,7 +79,8 @@ unsigned char normalized;
 char file_name[FS_NAME_SIZE]; // current file (UTF-8), empty for new text
 char file_dir[PATH_SIZE]; // its folder, "" = root, new text is saved here too
 FileEntry entry;
-unsigned char list_result; // FRESULT of the last folder listed
+unsigned int list_count; // file browser entries, with .. below the root
+unsigned char list_result; // FRESULT of listing the folder or reading an entry
 unsigned char list_kinds[LIST_ROWS]; // file browser rows
 unsigned long list_sizes[LIST_ROWS];
 unsigned int list_dates[LIST_ROWS];
@@ -986,52 +987,64 @@ static void NewFile(void) {
   ResetCursor();
 }
 
-// file browser row for list index, if it's on screen (first is the top row's index)
-static void ListRow(unsigned int index, unsigned int first, unsigned char kind, const char* name) {
-  unsigned char row;
-  char* dest;
-  if (index < first || index >= first + LIST_ROWS) return;
-  row = (unsigned char)(index - first);
-  list_kinds[row] = kind;
-  list_sizes[row] = entry.size;
-  list_dates[row] = entry.date;
-  list_times[row] = entry.time;
-  dest = ToLatin1(RowAddress(row) + 1, name, TB_STRIDE - 3);
-  if (kind == KIND_FOLDER) *dest = '/';
+// lists the folder at path (".." below the root, folders, then files), returns the index of the folder
+// named find in it (find can be 0) or 0, list_result is set if the folder can't be read
+static unsigned int ListFolder(const char* path, const char* find) {
+  unsigned char up = path[0] != 0;
+  list_count = 0;
+  if ((list_result = FileList(path, find))) return 0;
+  list_count = fs_count + up;
+  return find && fs_found != 0xFFFF ? fs_found + up : 0;
 }
 
-// walks path's entries in list order (".." below the root, folders, then files), drawing the ones
-// from first on (none if first is LIST_ALL), and stops at index stop or the folder named find,
-// leaving it in entry; returns
-// the index it stopped at or how many there are, list_result is set if the folder can't be read
-static unsigned int ListFolder(const char* path, unsigned int first, unsigned int stop, const char* find) {
-  unsigned int index = 0;
-  unsigned char pass, i;
-  if (first != LIST_ALL) for (pass = 0; pass < LIST_ROWS; ++pass) DrawRow(pass, 0, "");
-  list_result = 0;
-  entry.size = 0;
-  if (path[0]) {
-    if (!stop) return 0;
-    ListRow(index++, first, KIND_UP, "..");
+// reads the list entry at index into entry, returns its kind, or 0xFF and sets list_result if it can't
+static unsigned char ListEntry(const char* path, unsigned int index) {
+  if (path[0] && !index--) {
+    entry.name[0] = '.';
+    entry.name[1] = '.';
+    entry.name[2] = 0;
+    return KIND_UP;
   }
-  for (pass = 0; pass < 2; ++pass) {
-    if ((list_result = FileOpenDir(path))) return index;
-    while (FileNext(&entry)) {
-      if (entry.dir == pass) continue; // folders on the first pass
-      if (index == stop) return index;
-      if (find && entry.dir) {
-        for (i = 0; find[i] && find[i] == entry.name[i]; ++i);
-        if (!find[i] && !entry.name[i]) return index;
-      }
-      ListRow(index, first, pass ? KIND_FILE : KIND_FOLDER, entry.name);
-      ++index;
-    }
+  if ((list_result = FileListEntry(index, &entry))) return 0xFF;
+  return entry.dir ? KIND_FOLDER : KIND_FILE;
+}
+
+// draws file browser rows from row to end, first is the top row's index, stops if an entry can't be read
+static void ListRows(const char* path, unsigned int first, unsigned char row, unsigned char end) {
+  unsigned char kind;
+  char* dest;
+  for (; row < end; ++row) {
+    DrawRow(row, 0, "");
+    if (first + row >= list_count) continue;
+    if ((kind = ListEntry(path, first + row)) == 0xFF) return;
+    list_kinds[row] = kind;
+    list_sizes[row] = entry.size;
+    list_dates[row] = entry.date;
+    list_times[row] = entry.time;
+    dest = ToLatin1(RowAddress(row) + 1, entry.name, TB_STRIDE - 3);
+    if (kind == KIND_FOLDER) *dest = '/';
   }
-  return find ? 0 : index;
+}
+
+// scrolls the file browser one row (down = 1 when first went up by one), only the new row is read and drawn
+static void ScrollList(const char* path, unsigned int first, unsigned char down) {
+  unsigned char i, from, to;
+  ScrollRing(down);
+  tb_ScrollRows(down);
+  for (i = 1; i < LIST_ROWS; ++i) {
+    to = down ? i - 1 : LIST_ROWS - i;
+    from = down ? i : to - 1;
+    list_kinds[to] = list_kinds[from];
+    list_sizes[to] = list_sizes[from];
+    list_dates[to] = list_dates[from];
+    list_times[to] = list_times[from];
+  }
+  i = down ? LIST_ROWS - 1 : 0;
+  ListRows(path, first, i, i + 1);
 }
 
 // path in the file name bar, what's on row in the status bar
-static void ListBars(const char* path, unsigned char row, unsigned char count) {
+static void ListBars(const char* path, unsigned char row, unsigned int count) {
   char text[TB_STRIDE];
   char* end = text;
   unsigned long size = list_sizes[row];
@@ -1099,7 +1112,7 @@ static void ListMessage(const char* text) {
 static unsigned char Browse(void) {
   char path[PATH_SIZE + FS_NAME_SIZE]; // folder, and the file's path when opening it
   char name[FS_NAME_SIZE];
-  unsigned int count = 0, selected = 0, first = 0, drawn = LIST_ALL;
+  unsigned int selected = 0, first = 0, drawn = LIST_ALL;
   unsigned char key, result, row, opened = 0, editor_font = font, length;
   CopyName(path, file_dir);
   font = FONT_VWF;
@@ -1113,47 +1126,50 @@ static unsigned char Browse(void) {
   ListLoading(path, 0xFF);
   if ((result = FileMount())) {
     ShowError(result, "");
-    selected = 0xFFFF; // skips the list
+    selected = LIST_ALL; // skips the list
   }
-  while (selected != 0xFFFF) {
+  else ListFolder(path, 0);
+  while (selected != LIST_ALL) {
     if (selected < first) first = selected;
     else if (selected >= first + LIST_ROWS) first = selected - LIST_ROWS + 1;
-    if (first != drawn) {
-      if (drawn == LIST_ALL && render_box_top == 0xFF) ListLoading(path, 0xFF); // a new folder
-      count = ListFolder(path, first, LIST_ALL, 0);
+    if (!list_result && first != drawn) {
+      if (drawn != LIST_ALL && first == drawn + 1) ScrollList(path, first, 1);
+      else if (drawn != LIST_ALL && first + 1 == drawn) ScrollList(path, first, 0);
+      else ListRows(path, first, 0, LIST_ROWS);
       HideBox();
       drawn = first;
-      if (list_result) {
-        if (!path[0]) { // can't read the card
-          ShowError(list_result, "");
-          break;
-        }
-        path[0] = 0; // folder is gone, back to the root
-        selected = 0;
-        drawn = LIST_ALL;
-        continue;
+    }
+    if (list_result) {
+      if (!path[0]) { // can't read the card
+        ShowError(list_result, "");
+        break;
       }
+      path[0] = 0; // folder is gone, back to the root
+      ListLoading(path, 0xFF);
+      selected = ListFolder(path, 0);
+      drawn = LIST_ALL;
+      continue;
     }
     row = (unsigned char)(selected - first);
-    ListBars(path, row, count);
+    ListBars(path, row, list_count);
     NoHighlight();
-    if (count) render_sel[(row + 1) << 1] = 0, render_sel[((row + 1) << 1) + 1] = 0xFF;
+    if (list_count) render_sel[(row + 1) << 1] = 0, render_sel[((row + 1) << 1) + 1] = 0xFF;
     EditorDraw();
     while (!(key = MenuKey()));
     if (key == KEY_UP && selected) --selected;
-    else if (key == KEY_DOWN && selected + 1 < count) ++selected;
+    else if (key == KEY_DOWN && selected + 1 < list_count) ++selected;
     else if (key == KEY_PAGE_UP) selected = selected > LIST_ROWS ? selected - LIST_ROWS : 0;
-    else if (key == KEY_PAGE_DOWN && count) selected = selected + LIST_ROWS < count ? selected + LIST_ROWS : count - 1;
+    else if (key == KEY_PAGE_DOWN && list_count) selected = selected + LIST_ROWS < list_count ? selected + LIST_ROWS : list_count - 1;
     else if (key == KEY_HOME) selected = 0;
-    else if (key == KEY_END && count) selected = count - 1;
-    else if ((key == KEY_ENTER || key == KEY_RIGHT) && count && list_kinds[row] != KIND_UP) {
+    else if (key == KEY_END && list_count) selected = list_count - 1;
+    else if ((key == KEY_ENTER || key == KEY_RIGHT) && list_count && list_kinds[row] != KIND_UP) {
       if (list_kinds[row] == KIND_FOLDER) ListLoading(path, row);
       else ShowBusy("Loading...");
-      ListFolder(path, LIST_ALL, selected, 0);
+      if (ListEntry(path, selected) == 0xFF) continue; // its full name
       for (length = 0; path[length]; ++length);
       if (entry.dir) {
         if (JoinPath(path + length, "", entry.name, PATH_SIZE - length)) {
-          selected = 0;
+          selected = ListFolder(path, 0);
           drawn = LIST_ALL;
         }
         else {
@@ -1180,13 +1196,13 @@ static unsigned char Browse(void) {
       }
     }
     else if (path[0] && (key == KEY_LEFT || key == KEY_BACKSPACE ||
-                         ((key == KEY_ENTER || key == KEY_RIGHT) && count && list_kinds[row] == KIND_UP))) {
+                         ((key == KEY_ENTER || key == KEY_RIGHT) && list_count && list_kinds[row] == KIND_UP))) {
       for (length = 0; path[length]; ++length);
       while (path[--length] != '/');
       CopyName(name, path + length + 1);
       path[length] = 0;
       ListLoading(path, 0xFF);
-      selected = ListFolder(path, LIST_ALL, LIST_ALL, name); // back on the folder it came from
+      selected = ListFolder(path, name); // back on the folder it came from
       drawn = LIST_ALL;
     }
     else if (key == KEY_ESCAPE || key == KEY_BACKSPACE) break;
