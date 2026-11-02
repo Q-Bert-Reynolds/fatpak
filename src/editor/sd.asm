@@ -65,6 +65,7 @@ sd_arg: DS 4;big endian command argument
 sd_ocr: DS 4
 sd_type: DB
 sd_timer: DW
+sd_count: DB
 
 SECTION "SD Code", ROM0
 
@@ -327,7 +328,7 @@ _sd_ReadSector::;de = 512 byte buffer, [_sd_sector] = LBA, returns a = 0 if succ
   call SDCommand
   pop de
   and a
-  jr nz, .error
+  jp nz, .error
   ld hl, 40000
 .waitForToken
     SD_RECEIVE
@@ -337,20 +338,31 @@ _sd_ReadSector::;de = 512 byte buffer, [_sd_sector] = LBA, returns a = 0 if succ
     ld a, h
     or a, l
     jr nz, .waitForToken
-  jr .error
+  jp .error
 .token
   cp a, $FE
-  jr nz, .error
+  jp nz, .error
   ld h, d
   ld l, e
-  ld bc, 512
-.readByte
-    SD_RECEIVE
+  ld bc, EDX_SPI_CTRL
+  ld de, EDX_SPI_DATA
+  ld a, 512/8
+  ld [sd_count], a
+.read8;SDExchange inlined
+REPT 8
+    ld a, $FF
+    ld [de], a
+.wait\@
+      ld a, [bc]
+      add a, a;busy bit to carry
+      jr c, .wait\@
+    ld a, [de]
     ld [hli], a
-    dec bc
-    ld a, b
-    or a, c
-    jr nz, .readByte
+ENDR
+    ld a, [sd_count]
+    dec a
+    ld [sd_count], a
+    jr nz, .read8
   SD_RECEIVE;CRC
   SD_RECEIVE
   xor a
@@ -367,20 +379,29 @@ _sd_WriteSector::;de = 512 byte buffer, [_sd_sector] = LBA, returns a = 0 if suc
   call SDCommand
   pop de
   and a
-  jr nz, .error
+  jp nz, .error
   SD_RECEIVE
   ld a, $FE;data token
   call SDExchange
   ld h, d
   ld l, e
-  ld bc, 512
-.writeByte
+  ld bc, EDX_SPI_CTRL
+  ld de, EDX_SPI_DATA
+  ld a, 512/8
+  ld [sd_count], a
+.write8;SDExchange inlined, without reading back
+REPT 8
     ld a, [hli]
-    call SDExchange
-    dec bc
-    ld a, b
-    or a, c
-    jr nz, .writeByte
+    ld [de], a
+.wait\@
+      ld a, [bc]
+      add a, a;busy bit to carry
+      jr c, .wait\@
+ENDR
+    ld a, [sd_count]
+    dec a
+    ld [sd_count], a
+    jr nz, .write8
   xor a;CRC
   call SDExchange
   xor a

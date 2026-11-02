@@ -1,11 +1,11 @@
-# bank_split.py: FatFs is too big for one bank. The write/mount side and the small helpers go in B,
-# everything else (read side, file API) goes in A. ROM0 is nearly full, only memcpy stays there
-# (SDCC can call it from any C).
-ROM0: __memcpy
+# bank_split.py: FatFs is too big for one bank. The write/mount side goes in B, everything else (read
+# side, file API) goes in A. The byte helpers called for every character go in ROM0 so they don't
+# need far calls (memcpy, memset, memcmp and strchr are asm in fatfs.asm).
+ROM0: ld_16 ld_32 st_16 st_32 dbc_1st dbc_2nd
 B: mount_volume find_volume check_fs get_ldnumber f_mount f_lseek
 B: f_write create_chain put_fat remove_chain sync_window sync_fs f_sync f_close
 B: dir_clear dir_alloc dir_register
-B: ld_16 ld_32 st_16 st_32 ld_clust st_clust memset memcmp strchr dbc_1st dbc_2nd move_window
+B: ld_clust st_clust move_window
 B: disk_status disk_initialize disk_read disk_write disk_ioctl
 # long file names and their code page conversion
 C: tchar2uni put_utf cmp_lfn pick_lfn put_lfn gen_numname sum_sfn create_name get_fileinfo ff_wtoupper ff_uni2oem ff_oem2uni

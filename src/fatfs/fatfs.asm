@@ -15,4 +15,91 @@ _FileNext::    BANKED_C _fs_NextEntry
 _FileLoad::    BANKED_C _fs_Load
 _FileSave::    BANKED_C _fs_Save
 
+;C library functions FatFs uses (SDCC's string.h calls memcpy __memcpy), callers in any bank
+;SDCC passes the first two args in de and bc and the third on the stack, which the callee pops
+
+___memcpy::;de = dest, bc = src, [sp+2] = count, returns dest in bc
+  push de
+  ld hl, sp+4
+  ld a, [hli]
+  ld h, [hl]
+  ld l, a
+  push hl
+  ld h, b
+  ld l, c
+  pop bc;count
+  call mem_Copy
+  jr CReturnDest
+
+_memset::;de = dest, c = value, [sp+2] = count, returns dest in bc
+  push de
+  ld hl, sp+4
+  ld a, c
+  ld c, [hl]
+  inc hl
+  ld b, [hl];count
+  ld h, d
+  ld l, e
+  call mem_Set
+  ;fall through
+
+CReturnDest:;returns the dest pushed on entry in bc, pops the stack arg
+  pop bc
+  pop hl
+  inc sp
+  inc sp
+  jp hl
+
+_memcmp::;de = a, bc = b, [sp+2] = count, returns a[i] - b[i] at the first difference (or 0) in bc
+  ld hl, sp+2
+  ld a, [hli]
+  ld h, [hl]
+  ld l, a
+  push hl
+  ld h, b
+  ld l, c
+  pop bc;count
+  inc b
+  inc c
+  jr .start
+.loop
+    ld a, [de]
+    sub a, [hl]
+    jr nz, .differ
+    inc de
+    inc hl
+.start
+    dec c
+    jr nz, .loop
+    dec b
+    jr nz, .loop
+  ld bc, 0
+  jr .return
+.differ
+  ld c, a
+  sbc a, a
+  ld b, a
+.return
+  pop hl
+  inc sp
+  inc sp
+  jp hl
+
+_strchr::;de = string, c = char, returns the first c in it (its 0 if c is 0) or 0 in bc
+  ld h, d
+  ld l, e
+.loop
+    ld a, [hl]
+    cp a, c
+    jr z, .found
+    inc hl
+    and a
+    jr nz, .loop
+  ld bc, 0
+  ret
+.found
+  ld b, h
+  ld c, l
+  ret
+
 INCLUDE "src/fatfs/_fatfs.asm";generated from fatfs.c

@@ -31,32 +31,8 @@ BYTE disk_ready;
 BYTE buffer[BUFFER_SIZE];
 unsigned char fs_crlf; // last loaded file used CR LF line endings, saved files use them too
 
-void* memcpy(void* dest, const void* src, size_t n) {
-  BYTE* d = dest;
-  const BYTE* s = src;
-  while (n--) *d++ = *s++;
-  return dest;
-}
-
-void* memset(void* dest, int c, size_t n) {
-  BYTE* d = dest;
-  while (n--) *d++ = (BYTE)c;
-  return dest;
-}
-
-int memcmp(const void* a, const void* b, size_t n) {
-  const BYTE* x = a;
-  const BYTE* y = b;
-  for (; n; --n, ++x, ++y) if (*x != *y) return *x - *y;
-  return 0;
-}
-
+// memcpy, memset, memcmp and strchr are in src/fatfs/fatfs.asm
 #include "lib/runtime.c"
-
-char* strchr(const char* s, int c) {
-  for (; *s; ++s) if (*s == (char)c) return (char*)s;
-  return c ? 0 : (char*)s;
-}
 
 DSTATUS disk_status(BYTE pdrv) {
   (void)pdrv;
