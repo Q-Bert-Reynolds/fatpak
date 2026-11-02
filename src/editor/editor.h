@@ -29,6 +29,14 @@ extern unsigned char render_row_blocks[TB_ROWS]; // block each screen row draws 
 extern unsigned char render_row_lines[TB_ROWS]; // tile_buffer row each screen row shows
 extern unsigned char render_row_fonts[TB_ROWS]; // font each screen row uses
 extern unsigned char render_text_top; // screen row of text row 0
+extern unsigned char render_box_top; // menu box over the text: screen row, 0xFF = none
+extern unsigned char render_box_rows;
+extern unsigned char render_box_x; // pixels
+extern unsigned char render_box_w;
+extern unsigned char render_box_sel; // highlighted line
+extern unsigned char render_box_gen; // change for each new box
+extern char* render_box_text; // BOX_STRIDE chars per line
+extern unsigned char RenderTextWidth(const char* text); // in the variable width font
 extern unsigned char render_pending; // a staged scroll, applied at line 144
 extern unsigned char render_pending_scy;
 extern unsigned char render_pending_top_mode;

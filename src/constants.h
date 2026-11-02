@@ -46,6 +46,7 @@
 #define TB_ROWS   18
 #define TB_WIDTH  TB_COLS*8//pixels per row
 #define TB_STRIDE 40//characters per row in tile_buffer
+#define BOX_STRIDE 20//characters per line of the menu box's text, 0 ends a line
 
 //fonts
 #define FONT_MONO 0

@@ -12,7 +12,6 @@
 #define PADF_A      0x01
 #define PADF_DPAD   0xF0
 
-#define MARKER         13 // ▶
 #define ITEM_SIZE      13 // menu items
 #define NAME_CHARS     32 // save as, Latin-1 chars are 2 bytes in UTF-8 so they fit in FS_NAME_SIZE
 #define PATH_SIZE      128
@@ -28,6 +27,8 @@
 #define STATUS_LINE      (TB_ROWS + 1)
 #define HEADER_BLOCK     8 // the bars' blocks work in either tile data mode (see src/editor/render.asm)
 #define STATUS_BLOCK     17
+#define BOX_LINE         (TB_ROWS + 2) // menu box text in tile_buffer rows from here, BOX_STRIDE chars per line
+#define BOX_PADDING      9 // 4 pixels each side of the text, and the border
 #define HELP_ROWS        18
 #define HELP_COLS        36
 
@@ -112,6 +113,7 @@ static void Render(void);
 static char* RowAddress(unsigned char row);
 static void DrawRow(unsigned char row, unsigned char col, const char* text);
 static void ShowMessage(const char* text);
+static void CopyName(char* dest, const char* src);
 
 // rendered row pos is on, 0xFF if it isn't on screen
 static unsigned char FindRow(unsigned int pos) {
@@ -861,17 +863,31 @@ static void EndFullScreen(void) {
   SetRows();
 }
 
-// shows a list of ITEM_SIZE strings, returns the chosen index or CANCEL
+// shows a list of ITEM_SIZE strings in a box over the text, returns the chosen index or CANCEL
 static unsigned char Choose(const char* title, const char* items, unsigned char count) {
-  unsigned char i, key, selected = 0;
-  BeginFullScreen();
-  while (1) {
-    ClearScreen();
-    DrawRow(0, 0, title);
-    for (i = 0; i < count; ++i) {
-      DrawRow(i + 2, 2, items + (i << 3) + (i << 2) + i); // i * ITEM_SIZE
-      if (i == selected) RowAddress(i + 2)[1] = MARKER;
+  char* line = RowAddress(BOX_LINE);
+  unsigned char i, key, selected = 0, width, widest = 0;
+  render_box_text = line;
+  for (i = 0; i <= count; ++i, line += BOX_STRIDE) {
+    if (i) {
+      line[0] = ' ';
+      CopyName(line + 1, items);
+      items += ITEM_SIZE;
     }
+    else CopyName(line, title);
+    width = RenderTextWidth(line);
+    if (width > widest) widest = width;
+  }
+  EditorShowCursor(0);
+  if (osk_shown) OSKShow(0);
+  NoHighlight();
+  render_box_w = widest + BOX_PADDING;
+  render_box_x = (TB_WIDTH - render_box_w) >> 1;
+  render_box_rows = count + 3; // half rows above and below
+  render_box_top = (TB_ROWS - render_box_rows) >> 1;
+  ++render_box_gen;
+  while (1) {
+    render_box_sel = selected + 2;
     EditorDraw();
     while (!(key = MenuKey()));
     if (key == KEY_UP) selected = selected ? selected - 1 : count - 1;
@@ -882,7 +898,9 @@ static unsigned char Choose(const char* title, const char* items, unsigned char 
       break;
     }
   }
-  EndFullScreen();
+  render_box_top = 0xFF;
+  if (osk_shown) OSKShow(1);
+  dirty = 1;
   return selected;
 }
 

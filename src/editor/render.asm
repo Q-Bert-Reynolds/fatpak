@@ -13,6 +13,9 @@
 ;Screen row r draws tile_buffer row render_row_lines[r] into block render_row_blocks[r] with font
 ;render_row_fonts[r]. Mode switches (at most 2) are staged in render_pending_* and applied with
 ;SCY at line 144.
+;A box (menus) can be drawn over rows: render_box_* set its screen rows, pixel x and width, and
+;its text, BOX_STRIDE chars per line in the variable width font, the selected row is highlighted.
+;Its first and last rows are half rows with the top and bottom border, text goes in the rows between.
 ;Text is color 3 on color 0. Selected pixels use color 2 on color 1 (bitplane 0 is inverted),
 ;which the palettes set up in EditorSetup show as inverted on DMG and highlighted on GBC and SGB.
 ;
@@ -21,6 +24,7 @@
 ;   EditorDraw                  draws the screen rows whose characters, font or selection changed
 ;   EditorRedraw                forgets which rows are drawn so EditorDraw redraws all of them
 ;   RenderSetMapRow             a = BG map row, e = block, points the map row at the block's tiles
+;   RenderTextWidth             de = text (0 ends it), returns its width in the variable width font in a
 
 
 SECTION "Font Widths", WRAM0, ALIGN[8]
@@ -59,9 +63,22 @@ render_sel_first: DB
 render_sel_end: DB
 render_sel_x: DB
 render_sel_end_x: DB
+_render_box_top:: DB;screen row, $FF = no box
+_render_box_rows:: DB
+_render_box_x:: DB
+_render_box_w:: DB;pixels, including the border
+_render_box_sel:: DB;selected row of the box
+_render_box_gen:: DB;changed for each new box, so blocks drawn with an old one are drawn again
+_render_box_text:: DW
+render_box_line: DB
+render_box_count: DB
+render_box_y: DB;lines of the row the box covers
+render_box_h: DB
+block_box: DS TB_ROWS;RenderBoxSig each block was drawn with
 
 DEF render_bitmap EQUS "cmd_buffer";160 bytes, 20 tiles of 8 lines (1bpp), must start a page
 DEF render_mask EQUS "(cmd_buffer+TB_WIDTH)";selected pixels of each tile, in the same page
+DEF render_box_mask EQUS "(cmd_buffer+TB_WIDTH+TB_COLS)";the box's pixels of each tile
 DEF RENDER_BURST EQU 4;bytes written to VRAM per HBlank (8 writes)
 
 SECTION "Render ROM0", ROM0
@@ -83,6 +100,33 @@ _SetFont::;a = font
   call mem_Copy
   pop af
   SET_BANK
+  ret
+
+_RenderTextWidth::;de = text (0 ends it), returns its width in the variable width font in a
+  ldh a, [loaded_bank]
+  push af
+  ld a, BANK(FontVWFWidths)
+  SET_BANK
+  ld b, 0
+.loop
+    ld a, [de]
+    and a
+    jr z, .done
+    inc de
+    push de
+    ld e, a
+    ld d, 0
+    ld hl, FontVWFWidths
+    add hl, de
+    ld a, [hl]
+    pop de
+    add a, b
+    ld b, a
+    jr .loop
+.done
+  pop af
+  SET_BANK
+  ld a, b
   ret
 
 _EditorRedraw::
@@ -288,6 +332,8 @@ RenderSetup::
     jr nz, .row
   call _EditorRedraw
   HIDE_WIN
+  ld a, $FF
+  ld [_render_box_top], a
   xor a
   ld [_render_pending], a
   ld [render_split_index], a
@@ -407,7 +453,7 @@ RenderRow:
   inc hl
   ld a, [render_sel_end]
   cp a, [hl]
-  jr z, .checkFont
+  jr z, .checkBox
   dec hl
 .selectionChanged
   ld a, [render_sel_first]
@@ -416,6 +462,24 @@ RenderRow:
   ld [hl], a
   ld a, [render_block]
   ld c, a
+  ld hl, row_font
+  add hl, bc
+  ld [hl], $FF
+
+.checkBox;a change makes the font check fail
+  push de
+  call RenderBoxSig
+  ld d, a
+  ld a, [render_block]
+  ld c, a
+  ld b, 0
+  ld hl, block_box
+  add hl, bc
+  ld a, d
+  cp a, [hl]
+  ld [hl], a
+  pop de
+  jr z, .checkFont
   ld hl, row_font
   add hl, bc
   ld [hl], $FF
@@ -496,6 +560,7 @@ RenderRow:
     jr nz, .char
 
 .toVRAM;bitplane 1 is the 1bpp byte, bitplane 0 is it XOR the tile's mask
+  call RenderBox
   ld a, [render_block]
   add a, a
   ld c, a
@@ -574,6 +639,10 @@ RenderSelectionMask:
 .setEnd
   ld [render_sel_end_x], a
   ld hl, render_mask
+  ;fall through
+
+;hl = 20 bytes, sets the bits of each tile from [render_sel_x] to [render_sel_end_x]
+RenderMask:
   ld c, 0;tile's x
 .tile
     ld a, [render_sel_x]
@@ -642,6 +711,225 @@ RenderColumnX:
   ret c
 .clamp
   ld a, TB_WIDTH
+  ret
+
+;returns the box line on [render_row] + 1 in a, $80 set if it's selected and the box's generation
+;in bits 4-6, 0 if the box doesn't cover the row
+RenderBoxSig:
+  ld a, [_render_box_top]
+  ld b, a
+  ld a, [render_row]
+  sub a, b
+  jr c, .none
+  ld hl, _render_box_rows
+  cp a, [hl]
+  jr nc, .none
+  ld b, a
+  ld a, [_render_box_sel]
+  cp a, b
+  ld a, b
+  jr nz, .notSelected
+  or a, $80
+.notSelected
+  inc a
+  ld b, a
+  ld a, [_render_box_gen]
+  and a, 7
+  swap a
+  or a, b
+  ret
+.none
+  xor a
+  ret
+
+;draws the box over render_bitmap if it covers [render_row]: clears the box, draws the text
+;and the border, highlights the selected row (replacing the row's selection)
+RenderBox:
+  call RenderBoxSig
+  and a
+  ret z
+  ld b, a
+  and a, $0F
+  dec a
+  ld [render_box_line], a
+  xor a
+  bit 7, b
+  push af;z = not selected
+  ld hl, render_mask
+  ld bc, TB_COLS
+  call mem_Set
+
+  ld bc, $0008;all 8 lines
+  ld a, [render_box_line]
+  and a
+  jr nz, .notFirst
+  ld bc, $0404;lower half
+.notFirst
+  inc a
+  ld hl, _render_box_rows
+  cp a, [hl]
+  jr nz, .setLines
+  ld bc, $0004;upper half
+.setLines
+  ld a, b
+  ld [render_box_y], a
+  ld a, c
+  ld [render_box_h], a
+
+  ld a, [_render_box_x]
+  ld [render_sel_x], a
+  ld b, a
+  ld a, [_render_box_w]
+  add a, b
+  ld [render_sel_end_x], a
+  ld hl, render_box_mask
+  call RenderMask
+  ld a, [render_box_y]
+  ld l, a
+  ld h, HIGH(render_bitmap)
+  ld de, render_box_mask
+  ld c, TB_COLS
+.clearTile
+    ld a, [de]
+    inc de
+    cpl
+    push de
+    push hl
+    ld d, a
+    ld a, [render_box_h]
+    ld b, a
+  .clearLine
+      ld a, [hl]
+      and a, d
+      ld [hli], a
+      dec b
+      jr nz, .clearLine
+    pop hl
+    ld a, l
+    add a, 8
+    ld l, a
+    pop de
+    dec c
+    jr nz, .clearTile
+  ld a, [render_box_h]
+  cp a, 8
+  jr nz, .border;half rows don't have text
+
+.text
+  ld a, [render_box_line]
+  dec a;text line
+  add a, a
+  add a, a
+  ld c, a;*4
+  add a, a
+  add a, a
+  add a, c;*20
+  ld e, a
+  ld d, 0
+  LD_HL_VAR _render_box_text
+  add hl, de
+  ST_HL_VAR render_src
+  ld hl, FontVWFGlyphs
+  ST_HL_VAR render_glyphs
+  ld hl, FontVWFWidths
+  ST_HL_VAR render_widths
+  ld a, [_render_box_x]
+  add a, 4
+  ld [render_x], a
+  ld a, BOX_STRIDE
+  ld [render_box_count], a
+.char
+    LD_HL_VAR render_src
+    ld a, [hli]
+    and a
+    jr z, .border
+    ld c, a
+    ST_HL_VAR render_src
+    ld a, c
+    call RenderGlyph
+    ld hl, render_box_count
+    dec [hl]
+    jr nz, .char
+
+.border;sides, the top on the first line, the bottom on the last
+  ld a, [_render_box_x]
+  call .column
+  ld a, [_render_box_x]
+  ld b, a
+  ld a, [_render_box_w]
+  add a, b
+  dec a
+  call .column
+  ld a, [render_box_line]
+  and a
+  ld e, 4
+  call z, .across
+  ld a, [render_box_line]
+  inc a
+  ld hl, _render_box_rows
+  cp a, [hl]
+  ld e, 3
+  call z, .across
+
+  pop af
+  ret z
+  ld a, [_render_box_x]
+  inc a
+  ld [render_sel_x], a
+  ld b, a
+  ld a, [_render_box_w]
+  add a, b
+  sub a, 2
+  ld [render_sel_end_x], a
+  ld hl, render_mask
+  jp RenderMask
+
+.column;a = x, sets that pixel on the lines the box covers
+  ld b, a
+  and a, %11111000
+  ld hl, render_box_y
+  add a, [hl]
+  ld l, a
+  ld h, HIGH(render_bitmap)
+  ld a, b
+  and a, 7
+  add a, LOW(RenderMaskBits)
+  ld e, a
+  adc a, HIGH(RenderMaskBits)
+  sub a, e
+  ld d, a
+  ld a, [de]
+  inc de
+  ld b, a
+  ld a, [de]
+  xor a, b;just the pixel
+  ld b, a
+  ld a, [render_box_h]
+  ld c, a
+.columnLine
+    ld a, [hl]
+    or a, b
+    ld [hli], a
+    dec c
+    jr nz, .columnLine
+  ret
+
+.across;e = line, sets the box's pixels on it
+  ld hl, render_bitmap
+  ld d, 0
+  add hl, de
+  ld de, render_box_mask
+  ld c, TB_COLS
+.acrossTile
+    ld a, [de]
+    inc de
+    or a, [hl]
+    ld [hl], a
+    ld a, l
+    add a, 8
+    ld l, a
+    dec c
+    jr nz, .acrossTile
   ret
 
 ;a = character, ORs its glyph into render_bitmap at [render_x] and advances it

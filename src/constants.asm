@@ -43,6 +43,7 @@ DEF TB_COLS   EQU 20;tiles per row
 DEF TB_ROWS   EQU 18
 DEF TB_WIDTH  EQU TB_COLS*8;pixels per row
 DEF TB_STRIDE EQU 40;characters per row in tile_buffer
+DEF BOX_STRIDE EQU 20;characters per line of the menu box's text, 0 ends a line
 
 ;fonts
 DEF FONT_MONO EQU 0
