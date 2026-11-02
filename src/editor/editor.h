@@ -44,6 +44,11 @@ extern unsigned char render_pending_split_count;
 extern unsigned char render_pending_splits[4]; // LY, mode
 extern unsigned char render_sel[TB_ROWS * 2]; // selected columns of each row (first, end), end 0xFF = right edge
 
+// src/sram.asm: the font, line wrapping, full screen and the open file's name, folder, line endings
+// and modified flag, kept in SRAM with the text
+extern unsigned char SettingsLoad(void); // 0 if they were never saved
+extern void SettingsSave(void);
+
 // src/editor/osk.asm
 extern void OSKShow(unsigned char show);
 extern void OSKDraw(unsigned char layer, unsigned char first_row); // into tile_buffer rows first_row and on

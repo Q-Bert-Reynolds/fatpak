@@ -2,13 +2,13 @@ Priority
 
 - call tb_Normalize before saving/menus so the .sav reads as plain text
 - test SD read/write on the X7
-- remember the open file's name in SRAM (text survives power off, its name doesn't)
 - test on the X7: does writing $A5 to $BD0A unlock the registers while SRAM is enabled? (the text buffer skips $BD00-$BD0F either way)
 - faster sector reads with auto-read streaming ($BD01 bit 2 + $BD06 bit 0, reading $BD00 clocks the next byte), and without checking the busy bit for each byte if the X7's SPI is fast enough at double speed
 - open/save .txt files
 
 Editor
 
+- font selection: pick from a list of fonts (variable width, 4 pixel fixed, Tiny5 Mono in img/fonts/tiny5mono_font.png, ...) instead of the Ctrl+F toggle, saved with the settings
 - variable width font: accented and UI glyphs in vwf_font.png are copied from ui_font.png, redraw them
 - rendering: drawing a row waits for 40 HBlanks (~18K cycles), use HDMA on GBC, interleave glyph drawing with the waits on DMG
 - page up/down redraw every row (~0.9M cycles), page up also scans back 17 rows from SRAM
@@ -16,13 +16,12 @@ Editor
 - FatFs cluster math uses the slow _mullong (once per sector read or written)
 - the on screen keyboard rows are redrawn on every scroll while it's open
 - smooth (pixel) scrolling on GBC (DMG doesn't have tiles for a 19th row)
-- remember the chosen font
 - TBMoveGap does bank math per byte (~1s+ to move the gap across 24KB on DMG), copy in chunks
 - tabs are drawn as a single space
 - select text with the d-pad (A + d-pad?) and cut/copy/paste from the on screen keyboard or menu
 - clipboard is limited to 7356 characters (SRAM bank 3), use WRAM banks 2-7 on GBC too?
 - undo
-- status bar: free space, remember full screen mode
+- status bar: free space
 - iGKB handlers don't send home/end/page/delete keys
 - file browser: sort by name (needs the names in memory), make folders, delete and rename files
 - save as into another folder

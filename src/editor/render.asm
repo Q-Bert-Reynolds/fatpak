@@ -96,7 +96,7 @@ _SetFont::;a = font
   ld hl, FontVWFWidths
   dec a
   jr z, .copy
-  ld hl, FontNarrowWidths
+  ld hl, FontFixedWidths
 .copy
   ld de, _font_widths
   ld bc, 256
@@ -390,7 +390,7 @@ ENDR
 
 INCLUDE "img/fonts/font_mono.asm"
 INCLUDE "img/fonts/font_vwf.asm"
-INCLUDE "img/fonts/font_narrow.asm"
+INCLUDE "img/fonts/font_fixed.asm"
 
 ;VRAM address of the first tile of each block
 BlockTileAddress:
@@ -536,8 +536,8 @@ RenderRow:
   ld de, FontVWFWidths
   dec a
   jr z, .setFont
-  ld hl, FontNarrowGlyphs
-  ld de, FontNarrowWidths
+  ld hl, FontFixedGlyphs
+  ld de, FontFixedWidths
 .setFont
   ld a, l
   ld [render_glyphs], a

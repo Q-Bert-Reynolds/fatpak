@@ -59,7 +59,9 @@
 //fonts
 #define FONT_MONO 0
 #define FONT_VWF  1
-#define FONT_NARROW 2 // 4 pixel fixed width, for text
+#define FONT_FIXED 2//4 pixel fixed width, for text
+#define PATH_SIZE    128//the open file's folder (file_dir)
+#define FS_NAME_SIZE 65//src/fatfs/file_api.h
 
 //on screen keyboard
 #define OSK_COLS    10

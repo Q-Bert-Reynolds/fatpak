@@ -32,9 +32,12 @@ Folders come first, enter or A opens, backspace, left or B goes up a folder, esc
 (so do backspace and B in the root).
 Any file up to 24KB opens as text, long file names (up to 64 characters) are shown. SAVE AS saves in the open
 file's folder. CR LF line endings are kept.
-Ctrl+F (or FONT in the menu) switches between the variable width and fixed width fonts.
-Ctrl+W (or LINE WRAP) turns line wrapping off and on. Without it each line is one row, and the text scrolls
+Ctrl+F (or FONT in the menu) switches between the fixed width font (the default) and the variable width font.
+Alt+Z (or LINE WRAP) turns line wrapping off and on. Without it each line is one row, and the text scrolls
 sideways to keep the cursor on screen.
+The font, line wrapping and full screen settings are kept in SRAM with the text, and so are the open file's
+name and folder (and whether it has unsaved changes), so after turning the Game Boy off and on the file
+name bar still shows the file and OPEN starts in its folder.
 Ctrl+Left/Right move a word (or run of punctuation) at a time, Ctrl+Up/Down scroll a row without moving
 the cursor, Ctrl+Home/End go to the start/end of the text.
 Shift + any of those keys selects text, Ctrl+A selects everything. Ctrl+X cuts, Ctrl+C copies,
@@ -54,8 +57,10 @@ Text is kept in SRAM, so it's still there after turning the Game Boy off.
 # Fonts
 The editor draws text as pixels, so fonts can be any width (src/editor/render.asm). fonts.py converts:
 - img/ui_font.png, the 8 pixel fixed width font (the on screen keyboard)
-- img/fonts/narrow_font.png, the 4 pixel fixed width font for text (40 characters per row), the
+- img/fonts/fixed_font.png, the 4 pixel fixed width font for text (40 characters per row), the
   left 4 pixels of each cell
+- img/fonts/tiny5mono_font.png, a 6 pixel fixed width font (26 characters per row), not built yet
+  (see font selection in TODO.md)
 - img/fonts/vwf_font.png, the variable width font. Glyphs are moved to the left edge of their cell
   and each character's width is its last pixel + 2. Empty glyphs (space) are 4 pixels.
 
@@ -99,7 +104,8 @@ MBC5, 1M ROM (64 banks), 32K SRAM (4 banks)
 - FatFs - ChaN (src/fatfs/lib, BSD style license)
 - sd.asm - based on TXTReaderGB's diskio by Toxa and RodrigoCard (MIT)
 - vwf_font.png - ASCII glyphs from Toxa's VWF (MIT)
-- narrow_font.png - ASCII glyphs from Damian Yerrick's onebit4x8.png (pinobatch/bitmap-fonts, MIT No Attribution)
+- fixed_font.png - ASCII glyphs from Damian Yerrick's onebit4x8.png (pinobatch/bitmap-fonts, MIT No Attribution)
+- tiny5mono_font.png - Tiny5 Mono by Stefan Schmidt (Gissio/font_Tiny5Mono, SIL Open Font License, img/fonts/Tiny5Mono-OFL.txt)
 
 # Thanks
 

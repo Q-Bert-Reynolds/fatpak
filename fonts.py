@@ -3,7 +3,7 @@ row renderer: 8 bytes of 1bpp glyph rows per character and a width table.
 Dark pixels (palette index 0 or 1) are drawn, everything else is background.
 
 img/ui_font.png            -> img/fonts/font_mono.asm, every glyph 8 pixels wide
-img/fonts/narrow_font.png  -> img/fonts/font_narrow.asm, every glyph 4 pixels wide (left 4 pixels of the cell)
+img/fonts/fixed_font.png   -> img/fonts/font_fixed.asm, every glyph 4 pixels wide (left 4 pixels of the cell)
 img/fonts/vwf_font.png     -> img/fonts/font_vwf.asm, glyphs moved to the left edge,
                               width = last pixel + 2 (1 pixel gap), empty glyphs (space) are 4
 """
@@ -12,7 +12,7 @@ from PIL import Image
 
 FONTS = [ # png, asm, label, width (0 = proportional)
   ("img/ui_font.png", "img/fonts/font_mono.asm", "FontMono", 8),
-  ("img/fonts/narrow_font.png", "img/fonts/font_narrow.asm", "FontNarrow", 4),
+  ("img/fonts/fixed_font.png", "img/fonts/font_fixed.asm", "FontFixed", 4),
   ("img/fonts/vwf_font.png", "img/fonts/font_vwf.asm", "FontVWF", 0),
 ]
 EMPTY_WIDTH = 4

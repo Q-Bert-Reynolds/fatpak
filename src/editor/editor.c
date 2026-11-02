@@ -14,7 +14,6 @@
 
 #define ITEM_SIZE      13 // menu items
 #define NAME_CHARS     32 // save as, Latin-1 chars are 2 bytes in UTF-8 so they fit in FS_NAME_SIZE
-#define PATH_SIZE      128
 #define LIST_ROWS      (TB_ROWS - 2) // file browser rows between the bars
 #define LIST_ALL       0xFFFF
 #define KIND_UP        0
@@ -76,6 +75,7 @@ unsigned char font;
 unsigned char everdrive; // text is saved to SD, otherwise SRAM is the only copy so the gap is closed when idle
 unsigned char idle_frames;
 unsigned char normalized;
+unsigned char saved_modified; // modified as last saved with the settings
 char file_name[FS_NAME_SIZE]; // current file (UTF-8), empty for new text
 char file_dir[PATH_SIZE]; // its folder, "" = root, new text is saved here too
 FileEntry entry;
@@ -93,7 +93,7 @@ static const char help_lines[HELP_ROWS][HELP_COLS] = {
   "Esc  menu      F1  help",
   "F11  full screen",
   "Ctrl+O, S, N  open, save, new",
-  "Ctrl+F, W  font, line wrap",
+  "Ctrl+F  font    Alt+Z  line wrap",
   "Shift + moving  select",
   "Ctrl+A  select all",
   "Ctrl+X, C, V  cut, copy, paste",
@@ -783,6 +783,7 @@ static void ToggleOSK(void) {
 static void ToggleBars(void) {
   bars_on = !bars_on;
   SetRows();
+  SettingsSave();
 }
 
 static void SetOSKLayer(unsigned char layer) {
@@ -1007,6 +1008,7 @@ static void NewFile(void) {
   file_name[0] = 0;
   fs_crlf = 0;
   ResetCursor();
+  SettingsSave();
 }
 
 // lists the folder at path (".." below the root, folders, then files), returns the index of the folder
@@ -1237,7 +1239,10 @@ static unsigned char Browse(void) {
 
 static void OpenFile(void) {
   if (!CanDiscard()) return;
-  if (Browse()) ResetCursor();
+  if (Browse()) {
+    ResetCursor();
+    SettingsSave();
+  }
 }
 
 // file name chars, not / \ : * ? " < > |
@@ -1297,6 +1302,7 @@ static void SaveFile(unsigned char ask) {
   result = FileMount();
   if (!result) result = FileSave(path);
   HideBox();
+  SettingsSave(); // save as may have changed the name
   if (result) {
     ShowError(result, "DISK FULL");
     return;
@@ -1305,19 +1311,21 @@ static void SaveFile(unsigned char ask) {
   ShowMessage("SAVED");
 }
 
-// Ctrl+W, lines wrap or each row is a whole line, scrolled sideways to keep the cursor on screen
+// Alt+Z, lines wrap or each row is a whole line, scrolled sideways to keep the cursor on screen
 static void ToggleWrap(void) {
   tb_nowrap = !tb_nowrap;
   tb_left = 0;
   dirty = 1;
+  SettingsSave();
 }
 
 // switches between the fixed and variable width fonts
 static void ToggleFont(void) {
-  font = font == FONT_VWF ? FONT_NARROW : FONT_VWF;
+  font = font == FONT_VWF ? FONT_FIXED : FONT_VWF;
   SetFont(font);
   Layout(); // the rows' fonts
   dirty = 1;
+  SettingsSave();
 }
 
 // F1, shown with the variable width font
@@ -1347,17 +1355,17 @@ static void FileMenu(void) {
   }
 }
 
-// shortcuts: escape or the keyboard's menu key, F1, F11, ctrl + O, S, N, F
+// shortcuts: escape or the keyboard's menu key, F1, F11, alt + Z, ctrl + O, S, N, F
 static unsigned char HandleFileKey(unsigned char key, unsigned char mods) {
   if (key == KEY_MENU || key == KEY_ESCAPE) FileMenu();
   else if (key == KEY_F1) ShowHelp();
   else if (key == KEY_F11) ToggleBars();
+  else if ((mods & KB_MOD_ALT) && (key == 'z' || key == 'Z')) ToggleWrap();
   else if (!(mods & KB_MOD_CTRL)) return 0;
   else if (key == 'o' || key == 'O') OpenFile();
   else if (key == 's' || key == 'S') SaveFile(0);
   else if (key == 'n' || key == 'N') NewFile();
   else if (key == 'f' || key == 'F') ToggleFont();
-  else if (key == 'w' || key == 'W') ToggleWrap();
   else return 0;
   dirty = 1;
   return 1;
@@ -1464,7 +1472,7 @@ void Editor(void) {
   edited = 0;
   pad_timer = 0;
   modified = 0;
-  font = FONT_VWF;
+  font = FONT_FIXED; // until SettingsLoad
   file_name[0] = 0;
   file_dir[0] = 0;
   fs_crlf = 0;
@@ -1473,10 +1481,19 @@ void Editor(void) {
   osk_x = 0;
   osk_y = 0;
   bars_on = 1;
+  tb_nowrap = 0;
+  tb_left = 0;
+  SettingsLoad();
+  saved_modified = modified;
+  SetFont(font);
   SetRows();
   Refresh();
 
   while (1) {
+    if (modified != saved_modified) {
+      saved_modified = modified;
+      SettingsSave();
+    }
     if (bars_changed) { // status bar follows the cursor
       bars_changed = 0;
       if (bars) Draw();
