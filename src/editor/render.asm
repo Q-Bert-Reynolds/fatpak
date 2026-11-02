@@ -549,7 +549,11 @@ RenderRow:
   ld [render_widths+1], a
   call RenderSelectionMask
 
-  xor a
+  ld a, [render_row_font]
+  and a
+  jr z, .startX;the on screen keyboard's keys line up with its highlight
+  ld a, 1;glyphs end with their gap, so the cursor (at x) sits in the gap before a character
+.startX
   ld [render_x], a
   ld b, TB_STRIDE
 .char
