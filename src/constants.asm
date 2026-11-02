@@ -11,6 +11,14 @@ DEF GAME_STATE_PAUSED          EQU %00001000
 ; rom banks
 DEF MAX_ROM_BANKS        EQU 64;1MB
 
+; busy spinner (src/interrupts.asm), shown when the main loop hasn't waited for a frame in a while
+DEF BUSY_SPRITE EQU 2
+DEF BUSY_TILE   EQU 122;sprite tile, the editor's tile blocks don't use 122-127
+DEF BUSY_DELAY  EQU 10;frames
+DEF BUSY_X      EQU 160;OAM x and y, top right corner
+DEF BUSY_Y      EQU 16
+DEF BUSY_PALETTE EQU 4;GBC object palette (PaletteSlate), color 2 is dark
+
 ; ram banks 
 DEF MAX_RAM_BANKS  EQU 4;32KB
 DEF MAIN_SRAM_BANK EQU 3;banks 0-2 hold the text buffer

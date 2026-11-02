@@ -117,7 +117,7 @@ SRAM is only enabled (`SRAM_ON`) while it's being read or written, so a power lo
 
 | Vector | Handler | Does |
 | --- | --- | --- |
-| VBlank | `VBLInterrupt` | OAM DMA, `LatchPad` (records new button presses), time, sound effects |
+| VBlank | `VBLInterrupt` | OAM DMA, `LatchPad` (records new button presses), time, sound effects, the busy spinner |
 | STAT | `LCDInterrupt` | Jumps to the address in `rLCDInterrupt` (`SetLCDInterrupt`). The editor uses `RenderLCDInterrupt` |
 | Serial | `SerialInterrupt` | Reads the rest of a PS/2 scan code bit by bit and queues it |
 | Timer, joypad | | unused |
@@ -158,7 +158,9 @@ Each frame `Editor()` waits for VBlank, pops keyboard events, and reads the joyp
 
 Moving the cursor sets `bars_changed`, so the status bar is redrawn at the start of the next frame. The status bar's line number is `LinesBefore(top)` plus the rows above the cursor that end with a line feed. `LinesBefore` remembers the last position it counted to (`counted_pos`) and only counts the line feeds between that and the new position with `tb_CountLines`, which reads SRAM a run at a time. Single character edits before `counted_pos` adjust it, and bigger ones reset it to 0.
 
-Menus (`Choose`) are a box over the text (see Rendering). The help screen, file browser, messages, and the save as prompt draw characters straight into `tile_buffer` rows and call `EditorDraw`. Help hides the bars (`BeginFullScreen`), the browser always shows them. Messages go in the status bar and the save as prompt in the file name bar when they're shown. File operations call into FatFs through the `File*` stubs. When the editor isn't running on an EverDrive, it moves the text buffer's gap to the end a little at a time once input stops (`tb_NormalizeStep`).
+Menus (`Choose`) are a box over the text (see Rendering).
+
+Nothing should look frozen. Work the editor knows is slow shows a box first, drawn right away with `ShowBusy`: "Loading..." (with the new path already in the file name bar) before mounting the card, reading a folder, or opening a file, "Saving..." before saving. Everything else is covered by the busy spinner: `WaitFrame` sets `busy_frames` to 1 after each VBlank and 0 while waiting, and `UpdateBusy` in VBlank counts it up and shows an animated sprite in the top right corner once the main loop hasn't waited for a frame in `BUSY_DELAY` frames. Work that takes less than that never shows it. The help screen, file browser, messages, and the save as prompt draw characters straight into `tile_buffer` rows and call `EditorDraw`. Help hides the bars (`BeginFullScreen`), the browser always shows them. Messages go in the status bar and the save as prompt in the file name bar when they're shown. File operations call into FatFs through the `File*` stubs. When the editor isn't running on an EverDrive, it moves the text buffer's gap to the end a little at a time once input stops (`tb_NormalizeStep`).
 
 ### Text buffer (`src/editor/text_buffer.asm`)
 

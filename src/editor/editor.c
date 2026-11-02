@@ -863,11 +863,38 @@ static void EndFullScreen(void) {
   SetRows();
 }
 
+// centers a box over the screen for the lines in the BOX_LINE rows, nothing highlighted
+static void OpenBox(unsigned char lines) {
+  char* line = RowAddress(BOX_LINE);
+  unsigned char i, width, widest = 0;
+  for (i = 0; i < lines; ++i, line += BOX_STRIDE) {
+    width = RenderTextWidth(line);
+    if (width > widest) widest = width;
+  }
+  render_box_text = RowAddress(BOX_LINE);
+  render_box_w = widest + BOX_PADDING;
+  render_box_x = (TB_WIDTH - render_box_w) >> 1;
+  render_box_rows = lines + 2; // half rows above and below
+  render_box_top = (TB_ROWS - render_box_rows) >> 1;
+  render_box_sel = 0xFF;
+  ++render_box_gen;
+}
+
+// a box with text (Loading..., Saving...), drawn right away, before the work it's waiting for
+static void ShowBusy(const char* text) {
+  CopyName(RowAddress(BOX_LINE), text);
+  OpenBox(1);
+  EditorDraw();
+}
+
+static void HideBox(void) {
+  render_box_top = 0xFF;
+}
+
 // shows a list of ITEM_SIZE strings in a box over the text, returns the chosen index or CANCEL
 static unsigned char Choose(const char* title, const char* items, unsigned char count) {
   char* line = RowAddress(BOX_LINE);
-  unsigned char i, key, selected = 0, width, widest = 0;
-  render_box_text = line;
+  unsigned char i, key, selected = 0;
   for (i = 0; i <= count; ++i, line += BOX_STRIDE) {
     if (i) {
       line[0] = ' ';
@@ -875,17 +902,11 @@ static unsigned char Choose(const char* title, const char* items, unsigned char 
       items += ITEM_SIZE;
     }
     else CopyName(line, title);
-    width = RenderTextWidth(line);
-    if (width > widest) widest = width;
   }
   EditorShowCursor(0);
   if (osk_shown) OSKShow(0);
   NoHighlight();
-  render_box_w = widest + BOX_PADDING;
-  render_box_x = (TB_WIDTH - render_box_w) >> 1;
-  render_box_rows = count + 3; // half rows above and below
-  render_box_top = (TB_ROWS - render_box_rows) >> 1;
-  ++render_box_gen;
+  OpenBox(count + 1);
   while (1) {
     render_box_sel = selected + 2;
     EditorDraw();
@@ -898,7 +919,7 @@ static unsigned char Choose(const char* title, const char* items, unsigned char 
       break;
     }
   }
-  render_box_top = 0xFF;
+  HideBox();
   if (osk_shown) OSKShow(1);
   dirty = 1;
   return selected;
@@ -906,6 +927,7 @@ static unsigned char Choose(const char* title, const char* items, unsigned char 
 
 // shows text in the status bar or on the last text row until a key is pressed
 static void ShowMessage(const char* text) {
+  HideBox();
   Render();
   EditorShowCursor(0);
   NoHighlight();
@@ -979,12 +1001,13 @@ static void ListRow(unsigned int index, unsigned int first, unsigned char kind, 
 }
 
 // walks path's entries in list order (".." below the root, folders, then files), drawing the ones
-// from first on, and stops at index stop or the folder named find, leaving it in entry; returns
+// from first on (none if first is LIST_ALL), and stops at index stop or the folder named find,
+// leaving it in entry; returns
 // the index it stopped at or how many there are, list_result is set if the folder can't be read
 static unsigned int ListFolder(const char* path, unsigned int first, unsigned int stop, const char* find) {
   unsigned int index = 0;
   unsigned char pass, i;
-  for (pass = 0; pass < LIST_ROWS; ++pass) DrawRow(pass, 0, "");
+  if (first != LIST_ALL) for (pass = 0; pass < LIST_ROWS; ++pass) DrawRow(pass, 0, "");
   list_result = 0;
   entry.size = 0;
   if (path[0]) {
@@ -1038,8 +1061,33 @@ static void ListBars(const char* path, unsigned char row, unsigned char count) {
   DrawRow(STATUS_LINE, 1, text);
 }
 
+// new path in the file name bar and a Loading... box over the list, with row's folder added to path
+// if row isn't 0xFF (shown before reading the folder again for its full name)
+static void ListLoading(const char* path, unsigned char row) {
+  char text[PATH_SIZE + TB_STRIDE];
+  char* end = path[0] ? ToLatin1(text, path, PATH_SIZE - 1) : text;
+  char* name;
+  unsigned char length;
+  if (row != 0xFF) {
+    *end++ = '/';
+    for (name = RowAddress(row) + 1; *name != '/'; ++name) *end++ = *name;
+  }
+  else if (!path[0]) *end++ = '/';
+  *end = 0;
+  length = (unsigned char)(end - text);
+  end = text;
+  if (length > 30) {
+    end += length - 33;
+    end[0] = end[1] = end[2] = '.';
+  }
+  DrawRow(HEADER_LINE, 1, end);
+  DrawRow(STATUS_LINE, 1, "");
+  ShowBusy("Loading...");
+}
+
 // shows text in the status bar until a key is pressed
 static void ListMessage(const char* text) {
+  HideBox();
   DrawRow(STATUS_LINE, 1, text);
   EditorDraw();
   while (!MenuKey());
@@ -1060,11 +1108,19 @@ static unsigned char Browse(void) {
   bars = 1;
   tb_rows = LIST_ROWS;
   Layout();
-  while (1) {
+  NoHighlight();
+  ListLoading(path, 0xFF);
+  if ((result = FileMount())) {
+    ShowError(result, "");
+    selected = 0xFFFF; // skips the list
+  }
+  while (selected != 0xFFFF) {
     if (selected < first) first = selected;
     else if (selected >= first + LIST_ROWS) first = selected - LIST_ROWS + 1;
     if (first != drawn) {
+      if (drawn == LIST_ALL && render_box_top == 0xFF) ListLoading(path, 0xFF); // a new folder
       count = ListFolder(path, first, LIST_ALL, 0);
+      HideBox();
       drawn = first;
       if (list_result) {
         if (!path[0]) { // can't read the card
@@ -1090,7 +1146,9 @@ static unsigned char Browse(void) {
     else if (key == KEY_HOME) selected = 0;
     else if (key == KEY_END && count) selected = count - 1;
     else if ((key == KEY_ENTER || key == KEY_RIGHT) && count && list_kinds[row] != KIND_UP) {
-      ListFolder(path, first, selected, 0);
+      if (list_kinds[row] == KIND_FOLDER) ListLoading(path, row);
+      else ShowBusy("Loading...");
+      ListFolder(path, LIST_ALL, selected, 0);
       for (length = 0; path[length]; ++length);
       if (entry.dir) {
         if (JoinPath(path + length, "", entry.name, PATH_SIZE - length)) {
@@ -1106,6 +1164,7 @@ static unsigned char Browse(void) {
       else {
         JoinPath(path + length, "", entry.name, FS_NAME_SIZE + 1);
         result = FileLoad(path);
+        HideBox();
         path[length] = 0;
         if (result) {
           file_name[0] = 0; // the text buffer only has part of it, don't save over the file
@@ -1125,7 +1184,8 @@ static unsigned char Browse(void) {
       while (path[--length] != '/');
       CopyName(name, path + length + 1);
       path[length] = 0;
-      selected = ListFolder(path, 0, LIST_ALL, name); // back on the folder it came from
+      ListLoading(path, 0xFF);
+      selected = ListFolder(path, LIST_ALL, LIST_ALL, name); // back on the folder it came from
       drawn = LIST_ALL;
     }
     else if (key == KEY_ESCAPE) break;
@@ -1137,12 +1197,7 @@ static unsigned char Browse(void) {
 }
 
 static void OpenFile(void) {
-  unsigned char result;
   if (!CanDiscard()) return;
-  if ((result = FileMount())) {
-    ShowError(result, "");
-    return;
-  }
   if (Browse()) ResetCursor();
 }
 
@@ -1198,8 +1253,12 @@ static void SaveFile(unsigned char ask) {
   char path[PATH_SIZE + FS_NAME_SIZE];
   unsigned char result;
   if ((ask || !file_name[0]) && !AskFileName()) return;
-  JoinPath(path, file_dir, file_name, PATH_SIZE + FS_NAME_SIZE);
-  if ((result = FileMount()) || (result = FileSave(path))) {
+  JoinPath(path, file_dir, file_name, (unsigned char)(PATH_SIZE + FS_NAME_SIZE));
+  ShowBusy("Saving...");
+  result = FileMount();
+  if (!result) result = FileSave(path);
+  HideBox();
+  if (result) {
     ShowError(result, "DISK FULL");
     return;
   }

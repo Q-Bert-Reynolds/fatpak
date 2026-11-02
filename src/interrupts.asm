@@ -1,6 +1,7 @@
 
 SECTION "Interrupt HRAM", HRAM
 vbl_timer:: DB ;counts to 60
+busy_frames:: DB ;frames since the main loop waited for one, 0 = it's waiting
 rLCDInterrupt:: DW;location of LCD interrupt subroutine
   
 SECTION "VBlank", ROM0[$0040]
@@ -26,6 +27,7 @@ SECTION "Interrupt Code", ROM0
 ;vblank
 ;   VBLInterrupt
 ;   UpdateTime                  updates current game time
+;   UpdateBusy                  shows a spinner if the main loop hasn't waited for a frame in BUSY_DELAY frames
 
 SerialInterrupt::;TODO: check serial type (keyboard, link, printer)
   PUSH_ALL
@@ -101,12 +103,48 @@ VBLInterrupt::
   call LatchPad
   call UpdateTime
   call UpdateAudio
+  call UpdateBusy
 
   ld a, 1
   ldh [vbl_done], a
 
   POP_ALL
   reti
+
+UpdateBusy:
+  ldh a, [busy_frames]
+  and a
+  ret z
+  inc a
+  jr nz, .count
+  ld a, BUSY_DELAY;keep turning
+.count
+  ldh [busy_frames], a
+  cp a, BUSY_DELAY
+  ret c
+  rrca
+  rrca
+  rrca
+  and a, 3;quarter turn every 8 frames
+  add a, LOW(BusyFlips)
+  ld l, a
+  adc a, HIGH(BusyFlips)
+  sub a, l
+  ld h, a
+  ld d, [hl]
+  ld c, BUSY_SPRITE
+  call gbdk_SetSpriteProp
+  ld c, BUSY_SPRITE
+  ld d, BUSY_X
+  ld e, BUSY_Y
+  jp gbdk_MoveSprite
+
+BusyFlips:;clockwise
+  DB BUSY_PALETTE, BUSY_PALETTE | OAMF_XFLIP, BUSY_PALETTE | OAMF_XFLIP | OAMF_YFLIP, BUSY_PALETTE | OAMF_YFLIP
+
+;a ring in color 2 with its top left quarter in color 3, shows on the bars and on text
+BusyTile::
+  DB $30, $3C, $40, $42, $80, $81, $80, $81, $00, $81, $00, $81, $00, $42, $00, $3C
 
 UpdateTime:
   ldh a, [vbl_timer]

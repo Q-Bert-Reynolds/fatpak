@@ -34,6 +34,13 @@ _EditorSetup::
   ld d, OAMF_PAL1
   call gbdk_SetSpriteProp
   call OSKSetup
+  ld hl, BusyTile
+  ld de, _VRAM8000+BUSY_TILE*16
+  ld bc, 16
+  call mem_CopyVRAM
+  ld c, BUSY_SPRITE
+  ld d, BUSY_TILE
+  call gbdk_SetSpriteTile
 
   ld a, KB_MODE_EDITOR
   TRAMPOLINE SetKeyboardMode
@@ -52,8 +59,15 @@ _EditorInvertCursor::;a = 1 for a white cursor
   ldh [rOBP1], a
   ret
 
-_WaitFrame::
+_WaitFrame::;the busy spinner shows if the next one is a while coming
+  xor a
+  ldh [busy_frames], a
+  ld de, 0
+  ld c, BUSY_SPRITE
+  call gbdk_MoveSprite
   call gbdk_WaitVBL
+  ld a, 1
+  ldh [busy_frames], a
   jp UpdateInput
 
 _EditorShowCursor::;a = show
