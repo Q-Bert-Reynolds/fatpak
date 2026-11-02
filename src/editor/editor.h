@@ -75,6 +75,8 @@ extern unsigned int tb_bottom;
 extern unsigned int tb_row_starts[TB_ROWS + 1]; // rendered rows, then tb_bottom
 extern unsigned char tb_row_counts[TB_ROWS]; // characters drawn in each rendered row
 extern unsigned char tb_end_row; // rendered row the end of the text is on, 0xFF = not on screen
+extern unsigned char tb_nowrap; // rows are whole lines, scrolled sideways
+extern unsigned int tb_left; // characters of each line left of the screen when tb_nowrap is set
 
 extern void tb_Load(void);
 extern void tb_Clear(void);

@@ -29,6 +29,7 @@
 ;   tb_Render                   de = top, draws tb_rows rows to tile_buffer, finds tb_find
 ;   tb_RenderRows               a = first row, e = end row, draws rows from tb_row_starts[first]
 ;   tb_ScrollRows               a = 1 moves rows up (scroll down), 0 down, shifts tile_buffer and the row tables
+;   tb_nowrap, tb_left          rows are whole lines scrolled sideways by tb_left characters (see TBScanRow)
 
 MACRO SRAM_ON
   ld a, CART_SRAM_ENABLE
@@ -95,6 +96,8 @@ tb_row_chars: DB
 tb_end: DB
 _tb_end_row:: DB;rendered row the end of the text is on, $FF = not on screen
 _tb_read_pos:: DW
+_tb_nowrap:: DB;lines don't wrap, each row is a line scrolled by _tb_left characters
+_tb_left:: DW
 _tb_cr:: DB;tb_Append dropped a CR
 tb_crlf: DB;tb_ReadLines
 tb_dest: DW
@@ -1139,6 +1142,8 @@ TBCharWidth:
 ;Scans one visual row. Rows are up to TB_WIDTH pixels (character widths from _font_widths)
 ;and TB_STRIDE characters, end after a line feed, and wrap after the last space when a word
 ;doesn't fit. Spaces and a line feed after a full row hang off the end of it.
+;With [_tb_nowrap] set a row is a whole line: its first [_tb_left] characters and the ones
+;that don't fit aren't drawn, and [_tb_found_col] is 0 or the characters drawn for them.
 ;de = row start, [tb_len] = length, returns next row start in de
 ;sets [_tb_found_col] if [_tb_find] is in the row and [_tb_found_col] is $FF
 TBScanRow:
@@ -1149,6 +1154,37 @@ TBScanRow:
   ld [tb_row_chars], a
   ld b, 0;column
   ld c, 0;column after last space
+  ld a, [_tb_nowrap]
+  and a
+  jr z, .loop
+  ld a, [_tb_left]
+  ld [tb_k], a
+  ld a, [_tb_left+1]
+  ld [tb_k+1], a
+.skip;the characters left of the screen
+    ld a, [tb_k]
+    ld c, a
+    ld a, [tb_k+1]
+    or a, c
+    ld c, 0
+    jr z, .loop
+    call TBCheckEnd
+    jr z, .end
+    ld a, [hl]
+    cp a, ASCII_LF
+    jr z, .fits
+    call TBCheckFind
+    push bc
+    call TBReadNext
+    pop bc
+    ld a, [tb_k]
+    sub a, 1
+    ld [tb_k], a
+    jr nc, .skip
+    ld a, [tb_k+1]
+    dec a
+    ld [tb_k+1], a
+    jr .skip
 .loop
     ld a, b
     cp a, TB_STRIDE
@@ -1204,6 +1240,9 @@ TBScanRow:
   jp TBCheckFind
 
 .full
+    ld a, [_tb_nowrap]
+    and a
+    jr nz, .rest
     call TBCheckEnd
     ret z;end of text
     ld a, [hl];next char
@@ -1222,6 +1261,17 @@ TBScanRow:
     ret z
     ld c, b;row ends with a space, no word to wrap
     jr .full
+
+.rest;the characters right of the screen, to the line feed
+    call TBCheckEnd
+    jr z, .end
+    call TBCheckFind
+    push bc
+    call TBReadNext
+    pop bc
+    cp a, ASCII_LF
+    ret z
+    jr .rest
 
 .checkWrap
   ld a, c

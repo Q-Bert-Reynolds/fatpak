@@ -86,14 +86,14 @@ unsigned long list_sizes[LIST_ROWS];
 unsigned int list_dates[LIST_ROWS];
 unsigned int list_times[LIST_ROWS];
 
-static const char menu_items[][ITEM_SIZE] = {"OPEN", "SAVE", "SAVE AS", "NEW", "FONT", "FULL SCREEN", "HELP"};
+static const char menu_items[][ITEM_SIZE] = {"OPEN", "SAVE", "SAVE AS", "NEW", "FONT", "LINE WRAP", "FULL SCREEN", "HELP"};
 static const char discard_items[][ITEM_SIZE] = {"NO", "YES"};
 static const char help_lines[HELP_ROWS][HELP_COLS] = {
   "HELP",
   "Esc  menu      F1  help",
   "F11  full screen",
   "Ctrl+O, S, N  open, save, new",
-  "Ctrl+F  switch font",
+  "Ctrl+F, W  font, line wrap",
   "Shift + moving  select",
   "Ctrl+A  select all",
   "Ctrl+X, C, V  cut, copy, paste",
@@ -127,14 +127,26 @@ static unsigned char FindRow(unsigned int pos) {
 }
 
 static unsigned char GetSelection(void);
+static unsigned char RowEndsLine(unsigned char row);
+
+// position of the line feed that ends a rendered row when lines don't wrap, or the end of the text
+static unsigned int LineEnd(unsigned char row) {
+  return row == tb_end_row ? tb_Length() : tb_row_starts[row + 1] - 1;
+}
 
 // moves the cursor sprite to the cursor, returns 0 if it isn't on screen
 static unsigned char PlaceCursor(void) {
-  unsigned char row = FindRow(cursor);
+  unsigned char row = FindRow(cursor), count;
   unsigned int col;
   if (row == 0xFF) return 0;
   col = cursor - tb_row_starts[row];
-  if (col > tb_row_counts[row]) col = tb_row_counts[row]; // hanging spaces
+  count = tb_row_counts[row];
+  if (tb_nowrap) { // its character is drawn, or it's after the line's last one
+    if (col < tb_left) return 0;
+    col -= tb_left;
+    if (col > count || (col == count && cursor != LineEnd(row))) return 0;
+  }
+  else if (col > count) col = count; // hanging spaces
   tb_found_row = row;
   tb_found_col = (unsigned char)col;
   if (!keep_x) want_x = RenderCursorX(tb_found_col);
@@ -158,6 +170,10 @@ static unsigned int PosAtX(unsigned char row, unsigned char x) {
     ++col;
   }
   pos = tb_row_starts[row] + col;
+  if (tb_nowrap) {
+    pos += tb_left;
+    return pos > LineEnd(row) ? LineEnd(row) : pos;
+  }
   if (col == count && pos == tb_row_starts[row + 1] && tb_end_row != row) --pos; // stay on wrapped row
   return pos;
 }
@@ -318,7 +334,7 @@ static void NoHighlight(void) {
 // sets the selected columns of each rendered row for EditorDraw
 static void SetHighlight(void) {
   unsigned char row, first, end, count;
-  unsigned int row_start, next;
+  unsigned int row_start, next, base;
   NoHighlight();
   if (!GetSelection()) return;
   for (row = 0; row < tb_rows; ++row) {
@@ -327,10 +343,11 @@ static void SetHighlight(void) {
     if (sel_end <= row_start) break;
     if (sel_start >= next) continue;
     count = tb_row_counts[row];
+    base = row_start + (tb_nowrap ? tb_left : 0); // first drawn character
     first = 0;
-    if (sel_start > row_start) first = sel_start - row_start > count ? count : (unsigned char)(sel_start - row_start);
+    if (sel_start > base) first = sel_start - base > count ? count : (unsigned char)(sel_start - base);
     if (sel_end < next || row == tb_end_row) { // ends in this row
-      end = sel_end - row_start > count ? count : (unsigned char)(sel_end - row_start);
+      end = sel_end <= base ? 0 : sel_end - base > count ? count : (unsigned char)(sel_end - base);
       if (end <= first) continue;
     }
     else end = 0xFF; // continues, so the line feed or wrap is selected too
@@ -563,6 +580,10 @@ static void PageDown(void) {
 // before the space that ends a wrapped row, otherwise after the last char
 static void MoveEnd(void) {
   unsigned char row = tb_found_row, count = tb_row_counts[row];
+  if (tb_nowrap) {
+    cursor = LineEnd(row);
+    return;
+  }
   cursor = tb_row_starts[row] + count;
   if (count && cursor == tb_row_starts[row + 1] && tb_end_row != row && RowAddress(row)[count - 1] == ' ') --cursor;
 }
@@ -974,6 +995,7 @@ static void ResetCursor(void) {
   counted_lines = 0;
   selecting = 0;
   top = 0;
+  tb_left = 0;
   want_x = 0;
   modified = 0;
   dirty = 1;
@@ -1283,6 +1305,13 @@ static void SaveFile(unsigned char ask) {
   ShowMessage("SAVED");
 }
 
+// Ctrl+W, lines wrap or each row is a whole line, scrolled sideways to keep the cursor on screen
+static void ToggleWrap(void) {
+  tb_nowrap = !tb_nowrap;
+  tb_left = 0;
+  dirty = 1;
+}
+
 // switches between the fixed and variable width fonts
 static void ToggleFont(void) {
   font = font == FONT_VWF ? FONT_NARROW : FONT_VWF;
@@ -1306,14 +1335,15 @@ static void ShowHelp(void) {
 }
 
 static void FileMenu(void) {
-  switch (Choose("MENU", menu_items[0], 7)) {
+  switch (Choose("MENU", menu_items[0], 8)) {
     case 0: OpenFile(); break;
     case 1: SaveFile(0); break;
     case 2: SaveFile(1); break;
     case 3: NewFile(); break;
     case 4: ToggleFont(); break;
-    case 5: ToggleBars(); break;
-    case 6: ShowHelp(); break;
+    case 5: ToggleWrap(); break;
+    case 6: ToggleBars(); break;
+    case 7: ShowHelp(); break;
   }
 }
 
@@ -1327,6 +1357,7 @@ static unsigned char HandleFileKey(unsigned char key, unsigned char mods) {
   else if (key == 's' || key == 'S') SaveFile(0);
   else if (key == 'n' || key == 'N') NewFile();
   else if (key == 'f' || key == 'F') ToggleFont();
+  else if (key == 'w' || key == 'W') ToggleWrap();
   else return 0;
   dirty = 1;
   return 1;
@@ -1335,6 +1366,43 @@ static unsigned char HandleFileKey(unsigned char key, unsigned char mods) {
 static void Render(void) {
   tb_find = cursor;
   tb_Render(top);
+}
+
+#define KEEP_LEFT  40 // pixels of text left of the cursor after scrolling sideways to the right (more near the line's end)
+#define KEEP_RIGHT 120 // after scrolling to the left, most of the screen shows where it's going
+
+static unsigned char CharWidth(unsigned char c) {
+  return font_widths[c < ' ' ? ' ' : c]; // control characters are drawn as spaces
+}
+
+// lines don't wrap: scrolls them sideways if the cursor's character isn't drawn (or it isn't on
+// screen after the line's last one), returns 1 if tb_left changed
+static unsigned char ScrollX(void) {
+  unsigned int start = tb_found_row == 0xFF ? tb_LineStart(cursor) : tb_row_starts[tb_found_row];
+  unsigned int col = cursor - start, length = tb_Length(), pos, x = 0, left;
+  unsigned char c, keep = KEEP_LEFT;
+  if (col < tb_left) keep = KEEP_RIGHT;
+  else if (col - tb_left < TB_STRIDE) {
+    for (pos = start + tb_left; ; ++pos) {
+      c = pos == length ? ASCII_LF : tb_GetChar(pos);
+      if (pos == cursor && c == ASCII_LF) {
+        if (x < TB_WIDTH) return 0;
+        break;
+      }
+      if ((x += CharWidth(c)) > TB_WIDTH) break;
+      if (pos == cursor) return 0;
+    }
+  }
+  if (keep == KEEP_LEFT) { // more if the line ends sooner, so the screen isn't left empty
+    for (pos = cursor, x = 0; pos < length && (c = tb_GetChar(pos)) != ASCII_LF && x <= TB_WIDTH; ++pos) x += CharWidth(c);
+    if (x < TB_WIDTH - 1 - KEEP_LEFT) keep = TB_WIDTH - 1 - x;
+  }
+  for (left = col, x = 0; left; --left) {
+    if ((x += CharWidth(tb_GetChar(start + left - 1))) > keep) break;
+  }
+  if (left == tb_left) return 0;
+  tb_left = left;
+  return 1;
 }
 
 // renders, scrolling to keep the cursor visible
@@ -1365,6 +1433,7 @@ static void Refresh(void) {
     }
     Render();
   }
+  if (tb_nowrap && ScrollX()) Render();
   Draw();
   redraw = 0;
   moved = 0;
@@ -1443,7 +1512,10 @@ void Editor(void) {
           Refresh();
           continue;
         }
-        PlaceCursor();
+        if (!PlaceCursor()) { // off the side
+          Refresh();
+          continue;
+        }
       }
     }
     if (redraw) {

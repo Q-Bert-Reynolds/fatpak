@@ -30,7 +30,6 @@ Editor
 - messages swallow the key that dismisses them, maybe time out instead
 - PS/2 keyboard is only detected at boot, re-detect when plugged in later
 - on screen keyboard: hold A to repeat, a way to move the cursor up/down while it's open
-- horizontal scrolling (no wrap) option
 - multiple encodings (CP437, CP1252, UTF-8)
 - rich text, colors, highlights
 - WorkBoy keyboard
