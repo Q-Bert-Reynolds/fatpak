@@ -91,12 +91,13 @@ flowchart LR
 
 `loaded_bank`, input state, `pad_latch`, interrupt vars, the OAM DMA routine, `vbl_done`, `sys_info`. HRAM is cleared at boot.
 
-### SRAM (MBC5, 4 x 8KB banks, battery backed)
+### SRAM (MBC5, 16 x 8KB banks, battery backed)
 
 | Bank | Contents |
 | --- | --- |
-| 0-2 | The text buffer (24,528 bytes). `$BD00-$BD0F` is never used in any bank (see EverDrive registers) |
-| 3 | `sram_tb_signature` ("TXT2") and the engine's save data at `$A000`, the clipboard at `$A040-$BCFF` (length, its complement, then up to 7356 characters) |
+| 0-7 | The text buffer (65,408 bytes, as much as 16 bit positions allow). `$BD00-$BD0F` is never used in any bank (see EverDrive registers) |
+| 8 | `sram_tb_signature` ("TXT3") and the engine's save data at `$A000`, the clipboard at `$A040-$BCFF` (length, its complement, then up to 7356 characters) |
+| 9-15 | Unused |
 
 SRAM is only enabled (`SRAM_ON`) while it's being read or written, so a power loss is less likely to corrupt it.
 
@@ -164,14 +165,14 @@ Nothing should look frozen. Work the editor knows is slow shows a box first, dra
 
 ### Text buffer (`src/editor/text_buffer.asm`)
 
-A [gap buffer](https://en.wikipedia.org/wiki/Gap_buffer) in SRAM banks 0-2. Positions are logical (the gap excluded). Physical offsets include the gap and map to a bank and address, skipping `$BD00-$BD0F` in each bank.
+A [gap buffer](https://en.wikipedia.org/wiki/Gap_buffer) in SRAM banks 0-7. Positions are logical (the gap excluded). Physical offsets include the gap and map to a bank and address, skipping `$BD00-$BD0F` in each bank.
 
-- **The gap is always zeroed and text never contains 0**, so `tb_Load` recovers the buffer from SRAM with no metadata: text, zeros, text. When the gap is at the end, the `.sav` file reads as plain text.
+- **The gap is always zeroed and text never contains 0**, so `tb_Load` recovers the buffer from SRAM with no metadata: text, zeros, text (`TBFindPhys` scans a run at a time). When the gap is at the end, the `.sav` file reads as plain text.
 - **Gap moves** (`TBMoveGap`) copy runs of up to 256 bytes that don't cross a bank or the register hole, through `win_buffer` when the banks differ, and zero what they leave behind. The gap only moves when text is edited away from it. On an EverDrive, where files are saved to SD, the gap stays put. Elsewhere it's moved to the end when idle so the `.sav` is the only copy you need.
 - **Rows** (`TBScanRow`) are up to 160 pixels (character widths from `_font_widths`) and 40 characters. A row ends after a line feed, wraps after the last space when a word doesn't fit, and lets spaces and a line feed after a full row hang off its end. Control characters are drawn as spaces. With line wrapping off (`tb_nowrap`, Alt+Z) a row is a whole line: its first `tb_left` characters and the ones that don't fit aren't drawn, so `tb_row_starts` are still line starts and a drawn column is `pos - row start - tb_left`. `ScrollX` in `editor.c` changes `tb_left` when the cursor's character isn't drawn, leaving 40 pixels of text left of the cursor when it scrolls right (more near the line's end) and 120 when it scrolls left, and `Refresh` renders again.
 - **Row tables:** rendering records `tb_row_starts` (where each visible row starts, then the row after the last), `tb_row_counts` (characters drawn), and `tb_end_row` (the row the end of the text is on). Cursor movement, partial rendering, and scrolling all work from these instead of scanning SRAM.
-- **Settings** (`src/sram.asm`): `SettingsSave` copies the variables in `SettingsTable` (font, `tb_nowrap`, `bars_on`, and the open file's `fs_crlf`, `modified`, `file_dir` and `file_name`) to SRAM bank 3 right after the EverDrive registers, behind a signature, and `SettingsLoad` copies them back when the editor starts. The editor saves them when one changes: the toggles, opening, saving and new files, and the main loop when `modified` changes.
-- **Selection and clipboard:** `tb_DeleteRange` grows the gap over a range, `tb_Copy` copies a range to the clipboard in SRAM bank 3 and `tb_Paste` inserts it, both 256 bytes at a time through `win_buffer`. The editor keeps the selection as `anchor` and `cursor`.
+- **Settings** (`src/sram.asm`): `SettingsSave` copies the variables in `SettingsTable` (font, `tb_nowrap`, `bars_on`, and the open file's `fs_crlf`, `modified`, `file_dir` and `file_name`) to SRAM bank 8 right after the EverDrive registers, behind a signature, and `SettingsLoad` copies them back when the editor starts. The editor saves them when one changes: the toggles, opening, saving and new files, and the main loop when `modified` changes.
+- **Selection and clipboard:** `tb_DeleteRange` grows the gap over a range, `tb_Copy` copies a range to the clipboard in SRAM bank 8 and `tb_Paste` inserts it, both 256 bytes at a time through `win_buffer`. The editor keeps the selection as `anchor` and `cursor`.
 - `tb_Render` (all rows), `tb_RenderRows` (a range), and `tb_ScrollRows` (shift `tile_buffer` and the tables one row) fill `tile_buffer`, which holds 18 rows of `TB_STRIDE` (40) characters.
 
 ### Rendering (`src/editor/render.asm`)

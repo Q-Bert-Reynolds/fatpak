@@ -1,4 +1,4 @@
-;Gap buffer stored in SRAM banks 0-2, skipping $BD00-$BD0F in each bank so text
+;Gap buffer stored in SRAM banks 0-7, skipping $BD00-$BD0F in each bank so text
 ;can never reach the EverDrive registers (writing $A5 to $BD0A unlocks them). Positions are logical (gap excluded),
 ;physical offsets include the gap. The gap is always zeroed and text never
 ;contains 0, so the buffer can be recovered from SRAM without metadata:
@@ -21,7 +21,7 @@
 ;   tb_DeleteRange              de = pos, bc = count, deletes count chars (they must exist)
 ;   tb_Copy                     de = pos, bc = count, copies text to the clipboard, returns a = 0 if it's too big
 ;   tb_Paste                    de = pos, inserts the clipboard, returns a = 0 if it doesn't fit
-;   tb_ClipLength               returns clipboard length in bc (in SRAM bank 3, see src/sram.asm)
+;   tb_ClipLength               returns clipboard length in bc (in SRAM bank 8, see src/sram.asm)
 ;   tb_CountLines               de = start, bc = end, returns the line feeds in [start, end) in bc
 ;   tb_LineStart                de = pos, returns the start of its line (after the line feed before it) in bc
 ;   tb_RowStart                 de = pos, returns start of the visual row containing pos in bc
@@ -113,10 +113,11 @@ tb_dst_bank: DB
 tb_clip_left: DW
 tb_lines: DW
 tb_clip_ptr: DW
+tb_find_nonzero: DB;TBFindPhys
 
 SECTION "Text Buffer Code", ROM0
 
-TBSignature: DB "TXT2"
+TBSignature: DB "TXT3"
 
 _tb_Load::
   SRAM_ON
@@ -133,33 +134,12 @@ _tb_Load::
     dec b
     jr nz, .checkSignature
 
-.findGapStart;first 0
   ld de, 0
-.gapStartLoop
-    ld h, d
-    ld l, e
-    call TBPhysAddr
-    ld a, [hl]
-    and a
-    jr z, .foundGapStart
-    inc de
-    call TBCheckSize
-    jr nz, .gapStartLoop
-.foundGapStart
+  xor a
+  call TBFindPhys;first 0
   ST_DE_VAR tb_gap_start
-
-.findGapEnd;first non 0 after gap start
-    call TBCheckSize
-    jr z, .foundGapEnd
-    ld h, d
-    ld l, e
-    call TBPhysAddr
-    ld a, [hl]
-    and a
-    jr nz, .foundGapEnd
-    inc de
-    jr .findGapEnd
-.foundGapEnd
+  ld a, 1
+  call TBFindPhys;first non 0 after gap start
   ST_DE_VAR tb_gap_end
   SRAM_OFF
   ret
@@ -235,6 +215,46 @@ TBPhysAddr:
   or a, HIGH(_SRAM)
   ld h, a
   ret
+
+;de = physical offset, a = 0 finds the first 0 at or after it, 1 the first non 0, a run at a time,
+;returns its offset in de (TB_SIZE if there isn't one), affects a, bc, hl
+TBFindPhys:
+  ld [tb_find_nonzero], a
+.run
+    call TBCheckSize
+    ret z
+    ld h, d
+    ld l, e
+    push de
+    call TBPhysRun
+    ld a, b
+    ld [rRAMB], a
+    ld b, d
+    ld c, e;run length
+    pop de
+    ld a, [tb_find_nonzero]
+    and a
+    jr nz, .nonZero
+.zero
+      ld a, [hli]
+      and a
+      ret z
+      inc de
+      dec bc
+      ld a, b
+      or a, c
+      jr nz, .zero
+    jr .run
+.nonZero
+      ld a, [hli]
+      and a
+      ret nz
+      inc de
+      dec bc
+      ld a, b
+      or a, c
+      jr nz, .nonZero
+    jr .run
 
 ;returns gap length in bc, only affects a
 TBGapLength:

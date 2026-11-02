@@ -20,8 +20,8 @@ DEF BUSY_Y      EQU 16
 DEF BUSY_PALETTE EQU 4;GBC object palette (PaletteSlate), color 2 is dark
 
 ; ram banks 
-DEF MAX_RAM_BANKS  EQU 4;32KB
-DEF MAIN_SRAM_BANK EQU 3;banks 0-2 hold the text buffer
+DEF MAX_RAM_BANKS  EQU 16;128KB
+DEF MAIN_SRAM_BANK EQU 8;banks 0-7 hold the text buffer
 
 ; sprite props
 DEF FLIP_X_PAL  EQU (OAMF_XFLIP | OAMF_PAL1 )
@@ -40,12 +40,12 @@ DEF DRAW_FLAGS_PAD_TOP  EQU %00000010
 DEF DRAW_FLAGS_NO_SPACE EQU %00000100
 
 ;text buffer
-DEF TB_BANKS     EQU 3;SRAM banks 0-2
+DEF TB_BANKS     EQU 8;SRAM banks 0-7, positions are 16 bit
 DEF TB_HOLE      EQU $1D00;$BD00-$BD0F are EverDrive registers, never stored to
 DEF TB_HOLE_SIZE EQU $10
 DEF TB_BANK_SIZE EQU ($2000-TB_HOLE_SIZE)
 DEF TB_SIZE      EQU (TB_BANK_SIZE*TB_BANKS)
-DEF TB_CLIP_ADDR EQU $A040;clipboard in SRAM bank 3, up to the EverDrive registers at $BD00
+DEF TB_CLIP_ADDR EQU $A040;clipboard in SRAM bank 8, up to the EverDrive registers at $BD00
 DEF TB_CLIP_SIZE EQU ($BD00-TB_CLIP_ADDR-4)
 DEF TB_COLS   EQU 20;tiles per row
 DEF TB_ROWS   EQU 18

@@ -30,7 +30,7 @@ Escape opens the menu (open, save, save as, new, font, line wrap, full screen, h
 OPEN (Ctrl+O) browses the SD card: the top bar shows the folder, the bottom bar the selected file's size and date.
 Folders come first, enter or A opens, backspace, left or B goes up a folder, escape goes back to the text
 (so do backspace and B in the root).
-Any file up to 24KB opens as text, long file names (up to 64 characters) are shown. SAVE AS saves in the open
+Any file up to 63KB (65,408 bytes) opens as text, long file names (up to 64 characters) are shown. SAVE AS saves in the open
 file's folder. CR LF line endings are kept.
 Ctrl+F (or FONT in the menu) switches between the fixed width font (the default) and the variable width font.
 Alt+Z (or LINE WRAP) turns line wrapping off and on. Without it each line is one row, and the text scrolls
@@ -92,7 +92,7 @@ can read everything in it, saving writes the file straight to that folder. Nothi
 `make assemble` builds without regenerating assets or running the emulator. Pick a language with `make assemble LANGUAGE=ES`.
 
 # Cart:
-MBC5, 1M ROM (64 banks), 32K SRAM (4 banks)
+MBC5, 1M ROM (64 banks), 128K SRAM (16 banks)
 
 # Credits
 

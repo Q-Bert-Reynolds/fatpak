@@ -23,8 +23,8 @@
 #define BUSY_PALETTE 4//GBC object palette (PaletteSlate), color 2 is dark
 
 // ram banks 
-#define MAX_RAM_BANKS  4//32KB
-#define MAIN_SRAM_BANK 3//banks 0-2 hold the text buffer
+#define MAX_RAM_BANKS  16//128KB
+#define MAIN_SRAM_BANK 8//banks 0-7 hold the text buffer
 
 // sprite props
 #define FLIP_X_PAL  (OAMF_XFLIP | OAMF_PAL1 )
@@ -43,12 +43,12 @@
 #define DRAW_FLAGS_NO_SPACE 0b00000100
 
 //text buffer
-#define TB_BANKS     3//SRAM banks 0-2
+#define TB_BANKS     8//SRAM banks 0-7, positions are 16 bit
 #define TB_HOLE      0x1D00//0xBD00-0xBD0F are EverDrive registers, never stored to
 #define TB_HOLE_SIZE 0x10
-#define TB_BANK_SIZE (0x2000-TB_HOLE_SIZE)
+#define TB_BANK_SIZE (0x2000u-TB_HOLE_SIZE)
 #define TB_SIZE      (TB_BANK_SIZE*TB_BANKS)
-#define TB_CLIP_ADDR 0xA040//clipboard in SRAM bank 3, up to the EverDrive registers at 0xBD00
+#define TB_CLIP_ADDR 0xA040//clipboard in SRAM bank 8, up to the EverDrive registers at 0xBD00
 #define TB_CLIP_SIZE (0xBD00-TB_CLIP_ADDR-4)
 #define TB_COLS   20//tiles per row
 #define TB_ROWS   18

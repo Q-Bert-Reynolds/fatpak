@@ -4261,7 +4261,7 @@ _Paste:
 	inc	hl
 	ld	[hl], b
 	pop	bc
-	ld	de, $5FD0
+	ld	de, $FF80
 	pop	hl
 	push	hl
 	ld	a, e
@@ -7870,10 +7870,10 @@ _ListBars:
 	ld	[hl], b
 ;src/editor/editor.c:1095: if (size > TB_SIZE) end = PutText(end, "  too big");
 	ld	hl, sp+40
-	ld	a, $D0
+	ld	a, $80
 	sub	a, [hl]
 	inc	hl
-	ld	a, $5F
+	ld	a, $FF
 	sbc	a, [hl]
 	inc	hl
 	ld	a, $00
@@ -9004,9 +9004,9 @@ _Browse:
 	ld	h, a
 ;	spillPairReg hl
 ;	spillPairReg hl
-	ld	a, $D0
+	ld	a, $80
 	cp	a, c
-	ld	a, $5F
+	ld	a, $FF
 	sbc	a, b
 	ld	a, $00
 	sbc	a, l

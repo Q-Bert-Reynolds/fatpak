@@ -16,10 +16,10 @@ Editor
 - FatFs cluster math uses the slow _mullong (once per sector read or written)
 - the on screen keyboard rows are redrawn on every scroll while it's open
 - smooth (pixel) scrolling on GBC (DMG doesn't have tiles for a 19th row)
-- TBMoveGap does bank math per byte (~1s+ to move the gap across 24KB on DMG), copy in chunks
+- TBMoveGap does bank math per byte (~1s+ per 24KB on DMG, the buffer is 64KB now), copy in chunks
 - tabs are drawn as a single space
 - select text with the d-pad (A + d-pad?) and cut/copy/paste from the on screen keyboard or menu
-- clipboard is limited to 7356 characters (SRAM bank 3), use WRAM banks 2-7 on GBC too?
+- clipboard is limited to 7356 characters (SRAM bank 8), use SRAM banks 9-15 (unless the large file piece table needs them)
 - undo
 - status bar: free space
 - iGKB handlers don't send home/end/page/delete keys

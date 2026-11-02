@@ -14,7 +14,7 @@ Entry:
   DB CART_INDICATOR_SGB      ;$146 - SGB Support indicator
   DB CART_ROM_MBC5_RAM_BAT   ;$147 - Cart type
   DB CART_ROM_1024KB         ;$148 - ROM Size 
-  DB CART_SRAM_32KB          ;$149 - RAM Size
+  DB CART_SRAM_128KB         ;$149 - RAM Size
   CART_DEST                  ;$14a - Destination code
   DB $33                     ;$14b - Old licensee code
   DB 0                       ;$14c - Mask ROM version
