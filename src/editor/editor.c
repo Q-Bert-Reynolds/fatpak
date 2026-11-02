@@ -1285,8 +1285,9 @@ static void SaveFile(unsigned char ask) {
 
 // switches between the fixed and variable width fonts
 static void ToggleFont(void) {
-  font = font == FONT_VWF ? FONT_MONO : FONT_VWF;
+  font = font == FONT_VWF ? FONT_NARROW : FONT_VWF;
   SetFont(font);
+  Layout(); // the rows' fonts
   dirty = 1;
 }
 

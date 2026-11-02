@@ -51,11 +51,13 @@ Text is kept in SRAM, so it's still there after turning the Game Boy off.
 
 # Fonts
 The editor draws text as pixels, so fonts can be any width (src/editor/render.asm). fonts.py converts:
-- img/ui_font.png, the fixed width font (every character 8 pixels)
+- img/ui_font.png, the 8 pixel fixed width font (the on screen keyboard)
+- img/fonts/narrow_font.png, the 4 pixel fixed width font for text (40 characters per row), the
+  left 4 pixels of each cell
 - img/fonts/vwf_font.png, the variable width font. Glyphs are moved to the left edge of their cell
   and each character's width is its last pixel + 2. Empty glyphs (space) are 4 pixels.
 
-Both are 16x16 grids of 8x8 glyphs indexed by character code, dark pixels are drawn.
+All are 16x16 grids of 8x8 glyphs indexed by character code, dark pixels are drawn.
 
 img/ui_font.png is 256 tiles. Tile index matches the character code:
 - 0-31: UI glyphs (box drawing, arrows, etc.)
@@ -95,6 +97,7 @@ MBC5, 1M ROM (64 banks), 32K SRAM (4 banks)
 - FatFs - ChaN (src/fatfs/lib, BSD style license)
 - sd.asm - based on TXTReaderGB's diskio by Toxa and RodrigoCard (MIT)
 - vwf_font.png - ASCII glyphs from Toxa's VWF (MIT)
+- narrow_font.png - ASCII glyphs from Damian Yerrick's onebit4x8.png (pinobatch/bitmap-fonts, MIT No Attribution)
 
 # Thanks
 

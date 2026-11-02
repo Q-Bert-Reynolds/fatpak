@@ -59,6 +59,7 @@
 //fonts
 #define FONT_MONO 0
 #define FONT_VWF  1
+#define FONT_NARROW 2 // 4 pixel fixed width, for text
 
 //on screen keyboard
 #define OSK_COLS    10

@@ -56,6 +56,7 @@ DEF BOX_STRIDE EQU 20;characters per line of the menu box's text, 0 ends a line
 ;fonts
 DEF FONT_MONO EQU 0
 DEF FONT_VWF  EQU 1
+DEF FONT_NARROW EQU 2;4 pixel fixed width, for text
 
 ;on screen keyboard
 DEF OSK_COLS    EQU 10

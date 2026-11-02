@@ -2,16 +2,18 @@
 row renderer: 8 bytes of 1bpp glyph rows per character and a width table.
 Dark pixels (palette index 0 or 1) are drawn, everything else is background.
 
-img/ui_font.png         -> img/fonts/font_mono.asm, every glyph 8 pixels wide
-img/fonts/vwf_font.png  -> img/fonts/font_vwf.asm, glyphs moved to the left edge,
-                           width = last pixel + 2 (1 pixel gap), empty glyphs (space) are 4
+img/ui_font.png            -> img/fonts/font_mono.asm, every glyph 8 pixels wide
+img/fonts/narrow_font.png  -> img/fonts/font_narrow.asm, every glyph 4 pixels wide (left 4 pixels of the cell)
+img/fonts/vwf_font.png     -> img/fonts/font_vwf.asm, glyphs moved to the left edge,
+                              width = last pixel + 2 (1 pixel gap), empty glyphs (space) are 4
 """
 import os
 from PIL import Image
 
-FONTS = [
-  ("img/ui_font.png", "img/fonts/font_mono.asm", "FontMono", False),
-  ("img/fonts/vwf_font.png", "img/fonts/font_vwf.asm", "FontVWF", True),
+FONTS = [ # png, asm, label, width (0 = proportional)
+  ("img/ui_font.png", "img/fonts/font_mono.asm", "FontMono", 8),
+  ("img/fonts/narrow_font.png", "img/fonts/font_narrow.asm", "FontNarrow", 4),
+  ("img/fonts/vwf_font.png", "img/fonts/font_vwf.asm", "FontVWF", 0),
 ]
 EMPTY_WIDTH = 4
 
@@ -28,7 +30,7 @@ def glyph_rows(img, code):
   return rows
 
 
-def convert(png, asm, label, proportional):
+def convert(png, asm, label, fixed_width):
   img = Image.open(png)
   glyphs = []
   widths = []
@@ -37,8 +39,8 @@ def convert(png, asm, label, proportional):
     used = 0
     for row in rows:
       used |= row
-    if not proportional:
-      width = 8
+    if fixed_width:
+      width = fixed_width
     elif not used:
       width = EMPTY_WIDTH
     else:
@@ -65,11 +67,11 @@ def convert(png, asm, label, proportional):
 
 
 def main():
-  for png, asm, label, proportional in FONTS:
+  for png, asm, label, fixed_width in FONTS:
     if os.path.isfile(asm) and os.path.getmtime(asm) > max(os.path.getmtime(png), os.path.getmtime(__file__)):
       print(f'Skipping "{png}". Generated font is up to date.')
       continue
-    convert(png, asm, label, proportional)
+    convert(png, asm, label, fixed_width)
 
 
 if __name__ == "__main__":
