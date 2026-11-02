@@ -28,7 +28,8 @@ characters are selected. F11 (or FULL SCREEN in the menu) hides them. F1 (or HEL
 PS/2 keyboards type directly: arrows, home, end, page up/down, backspace, delete, enter.
 Escape opens the menu (open, save, save as, new, font, full screen, help), Ctrl+O opens, Ctrl+S saves, Ctrl+N starts a new file.
 OPEN (Ctrl+O) browses the SD card: the top bar shows the folder, the bottom bar the selected file's size and date.
-Folders come first, enter or A opens, left, backspace or B goes up a folder, escape or B in the root cancels.
+Folders come first, enter or A opens, backspace, left or B goes up a folder, escape goes back to the text
+(so do backspace and B in the root).
 Any file up to 24KB opens as text, long file names (up to 64 characters) are shown. SAVE AS saves in the open
 file's folder. CR LF line endings are kept.
 Ctrl+F (or FONT in the menu) switches between the variable width and fixed width fonts.

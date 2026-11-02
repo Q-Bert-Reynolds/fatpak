@@ -814,14 +814,14 @@ static unsigned char PadKey(void) {
   return KEY_RIGHT;
 }
 
-// waits a frame, returns a key from the keyboard or d-pad (A, START = enter, B = escape)
+// waits a frame, returns a key from the keyboard or d-pad (A, START = enter, B = backspace)
 static unsigned char MenuKey(void) {
   unsigned char key, pressed, held;
   WaitFrame();
   if ((key = (unsigned char)KBPopEvent())) return key;
   pressed = PadPressed();
   if (pressed & (PADF_A | PADF_START)) return KEY_ENTER;
-  if (pressed & PADF_B) return KEY_ESCAPE;
+  if (pressed & PADF_B) return KEY_BACKSPACE;
   held = DpadRepeat(pressed);
   if (held & PADF_UP) return KEY_UP;
   if (held & PADF_DOWN) return KEY_DOWN;
@@ -914,7 +914,7 @@ static unsigned char Choose(const char* title, const char* items, unsigned char 
     if (key == KEY_UP) selected = selected ? selected - 1 : count - 1;
     else if (key == KEY_DOWN) selected = selected == count - 1 ? 0 : selected + 1;
     else if (key == KEY_ENTER) break;
-    else if (key == KEY_ESCAPE) {
+    else if (key == KEY_ESCAPE || key == KEY_BACKSPACE) {
       selected = CANCEL;
       break;
     }
@@ -1094,7 +1094,8 @@ static void ListMessage(const char* text) {
 }
 
 // file browser, opens the chosen file into the text buffer, returns 1 if it did
-// up, down, page up/down, home, end move, enter/right/A opens, left/backspace/B goes up, escape/B at the root cancels
+// up, down, page up/down, home, end move, enter/right/A opens, left/backspace/B goes up a folder,
+// escape (or backspace/B in the root) goes back to the text
 static unsigned char Browse(void) {
   char path[PATH_SIZE + FS_NAME_SIZE]; // folder, and the file's path when opening it
   char name[FS_NAME_SIZE];
@@ -1178,7 +1179,7 @@ static unsigned char Browse(void) {
         break;
       }
     }
-    else if (path[0] && (key == KEY_LEFT || key == KEY_BACKSPACE || key == KEY_ESCAPE ||
+    else if (path[0] && (key == KEY_LEFT || key == KEY_BACKSPACE ||
                          ((key == KEY_ENTER || key == KEY_RIGHT) && count && list_kinds[row] == KIND_UP))) {
       for (length = 0; path[length]; ++length);
       while (path[--length] != '/');
@@ -1188,7 +1189,7 @@ static unsigned char Browse(void) {
       selected = ListFolder(path, LIST_ALL, LIST_ALL, name); // back on the folder it came from
       drawn = LIST_ALL;
     }
-    else if (key == KEY_ESCAPE) break;
+    else if (key == KEY_ESCAPE || key == KEY_BACKSPACE) break;
   }
   font = editor_font;
   SetFont(font);
