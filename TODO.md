@@ -68,6 +68,7 @@ File I/O
 - FatFs cluster math uses the slow _mullong (once per sector read or written)
 - bank_split.py keeps FatFs helpers in ROM0, some could go in a bank behind far calls
 - f_lseek is unused but FF_FS_MINIMIZE can't remove it without removing directory functions (large files will use it)
+- timestamps from the X7's RTC: FatFs has FF_FS_NORTC 1, so every saved file is dated 1 Jan 2026. Set it to 0 and add get_fattime() reading the clock over I2C ($BD0C-$BD0F, the OS's routines are at bank_000.asm:707 in ~/Projects/everdrive-gb, reference only). Needs Gearboy emulation of the I2C RTC, and a way to set the clock (the EverDrive menu can). Carts without a clock keep the fixed date
 
 Peripherals
 
@@ -93,3 +94,22 @@ Code
 - remove the last few manual ROMX assignments, let linker handle bank management instead
 - _GSINIT (static initializers) never runs, C must initialize globals in code
 - C in different files can't call each other unless they share a bank or use BANKED_C stubs (bank_split.py only splits a single file)
+
+IDE (ideas, not committed to)
+
+- assemble and run on device: a two pass assembler for an RGBDS subset (instructions, global and .local labels, DB/DW/DS, DEF/EQU, INCLUDE, later MACRO/REPT/IF) that reuses TBLexCode and the keyword tables (entries would also need opcode patterns, register numbers, directive ids), symbols in a hash table in SRAM, output into SRAM or GBC WRAM 1-7 and run from there. Before running, swap the SRAM a program needs (the undo log in banks 9-15, or all 128KB including the text) to a file on SD and restore it after, with a flag so boot restores it if the program crashes or the power goes off. Rough guess: a few hundred lines a second per pass
+- call the editor's routines by name (gbdk_SetBkgTiles, RevealTextAndWait, ...): build an export table (name, bank, address) from bin/TEXT_EDITOR.sym into a fixed size section in its own bank so it doesn't move the code it describes, the assembler resolves unknown symbols against it, banked targets go through a far call trampoline. C functions follow SDCC's convention (a, e, return in a), asm routines need their register args documented
+- a small API for user programs: jump table in ROM0 (print, keys, files, exit), the program returns to the editor, the text is safe in SRAM if it crashes
+- build whole ROMs to the SD card: ORG/BANK placement (no linker), or SECTIONs + an rgblink-like linker later, header checksums like rgbfix. Python generated assets would have to be committed as .asm/.bin. This project is ~59k lines of asm and ~3,900 global symbols, the symbol table would spill to SD, probably minutes to tens of minutes
+- launch a built ROM without the EverDrive menu: Cart_LaunchGame (~/Projects/everdrive-gb bank_000.asm) resets the MBC, writes the mapper to $BD07 and spins while the FPGA takes over. Needs the registers in game mode (the $BD0A test in Priority) and how the OS gets the ROM image into the cart's RAM, the loader runs from WRAM/HRAM. Reference only, don't copy OS code
+- programs as loadable modules: gbt_player (removed in 132083e) and the map loader (removed in 8c7c9ef) could come back as modules a program loads and calls by name
+- compile on device: SDCC can't host itself (C++, megabytes of heap). A Small-C style compiler (one pass, emits asm for the assembler, self hosting) built with SDCC on the PC first, passes as separate programs with temp files on SD like HI-TECH C on CP/M, matching SDCC's calling convention so it can call the engine. Forth is the cheaper interactive option
+- suggested order: in memory assembler + API, measure SD speed, X7 register test + direct launch, ROM builder, compiler
+
+Platforms
+
+The EverDrive GB X7 is the target cart. Other carts should still run the editor, list what they can't do so the README can tell people:
+- no SD card (any cart but an EverDrive X): no open/save, the text only lives in SRAM
+- no RTC (everything but the X7): files are saved with a fixed date
+- on device programs (see IDE) can't swap SRAM to SD without a card, they'd get WRAM and whatever SRAM the editor isn't using
+- smaller SRAM than 128KB: the text buffer, clipboard and undo log would have to shrink
