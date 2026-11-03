@@ -24,8 +24,8 @@ Text Rendering
   - state that crosses lines (C /* */, markdown ``` fences) is saved at each rendered row start, and at 1KB checkpoints for jumps and scrolling up, cleared from an edit's position on
   - file type from the extension (.md, .c/.h, .asm/.inc), plain otherwise, kept with the settings
   - markdown markers (#, **, _, `) stay visible, dimmed
-  - phase 1, groundwork: attribute rows, cache, styled widths, file type, no visible change
-  - phase 2, markdown: headings are row fonts (like the OSK's), picked when a line starts with #. Bold fixed width fonts 1 pixel taller than the text font: H1 8px, H2 7px, H3 6px, H4 5px, H5/H6 bold text font. fonts.py generates them from vwf_font.png (stretched, ORed 1px right), chars 32-126 in a ROMX bank, until they're drawn by hand. Inline: **bold** (glyph ORed 1px right, +1 width), _italic_ and *italic* (top rows shifted 1px right), `code`
+  - done: lexer and styled widths (TBLex, tile_attrs), file type (.md), headings 1-4 as stretched fonts, H5/H6 bold, **bold**, *italic*/_italic_
+  - left from phase 1/2: `code` has no look yet (phase 3 inks), ``` fences and the 1KB checkpoints (TBSyncState scans from the line's start, a long paragraph is rescanned on each full render), hand drawn heading fonts if the stretched ones don't hold up, ScrollX estimates widths (heading widths, bold not counted)
   - phase 3, inks: a second bitmap per row marks dim pixels (bitplane 0 cleared). DMG/SGB: dark grey for comments and markers. GBC: a second bitplane in cmd_buffer's free page gives 3 inks (default, dim, accent) plus a palette per tile (written with the row and when a block moves to another map row). Selected tiles use a selection palette, the two partly selected tiles of a row fall back to today's 4 color scheme
   - phase 4, C and asm lexers: comments, strings, numbers, preprocessor/directives, labels, keywords/instructions/registers from tables a python script generates into a ROMX bank (looked up when an identifier ends). Keywords are bold on every model, comments dark grey on DMG/SGB, tokens colored on GBC
   - GBC theme for now: white paper, near black text, grey-green comments and markers, blue keywords/instructions, dark red strings/chars, purple numbers, brown-orange preprocessor/directives/labels
@@ -45,6 +45,8 @@ UI/UX
 - messages swallow the key that dismisses them, maybe time out instead
 - on screen keyboard: hold A to repeat, a way to move the cursor up/down while it's open
 - mouse on the Super Game Boy
+- on SGB always use the full GB area for text, use SGB border for header/footer info (and on-screen keyboard?)
+- SGB's fullscreen mode should leverage the full power of the SNES for text rendering (like Space Invaders does)
 
 File I/O
 

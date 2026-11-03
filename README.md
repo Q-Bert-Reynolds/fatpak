@@ -33,6 +33,9 @@ Folders come first, enter or A opens, backspace, left or B goes up a folder, esc
 Any file up to 63KB (65,408 bytes) opens as text, long file names (up to 64 characters) are shown. SAVE AS saves in the open
 file's folder. CR LF line endings are kept.
 Ctrl+F (or FONT in the menu) switches between the fixed width font (the default) and the variable width font.
+Markdown files (.md) are styled: a line starting with # to #### and a space is a heading in a wider,
+taller, bold font (8, 7, 6 and 5 pixels a character), ##### and ###### are bold, **bold** and *italic*
+or _italic_ (not inside a word) are drawn bold and slanted. The markers stay visible.
 Alt+Z (or LINE WRAP) turns line wrapping off and on. Without it each line is one row, and the text scrolls
 sideways to keep the cursor on screen.
 The font, line wrapping and full screen settings are kept in SRAM with the text, and so are the open file's
@@ -67,6 +70,8 @@ The editor draws text as pixels, so fonts can be any width (src/editor/render.as
   and each character's width is its last pixel + 2. Empty glyphs (space) are 4 pixels.
 
 All are 16x16 grids of 8x8 glyphs indexed by character code, dark pixels are drawn.
+Markdown headings 1-4 stretch the 4 pixel font's glyphs as they're drawn (2 pixel strokes, 1 pixel taller),
+bold ORs a glyph 1 pixel to the right (the 4 pixel font widens its strokes instead).
 
 img/ui_font.png is 256 tiles. Tile index matches the character code:
 - 0-31: UI glyphs (box drawing, arrows, etc.)

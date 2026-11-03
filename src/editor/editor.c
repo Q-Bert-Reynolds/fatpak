@@ -160,11 +160,11 @@ static unsigned char PlaceCursor(void) {
 
 // position in a rendered row closest to x
 static unsigned int PosAtX(unsigned char row, unsigned char x) {
-  char* chars = RowAddress(row);
+  unsigned char* attrs = (unsigned char*)RowAddress(row) + (tile_attrs - tile_buffer);
   unsigned char count = tb_row_counts[row], col = 0, width;
   unsigned int pos;
   while (col < count) {
-    width = font_widths[(unsigned char)chars[col]];
+    width = attrs[col] & STYLE_WIDTH;
     if (x < ((width + 1) >> 1)) break;
     x = x < width ? 0 : x - width;
     ++col;
@@ -265,18 +265,19 @@ static void ScrollUp(unsigned int new_top) {
   redraw = 1;
 }
 
-// re-renders rows after an edit, stopping once a row starts where it used to (moved by the edit)
+// re-renders rows after an edit, stopping once a row starts where it used to (moved by the edit) with the same style state
 // NOTE: SDCC 4.2 clobbered hl when edit_delta was read inside these expressions, so it's copied first
 static void RenderAfterEdit(void) {
   unsigned char row = edit_row, end_row = tb_end_row, i;
-  unsigned int old_next, expected, delta = (unsigned int)(int)edit_delta;
+  unsigned int old_next, old_state, expected, delta = (unsigned int)(int)edit_delta;
   if (row) --row; // the previous row's wrapping can change too
   if (end_row != 0xFF && end_row >= row) tb_end_row = 0xFF; // found again while scanning
   for (; row < tb_rows; ++row) {
     old_next = tb_row_starts[row + 1];
+    old_state = tb_row_states[row + 1];
     expected = old_next + delta;
     tb_RenderRows(row, row + 1);
-    if (old_next > edit_pos && tb_row_starts[row + 1] == expected) {
+    if (old_next > edit_pos && tb_row_starts[row + 1] == expected && tb_row_states[row + 1] == old_state) {
       for (i = row + 2; i <= tb_rows; ++i) tb_row_starts[i] += delta; // rows below just moved
       if (end_row != 0xFF && end_row > row) tb_end_row = end_row;
       break;
@@ -998,7 +999,20 @@ static unsigned char CanDiscard(void) {
   return !modified || Choose("DISCARD CHANGES?", discard_items[0], 2) == 1;
 }
 
+// styles the text by file_name's extension: markdown for .md
+static void SetLang(void) {
+  char *c, *dot = 0;
+  unsigned char lang = LANG_PLAIN;
+  for (c = file_name; *c; ++c) if (*c == '.') dot = c;
+  if (dot && (dot[1] | 0x20) == 'm' && (dot[2] | 0x20) == 'd' && !dot[3]) lang = LANG_MD;
+  if (lang == tb_lang) return;
+  tb_lang = lang;
+  EditorRedraw();
+  dirty = 1;
+}
+
 static void ResetCursor(void) {
+  SetLang();
   cursor = 0;
   counted_pos = 0;
   counted_lines = 0;
@@ -1298,6 +1312,7 @@ static unsigned char AskFileName(void) {
   }
   name[length] = 0;
   ToUtf8(file_name, name);
+  SetLang();
   dirty = 1;
   return 1;
 }
@@ -1391,28 +1406,36 @@ static void Render(void) {
 #define KEEP_LEFT  40 // pixels of text left of the cursor after scrolling sideways to the right (more near the line's end)
 #define KEEP_RIGHT 120 // after scrolling to the left, most of the screen shows where it's going
 
+unsigned char head_width; // ScrollX: width of the line's chars if it's a heading in a heading font, else 0
+
 static unsigned char CharWidth(unsigned char c) {
-  return font_widths[c < ' ' ? ' ' : c]; // control characters are drawn as spaces
+  return head_width ? head_width : font_widths[c < ' ' ? ' ' : c]; // control characters are drawn as spaces
+}
+
+// sets head_width for the line at start (close enough to scroll by, bold isn't counted)
+static void LineHeading(unsigned int start) {
+  unsigned int pos = start, length = tb_Length();
+  head_width = 0;
+  if (tb_lang != LANG_MD) return;
+  while (pos < length && pos - start < 7 && tb_GetChar(pos) == '#') ++pos;
+  if (pos == start || pos - start > 4 || pos == length || tb_GetChar(pos) != ' ') return;
+  head_width = 9 - (unsigned char)(pos - start);
 }
 
 // lines don't wrap: scrolls them sideways if the cursor's character isn't drawn (or it isn't on
 // screen after the line's last one), returns 1 if tb_left changed
 static unsigned char ScrollX(void) {
-  unsigned int start = tb_found_row == 0xFF ? tb_LineStart(cursor) : tb_row_starts[tb_found_row];
+  unsigned char row = tb_found_row, count;
+  unsigned int start = row == 0xFF ? tb_LineStart(cursor) : tb_row_starts[row];
   unsigned int col = cursor - start, length = tb_Length(), pos, x = 0, left;
   unsigned char c, keep = KEEP_LEFT;
   if (col < tb_left) keep = KEEP_RIGHT;
-  else if (col - tb_left < TB_STRIDE) {
-    for (pos = start + tb_left; ; ++pos) {
-      c = pos == length ? ASCII_LF : tb_GetChar(pos);
-      if (pos == cursor && c == ASCII_LF) {
-        if (x < TB_WIDTH) return 0;
-        break;
-      }
-      if ((x += CharWidth(c)) > TB_WIDTH) break;
-      if (pos == cursor) return 0;
-    }
+  else if (row != 0xFF) { // its char is drawn, or it's the line's end right of its last one
+    count = tb_row_counts[row];
+    if (col - tb_left < count) return 0;
+    if (col - tb_left == count && cursor == LineEnd(row) && RenderCursorX(count) < TB_WIDTH - 1) return 0;
   }
+  LineHeading(start);
   if (keep == KEEP_LEFT) { // more if the line ends sooner, so the screen isn't left empty
     for (pos = cursor, x = 0; pos < length && (c = tb_GetChar(pos)) != ASCII_LF && x <= TB_WIDTH; ++pos) x += CharWidth(c);
     if (x < TB_WIDTH - 1 - KEEP_LEFT) keep = TB_WIDTH - 1 - x;
@@ -1495,7 +1518,9 @@ void Editor(void) {
   bars_on = 1;
   tb_nowrap = 0;
   tb_left = 0;
+  tb_lang = LANG_PLAIN;
   SettingsLoad();
+  SetLang();
   UndoClear(modified);
   saved_modified = modified;
   SetFont(font);

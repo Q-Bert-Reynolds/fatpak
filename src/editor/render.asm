@@ -44,6 +44,11 @@ render_row_font: DB
 render_src: DW
 render_glyphs: DW
 render_widths: DW
+render_line: DB;tile_buffer row RenderRow draws
+render_styled: DB;1 = a text row, widths and styles come from tile_attrs
+render_attr: DB;style of the char RenderGlyph draws
+render_head: DB;heading font: 1-4, 0 = none
+font_bold:: DB;pixels bold adds to the current font's glyphs
 render_x: DB
 render_w: DB
 render_shift: DB
@@ -99,6 +104,12 @@ SECTION "Render ROM0", ROM0
 
 _SetFont::;a = font
   ld b, a
+  cp a, FONT_FIXED
+  ld a, 1
+  jr nz, .setBold
+  inc a;the fixed font's bold glyphs are stretched
+.setBold
+  ld [font_bold], a
   ldh a, [loaded_bank]
   push af
   ld a, BANK(FontMonoWidths)
@@ -179,6 +190,26 @@ _EditorDraw::
     ld hl, _render_row_fonts
     add hl, bc
     ld e, [hl]
+    ld hl, _render_row_lines
+    add hl, bc
+    ld a, [hl]
+    cp a, TB_ROWS
+    jr nc, .font
+    add a, a;markdown headings 1-4 have their own fonts
+    add a, LOW(tb_row_states+1)
+    ld l, a
+    ld a, HIGH(tb_row_states+1)
+    adc a, 0
+    ld h, a
+    ld a, [hl]
+    and a, MD_HEADING
+    jr z, .font
+    cp a, 5
+    jr nc, .font
+    add a, FONT_H1-1
+    ld e, a
+.font
+    ld a, [draw_row]
     call RenderRow
     ld a, [draw_row]
     inc a
@@ -193,13 +224,13 @@ _EditorDraw::
   dec [hl];drawn, the scroll starts once the rows are transferred
   ret
 
-;returns x of character a in [_tb_found_row] of tile_buffer in a, using the current font
+;returns x of character a in [_tb_found_row] of tile_buffer in a, from its styled widths
 _RenderCursorX::
 RenderCursorX::
   ld c, a;column
   ld a, [_tb_found_row]
   call RenderRowAddress
-  ld de, tile_buffer
+  ld de, tile_attrs
   add hl, de
   ld b, 0;x
   ld a, c
@@ -207,11 +238,7 @@ RenderCursorX::
   jr z, .done
 .sum
     ld a, [hli]
-    push hl
-    ld h, HIGH(_font_widths)
-    ld l, a
-    ld a, [hl]
-    pop hl
+    and a, STYLE_WIDTH
     add a, b
     jr c, .clamp
     ld b, a
@@ -738,6 +765,110 @@ FOR RS_BYTE, 256
 ENDR
 ENDR
 
+;heading fonts: a fixed font glyph row's 4 pixels (high nibble) stretched for headings 1-4, columns
+;2,3,2,1 / 2,2,2,1 / 2,1,2,1 / 1,2,1,1 pixels wide (the 4th is the gap, a few glyphs use it), so cells
+;are 8, 7, 6, 5 pixels. The wide strokes make them bold (ORing them 1 pixel right fills the counters)
+RenderStretch:;page aligned
+  DB $00,$01,$06,$07,$38,$39,$3E,$3F,$C0,$C1,$C6,$C7,$F8,$F9,$FE,$FF
+  DB $00,$02,$0C,$0E,$30,$32,$3C,$3E,$C0,$C2,$CC,$CE,$F0,$F2,$FC,$FE
+  DB $00,$04,$18,$1C,$20,$24,$38,$3C,$C0,$C4,$D8,$DC,$E0,$E4,$F8,$FC
+  DB $00,$08,$10,$18,$60,$68,$70,$78,$80,$88,$90,$98,$E0,$E8,$F0,$F8
+ASSERT LOW(RenderStretch) == 0
+
+;bc = glyph, returns the glyph styled by [render_attr] and [render_head] in bc (render_glyph if it
+;changed): headings are stretched and 1 pixel taller (row 3 twice, row 0 dropped unless it has an accent),
+;bold is ORed 1 pixel right (stretched in the fixed font), italic shifts the top 4 rows 1 pixel right
+RenderStyleGlyph:
+  ld h, b
+  ld l, c
+  ld a, [render_head]
+  and a
+  jr nz, .heading
+  ld a, [render_attr]
+  and a, STYLE_BOLD | STYLE_ITALIC
+  ret z
+  and a, STYLE_BOLD
+  jr z, .plain
+  ld a, [render_row_font]
+  cp a, FONT_FIXED
+  jr nz, .plain
+  ld d, 2 << 4;bold fixed font: columns 2,1,2,1 pixels wide, ORing would fill its 1 pixel counters
+  ld b, HIGH(RenderStretch)
+  jr .sameHeight
+.plain
+  ld de, render_glyph
+  ld c, 8
+.copy
+    ld a, [hli]
+    ld [de], a
+    inc de
+    dec c
+    jr nz, .copy
+  jp .style
+.heading
+  dec a
+  swap a
+  ld d, a;level's table
+  ld b, HIGH(RenderStretch)
+  ld a, [hl]
+  and a
+  jr nz, .sameHeight
+  inc hl
+FOR R, 8
+  ld a, [hl]
+IF R != 2
+  inc hl
+ENDC
+  swap a
+  and a, $0F
+  or a, d
+  ld c, a
+  ld a, [bc]
+  ld [render_glyph+R], a
+ENDR
+  jr .style
+.sameHeight
+FOR R, 8
+  ld a, [hli]
+  swap a
+  and a, $0F
+  or a, d
+  ld c, a
+  ld a, [bc]
+  ld [render_glyph+R], a
+ENDR
+.style
+  ld hl, render_glyph
+  ld a, [render_row_font]
+  cp a, FONT_FIXED
+  ld a, [render_attr]
+  jr z, .italic;stretched instead
+  bit 4, a;STYLE_BOLD
+  jr z, .italic
+  ld c, 8
+.bold
+    ld a, [hl]
+    ld b, a
+    srl a
+    or a, b
+    ld [hli], a
+    dec c
+    jr nz, .bold
+  ld hl, render_glyph
+  ld a, [render_attr]
+.italic
+  bit 5, a;STYLE_ITALIC
+  jr z, .done
+  ld c, 4
+.slant
+    srl [hl]
+    inc hl
+    dec c
+    jr nz, .slant
+.done
+  ld bc, render_glyph
+  ret
+
 INCLUDE "img/fonts/font_mono.asm"
 INCLUDE "img/fonts/font_vwf.asm"
 INCLUDE "img/fonts/font_fixed.asm"
@@ -771,6 +902,12 @@ RenderRow:
   ld hl, _render_row_lines
   add hl, bc
   ld a, [hl]
+  ld [render_line], a
+  cp a, TB_ROWS
+  ld a, 0
+  adc a, 0;1 for text rows
+  ld [render_styled], a
+  ld a, [render_line]
   call RenderRowAddress
   ld de, tile_buffer
   add hl, de
@@ -838,6 +975,49 @@ RenderRow:
   add hl, bc
   ld [hl], $FF
 
+.checkState;the lexer state at the row's start, a change makes the font check fail
+  push de
+  ld bc, 0
+  ld a, [render_styled]
+  and a
+  jr z, .compareState
+  ld a, [render_line]
+  add a, a
+  add a, LOW(tb_row_states)
+  ld l, a
+  ld a, HIGH(tb_row_states)
+  adc a, 0
+  ld h, a
+  ld a, [hli]
+  ld c, a
+  ld b, [hl]
+.compareState
+  ld a, [render_block]
+  add a, a
+  ld e, a
+  ld d, 0
+  ld hl, block_states
+  add hl, de
+  ld a, [hl]
+  cp a, c
+  jr nz, .stateChanged
+  inc hl
+  ld a, [hl]
+  cp a, b
+  jr z, .stateSame
+  dec hl
+.stateChanged
+  ld a, c
+  ld [hli], a
+  ld [hl], b
+  ld a, [render_block]
+  ld e, a
+  ld hl, row_font
+  add hl, de
+  ld [hl], $FF
+.stateSame
+  pop de
+
 .checkFont
   ld a, [render_block]
   ld c, a
@@ -888,7 +1068,14 @@ RenderRow:
   jr z, .setFont
   ld hl, FontFixedGlyphs
   ld de, FontFixedWidths
+  dec a
+  jr z, .setFont
+  ld [render_head], a;headings: the fixed font, stretched
+  jr .setGlyphs
 .setFont
+  xor a
+  ld [render_head], a
+.setGlyphs
   ld a, l
   ld [render_glyphs], a
   ld a, h
@@ -914,6 +1101,10 @@ RenderRow:
     ld a, [hli]
     ld c, a
     ST_HL_VAR render_src
+    ld de, tile_attrs - tile_buffer - 1
+    add hl, de
+    ld a, [hl]
+    ld [render_attr], a
     ld a, c
     push bc
     call RenderGlyph
@@ -1116,13 +1307,27 @@ RenderMask:
 ;$FF >> n, so pixels n to m of a tile are RenderMaskBits[n] ^ RenderMaskBits[m]
 RenderMaskBits: DB $FF, $7F, $3F, $1F, $0F, $07, $03, $01, $00
 
-;a = column, returns its x in the row at [render_src] in the row's font, at most TB_WIDTH
+;a = column, returns its x in the row at [render_src] (styled widths in text rows), at most TB_WIDTH
 RenderColumnX:
   and a
   ret z
   ld c, a
   ld b, 0;x
   LD_HL_VAR render_src
+  ld a, [render_styled]
+  and a
+  jr z, .sum
+  ld de, tile_attrs - tile_buffer
+  add hl, de
+.sumStyled
+    ld a, [hli]
+    and a, STYLE_WIDTH
+    add a, b
+    jr c, .clamp
+    ld b, a
+    dec c
+    jr nz, .sumStyled
+  jr .done
 .sum
     ld a, [hli]
     push hl
@@ -1137,6 +1342,7 @@ RenderColumnX:
     ld b, a
     dec c
     jr nz, .sum
+.done
   ld a, b
   cp a, TB_WIDTH
   ret c
@@ -1264,6 +1470,9 @@ RenderBox:
   ST_HL_VAR render_glyphs
   ld hl, FontVWFWidths
   ST_HL_VAR render_widths
+  xor a
+  ld [render_styled], a
+  ld [render_head], a
   ld a, [_render_box_x]
   add a, 4
   ld [render_x], a
@@ -1363,13 +1572,22 @@ RenderBox:
     jr nz, .acrossTile
   ret
 
-;a = character, ORs its glyph into render_bitmap at [render_x] and advances it
+;a = character, ORs its glyph into render_bitmap at [render_x] and advances it, in text rows
+;[render_attr] is its style and width
 RenderGlyph:
   ld c, a
   ld b, 0
+  ld a, [render_styled]
+  and a
+  jr z, .fontWidth
+  ld a, [render_attr]
+  and a, STYLE_WIDTH
+  jr .setWidth
+.fontWidth
   LD_HL_VAR render_widths
   add hl, bc
   ld a, [hl]
+.setWidth
   ld [render_w], a
   ld l, c
   ld h, b
@@ -1383,6 +1601,9 @@ RenderGlyph:
   add hl, bc
   ld b, h
   ld c, l;glyph
+  ld a, [render_styled]
+  and a
+  call nz, RenderStyleGlyph
   ld a, [render_x]
   and a, %11111000;tile * 8
   add a, LOW(render_bitmap)

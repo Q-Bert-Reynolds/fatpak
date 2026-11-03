@@ -69,6 +69,9 @@ extern unsigned char fs_crlf; // loaded file used CR LF, saving writes CR LF
 
 // src/wram.asm
 extern unsigned char tile_buffer[];
+extern unsigned char tile_attrs[]; // style of each char in tile_buffer's text rows: STYLE_* bits and its width
+extern unsigned int tb_row_states[TB_ROWS + 1]; // lexer state at the start of each rendered row
+extern unsigned char tb_lang; // LANG_*, how text is styled
 
 // src/editor/text_buffer.asm
 extern unsigned char tb_rows; // visible rows

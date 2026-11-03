@@ -63,6 +63,15 @@
 #define FONT_MONO 0
 #define FONT_VWF  1
 #define FONT_FIXED 2//4 pixel fixed width, for text
+#define FONT_H1    3//markdown headings 1-4: the fixed font 1 pixel taller, stretched with 2 pixel strokes (8, 7, 6, 5 pixel cells)
+#define FONT_H4    6
+
+//text styles (TBLex): a byte per character in tile_attrs, its width in the low bits
+#define STYLE_WIDTH  0b00001111//pixels
+#define STYLE_BOLD   0b00010000//ORed 1 pixel right, 1 pixel wider
+#define STYLE_ITALIC 0b00100000//top half shifted 1 pixel right
+#define LANG_PLAIN   0//how text is styled, from the file name's extension
+#define LANG_MD      1
 #define PATH_SIZE    128//the open file's folder (file_dir)
 #define FS_NAME_SIZE 65//src/fatfs/file_api.h
 

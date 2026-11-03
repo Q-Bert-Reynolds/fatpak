@@ -60,6 +60,15 @@ DEF BOX_STRIDE EQU 20;characters per line of the menu box's text, 0 ends a line
 DEF FONT_MONO EQU 0
 DEF FONT_VWF  EQU 1
 DEF FONT_FIXED EQU 2;4 pixel fixed width, for text
+DEF FONT_H1    EQU 3;markdown headings 1-4: the fixed font 1 pixel taller, stretched with 2 pixel strokes (8, 7, 6, 5 pixel cells)
+DEF FONT_H4    EQU 6
+
+;text styles (TBLex): a byte per character in tile_attrs, its width in the low bits
+DEF STYLE_WIDTH  EQU %00001111;pixels
+DEF STYLE_BOLD   EQU %00010000;ORed 1 pixel right, 1 pixel wider
+DEF STYLE_ITALIC EQU %00100000;top half shifted 1 pixel right
+DEF LANG_PLAIN   EQU 0;how text is styled, from the file name's extension
+DEF LANG_MD      EQU 1
 DEF PATH_SIZE    EQU 128;the open file's folder (file_dir)
 DEF FS_NAME_SIZE EQU 65;src/fatfs/file_api.h
 

@@ -1100,7 +1100,7 @@ TBLineStart:
   inc de
   ret
 
-;a = tile, b = column, draws to [tb_row_ptr] unless it's 0, preserves all registers but a
+;a = tile, b = column, draws it and its style [tb_attr] to [tb_row_ptr] unless it's 0, preserves all registers but a
 TBDrawChar:
   push hl
   push af
@@ -1116,6 +1116,12 @@ TBDrawChar:
   ld h, a
   pop af
   ld [hl], a
+  push de
+  ld de, tile_attrs - tile_buffer
+  add hl, de
+  ld a, [tb_attr]
+  ld [hl], a
+  pop de
   pop hl
   ret
 .skip
@@ -1147,32 +1153,330 @@ TBCheckEnd:
   cp a, d
   ret
 
-;a = char, returns its width in pixels in a, control characters are drawn as spaces, only affects a
-TBCharWidth:
+;Lexer: styles each character as rows are scanned, so wrapping and drawing use styled widths.
+;Its state (tb_state, 2 bytes) is saved at each rendered row's start in tb_row_states, a row
+;elsewhere is reached by scanning from its line's start (TBSyncState).
+;Markdown: a line starting with 1-6 # and a space is a heading (1-4 use FONT_H1-FONT_H4, 5-6 are bold),
+;** toggles bold, * and _ italic (not inside a word), ` code. Markers stay visible.
+DEF MD_BOLD       EQU 0;state byte 0
+DEF MD_ITALIC     EQU 1
+DEF MD_CODE       EQU 2
+DEF MD_LINE       EQU 3;nothing of the line seen yet
+DEF MD_MARK       EQU 4;the last char was a * or _, the next one decides what it does
+DEF MD_STAR       EQU 5;it was a *
+DEF MD_PREV_WORD  EQU 6;the last char was a letter or digit
+DEF MD_PREV_SPACE EQU 7;the last char was a space, or the line just started
+DEF MD_HEADING    EQU %00000111;state byte 1: heading level
+DEF MD_MARK_WORD  EQU 3;the char before the marker was a letter or digit
+DEF MD_MARK_SPACE EQU 4;it was a space
+
+;the state at the start of a line, only affects a
+TBResetState:
+  ld a, (1 << MD_LINE) | (1 << MD_PREV_SPACE)
+  ld [tb_state], a
+  xor a
+  ld [tb_state+1], a
+  ret
+
+;the state after the char TBLex looked at, only affects a
+TBCommit:
+  ld a, [tb_next_state]
+  ld [tb_state], a
+  ld a, [tb_next_state+1]
+  ld [tb_state+1], a
+  ret
+
+;a = char, hl and de at it (TBReadNext), returns its width in a, sets [tb_attr] to its style and
+;tb_next_state to the state after it (TBCommit), control characters are drawn as spaces,
+;preserves bc, de, hl
+TBLex:
+  push bc
+  push hl
+  ld c, a
+  ld a, [tb_state]
+  ld [tb_next_state], a
+  ld a, [tb_state+1]
+  ld [tb_next_state+1], a
+  ld b, 0;style
+  ld a, [_tb_lang]
+  and a
+  call nz, TBLexMD
+  ld a, [tb_next_state+1]
+  and a, MD_HEADING
+  jr z, .fontWidth
+  cp a, 5
+  jr nc, .fontWidth
+  cpl
+  add a, 10;9 - level, the heading fonts' cells are 8, 7, 6, 5 pixels
+  jr .bold
+.fontWidth
+  ld a, c
   cp a, ' '
   jr nc, .lookup
   ld a, ' '
 .lookup
-  push hl
   ld h, HIGH(_font_widths)
   ld l, a
   ld a, [hl]
+.bold
+  bit 4, b;STYLE_BOLD
+  jr z, .setAttr
+  ld hl, font_bold
+  add a, [hl]
+.setAttr
+  or a, b
+  ld [tb_attr], a
+  and a, STYLE_WIDTH
   pop hl
+  pop bc
   ret
 
-;Scans one visual row. Rows are up to TB_WIDTH pixels (character widths from _font_widths)
+;c = char, hl and de at it, updates tb_next_state, returns its style bits in b, affects a, hl
+TBLexMD:
+  ld a, c
+  cp a, ASCII_LF
+  jr nz, .notLF
+  ld a, (1 << MD_LINE) | (1 << MD_PREV_SPACE)
+  ld [tb_next_state], a
+  xor a
+  ld [tb_next_state+1], a
+  ret
+.notLF
+  ld a, [tb_next_state]
+  bit MD_LINE, a
+  jr z, .pending
+  res MD_LINE, a
+  ld [tb_next_state], a
+  ld a, c
+  cp a, "#"
+  ld a, 0
+  call z, TBPeekHeading
+  ld [tb_row_head], a
+  ld b, a
+  ld a, [tb_next_state+1]
+  and a, ~MD_HEADING
+  or a, b
+  ld [tb_next_state+1], a
+.pending
+  push de
+  ld d, 0;bit 0: toggle bold after this char, bit 2: toggle code
+  ld hl, tb_next_state
+  bit MD_MARK, [hl]
+  jr z, .code
+  res MD_MARK, [hl]
+  bit MD_STAR, [hl]
+  jr z, .resolve
+  ld a, c
+  cp a, "*"
+  jr nz, .resolve
+  ld d, 1;**
+  jr .style
+.resolve;a lone * or _ opens italic before a non space if it isn't in a word, closes it after a non space if a word doesn't follow
+  call TBIsWord
+  bit MD_ITALIC, [hl]
+  jr z, .open
+  jr c, .code
+  inc hl
+  bit MD_MARK_SPACE, [hl]
+  dec hl
+  jr nz, .code
+  res MD_ITALIC, [hl]
+  jr .code
+.open
+  inc hl
+  bit MD_MARK_WORD, [hl]
+  dec hl
+  jr nz, .code
+  ld a, c
+  cp a, " "
+  jr z, .code
+  set MD_ITALIC, [hl]
+.code
+  ld a, c
+  cp a, "`"
+  jr nz, .notTick
+  set 2, d
+  jr .style
+.notTick
+  bit MD_CODE, [hl]
+  jr nz, .style
+  cp a, "*"
+  jr z, .star
+  cp a, "_"
+  jr nz, .style
+  res MD_STAR, [hl]
+  jr .mark
+.star
+  set MD_STAR, [hl]
+.mark
+  set MD_MARK, [hl]
+  inc hl
+  res MD_MARK_WORD, [hl]
+  res MD_MARK_SPACE, [hl]
+  dec hl
+  bit MD_PREV_WORD, [hl]
+  jr z, .markSpace
+  inc hl
+  set MD_MARK_WORD, [hl]
+  dec hl
+.markSpace
+  bit MD_PREV_SPACE, [hl]
+  jr z, .style
+  inc hl
+  set MD_MARK_SPACE, [hl]
+  dec hl
+
+.style;from the state before the toggles
+  ld b, 0
+  bit MD_BOLD, [hl]
+  jr nz, .setBold
+  inc hl
+  ld a, [hld]
+  and a, MD_HEADING
+  cp a, 5;headings 5 and 6 are bold, 1-4 have bold fonts
+  jr c, .italic
+.setBold
+  ld b, STYLE_BOLD
+.italic
+  bit MD_ITALIC, [hl]
+  jr z, .toggles
+  set 5, b;STYLE_ITALIC
+.toggles
+  ld a, d
+  and a, 1 << MD_BOLD | 1 << MD_CODE
+  xor a, [hl]
+  ld [hl], a
+  res MD_PREV_WORD, [hl]
+  res MD_PREV_SPACE, [hl]
+  call TBIsWord
+  jr nc, .notWord
+  set MD_PREV_WORD, [hl]
+.notWord
+  ld a, c
+  cp a, " "
+  jr z, .space
+  cp a, ASCII_TAB
+  jr nz, .done
+.space
+  set MD_PREV_SPACE, [hl]
+.done
+  pop de
+  ret
+
+;c = char, returns carry if it's a letter or digit (Latin-1 letters too), only affects a
+TBIsWord:
+  ld a, c
+  cp a, $C0
+  ccf
+  ret c
+  cp a, "0"
+  ccf
+  ret nc
+  cp a, "9"+1
+  ret c
+  or a, $20
+  cp a, "a"
+  ccf
+  ret nc
+  cp a, "z"+1
+  ret
+
+;hl and de at a #, returns the heading level in a if the line is a heading (1-6 # then a space),
+;otherwise 0, preserves bc, de, hl
+TBPeekHeading:
+  push bc
+  push de
+  ld b, 0
+.loop
+    call TBCheckEnd
+    jr z, .no
+    push bc
+    call TBReadNext
+    pop bc
+    cp a, "#"
+    jr nz, .notHash
+    inc b
+    ld a, b
+    cp a, 7
+    jr c, .loop
+    jr .no
+.notHash
+  cp a, " "
+  jr nz, .no
+  ld a, b
+  jr .done
+.no
+  xor a
+.done
+  pop de
+  push af
+  call TBReadSeek;back to the char
+  pop af
+  pop bc
+  ret
+
+;de = row start, sets tb_state to the lexer state there by scanning rows from its line's start,
+;tb_len must be set, clears tb_row_ptr, preserves de
+TBSyncState:
+  call TBResetState
+  ld a, [_tb_lang]
+  and a
+  ret z
+  ST_DE_VAR tb_sync_end
+  xor a
+  ld [tb_row_ptr], a
+  ld [tb_row_ptr+1], a
+  ld a, [_tb_found_col]
+  push af
+  ld a, [_tb_end_row]
+  push af
+  call TBLineStart
+.row
+    ld a, [tb_sync_end]
+    sub a, e
+    ld a, [tb_sync_end+1]
+    sbc a, d
+    jr c, .done
+    jr nz, .scan
+  .checkLow
+    ld a, [tb_sync_end]
+    cp a, e
+    jr z, .done
+  .scan
+    push de
+    call TBScanRow
+    pop bc
+    ld a, c
+    cp a, e
+    jr nz, .row
+    ld a, b
+    cp a, d
+    jr nz, .row;no progress, the end of the text
+.done
+  pop af
+  ld [_tb_end_row], a
+  pop af
+  ld [_tb_found_col], a
+  LD_DE_VAR tb_sync_end
+  ret
+
+;Scans one visual row. Rows are up to TB_WIDTH pixels (character widths from TBLex)
 ;and TB_STRIDE characters, end after a line feed, and wrap after the last space when a word
 ;doesn't fit. Spaces and a line feed after a full row hang off the end of it.
 ;With [_tb_nowrap] set a row is a whole line: its first [_tb_left] characters and the ones
 ;that don't fit aren't drawn, and [_tb_found_col] is 0 or the characters drawn for them.
 ;de = row start, [tb_len] = length, returns next row start in de
 ;sets [_tb_found_col] if [_tb_find] is in the row and [_tb_found_col] is $FF
+;tb_state is the lexer state at the row start, returns the next row's in it, [tb_row_head] = the row's heading
 TBScanRow:
   ST_DE_VAR tb_row_start
   call TBReadSeek
   xor a
   ld [tb_x], a
   ld [tb_row_chars], a
+  ld a, [tb_state+1]
+  and a, MD_HEADING
+  ld [tb_row_head], a
   ld b, 0;column
   ld c, 0;column after last space
   ld a, [_tb_nowrap]
@@ -1190,11 +1494,14 @@ TBScanRow:
     ld c, 0
     jr z, .loop
     call TBCheckEnd
-    jr z, .end
+    jp z, .end
     ld a, [hl]
     cp a, ASCII_LF
-    jr z, .fits
+    jr z, .lexFits
     call TBCheckFind
+    ld a, [hl]
+    call TBLex
+    call TBCommit
     push bc
     call TBReadNext
     pop bc
@@ -1213,9 +1520,12 @@ TBScanRow:
     call TBCheckEnd
     jr z, .end
     ld a, [hl];next char
+    call TBLex
+    ld a, [hl]
     cp a, ASCII_LF
     jr z, .fits
-    call TBCharWidth
+    ld a, [tb_attr]
+    and a, STYLE_WIDTH
     push bc
     ld b, a
     ld a, [tb_x]
@@ -1223,8 +1533,12 @@ TBScanRow:
     pop bc
     cp a, TB_WIDTH+1
     jr nc, .full
+    jr .fits
+  .lexFits
+    call TBLex
   .fits
     call TBCheckFind
+    call TBCommit
     push bc
     call TBReadNext
     pop bc
@@ -1236,7 +1550,8 @@ TBScanRow:
     ld a, ' ';control characters are drawn as spaces
   .draw
     call TBDrawChar
-    call TBCharWidth
+    ld a, [tb_attr]
+    and a, STYLE_WIDTH
     push bc
     ld b, a
     ld a, [tb_x]
@@ -1250,6 +1565,10 @@ TBScanRow:
     cp a, ' '
     jr nz, .loop
     ld c, b
+    ld a, [tb_state];a wrapped word starts after the last space
+    ld [tb_space_state], a
+    ld a, [tb_state+1]
+    ld [tb_space_state+1], a
     jr .loop
 
 .end
@@ -1274,6 +1593,9 @@ TBScanRow:
   .hang
     push af
     call TBCheckFind
+    ld a, [hl]
+    call TBLex
+    call TBCommit
     push bc
     call TBReadNext
     pop bc
@@ -1287,6 +1609,9 @@ TBScanRow:
     call TBCheckEnd
     jr z, .end
     call TBCheckFind
+    ld a, [hl]
+    call TBLex
+    call TBCommit
     push bc
     call TBReadNext
     pop bc
@@ -1302,6 +1627,12 @@ TBScanRow:
   ret z;row ends with a space
 
 .wrapWord;next row starts after the last space
+  ld a, [tb_space_state]
+  ld [tb_state], a
+  ld a, [tb_space_state+1]
+  ld [tb_state+1], a
+  xor a
+  ld [tb_attr], a
   ld a, c
   ld [tb_row_chars], a
   ld a, b
@@ -1432,6 +1763,7 @@ _tb_RowStart::;de = pos, returns start of the visual row containing pos in bc
   SRAM_ON
   call TBStartScan
   call TBLineStart
+  call TBResetState
 .loop
     push de;row start
     ld a, $FF
@@ -1457,6 +1789,7 @@ _tb_NextRow::;de = row start, returns start of the next visual row in bc
   ld de, $FFFF
   call TBStartScan
   pop de
+  call TBSyncState
   call TBScanRow
   ld b, d
   ld c, e
@@ -1496,8 +1829,15 @@ _tb_RenderRows::;a = first row, e = end row, scans rows [first, end) from _tb_ro
   call RenderRowAddress
   ld b, h
   ld c, l;rows * TB_STRIDE
+  push bc
   LD_HL_VAR tb_row_ptr
   ld a, ' '
+  call mem_Set
+  pop bc
+  LD_HL_VAR tb_row_ptr
+  ld de, tile_attrs - tile_buffer
+  add hl, de
+  xor a
   call mem_Set
   ld a, [tb_row]
   add a, a
@@ -1509,9 +1849,32 @@ _tb_RenderRows::;a = first row, e = end row, scans rows [first, end) from _tb_ro
   ld a, [hli]
   ld e, a
   ld d, [hl]
+  ld a, [tb_row]
+  and a
+  jr nz, .loadState
+  LD_HL_VAR tb_row_ptr
+  push hl
+  call TBSyncState;the top row's state isn't known, scan to it from its line's start
+  pop hl
+  ST_HL_VAR tb_row_ptr
+  jr .rowLoop
+.loadState
+  call TBRowStateAddress
+  ld a, [hli]
+  ld [tb_state], a
+  ld a, [hl]
+  ld [tb_state+1], a
 .rowLoop
     call TBStoreRowStart
     call TBScanRow
+    call TBRowStateAddress;the row's heading, found at its line's first char
+    inc hl
+    ld a, [hl]
+    and a, ~MD_HEADING
+    ld b, a
+    ld a, [tb_row_head]
+    or a, b
+    ld [hl], a
     ld a, [tb_row]
     ld c, a
     ld b, 0
@@ -1573,15 +1936,25 @@ _tb_ScrollRows::;a = 1 to move rows up (scroll down) or 0 to move them down, shi
   call RenderRowAddress
   ld b, h
   ld c, l
+  push bc
   ld hl, tile_buffer+TB_STRIDE
   ld de, tile_buffer
+  call mem_Copy
+  pop bc
+  ld hl, tile_attrs+TB_STRIDE
+  ld de, tile_attrs
   call mem_Copy
   ld a, [_tb_rows]
   add a, a
   ld c, a
   ld b, 0
+  push bc
   ld hl, _tb_row_starts+2
   ld de, _tb_row_starts
+  call mem_Copy
+  pop bc
+  ld hl, tb_row_states+2
+  ld de, tb_row_states
   call mem_Copy
   ld a, [_tb_rows]
   dec a
@@ -1617,13 +1990,35 @@ _tb_ScrollRows::;a = 1 to move rows up (scroll down) or 0 to move them down, shi
   ld de, -TB_STRIDE
   add hl, de
   pop de
+  push bc
+  push hl
+  push de
+  call TBCopyBack
+  pop hl;the same rows of tile_attrs
+  ld de, tile_attrs - tile_buffer
+  add hl, de
+  ld d, h
+  ld e, l
+  pop hl
+  ld bc, tile_attrs - tile_buffer
+  add hl, bc
+  pop bc
   call TBCopyBack
   ld a, [_tb_rows]
   add a, a
   ld c, a
   ld b, 0
+  push bc
   ld hl, _tb_row_starts-1
   add hl, bc;last byte of starts[rows - 1]
+  ld d, h
+  ld e, l
+  inc de
+  inc de
+  call TBCopyBack
+  pop bc
+  ld hl, tb_row_states-1
+  add hl, bc
   ld d, h
   ld e, l
   inc de
@@ -1651,7 +2046,7 @@ _tb_ScrollRows::;a = 1 to move rows up (scroll down) or 0 to move them down, shi
   ld [_tb_end_row], a
   ret
 
-;stores de in _tb_row_starts[tb_row], only affects a, hl
+;stores de in _tb_row_starts[tb_row] and tb_state in tb_row_states[tb_row] (keeping a line start's heading), only affects a, hl
 TBStoreRowStart:
   ld a, [tb_row]
   add a, a
@@ -1663,4 +2058,29 @@ TBStoreRowStart:
   ld a, e
   ld [hli], a
   ld [hl], d
+  call TBRowStateAddress
+  ld a, [tb_state]
+  ld [hli], a
+  bit MD_LINE, a
+  ld a, [tb_state+1]
+  jr z, .store
+  push bc;a line start: its heading is found at its first char, keep the one found when it was scanned
+  ld b, a
+  ld a, [hl]
+  and a, MD_HEADING
+  or a, b
+  pop bc
+.store
+  ld [hl], a
+  ret
+
+;returns tb_row_states + [tb_row] * 2 in hl, only affects a
+TBRowStateAddress:
+  ld a, [tb_row]
+  add a, a
+  add a, LOW(tb_row_states)
+  ld l, a
+  ld a, HIGH(tb_row_states)
+  adc a, 0
+  ld h, a
   ret
