@@ -49,7 +49,7 @@ SECTION "Stack", WRAM0
 stack_top: DS STACK_SIZE
 stack_bottom:
 
-SECTION "Buffers", WRAMX
+SECTION "Buffers", WRAMX[$D000];cmd_buffer must start a page
 _tile_buffer::
 tile_buffer::       DS BUFFER_SIZE
 bkg_buffer::        DS BUFFER_SIZE
@@ -59,3 +59,6 @@ _str_buffer::
 str_buffer::        DS STR_BUFFER_SIZE
 _name_buffer::
 name_buffer::       DS NAME_BUFFER_SIZE
+_render_dma_buffer::
+render_dma_buffer:: DS TB_WIDTH*2;GBC: a row's tiles for HDMA, 16 byte aligned (see RenderRowDMA)
+ASSERT render_dma_buffer % 16 == 0

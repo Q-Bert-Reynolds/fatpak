@@ -52,7 +52,7 @@ unsigned char moved; // cursor moved, text didn't change
 unsigned char redraw; // rendered rows changed, text didn't
 unsigned char ring_top; // BG map row of text row 0
 unsigned char ring_pos; // index in ring_blocks of text row 0's block
-unsigned char ring_blocks[TB_ROWS]; // blocks text rows use
+unsigned char ring_blocks[TB_ROWS + 1]; // blocks text rows use
 unsigned char map_blocks[BG_MAP_ROWS + WIN_MAP_ROWS]; // block each BG map row, then window map row, shows, 0xFF = none
 unsigned char bars_on; // file name and status bars (F11)
 unsigned char bars; // bars are shown now (not in menus)
@@ -188,14 +188,16 @@ static unsigned char TextRows(void) {
 // starting at ring_pos. The rows below and above them (bars, keyboard) keep their own blocks in
 // window map rows, so they stay put while the text scrolls. Stages SCY and LCDC (RenderStage),
 // applied at line 144
+// On GBC the ring has a spare block (18) for the row scrolling in or out (see src/editor/render.asm)
 static void Layout(void) {
   unsigned char row, line, block, map_row, i = 0, win_row = BG_MAP_ROWS, osk = TB_ROWS - (bars << 1) - tb_rows;
-  for (block = 0; block < TB_ROWS; ++block) {
+  unsigned char length = tb_rows + render_gbc;
+  for (block = 0; block < TB_ROWS + render_gbc; ++block) {
     if (bars && (block == HEADER_BLOCK || block == STATUS_BLOCK)) continue;
     if (osk && block >= OSK_BLOCK && block < OSK_BLOCK + OSK_ROWS) continue;
     ring_blocks[i++] = block;
   }
-  if (ring_pos >= tb_rows) ring_pos = 0;
+  if (ring_pos >= length) ring_pos = 0;
   i = ring_pos;
   render_pending = 0;
   render_text_top = bars;
@@ -203,7 +205,7 @@ static void Layout(void) {
     line = row - bars;
     if (line < tb_rows) {
       block = ring_blocks[i];
-      if (++i == tb_rows) i = 0;
+      if (++i == length) i = 0;
       map_row = (ring_top + line) & (BG_MAP_ROWS - 1);
       render_row_fonts[row] = font;
     }
@@ -232,7 +234,7 @@ static void Layout(void) {
 
 // scrolls the screen one row with SCY (dir 1 = down), the block leaving the screen draws the new row
 static void ScrollRing(unsigned char down) {
-  unsigned char length = tb_rows;
+  unsigned char length = tb_rows + render_gbc;
   if (down) {
     ring_pos = ring_pos == length - 1 ? 0 : ring_pos + 1;
     ring_top = (ring_top + 1) & (BG_MAP_ROWS - 1);

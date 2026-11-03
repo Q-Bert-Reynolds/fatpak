@@ -11,14 +11,25 @@ Text Rendering
 
 - font selection: pick from a list of fonts (variable width, 4 pixel fixed, Tiny5 Mono in img/fonts/tiny5mono_font.png, ...) instead of the Ctrl+F toggle, saved with the settings
 - variable width font: accented and UI glyphs in vwf_font.png are copied from ui_font.png, redraw them
-- drawing a row waits for 40 HBlanks (~18K cycles), use HDMA on GBC (see https://gbdev.io/pandocs/CGB_Registers.html#lcd-vram-dma-transfers), interleave glyph drawing with the waits on DMG
+- drawing a row on DMG waits for 40 HBlanks (~18K cycles), interleave glyph drawing with the waits (GBC uses HDMA)
 - buffer tile data, stagger writes to vram
 - page up/down redraw every row (~0.9M cycles), page up also scans back 17 rows from SRAM
-- smooth (pixel) scrolling on GBC (DMG doesn't have tiles for a 19th row)
+- smooth scrolling on DMG (GBC has it): DMG has no block for the 17th (or 19th) row a pixel scroll shows. Idea: point the incoming row's map row at a blank tile (248-255 are free in both modes), scroll 4px, blank the outgoing row to free its block, draw the incoming row into it, scroll the last 4px. Shelved: the row draw stalls the scroll halfway (~1 frame), the halves pop in and out, and SGB color attributes are on the 8px grid so colored text couldn't move by pixels anyway
 - tabs are drawn as a single space
 - show UTF-8 text (files are loaded as bytes, a UTF-8 é shows as two Latin-1 chars)
 - multiple encodings (CP437, CP1252, UTF-8)
-- rich text, colors, highlights
+- syntax highlighting (markdown styles and code styles on every model, colors on GBC):
+  - a lexer in TBScanRow writes a style byte per drawn char (ink, bold, italic) into attribute rows next to tile_buffer, so wrapping, RenderCursorX, PosAtX and ScrollX use styled widths, and skipped chars (no wrap) still update its state
+  - the row cache compares attributes too. Memory: the editor only uses win_buffer 256 bytes at a time, shrink it and use the rest
+  - state that crosses lines (C /* */, markdown ``` fences) is saved at each rendered row start, and at 1KB checkpoints for jumps and scrolling up, cleared from an edit's position on
+  - file type from the extension (.md, .c/.h, .asm/.inc), plain otherwise, kept with the settings
+  - markdown markers (#, **, _, `) stay visible, dimmed
+  - phase 1, groundwork: attribute rows, cache, styled widths, file type, no visible change
+  - phase 2, markdown: headings are row fonts (like the OSK's), picked when a line starts with #. Bold fixed width fonts 1 pixel taller than the text font: H1 8px, H2 7px, H3 6px, H4 5px, H5/H6 bold text font. fonts.py generates them from vwf_font.png (stretched, ORed 1px right), chars 32-126 in a ROMX bank, until they're drawn by hand. Inline: **bold** (glyph ORed 1px right, +1 width), _italic_ and *italic* (top rows shifted 1px right), `code`
+  - phase 3, inks: a second bitmap per row marks dim pixels (bitplane 0 cleared). DMG/SGB: dark grey for comments and markers. GBC: a second bitplane in cmd_buffer's free page gives 3 inks (default, dim, accent) plus a palette per tile (written with the row and when a block moves to another map row). Selected tiles use a selection palette, the two partly selected tiles of a row fall back to today's 4 color scheme
+  - phase 4, C and asm lexers: comments, strings, numbers, preprocessor/directives, labels, keywords/instructions/registers from tables a python script generates into a ROMX bank (looked up when an identifier ends). Keywords are bold on every model, comments dark grey on DMG/SGB, tokens colored on GBC
+  - GBC theme for now: white paper, near black text, grey-green comments and markers, blue keywords/instructions, dark red strings/chars, purple numbers, brown-orange preprocessor/directives/labels
+  - later: SGB colors (ATTR_CHR, 4 palettes, 8px cells, resent on scroll), UI and syntax colors in the settings (with an inverted theme)
 - text buffer:
   - TBMoveGap does bank math per byte (~1s+ per 24KB on DMG, the buffer is 64KB now), copy in chunks
   - without an EverDrive, the first edit after a pause moves the gap back from the end (~35 cycles per byte after the cursor)

@@ -29,13 +29,16 @@
 ;   RenderTextWidth             de = text (0 ends it), returns its width in the variable width font in a
 
 
+DEF RENDER_BLOCKS EQU TB_ROWS+1;block 18 is GBC only, the text ring's spare for smooth scrolling
+DEF GBC_BANK1_BLOCK EQU 12;GBC: blocks 0-11 are tiles 128-367 of VRAM bank 0, 12-18 tiles 128-267 of bank 1
+DEF SCROLL_STEP EQU 2;GBC: pixels SCY moves a frame
 DEF RENDER_EVENTS EQU 6;LCDC changes per frame: 2 for the window, the rest for tile data mode switches
 
 SECTION "Font Widths", WRAM0, ALIGN[8]
 _font_widths:: DS 256;current font's widths, used to wrap rows
 
 SECTION "Render Vars", WRAM0
-row_font: DS TB_ROWS;font each row was drawn with, $FF = not drawn
+row_font: DS RENDER_BLOCKS;font each block was drawn with, $FF = not drawn
 render_row: DB
 render_row_font: DB
 render_src: DW
@@ -58,6 +61,9 @@ render_event_index: DB
 _render_pending:: DB;set after staging a scroll, cleared at line 144 when it's applied
 _render_pending_scy:: DB
 render_pending_wy: DB
+render_pending_anim: DB;GBC: scroll to the staged SCY a few pixels a frame
+render_target_scy: DB;SCY the screen is scrolling to
+_render_gbc:: DB;1 on GBC: no tile data mode switches, smooth scrolling, rows sent with HDMA
 render_pending_lcdc: DB;staged render_top_lcdc, render_event_count and render_events, in that order
 render_pending_count: DB
 render_pending_events: DS RENDER_EVENTS*2
@@ -66,7 +72,7 @@ stage_win: DB
 stage_shared: DB;first of the rows since the last one that needs a mode, $FF = none
 render_map_row: DS TB_COLS
 _render_sel:: DS TB_ROWS*2;selected columns of each screen row (first, end), end $FF = right edge, first = end for none
-block_sel: DS TB_ROWS*2;selection each block was drawn with
+block_sel: DS RENDER_BLOCKS*2;selection each block was drawn with
 render_sel_first: DB
 render_sel_end: DB
 render_sel_x: DB
@@ -82,7 +88,7 @@ render_box_line: DB
 render_box_count: DB
 render_box_y: DB;lines of the row the box covers
 render_box_h: DB
-block_box: DS TB_ROWS;RenderBoxSig each block was drawn with
+block_box: DS RENDER_BLOCKS;RenderBoxSig each block was drawn with
 
 DEF render_bitmap EQUS "cmd_buffer";160 bytes, 20 tiles of 8 lines (1bpp), must start a page
 DEF render_mask EQUS "(cmd_buffer+TB_WIDTH)";selected pixels of each tile, in the same page
@@ -143,14 +149,24 @@ _RenderTextWidth::;de = text (0 ends it), returns its width in the variable widt
 _EditorRedraw::
   ld a, $FF
   ld hl, row_font
-  ld bc, TB_ROWS
+  ld bc, RENDER_BLOCKS
   jp mem_Set
 
 _EditorDraw::
+  ld a, [_render_pending]
+  cp a, 2
+  jr nz, .waitScroll
+.waitSettled;GBC one row scroll: the new row's block is the one the last scroll left, wait until it's off screen
+    ldh a, [rSCY]
+    ld hl, render_target_scy
+    cp a, [hl]
+    jr nz, .waitSettled
+  jr .draw
 .waitScroll;a block that left the screen isn't drawn into until the scroll is applied
     ld a, [_render_pending]
     and a
     jr nz, .waitScroll
+.draw
   ldh a, [loaded_bank]
   push af
   ld a, BANK(RenderRow)
@@ -170,6 +186,11 @@ _EditorDraw::
     jr c, .loop
   pop af
   SET_BANK
+  ld hl, _render_pending
+  ld a, [hl]
+  cp a, 2
+  ret nz
+  dec [hl];drawn, the scroll starts once the rows are transferred
   ret
 
 ;returns x of character a in [_tb_found_row] of tile_buffer in a, using the current font
@@ -266,10 +287,19 @@ RenderLCDInterrupt::
 
 .vblank
   ld a, [_render_pending]
+  cp a, 1
+  jr nz, .animate
+  ldh a, [rHDMA5]
+  inc a
+  jr nz, .animate;a row is still being transferred ($FF on DMG)
+  ld a, [_render_pending_scy]
+  ld [render_target_scy], a
+  ld a, [render_pending_anim]
   and a
-  jr z, .frameStart
+  jr nz, .staged
   ld a, [_render_pending_scy]
   ldh [rSCY], a
+.staged
   ld a, [render_pending_wy]
   ldh [rWY], a
   ld hl, render_pending_lcdc
@@ -283,6 +313,32 @@ RenderLCDInterrupt::
     jr nz, .copyEvents
   xor a
   ld [_render_pending], a
+  ld [render_pending_anim], a
+.animate;GBC: SCY moves SCROLL_STEP pixels toward render_target_scy
+  ld a, [render_target_scy]
+  ld b, a
+  ldh a, [rSCY]
+  ld c, a
+  ld a, b
+  sub a, c
+  jr z, .frameStart
+  bit 7, a
+  jr nz, .back
+  cp a, SCROLL_STEP+1
+  jr c, .arrive
+  ld a, c
+  add a, SCROLL_STEP
+  jr .setSCY
+.back
+  cp a, LOW(-SCROLL_STEP)
+  jr nc, .arrive
+  ld a, c
+  sub a, SCROLL_STEP
+  jr .setSCY
+.arrive
+  ld a, b
+.setSCY
+  ldh [rSCY], a
 .frameStart
   ld a, [render_top_lcdc]
   ld b, a
@@ -395,12 +451,39 @@ _RenderStage::
     ld a, c
     cp a, TB_ROWS
     jr c, .row
+  ld a, [_render_gbc]
+  and a
   ld a, 1
+  jr z, .setPending
+  ld a, [_render_pending_scy]
+  ld hl, render_target_scy
+  sub a, [hl]
+  cp a, 8
+  jr z, .animate
+  cp a, LOW(-8)
+  jr z, .animate
+  xor a
+  ld [render_pending_anim], a
+  inc a
+  jr .setPending
+.animate;one row: EditorDraw draws the new row into the ring's spare block, then it scrolls in
+  ld a, 1
+  ld [render_pending_anim], a
+  inc a
+.setPending
   ld [_render_pending], a
   ret
 
-;a = block, returns LCDCF_BG8000 or 0 for the tile data mode it needs, $FF if either works
+;a = block, returns LCDCF_BG8000 or 0 for the tile data mode it needs, $FF if either works, affects e
 RenderBlockMode:
+  ld e, a
+  ld a, [_render_gbc]
+  and a
+  ld a, e
+  jr z, .dmg
+  xor a;GBC blocks are all $8800 tiles
+  ret
+.dmg
   cp a, 6
   jr c, .mode8000
   cp a, 9
@@ -478,8 +561,17 @@ StageEvent:
 
 _RenderSetMapRow::;a = BG map row, e = block
   push af
+  push de
+  call RenderWaitDMA;VBK stays put while a row is transferred
+  xor a
+  ldh [rVBK], a;the last row may have gone to bank 1
   ld d, 0
   ld hl, BlockTileIndex
+  ld a, [_render_gbc]
+  and a
+  jr z, .tileIndex
+  ld hl, BlockTileIndexGBC
+.tileIndex
   add hl, de
   ld a, [hl]
   ld hl, render_map_row
@@ -489,6 +581,7 @@ _RenderSetMapRow::;a = BG map row, e = block
     inc a
     dec b
     jr nz, .index
+  pop bc;block in c
   pop af
   ld l, a
   ld h, 0
@@ -501,57 +594,118 @@ _RenderSetMapRow::;a = BG map row, e = block
   add hl, de
   ld d, h
   ld e, l
+  push de
+  push bc
   ld hl, render_map_row
   ld bc, TB_COLS
-  jp mem_CopyVRAM
+  call mem_CopyVRAM
+  pop bc
+  pop de
+  ld a, [_render_gbc]
+  and a
+  ret z
+  ld a, c;GBC attributes: tiles from VRAM bank 1 for blocks 12 and up
+  cp a, GBC_BANK1_BLOCK
+  ld a, 0
+  jr c, .attributes
+  ld a, %00001000
+.attributes
+  ld hl, render_map_row
+  ld b, TB_COLS
+.attribute
+    ld [hli], a
+    dec b
+    jr nz, .attribute
+  ld a, 1
+  ldh [rVBK], a
+  ld hl, render_map_row
+  ld bc, TB_COLS
+  call mem_CopyVRAM
+  xor a
+  ldh [rVBK], a
+  ret
+
+;waits for a row's HDMA transfer to finish (HDMA5 reads $FF when it's idle, and on DMG)
+RenderWaitDMA:
+  ldh a, [rHDMA5]
+  inc a
+  jr nz, RenderWaitDMA
+  ret
 
 ;display should be off, clears tiles, sets the background map, starts the LCD interrupt
 RenderSetup::
+  ldh a, [sys_info]
+  and a, SYS_INFO_GBC
+  jr z, .setGBC
+  ld a, 1
+.setGBC
+  ld [_render_gbc], a
   xor a
   ld hl, _VRAM8000
   ld bc, $1800
   call mem_SetVRAM
-  ld hl, _SCRN0
-  ld de, BlockTileIndex
-  ld c, TB_ROWS
-.row
-    ld a, [de]
-    inc de
-    ld b, TB_COLS
-  .col
-      ld [hli], a
-      inc a
-      dec b
-      jr nz, .col
-    ld a, l
-    add a, SCRN_VX_B-TB_COLS
-    ld l, a
-    ld a, h
-    adc a, 0
-    ld h, a
-    dec c
-    jr nz, .row
+  ld a, [_render_gbc]
+  and a
+  jr z, .mapRows
+  ld a, 1;VRAM bank 1: tiles and map attributes
+  ldh [rVBK], a
+  xor a
+  ld hl, _VRAM8000
+  ld bc, $2000
+  call mem_SetVRAM
+  xor a
+  ldh [rVBK], a
+.mapRows;screen row r shows block r
+  xor a
+.mapRow
+    push af
+    ld e, a
+    call _RenderSetMapRow
+    pop af
+    inc a
+    cp a, TB_ROWS
+    jr c, .mapRow
   call _EditorRedraw
   HIDE_WIN
   ld a, $FF
   ld [_render_box_top], a
   xor a
   ld [_render_pending], a
+  ld [render_pending_anim], a
+  ld [render_target_scy], a
   ld [render_event_index], a
   ld [render_event_count], a
   ldh [rSCY], a
   ldh [rWY], a
   ld a, 7
   ldh [rWX], a
-  ld a, LCDCF_BG8000;blocks 0-5 on top, until the editor's first Layout
+  ld a, [_render_gbc]
+  and a
+  ld a, LCDCF_BG8000;DMG: blocks 0-5 on top, until the editor's first Layout
+  jr z, .topLCDC
+  xor a
+.topLCDC
   ld [render_top_lcdc], a
+  ld b, a
   ldh a, [rLCDC]
-  or a, LCDCF_BG8000 | LCDCF_WIN9C00
+  and a, ~LCDCF_BG8000
+  or a, b
+  or a, LCDCF_WIN9C00
   ldh [rLCDC], a
   ld a, SCRN_Y
   ldh [rLYC], a
   ld bc, RenderLCDInterrupt
   jp SetLCDInterrupt
+
+;first tile index of each block on GBC
+BlockTileIndexGBC:
+FOR BLOCK, RENDER_BLOCKS
+IF BLOCK < GBC_BANK1_BLOCK
+  DB LOW(128 + BLOCK*TB_COLS)
+ELSE
+  DB LOW(128 + (BLOCK-GBC_BANK1_BLOCK)*TB_COLS)
+ENDC
+ENDR
 
 ;first tile index of each block, see the top of this file
 BlockTileIndex:
@@ -769,6 +923,9 @@ RenderRow:
 
 .toVRAM;bitplane 1 is the 1bpp byte, bitplane 0 is it XOR the tile's mask
   call RenderBox
+  ld a, [_render_gbc]
+  and a
+  jp nz, RenderRowDMA
   ld a, [render_block]
   add a, a
   ld c, a
@@ -824,6 +981,72 @@ ENDR
     dec c
     jr nz, .burst
   ret
+
+;GBC: builds the row's tiles in render_dma_buffer (bitplane 0 is the 1bpp byte XOR the tile's mask,
+;bitplane 1 the byte) and starts an HBlank DMA to the block, which runs while the CPU carries on
+;(VBK stays on the block's bank until it's done, see RenderWaitDMA)
+RenderRowDMA:
+  call RenderWaitDMA
+  ld hl, render_mask
+  ld de, render_dma_buffer
+  ld bc, render_bitmap
+  ld a, TB_COLS
+.tile
+    push af
+    ld a, [hli];mask
+    push hl
+    ld h, a
+    ld l, 8
+  .line
+      ld a, [bc]
+      inc bc
+      xor a, h
+      ld [de], a
+      inc de
+      xor a, h
+      ld [de], a
+      inc de
+      dec l
+      jr nz, .line
+    pop hl
+    pop af
+    dec a
+    jr nz, .tile
+  ld a, [render_block]
+  ld e, a
+  cp a, GBC_BANK1_BLOCK
+  ld a, 0
+  jr c, .bank
+  inc a
+.bank
+  ldh [rVBK], a
+  ld d, 0
+  ld hl, BlockTileAddressGBC
+  add hl, de
+  add hl, de
+  ld a, HIGH(render_dma_buffer)
+  ldh [rHDMA1], a
+  ld a, LOW(render_dma_buffer)
+  ldh [rHDMA2], a
+  ld a, [hli]
+  ld e, a
+  ld a, [hl]
+  ldh [rHDMA3], a
+  ld a, e
+  ldh [rHDMA4], a
+  ld a, $80 | (TB_WIDTH*2/16-1);HBlank DMA, 16 bytes per HBlank
+  ldh [rHDMA5], a
+  ret
+
+;VRAM address of the first tile of each block on GBC (blocks 12 and up are in bank 1)
+BlockTileAddressGBC:
+FOR BLOCK, RENDER_BLOCKS
+IF BLOCK < GBC_BANK1_BLOCK
+  DW _VRAM8000 + (128 + BLOCK*TB_COLS)*16
+ELSE
+  DW _VRAM8000 + (128 + (BLOCK-GBC_BANK1_BLOCK)*TB_COLS)*16
+ENDC
+ENDR
 
 ;sets render_mask to the pixels from column [render_sel_first] to [render_sel_end]
 RenderSelectionMask:

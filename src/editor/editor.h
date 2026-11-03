@@ -29,6 +29,7 @@ extern unsigned char render_row_blocks[TB_ROWS]; // block each screen row draws 
 extern unsigned char render_row_lines[TB_ROWS]; // tile_buffer row each screen row shows
 extern unsigned char render_row_fonts[TB_ROWS]; // font each screen row uses
 extern unsigned char render_text_top; // screen row of text row 0
+extern unsigned char render_gbc; // 1 on GBC: the text ring has a spare block and scrolls smoothly
 extern unsigned char render_box_top; // menu box over the text: screen row, 0xFF = none
 extern unsigned char render_box_rows;
 extern unsigned char render_box_x; // pixels
