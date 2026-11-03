@@ -49,6 +49,7 @@ render_styled: DB;1 = a text row, widths and styles come from tile_attrs
 render_attr: DB;style of the char RenderGlyph draws
 render_head: DB;heading font: 1-4, 0 = none
 font_bold:: DB;pixels bold adds to the current font's glyphs
+_render_text:: DB;1 = rows below tb_rows are TBScanRow's text (styled by tile_attrs), 0 = the file browser and help draw their own
 render_x: DB
 render_w: DB
 render_shift: DB
@@ -193,8 +194,10 @@ _EditorDraw::
     ld hl, _render_row_lines
     add hl, bc
     ld a, [hl]
-    cp a, TB_ROWS
+    ld d, a
+    call RenderLineStyled
     jr nc, .font
+    ld a, d
     add a, a;markdown headings 1-4 have their own fonts
     add a, LOW(tb_row_states+1)
     ld l, a
@@ -225,6 +228,18 @@ _EditorDraw::
   ret
 
 ;returns x of character a in [_tb_found_row] of tile_buffer in a, from its styled widths
+;a = tile_buffer row, returns carry if it's text scanned by TBScanRow (its widths and styles are in
+;tile_attrs), not the on screen keyboard, bars, browser or help, only affects a
+RenderLineStyled:
+  push hl
+  ld hl, _tb_rows
+  cp a, [hl]
+  pop hl
+  ret nc
+  ld a, [_render_text]
+  add a, $FF
+  ret
+
 _RenderCursorX::
 RenderCursorX::
   ld c, a;column
@@ -903,9 +918,9 @@ RenderRow:
   add hl, bc
   ld a, [hl]
   ld [render_line], a
-  cp a, TB_ROWS
+  call RenderLineStyled
   ld a, 0
-  adc a, 0;1 for text rows
+  adc a, 0
   ld [render_styled], a
   ld a, [render_line]
   call RenderRowAddress

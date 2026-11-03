@@ -1164,6 +1164,7 @@ static unsigned char Browse(void) {
   CopyName(path, file_dir);
   font = FONT_VWF;
   SetFont(font);
+  render_text = 0;
   EditorShowCursor(0);
   if (osk_shown) OSKShow(0);
   bars = 1;
@@ -1256,6 +1257,7 @@ static unsigned char Browse(void) {
   }
   font = editor_font;
   SetFont(font);
+  render_text = 1;
   SetRows();
   return opened;
 }
@@ -1358,12 +1360,14 @@ static void ShowHelp(void) {
   unsigned char row, editor_font = font;
   font = FONT_VWF;
   SetFont(font);
+  render_text = 0;
   BeginFullScreen();
   for (row = 0; row < HELP_ROWS; ++row) DrawRow(row, 0, help_lines[row]);
   EditorDraw();
   while (!MenuKey());
   font = editor_font;
   SetFont(font);
+  render_text = 1;
   EndFullScreen();
 }
 
@@ -1519,6 +1523,7 @@ void Editor(void) {
   tb_nowrap = 0;
   tb_left = 0;
   tb_lang = LANG_PLAIN;
+  render_text = 1;
   SettingsLoad();
   SetLang();
   UndoClear(modified);
