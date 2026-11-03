@@ -116,6 +116,23 @@ DEF RENDER_BURST EQU 8;bytes written to VRAM per HBlank
 
 SECTION "Render ROM0", ROM0
 
+RenderFarGlyph:;a = bank, hl = glyph, copies it to render_glyph, returns render_glyph in bc, affects a, de, hl
+  ld b, a
+  ldh a, [loaded_bank]
+  ld c, a
+  ld a, b
+  SET_BANK
+  ld de, render_glyph
+REPT 8
+  ld a, [hli]
+  ld [de], a
+  inc de
+ENDR
+  ld a, c
+  SET_BANK
+  ld bc, render_glyph
+  ret
+
 _SetFont::;a = font
   ld b, a
   cp a, FONT_FIXED
@@ -824,109 +841,67 @@ FOR RS_BYTE, 256
 ENDR
 ENDR
 
-;heading fonts: a fixed font glyph row's 4 pixels (high nibble) stretched for headings 1-4, columns
-;2,3,2,1 / 2,2,2,1 / 2,1,2,1 / 1,2,1,1 pixels wide (the 4th is the gap, a few glyphs use it), so cells
-;are 8, 7, 6, 5 pixels. The wide strokes make them bold (ORing them 1 pixel right fills the counters)
-RenderStretch:;page aligned
-  DB $00,$01,$06,$07,$38,$39,$3E,$3F,$C0,$C1,$C6,$C7,$F8,$F9,$FE,$FF
-  DB $00,$02,$0C,$0E,$30,$32,$3C,$3E,$C0,$C2,$CC,$CE,$F0,$F2,$FC,$FE
-  DB $00,$04,$18,$1C,$20,$24,$38,$3C,$C0,$C4,$D8,$DC,$E0,$E4,$F8,$FC
-  DB $00,$08,$10,$18,$60,$68,$70,$78,$80,$88,$90,$98,$E0,$E8,$F0,$F8
-ASSERT LOW(RenderStretch) == 0
+;the styled fonts (fonts.py): headings 1-4, then the fixed and VWF fonts' bold, italic, bold italic
+MACRO FONT_STYLE;\1 = glyphs
+  DB BANK(\1)
+  DW \1
+ENDM
+FontStyles:
+  FONT_STYLE FontH1Glyphs
+  FONT_STYLE FontH2Glyphs
+  FONT_STYLE FontH3Glyphs
+  FONT_STYLE FontH4Glyphs
+  FONT_STYLE FontFixedBoldGlyphs
+  FONT_STYLE FontFixedItalicGlyphs
+  FONT_STYLE FontFixedBoldItalicGlyphs
+  FONT_STYLE FontVWFBoldGlyphs
+  FONT_STYLE FontVWFItalicGlyphs
+  FONT_STYLE FontVWFBoldItalicGlyphs
 
 ;bc = glyph, returns the glyph styled by [render_look] and [render_head] in bc (render_glyph if it
-;changed): headings are stretched and 1 pixel taller (row 3 twice, row 0 dropped unless it has an accent),
-;bold is ORed 1 pixel right (stretched in the fixed font), italic shifts the top 4 rows 1 pixel right
+;changed, copied from its styled font)
 RenderStyleGlyph:
-  ld h, b
-  ld l, c
   ld a, [render_head]
   and a
-  jr nz, .heading
+  jr nz, .font
   ld a, [render_look]
   and a, LOOK_BOLD | LOOK_ITALIC
   ret z
-  and a, LOOK_BOLD
-  jr z, .plain
+  add a, 4
+  ld e, a
   ld a, [render_row_font]
   cp a, FONT_FIXED
-  jr nz, .plain
-  ld d, 2 << 4;bold fixed font: columns 2,1,2,1 pixels wide, ORing would fill its 1 pixel counters
-  ld b, HIGH(RenderStretch)
-  jr .sameHeight
-.plain
-  ld de, render_glyph
-  ld c, 8
-.copy
-    ld a, [hli]
-    ld [de], a
-    inc de
-    dec c
-    jr nz, .copy
-  jp .style
-.heading
+  ld a, e
+  jr z, .font
+  add a, 3;VWF
+.font;a = styled font + 1
   dec a
-  swap a
-  ld d, a;level's table
-  ld b, HIGH(RenderStretch)
-  ld a, [hl]
-  and a
-  jr nz, .sameHeight
-  inc hl
-FOR R, 8
-  ld a, [hl]
-IF R != 2
-  inc hl
-ENDC
-  swap a
-  and a, $0F
-  or a, d
-  ld c, a
-  ld a, [bc]
-  ld [render_glyph+R], a
-ENDR
-  jr .style
-.sameHeight
-FOR R, 8
+  ld e, a
+  add a, a
+  add a, e
+  add a, LOW(FontStyles)
+  ld l, a
+  adc a, HIGH(FontStyles)
+  sub a, l
+  ld h, a
+  ld a, [hli];bank
+  push af
   ld a, [hli]
-  swap a
-  and a, $0F
-  or a, d
-  ld c, a
-  ld a, [bc]
-  ld [render_glyph+R], a
-ENDR
-.style
-  ld hl, render_glyph
-  ld a, [render_row_font]
-  cp a, FONT_FIXED
-  ld a, [render_look]
-  jr z, .italic;stretched instead
-  bit 0, a;LOOK_BOLD
-  jr z, .italic
-  ld c, 8
-.bold
-    ld a, [hl]
-    ld b, a
-    srl a
-    or a, b
-    ld [hli], a
-    dec c
-    jr nz, .bold
-  ld hl, render_glyph
-  ld a, [render_look]
-.italic
-  bit 1, a;LOOK_ITALIC
-  jr z, .done
-  ld c, 4
-.slant
-    srl [hl]
-    inc hl
-    dec c
-    jr nz, .slant
-.done
-  ld bc, render_glyph
-  ret
+  ld e, a
+  ld d, [hl]
+  ld a, [render_glyphs];the glyph's offset in its font
+  ld l, a
+  ld a, c
+  sub a, l
+  ld l, a
+  ld a, [render_glyphs+1]
+  ld h, a
+  ld a, b
+  sbc a, h
+  ld h, a
+  add hl, de
+  pop af
+  jp RenderFarGlyph
 
 INCLUDE "img/fonts/font_mono.asm"
 INCLUDE "img/fonts/font_vwf.asm"
@@ -1134,7 +1109,7 @@ RenderRow:
   ld de, FontFixedWidths
   dec a
   jr z, .setFont
-  ld [render_head], a;headings: the fixed font, stretched
+  ld [render_head], a;headings: the fixed font's glyphs, their own fonts are styled fonts
   jr .setGlyphs
 .setFont
   xor a
@@ -2013,3 +1988,19 @@ RenderWritePalettes:
   xor a
   ldh [rVBK], a
   ret
+
+;the styled fonts, each in its own bank's section (RenderStyleGlyph)
+MACRO STYLED_FONT;\1 = file
+SECTION "Styled Font \1", ROMX
+INCLUDE "img/fonts/\1.asm"
+ENDM
+  STYLED_FONT font_h1
+  STYLED_FONT font_h2
+  STYLED_FONT font_h3
+  STYLED_FONT font_h4
+  STYLED_FONT font_fixed_bold
+  STYLED_FONT font_fixed_italic
+  STYLED_FONT font_fixed_bold_italic
+  STYLED_FONT font_vwf_bold
+  STYLED_FONT font_vwf_italic
+  STYLED_FONT font_vwf_bold_italic

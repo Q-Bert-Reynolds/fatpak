@@ -74,8 +74,15 @@ The editor draws text as pixels, so fonts can be any width (src/editor/render.as
   and each character's width is its last pixel + 2. Empty glyphs (space) are 4 pixels.
 
 All are 16x16 grids of 8x8 glyphs indexed by character code, dark pixels are drawn.
-Markdown headings 1-4 stretch the 4 pixel font's glyphs as they're drawn (2 pixel strokes, 1 pixel taller),
-bold ORs a glyph 1 pixel to the right (the 4 pixel font widens its strokes instead).
+Styled text uses its own fonts, drawn as they are (no width tables, the engine uses the base font's
+widths: + 2 pixels for fixed bold, + 1 for VWF bold, 8/7/6/5 pixels for headings 1-4):
+- img/fonts/heading1_font.png to heading4_font.png, markdown headings 1-4
+- img/fonts/fixed_bold_font.png, fixed_italic_font.png, fixed_bold_italic_font.png
+- img/fonts/vwf_bold_font.png, vwf_italic_font.png, vwf_bold_italic_font.png
+
+`python3 fonts.py derive` draws any that are missing from the base fonts (headings stretched with 2
+pixel strokes and 1 pixel taller, bold ORed 1 pixel right or stretched in the fixed font, italic's
+top 4 rows 1 pixel right), `--force` draws them all again (overwriting edits).
 
 img/ui_font.png is 256 tiles. Tile index matches the character code:
 - 0-31: UI glyphs (box drawing, arrows, etc.)

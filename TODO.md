@@ -26,7 +26,7 @@ Text Rendering
   - markdown markers (#, **, _, `) stay visible, dimmed
   - done: lexer and styled widths (TBLex, tile_attrs), file type (.md), headings 1-4 as stretched fonts, H5/H6 bold, **bold**, *italic*/_italic_
   - done: dim and accent inks (dim markers on every model, GBC accent palettes per tile, highlight selection on SGB and GBC)
-  - left from phases 1-3: ``` fences (the checkpoints only track C comments, TBSyncState scans from the line's start, a long paragraph is rescanned on each full render), hand drawn heading fonts if the stretched ones don't hold up, ScrollX estimates widths (heading widths, bold not counted), SGB untested (same encoding as GBC without accents)
+  - left from phases 1-3: ``` fences (the checkpoints only track C comments, TBSyncState scans from the line's start, a long paragraph is rescanned on each full render), hand edits to the styled fonts (img/fonts/*_font.png, fonts.py derive drew them), ScrollX estimates widths (heading widths, bold not counted), SGB untested (same encoding as GBC without accents)
   - done: C and asm lexers (TBLexCode, keyword tables from keywords.py), C block comments across lines (1KB checkpoints, TBCheckRun)
   - code: bold keywords widen the fixed font's cells (columns don't line up after them), registers share the keyword blue, the C preprocessor only colors the directive, RGBDS /* */ comments and string interpolation aren't lexed, a long first scan after an edit near the top of a big C file (~0.5 frame per KB on GBC)
   - later: SGB colors (ATTR_CHR, 4 palettes, 8px cells, resent on scroll), UI and syntax colors in the settings (with an inverted theme)
