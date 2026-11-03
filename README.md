@@ -26,7 +26,7 @@ The top bar shows the file name (* = unsaved changes), the bottom bar the line a
 characters are selected. F11 (or FULL SCREEN in the menu) hides them. F1 (or HELP) shows the controls.
 
 PS/2 keyboards type directly: arrows, home, end, page up/down, backspace, delete, enter.
-Escape opens the menu (open, save, save as, new, font, line wrap, full screen, help), Ctrl+O opens, Ctrl+S saves, Ctrl+N starts a new file.
+Escape opens the menu (open, save, save as, new, undo, redo, font, line wrap, full screen, help), Ctrl+O opens, Ctrl+S saves, Ctrl+N starts a new file.
 OPEN (Ctrl+O) browses the SD card: the top bar shows the folder, the bottom bar the selected file's size and date.
 Folders come first, enter or A opens, backspace, left or B goes up a folder, escape goes back to the text
 (so do backspace and B in the root).
@@ -43,6 +43,8 @@ the cursor, Ctrl+Home/End go to the start/end of the text.
 Shift + any of those keys selects text, Ctrl+A selects everything. Ctrl+X cuts, Ctrl+C copies,
 Ctrl+V pastes. Typing, backspace or delete replace the selection. The clipboard holds up to 7356 characters
 and is kept in SRAM. Selected text is inverted on DMG and highlighted on GBC and SGB.
+Ctrl+Z undoes, Ctrl+Y (or Ctrl+Shift+Z) redoes, a word or a run of deletes at a time. The history holds about
+56KB of edits and is cleared by opening a file, a new file, or turning the power off.
 
 Text is kept in SRAM, so it's still there after turning the Game Boy off.
 

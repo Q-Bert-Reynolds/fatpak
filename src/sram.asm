@@ -5,6 +5,12 @@ SECTION "Text Buffer {d:N}", SRAM[_SRAM], BANK[N]
 ENDR
 ASSERT TB_SIZE <= $FFFF, "text buffer positions are 16 bit"
 
+;undo log, see src/editor/undo.c
+FOR N, UNDO_BANK, UNDO_BANK+UNDO_BANKS
+SECTION "Undo Log {d:N}", SRAM[_SRAM], BANK[N]
+  DS $2000
+ENDR
+
 SECTION "Main Save", SRAM[_SRAM], BANK[MAIN_SRAM_BANK]
 sram_tb_signature:: DS 4
 

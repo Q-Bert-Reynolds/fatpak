@@ -97,7 +97,7 @@ flowchart LR
 | --- | --- |
 | 0-7 | The text buffer (65,408 bytes, as much as 16 bit positions allow). `$BD00-$BD0F` is never used in any bank (see EverDrive registers) |
 | 8 | `sram_tb_signature` ("TXT3") and the engine's save data at `$A000`, the clipboard at `$A040-$BCFF` (length, its complement, then up to 7356 characters) |
-| 9-15 | Unused |
+| 9-15 | The undo log (57,232 bytes, laid out like the text buffer), see Undo |
 
 SRAM is only enabled (`SRAM_ON`) while it's being read or written, so a power loss is less likely to corrupt it.
 
@@ -173,6 +173,7 @@ A [gap buffer](https://en.wikipedia.org/wiki/Gap_buffer) in SRAM banks 0-7. Posi
 - **Row tables:** rendering records `tb_row_starts` (where each visible row starts, then the row after the last), `tb_row_counts` (characters drawn), and `tb_end_row` (the row the end of the text is on). Cursor movement, partial rendering, and scrolling all work from these instead of scanning SRAM.
 - **Settings** (`src/sram.asm`): `SettingsSave` copies the variables in `SettingsTable` (font, `tb_nowrap`, `bars_on`, and the open file's `fs_crlf`, `modified`, `file_dir` and `file_name`) to SRAM bank 8 right after the EverDrive registers, behind a signature, and `SettingsLoad` copies them back when the editor starts. The editor saves them when one changes: the toggles, opening, saving and new files, and the main loop when `modified` changes.
 - **Selection and clipboard:** `tb_DeleteRange` grows the gap over a range, `tb_Copy` copies a range to the clipboard in SRAM bank 8 and `tb_Paste` inserts it, both 256 bytes at a time through `win_buffer`. The editor keeps the selection as `anchor` and `cursor`.
+- **Undo** (`src/editor/undo.c`, in its own bank behind `BANKED_C` stubs, with its copy loops in `undo.asm`): a ring of records in SRAM banks 9-15, each a header (length, type, position), the inserted or deleted text, then the length again so undo can walk back. `undo_head` is the current state, records after it up to `undo_top` can be redone, the oldest are dropped when it's full. Typing a word, or holding delete or backspace (stored last char first), merges into one record until the cursor moves. Typing or pasting over a selection is joined to the delete so they undo together. `undo_saved` remembers where the text was saved so undoing back to it clears the modified flag. The history isn't kept when the power is off.
 - `tb_Render` (all rows), `tb_RenderRows` (a range), and `tb_ScrollRows` (shift `tile_buffer` and the tables one row) fill `tile_buffer`, which holds 18 rows of `TB_STRIDE` (40) characters.
 
 ### Rendering (`src/editor/render.asm`)

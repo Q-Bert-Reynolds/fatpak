@@ -86,7 +86,7 @@ unsigned long list_sizes[LIST_ROWS];
 unsigned int list_dates[LIST_ROWS];
 unsigned int list_times[LIST_ROWS];
 
-static const char menu_items[][ITEM_SIZE] = {"OPEN", "SAVE", "SAVE AS", "NEW", "FONT", "LINE WRAP", "FULL SCREEN", "HELP"};
+static const char menu_items[][ITEM_SIZE] = {"OPEN", "SAVE", "SAVE AS", "NEW", "UNDO", "REDO", "FONT", "LINE WRAP", "FULL SCREEN", "HELP"};
 static const char discard_items[][ITEM_SIZE] = {"NO", "YES"};
 static const char help_lines[HELP_ROWS][HELP_COLS] = {
   "HELP",
@@ -97,6 +97,7 @@ static const char help_lines[HELP_ROWS][HELP_COLS] = {
   "Shift + moving  select",
   "Ctrl+A  select all",
   "Ctrl+X, C, V  cut, copy, paste",
+  "Ctrl+Z, Y  undo, redo",
   "Ctrl+Left, Right  move by word",
   "Ctrl+Up, Down  scroll",
   "Ctrl+Home, End  start or end",
@@ -105,7 +106,6 @@ static const char help_lines[HELP_ROWS][HELP_COLS] = {
   "A  type the selected key",
   "B  backspace    Start  new line",
   "D-pad  move",
-  "",
   "Press any key to close",
 };
 
@@ -589,6 +589,7 @@ static void MoveEnd(void) {
 }
 
 static void DeleteSelection(void) {
+  UndoDeleting(sel_start, sel_end - sel_start);
   Uncount(sel_start);
   tb_DeleteRange(sel_start, sel_end - sel_start);
   cursor = sel_start;
@@ -612,9 +613,11 @@ static void Paste(void) {
     ShowMessage("TEXT FULL");
     return;
   }
-  if (GetSelection()) DeleteSelection();
+  undo_join = GetSelection();
+  if (undo_join) DeleteSelection();
   Uncount(cursor);
   tb_Paste(cursor);
+  UndoInserted(cursor, length);
   cursor += length;
   modified = 1;
   dirty = 1;
@@ -663,9 +666,21 @@ static void ScrollLine(unsigned char down) {
   }
 }
 
-// ctrl + A, X, C, V
-static void HandleCtrlKey(unsigned char key) {
+// Ctrl+Z (Ctrl+Shift+Z redoes) and Ctrl+Y
+static void UndoRedo(unsigned char redo) {
+  if (!(redo ? Redo() : Undo())) return;
+  cursor = undo_cursor;
+  selecting = 0;
+  Uncount(0);
+  modified = !undo_at_save;
+  dirty = 1;
+}
+
+// ctrl + A, X, C, V, Z, Y
+static void HandleCtrlKey(unsigned char key, unsigned char mods) {
   if (key >= 'A' && key <= 'Z') key += 'a' - 'A';
+  if (key == 'z') UndoRedo(mods & KB_MOD_SHIFT);
+  else if (key == 'y') UndoRedo(1);
   if (key == 'a') {
     anchor = 0;
     cursor = tb_Length();
@@ -680,11 +695,12 @@ static void HandleCtrlKey(unsigned char key) {
 
 // ctrl + left/right move by token, ctrl + up/down scroll, ctrl + home/end go to the start/end
 static void HandleKey(unsigned char key, unsigned char mods) {
-  unsigned char ctrl = mods & KB_MOD_CTRL, c;
+  unsigned char ctrl = mods & KB_MOD_CTRL, join = 0;
   if (mods & (KB_MOD_ALT | KB_MOD_SUPER)) return;
+  if (key >= KEY_LEFT && key <= KEY_PAGE_DOWN) undo_merge = 0; // moving starts a new undo step
   if (key < KEY_LEFT || key > KEY_PAGE_DOWN) {
     if (ctrl) {
-      HandleCtrlKey(key);
+      HandleCtrlKey(key, mods);
       return;
     }
   }
@@ -726,18 +742,18 @@ static void HandleKey(unsigned char key, unsigned char mods) {
   if (GetSelection()) { // typing replaces the selection
     DeleteSelection();
     if (key == KEY_BACKSPACE || key == KEY_DELETE) return;
+    join = 1;
   }
   selecting = 0;
   switch (key) {
     case KEY_BACKSPACE:
-      if (cursor && (c = tb_Delete(cursor - 1))) {
-        CountEdit(cursor - 1, c, 0);
-        Edited(--cursor, -1);
-      }
-      break;
+      if (!cursor) break;
+      --cursor;
+      // fall through
     case KEY_DELETE:
-      if ((c = tb_Delete(cursor))) {
-        CountEdit(cursor, c, 0);
+      if (cursor < tb_Length()) {
+        UndoDeleting(cursor, 1);
+        CountEdit(cursor, tb_Delete(cursor), 0);
         Edited(cursor, -1);
       }
       break;
@@ -745,6 +761,8 @@ static void HandleKey(unsigned char key, unsigned char mods) {
       if (key < ' ' && key != ASCII_TAB && key != ASCII_LF) return;
       if (key >= KEY_LEFT && key < 0xA0) return; // unprintable in Latin-1
       if (tb_Insert(cursor, key)) {
+        undo_join = join;
+        UndoInserted(cursor, 1);
         CountEdit(cursor, key, 1);
         Edited(cursor++, 1);
       }
@@ -1000,6 +1018,7 @@ static void ResetCursor(void) {
   want_x = 0;
   modified = 0;
   dirty = 1;
+  UndoClear(0);
 }
 
 static void NewFile(void) {
@@ -1308,6 +1327,7 @@ static void SaveFile(unsigned char ask) {
     return;
   }
   modified = 0;
+  UndoSaved();
   ShowMessage("SAVED");
 }
 
@@ -1343,15 +1363,17 @@ static void ShowHelp(void) {
 }
 
 static void FileMenu(void) {
-  switch (Choose("MENU", menu_items[0], 8)) {
+  switch (Choose("MENU", menu_items[0], 10)) {
     case 0: OpenFile(); break;
     case 1: SaveFile(0); break;
     case 2: SaveFile(1); break;
     case 3: NewFile(); break;
-    case 4: ToggleFont(); break;
-    case 5: ToggleWrap(); break;
-    case 6: ToggleBars(); break;
-    case 7: ShowHelp(); break;
+    case 4: UndoRedo(0); break;
+    case 5: UndoRedo(1); break;
+    case 6: ToggleFont(); break;
+    case 7: ToggleWrap(); break;
+    case 8: ToggleBars(); break;
+    case 9: ShowHelp(); break;
   }
 }
 
@@ -1484,6 +1506,7 @@ void Editor(void) {
   tb_nowrap = 0;
   tb_left = 0;
   SettingsLoad();
+  UndoClear(modified);
   saved_modified = modified;
   SetFont(font);
   SetRows();

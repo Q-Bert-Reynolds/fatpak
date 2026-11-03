@@ -371,6 +371,7 @@ TBChunkLimit:
 ;or bank end in de, affects a
 TBPhysRun:
   ld b, 0
+TBPhysRunFrom:;b = first bank (the undo log starts at UNDO_BANK)
   ld de, -TB_BANK_SIZE
 .findBank
     add hl, de

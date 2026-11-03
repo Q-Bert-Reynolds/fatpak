@@ -47,6 +47,9 @@ DEF TB_BANK_SIZE EQU ($2000-TB_HOLE_SIZE)
 DEF TB_SIZE      EQU (TB_BANK_SIZE*TB_BANKS)
 DEF TB_CLIP_ADDR EQU $A040;clipboard in SRAM bank 8, up to the EverDrive registers at $BD00
 DEF TB_CLIP_SIZE EQU ($BD00-TB_CLIP_ADDR-4)
+DEF UNDO_BANK    EQU 9;undo log in SRAM banks 9-15, laid out like the text buffer (see src/editor/undo.c)
+DEF UNDO_BANKS   EQU 7
+DEF UNDO_SIZE    EQU (TB_BANK_SIZE*UNDO_BANKS)
 DEF TB_COLS   EQU 20;tiles per row
 DEF TB_ROWS   EQU 18
 DEF TB_WIDTH  EQU TB_COLS*8;pixels per row

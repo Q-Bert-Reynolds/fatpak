@@ -50,6 +50,9 @@
 #define TB_SIZE      (TB_BANK_SIZE*TB_BANKS)
 #define TB_CLIP_ADDR 0xA040//clipboard in SRAM bank 8, up to the EverDrive registers at 0xBD00
 #define TB_CLIP_SIZE (0xBD00-TB_CLIP_ADDR-4)
+#define UNDO_BANK    9//undo log in SRAM banks 9-15, laid out like the text buffer (see src/editor/undo.c)
+#define UNDO_BANKS   7
+#define UNDO_SIZE    (TB_BANK_SIZE*UNDO_BANKS)
 #define TB_COLS   20//tiles per row
 #define TB_ROWS   18
 #define TB_WIDTH  TB_COLS*8//pixels per row

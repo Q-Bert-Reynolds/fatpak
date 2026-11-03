@@ -127,3 +127,6 @@ EditorPalette:
   COLOR_BLACK
 
 INCLUDE "src/editor/_editor.asm";generated from editor.c
+
+INCLUDE "src/editor/undo.asm"
+INCLUDE "src/editor/_undo.asm";generated from undo.c
