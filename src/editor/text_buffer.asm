@@ -1248,7 +1248,7 @@ TBLexMD:
   res MD_LINE, a
   ld [tb_next_state], a
   ld a, c
-  cp a, "#"
+  cp a, '#'
   ld a, 0
   call z, TBPeekHeading
   ld [tb_row_head], a
@@ -1267,7 +1267,7 @@ TBLexMD:
   bit MD_STAR, [hl]
   jr z, .resolve
   ld a, c
-  cp a, "*"
+  cp a, '*'
   jr nz, .resolve
   ld d, 1;**
   jr .style
@@ -1288,21 +1288,21 @@ TBLexMD:
   dec hl
   jr nz, .code
   ld a, c
-  cp a, " "
+  cp a, ' '
   jr z, .code
   set MD_ITALIC, [hl]
 .code
   ld a, c
-  cp a, "`"
+  cp a, '`'
   jr nz, .notTick
   set 2, d
   jr .style
 .notTick
   bit MD_CODE, [hl]
   jr nz, .style
-  cp a, "*"
+  cp a, '*'
   jr z, .star
-  cp a, "_"
+  cp a, '_'
   jr nz, .style
   res MD_STAR, [hl]
   jr .mark
@@ -1353,7 +1353,7 @@ TBLexMD:
   set MD_PREV_WORD, [hl]
 .notWord
   ld a, c
-  cp a, " "
+  cp a, ' '
   jr z, .space
   cp a, ASCII_TAB
   jr nz, .done
@@ -1369,16 +1369,16 @@ TBIsWord:
   cp a, $C0
   ccf
   ret c
-  cp a, "0"
+  cp a, '0'
   ccf
   ret nc
-  cp a, "9"+1
+  cp a, '9'+1
   ret c
   or a, $20
-  cp a, "a"
+  cp a, 'a'
   ccf
   ret nc
-  cp a, "z"+1
+  cp a, 'z'+1
   ret
 
 ;hl and de at a #, returns the heading level in a if the line is a heading (1-6 # then a space),
@@ -1393,7 +1393,7 @@ TBPeekHeading:
     push bc
     call TBReadNext
     pop bc
-    cp a, "#"
+    cp a, '#'
     jr nz, .notHash
     inc b
     ld a, b
@@ -1401,7 +1401,7 @@ TBPeekHeading:
     jr c, .loop
     jr .no
 .notHash
-  cp a, " "
+  cp a, ' '
   jr nz, .no
   ld a, b
   jr .done
