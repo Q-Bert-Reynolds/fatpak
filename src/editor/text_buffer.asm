@@ -1236,25 +1236,20 @@ TBLex:
 .code
   call TBLexCode
 .heading
-  ld a, [tb_next_state+1]
-  and a, MD_HEADING
-  jr z, .fontWidth
-  cp a, 5
-  jr nc, .fontWidth
-  cpl
-  add a, 10;9 - level, the heading fonts' cells are 8, 7, 6, 5 pixels
-  jr .bold
-.fontWidth
   ld a, c
   cp a, ' '
-  jr nc, .lookup
+  jr nc, .char
   ld a, ' '
-.lookup
-  ld h, HIGH(_font_widths)
-  ld l, a
-  ld a, [hl]
-.bold
+.char
   ld c, a
+  ld a, [tb_next_state+1]
+  and a, MD_HEADING
+  jr z, .notHeading
+  cp a, 5
+  jr nc, .notHeading
+  add a, HIGH(HeadingWidths) - 1;headings 1-4 have their own fonts
+  jr .styledWidth
+.notHeading
   ld a, b
   swap a
   add a, LOW(StyleLooks)
@@ -1263,10 +1258,15 @@ TBLex:
   adc a, 0
   ld h, a
   bit 0, [hl];LOOK_BOLD
-  ld a, c
-  jr z, .setAttr
-  ld hl, font_bold
-  add a, [hl]
+  jr z, .fontWidth
+  ld a, [font_bold_widths]
+.styledWidth
+  call StyledWidth
+  jr .setAttr
+.fontWidth
+  ld h, HIGH(_font_widths)
+  ld l, c
+  ld a, [hl]
 .setAttr
   or a, b
   ld [tb_attr], a

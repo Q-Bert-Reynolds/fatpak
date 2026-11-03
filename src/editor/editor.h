@@ -20,6 +20,7 @@ extern void EditorInvertCursor(unsigned char invert); // white cursor, for the s
 
 // src/editor/render.asm
 extern unsigned char font_widths[256]; // current font
+extern unsigned char HeadingCharWidth(unsigned char level, unsigned char c); // width in heading 1-4's font
 extern void SetFont(unsigned char font);
 extern void EditorDraw(void); // draws screen rows whose characters, font or selection changed
 extern void EditorRedraw(void); // redraw every row next EditorDraw

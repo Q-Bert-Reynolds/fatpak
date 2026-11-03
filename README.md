@@ -74,8 +74,10 @@ The editor draws text as pixels, so fonts can be any width (src/editor/render.as
   and each character's width is its last pixel + 2. Empty glyphs (space) are 4 pixels.
 
 All are 16x16 grids of 8x8 glyphs indexed by character code, dark pixels are drawn.
-Styled text uses its own fonts, drawn as they are (no width tables, the engine uses the base font's
-widths: + 2 pixels for fixed bold, + 1 for VWF bold, 8/7/6/5 pixels for headings 1-4):
+Styled text uses its own fonts, drawn as they are (not moved left). Their widths are measured from
+the images: a fixed width font (headings, fixed bold) is its most common last pixel + 2 wide (a few
+glyphs can draw into the gap), VWF bold is each glyph's last pixel + 2 (4 if it's empty), italic
+fonts use their upright font's widths:
 - img/fonts/heading1_font.png to heading4_font.png, markdown headings 1-4
 - img/fonts/fixed_bold_font.png, fixed_italic_font.png, fixed_bold_italic_font.png
 - img/fonts/vwf_bold_font.png, vwf_italic_font.png, vwf_bold_italic_font.png

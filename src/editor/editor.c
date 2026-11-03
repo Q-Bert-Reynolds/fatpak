@@ -1418,20 +1418,21 @@ static void Render(void) {
 #define KEEP_LEFT  40 // pixels of text left of the cursor after scrolling sideways to the right (more near the line's end)
 #define KEEP_RIGHT 120 // after scrolling to the left, most of the screen shows where it's going
 
-unsigned char head_width; // ScrollX: width of the line's chars if it's a heading in a heading font, else 0
+unsigned char head_level; // ScrollX: the line's heading level if it's in a heading font (1-4), else 0
 
 static unsigned char CharWidth(unsigned char c) {
-  return head_width ? head_width : font_widths[c < ' ' ? ' ' : c]; // control characters are drawn as spaces
+  if (c < ' ') c = ' '; // control characters are drawn as spaces
+  return head_level ? HeadingCharWidth(head_level, c) : font_widths[c];
 }
 
-// sets head_width for the line at start (close enough to scroll by, bold isn't counted)
+// sets head_level for the line at start (close enough to scroll by, bold isn't counted)
 static void LineHeading(unsigned int start) {
   unsigned int pos = start, length = tb_Length();
-  head_width = 0;
+  head_level = 0;
   if (tb_lang != LANG_MD) return;
   while (pos < length && pos - start < 7 && tb_GetChar(pos) == '#') ++pos;
   if (pos == start || pos - start > 4 || pos == length || tb_GetChar(pos) != ' ') return;
-  head_width = 9 - (unsigned char)(pos - start);
+  head_level = (unsigned char)(pos - start);
 }
 
 // lines don't wrap: scrolls them sideways if the cursor's character isn't drawn (or it isn't on

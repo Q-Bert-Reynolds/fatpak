@@ -52,7 +52,7 @@ render_line: DB;tile_buffer row RenderRow draws
 render_styled: DB;1 = a text row, widths and styles come from tile_attrs
 render_attr: DB;style of the char RenderGlyph draws
 render_head: DB;heading font: 1-4, 0 = none
-font_bold:: DB;pixels bold adds to the current font's glyphs
+font_bold_widths:: DB;page of the current font's bold widths (styled_widths.asm)
 render_look: DB;StyleLooks of the char RenderGlyph draws
 render_inked: DB;bit 0: render_dim is used in this row, bit 1: render_accent
 render_highlight: DB;1 on SGB and GBC: selected pixels are highlighted, not inverted
@@ -133,14 +133,34 @@ ENDR
   ld bc, render_glyph
   ret
 
+StyledWidth::;a = page of a styled font's widths (styled_widths.asm), c = char, returns its width in a, preserves bc, de, hl
+  push hl
+  ld h, a
+  ld l, c
+  ldh a, [loaded_bank]
+  push af
+  ld a, BANK(HeadingWidths)
+  SET_BANK
+  ld l, [hl]
+  pop af
+  SET_BANK
+  ld a, l
+  pop hl
+  ret
+
+_HeadingCharWidth::;a = heading level 1-4, e = char, returns its width in a
+  add a, HIGH(HeadingWidths) - 1
+  ld c, e
+  jr StyledWidth
+
 _SetFont::;a = font
   ld b, a
   cp a, FONT_FIXED
-  ld a, 1
-  jr nz, .setBold
-  inc a;the fixed font's bold glyphs are stretched
+  ld a, HIGH(FixedBoldWidths)
+  jr z, .setBold
+  ld a, HIGH(VWFBoldWidths)
 .setBold
-  ld [font_bold], a
+  ld [font_bold_widths], a
   ldh a, [loaded_bank]
   push af
   ld a, BANK(FontMonoWidths)
@@ -2004,3 +2024,7 @@ ENDM
   STYLED_FONT font_vwf_bold
   STYLED_FONT font_vwf_italic
   STYLED_FONT font_vwf_bold_italic
+
+SECTION "Styled Widths", ROMX, ALIGN[8];a page each, HeadingWidths is heading 1's (TBLex, StyledWidth)
+INCLUDE "img/fonts/styled_widths.asm"
+ASSERT HIGH(FixedBoldWidths) == HIGH(HeadingWidths) + 4 && HIGH(VWFBoldWidths) == HIGH(HeadingWidths) + 5
