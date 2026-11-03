@@ -1,5 +1,5 @@
-;Far calls for C split across ROM banks (see bank_split.py).
-;A thunk saves a in [far_a] and the target in [far_target], then jumps here with the bank in a.
+;Far calls for C split across ROM banks or OS mode pages (see bank_split.py).
+;A thunk is call FarCallInline, DB bank, DW target.
 ;The return address and caller's bank go on a WRAM stack instead of the CPU stack, so the
 ;callee sees its stack args where it expects them. a, bc, de args and returns are kept.
 
@@ -26,6 +26,18 @@ FarFrame:
   adc a, 0
   ld h, a
   ret
+
+FarCallInline::;the caller's return address is under the thunk's, a, bc, de args are kept
+  ld [far_a], a
+  pop hl;the thunk's bank and target
+  ld a, [hli]
+  ld [far_bank], a
+  ld a, [hli]
+  ld [far_target], a
+  ld a, [hl]
+  ld [far_target+1], a
+  ld a, [far_bank]
+  ;fall through
 
 FarCall::;a = bank, [far_target] = function, [far_a] = a arg
   ld [far_bank], a

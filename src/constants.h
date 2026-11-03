@@ -24,7 +24,11 @@
 
 // ram banks 
 #define MAX_RAM_BANKS  16//128KB
+#ifdef EVERDRIVE_OS
+#define MAIN_SRAM_BANK 240//PSRAM blocks 240-255 hold settings and the clipboard
+#else
 #define MAIN_SRAM_BANK 8//banks 0-7 hold the text buffer
+#endif
 
 // sprite props
 #define FLIP_X_PAL  (OAMF_XFLIP | OAMF_PAL1 )
@@ -43,15 +47,38 @@
 #define DRAW_FLAGS_NO_SPACE 0b00000100
 
 //text buffer
+#ifdef EVERDRIVE_OS//PSRAM through the 512 byte window at 0xBE00, 0xBD03 = 1 (128KB-256KB), blocks are banks
+#define TB_BANKS     127//blocks 0-126, positions are 16 bit
+#define TB_BANK_SIZE 0x0200u
+#define TB_BASE      0xBE00u
+#define TB_HOLE      0x0200u//no register hole
+#define TB_HOLE_SIZE 0
+#define TB_PSRAM_HIGH 1//0xBD03
+#define UNDO_BANK    128//undo log in blocks 128-239
+#define UNDO_BANKS   112
+//the data file (data_file.py) in PSRAM blocks from 0x0200 (256KB), loaded at boot
+#define DATA_BLOCK         0x0200u//0xBD03:0xBD02
+#define DATA_FONTS         1//the styled fonts (FontStyles order), 2KB each
+#define DATA_BORDER_TILES  41//the SGB border's 8KB of tiles
+#define DATA_BORDER_MAP    57//its map and palettes, 4KB
+#define DATA_BLOCKS        65
+#define DATA_VERSION       1//block 0 starts with "EDITOR.DAT" and this
+#else
 #define TB_BANKS     8//SRAM banks 0-7, positions are 16 bit
 #define TB_HOLE      0x1D00u//0xBD00-0xBD0F are EverDrive registers, never stored to
 #define TB_HOLE_SIZE 0x10
 #define TB_BANK_SIZE (0x2000u-TB_HOLE_SIZE)
-#define TB_SIZE      (TB_BANK_SIZE*TB_BANKS)
-#define TB_CLIP_ADDR 0xA040u//clipboard in SRAM bank 8, up to the EverDrive registers at 0xBD00
-#define TB_CLIP_SIZE (0xBD00u-TB_CLIP_ADDR-4)
+#define TB_BASE      0xA000u
 #define UNDO_BANK    9//undo log in SRAM banks 9-15, laid out like the text buffer (see src/editor/undo.c)
 #define UNDO_BANKS   7
+#define TB_CLIP_ADDR 0xA040u//clipboard in SRAM bank 8, up to the EverDrive registers at 0xBD00
+#endif
+#define TB_SIZE      (TB_BANK_SIZE*TB_BANKS)
+#ifdef EVERDRIVE_OS
+#define TB_CLIP_SIZE (0x2000u-0x100)//PSRAM blocks 240-255 from offset 0x100 (src/sram.asm)
+#else
+#define TB_CLIP_SIZE (0xBD00u-TB_CLIP_ADDR-4)
+#endif
 #define UNDO_SIZE    (TB_BANK_SIZE*UNDO_BANKS)
 #define TB_COLS   20//tiles per row
 #define TB_ROWS   18

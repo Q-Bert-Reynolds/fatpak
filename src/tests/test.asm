@@ -8,7 +8,7 @@ IF KEYBOARD_TEST_ENABLED
 ENDC
 
 IF SD_TEST_ENABLED
-  TRAMPOLINE SDTest
+  TRAMPOLINE SDDiag;read only, SDTest also writes sector 1
 ENDC
 
 ENDM
@@ -18,7 +18,7 @@ INCLUDE "src/tests/sfx_test.asm"
 ENDC
 
 IF KEYBOARD_TEST_ENABLED
-SECTION FRAGMENT "Keyboard Code Bank X", ROMX;the handlers jump to the demo and it reads their keymaps
+  KEYBOARD_SECTION;the handlers jump to the demo and it reads their keymaps
 INCLUDE "src/keyboard/kb_demo.asm"
 INCLUDE "src/keyboard/kb_debug_ui.asm"
 ENDC

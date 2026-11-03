@@ -5,10 +5,11 @@
 #include "fatfs.h"
 #include "lib/ff.c"
 #include "lib/ffunicode.c"
+#include "../constants.h"
 
 typedef char check_name_size[FS_NAME_SIZE == FF_LFN_BUF + 1 ? 1 : -1];
 
-#define BUFFER_SIZE 512
+#define FS_BUFFER_SIZE 512
 
 // src/editor/sd.asm
 extern unsigned long sd_sector;
@@ -29,7 +30,7 @@ FIL file;
 DIR dir;
 FILINFO info;
 BYTE disk_ready;
-BYTE buffer[BUFFER_SIZE];
+BYTE buffer[FS_BUFFER_SIZE];
 unsigned char fs_crlf; // last loaded file used CR LF line endings, saved files use them too
 
 // memcpy, memset, memcmp and strchr are in src/fatfs/fatfs.asm
@@ -87,7 +88,7 @@ unsigned char fs_Mount(void) {
 // where every (1 << mark_shift)th entry of each kind starts, so fs_ListEntry can read any entry by
 // stepping from the mark before it. Entries are read straight from the directory sectors, names
 // are only decoded for the entries fs_ListEntry returns.
-#define MARKS (BUFFER_SIZE / 4) // per kind, in buffer (only loading and saving use it)
+#define MARKS (FS_BUFFER_SIZE / 4) // per kind, in buffer (only loading and saving use it)
 #define MARK(kind) ((WORD*)buffer + ((kind) ? MARKS : 0))
 
 unsigned int fs_count; // entries in the listed folder, folders first
@@ -301,17 +302,42 @@ unsigned char fs_Load(const char* path) {
   tb_Clear();
   tb_cr = 0;
   do {
-    result = f_read(&file, buffer, BUFFER_SIZE, &count);
+    result = f_read(&file, buffer, FS_BUFFER_SIZE, &count);
     if (result) break;
     if (!tb_Append(buffer, count)) {
       result = FR_DENIED;
       break;
     }
-  } while (count == BUFFER_SIZE);
+  } while (count == FS_BUFFER_SIZE);
   fs_crlf = tb_cr;
   f_close(&file);
   return result;
 }
+
+#ifdef EVERDRIVE_OS
+#define WINDOW ((BYTE*)0xBE00) // EDX_WINDOW
+extern void SetWindowBlock(unsigned int block); // src/fatfs/fatfs.asm
+
+// copies the data file (data_file.py) to PSRAM from DATA_BLOCK, returns an FRESULT
+// (FR_INVALID_OBJECT if it's the wrong size or version)
+unsigned char fs_LoadData(const char* path) {
+  UINT count;
+  unsigned int block = DATA_BLOCK;
+  FRESULT result = fs_Mount();
+  if (!result) result = Open(path, FA_READ);
+  if (result) return result;
+  if (f_size(&file) != DATA_BLOCKS * 512UL) result = FR_INVALID_OBJECT;
+  while (!result && block != DATA_BLOCK + DATA_BLOCKS) {
+    SetWindowBlock(block++);
+    result = f_read(&file, WINDOW, 512, &count);
+  }
+  f_close(&file);
+  SetWindowBlock(DATA_BLOCK);
+  if (!result && (memcmp(WINDOW, "EDITOR.DAT", 10) || WINDOW[10] != DATA_VERSION)) result = FR_INVALID_OBJECT;
+  SetWindowBlock(TB_PSRAM_HIGH << 8);
+  return result;
+}
+#endif
 
 // writes the text buffer to the file, with CR LF line endings if fs_crlf is set, returns an FRESULT
 unsigned char fs_Save(const char* path) {
@@ -319,7 +345,7 @@ unsigned char fs_Save(const char* path) {
   FRESULT result = Open(path, FA_WRITE | FA_CREATE_ALWAYS);
   if (result) return result;
   tb_read_pos = 0;
-  while ((size = fs_crlf ? tb_ReadLines(buffer, BUFFER_SIZE) : tb_Read(buffer, BUFFER_SIZE))) {
+  while ((size = fs_crlf ? tb_ReadLines(buffer, FS_BUFFER_SIZE) : tb_Read(buffer, FS_BUFFER_SIZE))) {
     if ((result = f_write(&file, buffer, size, &written))) break;
     if (written != size) {
       result = FR_DENIED; // disk full

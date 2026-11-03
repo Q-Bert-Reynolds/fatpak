@@ -96,11 +96,16 @@ SECTION "Strings Code", ROM0
 ;
 ;***************************************************************************
 str_FarCopy::
+IF DEF(EVERDRIVE_OS);macros.asm comes later, this is SET_BANK
+  DEF FAR_BANK_REG EQU $BD08
+ELSE
+  DEF FAR_BANK_REG EQU rROMB0
+ENDC
   ld a, c;bank of hl
-  ld [rROMB0], a;switch to bank of hl
+  ld [FAR_BANK_REG], a;switch to bank of hl
   rst str_Copy;copy hl to de
   ld a, b;previous bank
-  ld [rROMB0], a;switch back
+  ld [FAR_BANK_REG], a;switch back
   ret
 
 MACRO STR_FAR_COPY ;src, dst

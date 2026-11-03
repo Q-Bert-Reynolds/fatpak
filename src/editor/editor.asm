@@ -97,7 +97,7 @@ _EditorShowCursor::;a = show
   ld c, CURSOR_SPRITE
   jp gbdk_MoveSprite
 
-SECTION FRAGMENT "Color", ROMX;GBCSetPalette and EditorPalette are in this bank
+  COLOR_SECTION;GBCSetPalette and EditorPalette are in this bank
 
 ;text is color 3 on color 0, dim text color 2 (see src/editor/render.asm). DMG inverts selected pixels
 ;(dim text is light grey there), SGB and GBC highlight them with color 1. GBC tiles with accent ink use

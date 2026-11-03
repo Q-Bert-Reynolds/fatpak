@@ -59,6 +59,21 @@ kb_repeat_timer: DB
 SECTION "Keyboard Code Bank 0", ROM0
 INCLUDE "src/keyboard/ps2_interrupt.asm"
 
+_KBPeekKey::;returns the next event's key in a without popping it (KEY_NONE if queue is empty)
+  ld a, [kb_event_read]
+  ld hl, kb_event_write
+  cp a, [hl]
+  ld a, KEY_NONE
+  ret z
+  ld a, [kb_event_read]
+  ld l, a
+  ld h, 0
+  add hl, hl
+  ld de, kb_event_buffer
+  add hl, de
+  ld a, [hl]
+  ret
+
 _KBPopEvent::
 KBPopEvent::;returns key in c (KEY_NONE if queue is empty), modifiers in b
   ld bc, 0
@@ -79,7 +94,7 @@ KBPopEvent::;returns key in c (KEY_NONE if queue is empty), modifiers in b
   ld b, [hl]
   ret
 
-SECTION FRAGMENT "Keyboard Code Bank X", ROMX;the keyboard test adds to it (src/tests/test.asm)
+  KEYBOARD_SECTION;the keyboard test adds to it (src/tests/test.asm)
 INCLUDE "src/keyboard/kb_jump_table.asm"
 INCLUDE "src/keyboard/kb_handlers.asm"
 INCLUDE "src/keyboard/ps2_ascii_keymaps.asm"

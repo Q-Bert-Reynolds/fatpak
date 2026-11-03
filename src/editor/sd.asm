@@ -31,17 +31,22 @@ DEF SD_TYPE_SD1   EQU %0010
 DEF SD_TYPE_SD2   EQU %0100
 DEF SD_TYPE_BLOCK EQU %1000;block addressing
 
+IF DEF(EVERDRIVE_OS);unlocked at boot and kept that way, the window and pages need them
 MACRO SD_REGS_ON
-  xor a
-  ld [rRAMG], a;SRAM off so register accesses can't reach it
-  ld a, EDX_KEY_UNLOCK
-  ld [EDX_KEY], a
+ENDM
+
+MACRO SD_REGS_OFF
+ENDM
+ELSE
+MACRO SD_REGS_ON
+  call SDRegsOn
 ENDM
 
 MACRO SD_REGS_OFF
   xor a
   ld [EDX_KEY], a
 ENDM
+ENDC
 
 MACRO SD_RECEIVE
   ld a, $FF
@@ -66,8 +71,21 @@ sd_ocr: DS 4
 sd_type: DB
 sd_timer: DW
 sd_count: DB
+sd_ramg:: DB;written to rRAMG while the registers are in use, 0 (the SD test changes it)
+sd_ramg_key:: DB;written to rRAMG while unlocking, 0 (the SD test changes it)
+sd_r1:: DS 2;CMD0 and CMD8 responses from the last sd_Init, for the SD test
 
 SECTION "SD Code", ROM0
+
+;unlocks the registers, only affects a
+SDRegsOn:
+  ld a, [sd_ramg_key]
+  ld [rRAMG], a;SRAM off (0) so register accesses can't reach it, the SD test tries it on
+  ld a, EDX_KEY_UNLOCK
+  ld [EDX_KEY], a
+  ld a, [sd_ramg]
+  ld [rRAMG], a
+  ret
 
 ;a = byte to send, returns received byte in a, only affects a
 SDExchange:
@@ -207,12 +225,14 @@ _sd_Init::;returns a = 0 if a card is ready
   SD_ARG 0, 0, 0, 0
   ld a, SD_CMD0
   call SDCommand
+  ld [sd_r1], a
   cp a, 1
   jp nz, .done;no card
 
   SD_ARG 0, 0, 1, $AA
   ld a, SD_CMD8
   call SDCommand
+  ld [sd_r1+1], a
   cp a, 1
   jp nz, .sdv1
 

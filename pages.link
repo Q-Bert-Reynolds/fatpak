@@ -1,0 +1,97 @@
+;rgblink -l: EverDrive X OS mode pages, see src/pages.asm
+ROMX 2
+  ORG $4000
+  "Page 4"
+SRAM 4
+  ORG $A000
+  "Page 4 RAM"
+  ORG $BD00
+  "Page 4 regs"
+ROMX 2
+  ORG $6000
+  "Page 5"
+SRAM 5
+  ORG $A000
+  "Page 5 RAM"
+  ORG $BD00
+  "Page 5 regs"
+ROMX 3
+  ORG $4000
+  "Page 6"
+SRAM 6
+  ORG $A000
+  "Page 6 RAM"
+  ORG $BD00
+  "Page 6 regs"
+ROMX 3
+  ORG $6000
+  "Page 7"
+SRAM 7
+  ORG $A000
+  "Page 7 RAM"
+  ORG $BD00
+  "Page 7 regs"
+ROMX 4
+  ORG $4000
+  "Page 8"
+SRAM 8
+  ORG $A000
+  "Page 8 RAM"
+  ORG $BD00
+  "Page 8 regs"
+ROMX 4
+  ORG $6000
+  "Page 9"
+SRAM 9
+  ORG $A000
+  "Page 9 RAM"
+  ORG $BD00
+  "Page 9 regs"
+ROMX 5
+  ORG $4000
+  "Page 10"
+SRAM 10
+  ORG $A000
+  "Page 10 RAM"
+  ORG $BD00
+  "Page 10 regs"
+ROMX 5
+  ORG $6000
+  "Page 11"
+SRAM 11
+  ORG $A000
+  "Page 11 RAM"
+  ORG $BD00
+  "Page 11 regs"
+ROMX 6
+  ORG $4000
+  "Page 12"
+SRAM 12
+  ORG $A000
+  "Page 12 RAM"
+  ORG $BD00
+  "Page 12 regs"
+ROMX 6
+  ORG $6000
+  "Page 13"
+SRAM 13
+  ORG $A000
+  "Page 13 RAM"
+  ORG $BD00
+  "Page 13 regs"
+ROMX 7
+  ORG $4000
+  "Page 14"
+SRAM 14
+  ORG $A000
+  "Page 14 RAM"
+  ORG $BD00
+  "Page 14 regs"
+ROMX 7
+  ORG $6000
+  "Page 15"
+SRAM 15
+  ORG $A000
+  "Page 15 RAM"
+  ORG $BD00
+  "Page 15 regs"

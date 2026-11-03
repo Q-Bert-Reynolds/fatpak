@@ -1,4 +1,20 @@
 ;text buffer, see src/editor/text_buffer.asm
+DEF SETTINGS_SIZE EQU 5+PATH_SIZE+FS_NAME_SIZE;SettingsTable
+IF DEF(EVERDRIVE_OS);PSRAM through the window: the text buffer and undo log are blocks (see constants.asm),
+;this is PSRAM block MAIN_SRAM_BANK and the clipboard's text starts at offset $100 of it (TB_CLIP_SIZE)
+DEF sram_tb_signature EQU TB_BASE
+DEF sram_main_save    EQU TB_BASE+4
+DEF sram_hours        EQU TB_BASE+4
+DEF sram_minutes      EQU TB_BASE+6
+DEF sram_seconds      EQU TB_BASE+7
+DEF sram_main_save_end EQU TB_BASE+8
+DEF sram_clip_length  EQU TB_BASE+$10
+DEF sram_clip_check   EQU TB_BASE+$12
+DEF sram_settings_signature EQU TB_BASE+$20
+DEF sram_settings     EQU TB_BASE+$24
+DEF sram_clip         EQU $0100;offset from block MAIN_SRAM_BANK's start (TBClipAddr)
+ASSERT sram_settings+SETTINGS_SIZE <= TB_BASE+$100, "settings must end before the clipboard"
+ELSE
 FOR N, TB_BANKS
 SECTION "Text Buffer {d:N}", SRAM[_SRAM], BANK[N]
   DS $2000
@@ -21,13 +37,9 @@ sram_seconds: DB
 sram_main_save_end:
 
 ;editor settings and the open file, kept with the text when the power is off (see SettingsLoad)
-DEF SETTINGS_SIZE EQU 5+PATH_SIZE+FS_NAME_SIZE;SettingsTable
 SECTION "Settings", SRAM[_SRAM+TB_HOLE+TB_HOLE_SIZE], BANK[MAIN_SRAM_BANK]
 sram_settings_signature: DS 4
 sram_settings: DS SETTINGS_SIZE;in SettingsTable's order
-
-SECTION "Settings Vars", WRAM0
-settings_load: DB;SettingsCopy's direction
 
 SECTION "Clipboard", SRAM[TB_CLIP_ADDR], BANK[MAIN_SRAM_BANK];see tb_Copy
 sram_clip_length:: DW
@@ -35,6 +47,10 @@ sram_clip_check:: DW;~length, the clipboard is empty if they don't match
 sram_clip:: DS TB_CLIP_SIZE
 ASSERT sram_main_save_end <= sram_clip_length
 ASSERT sram_clip+TB_CLIP_SIZE == _SRAM+TB_HOLE, "the clipboard must end before the EverDrive registers"
+ENDC
+
+SECTION "Settings Vars", WRAM0
+settings_load: DB;SettingsCopy's direction
 
 SECTION "Settings Code", ROM0
 

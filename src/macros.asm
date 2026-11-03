@@ -31,12 +31,88 @@ IF DEF(LANG_JA)
 ELSE
   DB CART_DEST_NON_JAPANESE
 ENDC
+
 ENDM
 
+IF DEF(EVERDRIVE_OS)
+;EverDrive X OS mode (the image is /GBCSYS/GBCOS.BIN): the 128KB image is RAM, $0000-$7FFF is
+;always pages 0-3 (ROM0 and ROMX bank 1, writing $2000 would overwrite code there) and $A000-$BFFF
+;shows the page in $BD08. $BD00-$BFFF are the EverDrive's registers and its 512 byte window onto
+;PSRAM in every page, so a page holds $1D00 bytes. The registers stay unlocked.
+DEF EDX_PAGE  EQU $BD08
+DEF EDX_BLOCK EQU $BD02;block shown at $BE00, $BD03 is the high byte
+DEF EDX_WINDOW EQU $BE00
+DEF EDX_CONFIG EQU $BD06;bit 1 picks save RAM (set) or PSRAM (clear) for the window
+DEF PAGE_SIZE EQU $1D00
+DEF FIRST_PAGE EQU 4
+DEF LAST_PAGE EQU 15
+
+MACRO SET_BANK;a = page
+  ldh [loaded_bank], a
+  ld [EDX_PAGE], a
+ENDM
+
+;code and data run from $A000 in page \1 (4-15), the ROM fragment and the LOAD fragment grow
+;together so their offsets match, until END_PAGE or the next SECTION
+MACRO PAGE;pages.link puts "Page n" at $4000 or $6000 of bank n/2 and "Page n RAM" at $A000 of SRAM bank n
+  SECTION FRAGMENT "Page {d:\1}", ROMX, BANK[(\1) >> 1]
+  LOAD FRAGMENT "Page {d:\1} RAM", SRAM, BANK[\1]
+ENDM
+
+MACRO END_PAGE;a SECTION also ends it
+  ENDL
+ENDM
+
+;code and data that are always mapped, ROMX bank 1 ($4000-$7FFF)
+MACRO FIXED;\1 = section name
+  SECTION FRAGMENT "\1", ROMX, BANK[1]
+ENDM
+ELSE
 MACRO SET_BANK
   ldh [loaded_bank], a
   ld [rROMB0], a
 ENDM
+
+MACRO PAGE
+  SECTION FRAGMENT "Page \1", ROMX
+ENDM
+
+MACRO END_PAGE
+ENDM
+
+MACRO FIXED
+  SECTION FRAGMENT "\1", ROMX
+ENDM
+ENDC
+
+;where code and data live in each build: always mapped (FIXED) or a page (OS mode) / a ROMX bank
+IF DEF(EVERDRIVE_OS)
+DEF UI_PAGE       EQU 12
+DEF KEYWORDS_PAGE EQU 13
+DEF SGB_PAGE      EQU 13
+DEF COLOR_PAGE    EQU 15
+DEF KEYBOARD_PAGE EQU 15
+DEF UNDO_PAGE     EQU 15;with undo.c (undo.os.banks)
+MACRO KEYWORDS_SECTION
+  PAGE KEYWORDS_PAGE
+ENDM
+MACRO COLOR_SECTION
+  PAGE COLOR_PAGE
+ENDM
+MACRO KEYBOARD_SECTION
+  PAGE KEYBOARD_PAGE
+ENDM
+ELSE
+MACRO KEYWORDS_SECTION
+  SECTION FRAGMENT "Keywords", ROMX
+ENDM
+MACRO COLOR_SECTION
+  SECTION FRAGMENT "Color", ROMX
+ENDM
+MACRO KEYBOARD_SECTION
+  SECTION FRAGMENT "Keyboard Code Bank X", ROMX
+ENDM
+ENDC
 
 MACRO TRAMPOLINE ;\1 = jump address
   ld b, BANK(\1)

@@ -10,6 +10,7 @@ extern volatile unsigned char last_button_state;
 extern unsigned char PadPressed(void); // buttons pressed since the last call, latched in VBlank
 
 // src/keyboard/keyboard.asm
+extern unsigned char KBPeekKey(void); // next event's key without popping it (KEY_NONE if empty)
 extern unsigned int KBPopEvent(void); // key in low byte (KEY_NONE if empty), modifiers in high byte
 
 // src/editor/editor.asm
@@ -68,6 +69,11 @@ extern unsigned int fs_count; // entries FileList found
 extern unsigned int fs_found; // index of the folder it was asked to find, 0xFFFF if it isn't there
 extern unsigned char FileLoad(const char* path); // FRESULT, replaces the text buffer
 extern unsigned char FileSave(const char* path); // FRESULT
+#ifdef EVERDRIVE_OS
+extern unsigned char FileLoadData(const char* path); // FRESULT, copies the data file to PSRAM
+extern unsigned char data_loaded; // the styled fonts and SGB border are in PSRAM
+extern void SGBSetDefaultBorder(void);
+#endif
 extern unsigned char fs_crlf; // loaded file used CR LF, saving writes CR LF
 
 // src/wram.asm

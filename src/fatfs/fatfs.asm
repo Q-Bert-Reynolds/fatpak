@@ -8,6 +8,7 @@ INCLUDE "src/text_editor.inc"
 ;   FileListEntry               de = index, bc = FileEntry (src/fatfs/file_api.h), returns FRESULT in a
 ;   FileLoad                    de = path, replaces the text buffer, returns FRESULT in a
 ;   FileSave                    de = path, returns FRESULT in a
+;   FileLoadData                de = path, OS mode: copies the data file to PSRAM, returns FRESULT in a
 
 SECTION "FatFs Stubs", ROM0
 _FileMount::     BANKED_C _fs_Mount
@@ -15,6 +16,16 @@ _FileList::      BANKED_C _fs_List
 _FileListEntry:: BANKED_C _fs_ListEntry
 _FileLoad::      BANKED_C _fs_Load
 _FileSave::      BANKED_C _fs_Save
+IF DEF(EVERDRIVE_OS)
+_FileLoadData::  BANKED_C _fs_LoadData
+
+_SetWindowBlock::;de = PSRAM block the window at $BE00 shows
+  ld a, e
+  ld [EDX_BLOCK], a
+  ld a, d
+  ld [EDX_BLOCK+1], a
+  ret
+ENDC
 
 ;C library functions FatFs uses (SDCC's string.h calls memcpy __memcpy), callers in any bank
 ;SDCC passes the first two args in de and bc and the third on the stack, which the callee pops

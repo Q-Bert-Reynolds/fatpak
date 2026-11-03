@@ -8,6 +8,9 @@ Entry:
   nop
   jp Main
   NINTENDO_LOGO
+IF DEF(EVERDRIVE_OS);rgbfix writes the rest: title GBXOS, maker KRKZ, ROM only, 128KB, like GBCOS.BIN
+  DS $150-@, 0
+ELSE
   GAME_NAME                  ;$134 - Title
   DB CART_COMPATIBLE_DMG_GBC ;$143 - CGB Flag
   DW 0                       ;$144 - Licensee code (not important)
@@ -20,9 +23,47 @@ Entry:
   DB 0                       ;$14c - Mask ROM version
   DB 0                       ;$14d - Complement check (important)
   DW 0                       ;$14e - Checksum (not important)
+ENDC
 
+IF DEF(EVERDRIVE_OS)
+SECTION "OS Info", ROM0[$01F0];like GBCOS.BIN: version 0, 1, and $01F2 is a flag the cart may set
+  DB 0, 1
+  DS 14, 0
+SECTION "Main", ROM0
+ELSE
 SECTION "Main", ROM0[$0150]
+ENDC
 Main::
+IF DEF(EVERDRIVE_OS);the EverDrive's loader ran after the boot ROM, so its registers are gone
+  di
+  ld sp, $FFFE;where the boot ROM leaves it, the loader's may be in WRAM (cleared below)
+  ld a, 1
+  ldh [rSVBK], a
+  xor a;sgb_Init enables interrupts before Main sets them up
+  ldh [rIE], a
+  ld a, $A5;the registers stay unlocked
+  ld [$BD0A], a
+  ld a, $04;the window shows PSRAM
+  ld [EDX_CONFIG], a
+  ld a, TB_PSRAM_HIGH
+  ld [EDX_BLOCK+1], a
+  ld bc, 0;not a GBA (can't tell), sgb_Init asks for a Super Game Boy
+  ld a, 1;GBC if VBK keeps bit 0 both ways
+  ldh [rVBK], a
+  ldh a, [rVBK]
+  rra
+  jr nc, .notGBC
+  xor a
+  ldh [rVBK], a
+  ldh a, [rVBK]
+  rra
+  jr c, .notGBC
+  ld a, BOOTUP_A_CGB
+  jr .sysCheck
+.notGBC
+  ld a, BOOTUP_A_DMG
+.sysCheck
+ENDC
   SYS_CHECK
 
 .clearHRAM;keeps sys_info from SYS_CHECK, nothing is on the stack yet

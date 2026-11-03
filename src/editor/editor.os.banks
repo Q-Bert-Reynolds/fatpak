@@ -1,0 +1,7 @@
+# bank_split.py --os: editor.c in EverDrive X OS mode pages, data and far call thunks go in FIXED
+*: 5
+# files, the file browser and menus
+4: Browse ListBars AskFileName ScrollList ListRows ListLoading HandleFileKey ToLatin1 ShowError JoinPath PutNumber PutNumber2 FileMenu PutPath SaveFile ListFolder NameChar ListEntry ListMessage ToUtf8 OpenFile NewFile CanDiscard CopyName Choose ShowBusy
+# on screen keyboard, messages, moves, clipboard, settings
+6: PressOSKKey MoveOSKSelection SetOSKLayer ToggleOSK PadKey DpadRepeat MenuKey WaitDismiss ShowMessage OpenBox HideBox ShowHelp BeginFullScreen EndFullScreen DrawRow RowAddress ClearScreen
+6: WordRight WordLeft CharClass MoveDown MoveUp PageUp PageDown MoveEnd HandleCtrlKey Copy Paste DeleteSelection GetSelection UndoRedo ToggleFont ToggleWrap ToggleBars SetLang

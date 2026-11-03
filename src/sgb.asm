@@ -177,9 +177,13 @@ MACRO PAL_RPI ;\1 = priority (0=user,1=game)
   DS 14
 ENDM
 
+IF DEF(EVERDRIVE_OS);the border is in the data file (sgb_SetDefaultBorder)
+  PAGE SGB_PAGE
+ELSE
 SECTION "Super GameBoy Banked", ROMX
 
 INCLUDE "img/default_sgb_border.asm"
+ENDC
 
 ; Initialization packets extracted from the official documentation
 DataSnd0: DB $79, $5D, $08, $00, $0B, $8C, $D0, $F4, $60, $00, $00, $00, $00, $00, $00, $00
@@ -198,6 +202,20 @@ sgb_MltReqOnePlayer:  MLT_REQ 1
 
 ; Super Game Boy initialization
 sgb_Init::
+IF DEF(EVERDRIVE_OS);the EverDrive's loader ran after the boot ROM, so ask for 2 players (MLT_REQ)
+  ldh a, [sys_info]
+  and a, SYS_INFO_GBC
+  ret nz
+  di
+  call sgb_Check
+  ret nc
+  ldh a, [sys_info]
+  or a, SYS_INFO_SGB
+  ldh [sys_info], a
+  di
+  DISPLAY_OFF
+  call sgb_SendInitPackets
+ELSE
 IF SGB_CHECK == 0
   ldh a, [sys_info]
   and a, SYS_INFO_SGB
@@ -220,10 +238,12 @@ IF SGB_CHECK == 1
 .fail
   reti                            ; both register and multiplayer checks failed
 ENDC
+ENDC
 
 .success
   ld hl, sgb_MaskEnFreeze
   call  _sgb_PacketTransfer       ; Freezes the visualization of the Super Game Boy screen to hide the graphic garbage during the VRAM transfers  
+IF !DEF(EVERDRIVE_OS);OS mode sends the border once the data file loads
 
   ld de, sgb_ChrTrn1
   ld hl, DefaultSgbBorderTiles
@@ -236,6 +256,7 @@ ENDC
   ld de, sgb_PctTrn
   ld hl, DefaultSgbBorderTileMap
   call _sgb_VRAMTransfer          ; Copies frame map to SNES RAM 
+ENDC
 
   TRAMPOLINE SGBTransferPalettes  ; Copies custom game palettes to SNES RAM
 
@@ -276,7 +297,7 @@ sgb_Check:
   ldh a, [rP1]
   cp b                           ; If the id is the same then there has not been reply to the two-
   jr nz, .restore1P              ; player mode request, and therefore we are not in a Super Game Boy
-  ccf                            ; We lower the carry flag
+  and a                          ; We lower the carry flag
   ret                            ; We are not in a Super Game Boy
 .restore1P
   ld hl, sgb_MltReqOnePlayer
@@ -316,6 +337,66 @@ sgb_MaskEnCancel: MASK_EN 0
 sgb_PalPriGame:   PAL_RPI 1
 sgb_PalPriUser:   PAL_RPI 0
 
+IF DEF(EVERDRIVE_OS)
+_SGBSetDefaultBorder::
+sgb_SetDefaultBorder::;from the data file, if it loaded
+  ldh a, [sys_info]
+  and a, SYS_INFO_SGB
+  ret z
+  ld a, [_data_loaded]
+  and a
+  ret z
+  di
+  ld hl, sgb_MaskEnFreeze
+  call _sgb_PacketTransfer
+  ld de, sgb_ChrTrn1
+  ld hl, DATA_BLOCK + DATA_BORDER_TILES
+  call sgb_WindowTransfer
+  ld de, sgb_ChrTrn2
+  ld hl, DATA_BLOCK + DATA_BORDER_TILES + 8
+  call sgb_WindowTransfer
+  ld de, sgb_PctTrn
+  ld hl, DATA_BLOCK + DATA_BORDER_MAP
+  call sgb_WindowTransfer
+  ld hl, sgb_MaskEnCancel
+  call _sgb_PacketTransfer
+  reti
+
+sgb_WindowTransfer:;de = packet, hl = first of 8 PSRAM blocks, _sgb_VRAMTransfer from the window
+  ld a, 1
+  ld [sgb_from_window], a
+  call _sgb_VRAMTransfer
+  xor a
+  ld [sgb_from_window], a
+  ret
+
+sgb_CopyWindow:;hl = first block, de = destination, copies 8 blocks (4KB)
+  ld a, [EDX_BLOCK];the text buffer's block
+  push af
+  ld a, [EDX_BLOCK+1]
+  push af
+  ld a, h
+  ld [EDX_BLOCK+1], a
+  ld b, 8
+.block
+    ld a, l
+    ld [EDX_BLOCK], a
+    push hl
+    push bc
+    ld hl, EDX_WINDOW
+    ld bc, 512
+    call mem_Copy
+    pop bc
+    pop hl
+    inc l
+    dec b
+    jr nz, .block
+  pop af
+  ld [EDX_BLOCK+1], a
+  pop af
+  ld [EDX_BLOCK], a
+  ret
+ELSE
 sgb_SetDefaultBorder::
   ld a, BANK(DefaultSgbBorderTiles)
   ld hl, DefaultSgbBorderTiles
@@ -358,6 +439,7 @@ sgb_SetBorder:: ;a = bank, hl = tiles, de = tile map
   pop af;old bank
   SET_BANK
   reti
+ENDC
 
 sgb_PlaySound:: ;a = sound A, b = sound B, c = attributes
   push bc
@@ -497,8 +579,17 @@ _sgb_VRAMTransfer:
   ld a, %11100100
   ldh [rBGP], a                ; VRAM-transfer background palette value
   ld de, _VRAM + 2048
+IF DEF(EVERDRIVE_OS)
+  ld a, [sgb_from_window]
+  and a
+  jr z, .copy
+  call sgb_CopyWindow
+  jr .copied
+.copy
+ENDC
   ld bc, 4096
   call mem_Copy               ; We copy to the Game Boy VRAM the 4KB data that is going to be transferred to the SNES RAM
+.copied
 
   ; We copy to the visible _SCRN0 background the 4KB data that is going to be transferred to the SNES RAM by VRAM-transfer
   ld hl, _SCRN0

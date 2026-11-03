@@ -171,6 +171,18 @@ MACRO SWITCH_ROM_MBC5 ;word \1
   ld [hl], \1 >> 8
 ENDM
 
+IF DEF(EVERDRIVE_OS);"SRAM" is a PSRAM block in the EverDrive's window, always on
+MACRO SWITCH_RAM_MBC5 ;byte \1
+  ld hl, EDX_BLOCK
+  ld [hl], \1
+ENDM
+
+MACRO ENABLE_RAM_MBC5
+ENDM
+
+MACRO DISABLE_RAM_MBC5
+ENDM
+ELSE
 MACRO SWITCH_RAM_MBC5 ;byte \1
   ld hl, rRAMB
   ld [hl], \1
@@ -185,6 +197,7 @@ MACRO DISABLE_RAM_MBC5
   xor a
   ld [rRAMG], a
 ENDM
+ENDC
 
 MACRO CGB_COMPATIBILITY
   ld a,$80

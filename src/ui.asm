@@ -539,7 +539,11 @@ ShowNumberPicker::; a = draw flags, bc = xy, de = wh, h = max number, returns nu
   ret
 
 
+IF DEF(EVERDRIVE_OS)
+  PAGE UI_PAGE
+ELSE
 SECTION "UI", ROMX
+ENDC
 
 AskYesNo::;UI bank, a = draw flags, bc = xy, returns choice in a (0 = cancel, 1 = yes, 2 = no)
   push af;draw flags

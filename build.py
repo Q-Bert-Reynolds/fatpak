@@ -17,6 +17,9 @@ def main():
       for line in in_file:
         code, semi, comment = line.partition(";")
         line = re.sub(r"\$([0-9A-Fa-f]{4})\b", r"0x\1u", code) + semi + comment # 16 bit addresses and sizes are unsigned, so TB_SIZE doesn't overflow int
+        line = re.sub(r"^IF DEF\((\w+)\)", r"#ifdef \1", line)
+        line = re.sub(r"^ELSE\b", "#else", line)
+        line = re.sub(r"^ENDC\b", "#endif", line)
         line = line.replace("DEF ", "#define ")
         line = line.replace(" EQU ", " ")
         line = line.replace(";", "//")

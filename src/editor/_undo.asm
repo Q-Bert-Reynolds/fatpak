@@ -84,6 +84,8 @@ _rec:
 	SECTION FRAGMENT "src/editor/undo.c_CODE",ROMX
 ;src/editor/undo.c:41: static unsigned int Forward(unsigned int offset, unsigned int count) {
 ;	---------------------------------
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function Forward
 ; ---------------------------------
 _Forward:
@@ -94,10 +96,10 @@ _Forward:
 ;	spillPairReg hl
 ;	spillPairReg hl
 ;src/editor/undo.c:42: unsigned int room = UNDO_SIZE - offset;
-	ld	a, $90
+	xor	a, a
 	sub	a, e
 	ld	c, a
-	ld	a, $DF
+	ld	a, $E0
 	sbc	a, d
 	ld	b, a
 ;src/editor/undo.c:43: return count >= room ? count - room : offset + count;
@@ -123,6 +125,8 @@ _Forward:
 	ret
 ;src/editor/undo.c:46: static unsigned int Back(unsigned int offset, unsigned int count) {
 ;	---------------------------------
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function Back
 ; ---------------------------------
 _Back:
@@ -140,12 +144,12 @@ _Back:
 	ld	b, a
 	jp	.l00104
 .l00103:
-	ld	a, $90
+	xor	a, a
 	sub	a, c
 	ld	l, a
 ;	spillPairReg hl
 ;	spillPairReg hl
-	ld	a, $DF
+	ld	a, $E0
 	sbc	a, b
 	ld	h, a
 ;	spillPairReg hl
@@ -159,6 +163,8 @@ _Back:
 	ret
 ;src/editor/undo.c:51: static unsigned int Used(unsigned int offset) {
 ;	---------------------------------
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function Used
 ; ---------------------------------
 _Used:
@@ -173,42 +179,37 @@ _Used:
 	ret
 ;src/editor/undo.c:56: static unsigned char Reserve(unsigned int count) {
 ;	---------------------------------
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function Reserve
 ; ---------------------------------
 _Reserve:
-	add	sp, -4
-	ld	hl, sp+2
-	ld	[hl], e
-	inc	hl
-	ld	[hl], d
+	dec	sp
+	dec	sp
 ;src/editor/undo.c:58: if (count >= UNDO_SIZE) return 0;
-	dec	hl
-	ld	a, [hl]
-	sub	a, $90
-	inc	hl
-	ld	a, [hl]
-	sbc	a, $DF
+	ld	a, d
+	sub	a, $E0
 	jp	C, .l00107
 	xor	a, a
 	jp	.l00110
 ;src/editor/undo.c:59: while (count >= UNDO_SIZE - Used(undo_head)) {
 .l00107:
+	push	de
 	ld	hl, _undo_head
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	call	_Used
-	ld	a, $90
+	pop	de
+	xor	a, a
 	sub	a, c
 	ld	c, a
-	ld	a, $DF
+	ld	a, $E0
 	sbc	a, b
 	ld	b, a
-	ld	hl, sp+2
-	ld	a, [hl]
+	ld	a, e
 	sub	a, c
-	inc	hl
-	ld	a, [hl]
+	ld	a, d
 	sbc	a, b
 	jp	C, .l00109
 ;src/editor/undo.c:60: if (undo_tail == undo_saved) undo_saved = UNDO_NONE;
@@ -259,23 +260,33 @@ _Reserve:
 	ld	hl, _log_ptr + 1
 	ld	[hl], a
 ;src/editor/undo.c:63: log_Read(&length, 2);
-	ld	hl, sp+0
+	push	de
+	ld	bc, $0002
+	ld	hl, 2
+	add	hl, sp
 	ld	e, l
 	ld	d, h
-	ld	bc, $0002
 	call	_log_Read
-;src/editor/undo.c:64: undo_tail = Forward(undo_tail, length + UNDO_EXTRA);
 	pop	de
+;src/editor/undo.c:64: undo_tail = Forward(undo_tail, length + UNDO_EXTRA);
 	push	de
+	ld	hl, sp+3
+	dec	hl
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
 	ld	hl, $0007
 	add	hl, de
+	pop	de
 	ld	c, l
 	ld	b, h
+	push	de
 	ld	hl, _undo_tail
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	call	_Forward
+	pop	de
 	ld	hl, _undo_tail
 	ld	[hl], c
 	inc	hl
@@ -286,10 +297,13 @@ _Reserve:
 	ld	a, $01
 .l00110:
 ;src/editor/undo.c:67: }
-	add	sp, 4
+	inc	sp
+	inc	sp
 	ret
 ;src/editor/undo.c:70: static void Push(unsigned char type, unsigned int pos, unsigned int count) {
 ;	---------------------------------
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function Push
 ; ---------------------------------
 _Push:
@@ -485,6 +499,8 @@ _Push:
 	jp hl 
 ;src/editor/undo.c:92: static unsigned char CanMerge(unsigned char ok) {
 ;	---------------------------------
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function CanMerge
 ; ---------------------------------
 _CanMerge:
@@ -516,6 +532,8 @@ _CanMerge:
 	ret
 ;src/editor/undo.c:97: static void Merge(unsigned int pos) {
 ;	---------------------------------
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function Merge
 ; ---------------------------------
 _Merge:
@@ -580,6 +598,8 @@ _Merge:
 	ret
 ;src/editor/undo.c:107: static unsigned char IsSpace(unsigned char c) {
 ;	---------------------------------
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function IsSpace
 ; ---------------------------------
 _IsSpace:
@@ -610,6 +630,8 @@ _IsSpace:
 	ret
 ;src/editor/undo.c:111: void undo_Clear(unsigned char modified) {
 ;	---------------------------------
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function undo_Clear
 ; ---------------------------------
 _undo_Clear::
@@ -653,6 +675,8 @@ _undo_Clear::
 	ret
 ;src/editor/undo.c:119: void undo_Inserted(unsigned int pos, unsigned int count) {
 ;	---------------------------------
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function undo_Inserted
 ; ---------------------------------
 _undo_Inserted::
@@ -775,6 +799,8 @@ _undo_Inserted::
 	ret
 ;src/editor/undo.c:126: void undo_Deleting(unsigned int pos, unsigned int count) {
 ;	---------------------------------
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function undo_Deleting
 ; ---------------------------------
 _undo_Deleting::
@@ -982,6 +1008,8 @@ _undo_Deleting::
 	ret
 ;src/editor/undo.c:137: void undo_Saved(void) {
 ;	---------------------------------
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function undo_Saved
 ; ---------------------------------
 _undo_Saved::
@@ -1002,6 +1030,8 @@ _undo_Saved::
 	ret
 ;src/editor/undo.c:143: static void Restore(void) {
 ;	---------------------------------
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function Restore
 ; ---------------------------------
 _Restore:
@@ -1081,6 +1111,8 @@ _Restore:
 	ret
 ;src/editor/undo.c:155: static void Done(void) {
 ;	---------------------------------
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function Done
 ; ---------------------------------
 _Done:
@@ -1110,6 +1142,8 @@ _Done:
 	ret
 ;src/editor/undo.c:161: unsigned char undo_Undo(void) {
 ;	---------------------------------
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function undo_Undo
 ; ---------------------------------
 _undo_Undo::
@@ -1258,6 +1292,8 @@ _undo_Undo::
 	ret
 ;src/editor/undo.c:180: unsigned char undo_Redo(void) {
 ;	---------------------------------
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function undo_Redo
 ; ---------------------------------
 _undo_Redo::
@@ -1422,6 +1458,10 @@ _undo_Redo::
 ;src/editor/undo.c:198: }
 	add	sp, 4
 	ret
-	SECTION FRAGMENT "src/editor/undo.c_CODE",ROMX
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 	SECTION FRAGMENT "_INITIALIZER",ROM0
 	SECTION FRAGMENT "_CABS (ABS)",ROM0
+
+;far call thunks generated by bank_split.py
+	SECTION FRAGMENT "src/editor/undo.c FIXED",ROMX,BANK[1]

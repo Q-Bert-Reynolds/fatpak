@@ -99,19 +99,23 @@ IGKBHandleInsertKey:
   ret
 
 IGKBHandleHomeKey:
-  ret
+  ld a, KEY_HOME
+  jp KBHandleEditorKey
 
 IGKBHandlePageUp:
-  ret
+  ld a, KEY_PAGE_UP
+  jp KBHandleEditorKey
 
 IGKBHandleDelete:
-  ret
+  jp KBHandleDelete
 
 IGKBHandleEndKey:
-  ret
+  ld a, KEY_END
+  jp KBHandleEditorKey
 
 IGKBHandlePageDown:
-  ret
+  ld a, KEY_PAGE_DOWN
+  jp KBHandleEditorKey
 
 IGKBHandleArrowKey:
   ld b, a
@@ -125,27 +129,15 @@ IGKBHandleArrowKey:
   cp a, b
   jr z, .downPressed
 .rightPressed
-  ldh a,[rWX]
-  add a, 8
-  ldh [rWX],a
   ld a, PADF_RIGHT
   jp KBHandleArrowKey
 .leftPressed
-  ldh a,[rWX]
-  sub a, 8
-  ldh [rWX],a
   ld a, PADF_LEFT
   jp KBHandleArrowKey
 .upPressed
-  ldh a,[rWY]
-  sub a, 8
-  ldh [rWY],a
   ld a, PADF_UP
   jp KBHandleArrowKey
 .downPressed
-  ldh a,[rWY]
-  add a, 8
-  ldh [rWY],a
   ld a, PADF_DOWN
   jp KBHandleArrowKey
 

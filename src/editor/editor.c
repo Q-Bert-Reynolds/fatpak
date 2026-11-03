@@ -862,6 +862,20 @@ static unsigned char MenuKey(void) {
   return KEY_NONE;
 }
 
+// waits for a key or button to dismiss a message, a typed key (not escape or enter) stays queued
+// so it still does what it does
+static void WaitDismiss(void) {
+  unsigned char key;
+  while (1) {
+    WaitFrame();
+    if ((key = KBPeekKey())) {
+      if (key == KEY_ESCAPE || key == KEY_ENTER) KBPopEvent();
+      return;
+    }
+    if (PadPressed()) return;
+  }
+}
+
 static char* RowAddress(unsigned char row) {
   unsigned int offset = row;
   return (char*)tile_buffer + (offset << 5) + (offset << 3); // row * TB_STRIDE
@@ -969,7 +983,7 @@ static void ShowMessage(const char* text) {
   }
   else DrawRow(tb_rows - 1, 0, text);
   EditorDraw();
-  while (!MenuKey());
+  WaitDismiss();
   dirty = 1;
 }
 
@@ -1158,7 +1172,7 @@ static void ListMessage(const char* text) {
   HideBox();
   DrawRow(STATUS_LINE, 1, text);
   EditorDraw();
-  while (!MenuKey());
+  WaitDismiss();
 }
 
 // file browser, opens the chosen file into the text buffer, returns 1 if it did
@@ -1500,6 +1514,12 @@ void Editor(void) {
   unsigned int event;
   unsigned char key;
 
+#ifdef EVERDRIVE_OS // the SGB border's VRAM transfer overwrites tiles and the map, so it goes first
+  if (!FileLoadData("/GBCSYS/EDITOR.DAT")) {
+    data_loaded = 1;
+    SGBSetDefaultBorder();
+  }
+#endif
   EditorSetup();
   for (key = 0; key < BG_MAP_ROWS + WIN_MAP_ROWS; ++key) map_blocks[key] = key < TB_ROWS ? key : 0xFF; // set by RenderSetup
   everdrive = sd_Detect();
@@ -1540,6 +1560,9 @@ void Editor(void) {
   SetFont(font);
   SetRows();
   Refresh();
+#ifdef EVERDRIVE_OS
+  if (!modified) OpenFile(); // the EverDrive's OS starts in the file browser
+#endif
 
   while (1) {
     if (modified != saved_modified) {

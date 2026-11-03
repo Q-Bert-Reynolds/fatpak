@@ -1,5 +1,9 @@
 LANGUAGE  = EN#EN ES FR IT PT DE JA
+OS        = 1#1 = EverDrive X OS (/GBCSYS/GBCOS.BIN), 0 = MBC5 cartridge ROM
 DEFINES   = -D LANG_$(LANGUAGE)
+ifeq ($(OS), 1)
+DEFINES  += -D EVERDRIVE_OS
+endif
 
 GAME_NAME = TEXT_EDITOR
 ROM_NAME  = $(GAME_NAME).gbc
@@ -29,15 +33,30 @@ all: clean assets assemble run
 
 code: assemble run
 
-_%.asm: %.c $(C_HEADERS) $(C_LIBS)
+_%.asm: %.c $(C_HEADERS) $(C_LIBS) $(wildcard $(SRC_DIR)/*/*.banks)
 	@mkdir -p $(BUILD_DIR)
 	sdcc $< -msm83 --asm=rgbds --opt-code-size --dataseg WRAM0 --no-peep --peep-file peephole.def $(DEFINES) --disable-warning 218 -S -o $@
+ifeq ($(OS), 1)
+	@if [ -f $(basename $<).os.banks ]; then $(PYTHON) bank_split.py $@ $(basename $<).os.banks --os; fi
+else
 	@if [ -f $(dir $<)banks.txt ]; then $(PYTHON) bank_split.py $@ $(dir $<)banks.txt; fi
+endif
 
 assemble: $(C_ASM)
 	rgbasm $(DEFINES) -o $(BUILD_DIR)/main.o $(SRC_DIR)/main.asm
+ifeq ($(OS), 1)
+	rgblink -l pages.link -m $(BUILD_DIR)/main.map -n $(SYM_FILE) -o $(ROM_FILE) $(BUILD_DIR)/main.o
+	$(PYTHON) check_pages.py $(BUILD_DIR)/main.map
+else
 	rgblink -m $(BUILD_DIR)/main.map -n $(SYM_FILE) -o $(ROM_FILE) $(BUILD_DIR)/main.o
+endif
+ifeq ($(OS), 1)
+	rgbfix -v -c -s -j -t GBXOS -i KRKZ -l 0x33 -m 0 -r 0 -p 255 $(ROM_FILE)
+	cp $(ROM_FILE) $(BIN_DIR)/GBCOS.BIN
+	$(PYTHON) data_file.py $(BIN_DIR)/EDITOR.DAT
+else
 	rgbfix -jvcs -k 01 -l 0x33 -m 0x1B -p 255 $(ROM_FILE)
+endif
 
 run:
 ifeq ($(OS), Windows_NT)
@@ -60,6 +79,14 @@ assets:
 	$(PYTHON) keywords.py
 	$(PYTHON) sgb_border.py img/default_sgb_border.png img/default_sgb_border.asm
 	$(PYTHON) translate.py 
+
+# EverDrive X SD test that runs in OS mode, copy to /GBCSYS/GBCOS.BIN on the card (keep the real one)
+osdiag:
+	@mkdir -p $(BUILD_DIR) $(BIN_DIR)
+	rgbasm -o $(BUILD_DIR)/osdiag.o src/osdiag/osdiag.asm
+	rgblink -t -n $(BIN_DIR)/GBCOS_DIAG.sym -o $(BIN_DIR)/GBCOS_DIAG.BIN $(BUILD_DIR)/osdiag.o
+	$(PYTHON) -c "p='$(BIN_DIR)/GBCOS_DIAG.BIN'; d=bytearray(open(p,'rb').read()); d+=b'\xff'*(131072-len(d)); exec('for c in range(16): d[c*8192+0x1C00:c*8192+0x1C06]=b\'OSDG\'+bytes([c,255-c])'); open(p,'wb').write(d)"
+	rgbfix -v -c -s -j -t GBXOS -i KRKZ -l 0x33 -m 0 -r 0 -p 0xFF $(BIN_DIR)/GBCOS_DIAG.BIN
 
 # SD card image for Gearboy's EverDrive X emulation, 64MB MBR + FAT32 with the files in sd/
 sdcard:

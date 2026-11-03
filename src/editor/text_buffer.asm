@@ -31,6 +31,14 @@
 ;   tb_ScrollRows               a = 1 moves rows up (scroll down), 0 down, shifts tile_buffer and the row tables
 ;   tb_nowrap, tb_left          rows are whole lines scrolled sideways by tb_left characters (see TBScanRow)
 
+IF DEF(EVERDRIVE_OS);PSRAM is always there through the window
+DEF TB_BANK_REG EQU EDX_BLOCK
+MACRO SRAM_ON
+ENDM
+MACRO SRAM_OFF
+ENDM
+ELSE
+DEF TB_BANK_REG EQU rRAMB
 MACRO SRAM_ON
   ld a, CART_SRAM_ENABLE
   ld [rRAMG], a
@@ -40,6 +48,7 @@ MACRO SRAM_OFF
   xor a
   ld [rRAMG], a
 ENDM
+ENDC
 
 MACRO LD_HL_VAR ;\1 = address of little endian word
   ld a, [\1]
@@ -157,15 +166,17 @@ _tb_Clear::
   xor a
 .clearBankLoop;everything but the register hole
     push af;bank
-    ld [rRAMB], a
+    ld [TB_BANK_REG], a
     xor a
-    ld hl, _SRAM
+    ld hl, TB_BASE
     ld bc, TB_HOLE
     call mem_Set
+IF TB_HOLE_SIZE
     xor a
     ld hl, _SRAM+TB_HOLE+TB_HOLE_SIZE
     ld bc, $2000-TB_HOLE-TB_HOLE_SIZE
     call mem_Set
+ENDC
     pop af;bank
     inc a
     cp a, TB_BANKS
@@ -188,6 +199,16 @@ TBCheckSize:
 
 ;hl = physical offset, selects SRAM bank, returns SRAM address in hl, only affects a
 TBPhysAddr:
+IF DEF(EVERDRIVE_OS);512 byte blocks
+  ld a, h
+  srl a
+  ld [TB_BANK_REG], a
+  ld a, h
+  and a, 1
+  or a, HIGH(TB_BASE)
+  ld h, a
+  ret
+ELSE
   push bc
   ld bc, -TB_BANK_SIZE
   xor a;bank
@@ -200,7 +221,7 @@ TBPhysAddr:
   ld bc, TB_BANK_SIZE
   add hl, bc;offset in bank
   pop bc
-  ld [rRAMB], a
+  ld [TB_BANK_REG], a
   ld a, h
   cp a, HIGH(TB_HOLE)
   jr c, .setAddress
@@ -215,6 +236,7 @@ TBPhysAddr:
   or a, HIGH(_SRAM)
   ld h, a
   ret
+ENDC
 
 ;de = physical offset, a = 0 finds the first 0 at or after it, 1 the first non 0, a run at a time,
 ;returns its offset in de (TB_SIZE if there isn't one), affects a, bc, hl
@@ -228,7 +250,7 @@ TBFindPhys:
     push de
     call TBPhysRun
     ld a, b
-    ld [rRAMB], a
+    ld [TB_BANK_REG], a
     ld b, d
     ld c, e;run length
     pop de
@@ -316,14 +338,16 @@ TBReadNext:
   inc de
   push af;char
   ld a, h
-  cp a, HIGH(_SRAM)+$20
+  cp a, $C0
   jr z, .seek;crossed into next bank
+IF TB_HOLE_SIZE
   cp a, HIGH(_SRAM+TB_HOLE)
   jr nz, .checkGap
   ld a, l
   and a
   jr nz, .checkGap
   ld l, TB_HOLE_SIZE;skip the register hole
+ENDC
 .checkGap
   ld a, [tb_gap_start]
   cp a, e
@@ -367,6 +391,40 @@ TBChunkLimit:
   ld de, TB_CHUNK
   jr TBMin
 
+IF DEF(EVERDRIVE_OS)
+;hl = physical offset, returns block in b, window address in hl, bytes until the block end in de, affects a
+TBPhysRun:
+  ld b, 0
+TBPhysRunFrom::;b = first block (the undo log starts at UNDO_BANK)
+  ld a, h
+  srl a
+  add a, b
+  ld b, a
+  ld a, h
+  and a, 1
+  ld h, a;offset in block
+  xor a
+  sub a, l
+  ld e, a
+  ld a, HIGH(TB_BANK_SIZE)
+  sbc a, h
+  ld d, a
+  ld a, h
+  or a, HIGH(TB_BASE)
+  ld h, a
+  ret
+
+;hl = physical offset, returns bytes before it in the same block in de, affects a, hl
+TBRunBack:
+  dec hl
+  ld a, h
+  and a, 1
+  ld d, a
+  ld e, l
+  inc de
+  ret
+
+ELSE
 ;hl = physical offset, returns bank in b, SRAM address in hl, bytes until the register hole
 ;or bank end in de, affects a
 TBPhysRun:
@@ -432,6 +490,7 @@ TBRunBack:
   ld d, h
   ld e, l
   ret
+ENDC
 
 ;copies [tb_k] bytes from physical [tb_src] to [tb_dst] and zeroes the source, runs don't overlap
 TBCopyChunk:
@@ -446,7 +505,7 @@ TBCopyChunk:
   ld [tb_dst_bank], a
   ST_HL_VAR tb_dst_addr
   ld a, [tb_src_bank]
-  ld [rRAMB], a
+  ld [TB_BANK_REG], a
   ld hl, tb_dst_bank
   cp a, [hl]
   jr nz, .differentBanks
@@ -464,7 +523,7 @@ TBCopyChunk:
   LD_BC_VAR tb_k
   call mem_Copy
   ld a, [tb_dst_bank]
-  ld [rRAMB], a
+  ld [TB_BANK_REG], a
   LD_HL_VAR tb_dst_addr
   ld d, h
   ld e, l
@@ -472,7 +531,7 @@ TBCopyChunk:
   LD_BC_VAR tb_k
   call mem_Copy
   ld a, [tb_src_bank]
-  ld [rRAMB], a
+  ld [TB_BANK_REG], a
 .zeroSource
   LD_HL_VAR tb_src_addr
   LD_BC_VAR tb_k
@@ -658,7 +717,7 @@ _tb_Append::;de = buffer, bc = count, inserts at the gap dropping 0s and CRs (se
     LD_HL_VAR tb_gap_start
     call TBPhysRun
     ld a, b
-    ld [rRAMB], a
+    ld [TB_BANK_REG], a
     ld b, h
     ld c, l
     pop hl
@@ -794,7 +853,7 @@ TBRead:
     call TBLogToPhys
     call TBPhysRun
     ld a, b
-    ld [rRAMB], a
+    ld [TB_BANK_REG], a
     ld b, h
     ld c, l
     pop hl
@@ -919,7 +978,7 @@ _tb_DeleteRange::;de = pos, bc = count, deletes count chars at pos (they must ex
     LD_HL_VAR tb_gap_end
     call TBPhysRun
     ld a, b
-    ld [rRAMB], a
+    ld [TB_BANK_REG], a
     push hl
     ld h, d
     ld l, e
@@ -949,10 +1008,28 @@ _tb_DeleteRange::;de = pos, bc = count, deletes count chars at pos (they must ex
 
 DEF TB_CLIP_CHUNK EQU 256;bytes copied at a time through win_buffer
 
+IF DEF(EVERDRIVE_OS)
+;selects the block for [tb_clip_ptr] (an offset from block MAIN_SRAM_BANK), returns its address in hl, affects a, b, de
+TBClipAddr:
+  LD_HL_VAR tb_clip_ptr
+  ld b, MAIN_SRAM_BANK
+  call TBPhysRunFrom
+  ld a, b
+  ld [TB_BANK_REG], a
+  ret
+ELSE
+;selects the clipboard's bank, returns [tb_clip_ptr] in hl, affects a
+TBClipAddr:
+  ld a, MAIN_SRAM_BANK
+  ld [TB_BANK_REG], a
+  LD_HL_VAR tb_clip_ptr
+  ret
+ENDC
+
 _tb_ClipLength::;returns clipboard length in bc, 0 if it's empty or was never set
   SRAM_ON
   ld a, MAIN_SRAM_BANK
-  ld [rRAMB], a
+  ld [TB_BANK_REG], a
   ld hl, sram_clip_length
   ld a, [hli]
   ld c, a
@@ -1012,7 +1089,7 @@ _tb_Copy::;de = pos, bc = count, copies text to the clipboard, returns a = 0 if 
   ld [tb_clip_left+1], a
   SRAM_ON
   ld a, MAIN_SRAM_BANK
-  ld [rRAMB], a
+  ld [TB_BANK_REG], a
   ld hl, sram_clip_length
   ld a, c
   ld [hli], a
@@ -1024,6 +1101,7 @@ _tb_Copy::;de = pos, bc = count, copies text to the clipboard, returns a = 0 if 
   ld a, b
   cpl
   ld [hli], a
+  ld hl, sram_clip
   ST_HL_VAR tb_clip_ptr
 .loop
     call TBClipChunk
@@ -1032,11 +1110,11 @@ _tb_Copy::;de = pos, bc = count, copies text to the clipboard, returns a = 0 if 
     ld de, win_buffer
     call _tb_Read
     SRAM_ON
-    ld a, MAIN_SRAM_BANK
-    ld [rRAMB], a
+    call TBClipAddr
+    ld d, h
+    ld e, l
     pop bc
     push bc
-    LD_DE_VAR tb_clip_ptr
     ld hl, win_buffer
     call mem_Copy
     pop bc
@@ -1076,9 +1154,9 @@ _tb_Paste::;de = pos, inserts the clipboard, returns a = 0 if it doesn't fit (no
     call TBClipChunk
     jr z, .done
     push bc
-    ld a, MAIN_SRAM_BANK
-    ld [rRAMB], a
-    LD_HL_VAR tb_clip_ptr
+    call TBClipAddr
+    pop bc
+    push bc
     ld de, win_buffer
     call mem_Copy
     pop bc
@@ -1953,7 +2031,7 @@ TBCheckState:
     call TBLogToPhys
     call TBPhysRun
     ld a, b
-    ld [rRAMB], a
+    ld [TB_BANK_REG], a
     ld b, h
     ld c, l
     pop hl
@@ -2457,7 +2535,7 @@ _tb_CountLines::;de = start, bc = end, returns the line feeds in [start, end) in
     call TBLogToPhys
     call TBPhysRun
     ld a, b
-    ld [rRAMB], a
+    ld [TB_BANK_REG], a
     push hl;address
     ld h, d
     ld l, e
@@ -2831,7 +2909,7 @@ TBRowStateAddress:
   ld h, a
   ret
 
-SECTION FRAGMENT "Keywords", ROMX;with the tables (keywords.asm)
+  KEYWORDS_SECTION;with the tables (keywords.asm)
 
 KeywordLookup:;returns the style << 4 of tb_word ([tb_word_len] chars) in a, 0 if it isn't a keyword, affects bc, de, hl
   ld a, [_tb_lang]

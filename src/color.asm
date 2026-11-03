@@ -93,7 +93,7 @@ DEF_RGB  COLOR_PURPLE_GREY,  10,  9, 12
 SECTION "Color Vars", WRAMX
 palette_buffer:: DS 8;4 colors, 2 bytes each
 
-SECTION FRAGMENT "Color", ROMX
+  COLOR_SECTION
 ;----------------------------------------------------------------------
 ;
 ; SetPalettesIndirect - sets first 4 palettes by index

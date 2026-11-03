@@ -23,7 +23,11 @@ log_left: DW
 log_read: DB;log_Read
 log_restore: DB;log_RestoreText
 
+IF DEF(EVERDRIVE_OS)
+  PAGE UNDO_PAGE
+ELSE
 SECTION FRAGMENT "src/editor/undo.c_CODE", ROMX
+ENDC
 
 _log_Write::
   xor a
@@ -48,7 +52,7 @@ LogCopy:
     ld b, UNDO_BANK
     call TBPhysRunFrom
     ld a, b
-    ld [rRAMB], a
+    ld [TB_BANK_REG], a
     ld b, h
     ld c, l;SRAM address
     pop hl

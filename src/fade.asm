@@ -1,6 +1,6 @@
 INCLUDE "src/text_editor.inc"
 
-SECTION FRAGMENT "Color", ROMX;uses the palette routines and ColorWhite
+  COLOR_SECTION;uses the palette routines and ColorWhite
 
 FadeIn::
   DISPLAY_ON
