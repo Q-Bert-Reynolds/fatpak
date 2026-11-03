@@ -11,7 +11,7 @@ SECTION "UI Bank 0", ROM0
 ; DrawListMenuArrow   a = draw flags, de = xy, _j = current index, _c = count
 ; MoveListMenuArrow   a = draw flags, de = xy, _j = current index, _c = count, must call UpdateInput first, returns direction in a
 ; ShowListMenu        a = draw flags, bc = xy, de = wh, [list_selection] = initial selection, [str_buffer] = text, [name_buffer] = title, returns choice in a (0 = cancel)
-; AskYesNo            a = draw flags, bc = xy, returns choice in a (0 = cancel, 1 = yes, 2 = no)
+; AskYesNo            (UI bank) a = draw flags, bc = xy, returns choice in a (0 = cancel, 1 = yes, 2 = no)
 ; ShowTextEntry       bc = title, de = str, l = max_len -> puts text in name_buffer
 ; ShowNumberPicker    a = draw flags, bc = xy, de = wh, h = max number, returns number in a (0 = cancel)
 
@@ -495,22 +495,6 @@ ShowListMenu:: ;a = draw flags, bc = xy, de = wh, [list_selection] = initial sel
   ld a, b;choice
   ret; return a=choice;
 
-AskYesNo::;a = draw flags, bc = xy, returns choice in a (0 = cancel, 1 = yes, 2 = no)
-  push af;draw flags
-  push bc;xy
-  ld hl, YesNoText
-  ld de, str_buffer
-  rst str_Copy
-  xor a
-  ld [name_buffer], a
-  ld [list_selection], a
-  pop bc;xy
-  ld d, 6
-  ld e, 5
-  pop af;draw flags
-  call ShowListMenu
-  ret
-
 ShowTextEntry:: ;bc = title, de = str, l = max_len -> puts text in name_buffer
   ldh a, [loaded_bank]
   push af ;bank
@@ -556,6 +540,22 @@ ShowNumberPicker::; a = draw flags, bc = xy, de = wh, h = max number, returns nu
 
 
 SECTION "UI", ROMX
+
+AskYesNo::;UI bank, a = draw flags, bc = xy, returns choice in a (0 = cancel, 1 = yes, 2 = no)
+  push af;draw flags
+  push bc;xy
+  ld hl, YesNoText
+  ld de, str_buffer
+  rst str_Copy
+  xor a
+  ld [name_buffer], a
+  ld [list_selection], a
+  pop bc;xy
+  ld d, 6
+  ld e, 5
+  pop af;draw flags
+  call ShowListMenu
+  ret
 
 INCLUDE "img/ui_font.asm"
 INCLUDE "data/strings/ui_strings.asm"

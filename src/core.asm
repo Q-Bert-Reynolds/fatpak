@@ -1,11 +1,8 @@
 SECTION "Core HRAM", HRAM
 loaded_bank:: DB
-temp_bank:: DB;TODO: only roledex.asm still uses this, should use stack instead
 temp_a_reg:: DB
 
 SECTION "Core ROM0", ROM0
-
-INCLUDE "data/strings/core_strings.asm"
 
 ; Trampoline                      b = bank, hl = address, can only use a, e, and RAM for args, can return in any register
 ; UpdateInput

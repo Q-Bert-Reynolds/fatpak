@@ -7,3 +7,4 @@ LowerCase::                               DB "abcdefghijklmnopqrstuvwxyz\n*():;[
 LowerCaseTitle::                          DB "lower case", 0
 UpperCase::                               DB "ABCDEFGHIJKLMNOPQRSTUVWXYZ\n*():;[]#%-?!*+/.,↵", 0
 UpperCaseTitle::                          DB "UPPER CASE", 0
+YesNoText::                               DB "YES\nNO", 0

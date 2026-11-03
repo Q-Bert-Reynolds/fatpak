@@ -3,3 +3,4 @@ LowerCase,Text Entry,"abcdefghijklmnopqrstuvwxyz *():;[]#%-?!*+/.,↵","abcdefgh
 LowerCaseTitle,,lower case,minúsculas,minuscules,minuscole,minúsculas,kleinbuchstaben,小文字
 UpperCase,,"ABCDEFGHIJKLMNOPQRSTUVWXYZ *():;[]#%-?!*+/.,↵","ABCDEFGHIJKLMNOPQRSTUVWXYZ *():;[]#%-?!*+/.,↵","ABCDEFGHIJKLMNOPQRSTUVWXYZ *():;[]#%-?!*+/.,↵","ABCDEFGHIJKLMNOPQRSTUVWXYZ *():;[]#%-?!*+/.,↵","ABCDEFGHIJKLMNOPQRSTUVWXYZ *():;[]#%-?!*+/.,↵","ABCDEFGHIJKLMNOPQRSTUVWXYZ *():;[]#%-?!*+/.,↵","ABCDEFGHIJKLMNOPQRSTUVWXYZ *():;[]#%-?!*+/.,↵"
 UpperCaseTitle,,UPPER CASE,MAYÚSCULAS,MAJUSCULES,MAIUSCOLE,MAIÚSCULAS,GROSSBUCHSTABEN,大文字
+YesNoText,,YES\nNO,SÍ\nNO,OUI\nNON,SÌ\nNO,SIM\nNÃO,JA\nNEIN,はい\nいいえ
