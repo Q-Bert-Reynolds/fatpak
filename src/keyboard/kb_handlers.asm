@@ -26,6 +26,8 @@ KBHandleEditorKey::;a = key, queues key presses in editor mode
   ld a, [kb_flags]
   and a, KB_FLAG_RELEASE
   ret nz
+  xor a
+  ld [kb_held_key], a;another key stops a held arrow key repeating (and a lost release can't leave it stuck)
   ld a, [kb_event_write]
   ld c, a;write index
   inc a

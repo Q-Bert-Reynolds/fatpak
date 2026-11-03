@@ -60,7 +60,6 @@ File I/O
 
 Peripherals
 
-- holding down the arrow keys should behave the same way as holding the D-Pad
 - PS/2 keyboard is only detected at boot, re-detect when plugged in later
 - iGKB handlers don't send home/end/page/delete keys
 - iGKB (also supports mouse and gamepad), needs Gearboy emulation first

@@ -74,6 +74,9 @@ DEF ASCII_LF  EQU 10
 DEF ASCII_CR  EQU 13
 
 ;key events, printable keys use their character code
+DEF PAD_REPEAT_DELAY EQU 20;frames before a held d-pad button or arrow key repeats
+DEF PAD_REPEAT_RATE  EQU 4;frames between repeats
+
 DEF KEY_NONE      EQU 0
 DEF KEY_BACKSPACE EQU 8
 DEF KEY_TAB       EQU 9

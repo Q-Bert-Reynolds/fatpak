@@ -98,6 +98,7 @@ PS2HandleError:;a = scan code
   xor a
   ld [kb_flags], a
   ld [kb_button_state], a
+  ld [kb_held_key], a
   ret 
 
 PS2HandleFunctionKey:;a = scan code
@@ -267,16 +268,46 @@ PS2HandleArrowKey:;scan code in a
   ; cp a, PS2_KEY_RIGHT_ARROW
 .rightPressed
   ld a, PADF_RIGHT
-  jp KBHandleArrowKey
+  jr PS2HoldArrowKey
 .leftPressed
   ld a, PADF_LEFT
-  jp KBHandleArrowKey
+  jr PS2HoldArrowKey
 .upPressed
   ld a, PADF_UP
-  jp KBHandleArrowKey
+  jr PS2HoldArrowKey
 .downPressed
   ld a, PADF_DOWN
-  jp KBHandleArrowKey
+  ;fall through
+
+;a = dpad flag, in editor mode a held arrow key repeats like the d-pad (see KBRepeatHeldKey),
+;so the keyboard's own repeats are dropped
+PS2HoldArrowKey:
+  ld b, a
+  ld a, [kb_mode]
+  cp a, KB_MODE_EDITOR
+  ld a, b
+  jp nz, KBHandleArrowKey
+  ld hl, kb_held_key
+  ld a, [kb_flags]
+  and a, KB_FLAG_RELEASE
+  jr nz, .release
+  ld a, [hl]
+  cp a, b
+  ret z;repeated by the keyboard
+  push bc
+  ld a, b
+  call KBHandleArrowKey
+  pop af;held key in a
+  ld [kb_held_key], a
+  ld a, PAD_REPEAT_DELAY
+  ld [kb_repeat_timer], a
+  ret
+.release
+  ld a, [hl]
+  cp a, b
+  ret nz
+  ld [hl], 0
+  ret
 
 PS2HandlePageDown:
   ld a, KEY_PAGE_DOWN

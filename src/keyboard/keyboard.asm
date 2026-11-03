@@ -53,6 +53,8 @@ kb_mode:: DB
 kb_event_buffer:: DS KB_EVENT_COUNT*2;key, modifiers
 kb_event_write:: DB
 kb_event_read:: DB
+kb_held_key: DB;PS/2 arrow key held in editor mode (d-pad flag), 0 = none
+kb_repeat_timer: DB
 
 SECTION "Keyboard Code Bank 0", ROM0
 INCLUDE "src/keyboard/ps2_interrupt.asm"
@@ -115,9 +117,25 @@ SetKeyboardMode::;a = mode
   xor a
   ld [kb_flags], a
   ld [kb_button_state], a
+  ld [kb_held_key], a
 .setMode
   ld a, b
   ld [kb_mode], a
+  ret
+
+;queues the held arrow key again at the d-pad's rate (the keyboard's own repeats are dropped, see PS2HoldArrowKey)
+KBRepeatHeldKey:
+  ld a, [kb_held_key]
+  and a
+  ret z
+  ld hl, kb_repeat_timer
+  dec [hl]
+  ret nz
+  ld [hl], PAD_REPEAT_RATE
+  push af
+  call KBHandleArrowKey
+  pop af
+  ld [kb_held_key], a;queueing a key clears it
   ret
 
 ProcessKeyCodes::
@@ -127,7 +145,9 @@ ProcessKeyCodes::
   ld a, [kb_type]
 .processPS2
   cp a, KB_TYPE_PS2
-  jr z, ProcessPS2KeyCodes
+  jr nz, .processIGKB
+  call ProcessPS2KeyCodes
+  jr KBRepeatHeldKey
 .processIGKB
   cp a, KB_TYPE_IGKB
   ret nz;unknown mode

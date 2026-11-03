@@ -36,8 +36,6 @@
 #define FR_DENIED        7
 #define FR_NO_FILESYSTEM 13
 
-#define PAD_REPEAT_DELAY 20
-#define PAD_REPEAT_RATE  4
 #define CURSOR_BLINK     30
 #define NORMALIZE_DELAY  30 // frames without input before closing the gap
 

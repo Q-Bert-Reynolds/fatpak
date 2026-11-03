@@ -77,6 +77,9 @@
 #define ASCII_CR  13
 
 //key events, printable keys use their character code
+#define PAD_REPEAT_DELAY 20//frames before a held d-pad button or arrow key repeats
+#define PAD_REPEAT_RATE  4//frames between repeats
+
 #define KEY_NONE      0
 #define KEY_BACKSPACE 8
 #define KEY_TAB       9
