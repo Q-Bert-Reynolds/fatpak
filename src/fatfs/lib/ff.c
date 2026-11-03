@@ -1166,7 +1166,8 @@ static LBA_t clst2sect (	/* !=0:Sector number, 0:Failed (invalid cluster#) */
 {
 	clst -= 2;		/* Cluster number is origin from 2 */
 	if (clst >= fs->n_fatent - 2) return 0;		/* Is it invalid cluster number? */
-	return fs->database + (LBA_t)fs->csize * clst;	/* Start sector number of the cluster */
+	for (BYTE c = (BYTE)fs->csize; c > 1; c >>= 1) clst <<= 1;	/* clst *= csize, a power of 2 (no _mullong) */
+	return fs->database + clst;	/* Start sector number of the cluster */
 }
 
 
