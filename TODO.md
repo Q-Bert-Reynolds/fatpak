@@ -14,7 +14,6 @@ Text Rendering
 - drawing a row waits for 40 HBlanks (~18K cycles), use HDMA on GBC (see https://gbdev.io/pandocs/CGB_Registers.html#lcd-vram-dma-transfers), interleave glyph drawing with the waits on DMG
 - buffer tile data, stagger writes to vram
 - page up/down redraw every row (~0.9M cycles), page up also scans back 17 rows from SRAM
-- the on screen keyboard rows are redrawn on every scroll while it's open
 - smooth (pixel) scrolling on GBC (DMG doesn't have tiles for a 19th row)
 - tabs are drawn as a single space
 - show UTF-8 text (files are loaded as bytes, a UTF-8 é shows as two Latin-1 chars)
@@ -28,7 +27,6 @@ Text Rendering
 
 UI/UX
 
-- use window overlay and scanline interrupts to draw top and bottom lines and prevent flickering when scrolling
 - select text with the d-pad (A + d-pad?) and cut/copy/paste from the on screen keyboard or menu
 - clipboard is limited to 7356 characters (SRAM bank 8), banks 9-15 hold the undo log now (UNDO_BANKS can shrink if the clipboard or the large file piece table need some)
 - undo: keep the history when the power is off, select the restored text after undoing a cut or delete

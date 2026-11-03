@@ -21,11 +21,12 @@
 #define KIND_FILE      2
 #define CANCEL         0xFF
 #define BG_MAP_ROWS      32
-#define LCDC_TILES_8000  0x10 // LCDCF_BG8000
 #define HEADER_LINE      TB_ROWS // tile_buffer rows of the file name and status bars
 #define STATUS_LINE      (TB_ROWS + 1)
 #define HEADER_BLOCK     8 // the bars' blocks work in either tile data mode (see src/editor/render.asm)
 #define STATUS_BLOCK     17
+#define OSK_BLOCK        9 // the on screen keyboard's blocks, 9 to 13
+#define WIN_MAP_ROWS     (OSK_ROWS + 2)
 #define BOX_LINE         (TB_ROWS + 2) // menu box text in tile_buffer rows from here, BOX_STRIDE chars per line
 #define BOX_PADDING      9 // 4 pixels each side of the text, and the border
 #define HELP_ROWS        18
@@ -49,9 +50,10 @@ unsigned char want_x; // pixel x up and down try to keep
 unsigned char keep_x;
 unsigned char moved; // cursor moved, text didn't change
 unsigned char redraw; // rendered rows changed, text didn't
-unsigned char ring_top; // BG map row of screen row 0
-unsigned char ring_pos; // index in the ring of text blocks of text row 0's block
-unsigned char map_blocks[BG_MAP_ROWS]; // block each BG map row shows, 0xFF = none
+unsigned char ring_top; // BG map row of text row 0
+unsigned char ring_pos; // index in ring_blocks of text row 0's block
+unsigned char ring_blocks[TB_ROWS]; // blocks text rows use
+unsigned char map_blocks[BG_MAP_ROWS + WIN_MAP_ROWS]; // block each BG map row, then window map row, shows, 0xFF = none
 unsigned char bars_on; // file name and status bars (F11)
 unsigned char bars; // bars are shown now (not in menus)
 unsigned char bars_changed; // the cursor moved, the status bar needs updating
@@ -176,73 +178,61 @@ static unsigned int PosAtX(unsigned char row, unsigned char x) {
   return pos;
 }
 
-// stages the tile data mode switches for render_row_blocks (see src/editor/render.asm): blocks 0-5
-// need $8000 mode, 9-14 $8800, the rest work in either so switches go in the middle of them
-static void StageSplits(void) {
-  unsigned char row, block, mode, current = 0xFF, shared = 0xFF, count = 0;
-  for (row = 0; row < TB_ROWS; ++row) {
-    block = render_row_blocks[row];
-    if ((block >= 6 && block < 9) || block >= 15) {
-      if (shared == 0xFF) shared = row;
-      continue;
-    }
-    mode = block < 6 ? LCDC_TILES_8000 : 0;
-    if (current == 0xFF) render_pending_top_mode = mode;
-    else if (mode != current) {
-      render_pending_splits[count++] = ((shared + row - 1) >> 1) << 3;
-      render_pending_splits[count++] = mode;
-    }
-    current = mode;
-    shared = 0xFF;
-  }
-  render_pending_split_count = count >> 1;
-}
-
-// blocks text rows use, all of them or all but the bars'
-static unsigned char RingLength(void) {
-  return bars ? TB_ROWS - 2 : TB_ROWS;
-}
-
-// text rows above the on screen keyboard
+// text rows: all but the bars and the on screen keyboard
 static unsigned char TextRows(void) {
-  return RingLength() - (osk_shown ? OSK_ROWS : 0);
+  return TB_ROWS - (bars << 1) - (osk_shown ? OSK_ROWS : 0);
 }
 
-// sets each screen row's block, tile_buffer row and font (the bars keep their blocks, text rows
-// use the rest in a ring starting at ring_pos), points the BG map rows that show the screen at
-// them and stages the tile data mode switches, applied with SCY at line 144
+// sets each screen row's block, tile_buffer row and font. Text rows show BG map rows from ring_top
+// (scrolled with SCY), drawn into the blocks left by the bars and the on screen keyboard, in a ring
+// starting at ring_pos. The rows below and above them (bars, keyboard) keep their own blocks in
+// window map rows, so they stay put while the text scrolls. Stages SCY and LCDC (RenderStage),
+// applied at line 144
 static void Layout(void) {
-  unsigned char row, line, block, map_row, i = ring_pos, length = RingLength();
+  unsigned char row, line, block, map_row, i = 0, win_row = BG_MAP_ROWS, osk = TB_ROWS - (bars << 1) - tb_rows;
+  for (block = 0; block < TB_ROWS; ++block) {
+    if (bars && (block == HEADER_BLOCK || block == STATUS_BLOCK)) continue;
+    if (osk && block >= OSK_BLOCK && block < OSK_BLOCK + OSK_ROWS) continue;
+    ring_blocks[i++] = block;
+  }
+  if (ring_pos >= tb_rows) ring_pos = 0;
+  i = ring_pos;
   render_pending = 0;
   render_text_top = bars;
   for (row = 0; row < TB_ROWS; ++row) {
-    if (bars && (!row || row == TB_ROWS - 1)) {
-      block = row ? STATUS_BLOCK : HEADER_BLOCK;
-      line = row ? STATUS_LINE : HEADER_LINE;
-      render_row_fonts[row] = FONT_VWF;
+    line = row - bars;
+    if (line < tb_rows) {
+      block = ring_blocks[i];
+      if (++i == tb_rows) i = 0;
+      map_row = (ring_top + line) & (BG_MAP_ROWS - 1);
+      render_row_fonts[row] = font;
     }
     else {
-      block = bars && i >= HEADER_BLOCK ? i + 1 : i;
-      if (++i == length) i = 0;
-      line = row - bars;
-      render_row_fonts[row] = line < tb_rows ? font : FONT_MONO; // on screen keyboard
+      map_row = win_row++;
+      if (bars && (!row || row == TB_ROWS - 1)) {
+        block = row ? STATUS_BLOCK : HEADER_BLOCK;
+        line = row ? STATUS_LINE : HEADER_LINE;
+        render_row_fonts[row] = FONT_VWF;
+      }
+      else {
+        block = OSK_BLOCK + line - tb_rows;
+        render_row_fonts[row] = FONT_MONO;
+      }
     }
     render_row_blocks[row] = block;
     render_row_lines[row] = line;
-    map_row = (ring_top + row) & (BG_MAP_ROWS - 1);
     if (map_blocks[map_row] != block) {
       map_blocks[map_row] = block;
       RenderSetMapRow(map_row, block);
     }
   }
-  StageSplits();
-  render_pending_scy = ring_top << 3;
-  render_pending = 1;
+  render_pending_scy = (ring_top - bars) << 3;
+  RenderStage();
 }
 
 // scrolls the screen one row with SCY (dir 1 = down), the block leaving the screen draws the new row
 static void ScrollRing(unsigned char down) {
-  unsigned char length = RingLength();
+  unsigned char length = tb_rows;
   if (down) {
     ring_pos = ring_pos == length - 1 ? 0 : ring_pos + 1;
     ring_top = (ring_top + 1) & (BG_MAP_ROWS - 1);
@@ -1473,7 +1463,7 @@ void Editor(void) {
   unsigned char key;
 
   EditorSetup();
-  for (key = 0; key < BG_MAP_ROWS; ++key) map_blocks[key] = key < TB_ROWS ? key : 0xFF; // set by RenderSetup
+  for (key = 0; key < BG_MAP_ROWS + WIN_MAP_ROWS; ++key) map_blocks[key] = key < TB_ROWS ? key : 0xFF; // set by RenderSetup
   everdrive = sd_Detect();
   idle_frames = 0;
   normalized = 0;

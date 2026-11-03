@@ -39,9 +39,7 @@ extern char* render_box_text; // BOX_STRIDE chars per line
 extern unsigned char RenderTextWidth(const char* text); // in the variable width font
 extern unsigned char render_pending; // a staged scroll, applied at line 144
 extern unsigned char render_pending_scy;
-extern unsigned char render_pending_top_mode;
-extern unsigned char render_pending_split_count;
-extern unsigned char render_pending_splits[4]; // LY, mode
+extern void RenderStage(void); // stages LCDC changes (tile data mode, window) for the layout, sets render_pending
 extern unsigned char render_sel[TB_ROWS * 2]; // selected columns of each row (first, end), end 0xFF = right edge
 
 // src/sram.asm: the font, line wrapping, full screen and the open file's name, folder, line endings

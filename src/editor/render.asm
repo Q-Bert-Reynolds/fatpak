@@ -1,9 +1,10 @@
 ;Draws rows of characters from tile_buffer (TB_STRIDE per row) as pixels, so fonts can have
 ;any width. Every screen cell has its own tile: 360 tiles is more than the background can
 ;address at once, so an LCD interrupt switches between $8000 and $8800 tile data partway down.
-;Rows draw into 18 blocks of 20 tiles. Text rows use a ring of blocks, scrolling a row rotates the
-;ring by one (SCY moves 8 pixels and only the new row is drawn), the file name and status bars
-;keep their own blocks (see Layout in editor.c). Blocks between the $8000 only and $8800 only
+;Rows draw into 18 blocks of 20 tiles. Text rows use a ring of blocks in the BG map, scrolling a
+;row rotates the ring by one (SCY moves 8 pixels and only the new row is drawn). The file name bar,
+;the on screen keyboard and the status bar keep their own blocks and are shown by the window, so
+;they stay put when the text scrolls (see Layout in editor.c and RenderStage). Blocks between the $8000 only and $8800 only
 ;blocks use tiles both modes share, so a switch can happen anywhere in them (the PS/2 interrupt
 ;can delay it).
 ;   blocks 0-5    tiles 2-121     $8000 mode only (tiles 0 and 1 are sprites)
@@ -11,8 +12,8 @@
 ;   blocks 9-14   tiles 256-375   $8800 mode only
 ;   blocks 15-17  tiles 188-247   either mode
 ;Screen row r draws tile_buffer row render_row_lines[r] into block render_row_blocks[r] with font
-;render_row_fonts[r]. Mode switches (at most 2) are staged in render_pending_* and applied with
-;SCY at line 144.
+;render_row_fonts[r]. Mode switches and window changes are staged by RenderStage and applied
+;with SCY at line 144.
 ;A box (menus) can be drawn over rows: render_box_* set its screen rows, pixel x and width, and
 ;its text, BOX_STRIDE chars per line in the variable width font, the selected row is highlighted.
 ;Its first and last rows are half rows with the top and bottom border, text goes in the rows between.
@@ -23,9 +24,12 @@
 ;   SetFont                     a = font, sets _font_widths and redraws rows using it
 ;   EditorDraw                  draws the screen rows whose characters, font or selection changed
 ;   EditorRedraw                forgets which rows are drawn so EditorDraw redraws all of them
-;   RenderSetMapRow             a = BG map row, e = block, points the map row at the block's tiles
+;   RenderSetMapRow             a = BG map row (32 and up are window map rows), e = block, points the map row at the block's tiles
+;   RenderStage                 stages LCDC changes for render_row_blocks, render_text_top and tb_rows
 ;   RenderTextWidth             de = text (0 ends it), returns its width in the variable width font in a
 
+
+DEF RENDER_EVENTS EQU 6;LCDC changes per frame: 2 for the window, the rest for tile data mode switches
 
 SECTION "Font Widths", WRAM0, ALIGN[8]
 _font_widths:: DS 256;current font's widths, used to wrap rows
@@ -47,15 +51,19 @@ _render_row_blocks:: DS TB_ROWS;block each screen row draws into
 _render_row_lines:: DS TB_ROWS;tile_buffer row each screen row shows
 _render_row_fonts:: DS TB_ROWS;font each screen row uses
 _render_text_top:: DB;screen row of text row 0
-render_top_mode: DB;LCDCF_BG8000 or 0 at the top of the screen
-render_split_count: DB
-render_splits: DS 4;LY, mode
-render_split_index: DB
+render_top_lcdc: DB;LCDCF_BG8000 and LCDCF_WINON at the top of the screen
+render_event_count: DB
+render_events: DS RENDER_EVENTS*2;LY, LCDC bits from there on
+render_event_index: DB
 _render_pending:: DB;set after staging a scroll, cleared at line 144 when it's applied
 _render_pending_scy:: DB
-_render_pending_top_mode:: DB
-_render_pending_split_count:: DB
-_render_pending_splits:: DS 4
+render_pending_wy: DB
+render_pending_lcdc: DB;staged render_top_lcdc, render_event_count and render_events, in that order
+render_pending_count: DB
+render_pending_events: DS RENDER_EVENTS*2
+stage_mode: DB;RenderStage
+stage_win: DB
+stage_shared: DB;first of the rows since the last one that needs a mode, $FF = none
 render_map_row: DS TB_COLS
 _render_sel:: DS TB_ROWS*2;selected columns of each screen row (first, end), end $FF = right edge, first = end for none
 block_sel: DS TB_ROWS*2;selection each block was drawn with
@@ -139,6 +147,10 @@ _EditorRedraw::
   jp mem_Set
 
 _EditorDraw::
+.waitScroll;a block that left the screen isn't drawn into until the scroll is applied
+    ld a, [_render_pending]
+    and a
+    jr nz, .waitScroll
   ldh a, [loaded_bank]
   push af
   ld a, BANK(RenderRow)
@@ -206,34 +218,45 @@ RenderRowAddress:
   add hl, de
   ret
 
-;switches tile data addressing at render_splits, and at line 144 applies a staged scroll and
-;sets the mode for the top of the next frame
+;LCD interrupt: changes LCDC at render_events (tile data mode and window), and at line 144 applies
+;a staged scroll and sets LCDC for the top of the next frame
 RenderLCDInterrupt::
   ldh a, [rLYC]
   cp a, SCRN_Y
   jr z, .vblank
-  ld a, [render_split_index]
+  ld a, [render_event_index]
   ld e, a
   inc a
-  ld [render_split_index], a
+  ld [render_event_index], a
   ld d, 0
-  ld hl, render_splits+1
+  ld hl, render_events
   add hl, de
   add hl, de
-  ld b, [hl];mode
-  call .setMode
-  ld a, [render_split_index]
-  ld hl, render_split_count
+  ld a, [hli]
+  ld d, a;LY
+  ld b, [hl];LCDC bits
+.wait;the interrupt is on the line before, change LCDC in its HBlank (or right away if it's late)
+    ldh a, [rLY]
+    cp a, d
+    jr nc, .change
+    ldh a, [rSTAT]
+    and a, STATF_LCD
+    jr nz, .wait
+.change
+  call .setLCDC
+  ld a, [render_event_index]
+  ld hl, render_event_count
   cp a, [hl]
   jr nc, .nextVBlank
-  ld hl, render_splits
+  ld hl, render_events
   add a, a
   add a, l
   ld l, a
-  ld a, h
-  adc a, 0
+  adc a, h
+  sub a, l
   ld h, a
   ld a, [hl]
+  dec a
   ldh [rLYC], a
   ret
 .nextVBlank
@@ -247,35 +270,210 @@ RenderLCDInterrupt::
   jr z, .frameStart
   ld a, [_render_pending_scy]
   ldh [rSCY], a
-  ld hl, _render_pending_top_mode
-  ld de, render_top_mode
-  ld b, 2+4;top mode, count, splits
-.copySplits
+  ld a, [render_pending_wy]
+  ldh [rWY], a
+  ld hl, render_pending_lcdc
+  ld de, render_top_lcdc
+  ld b, 2+RENDER_EVENTS*2;top LCDC, count, events
+.copyEvents
     ld a, [hli]
     ld [de], a
     inc de
     dec b
-    jr nz, .copySplits
+    jr nz, .copyEvents
   xor a
   ld [_render_pending], a
 .frameStart
-  ld a, [render_top_mode]
+  ld a, [render_top_lcdc]
   ld b, a
-  call .setMode
+  call .setLCDC
   xor a
-  ld [render_split_index], a
-  ld a, [render_split_count]
+  ld [render_event_index], a
+  ld a, [render_event_count]
   and a
   jr z, .nextVBlank
-  ld a, [render_splits]
+  ld a, [render_events]
+  dec a
   ldh [rLYC], a
   ret
 
-.setMode;b = LCDCF_BG8000 or 0
+.setLCDC;b = LCDCF_BG8000 and LCDCF_WINON bits
   ldh a, [rLCDC]
-  and a, ~LCDCF_BG8000
+  and a, ~(LCDCF_BG8000 | LCDCF_WINON)
   or a, b
   ldh [rLCDC], a
+  ret
+
+;stages LCDC for render_row_blocks, applied with SCY at line 144: tile data mode switches (blocks
+;0-5 need $8000 mode, 9-14 $8800, the rest work in either, so switches go in the middle of them),
+;and the window, which shows the rows above and below the text rows (file name bar, on screen
+;keyboard, status bar). The window is turned off after the top bar and back on for the bottom rows,
+;where it carries on from its next line (window map row 1). Without the top bar WY is the first
+;bottom row, the window only starts where LY reaches WY while it's on
+_RenderStage::
+  ld a, [_render_text_top]
+  and a
+  ld a, 0
+  jr nz, .setWY
+  ld a, [_tb_rows]
+  add a, a
+  add a, a
+  add a, a
+.setWY
+  ld [render_pending_wy], a
+  ld hl, _render_row_blocks
+  ld c, TB_ROWS
+.findTopMode;of the first block that needs one
+    ld a, [hli]
+    call RenderBlockMode
+    cp a, $FF
+    jr nz, .topMode
+    dec c
+    jr nz, .findTopMode
+  ld a, LCDCF_BG8000
+.topMode
+  ld [stage_mode], a
+  ld a, $FF
+  ld [stage_shared], a
+  xor a
+  ld [render_pending_count], a
+  call RenderRowWindow
+  ld [stage_win], a
+  ld hl, stage_mode
+  or a, [hl]
+  ld [render_pending_lcdc], a
+  ld c, 0;row
+.row
+    ld a, c
+    call RenderRowWindow
+    ld hl, stage_win
+    cp a, [hl]
+    jr z, .block
+    ld [hl], a
+    ld a, c
+    add a, a
+    add a, a
+    add a, a
+    call StageEvent
+.block
+    ld hl, _render_row_blocks
+    ld b, 0
+    add hl, bc
+    ld a, [hl]
+    call RenderBlockMode
+    cp a, $FF
+    jr nz, .needsMode
+    ld a, [stage_shared]
+    cp a, $FF
+    jr nz, .next
+    ld a, c
+    ld [stage_shared], a
+    jr .next
+.needsMode
+    ld hl, stage_mode
+    cp a, [hl]
+    jr z, .sameMode
+    ld [hl], a
+    ld a, [stage_shared]
+    cp a, $FF
+    ld a, c
+    jr z, .switchLY;no shared rows before it, switch at the row
+    ld a, [stage_shared]
+    add a, c
+    dec a
+    srl a;middle of the shared rows
+.switchLY
+    add a, a
+    add a, a
+    add a, a
+    call StageEvent
+.sameMode
+    ld a, $FF
+    ld [stage_shared], a
+.next
+    inc c
+    ld a, c
+    cp a, TB_ROWS
+    jr c, .row
+  ld a, 1
+  ld [_render_pending], a
+  ret
+
+;a = block, returns LCDCF_BG8000 or 0 for the tile data mode it needs, $FF if either works
+RenderBlockMode:
+  cp a, 6
+  jr c, .mode8000
+  cp a, 9
+  jr c, .either
+  cp a, 15
+  jr c, .mode8800
+.either
+  ld a, $FF
+  ret
+.mode8000
+  ld a, LCDCF_BG8000
+  ret
+.mode8800
+  xor a
+  ret
+
+;a = screen row, returns LCDCF_WINON if the window shows it (it isn't a text row), 0 if not, affects b, hl
+RenderRowWindow:
+  ld hl, _render_text_top
+  sub a, [hl]
+  jr c, .window
+  ld b, a
+  ld a, [_tb_rows]
+  dec a
+  cp a, b
+  jr c, .window
+  xor a
+  ret
+.window
+  ld a, LCDCF_WINON
+  ret
+
+;a = LY, stages a change to stage_mode and stage_win there, merged into the last one if it's at the same
+;LY or later (a mode switch in shared rows can move down to a window change), keeps bc
+StageEvent:
+  ld d, a
+  ld a, [stage_win]
+  ld hl, stage_mode
+  or a, [hl]
+  ld e, a;LCDC bits
+  ld a, [render_pending_count]
+  and a
+  jr z, .add
+  dec a
+  add a, a
+  ld hl, render_pending_events
+  add a, l
+  ld l, a
+  adc a, h
+  sub a, l
+  ld h, a
+  ld a, [hli];last LY
+  cp a, d
+  jr c, .add
+  ld [hl], e
+  ret
+.add
+  ld a, [render_pending_count]
+  cp a, RENDER_EVENTS
+  ret nc
+  inc a
+  ld [render_pending_count], a
+  dec a
+  add a, a
+  ld hl, render_pending_events
+  add a, l
+  ld l, a
+  adc a, h
+  sub a, l
+  ld h, a
+  ld [hl], d
+  inc hl
+  ld [hl], e
   ret
 
 _RenderSetMapRow::;a = BG map row, e = block
@@ -339,20 +537,18 @@ RenderSetup::
   ld [_render_box_top], a
   xor a
   ld [_render_pending], a
-  ld [render_split_index], a
+  ld [render_event_index], a
+  ld [render_event_count], a
   ldh [rSCY], a
-  ld a, LCDCF_BG8000;blocks 0-5 on top
-  ld [render_top_mode], a
-  ld a, 1
-  ld [render_split_count], a
-  ld a, 7*8;middle of blocks 6-8
-  ld [render_splits], a
-  xor a
-  ld [render_splits+1], a
+  ldh [rWY], a
+  ld a, 7
+  ldh [rWX], a
+  ld a, LCDCF_BG8000;blocks 0-5 on top, until the editor's first Layout
+  ld [render_top_lcdc], a
   ldh a, [rLCDC]
-  or a, LCDCF_BG8000
+  or a, LCDCF_BG8000 | LCDCF_WIN9C00
   ldh [rLCDC], a
-  ld a, 7*8
+  ld a, SCRN_Y
   ldh [rLYC], a
   ld bc, RenderLCDInterrupt
   jp SetLCDInterrupt
