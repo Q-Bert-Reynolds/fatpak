@@ -44,12 +44,12 @@
 
 //text buffer
 #define TB_BANKS     8//SRAM banks 0-7, positions are 16 bit
-#define TB_HOLE      0x1D00//0xBD00-0xBD0F are EverDrive registers, never stored to
+#define TB_HOLE      0x1D00u//0xBD00-0xBD0F are EverDrive registers, never stored to
 #define TB_HOLE_SIZE 0x10
 #define TB_BANK_SIZE (0x2000u-TB_HOLE_SIZE)
 #define TB_SIZE      (TB_BANK_SIZE*TB_BANKS)
-#define TB_CLIP_ADDR 0xA040//clipboard in SRAM bank 8, up to the EverDrive registers at 0xBD00
-#define TB_CLIP_SIZE (0xBD00-TB_CLIP_ADDR-4)
+#define TB_CLIP_ADDR 0xA040u//clipboard in SRAM bank 8, up to the EverDrive registers at 0xBD00
+#define TB_CLIP_SIZE (0xBD00u-TB_CLIP_ADDR-4)
 #define UNDO_BANK    9//undo log in SRAM banks 9-15, laid out like the text buffer (see src/editor/undo.c)
 #define UNDO_BANKS   7
 #define UNDO_SIZE    (TB_BANK_SIZE*UNDO_BANKS)

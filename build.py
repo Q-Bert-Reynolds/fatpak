@@ -15,6 +15,8 @@ def main():
       out_file.write("#define CONSTANTS\n\n")
 
       for line in in_file:
+        code, semi, comment = line.partition(";")
+        line = re.sub(r"\$([0-9A-Fa-f]{4})\b", r"0x\1u", code) + semi + comment # 16 bit addresses and sizes are unsigned, so TB_SIZE doesn't overflow int
         line = line.replace("DEF ", "#define ")
         line = line.replace(" EQU ", " ")
         line = line.replace(";", "//")

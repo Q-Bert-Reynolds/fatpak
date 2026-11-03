@@ -3,50 +3,83 @@ Priority
 - call tb_Normalize before saving/menus so the .sav reads as plain text
 - test SD read/write on the X7
 - test on the X7: does writing $A5 to $BD0A unlock the registers while SRAM is enabled? (the text buffer skips $BD00-$BD0F either way)
+- time loading and saving a 64KB file on the X7 and in Gearboy, the numbers set the large file window size (see File I/O)
 - faster sector reads with auto-read streaming ($BD01 bit 2 + $BD06 bit 0, reading $BD00 clocks the next byte), and without checking the busy bit for each byte if the X7's SPI is fast enough at double speed
-- open/save .txt files
+- large files (bigger than the 65,408 byte text buffer), see File I/O
 
-Editor
+Text Rendering
 
 - font selection: pick from a list of fonts (variable width, 4 pixel fixed, Tiny5 Mono in img/fonts/tiny5mono_font.png, ...) instead of the Ctrl+F toggle, saved with the settings
 - variable width font: accented and UI glyphs in vwf_font.png are copied from ui_font.png, redraw them
-- rendering: drawing a row waits for 40 HBlanks (~18K cycles), use HDMA on GBC, interleave glyph drawing with the waits on DMG
+- drawing a row waits for 40 HBlanks (~18K cycles), use HDMA on GBC (see https://gbdev.io/pandocs/CGB_Registers.html#lcd-vram-dma-transfers), interleave glyph drawing with the waits on DMG
+- buffer tile data, stagger writes to vram
 - page up/down redraw every row (~0.9M cycles), page up also scans back 17 rows from SRAM
-- without an EverDrive, the first edit after a pause moves the gap back from the end (~35 cycles per byte after the cursor)
-- FatFs cluster math uses the slow _mullong (once per sector read or written)
 - the on screen keyboard rows are redrawn on every scroll while it's open
 - smooth (pixel) scrolling on GBC (DMG doesn't have tiles for a 19th row)
-- TBMoveGap does bank math per byte (~1s+ per 24KB on DMG, the buffer is 64KB now), copy in chunks
 - tabs are drawn as a single space
-- select text with the d-pad (A + d-pad?) and cut/copy/paste from the on screen keyboard or menu
-- clipboard is limited to 7356 characters (SRAM bank 8), use SRAM banks 9-15 (unless the large file piece table needs them)
-- undo
-- status bar: free space
-- iGKB handlers don't send home/end/page/delete keys
-- file browser: sort by name (needs the names in memory), make folders, delete and rename files
-- save as into another folder
 - show UTF-8 text (files are loaded as bytes, a UTF-8 é shows as two Latin-1 chars)
-- messages swallow the key that dismisses them, maybe time out instead
-- PS/2 keyboard is only detected at boot, re-detect when plugged in later
-- on screen keyboard: hold A to repeat, a way to move the cursor up/down while it's open
 - multiple encodings (CP437, CP1252, UTF-8)
 - rich text, colors, highlights
-- WorkBoy keyboard
-- iGKB (also supports mouse and gamepad), needs Gearboy emulation first
+- text buffer:
+  - TBMoveGap does bank math per byte (~1s+ per 24KB on DMG, the buffer is 64KB now), copy in chunks
+  - without an EverDrive, the first edit after a pause moves the gap back from the end (~35 cycles per byte after the cursor)
+  - tb_Load scans the whole 64KB at boot when the gap is at the end (~0.9s on DMG, estimated), the scan loop could be tighter
+  - TBPhysAddr finds the bank by subtracting once per bank (up to 8 times)
+
+UI/UX
+
+- use window overlay and scanline interrupts to draw top and bottom lines and prevent flickering when scrolling
+- select text with the d-pad (A + d-pad?) and cut/copy/paste from the on screen keyboard or menu
+- clipboard is limited to 7356 characters (SRAM bank 8), banks 9-15 hold the undo log now (UNDO_BANKS can shrink if the clipboard or the large file piece table need some)
+- undo: keep the history when the power is off, select the restored text after undoing a cut or delete
+- status bar: free space
+- messages swallow the key that dismisses them, maybe time out instead
+- on screen keyboard: hold A to repeat, a way to move the cursor up/down while it's open
 - mouse on the Super Game Boy
+
+File I/O
+
+- large files: an SRAM window over a piece table on the SD card
+  - the document is a list of pieces (source, offset, length), the source is the original file (read only) or an append only scratch file on the card (/.texted.swp)
+  - the gap buffer becomes a window into the document, edits only happen there. Near its edge the window is committed (appended to the scratch file if it was edited) and a new one is loaded around the cursor
+  - positions stay 16 bit, relative to the window, with a 32 bit window_base. A slide rebases cursor, top, anchor and counted_pos
+  - save streams the pieces to name.tmp, then f_unlink the original and f_rename the temp file (needs FF_FS_MINIMIZE 0). Save as skips the rename
+  - long lines: windows start at a line start (scanning back up to a cap), longer lines wrap or cut at the window edge
+  - line numbers: a sparse index of the original file (line feeds per 4KB block) built in the background when idle, "?" until it's done. Also gives Ctrl+G and a fast Ctrl+End
+  - CR LF and dropped 0s mean window positions aren't file offsets: commit the whole window when it's edited at first, later map unchanged runs back to the original (offset = chars + LFs for consistent CR LF files)
+  - a selection can't go past the window (it doesn't slide while selecting), deleting a range bigger than the window can be a piece table operation later
+  - save shows a percentage, a 1MB save could take tens of seconds
+  - the card has to stay in while a big file is open, refuse to write to a swapped card
+  - files that fit in the window keep today's path (one piece, no scratch file, no temp file)
+  - phases: measure speeds (Priority), read only large files with a sliding window, editable piece table + scratch file, background line index, optimizations (dirty range commits, save progress, merging pieces, a bigger window), crash recovery (rebuild from the piece table in SRAM + the scratch file at boot if the original's size and date still match)
+- file browser: sort by name (needs the names in memory), make folders, delete and rename files (FF_FS_MINIMIZE 0, also needed for large files)
+- save as into another folder
+- FatFs cluster math uses the slow _mullong (once per sector read or written)
+- bank_split.py keeps FatFs helpers in ROM0, some could go in a bank behind far calls
+- f_lseek is unused but FF_FS_MINIMIZE can't remove it without removing directory functions (large files will use it)
+
+Peripherals
+
+- holding down the arrow keys should behave the same way as holding the D-Pad
+- PS/2 keyboard is only detected at boot, re-detect when plugged in later
+- iGKB handlers don't send home/end/page/delete keys
+- iGKB (also supports mouse and gamepad), needs Gearboy emulation first
+- WorkBoy keyboard
 - use GB Printer to print text files
-- _GSINIT (static initializers) never runs, C must initialize globals in code
-- C in different files can't call each other unless they share a bank or use BANKED_C stubs (bank_split.py only splits a single file)
 
-Optimization
+Emulator
 
-- buffer tile data, stagger writes to vram
-- utilize remaining HRAM space and RST vectors
-- use halt and stop where appropriate (see https://gbdev.io/pandocs/Reducing_Power_Consumption.html)
-- use HDMA transfers on GBC (see https://gbdev.io/pandocs/CGB_Registers.html#lcd-vram-dma-transfers)
+- Test PS/2 input on the LSDJ rom
+- Test Everdrive emulation on GBSYS/GBOS.BIN (the Everdrive rom)
+- VirtualFat (Gearboy fork) only writes a file back to the host when its first cluster or size changes, so saving over a file with the same size never reaches the host folder (test with SAVE AS to a new name until it's fixed)
+- iGKB emulation (see Peripherals)
+
+Code
+
 - keep ROM0 for code called from several banks (~6KB left)
-  - bank_split.py keeps FatFs helpers in ROM0, some could go in a bank behind far calls
-  - f_lseek is unused but FF_FS_MINIMIZE can't remove it without removing directory functions
   - core.asm should not include core_strings.asm
   - helper routines that don't take any args should use TRAMPOLINE instead
+- utilize remaining HRAM space and RST vectors
 - remove the last few manual ROMX assignments, let linker handle bank management instead
+- _GSINIT (static initializers) never runs, C must initialize globals in code
+- C in different files can't call each other unless they share a bank or use BANKED_C stubs (bank_split.py only splits a single file)
