@@ -52,8 +52,8 @@ stack_bottom:
 SECTION "Buffers", WRAMX[$D000];cmd_buffer must start a page
 _tile_buffer::
 tile_buffer::       DS BUFFER_SIZE
+win_buffer::        DS SCRN_X_B*SCRN_Y_B;20x18 tiles, the editor moves text through it TB_CHUNK bytes at a time, and renders accent ink in it (render_accent)
 bkg_buffer::        DS (TB_ROWS+1)*TB_STRIDE;the editor's row cache (a block's characters), 20x18 tiles for the engine
-win_buffer::        DS SCRN_X_B*SCRN_Y_B;20x18 tiles, the editor moves text through it TB_CHUNK bytes at a time
 _tile_attrs::
 tile_attrs::        DS TB_ROWS*TB_STRIDE;style of each character in tile_buffer's text rows (see TBLex)
 _tb_row_states::
@@ -68,7 +68,8 @@ tb_attr::           DB
 tb_row_head::       DB;heading level of the row TBScanRow scanned
 _tb_lang::          DB;LANG_*, how text is styled
                     DS 3*BUFFER_SIZE - (@ - tile_buffer)
-cmd_buffer::        DS BUFFER_SIZE/2
+cmd_buffer::        DS BUFFER_SIZE/2;the renderer's row bitmap, masks and palettes, then render_dim
+ASSERT LOW(win_buffer) == 0, "render_accent must start a page"
 _str_buffer::
 str_buffer::        DS STR_BUFFER_SIZE
 _name_buffer::

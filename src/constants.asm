@@ -63,10 +63,21 @@ DEF FONT_FIXED EQU 2;4 pixel fixed width, for text
 DEF FONT_H1    EQU 3;markdown headings 1-4: the fixed font 1 pixel taller, stretched with 2 pixel strokes (8, 7, 6, 5 pixel cells)
 DEF FONT_H4    EQU 6
 
-;text styles (TBLex): a byte per character in tile_attrs, its width in the low bits
-DEF STYLE_WIDTH  EQU %00001111;pixels
-DEF STYLE_BOLD   EQU %00010000;ORed 1 pixel right, 1 pixel wider
-DEF STYLE_ITALIC EQU %00100000;top half shifted 1 pixel right
+;text styles (TBLex): a byte per character in tile_attrs, its width in pixels in the low 4 bits
+;and its style in the high 4, StyleLooks has what each style looks like
+DEF STYLE_WIDTH       EQU %00001111
+DEF STYLE_TEXT        EQU 0
+DEF STYLE_BOLD        EQU 1
+DEF STYLE_ITALIC      EQU 2
+DEF STYLE_BOLD_ITALIC EQU 3
+DEF STYLE_MARK        EQU 4;markdown markers (#, *, _, `)
+DEF STYLE_CODE        EQU 5;`code`
+DEF STYLE_HEAD        EQU 6;headings 1-4 (their fonts are bold)
+DEF STYLE_HEAD_BOLD   EQU 7;headings 5 and 6
+DEF LOOK_BOLD   EQU %00000001;ORed 1 pixel right (stretched in the fixed font), wider
+DEF LOOK_ITALIC EQU %00000010;top half shifted 1 pixel right
+DEF LOOK_DIM    EQU %00000100;dim ink: dark grey on DMG, color 2 on SGB and GBC
+DEF LOOK_ACCENT EQU %00001000;GBC: accent ink, color 1 of the palette in bits 4-6
 DEF LANG_PLAIN   EQU 0;how text is styled, from the file name's extension
 DEF LANG_MD      EQU 1
 DEF PATH_SIZE    EQU 128;the open file's folder (file_dir)

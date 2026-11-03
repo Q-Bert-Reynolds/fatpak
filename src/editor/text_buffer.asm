@@ -1169,6 +1169,19 @@ DEF MD_PREV_SPACE EQU 7;the last char was a space, or the line just started
 DEF MD_HEADING    EQU %00000111;state byte 1: heading level
 DEF MD_MARK_WORD  EQU 3;the char before the marker was a letter or digit
 DEF MD_MARK_SPACE EQU 4;it was a space
+DEF MD_HASHES     EQU 5;in a heading's #s
+
+;what each style looks like: LOOK_* bits, the GBC accent palette in bits 4-6 (see EditorPalettes)
+StyleLooks:
+  DB 0;STYLE_TEXT
+  DB LOOK_BOLD
+  DB LOOK_ITALIC
+  DB LOOK_BOLD | LOOK_ITALIC
+  DB LOOK_DIM;STYLE_MARK
+  DB LOOK_ACCENT | 2 << 4;STYLE_CODE, red
+  DB LOOK_ACCENT | 1 << 4;STYLE_HEAD, blue
+  DB LOOK_BOLD | LOOK_ACCENT | 1 << 4;STYLE_HEAD_BOLD
+  DS 8, 0
 
 ;the state at the start of a line, only affects a
 TBResetState:
@@ -1219,7 +1232,16 @@ TBLex:
   ld l, a
   ld a, [hl]
 .bold
-  bit 4, b;STYLE_BOLD
+  ld c, a
+  ld a, b
+  swap a
+  add a, LOW(StyleLooks)
+  ld l, a
+  ld a, HIGH(StyleLooks)
+  adc a, 0
+  ld h, a
+  bit 0, [hl];LOOK_BOLD
+  ld a, c
   jr z, .setAttr
   ld hl, font_bold
   add a, [hl]
@@ -1231,7 +1253,7 @@ TBLex:
   pop bc
   ret
 
-;c = char, hl and de at it, updates tb_next_state, returns its style bits in b, affects a, hl
+;c = char, hl and de at it, updates tb_next_state, returns its style << 4 in b, affects a, hl
 TBLexMD:
   ld a, c
   cp a, ASCII_LF
@@ -1254,13 +1276,30 @@ TBLexMD:
   ld [tb_row_head], a
   ld b, a
   ld a, [tb_next_state+1]
-  and a, ~MD_HEADING
+  and a, ~(MD_HEADING | 1 << MD_HASHES)
   or a, b
+  inc b
+  dec b
+  jr z, .setHeading
+  set MD_HASHES, a
+.setHeading
   ld [tb_next_state+1], a
 .pending
   push de
-  ld d, 0;bit 0: toggle bold after this char, bit 2: toggle code
-  ld hl, tb_next_state
+  ld de, 0;d bit 0: toggle bold after this char, bit 2: toggle code, e = 1: it's a marker
+  ld hl, tb_next_state+1
+  bit MD_HASHES, [hl]
+  jr z, .notHashes
+  ld a, c
+  cp a, '#'
+  jr nz, .endHashes
+  dec hl
+  inc e
+  jr .style
+.endHashes
+  res MD_HASHES, [hl]
+.notHashes
+  dec hl
   bit MD_MARK, [hl]
   jr z, .code
   res MD_MARK, [hl]
@@ -1269,7 +1308,7 @@ TBLexMD:
   ld a, c
   cp a, '*'
   jr nz, .resolve
-  ld d, 1;**
+  ld de, $0101;**
   jr .style
 .resolve;a lone * or _ opens italic before a non space if it isn't in a word, closes it after a non space if a word doesn't follow
   call TBIsWord
@@ -1296,6 +1335,7 @@ TBLexMD:
   cp a, '`'
   jr nz, .notTick
   set 2, d
+  inc e
   jr .style
 .notTick
   bit MD_CODE, [hl]
@@ -1305,9 +1345,20 @@ TBLexMD:
   cp a, '_'
   jr nz, .style
   res MD_STAR, [hl]
-  jr .mark
+  jr .isMark
 .star
   set MD_STAR, [hl]
+  bit MD_BOLD, [hl]
+  jr nz, .marker;closing **
+.isMark;dimmed if it can open italic (not in a word) or close it (italic, after a non space)
+  bit MD_PREV_WORD, [hl]
+  jr z, .marker
+  bit MD_ITALIC, [hl]
+  jr z, .mark
+  bit MD_PREV_SPACE, [hl]
+  jr nz, .mark
+.marker
+  inc e
 .mark
   set MD_MARK, [hl]
   inc hl
@@ -1327,20 +1378,30 @@ TBLexMD:
   dec hl
 
 .style;from the state before the toggles
-  ld b, 0
-  bit MD_BOLD, [hl]
-  jr nz, .setBold
+  ld b, STYLE_MARK << 4
+  dec e
+  jr z, .toggles
+  ld b, STYLE_CODE << 4
+  bit MD_CODE, [hl]
+  jr nz, .toggles
   inc hl
   ld a, [hld]
   and a, MD_HEADING
-  cp a, 5;headings 5 and 6 are bold, 1-4 have bold fonts
-  jr c, .italic
-.setBold
-  ld b, STYLE_BOLD
+  jr z, .text
+  ld b, STYLE_HEAD << 4;headings 1-4 have bold fonts
+  cp a, 5
+  jr c, .toggles
+  ld b, STYLE_HEAD_BOLD << 4
+  jr .toggles
+.text
+  ld b, 0
+  bit MD_BOLD, [hl]
+  jr z, .italic
+  ld b, STYLE_BOLD << 4
 .italic
   bit MD_ITALIC, [hl]
   jr z, .toggles
-  set 5, b;STYLE_ITALIC
+  set 5, b;STYLE_ITALIC << 4
 .toggles
   ld a, d
   and a, 1 << MD_BOLD | 1 << MD_CODE

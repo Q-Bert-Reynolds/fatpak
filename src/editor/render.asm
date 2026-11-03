@@ -17,8 +17,12 @@
 ;A box (menus) can be drawn over rows: render_box_* set its screen rows, pixel x and width, and
 ;its text, BOX_STRIDE chars per line in the variable width font, the selected row is highlighted.
 ;Its first and last rows are half rows with the top and bottom border, text goes in the rows between.
-;Text is color 3 on color 0. Selected pixels use color 2 on color 1 (bitplane 0 is inverted),
-;which the palettes set up in EditorSetup show as inverted on DMG and highlighted on GBC and SGB.
+;Glyphs are drawn into render_bitmap (ink), and also into render_dim or render_accent (GBC) for text
+;whose style (StyleLooks) has dim or accent ink. RenderEncode makes the 2bpp tiles: ink is color 3 on
+;color 0, dim ink color 2, accent ink color 1. DMG inverts selected pixels (both bitplanes, dim ink
+;turns light grey), SGB and GBC highlight them: unselected pixels get color 1 and accent ink becomes
+;color 3. On GBC a tile with accent ink uses the accent's palette (written to the map attributes with
+;the row, RenderWritePalettes), selected tiles palette 0. See EditorSetPalettes.
 ;
 ;C functions (src/editor/editor.h)
 ;   SetFont                     a = font, sets _font_widths and redraws rows using it
@@ -49,6 +53,11 @@ render_styled: DB;1 = a text row, widths and styles come from tile_attrs
 render_attr: DB;style of the char RenderGlyph draws
 render_head: DB;heading font: 1-4, 0 = none
 font_bold:: DB;pixels bold adds to the current font's glyphs
+render_look: DB;StyleLooks of the char RenderGlyph draws
+render_inked: DB;bit 0: render_dim is used in this row, bit 1: render_accent
+render_highlight: DB;1 on SGB and GBC: selected pixels are highlighted, not inverted
+block_map_rows: DS RENDER_BLOCKS;GBC: map row each block is shown in, $FF = none
+block_accents: DS RENDER_BLOCKS;GBC: the block's map row has accent palettes
 _render_text:: DB;1 = rows below tb_rows are TBScanRow's text (styled by tile_attrs), 0 = the file browser and help draw their own
 render_x: DB
 render_w: DB
@@ -99,7 +108,10 @@ block_box: DS RENDER_BLOCKS;RenderBoxSig each block was drawn with
 DEF render_bitmap EQUS "cmd_buffer";160 bytes, 20 tiles of 8 lines (1bpp), must start a page
 DEF render_mask EQUS "(cmd_buffer+TB_WIDTH)";selected pixels of each tile, in the same page
 DEF render_box_mask EQUS "(cmd_buffer+TB_WIDTH+TB_COLS)";the box's pixels of each tile
-DEF RENDER_BURST EQU 4;bytes written to VRAM per HBlank (8 writes)
+DEF render_pals EQUS "(cmd_buffer+TB_WIDTH+TB_COLS*2)";GBC: accent palette of each tile, in the same page
+DEF render_dim EQUS "(cmd_buffer+$100)";pixels of dim ink, the page after render_bitmap
+DEF render_accent EQUS "win_buffer";GBC: pixels of accent ink (win_buffer is only used between renders)
+DEF RENDER_BURST EQU 8;bytes written to VRAM per HBlank
 
 SECTION "Render ROM0", ROM0
 
@@ -602,6 +614,21 @@ StageEvent:
   ret
 
 _RenderSetMapRow::;a = BG map row, e = block
+  ld hl, block_map_rows
+  ld d, 0
+  add hl, de
+  ld [hl], a
+  ld hl, block_accents;the new map row's attributes have no accent palettes, draw it again
+  add hl, de
+  ld b, [hl]
+  ld [hl], d
+  inc b
+  dec b
+  jr z, .mapRow
+  ld hl, row_font
+  add hl, de
+  ld [hl], $FF
+.mapRow
   push af
   push de
   call RenderWaitDMA;VBK stays put while a row is transferred
@@ -682,6 +709,22 @@ RenderSetup::
   ld a, 1
 .setGBC
   ld [_render_gbc], a
+  ld b, a
+  ldh a, [sys_info]
+  and a, SYS_INFO_SGB
+  or a, b
+  jr z, .setHighlight
+  ld a, 1
+.setHighlight
+  ld [render_highlight], a
+  ld a, $FF
+  ld hl, block_map_rows
+  ld bc, RENDER_BLOCKS
+  call mem_Set
+  xor a
+  ld hl, block_accents
+  ld bc, RENDER_BLOCKS
+  call mem_Set
   xor a
   ld hl, _VRAM8000
   ld bc, $1800
@@ -790,7 +833,7 @@ RenderStretch:;page aligned
   DB $00,$08,$10,$18,$60,$68,$70,$78,$80,$88,$90,$98,$E0,$E8,$F0,$F8
 ASSERT LOW(RenderStretch) == 0
 
-;bc = glyph, returns the glyph styled by [render_attr] and [render_head] in bc (render_glyph if it
+;bc = glyph, returns the glyph styled by [render_look] and [render_head] in bc (render_glyph if it
 ;changed): headings are stretched and 1 pixel taller (row 3 twice, row 0 dropped unless it has an accent),
 ;bold is ORed 1 pixel right (stretched in the fixed font), italic shifts the top 4 rows 1 pixel right
 RenderStyleGlyph:
@@ -799,10 +842,10 @@ RenderStyleGlyph:
   ld a, [render_head]
   and a
   jr nz, .heading
-  ld a, [render_attr]
-  and a, STYLE_BOLD | STYLE_ITALIC
+  ld a, [render_look]
+  and a, LOOK_BOLD | LOOK_ITALIC
   ret z
-  and a, STYLE_BOLD
+  and a, LOOK_BOLD
   jr z, .plain
   ld a, [render_row_font]
   cp a, FONT_FIXED
@@ -856,9 +899,9 @@ ENDR
   ld hl, render_glyph
   ld a, [render_row_font]
   cp a, FONT_FIXED
-  ld a, [render_attr]
+  ld a, [render_look]
   jr z, .italic;stretched instead
-  bit 4, a;STYLE_BOLD
+  bit 0, a;LOOK_BOLD
   jr z, .italic
   ld c, 8
 .bold
@@ -870,9 +913,9 @@ ENDR
     dec c
     jr nz, .bold
   ld hl, render_glyph
-  ld a, [render_attr]
+  ld a, [render_look]
 .italic
-  bit 5, a;STYLE_ITALIC
+  bit 1, a;LOOK_ITALIC
   jr z, .done
   ld c, 4
 .slant
@@ -1071,6 +1114,11 @@ RenderRow:
   ld hl, render_bitmap
   ld bc, TB_WIDTH
   call mem_Set
+  xor a
+  ld [render_inked], a
+  ld hl, render_pals
+  ld bc, TB_COLS
+  call mem_Set
 
   ld hl, FontMonoGlyphs
   ld de, FontMonoWidths
@@ -1120,6 +1168,15 @@ RenderRow:
     add hl, de
     ld a, [hl]
     ld [render_attr], a
+    swap a
+    and a, $0F
+    add a, LOW(StyleLooks)
+    ld l, a
+    ld a, HIGH(StyleLooks)
+    adc a, 0
+    ld h, a
+    ld a, [hl]
+    ld [render_look], a
     ld a, c
     push bc
     call RenderGlyph
@@ -1127,8 +1184,10 @@ RenderRow:
     dec b
     jr nz, .char
 
-.toVRAM;bitplane 1 is the 1bpp byte, bitplane 0 is it XOR the tile's mask
+.toVRAM
   call RenderBox
+  call RenderWaitDMA;GBC: the last row's transfer reads render_dma_buffer
+  call RenderEncode
   ld a, [_render_gbc]
   and a
   jp nz, RenderRowDMA
@@ -1141,19 +1200,9 @@ RenderRow:
   ld a, [hli]
   ld e, a
   ld d, [hl]
-  ld hl, render_bitmap
-  ld c, TB_WIDTH/RENDER_BURST
+  ld hl, render_dma_buffer
+  ld c, TB_WIDTH*2/RENDER_BURST
 .burst
-    push hl
-    ld a, l
-    rrca
-    rrca
-    rrca
-    and a, %00011111;tile
-    add a, LOW(render_mask)
-    ld l, a
-    ld b, [hl]
-    pop hl
     ldh a, [rLY]
     cp a, SCRN_Y
     jr c, .waitForHBlank
@@ -1171,10 +1220,6 @@ RenderRow:
     di
 REPT RENDER_BURST;40 cycles, tiles are 16 byte aligned so a burst never crosses a page
     ld a, [hli]
-    xor a, b
-    ld [de], a
-    inc e
-    xor a, b
     ld [de], a
     inc e
 ENDR
@@ -1188,36 +1233,10 @@ ENDR
     jr nz, .burst
   ret
 
-;GBC: builds the row's tiles in render_dma_buffer (bitplane 0 is the 1bpp byte XOR the tile's mask,
-;bitplane 1 the byte) and starts an HBlank DMA to the block, which runs while the CPU carries on
-;(VBK stays on the block's bank until it's done, see RenderWaitDMA)
+;GBC: writes the row's palettes, starts an HBlank DMA of render_dma_buffer to the block, which runs
+;while the CPU carries on (VBK stays on the block's bank until it's done, see RenderWaitDMA)
 RenderRowDMA:
-  call RenderWaitDMA
-  ld hl, render_mask
-  ld de, render_dma_buffer
-  ld bc, render_bitmap
-  ld a, TB_COLS
-.tile
-    push af
-    ld a, [hli];mask
-    push hl
-    ld h, a
-    ld l, 8
-  .line
-      ld a, [bc]
-      inc bc
-      xor a, h
-      ld [de], a
-      inc de
-      xor a, h
-      ld [de], a
-      inc de
-      dec l
-      jr nz, .line
-    pop hl
-    pop af
-    dec a
-    jr nz, .tile
+  call RenderWritePalettes
   ld a, [render_block]
   ld e, a
   cp a, GBC_BANK1_BLOCK
@@ -1436,9 +1455,20 @@ RenderBox:
   ld [render_sel_end_x], a
   ld hl, render_box_mask
   call RenderMask
+  ld h, HIGH(render_bitmap)
+  call .clear
+  ld a, [render_inked]
+  bit 0, a
+  ld h, HIGH(render_dim)
+  call nz, .clear
+  ld a, [render_inked]
+  bit 1, a
+  ld h, HIGH(render_accent)
+  call nz, .clear
+  jr .cleared
+.clear;h = plane's page, clears the box's pixels
   ld a, [render_box_y]
   ld l, a
-  ld h, HIGH(render_bitmap)
   ld de, render_box_mask
   ld c, TB_COLS
 .clearTile
@@ -1463,6 +1493,8 @@ RenderBox:
     pop de
     dec c
     jr nz, .clearTile
+  ret
+.cleared
   ld a, [render_box_h]
   cp a, 8
   jr nz, .border;half rows don't have text
@@ -1619,11 +1651,45 @@ RenderGlyph:
   ld a, [render_styled]
   and a
   call nz, RenderStyleGlyph
-  ld a, [render_x]
-  and a, %11111000;tile * 8
-  add a, LOW(render_bitmap)
-  ld e, a
+  push bc
   ld d, HIGH(render_bitmap)
+  call RenderGlyphPlane
+  pop bc
+  ld a, [render_styled]
+  and a
+  jr z, .advance
+  ld a, [render_look]
+  bit 2, a;LOOK_DIM
+  jr z, .accent
+  ld a, 1
+  ld d, HIGH(render_dim)
+  call RenderUsePlane
+  call RenderGlyphPlane
+  jr .advance
+.accent
+  bit 3, a;LOOK_ACCENT
+  jr z, .advance
+  ld a, [_render_gbc]
+  and a
+  jr z, .advance;the ink on DMG and SGB
+  ld a, 2
+  ld d, HIGH(render_accent)
+  call RenderUsePlane
+  call RenderGlyphPlane
+  call RenderSetPalettes
+.advance
+  ld a, [render_x]
+  ld b, a
+  ld a, [render_w]
+  add a, b
+  ld [render_x], a
+  ret
+
+;bc = glyph, d = plane's page, ORs the glyph into the plane at [render_x], affects a, bc, e, hl
+RenderGlyphPlane:
+  ld a, [render_x]
+  and a, %11111000;tile * 8, planes start a page
+  ld e, a
   ld a, [render_x]
   and a, %00000111
   add a, HIGH(RenderShiftRight)
@@ -1650,7 +1716,7 @@ REPT 8;glyph line spans this tile and the next
   sub a, 7
   ld e, a
 ENDR
-  jr .advance
+  ret
 .lastTile
 REPT 8
   ld a, [bc]
@@ -1661,10 +1727,288 @@ REPT 8
   ld [de], a
   inc e
 ENDR
-.advance
-  ld a, [render_x]
-  ld b, a
+  ret
+
+;a = render_inked bit, d = the plane's page, clears the plane the first time a row uses it,
+;preserves bc, d
+RenderUsePlane:
+  ld hl, render_inked
+  ld e, a
+  and a, [hl]
+  ret nz
+  ld a, e
+  or a, [hl]
+  ld [hl], a
+  ld h, d
+  ld l, 0
+  xor a
+  ld e, TB_WIDTH
+.clear
+    ld [hli], a
+    dec e
+    jr nz, .clear
+  ret
+
+;GBC: tiles the char at [render_x] covers use its accent's palette
+RenderSetPalettes:
   ld a, [render_w]
+  and a
+  ret z
+  ld b, a
+  ld a, [render_x]
+  ld c, a
   add a, b
-  ld [render_x], a
+  dec a
+  cp a, TB_WIDTH
+  jr c, .lastTile
+  ld a, TB_WIDTH-1
+.lastTile
+  rrca
+  rrca
+  rrca
+  and a, %00011111
+  ld e, a
+  ld a, c
+  rrca
+  rrca
+  rrca
+  and a, %00011111
+  ld d, a
+  add a, LOW(render_pals)
+  ld l, a
+  ld h, HIGH(render_pals)
+  ld a, [render_look]
+  swap a
+  and a, %00000111
+  ld b, a
+.set
+    ld [hl], b
+    ld a, d
+    cp a, e
+    ret nc
+    inc d
+    inc l
+    jr .set
+
+;makes the row's 2bpp tiles in render_dma_buffer from render_bitmap (ink), render_dim, render_accent
+;and render_mask (selected pixels), see the top of this file
+RenderEncode:
+  ld a, [render_inked]
+  and a
+  jr z, .plain
+  ld a, 1;the general case reads both planes
+  ld d, HIGH(render_dim)
+  call RenderUsePlane
+  ld a, 2
+  ld d, HIGH(render_accent)
+  call RenderUsePlane
+  ld de, render_dma_buffer
+  ld l, 0
+.tile
+    call .mask
+    and a
+    jr z, .clear
+    ld a, [render_highlight]
+    and a
+    jr nz, .selected
+  .inverted;DMG: bitplane 0 = (ink & ~dim) ^ mask, bitplane 1 = ink ^ mask
+      ld h, HIGH(render_bitmap)
+      ld a, [hl]
+      ld c, a
+      inc h
+      ld a, [hl]
+      cpl
+      and a, c
+      xor a, b
+      ld [de], a
+      inc de
+      ld a, c
+      xor a, b
+      ld [de], a
+      inc de
+      inc l
+      ld a, l
+      and a, 7
+      jr nz, .inverted
+    jr .next
+  .selected;bitplane 0 = (ink & ~dim) | (mask & ~ink), bitplane 1 = ink (accent ink is ink)
+      ld h, HIGH(render_bitmap)
+      ld a, [hl]
+      ld c, a
+      inc h
+      ld a, [hl]
+      cpl
+      and a, c
+      ld h, a
+      ld a, c
+      cpl
+      and a, b
+      or a, h
+      ld [de], a
+      inc de
+      ld a, c
+      ld [de], a
+      inc de
+      inc l
+      ld a, l
+      and a, 7
+      jr nz, .selected
+    jr .next
+  .clear;bitplane 0 = ink & ~dim, bitplane 1 = ink & ~accent
+      ld h, HIGH(render_bitmap)
+      ld a, [hl]
+      ld c, a
+      inc h
+      ld a, [hl]
+      cpl
+      and a, c
+      ld [de], a
+      inc de
+      ld h, HIGH(render_accent)
+      ld a, [hl]
+      cpl
+      and a, c
+      ld [de], a
+      inc de
+      inc l
+      ld a, l
+      and a, 7
+      jr nz, .clear
+  .next
+    ld a, l
+    cp a, TB_WIDTH
+    jr c, .tile
+  ret
+
+.plain;only ink, both bitplanes start as the ink
+  ld de, render_dma_buffer
+  ld l, 0
+.plainTile
+    call .mask
+    ld h, HIGH(render_bitmap)
+    and a
+    jr z, .plainClear
+    ld a, [render_highlight]
+    and a
+    jr nz, .plainSelected
+  .plainInverted
+      ld a, [hli]
+      xor a, b
+      ld [de], a
+      inc de
+      ld [de], a
+      inc de
+      ld a, l
+      and a, 7
+      jr nz, .plainInverted
+    jr .plainNext
+  .plainSelected
+      ld a, [hli]
+      ld c, a
+      or a, b
+      ld [de], a
+      inc de
+      ld a, c
+      ld [de], a
+      inc de
+      ld a, l
+      and a, 7
+      jr nz, .plainSelected
+    jr .plainNext
+  .plainClear
+      ld a, [hli]
+      ld [de], a
+      inc de
+      ld [de], a
+      inc de
+      ld a, l
+      and a, 7
+      jr nz, .plainClear
+  .plainNext
+    ld a, l
+    cp a, TB_WIDTH
+    jr c, .plainTile
+  ret
+
+.mask;l = byte in render_bitmap, returns the tile's mask in a and b, affects h
+  ld a, l
+  rrca
+  rrca
+  rrca
+  and a, %00011111
+  add a, LOW(render_mask)
+  push hl
+  ld l, a
+  ld h, HIGH(render_mask)
+  ld a, [hl]
+  pop hl
+  ld b, a
+  ret
+
+;GBC: writes the palette of each of the row's tiles (its accent's, 0 if it has selected pixels) to
+;its map row's attributes, if it or the block's last row used accents
+RenderWritePalettes:
+  ld a, [render_block]
+  ld c, a
+  ld b, 0
+  ld hl, block_accents
+  add hl, bc
+  ld a, [render_inked]
+  and a, 2
+  ld d, a
+  or a, [hl]
+  ld [hl], d
+  ret z
+  ld hl, block_map_rows
+  add hl, bc
+  ld a, [hl]
+  cp a, $FF
+  ret z
+  push af
+  ld a, c
+  cp a, GBC_BANK1_BLOCK
+  ld e, 0
+  jr c, .bank
+  ld e, %00001000
+.bank
+  ld bc, render_mask
+  ld hl, render_map_row
+  ld d, TB_COLS
+.attribute
+    ld a, [bc]
+    and a
+    ld a, e
+    jr nz, .setAttribute
+    push hl
+    ld a, c
+    add a, render_pals - render_mask
+    ld l, a
+    ld h, b
+    ld a, [hl]
+    or a, e
+    pop hl
+  .setAttribute
+    ld [hli], a
+    inc c
+    dec d
+    jr nz, .attribute
+  pop af
+  ld l, a
+  ld h, 0
+  add hl, hl
+  add hl, hl
+  add hl, hl
+  add hl, hl
+  add hl, hl;row * SCRN_VX_B
+  ld de, _SCRN0
+  add hl, de
+  ld d, h
+  ld e, l
+  ld a, 1
+  ldh [rVBK], a
+  ld hl, render_map_row
+  ld bc, TB_COLS
+  call mem_CopyVRAM
+  xor a
+  ldh [rVBK], a
   ret

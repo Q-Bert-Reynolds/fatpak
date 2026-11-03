@@ -25,8 +25,8 @@ Text Rendering
   - file type from the extension (.md, .c/.h, .asm/.inc), plain otherwise, kept with the settings
   - markdown markers (#, **, _, `) stay visible, dimmed
   - done: lexer and styled widths (TBLex, tile_attrs), file type (.md), headings 1-4 as stretched fonts, H5/H6 bold, **bold**, *italic*/_italic_
-  - left from phase 1/2: `code` has no look yet (phase 3 inks), ``` fences and the 1KB checkpoints (TBSyncState scans from the line's start, a long paragraph is rescanned on each full render), hand drawn heading fonts if the stretched ones don't hold up, ScrollX estimates widths (heading widths, bold not counted)
-  - phase 3, inks: a second bitmap per row marks dim pixels (bitplane 0 cleared). DMG/SGB: dark grey for comments and markers. GBC: a second bitplane in cmd_buffer's free page gives 3 inks (default, dim, accent) plus a palette per tile (written with the row and when a block moves to another map row). Selected tiles use a selection palette, the two partly selected tiles of a row fall back to today's 4 color scheme
+  - done: dim and accent inks (dim markers on every model, GBC accent palettes per tile, highlight selection on SGB and GBC)
+  - left from phases 1-3: ``` fences and the 1KB checkpoints (TBSyncState scans from the line's start, a long paragraph is rescanned on each full render), hand drawn heading fonts if the stretched ones don't hold up, ScrollX estimates widths (heading widths, bold not counted), SGB untested (same encoding as GBC without accents)
   - phase 4, C and asm lexers: comments, strings, numbers, preprocessor/directives, labels, keywords/instructions/registers from tables a python script generates into a ROMX bank (looked up when an identifier ends). Keywords are bold on every model, comments dark grey on DMG/SGB, tokens colored on GBC
   - GBC theme for now: white paper, near black text, grey-green comments and markers, blue keywords/instructions, dark red strings/chars, purple numbers, brown-orange preprocessor/directives/labels
   - later: SGB colors (ATTR_CHR, 4 palettes, 8px cells, resent on scroll), UI and syntax colors in the settings (with an inverted theme)

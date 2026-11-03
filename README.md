@@ -35,7 +35,8 @@ file's folder. CR LF line endings are kept.
 Ctrl+F (or FONT in the menu) switches between the fixed width font (the default) and the variable width font.
 Markdown files (.md) are styled: a line starting with # to #### and a space is a heading in a wider,
 taller, bold font (8, 7, 6 and 5 pixels a character), ##### and ###### are bold, **bold** and *italic*
-or _italic_ (not inside a word) are drawn bold and slanted. The markers stay visible.
+or _italic_ (not inside a word) are drawn bold and slanted, `code` is red on GBC. The markers stay visible,
+dimmed (dark grey on DMG). Headings are blue on GBC.
 Alt+Z (or LINE WRAP) turns line wrapping off and on. Without it each line is one row, and the text scrolls
 sideways to keep the cursor on screen.
 The font, line wrapping and full screen settings are kept in SRAM with the text, and so are the open file's
