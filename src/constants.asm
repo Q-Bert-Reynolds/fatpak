@@ -74,12 +74,21 @@ DEF STYLE_MARK        EQU 4;markdown markers (#, *, _, `)
 DEF STYLE_CODE        EQU 5;`code`
 DEF STYLE_HEAD        EQU 6;headings 1-4 (their fonts are bold)
 DEF STYLE_HEAD_BOLD   EQU 7;headings 5 and 6
+DEF STYLE_COMMENT     EQU 8;code (TBLexCode)
+DEF STYLE_KEYWORD     EQU 9;C keywords, asm instructions
+DEF STYLE_TYPE        EQU 10;C types, asm registers and conditions
+DEF STYLE_STRING      EQU 11;strings and chars
+DEF STYLE_NUMBER      EQU 12;numbers and constants
+DEF STYLE_PREPROC     EQU 13;C preprocessor, asm directives
+DEF STYLE_LABEL       EQU 14;asm labels
 DEF LOOK_BOLD   EQU %00000001;ORed 1 pixel right (stretched in the fixed font), wider
 DEF LOOK_ITALIC EQU %00000010;top half shifted 1 pixel right
 DEF LOOK_DIM    EQU %00000100;dim ink: dark grey on DMG, color 2 on SGB and GBC
 DEF LOOK_ACCENT EQU %00001000;GBC: accent ink, color 1 of the palette in bits 4-6
 DEF LANG_PLAIN   EQU 0;how text is styled, from the file name's extension
 DEF LANG_MD      EQU 1
+DEF LANG_C       EQU 2;.c, .h
+DEF LANG_ASM     EQU 3;.asm, .inc, .s (RGBDS)
 DEF PATH_SIZE    EQU 128;the open file's folder (file_dir)
 DEF FS_NAME_SIZE EQU 65;src/fatfs/file_api.h
 

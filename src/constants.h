@@ -66,12 +66,32 @@
 #define FONT_H1    3//markdown headings 1-4: the fixed font 1 pixel taller, stretched with 2 pixel strokes (8, 7, 6, 5 pixel cells)
 #define FONT_H4    6
 
-//text styles (TBLex): a byte per character in tile_attrs, its width in the low bits
-#define STYLE_WIDTH  0b00001111//pixels
-#define STYLE_BOLD   0b00010000//ORed 1 pixel right, 1 pixel wider
-#define STYLE_ITALIC 0b00100000//top half shifted 1 pixel right
+//text styles (TBLex): a byte per character in tile_attrs, its width in pixels in the low 4 bits
+//and its style in the high 4, StyleLooks has what each style looks like
+#define STYLE_WIDTH       0b00001111
+#define STYLE_TEXT        0
+#define STYLE_BOLD        1
+#define STYLE_ITALIC      2
+#define STYLE_BOLD_ITALIC 3
+#define STYLE_MARK        4//markdown markers (#, *, _, `)
+#define STYLE_CODE        5//`code`
+#define STYLE_HEAD        6//headings 1-4 (their fonts are bold)
+#define STYLE_HEAD_BOLD   7//headings 5 and 6
+#define STYLE_COMMENT     8//code (TBLexCode)
+#define STYLE_KEYWORD     9//C keywords, asm instructions
+#define STYLE_TYPE        10//C types, asm registers and conditions
+#define STYLE_STRING      11//strings and chars
+#define STYLE_NUMBER      12//numbers and constants
+#define STYLE_PREPROC     13//C preprocessor, asm directives
+#define STYLE_LABEL       14//asm labels
+#define LOOK_BOLD   0b00000001//ORed 1 pixel right (stretched in the fixed font), wider
+#define LOOK_ITALIC 0b00000010//top half shifted 1 pixel right
+#define LOOK_DIM    0b00000100//dim ink: dark grey on DMG, color 2 on SGB and GBC
+#define LOOK_ACCENT 0b00001000//GBC: accent ink, color 1 of the palette in bits 4-6
 #define LANG_PLAIN   0//how text is styled, from the file name's extension
 #define LANG_MD      1
+#define LANG_C       2//.c, .h
+#define LANG_ASM     3//.asm, .inc, .s (RGBDS)
 #define PATH_SIZE    128//the open file's folder (file_dir)
 #define FS_NAME_SIZE 65//src/fatfs/file_api.h
 

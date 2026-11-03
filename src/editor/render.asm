@@ -56,7 +56,8 @@ font_bold:: DB;pixels bold adds to the current font's glyphs
 render_look: DB;StyleLooks of the char RenderGlyph draws
 render_inked: DB;bit 0: render_dim is used in this row, bit 1: render_accent
 render_highlight: DB;1 on SGB and GBC: selected pixels are highlighted, not inverted
-block_map_rows: DS RENDER_BLOCKS;GBC: map row each block is shown in, $FF = none
+_block_map_rows::
+block_map_rows: DS RENDER_BLOCKS;map row each block is shown in, $FF = none (used for GBC attributes)
 block_accents: DS RENDER_BLOCKS;GBC: the block's map row has accent palettes
 _render_text:: DB;1 = rows below tb_rows are TBScanRow's text (styled by tile_attrs), 0 = the file browser and help draw their own
 render_x: DB
@@ -1028,7 +1029,7 @@ RenderRow:
   cp a, [hl]
   ld [hl], a
   pop de
-  jr z, .checkFont
+  jr z, .checkState
   ld hl, row_font
   add hl, bc
   ld [hl], $FF

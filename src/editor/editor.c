@@ -223,7 +223,7 @@ static void Layout(void) {
     }
     render_row_blocks[row] = block;
     render_row_lines[row] = line;
-    if (map_blocks[map_row] != block) {
+    if (map_blocks[map_row] != block || block_map_rows[block] != map_row) { // a block can still be listed in a map row it left
       map_blocks[map_row] = block;
       RenderSetMapRow(map_row, block);
     }
@@ -1000,13 +1000,21 @@ static unsigned char CanDiscard(void) {
 }
 
 // styles the text by file_name's extension: markdown for .md
+// extensions and the LANG_* they style as, lowercase
+static const char * const lang_exts[] = { "md", "c", "h", "asm", "inc", "s" };
+static const unsigned char lang_ids[] = { LANG_MD, LANG_C, LANG_C, LANG_ASM, LANG_ASM, LANG_ASM };
+
 static void SetLang(void) {
-  char *c, *dot = 0;
-  unsigned char lang = LANG_PLAIN;
+  const char *c, *dot = 0, *e;
+  unsigned char lang = LANG_PLAIN, i;
   for (c = file_name; *c; ++c) if (*c == '.') dot = c;
-  if (dot && (dot[1] | 0x20) == 'm' && (dot[2] | 0x20) == 'd' && !dot[3]) lang = LANG_MD;
+  if (dot) for (i = 0; i < sizeof(lang_ids); ++i) {
+    for (c = dot + 1, e = lang_exts[i]; *e && (*c | 0x20) == *e; ++c, ++e);
+    if (!*c && !*e) lang = lang_ids[i];
+  }
   if (lang == tb_lang) return;
   tb_lang = lang;
+  for (i = 0; i <= TB_ROWS; ++i) tb_row_states[i] = 0; // no markdown headings left in them
   EditorRedraw();
   dirty = 1;
 }

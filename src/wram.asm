@@ -67,6 +67,14 @@ tb_sync_end::       DS 2
 tb_attr::           DB
 tb_row_head::       DB;heading level of the row TBScanRow scanned
 _tb_lang::          DB;LANG_*, how text is styled
+tb_lex_pos::        DW;the char TBLexCode is at
+tb_word::           DS KEYWORD_MAX;the word TBPeekWord looks up
+tb_word_len::       DB
+tb_checks::         DS 64;C comment state every 1KB (TBCheckState)
+tb_checks_last::    DB
+tb_check_end::      DW
+tb_check_pos::      DW
+tb_check_state::    DB
                     DS 3*BUFFER_SIZE - (@ - tile_buffer)
 cmd_buffer::        DS BUFFER_SIZE/2;the renderer's row bitmap, masks and palettes, then render_dim
 ASSERT LOW(win_buffer) == 0, "render_accent must start a page"

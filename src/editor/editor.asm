@@ -1,6 +1,7 @@
 INCLUDE "src/text_editor.inc"
 
 INCLUDE "src/editor/text_buffer.asm"
+INCLUDE "src/editor/keywords.asm"
 INCLUDE "src/editor/osk.asm"
 INCLUDE "src/editor/render.asm"
 INCLUDE "src/editor/sd.asm"

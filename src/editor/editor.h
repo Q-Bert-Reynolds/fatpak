@@ -25,6 +25,7 @@ extern void EditorDraw(void); // draws screen rows whose characters, font or sel
 extern void EditorRedraw(void); // redraw every row next EditorDraw
 extern unsigned char RenderCursorX(unsigned char col); // x of col in tb_found_row
 extern void RenderSetMapRow(unsigned char map_row, unsigned char block);
+extern unsigned char block_map_rows[]; // map row each block was last set to (RenderSetMapRow)
 extern unsigned char render_row_blocks[TB_ROWS]; // block each screen row draws into
 extern unsigned char render_row_lines[TB_ROWS]; // tile_buffer row each screen row shows
 extern unsigned char render_row_fonts[TB_ROWS]; // font each screen row uses

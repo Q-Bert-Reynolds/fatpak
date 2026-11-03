@@ -57,6 +57,7 @@ assets:
 	$(PYTHON) fxhammer.py
 	$(PYTHON) img2rgbds.py
 	$(PYTHON) fonts.py
+	$(PYTHON) keywords.py
 	$(PYTHON) sgb_border.py img/default_sgb_border.png img/default_sgb_border.asm
 	$(PYTHON) translate.py 
 
