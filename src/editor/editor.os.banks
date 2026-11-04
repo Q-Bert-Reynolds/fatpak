@@ -11,3 +11,5 @@
 6: LoadWindow ShiftPositions LinesUnknown Slide GoStart GoEnd Commit SelectAll Cut
 # help
 13: KeyboardTest PutHex test_errors
+# games
+6: IsGame LaunchGame

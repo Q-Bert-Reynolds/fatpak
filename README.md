@@ -39,7 +39,8 @@ Any file up to 63KB (65,408 bytes) opens as text, and in OS mode bigger files op
 48KB window of the file from the card that moves with the cursor, Ctrl+End shows "Line ?" until the lines
 before it are counted; saving one writes ~EDITOR.TMP in its folder and renames it over the file, and unsaved
 edits to one don't survive a reset), long file names (up to 64 characters) are shown. SAVE AS saves in the open
-file's folder. CR LF line endings are kept.
+file's folder. In OS mode .gb and .gbc files launch: the game is copied to the cart, its save comes from
+/GBCSYS/SAVE/<name>.srm (where the EverDrive's OS keeps them) and goes back there at the next boot. CR LF line endings are kept.
 Code is drawn with the 4 pixel fixed width font, everything else with the variable width font: C and asm
 files are fixed width, plain text and markdown variable width except markdown's code.
 Markdown files (.md) are styled: a line starting with # to #### and a space is a heading in a wider,

@@ -1,6 +1,10 @@
 Priority
 
-- OS mode (bin/GBCOS.BIN as /GBCSYS/GBCOS.BIN, bin/EDITOR.DAT in /GBCSYS): games can't reach the EverDrive X registers, so the editor is the cart's OS. Next: launch games (copy the ROM to PSRAM block 0, mapper from the header to $BD07 like Cart_LaunchGame, write the swap file and clear the TXT3 signature first because a big game overwrites the text in PSRAM), then back up the game's save RAM at boot like Krikzz's OS before anything touches save RAM
+- OS mode (bin/GBCOS.BIN as /GBCSYS/GBCOS.BIN, bin/EDITOR.DAT in /GBCSYS): games can't reach the EverDrive X registers, so the editor is the cart's OS. Games launch from the file browser (fs_LoadGame, GameLaunch): copied to PSRAM block 0, their save loaded from /GBCSYS/SAVE/<name>.srm and written back at the next boot (/GBCSYS/EDITOR.GAM). Next for games:
+  - confirm on the X7 (Gearboy launches them, but can't return the game's RAM to the OS: its GBCOS.sav is reloaded)
+  - loading is ~9s per MB (a sector at a time through FatFs), the EverDrive OS streams multi-block reads into the window ($BD06 bit 0)
+  - MBC3 clocks (.rtc files, Pokemon Crystal), save states (/GBCSYS/SNAP), cheats, the in-game menu ($01F0-$01FF), the EverDrive OS's REGISTRY.BIN (booting the stock OS after a game ours launched backs the save RAM up to its last game)
+  - a progress bar while loading
 - time the swap file autosave on the X7 with a big text (the editor stalls while it writes, 2 seconds after the last change)
 - pages 7 and 10 are 95% full, page 14 is empty (check_pages.py)
 - time loading and saving a 64KB file on the X7 and in Gearboy, the numbers set the large file window size (see Large Files)

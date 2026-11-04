@@ -29,6 +29,9 @@ _DocLineStart::  BANKED_C _fs_DocLineStart
 _FileScanStep::  BANKED_C _fs_ScanStep
 _FileCommitWindow:: BANKED_C _fs_CommitWindow
 _FileSaveLarge:: BANKED_C _fs_SaveLarge
+_FileBackupSave:: BANKED_C _fs_BackupSave
+_FileLoadGame::  BANKED_C _fs_LoadGame
+
 
 _ByteSum::;de = data, bc = count, returns the sum of the bytes in bc
   ld h, d
@@ -173,7 +176,10 @@ _piece_count:: DS 1
 _piece_i:: DS 1;the piece DocRead found last
 _piece_start:: DS 4;and its document offset
 _add_len:: DS 4;bytes in the add buffer
-_save_file:: DS 64;a FIL for saving a large file (fatfs.c checks the size)
+_save_file:: DS 64;a FIL for saving a large file and games' saves (fatfs.c checks the size)
+_game_mapper:: DS 1;GameLaunch's $BD07, $BD04 and $BD05 (fs_LoadGame)
+_game_rom_mask:: DS 1
+_game_ram_mask:: DS 1
 
 PAGE DOC_PAGE
 _pieces:: DS 9*MAX_PIECES;source (0 = the file, 1 = the add buffer), offset, length (fatfs.c)
@@ -216,4 +222,42 @@ _CountLF::;de = data, bc = count, returns the line feeds in it in bc (two bytes 
   inc de
   jr .start
 END_PAGE
+ENDC
+
+IF DEF(EVERDRIVE_OS)
+FIXED "Game Launch"
+;resets the Game Boy into the game fs_LoadGame copied to PSRAM, like the EverDrive's OS: $BD06 bit 3 makes the
+;cart reset it through the boot ROM after the mapper is written (bit 2 switches without it). The MBC writes
+;land in the OS image's RAM, the routine mustn't be at $2000-$2100, $3000, $4000 or $6000
+_GameLaunch::
+  di
+  ld a, [_game_rom_mask]
+  ld [$BD04], a
+  ld a, [_game_ram_mask]
+  ld [$BD05], a
+  ld a, [EDX_CONFIG]
+  and a, $20
+  or a, $08
+  ld [EDX_CONFIG], a
+  xor a
+  ld [$BD09], a
+  ld [rRAMG], a
+  ld [$3000], a
+  ld [rRAMB], a
+  ld [$6000], a
+  inc a
+  ld [$2100], a
+  ld [$2000], a
+  ld a, [_game_mapper]
+  ld [$BD07], a
+.wait
+  jr .wait
+GameLaunchEnd:
+ASSERT _GameLaunch > $4000 && GameLaunchEnd <= $6000 || _GameLaunch > $6000
+
+_Reboot::;starts the OS again (after a failed game load, the text comes back from the swap file)
+  di
+  ld a, FIRST_PAGE
+  ld [EDX_PAGE], a
+  jp $0100
 ENDC

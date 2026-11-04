@@ -367,6 +367,7 @@ extern void tb_Empty(void); // tb_Clear without zeroing the text buffer
 extern unsigned int tb_Length(void);
 extern const char TBSignature[4]; // src/editor/text_buffer.asm
 unsigned char fs_LoadWindow(void);
+static void Signature(const char* signature);
 
 // sets the text buffer's signature (0 clears it)
 static void Signature(const char* signature) {
@@ -685,6 +686,129 @@ unsigned char fs_SaveLarge(const char* path) {
   win_start = start;
   win_mark = NO_MARK;
   return fs_LoadWindow();
+}
+
+// Games: a .gb or .gbc file is copied to PSRAM from block 0 and launched (GameLaunch in fatfs.asm, the cart
+// resets the Game Boy into it). A game with battery RAM gets its save from /GBCSYS/SAVE/<name>.srm (the
+// EverDrive OS's save files) in the cart's save RAM first, blank ($FF) if there isn't one, and GAME_RECORD
+// remembers it, so the next boot writes the save RAM back to that file (fs_BackupSave). Save RAM is only
+// touched here, through the window with $BD06 bit 1 set
+#define GAME_RECORD "/GBCSYS/EDITOR.GAM" // "GAM1", save RAM banks to back up (0 = done), the .srm path
+#define SAVE_FOLDER "/GBCSYS/SAVE/"
+#define GAME_BLOCKS 0x3E40 // PSRAM blocks before the EverDrive's save states
+#define rEDX_CONFIG (*(volatile BYTE*)0xBD06)
+extern unsigned char game_mapper, game_rom_mask, game_ram_mask; // src/fatfs/fatfs.asm, for GameLaunch
+static const BYTE battery_types[] = {0x03, 0x06, 0x09, 0x0D, 0x0F, 0x10, 0x13, 0x17, 0x1B, 0x1E, 0x22, 0xFF, 0}; // carts with saves
+
+// the window shows save RAM (on) or PSRAM block block
+static void SaveRamBlock(UINT block, BYTE on) {
+  SetWindowBlock(block);
+  if (on) rEDX_CONFIG |= 2;
+  else rEDX_CONFIG &= ~2;
+}
+
+// copies banks 8KB banks of save RAM to the open file (write) or from it (0xFF where it ends)
+static FRESULT SaveRamFile(BYTE banks, BYTE write) {
+  UINT block, done;
+  FRESULT result = FR_OK;
+  for (block = 0; !result && block < (UINT)banks << 4; ++block) {
+    if (write) {
+      SaveRamBlock(block, 1);
+      if (!(result = f_write(&save_file, WINDOW, 512, &done)) && done != 512) result = FR_DENIED;
+    }
+    else {
+      if (!(result = f_read(&save_file, buffer, 512, &done))) memset(buffer + done, 0xFF, 512 - done);
+      SaveRamBlock(block, 1);
+      memcpy(WINDOW, buffer, 512);
+    }
+    SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
+  }
+  return result;
+}
+
+// at boot: if a game was launched, writes the save RAM to its .srm, returns an FRESULT
+unsigned char fs_BackupSave(void) {
+  UINT done;
+  FRESULT result = fs_Mount();
+  if (result || f_open(&save_file, GAME_RECORD, FA_READ)) return result;
+  result = f_read(&save_file, buffer, FS_BUFFER_SIZE, &done);
+  f_close(&save_file);
+  if (result || done < 6 || memcmp(buffer, "GAM1", 4) || !buffer[4]) return result;
+  buffer[FS_BUFFER_SIZE - 1] = 0;
+  if ((result = f_open(&save_file, (const char*)buffer + 5, FA_WRITE | FA_CREATE_ALWAYS))) return result;
+  result = SaveRamFile(buffer[4], 1);
+  if (result) f_close(&save_file);
+  else result = f_close(&save_file);
+  if (result) return result;
+  buffer[4] = 0; // done
+  if (!(result = f_open(&save_file, GAME_RECORD, FA_WRITE))) {
+    result = f_write(&save_file, buffer, 5, &done);
+    f_close(&save_file);
+  }
+  return result;
+}
+
+// copies the game at path to PSRAM, loads its save and remembers it, sets game_mapper and the masks for
+// GameLaunch. Returns an FRESULT (FR_DENIED: too big). Past the header check PSRAM's text is overwritten
+unsigned char fs_LoadGame(const char* path) {
+  UINT block, blocks, done, i, end = 0, dot = 0;
+  BYTE type, banks, size, record[5 + sizeof(SAVE_FOLDER) + FS_NAME_SIZE + 4];
+  unsigned long length;
+  FRESULT result;
+  if ((result = fs_BackupSave())) return result; // an earlier game's save first, or its progress is lost
+  if ((result = Open(path, FA_READ))) return result;
+  length = f_size(&file);
+  if (length > (unsigned long)GAME_BLOCKS << 9 || (result = f_read(&file, buffer, FS_BUFFER_SIZE, &done)) || done < 0x150) {
+    f_close(&file);
+    return result ? result : FR_DENIED;
+  }
+  type = buffer[0x147];
+  game_mapper = !type || type == 8 || type == 9 ? 4 : type <= 3 ? 1 : type <= 6 ? 2 : type >= 0x0F && type <= 0x13 ? 3 : 5;
+  size = buffer[0x149];
+  banks = size == 3 ? 4 : size == 4 ? 16 : size == 5 ? 8 : 1;
+  game_ram_mask = game_mapper == 2 ? 0 : size == 1 || size == 2 ? 0 : banks - 1;
+  for (game_rom_mask = 0, length = (length + 0x7FFF) >> 15; length > 1; length = (length + 1) >> 1) game_rom_mask = (game_rom_mask << 1) | 1; // 32KB units
+  for (i = 0; battery_types[i] && battery_types[i] != type; ++i);
+  if (!battery_types[i]) banks = 0;
+  blocks = (UINT)((f_size(&file) + 511) >> 9);
+  Signature(0); // the text in PSRAM gets overwritten, the next boot restores the swap file
+  f_lseek(&file, 0);
+  for (block = 0; !result && block < blocks; ++block) {
+    SetWindowBlock(block);
+    result = f_read(&file, WINDOW, 512, &done);
+  }
+  SetWindowBlock(TB_PSRAM_HIGH << 8);
+  f_close(&file);
+  if (result || !banks) return result;
+  memcpy(record, "GAM1", 4); // the record: its .srm, the name with the extension replaced
+  record[4] = banks;
+  memcpy(record + 5, SAVE_FOLDER, sizeof(SAVE_FOLDER) - 1);
+  for (i = 0; path[i]; ++i) if (path[i] == '/') end = i + 1;
+  for (i = end; path[i]; ++i) if (path[i] == '.') dot = i;
+  if (!dot) dot = i;
+  if (dot - end > FS_NAME_SIZE) return FR_INVALID_NAME;
+  memcpy(record + 4 + sizeof(SAVE_FOLDER), path + end, dot - end);
+  memcpy(record + 4 + sizeof(SAVE_FOLDER) + dot - end, ".srm", 5);
+  if (!f_open(&save_file, (const char*)record + 5, FA_READ)) { // its save, else blank save RAM
+    result = SaveRamFile(banks, 0);
+    f_close(&save_file);
+  }
+  else {
+    f_mkdir("/GBCSYS/SAVE");
+    for (block = 0; block < (UINT)banks << 4; ++block) {
+      SaveRamBlock(block, 1);
+      memset(WINDOW, 0xFF, 512);
+    }
+    SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
+  }
+  if (result) return result;
+  if (!(result = f_open(&save_file, GAME_RECORD, FA_WRITE | FA_CREATE_ALWAYS))) {
+    i = 5 + sizeof(SAVE_FOLDER) + dot - end + 4;
+    if (!(result = f_write(&save_file, record, i, &done)) && done != i) result = FR_DENIED;
+    if (result) f_close(&save_file);
+    else result = f_close(&save_file);
+  }
+  return result;
 }
 
 // The swap file keeps what PSRAM loses when the power is off: block MAIN_SRAM_BANK's first 256 bytes

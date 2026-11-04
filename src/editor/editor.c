@@ -119,6 +119,10 @@ static const char help_lines[HELP_ROWS][HELP_COLS] = {
 };
 
 static void Render(void);
+#ifdef EVERDRIVE_OS
+static unsigned char IsGame(const char* name);
+static void LaunchGame(const char* path);
+#endif
 
 static char* RowAddress(unsigned char row);
 static void DrawRow(unsigned char row, unsigned char col, const char* text);
@@ -1439,6 +1443,12 @@ static unsigned char Browse(void) {
       else {
         JoinPath(path + length, "", entry.name, FS_NAME_SIZE + 1);
 #ifdef EVERDRIVE_OS
+        if (IsGame(entry.name)) {
+          LaunchGame(path); // returns if it doesn't launch
+          path[length] = 0;
+          drawn = LIST_ALL;
+          continue;
+        }
         if (entry.size > TB_SIZE) result = FileLoadLarge(path);
         else {
           FileCloseLarge();
@@ -1479,6 +1489,41 @@ static unsigned char Browse(void) {
   SetRows();
   return opened;
 }
+
+#ifdef EVERDRIVE_OS
+// a .gb or .gbc file
+static unsigned char IsGame(const char* name) {
+  const char* dot = 0;
+  for (; *name; ++name) if (*name == '.') dot = name;
+  return dot && (dot[1] | 0x20) == 'g' && (dot[2] | 0x20) == 'b' && (!dot[3] || ((dot[3] | 0x20) == 'c' && !dot[4]));
+}
+
+// copies the game to PSRAM and resets the Game Boy into it (see fs_LoadGame), the text and settings go in
+// the swap file first, returns if it can't. A large file's unsaved edits can't be kept
+static void LaunchGame(const char* path) {
+  unsigned char result;
+  if (doc_large) {
+    if (!CanDiscard()) return;
+    FileCloseLarge();
+    tb_Clear();
+    file_name[0] = 0;
+    modified = 0;
+    SettingsSave();
+  }
+  ShowBusy("Loading...");
+  if ((result = FileSaveSwap())) {
+    HideBox();
+    ShowError(result, "DISK FULL");
+    return;
+  }
+  if ((result = FileLoadGame(path))) {
+    HideBox();
+    ShowError(result, "TOO BIG");
+    Reboot(); // PSRAM's text may be overwritten, booting restores it from the swap file
+  }
+  GameLaunch();
+}
+#endif
 
 static void OpenFile(void) {
   if (!CanDiscard()) return;
@@ -1806,6 +1851,7 @@ void Editor(void) {
   unsigned char key;
 
 #ifdef EVERDRIVE_OS // the SGB border's VRAM transfer overwrites tiles and the map, so it goes first
+  FileBackupSave(); // the last game's save RAM, before anything else
   if (!FileLoadData("/GBCSYS/EDITOR.DAT")) {
     data_loaded = 1;
     SGBSetDefaultBorder();

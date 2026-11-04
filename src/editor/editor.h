@@ -90,6 +90,10 @@ extern void DocLineStart(void); // moves doc_pos (a file offset) to its line's s
 extern unsigned char FileScanStep(void); // counts a sector's line feeds toward scan_target, 1 when done
 extern unsigned char FileCommitWindow(void); // an edited window goes into the document, 0 if it's full
 extern unsigned char FileSaveLarge(const char* path); // FRESULT, saves the document (FR_DENIED: it or the card is full)
+extern unsigned char FileBackupSave(void); // FRESULT, writes the last launched game's save RAM to its .srm
+extern unsigned char FileLoadGame(const char* path); // FRESULT, copies a game to PSRAM and loads its save (src/fatfs/fatfs.c)
+extern void GameLaunch(void); // resets the Game Boy into it
+extern void Reboot(void); // starts the OS again
 extern unsigned char doc_large; // a large file is open, the text buffer is a window into it
 extern unsigned char lines_known, win_chunks;
 extern unsigned long doc_len, doc_pos, win_start, win_end, win_mark, win_lines, scan_pos, scan_target, scan_lines;

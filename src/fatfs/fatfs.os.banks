@@ -20,3 +20,5 @@ THUNKS: ROM0
 # deleting and renaming (saving a large file), FF_FS_MINIMIZE 0 also builds f_stat f_getfree f_truncate f_mkdir
 13: f_unlink f_rename f_stat f_getfree f_truncate f_mkdir dir_remove
 13: fs_CloseLarge Signature
+# games
+15: SaveRamBlock SaveRamFile fs_BackupSave fs_LoadGame battery_types
