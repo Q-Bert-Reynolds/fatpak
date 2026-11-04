@@ -72,7 +72,8 @@ DEF TB_CLIP_ADDR EQU $A040;clipboard in SRAM bank 8, up to the EverDrive registe
 ENDC
 DEF TB_SIZE      EQU (TB_BANK_SIZE*TB_BANKS)
 IF DEF(EVERDRIVE_OS)
-DEF TB_CLIP_SIZE EQU ($2000-$100);PSRAM blocks 240-255 from offset $100 (src/sram.asm)
+DEF TB_CLIP_OFFSET EQU $0100;the clipboard's text in PSRAM blocks 240-255 (src/sram.asm)
+DEF TB_CLIP_SIZE EQU ($2000-TB_CLIP_OFFSET)
 ELSE
 DEF TB_CLIP_SIZE EQU ($BD00-TB_CLIP_ADDR-4)
 ENDC

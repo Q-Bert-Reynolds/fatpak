@@ -126,7 +126,8 @@ tb_find_nonzero: DB;TBFindPhys
 
 SECTION "Text Buffer Code", ROM0
 
-TBSignature: DB "TXT3"
+_TBSignature::
+TBSignature: DB "TXT3";in PSRAM block MAIN_SRAM_BANK while the text there is good
 
 _tb_Load::
   SRAM_ON
@@ -162,6 +163,10 @@ _tb_Load::
   ;fall through
 
 _tb_Clear::
+IF DEF(EVERDRIVE_OS)
+  ld a, 1;the swap file needs writing (src/editor/editor.c)
+  ld [_swap_dirty], a
+ENDC
   SRAM_ON
   xor a
 .clearBankLoop;everything but the register hole
@@ -1074,6 +1079,10 @@ TBClipAdvance:
   ret
 
 _tb_Copy::;de = pos, bc = count, copies text to the clipboard, returns a = 0 if it's too big
+IF DEF(EVERDRIVE_OS)
+  ld a, 1;the swap file needs writing (src/editor/editor.c)
+  ld [_swap_dirty], a
+ENDC
   ld a, LOW(TB_CLIP_SIZE)
   sub a, c
   ld a, HIGH(TB_CLIP_SIZE)
@@ -2201,6 +2210,10 @@ TBCheckRun:
 
 ;de = position of an edit, forgets the checkpoints after it, only affects a
 TBEdited:
+IF DEF(EVERDRIVE_OS)
+  ld a, 1;the swap file needs writing (src/editor/editor.c)
+  ld [_swap_dirty], a
+ENDC
   push bc
   ld a, [tb_checks_last]
   ld b, a

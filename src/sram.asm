@@ -12,7 +12,7 @@ DEF sram_clip_length  EQU TB_BASE+$10
 DEF sram_clip_check   EQU TB_BASE+$12
 DEF sram_settings_signature EQU TB_BASE+$20
 DEF sram_settings     EQU TB_BASE+$24
-DEF sram_clip         EQU $0100;offset from block MAIN_SRAM_BANK's start (TBClipAddr)
+DEF sram_clip         EQU TB_CLIP_OFFSET;offset from block MAIN_SRAM_BANK's start (TBClipAddr)
 ASSERT sram_settings+SETTINGS_SIZE <= TB_BASE+$100, "settings must end before the clipboard"
 ELSE
 FOR N, TB_BANKS
@@ -124,6 +124,10 @@ SettingsCopy:
   ret
 
 _SettingsSave::
+IF DEF(EVERDRIVE_OS)
+  ld a, 1;the swap file needs writing (src/editor/editor.c)
+  ld [_swap_dirty], a
+ENDC
   ENABLE_RAM_MBC5
   SWITCH_RAM_MBC5 MAIN_SRAM_BANK
   ld hl, SettingsSignature

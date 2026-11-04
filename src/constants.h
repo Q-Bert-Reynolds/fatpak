@@ -75,7 +75,8 @@
 #endif
 #define TB_SIZE      (TB_BANK_SIZE*TB_BANKS)
 #ifdef EVERDRIVE_OS
-#define TB_CLIP_SIZE (0x2000u-0x100)//PSRAM blocks 240-255 from offset 0x100 (src/sram.asm)
+#define TB_CLIP_OFFSET 0x0100u//the clipboard's text in PSRAM blocks 240-255 (src/sram.asm)
+#define TB_CLIP_SIZE (0x2000u-TB_CLIP_OFFSET)
 #else
 #define TB_CLIP_SIZE (0xBD00u-TB_CLIP_ADDR-4)
 #endif

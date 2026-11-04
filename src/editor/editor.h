@@ -73,6 +73,9 @@ extern unsigned char FileSave(const char* path); // FRESULT
 extern unsigned char FileLoadData(const char* path); // FRESULT, copies the data file to PSRAM
 extern unsigned char data_loaded; // the styled fonts and SGB border are in PSRAM
 extern void SGBSetDefaultBorder(void);
+extern unsigned char FileSaveSwap(void); // FRESULT, the text, clipboard and settings
+extern unsigned char FileLoadSwap(void); // FRESULT, restores them if PSRAM lost them
+extern unsigned char swap_dirty; // they changed since FileSaveSwap
 #endif
 extern unsigned char fs_crlf; // loaded file used CR LF, saving writes CR LF
 

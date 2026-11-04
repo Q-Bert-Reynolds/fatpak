@@ -39,6 +39,7 @@
 
 #define CURSOR_BLINK     30
 #define NORMALIZE_DELAY  30 // frames without input before closing the gap
+#define SWAP_DELAY       120 // frames without input before writing the swap file (OS mode)
 
 unsigned int cursor;
 unsigned int top;
@@ -1519,6 +1520,7 @@ void Editor(void) {
     data_loaded = 1;
     SGBSetDefaultBorder();
   }
+  FileLoadSwap(); // before EditorSetup's tb_Load
 #endif
   EditorSetup();
   for (key = 0; key < BG_MAP_ROWS + WIN_MAP_ROWS; ++key) map_blocks[key] = key < TB_ROWS ? key : 0xFF; // set by RenderSetup
@@ -1561,6 +1563,7 @@ void Editor(void) {
   SetRows();
   Refresh();
 #ifdef EVERDRIVE_OS
+  swap_dirty = 0; // the swap file has what booting restored
   if (!modified) OpenFile(); // the EverDrive's OS starts in the file browser
 #endif
 
@@ -1619,8 +1622,14 @@ void Editor(void) {
       if (!PlaceCursor()) Refresh();
       continue;
     }
-    if (idle_frames < NORMALIZE_DELAY) ++idle_frames;
-    else if (!everdrive && !normalized) normalized = tb_NormalizeStep(); // keeps the .sav readable as text
+    if (idle_frames < SWAP_DELAY) ++idle_frames;
+    if (idle_frames >= NORMALIZE_DELAY && !everdrive && !normalized) normalized = tb_NormalizeStep(); // keeps the .sav readable as text
+#ifdef EVERDRIVE_OS
+    if (idle_frames >= SWAP_DELAY && swap_dirty) {
+      swap_dirty = 0;
+      FileSaveSwap();
+    }
+#endif
     if (++blink_timer == CURSOR_BLINK) EditorShowCursor(0);
     else if (blink_timer == CURSOR_BLINK + CURSOR_BLINK) {
       EditorShowCursor(1);

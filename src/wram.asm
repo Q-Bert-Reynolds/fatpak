@@ -23,6 +23,7 @@ main_save_end::
 IF DEF(EVERDRIVE_OS)
 _data_loaded:: DB;the data file is in PSRAM (DATA_BLOCK)
 sgb_from_window:: DB;_sgb_VRAMTransfer's source is PSRAM blocks
+_swap_dirty:: DB;the text, clipboard or settings changed since the swap file was written
 ENDC
 
 ;drawing

@@ -337,6 +337,118 @@ unsigned char fs_LoadData(const char* path) {
   SetWindowBlock(TB_PSRAM_HIGH << 8);
   return result;
 }
+
+// The swap file keeps what PSRAM loses when the power is off: block MAIN_SRAM_BANK's first 256 bytes
+// (the text buffer's signature, settings, clipboard length), "SWP1", the text's length, the sum of the
+// bytes after the first 512 and the clipboard's length, then from 512 the clipboard and the text.
+// Its old length stays (no f_truncate), so its clusters are written in place.
+#define SWAP_PATH "/GBCSYS/EDITOR.SWP"
+#define MAIN_BLOCK ((TB_PSRAM_HIGH << 8) | MAIN_SRAM_BANK)
+#define SWAP_INFO TB_CLIP_OFFSET // the header is block MAIN's bytes before the clipboard
+#define SWAP_DATA 512
+extern const char TBSignature[4]; // src/editor/text_buffer.asm
+extern unsigned int tb_Length(void);
+extern unsigned int tb_ClipLength(void);
+extern unsigned int ByteSum(const BYTE* data, unsigned int count); // src/fatfs/fatfs.asm
+WORD swap_sum;
+
+// reads or writes count bytes of PSRAM from offset in block, adds them to swap_sum
+static FRESULT SwapBlocks(BYTE write, WORD block, WORD offset, WORD count) {
+  UINT size, done;
+  FRESULT result = FR_OK;
+  while (count && !result) {
+    size = 512 - offset;
+    if (size > count) size = count;
+    SetWindowBlock(block++);
+    result = write ? f_write(&file, WINDOW + offset, size, &done) : f_read(&file, WINDOW + offset, size, &done);
+    if (!result && done != size) result = FR_DENIED;
+    swap_sum += ByteSum(WINDOW + offset, size);
+    count -= size;
+    offset = 0;
+  }
+  SetWindowBlock(TB_PSRAM_HIGH << 8);
+  return result;
+}
+
+// writes the swap file, returns an FRESULT
+unsigned char fs_SaveSwap(void) {
+  UINT size, done;
+  WORD clip = tb_ClipLength(), length = tb_Length();
+  FRESULT result = fs_Mount();
+  if (!result) result = Open(SWAP_PATH, FA_WRITE | FA_OPEN_ALWAYS);
+  if (result) return result;
+  swap_sum = 0;
+  result = f_lseek(&file, SWAP_DATA);
+  if (!result) result = SwapBlocks(1, MAIN_BLOCK, TB_CLIP_OFFSET, clip);
+  tb_read_pos = 0;
+  while (!result && (size = tb_Read(buffer, FS_BUFFER_SIZE))) {
+    swap_sum += ByteSum(buffer, size);
+    result = f_write(&file, buffer, size, &done);
+    if (!result && done != size) result = FR_DENIED;
+  }
+  if (!result) result = f_lseek(&file, 0); // the header goes last, a write cut short leaves a bad sum
+  if (!result) {
+    SetWindowBlock(MAIN_BLOCK);
+    memcpy(buffer, WINDOW, SWAP_INFO);
+    SetWindowBlock(TB_PSRAM_HIGH << 8);
+    memset(buffer + SWAP_INFO, 0, SWAP_DATA - SWAP_INFO);
+    memcpy(buffer + SWAP_INFO, "SWP1", 4);
+    ((WORD*)(buffer + SWAP_INFO))[2] = length;
+    ((WORD*)(buffer + SWAP_INFO))[3] = swap_sum;
+    ((WORD*)(buffer + SWAP_INFO))[4] = clip;
+    result = f_write(&file, buffer, SWAP_DATA, &done);
+  }
+  if (f_close(&file) && !result) result = FR_DISK_ERR;
+  return result;
+}
+
+// at boot: if PSRAM lost the text (the power was off), restores the text, clipboard and settings from
+// the swap file, returns an FRESULT (FR_INVALID_OBJECT if it's bad, the text is cleared)
+unsigned char fs_LoadSwap(void) {
+  UINT done;
+  WORD length, sum, clip;
+  FRESULT result;
+  SetWindowBlock(MAIN_BLOCK);
+  result = memcmp(WINDOW, TBSignature, 4) ? FR_OK : FR_EXIST; // PSRAM kept it (a reset), it's newer
+  SetWindowBlock(TB_PSRAM_HIGH << 8);
+  if (!result) result = fs_Mount();
+  if (!result) result = Open(SWAP_PATH, FA_READ);
+  if (result) return result;
+  result = f_read(&file, buffer, SWAP_DATA, &done);
+  if (!result && (done != SWAP_DATA || memcmp(buffer + SWAP_INFO, "SWP1", 4))) result = FR_INVALID_OBJECT;
+  if (result) {
+    f_close(&file);
+    return result;
+  }
+  length = ((WORD*)(buffer + SWAP_INFO))[2];
+  sum = ((WORD*)(buffer + SWAP_INFO))[3];
+  clip = ((WORD*)(buffer + SWAP_INFO))[4];
+  SetWindowBlock(MAIN_BLOCK); // the header, without the signature until the sum checks out
+  memcpy(WINDOW + 4, buffer + 4, SWAP_INFO - 4);
+  swap_sum = 0;
+  result = SwapBlocks(0, MAIN_BLOCK, TB_CLIP_OFFSET, clip);
+  tb_Clear();
+  while (!result && length) {
+    result = f_read(&file, buffer, length < FS_BUFFER_SIZE ? length : FS_BUFFER_SIZE, &done);
+    if (!result && !done) result = FR_INVALID_OBJECT;
+    if (result) break;
+    swap_sum += ByteSum(buffer, done);
+    tb_Append(buffer, done);
+    length -= done;
+  }
+  f_close(&file);
+  if (!result && swap_sum != sum) result = FR_INVALID_OBJECT;
+  if (result) {
+    tb_Clear();
+    SetWindowBlock(MAIN_BLOCK); // and the settings
+    memset(WINDOW, 0, SWAP_INFO);
+  } else {
+    SetWindowBlock(MAIN_BLOCK);
+    memcpy(WINDOW, TBSignature, 4);
+  }
+  SetWindowBlock(TB_PSRAM_HIGH << 8);
+  return result;
+}
 #endif
 
 // writes the text buffer to the file, with CR LF line endings if fs_crlf is set, returns an FRESULT

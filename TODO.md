@@ -1,7 +1,8 @@
 Priority
 
-- SD doesn't work on the X7 (TXTReaderGB's EverDrive X build doesn't either). The SD diagnostic (TESTS_ENABLED + SD_TEST_ENABLED, read only) on OS v1.06: the registers never appear in game mode, open bus with RAMG off and plain SRAM with RAMG on, unlocked or not. Try older OS versions; if none work, ask Krikzz how games reach the SD card. Gearboy's EverDrive emulation (registers with RAMG off) doesn't match hardware
-- test on the X7: does writing $A5 to $BD0A unlock the registers while SRAM is enabled? (the text buffer skips $BD00-$BD0F either way)
+- OS mode (bin/GBCOS.BIN as /GBCSYS/GBCOS.BIN, bin/EDITOR.DAT in /GBCSYS): games can't reach the EverDrive X registers, so the editor is the cart's OS. Next: launch games (copy the ROM to PSRAM block 0, mapper from the header to $BD07 like Cart_LaunchGame, write the swap file and clear the TXT3 signature first because a big game overwrites the text in PSRAM), then back up the game's save RAM at boot like Krikzz's OS before anything touches save RAM
+- time the swap file autosave on the X7 with a big text (the editor stalls while it writes, 2 seconds after the last change)
+- pages 7 and 10 are 95% full, page 14 is empty (check_pages.py)
 - time loading and saving a 64KB file on the X7 and in Gearboy, the numbers set the large file window size (see Large Files)
 - faster sector reads with auto-read streaming ($BD01 bit 2 + $BD06 bit 0, reading $BD00 clocks the next byte), and without checking the busy bit for each byte if the X7's SPI is fast enough at double speed
 - large files (bigger than the 65,408 byte text buffer), see Large Files
@@ -90,7 +91,7 @@ IDE (ideas, not committed to)
 - call the editor's routines by name (gbdk_SetBkgTiles, RevealTextAndWait, ...): build an export table (name, bank, address) from bin/TEXT_EDITOR.sym into a fixed size section in its own bank so it doesn't move the code it describes, the assembler resolves unknown symbols against it, banked targets go through a far call trampoline. C functions follow SDCC's convention (a, e, return in a), asm routines need their register args documented
 - a small API for user programs: jump table in ROM0 (print, keys, files, exit), the program returns to the editor, the text is safe in SRAM if it crashes
 - build whole ROMs to the SD card: ORG/BANK placement (no linker), or SECTIONs + an rgblink-like linker later, header checksums like rgbfix. Python generated assets would have to be committed as .asm/.bin. This project is ~59k lines of asm and ~3,900 global symbols, the symbol table would spill to SD, probably minutes to tens of minutes
-- launch a built ROM without the EverDrive menu: Cart_LaunchGame (~/Projects/everdrive-gb bank_000.asm) resets the MBC, writes the mapper to $BD07 and spins while the FPGA takes over. Needs the registers in game mode (the $BD0A test in Priority) and how the OS gets the ROM image into the cart's RAM, the loader runs from WRAM/HRAM. Reference only, don't copy OS code
+- launch a built ROM: the same path as launching games in OS mode (Priority), the ROM goes to PSRAM block 0
 - programs as loadable modules: gbt_player (removed in 132083e) and the map loader (removed in 8c7c9ef) could come back as modules a program loads and calls by name
 - compile on device: SDCC can't host itself (C++, megabytes of heap). A Small-C style compiler (one pass, emits asm for the assembler, self hosting) built with SDCC on the PC first, passes as separate programs with temp files on SD like HI-TECH C on CP/M, matching SDCC's calling convention so it can call the engine. Forth is the cheaper interactive option
 - suggested order: in memory assembler + API, measure SD speed, X7 register test + direct launch, ROM builder, compiler
@@ -98,7 +99,8 @@ IDE (ideas, not committed to)
 Platforms
 
 The EverDrive GB X7 is the target cart. Other carts should still run the editor, list what they can't do so the README can tell people:
-- no SD card (any cart but an EverDrive X): no open/save, the text only lives in SRAM
+- no SD card outside OS mode: games (the MBC5 build, OS=0) never see the EverDrive X registers, so only bin/GBCOS.BIN on an EverDrive X can open and save files. The MBC5 build keeps the text in SRAM
+- OS mode without /GBCSYS/EDITOR.DAT: no bold, italic or heading fonts and no SGB border
 - no RTC (everything but the X7): files are saved with a fixed date
 - on device programs (see IDE) can't swap SRAM to SD without a card, they'd get WRAM and whatever SRAM the editor isn't using
 - smaller SRAM than 128KB: the text buffer, clipboard and undo log would have to shrink

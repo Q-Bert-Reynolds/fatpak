@@ -9,6 +9,8 @@ INCLUDE "src/text_editor.inc"
 ;   FileLoad                    de = path, replaces the text buffer, returns FRESULT in a
 ;   FileSave                    de = path, returns FRESULT in a
 ;   FileLoadData                de = path, OS mode: copies the data file to PSRAM, returns FRESULT in a
+;   FileSaveSwap                OS mode: writes the text, clipboard and settings to the swap file, returns FRESULT in a
+;   FileLoadSwap                OS mode: restores them at boot if PSRAM lost them, returns FRESULT in a
 
 SECTION "FatFs Stubs", ROM0
 _FileMount::     BANKED_C _fs_Mount
@@ -18,6 +20,30 @@ _FileLoad::      BANKED_C _fs_Load
 _FileSave::      BANKED_C _fs_Save
 IF DEF(EVERDRIVE_OS)
 _FileLoadData::  BANKED_C _fs_LoadData
+_FileSaveSwap::  BANKED_C _fs_SaveSwap
+_FileLoadSwap::  BANKED_C _fs_LoadSwap
+
+_ByteSum::;de = data, bc = count, returns the sum of the bytes in bc
+  ld h, d
+  ld l, e
+  ld de, 0
+  inc b
+  inc c
+  jr .start
+.loop
+    ld a, [hli]
+    add a, e
+    ld e, a
+    jr nc, .start
+    inc d
+.start
+    dec c
+    jr nz, .loop
+    dec b
+    jr nz, .loop
+  ld b, d
+  ld c, e
+  ret
 
 _SetWindowBlock::;de = PSRAM block the window at $BE00 shows
   ld a, e
