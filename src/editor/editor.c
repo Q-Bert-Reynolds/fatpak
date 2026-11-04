@@ -416,11 +416,11 @@ static char* PutText(char* dest, const char* text) {
   return dest;
 }
 
-static const unsigned int powers_of_ten[] = {10000, 1000, 100, 10};
+static const unsigned long powers_of_ten[] = {1000000, 100000, 10000, 1000, 100, 10};
 
-static char* PutNumber(char* dest, unsigned int n) {
+static char* PutNumber(char* dest, unsigned long n) {
   unsigned char i, digit, started = 0;
-  for (i = 0; i < 4; ++i) {
+  for (i = 0; i < 6; ++i) {
     digit = '0';
     while (n >= powers_of_ten[i]) {
       n -= powers_of_ten[i];
@@ -517,7 +517,11 @@ static void UpdateBars(void) {
   }
   else {
     end = PutText(text, "Line ");
+#ifdef EVERDRIVE_OS
+    end = PutNumber(end, CursorLine() + (doc_large ? win_lines : 0));
+#else
     end = PutNumber(end, CursorLine());
+#endif
     end = PutText(end, ", Col ");
     end = PutNumber(end, CursorColumn());
   }
@@ -614,7 +618,7 @@ static unsigned char Copy(void) {
 
 static void Paste(void) {
   unsigned int length = tb_ClipLength(), room = TB_SIZE - tb_Length();
-  if (!length) return;
+  if (!length || ReadOnly()) return;
   if (GetSelection()) room += sel_end - sel_start;
   if (length > room) {
     ShowMessage("TEXT FULL");
@@ -675,7 +679,7 @@ static void ScrollLine(unsigned char down) {
 
 // Ctrl+Z (Ctrl+Shift+Z redoes) and Ctrl+Y
 static void UndoRedo(unsigned char redo) {
-  if (!(redo ? Redo() : Undo())) return;
+  if (ReadOnly() || !(redo ? Redo() : Undo())) return;
   cursor = undo_cursor;
   selecting = 0;
   Uncount(0);
@@ -692,7 +696,95 @@ static void SelectAll(void) {
 }
 
 static void Cut(void) {
-  if (Copy()) DeleteSelection();
+  if (!ReadOnly() && Copy()) DeleteSelection();
+}
+
+#ifdef EVERDRIVE_OS
+#define WIN_MARGIN 0x2000 // the window moves when the cursor is this close to an edge that isn't the document's
+
+// loads the window at start (a line start) in place of the one at win_start, positions in the text
+// buffer move with it (a selection that leaves it is cleared)
+static void MoveWindow(unsigned long start) {
+  unsigned int shift;
+  if (start >= win_start) {
+    shift = (unsigned int)(start - win_start);
+    win_lines += tb_CountLines(0, shift);
+    win_start = start;
+    FileLoadWindow();
+    cursor -= shift;
+    top = top > shift ? top - shift : 0;
+    if (anchor < shift) selecting = 0;
+    else anchor -= shift;
+  }
+  else {
+    shift = (unsigned int)(win_start - start);
+    win_start = start;
+    FileLoadWindow();
+    win_lines -= tb_CountLines(0, shift);
+    cursor += shift;
+    top += shift;
+    if (anchor + shift > tb_Length() || anchor + shift < anchor) selecting = 0;
+    else anchor += shift;
+  }
+  Uncount(0);
+  if (cursor > tb_Length()) cursor = tb_Length();
+  dirty = 1;
+}
+
+// moves the window so the cursor is in its middle if it's near an edge with more text past it
+static void Slide(void) {
+  unsigned int length = tb_Length();
+  if (cursor < WIN_MARGIN ? !win_start : (cursor + WIN_MARGIN <= length || win_start + length == doc_len)) return;
+  doc_pos = win_start + cursor;
+  if (doc_pos > WIN_SIZE / 2) {
+    doc_pos -= WIN_SIZE / 2;
+    DocLineStart();
+  }
+  else doc_pos = 0;
+  MoveWindow(doc_pos);
+}
+#endif
+
+// Ctrl+Home, the document's start
+static void GoStart(void) {
+#ifdef EVERDRIVE_OS
+  if (doc_large && win_start) {
+    win_start = win_lines = 0;
+    FileLoadWindow();
+    selecting = 0;
+    Uncount(0);
+    dirty = 1;
+  }
+#endif
+  cursor = 0;
+}
+
+// Ctrl+End, the document's end
+static void GoEnd(void) {
+#ifdef EVERDRIVE_OS
+  if (doc_large && win_start + tb_Length() != doc_len) {
+    doc_pos = doc_len > WIN_SIZE / 2 ? doc_len - WIN_SIZE / 2 : 0;
+    DocLineStart();
+    win_start = doc_pos;
+    FileLoadWindow();
+    win_lines = doc_lines - tb_CountLines(0, tb_Length());
+    selecting = 0;
+    Uncount(0);
+    dirty = 1;
+  }
+#endif
+  cursor = tb_Length();
+}
+
+// a large file is read only for now, returns 1 (after saying so) if one is open
+static unsigned char ReadOnly(void) {
+#ifdef EVERDRIVE_OS
+  if (doc_large) {
+    ShowMessage("READ ONLY");
+    return 1;
+  }
+#endif
+  return 0;
 }
 
 // ctrl + A, X, C, V, Z, Y
@@ -736,8 +828,8 @@ static void HandleKey(unsigned char key, unsigned char mods) {
       case KEY_RIGHT: WordRight(); return;
       case KEY_UP: ScrollLine(0); return;
       case KEY_DOWN: ScrollLine(1); return;
-      case KEY_HOME: cursor = 0; return;
-      case KEY_END: cursor = tb_Length(); return;
+      case KEY_HOME: GoStart(); return;
+      case KEY_END: GoEnd(); return;
     }
   }
   switch (key) {
@@ -751,7 +843,7 @@ static void HandleKey(unsigned char key, unsigned char mods) {
     case KEY_END: MoveEnd(); return;
   }
   moved = 0;
-  if (key == KEY_ESCAPE || key == KEY_INSERT) return;
+  if (key == KEY_ESCAPE || key == KEY_INSERT || ReadOnly()) return;
   if (GetSelection()) { // typing replaces the selection
     DeleteSelection();
     if (key == KEY_BACKSPACE || key == KEY_DELETE) return;
@@ -1109,6 +1201,9 @@ static void ResetCursor(void) {
 
 static void NewFile(void) {
   if (!CanDiscard()) return;
+#ifdef EVERDRIVE_OS
+  FileCloseLarge();
+#endif
   tb_Clear();
   file_name[0] = 0;
   fs_crlf = 0;
@@ -1197,7 +1292,12 @@ static void ListBars(const char* path, unsigned char row, unsigned int count) {
     end = PutNumber2(end, time >> 11);
     *end++ = ':';
     end = PutNumber2(end, (time >> 5) & 63);
+#ifdef EVERDRIVE_OS
+    if (size > DOC_MAX) end = PutText(end, "  too big");
+    else if (size > TB_SIZE) end = PutText(end, "  read only");
+#else
     if (size > TB_SIZE) end = PutText(end, "  too big");
+#endif
   }
   *end = 0;
   DrawRow(STATUS_LINE, 1, text);
@@ -1307,10 +1407,22 @@ static unsigned char Browse(void) {
           ListMessage("Path is too long");
         }
       }
+#ifdef EVERDRIVE_OS
+      else if (entry.size > DOC_MAX) ListMessage("Too big to open");
+#else
       else if (entry.size > TB_SIZE) ListMessage("Too big to open");
+#endif
       else {
         JoinPath(path + length, "", entry.name, FS_NAME_SIZE + 1);
+#ifdef EVERDRIVE_OS
+        if (entry.size > TB_SIZE) result = FileLoadLarge(path);
+        else {
+          FileCloseLarge();
+          result = FileLoad(path);
+        }
+#else
         result = FileLoad(path);
+#endif
         HideBox();
         path[length] = 0;
         if (result) {
@@ -1404,7 +1516,7 @@ static unsigned char AskFileName(void) {
 static void SaveFile(unsigned char ask) {
   char path[PATH_SIZE + FS_NAME_SIZE];
   unsigned char result;
-  if ((ask || !file_name[0]) && !AskFileName()) return;
+  if (ReadOnly() || ((ask || !file_name[0]) && !AskFileName())) return;
   JoinPath(path, file_dir, file_name, (unsigned char)(PATH_SIZE + FS_NAME_SIZE));
   ShowBusy("Saving...");
   result = FileMount();
@@ -1637,6 +1749,7 @@ void Editor(void) {
   Refresh();
 #ifdef EVERDRIVE_OS
   swap_dirty = 0; // the swap file has what booting restored
+  doc_large = 0;
   if (!modified) OpenFile(); // the EverDrive's OS starts in the file browser
 #endif
 
@@ -1661,6 +1774,9 @@ void Editor(void) {
     if ((key = PadKey())) {
       if (!HandleFileKey(key, pad_mods)) HandleKey(key, pad_mods);
     }
+#ifdef EVERDRIVE_OS
+    if (doc_large) Slide(); // near the window's edge (sets dirty)
+#endif
     if (dirty || edited || redraw || moved) idle_frames = 0;
     if (dirty) {
       Refresh();
@@ -1698,7 +1814,7 @@ void Editor(void) {
     if (idle_frames < SWAP_DELAY) ++idle_frames;
     if (idle_frames >= NORMALIZE_DELAY && !everdrive && !normalized) normalized = tb_NormalizeStep(); // keeps the .sav readable as text
 #ifdef EVERDRIVE_OS
-    if (idle_frames >= SWAP_DELAY && swap_dirty) {
+    if (idle_frames >= SWAP_DELAY && swap_dirty && !doc_large) {
       swap_dirty = 0;
       FileSaveSwap();
     }

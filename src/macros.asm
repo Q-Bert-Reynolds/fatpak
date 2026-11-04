@@ -93,6 +93,7 @@ DEF SGB_PAGE      EQU 13
 DEF COLOR_PAGE    EQU 15
 DEF KEYBOARD_PAGE EQU 15
 DEF UNDO_PAGE     EQU 15;with undo.c (undo.os.banks)
+DEF DOC_PAGE      EQU 14;with the large file functions in fatfs.c (fatfs.os.banks)
 MACRO KEYWORDS_SECTION
   PAGE KEYWORDS_PAGE
 ENDM

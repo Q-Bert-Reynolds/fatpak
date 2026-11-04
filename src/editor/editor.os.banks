@@ -3,5 +3,9 @@
 # files, the file browser and menus
 4: Browse ListBars AskFileName ScrollList ListRows ListLoading HandleFileKey ToLatin1 ShowError JoinPath PutNumber PutNumber2 FileMenu PutPath SaveFile ListFolder NameChar ListEntry ListMessage ToUtf8 OpenFile NewFile CanDiscard CopyName Choose ShowBusy
 # on screen keyboard, messages, moves, clipboard, settings
+# help_lines is data, only ShowHelp reads it
+6: help_lines
 6: PressOSKKey MoveOSKSelection SetOSKLayer ToggleOSK PadKey DpadRepeat MenuKey WaitDismiss ShowMessage OpenBox HideBox ShowHelp BeginFullScreen EndFullScreen DrawRow RowAddress ClearScreen
-6: WordRight WordLeft CharClass MoveDown MoveUp PageUp PageDown MoveEnd HandleCtrlKey Copy Paste DeleteSelection GetSelection UndoRedo ToggleFont ToggleWrap ToggleBars SetLang
+6: WordRight WordLeft CharClass MoveDown MoveUp PageUp PageDown MoveEnd HandleCtrlKey Copy Paste DeleteSelection GetSelection UndoRedo ToggleWrap ToggleBars SetLang
+# large files
+14: MoveWindow Slide GoStart GoEnd ReadOnly SelectAll Cut

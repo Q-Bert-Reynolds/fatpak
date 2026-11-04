@@ -60,6 +60,9 @@ DEF DATA_BORDER_TILES  EQU 41;the SGB border's 8KB of tiles
 DEF DATA_BORDER_MAP    EQU 57;its map and palettes, 4KB
 DEF DATA_BLOCKS        EQU 65
 DEF DATA_VERSION       EQU 1;block 0 starts with "EDITOR.DAT" and this
+DEF DOC_BLOCK          EQU $0400;a file too big for the text buffer, CR and 0 dropped (src/fatfs/fatfs.c)
+DEF DOC_MAX            EQU $100000;1MB, blocks $0400-$0BFF
+DEF WIN_SIZE           EQU $C000;the part of it in the text buffer
 ELSE
 DEF TB_BANKS     EQU 8;SRAM banks 0-7, positions are 16 bit
 DEF TB_HOLE      EQU $1D00;$BD00-$BD0F are EverDrive registers, never stored to

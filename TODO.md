@@ -5,7 +5,7 @@ Priority
 - pages 7 and 10 are 95% full, page 14 is empty (check_pages.py)
 - time loading and saving a 64KB file on the X7 and in Gearboy, the numbers set the large file window size (see Large Files)
 - faster sector reads with auto-read streaming ($BD01 bit 2 + $BD06 bit 0, reading $BD00 clocks the next byte), and without checking the busy bit for each byte if the X7's SPI is fast enough at double speed
-- large files (bigger than the 65,408 byte text buffer), see Large Files
+- large files: viewing works (read only, up to 1MB), next editing and saving them, see Large Files
 
 Text Rendering
 
@@ -52,20 +52,24 @@ File I/O
 
 Large Files
 
-An SRAM window over a piece table on the SD card:
-- the document is a list of pieces (source, offset, length), the source is the original file (read only) or an append only scratch file on the card (/.texted.swp)
-- the gap buffer becomes a window into the document, edits only happen there. Near its edge the window is committed (appended to the scratch file if it was edited) and a new one is loaded around the cursor
-- positions stay 16 bit, relative to the window, with a 32 bit window_base. A slide rebases cursor, top, anchor and counted_pos
-- save streams the pieces to name.tmp, then f_unlink the original and f_rename the temp file (needs FF_FS_MINIMIZE 0). Save as skips the rename
-- long lines: windows start at a line start (scanning back up to a cap), longer lines wrap or cut at the window edge
-- line numbers: a sparse index of the original file (line feeds per 4KB block) built in the background when idle, "?" until it's done. Also gives Ctrl+G and a fast Ctrl+End
-- CR LF and dropped 0s mean window positions aren't file offsets: commit the whole window when it's edited at first, later map unchanged runs back to the original (offset = chars + LFs for consistent CR LF files)
-- a selection can't go past the window (it doesn't slide while selecting), deleting a range bigger than the window can be a piece table operation later
-- save shows a percentage, a 1MB save could take tens of seconds
-- the card has to stay in while a big file is open, refuse to write to a swapped card
-- files that fit in the window keep today's path (one piece, no scratch file, no temp file)
-- phases: measure speeds (Priority), read only large files with a sliding window, editable piece table + scratch file, background line index, optimizations (dirty range commits, save progress, merging pieces, a bigger window), crash recovery (rebuild from the piece table in SRAM + the scratch file at boot if the original's size and date still match)
-- f_lseek is unused now but FF_FS_MINIMIZE can't remove it without removing directory functions, large files will use it
+OS mode only (the SD card is only reachable there). Done: read only files up to 1MB (DOC_MAX). Opening copies
+the file to PSRAM from block DOC_BLOCK ($0400, 512KB) with CRs and 0s dropped, counting line feeds, so document
+positions are win_start + text buffer positions. The text buffer is a 48KB window (WIN_SIZE) that slides when
+the cursor is within 8KB of an edge that isn't the document's (Slide in editor.c), starting at a line start
+(fs_DocLineStart looks back up to 4KB). Ctrl+Home/End load the first/last window. While a large file is open
+the text buffer's signature is cleared and the swap file isn't written, so a reset restores the swap file
+instead of a window that could be saved over the file. Variables are in ROM0 (RAM in OS mode, WRAM0 is full).
+Next:
+- editing: a piece table over the PSRAM document (original + an append only add buffer in PSRAM), the window
+  is committed to it before a slide when edited. Undo history and a selection stop at the window for now
+- save streams the pieces to name.tmp (CR LF if fs_crlf), then f_unlink the original and f_rename the temp file
+  (needs FF_FS_MINIMIZE 0), shows a percentage
+- speed: opening is ~43KB/s in Gearboy (300KB in ~7s, untimed on the X7), mostly the per byte SD reads. A slide
+  is ~0.85s: tb_CountLines over the window (0.32s, could count while copying), DocRead + tb_Append through a
+  WRAM buffer (0.43s, the window could copy block to block), tb_Clear's 64KB clear (0.09s, not needed)
+- a markdown code block or C comment open at the window's start isn't seen (the lexer starts fresh there)
+- Ctrl+A selects the window, the status bar's position and selection counts are the window's
+- lines longer than the window's margin (8KB) with line wrap off
 
 Peripherals
 

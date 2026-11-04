@@ -338,6 +338,95 @@ unsigned char fs_LoadData(const char* path) {
   return result;
 }
 
+// A large file (bigger than the text buffer, up to DOC_MAX) is copied to PSRAM from DOC_BLOCK with
+// CRs and 0s dropped, so document positions are text buffer positions plus win_start. The text buffer
+// holds a window of it (fs_LoadWindow), read only for now. The text buffer's signature is cleared while
+// it's open so booting after a reset restores the swap file instead of keeping a window that could be
+// saved over the file, and the swap file isn't written (src/editor/editor.c)
+#define LINE_SCAN 4096 // fs_DocLineStart looks back this far
+extern unsigned char doc_large;
+extern unsigned long doc_len, doc_lines, doc_pos, win_start;
+extern void DocAppend(const BYTE* src, unsigned int count); // src/fatfs/fatfs.asm
+extern void DocRead(BYTE* dest, unsigned int count);
+extern void tb_Clear(void);
+extern const char TBSignature[4]; // src/editor/text_buffer.asm
+
+// sets the text buffer's signature (0 clears it)
+static void Signature(const char* signature) {
+  SetWindowBlock((TB_PSRAM_HIGH << 8) | MAIN_SRAM_BANK);
+  if (signature) memcpy(WINDOW, signature, 4);
+  else memset(WINDOW, 0, 4);
+  SetWindowBlock(TB_PSRAM_HIGH << 8);
+}
+
+// leaves large file mode
+void fs_CloseLarge(void) {
+  if (!doc_large) return;
+  doc_large = 0;
+  Signature(TBSignature);
+}
+
+// copies the file to PSRAM and loads the window at its start, returns an FRESULT
+unsigned char fs_LoadLarge(const char* path) {
+  UINT count;
+  FRESULT result = Open(path, FA_READ);
+  if (result) return result;
+  fs_CloseLarge();
+  if (f_size(&file) > DOC_MAX) result = FR_DENIED;
+  doc_len = doc_lines = 0;
+  tb_cr = 0;
+  while (!result) {
+    result = f_read(&file, buffer, FS_BUFFER_SIZE, &count);
+    if (result) break;
+    DocAppend(buffer, count);
+    if (count != FS_BUFFER_SIZE) break;
+  }
+  fs_crlf = tb_cr;
+  f_close(&file);
+  if (result) tb_Clear();
+  else {
+    doc_large = 1;
+    Signature(0);
+    win_start = 0;
+    fs_LoadWindow();
+  }
+  return result;
+}
+
+// loads WIN_SIZE bytes of the document from win_start into the text buffer
+void fs_LoadWindow(void) {
+  unsigned long end = win_start + WIN_SIZE;
+  UINT count;
+  if (end > doc_len) end = doc_len;
+  tb_Clear();
+  doc_pos = win_start;
+  while (doc_pos != end) {
+    count = end - doc_pos > FS_BUFFER_SIZE ? FS_BUFFER_SIZE : (UINT)(end - doc_pos);
+    DocRead(buffer, count);
+    tb_Append(buffer, count);
+  }
+}
+
+// moves doc_pos to the start of its line, looking back at most LINE_SCAN bytes (it stays if there's no line feed)
+void fs_DocLineStart(void) {
+  unsigned long pos = doc_pos, start = doc_pos;
+  UINT count, i, scanned = 0;
+  while (pos && scanned < LINE_SCAN) {
+    count = pos > FS_BUFFER_SIZE ? FS_BUFFER_SIZE : (UINT)pos;
+    pos -= count;
+    doc_pos = pos;
+    DocRead(buffer, count);
+    for (i = count; i; --i) {
+      if (buffer[i - 1] == ASCII_LF) {
+        doc_pos = pos + i;
+        return;
+      }
+    }
+    scanned += count;
+  }
+  doc_pos = pos ? start : 0;
+}
+
 // The swap file keeps what PSRAM loses when the power is off: block MAIN_SRAM_BANK's first 256 bytes
 // (the text buffer's signature, settings, clipboard length), "SWP1", the text's length, the sum of the
 // bytes after the first 512 and the clipboard's length, then from 512 the clipboard and the text.

@@ -15,3 +15,5 @@ ROM0: ld_16 ld_32 st_16 st_32 dbc_1st dbc_2nd sum_sfn
 11: tchar2uni put_utf cmp_lfn pick_lfn put_lfn gen_numname create_name get_fileinfo ff_wtoupper ff_uni2oem ff_oem2uni
 DATA: ROM0
 THUNKS: ROM0
+# large files
+14: fs_LoadLarge fs_LoadWindow fs_CloseLarge fs_DocLineStart Signature

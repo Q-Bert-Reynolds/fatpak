@@ -6,7 +6,8 @@ usage: python3 bank_split.py generated.asm banks.txt [--os]
 banks.txt lists functions (without the leading underscore) per section, one section per line:
   ROM0: ld_16 ld_32 ...
   B: mount_volume f_write ...
-Unlisted functions go in section A, data (tables, strings) goes in ROM0 so every bank can read it.
+Unlisted functions go in section A, data (tables, strings) goes in ROM0 so every bank can read it,
+unless it's listed too (only the functions in its section can read it then).
 These can be changed with "*: section" (unlisted functions), "DATA: section" and "THUNKS: section".
 With --os, sections are ROM0, FIXED (ROMX bank 1, always mapped) or a page number (4-15, PAGE in
 src/macros.asm), and data and thunks default to FIXED.
@@ -106,7 +107,7 @@ def main(asm_path, config_path, os_mode):
         out.append(section(dest))
       elif label and label.group(1) != block:
         block = label.group(1)
-        dest = functions.get(block) or data_dest
+        dest = functions.get(block) or config.get(block) or data_dest
         out.append(section(dest))
       branch = BRANCH_RE.match(line)
       if branch and dest:

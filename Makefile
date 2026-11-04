@@ -36,6 +36,7 @@ code: assemble run
 _%.asm: %.c $(C_HEADERS) $(C_LIBS) $(wildcard $(SRC_DIR)/*/*.banks)
 	@mkdir -p $(BUILD_DIR)
 	sdcc $< -msm83 --asm=rgbds --opt-code-size --dataseg WRAM0 --no-peep --peep-file peephole.def $(DEFINES) --disable-warning 218 -S -o $@
+	@sed -i 's/^\t\.byte /\tDB /' $@ # SDCC writes long constants as .byte
 ifeq ($(OS), 1)
 	@if [ -f $(basename $<).os.banks ]; then $(PYTHON) bank_split.py $@ $(basename $<).os.banks --os; fi
 else
