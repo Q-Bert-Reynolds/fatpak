@@ -16,4 +16,4 @@ ROM0: ld_16 ld_32 st_16 st_32 dbc_1st dbc_2nd sum_sfn
 DATA: ROM0
 THUNKS: ROM0
 # large files
-14: fs_LoadLarge fs_LoadWindow fs_CloseLarge fs_DocLineStart Signature
+14: fs_LoadLarge fs_LoadWindow fs_CloseLarge fs_DocLineStart fs_ScanStep Signature

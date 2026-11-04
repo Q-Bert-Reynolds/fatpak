@@ -186,6 +186,16 @@ ENDC
     inc a
     cp a, TB_BANKS
     jr nz, .clearBankLoop
+  jr TBEmpty
+
+IF DEF(EVERDRIVE_OS)
+_tb_Empty::;empties the text buffer without clearing it (tb_Load can't find the gap after this, a large
+;file's window clears the signature, see src/fatfs/fatfs.c)
+  ld a, 1
+  ld [_swap_dirty], a
+  SRAM_ON
+ENDC
+TBEmpty:
   ld hl, 0
   ST_HL_VAR tb_gap_start
   ld hl, TB_SIZE
@@ -740,10 +750,9 @@ _tb_Append::;de = buffer, bc = count, inserts at the gap dropping 0s and CRs (se
 .byte
       ld a, [de]
       inc de
-      and a
-      jr z, .next;text never contains 0
-      cp a, ASCII_CR
-      jr z, .cr
+      cp a, ASCII_CR+1
+      jr c, .low;0, CR and the other control characters
+.store
       ld [hli], a
 .next
       dec c
@@ -770,7 +779,11 @@ _tb_Append::;de = buffer, bc = count, inserts at the gap dropping 0s and CRs (se
     sbc a, b
     ld [hl], a
     jp .run
-.cr
+.low
+      and a
+      jr z, .next;text never contains 0
+      cp a, ASCII_CR
+      jr nz, .store
       ld a, 1
       ld [_tb_cr], a
       jr .next

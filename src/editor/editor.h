@@ -83,12 +83,15 @@ extern void SGBSetDefaultBorder(void);
 extern unsigned char FileSaveSwap(void); // FRESULT, the text, clipboard and settings
 extern unsigned char FileLoadSwap(void); // FRESULT, restores them if PSRAM lost them
 extern unsigned char swap_dirty; // they changed since FileSaveSwap
-extern unsigned char FileLoadLarge(const char* path); // FRESULT, copies a file too big for the text buffer to PSRAM, loads the window at its start
-extern void FileLoadWindow(void); // the text buffer is the document from win_start
+extern unsigned char FileLoadLarge(const char* path); // FRESULT, opens a file too big for the text buffer, loads the window at its start
+extern unsigned char FileLoadWindow(void); // FRESULT, the text buffer is the file from win_start (see src/fatfs/fatfs.c)
 extern void FileCloseLarge(void);
-extern void DocLineStart(void); // moves doc_pos to its line's start
+extern void DocLineStart(void); // moves doc_pos (a file offset) to its line's start, doc_back = window positions it moved
+extern unsigned char FileScanStep(void); // counts a sector's line feeds toward scan_target, 1 when done
 extern unsigned char doc_large; // a large file is open (read only), the text buffer is a window into it
-extern unsigned long doc_len, doc_lines, doc_pos, win_start, win_lines; // win_lines = line feeds before win_start
+extern unsigned char lines_known, win_chunks;
+extern unsigned long doc_len, doc_pos, win_start, win_end, win_mark, win_lines, scan_pos, scan_target, scan_lines;
+extern unsigned int doc_back, win_mark_pos, win_kept[];
 #endif
 extern unsigned char fs_crlf; // loaded file used CR LF, saving writes CR LF
 

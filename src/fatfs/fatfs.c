@@ -338,18 +338,23 @@ unsigned char fs_LoadData(const char* path) {
   return result;
 }
 
-// A large file (bigger than the text buffer, up to DOC_MAX) is copied to PSRAM from DOC_BLOCK with
-// CRs and 0s dropped, so document positions are text buffer positions plus win_start. The text buffer
-// holds a window of it (fs_LoadWindow), read only for now. The text buffer's signature is cleared while
-// it's open so booting after a reset restores the swap file instead of keeping a window that could be
-// saved over the file, and the swap file isn't written (src/editor/editor.c)
+// A large file (bigger than the text buffer) stays open and is read from the card as needed: the text
+// buffer holds a window of it from win_start (fs_LoadWindow, read only for now). CRs and 0s aren't in the
+// window, so window positions aren't file offsets: win_kept has the window position of each sector boundary
+// in it, and a window loaded with win_mark in it gives that offset's window position. The text buffer's
+// signature is cleared while one is open so booting after a reset restores the swap file instead of a
+// window that could be saved over the file, and the swap file isn't written (src/editor/editor.c)
 #define LINE_SCAN 4096 // fs_DocLineStart looks back this far
-extern unsigned char doc_large;
-extern unsigned long doc_len, doc_lines, doc_pos, win_start;
-extern void DocAppend(const BYTE* src, unsigned int count); // src/fatfs/fatfs.asm
-extern void DocRead(BYTE* dest, unsigned int count);
+#define NO_MARK 0xFFFFFFFF
+extern unsigned char doc_large, win_chunks;
+extern unsigned long doc_len, doc_pos, win_start, win_end, win_mark, scan_pos, scan_target, scan_lines;
+extern unsigned int doc_back, win_mark_pos, win_kept[];
+extern unsigned int CountLF(const BYTE* data, unsigned int count); // src/fatfs/fatfs.asm
 extern void tb_Clear(void);
+extern void tb_Empty(void); // tb_Clear without zeroing the text buffer
+extern unsigned int tb_Length(void);
 extern const char TBSignature[4]; // src/editor/text_buffer.asm
+unsigned char fs_LoadWindow(void);
 
 // sets the text buffer's signature (0 clears it)
 static void Signature(const char* signature) {
@@ -363,68 +368,107 @@ static void Signature(const char* signature) {
 void fs_CloseLarge(void) {
   if (!doc_large) return;
   doc_large = 0;
+  f_close(&file);
   Signature(TBSignature);
 }
 
-// copies the file to PSRAM and loads the window at its start, returns an FRESULT
+// opens the file and loads the window at its start, returns an FRESULT
 unsigned char fs_LoadLarge(const char* path) {
-  UINT count;
-  FRESULT result = Open(path, FA_READ);
-  if (result) return result;
+  FRESULT result;
   fs_CloseLarge();
-  if (f_size(&file) > DOC_MAX) result = FR_DENIED;
-  doc_len = doc_lines = 0;
+  if ((result = Open(path, FA_READ))) return result;
+  doc_len = f_size(&file);
+  doc_large = 1;
+  Signature(0);
+  win_start = 0;
+  win_mark = NO_MARK;
   tb_cr = 0;
-  while (!result) {
-    result = f_read(&file, buffer, FS_BUFFER_SIZE, &count);
-    if (result) break;
-    DocAppend(buffer, count);
-    if (count != FS_BUFFER_SIZE) break;
+  if ((result = fs_LoadWindow())) {
+    fs_CloseLarge();
+    tb_Clear();
   }
   fs_crlf = tb_cr;
-  f_close(&file);
-  if (result) tb_Clear();
-  else {
-    doc_large = 1;
-    Signature(0);
-    win_start = 0;
-    fs_LoadWindow();
-  }
   return result;
 }
 
-// loads WIN_SIZE bytes of the document from win_start into the text buffer
-void fs_LoadWindow(void) {
-  unsigned long end = win_start + WIN_SIZE;
-  UINT count;
+// loads the file from win_start (up to WIN_SIZE bytes) into the text buffer, sets win_end, win_kept[i] to
+// the window position of file offset ((win_start + 511) & ~511) + 512 i and win_mark_pos to win_mark's
+// (0xFFFF if it isn't in the window), returns an FRESULT
+unsigned char fs_LoadWindow(void) {
+  unsigned long pos = win_start, end = win_start + WIN_SIZE, next;
+  UINT count, done;
+  FRESULT result;
   if (end > doc_len) end = doc_len;
-  tb_Clear();
-  doc_pos = win_start;
-  while (doc_pos != end) {
-    count = end - doc_pos > FS_BUFFER_SIZE ? FS_BUFFER_SIZE : (UINT)(end - doc_pos);
-    DocRead(buffer, count);
-    tb_Append(buffer, count);
+  tb_Empty();
+  win_chunks = 0;
+  win_mark_pos = 0xFFFF;
+  result = f_lseek(&file, pos);
+  while (!result) {
+    if (!((UINT)pos & 511)) win_kept[win_chunks++] = tb_Length();
+    if (pos == win_mark) win_mark_pos = tb_Length();
+    if (pos == end) break;
+    next = (pos | 511) + 1;
+    if (next > end) next = end;
+    if (win_mark > pos && win_mark < next) next = win_mark;
+    count = (UINT)(next - pos);
+    result = f_read(&file, buffer, count, &done);
+    if (!result && done != count) result = FR_INT_ERR;
+    if (!result) tb_Append(buffer, count);
+    pos = next;
   }
+  win_end = pos;
+  return result;
 }
 
-// moves doc_pos to the start of its line, looking back at most LINE_SCAN bytes (it stays if there's no line feed)
+// moves doc_pos (a file offset) to the start of its line, looking back at most LINE_SCAN bytes (it stays if
+// there's no line feed), sets doc_back to the window positions it moved back (CRs and 0s aren't counted)
 void fs_DocLineStart(void) {
-  unsigned long pos = doc_pos, start = doc_pos;
-  UINT count, i, scanned = 0;
+  unsigned long pos = doc_pos;
+  UINT count, i, done, kept = 0, scanned = 0;
+  BYTE c;
+  doc_back = 0;
   while (pos && scanned < LINE_SCAN) {
-    count = pos > FS_BUFFER_SIZE ? FS_BUFFER_SIZE : (UINT)pos;
+    count = (UINT)pos & 511;
+    if (!count) count = 512;
     pos -= count;
-    doc_pos = pos;
-    DocRead(buffer, count);
+    if (f_lseek(&file, pos) || f_read(&file, buffer, count, &done) || done != count) return;
     for (i = count; i; --i) {
-      if (buffer[i - 1] == ASCII_LF) {
+      c = buffer[i - 1];
+      if (c == ASCII_LF) {
         doc_pos = pos + i;
+        doc_back = kept;
         return;
       }
+      if (c != ASCII_CR && c) ++kept;
     }
     scanned += count;
   }
-  doc_pos = pos ? start : 0;
+  if (!pos) {
+    doc_pos = 0;
+    doc_back = kept;
+  }
+}
+
+// counts the line feeds of up to SCAN_SECTORS sectors toward scan_target into scan_lines, returns 1 when
+// it's there (or the card can't be read). A sector takes ~64 lines of the screen's 154, another one starts
+// only if it ends before the next VBlank (the main loop waits for it). f_lseek divides longs (~5ms), so it's
+// only called when a window load moved the file's position
+#define SCAN_SECTORS 3
+#define SCAN_LAST_LINE 80 // lines since VBlank another sector can start at
+#define rLY (*(volatile BYTE*)0xFF44)
+unsigned char fs_ScanStep(void) {
+  UINT count, done;
+  unsigned char i;
+  if (f_tell(&file) != scan_pos && f_lseek(&file, scan_pos)) return 1;
+  for (i = 0; i < SCAN_SECTORS && scan_pos != scan_target; ++i) {
+    if (i && (rLY >= 144 ? rLY - 144 : rLY + 10) > SCAN_LAST_LINE) break;
+    count = 512 - ((UINT)scan_pos & 511);
+    if (scan_target - scan_pos < count) count = (UINT)(scan_target - scan_pos);
+    if (f_read(&file, buffer, count, &done) || done != count) return 1;
+    scan_lines += CountLF(buffer, count);
+    scan_pos += count;
+  }
+  return scan_pos == scan_target;
 }
 
 // The swap file keeps what PSRAM loses when the power is off: block MAIN_SRAM_BANK's first 256 bytes

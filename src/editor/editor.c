@@ -119,6 +119,7 @@ static const char help_lines[HELP_ROWS][HELP_COLS] = {
 };
 
 static void Render(void);
+static unsigned char ReadOnly(void);
 
 static char* RowAddress(unsigned char row);
 static void DrawRow(unsigned char row, unsigned char col, const char* text);
@@ -519,7 +520,9 @@ static void UpdateBars(void) {
   else {
     end = PutText(text, "Line ");
 #ifdef EVERDRIVE_OS
-    end = PutNumber(end, CursorLine() + (doc_large ? win_lines : 0));
+    if (!doc_large) end = PutNumber(end, CursorLine());
+    else if (lines_known) end = PutNumber(end, CursorLine() + win_lines);
+    else *end++ = '?';
 #else
     end = PutNumber(end, CursorLine());
 #endif
@@ -701,77 +704,103 @@ static void Cut(void) {
 }
 
 #ifdef EVERDRIVE_OS
-#define WIN_MARGIN 0x2000 // the window moves when the cursor is this close to an edge that isn't the document's
+#define WIN_MARGIN 0x2000 // the window moves when the cursor is this close to an edge that isn't the file's
+#define NO_MARK 0xFFFFFFFF
 
-// loads the window at start (a line start) in place of the one at win_start, positions in the text
-// buffer move with it (a selection that leaves it is cleared)
-static void MoveWindow(unsigned long start) {
-  unsigned int shift;
-  if (start >= win_start) {
-    shift = (unsigned int)(start - win_start);
-    win_lines += tb_CountLines(0, shift);
-    win_start = start;
-    FileLoadWindow();
-    cursor -= shift;
+static void LoadWindow(void) {
+  if (FileLoadWindow()) ShowMessage("SD ERROR");
+  selecting = 0;
+  Uncount(0);
+  dirty = 1;
+}
+
+// after a slide, positions in the text buffer move back by shift (forward if down = 0), ones that leave it
+// are clamped (a selection is cleared)
+static void ShiftPositions(unsigned int shift, unsigned char down) {
+  unsigned int length = tb_Length();
+  if (down) {
+    cursor = cursor > shift ? cursor - shift : 0;
     top = top > shift ? top - shift : 0;
     if (anchor < shift) selecting = 0;
     else anchor -= shift;
   }
   else {
-    shift = (unsigned int)(win_start - start);
-    win_start = start;
-    FileLoadWindow();
-    win_lines -= tb_CountLines(0, shift);
     cursor += shift;
     top += shift;
-    if (anchor + shift > tb_Length() || anchor + shift < anchor) selecting = 0;
+    if (anchor + shift > length) selecting = 0;
     else anchor += shift;
   }
+  if (cursor > length) cursor = length;
+  if (top > length) top = length;
   Uncount(0);
-  if (cursor > tb_Length()) cursor = tb_Length();
   dirty = 1;
 }
 
-// moves the window so the cursor is in its middle if it's near an edge with more text past it
+// line feeds before win_start aren't known after a jump: they're counted in the background (ScanLines),
+// win_lines counts from scan_target until then
+static void LinesUnknown(void) {
+  lines_known = 0;
+  win_lines = 0;
+  scan_target = win_start;
+  scan_pos = 0;
+  scan_lines = 0;
+}
+
+// moves the window when the cursor is near an edge with more of the file past it, so the cursor ends up
+// near its middle. Windows start at a line start
 static void Slide(void) {
-  unsigned int length = tb_Length();
-  if (cursor < WIN_MARGIN ? !win_start : (cursor + WIN_MARGIN <= length || win_start + length == doc_len)) return;
-  doc_pos = win_start + cursor;
-  if (doc_pos > WIN_SIZE / 2) {
-    doc_pos -= WIN_SIZE / 2;
+  unsigned int length = tb_Length(), shift, target;
+  unsigned char i;
+  if (cursor < WIN_MARGIN ? !win_start : (cursor + WIN_MARGIN <= length || win_end == doc_len)) return;
+  win_mark = NO_MARK;
+  if (cursor >= WIN_MARGIN) { // from a sector boundary half a window before the cursor
+    target = cursor - WIN_SIZE / 2;
+    for (i = win_chunks - 1; i && win_kept[i] > target; --i);
+    if (!i) return;
+    doc_pos = ((win_start + 511) & ~511UL) + ((unsigned long)i << 9);
     DocLineStart();
+    shift = win_kept[i] - doc_back;
+    win_lines += tb_CountLines(0, shift);
+    win_start = doc_pos;
+    if (FileLoadWindow()) ShowMessage("SD ERROR");
+    ShiftPositions(shift, 1);
   }
-  else doc_pos = 0;
-  MoveWindow(doc_pos);
+  else { // half a window back, the old start's position is the shift
+    doc_pos = win_start > WIN_SIZE / 2 ? win_start - WIN_SIZE / 2 : 0;
+    DocLineStart();
+    win_mark = win_start;
+    win_start = doc_pos;
+    if (FileLoadWindow()) ShowMessage("SD ERROR");
+    shift = win_mark_pos == 0xFFFF ? 0 : win_mark_pos;
+    win_lines -= tb_CountLines(0, shift);
+    ShiftPositions(shift, 0);
+  }
 }
 #endif
 
-// Ctrl+Home, the document's start
+// Ctrl+Home, the file's start
 static void GoStart(void) {
 #ifdef EVERDRIVE_OS
   if (doc_large && win_start) {
     win_start = win_lines = 0;
-    FileLoadWindow();
-    selecting = 0;
-    Uncount(0);
-    dirty = 1;
+    win_mark = NO_MARK;
+    lines_known = 1;
+    LoadWindow();
   }
 #endif
   cursor = 0;
 }
 
-// Ctrl+End, the document's end
+// Ctrl+End, the file's end
 static void GoEnd(void) {
 #ifdef EVERDRIVE_OS
-  if (doc_large && win_start + tb_Length() != doc_len) {
-    doc_pos = doc_len > WIN_SIZE / 2 ? doc_len - WIN_SIZE / 2 : 0;
+  if (doc_large && win_end != doc_len) {
+    doc_pos = doc_len - WIN_SIZE / 2; // the window isn't the whole file, so it's longer than this
     DocLineStart();
     win_start = doc_pos;
-    FileLoadWindow();
-    win_lines = doc_lines - tb_CountLines(0, tb_Length());
-    selecting = 0;
-    Uncount(0);
-    dirty = 1;
+    win_mark = NO_MARK;
+    LoadWindow();
+    LinesUnknown();
   }
 #endif
   cursor = tb_Length();
@@ -1294,8 +1323,7 @@ static void ListBars(const char* path, unsigned char row, unsigned int count) {
     *end++ = ':';
     end = PutNumber2(end, (time >> 5) & 63);
 #ifdef EVERDRIVE_OS
-    if (size > DOC_MAX) end = PutText(end, "  too big");
-    else if (size > TB_SIZE) end = PutText(end, "  read only");
+    if (size > TB_SIZE) end = PutText(end, "  read only");
 #else
     if (size > TB_SIZE) end = PutText(end, "  too big");
 #endif
@@ -1408,9 +1436,7 @@ static unsigned char Browse(void) {
           ListMessage("Path is too long");
         }
       }
-#ifdef EVERDRIVE_OS
-      else if (entry.size > DOC_MAX) ListMessage("Too big to open");
-#else
+#ifndef EVERDRIVE_OS
       else if (entry.size > TB_SIZE) ListMessage("Too big to open");
 #endif
       else {
@@ -1838,6 +1864,9 @@ void Editor(void) {
     WaitFrame();
     while ((key = (unsigned char)(event = KBPopEvent()))) {
       if (!HandleFileKey(key, (unsigned char)(event >> 8))) HandleKey(key, (unsigned char)(event >> 8));
+#ifdef EVERDRIVE_OS
+      if (doc_large) Slide(); // before the next key, which could reach the window's end
+#endif
       if (dirty || edited) break; // text changed, rows need rendering before more keys
       if (moved) { // keeps tb_found_row current for the next key
         if (!PlaceCursor()) dirty = 1;
@@ -1885,6 +1914,13 @@ void Editor(void) {
       continue;
     }
     if (idle_frames < SWAP_DELAY) ++idle_frames;
+#ifdef EVERDRIVE_OS
+    if (doc_large && !lines_known && FileScanStep()) { // a sector a frame while idle
+      win_lines += scan_lines;
+      lines_known = 1;
+      bars_changed = 1;
+    }
+#endif
     if (idle_frames >= NORMALIZE_DELAY && !everdrive && !normalized) normalized = tb_NormalizeStep(); // keeps the .sav readable as text
 #ifdef EVERDRIVE_OS
     if (idle_frames >= SWAP_DELAY && swap_dirty && !doc_large) {

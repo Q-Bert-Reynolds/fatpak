@@ -26,6 +26,7 @@ _FileLoadLarge:: BANKED_C _fs_LoadLarge
 _FileLoadWindow:: BANKED_C _fs_LoadWindow
 _FileCloseLarge:: BANKED_C _fs_CloseLarge
 _DocLineStart::  BANKED_C _fs_DocLineStart
+_FileScanStep::  BANKED_C _fs_ScanStep
 
 _ByteSum::;de = data, bc = count, returns the sum of the bytes in bc
   ld h, d
@@ -148,170 +149,61 @@ _strchr::;de = string, c = char, returns the first c in it (its 0 if c is 0) or 
 INCLUDE "src/fatfs/_fatfs.asm";generated from fatfs.c
 
 IF DEF(EVERDRIVE_OS)
-;A large file (src/fatfs/fatfs.c): PSRAM from DOC_BLOCK holds the document, positions are 32 bit
-SECTION "Large File Vars", ROM0, ALIGN[8, $E0];the OS image is RAM, the alignment keeps it out of the RST vectors (it went at $0000)
+;A large file (src/fatfs/fatfs.c), positions are 32 bit file offsets
+SECTION "Large File Vars", ROM0, ALIGN[8, $E0];the OS image is RAM, the alignment keeps it out of the RST vectors
 _doc_large:: DS 1;a large file is open, the text buffer is a window into it
-_doc_len:: DS 4
-_doc_lines:: DS 4;line feeds in it
-_doc_pos:: DS 4;where DocRead reads, fs_DocLineStart's position
-_win_start:: DS 4;document position of the text buffer's start
-_win_lines:: DS 4;line feeds before it
-doc_dropped: DS 2;DocAppend
+_lines_known:: DS 1;win_lines is the line feeds before win_start (else before it from scan_target, see editor.c)
+_win_chunks:: DS 1;win_kept entries
+_doc_len:: DS 4;the file's size
+_doc_pos:: DS 4;fs_DocLineStart's offset
+_doc_back:: DS 2;window positions fs_DocLineStart moved back
+_win_start:: DS 4;offset of the text buffer's start
+_win_end:: DS 4;and its end
+_win_mark:: DS 4;fs_LoadWindow finds this offset's window position
+_win_mark_pos:: DS 2
+_win_lines:: DS 4;line feeds before win_start
+_scan_pos:: DS 4;counting line feeds from the start to scan_target in the background
+_scan_target:: DS 4
+_scan_lines:: DS 4
+_win_kept:: DS 2*WIN_CHUNKS;window position of each sector boundary in the window
 
 PAGE DOC_PAGE
-;hl = position, sets the window to its block, returns its address in hl, affects a, bc
-DocSeek:
+_CountLF::;de = data, bc = count, returns the line feeds in it in bc (two bytes a loop, ~8 M-cycles a byte)
+  ld h, d
+  ld l, e
+  ld de, 0
+  srl b
+  rr c;pairs
+  jr nc, .pairs
   ld a, [hli]
-  ld c, a
-  ld a, [hli]
-  ld b, a
-  ld h, [hl]
-  ld l, b
-  srl h
-  rr l;position >> 9
-  ld a, l
-  ld [EDX_BLOCK], a
-  ld a, h
-  add a, HIGH(DOC_BLOCK)
-  ld [EDX_BLOCK+1], a
-  ld a, b
-  and a, 1
-  add a, HIGH(EDX_WINDOW)
-  ld h, a
-  ld l, c
-  ret
-
-;the next block in the window, returns its start in hl, only affects hl
-DocNextBlock:
-  ld hl, EDX_BLOCK
-  inc [hl]
-  jr nz, .same
-  inc hl
-  inc [hl]
-.same
-  ld hl, EDX_WINDOW
-  ret
-
-;hl = 32 bit variable, adds bc to it, affects a
-DocAdd:
-  ld a, [hl]
-  add a, c
-  ld [hli], a
-  ld a, [hl]
-  adc a, b
-  ld [hli], a
-  ld a, [hl]
-  adc a, 0
-  ld [hli], a
-  ld a, [hl]
-  adc a, 0
-  ld [hl], a
-  ret
-
-;de = WRAM, bc = count, appends the bytes to the document dropping CRs (sets tb_cr) and 0s,
-;counts line feeds in doc_lines (fs_LoadLarge checks the size)
-_DocAppend::
-  ld a, [EDX_BLOCK+1]
-  ld h, a
-  ld a, [EDX_BLOCK]
-  ld l, a
-  push hl
-  xor a
-  ld [doc_dropped], a
-  ld [doc_dropped+1], a
-  push bc
-  ld hl, _doc_len
-  push bc
-  call DocSeek
-  pop bc
-.loop
-    ld a, [de]
-    inc de
-    cp a, ASCII_CR
-    jr z, .cr
-    and a
-    jr z, .drop
-    cp a, ASCII_LF
-    jr nz, .store
-    push hl
-    ld hl, _doc_lines
-    inc [hl]
-    jr nz, .counted
-    inc hl
-    inc [hl]
-    jr nz, .counted
-    inc hl
-    inc [hl]
-  .counted
-    pop hl
-  .store
-    ld [hli], a
-    ld a, h
-    cp a, HIGH(EDX_WINDOW+$200)
-    call z, DocNextBlock
-  .next
-    dec bc
-    ld a, b
-    or a, c
-    jr nz, .loop
-  pop bc;count
-  ld hl, doc_dropped
-  ld a, c
-  sub a, [hl]
-  ld c, a
-  inc hl
-  ld a, b
-  sbc a, [hl]
-  ld b, a
-  ld hl, _doc_len
-  call DocAdd
-  jr DocRestore
-.cr
-  ld a, 1
-  ld [_tb_cr], a
-.drop
-  push hl
-  ld hl, doc_dropped
-  inc [hl]
-  jr nz, .dropped
-  inc hl
-  inc [hl]
-.dropped
-  pop hl
-  jr .next
-
-;de = WRAM, bc = count, copies count bytes of the document from doc_pos, advances it
-_DocRead::
-  ld a, [EDX_BLOCK+1]
-  ld h, a
-  ld a, [EDX_BLOCK]
-  ld l, a
-  push hl
-  push bc
-  ld hl, _doc_pos
-  push bc
-  call DocSeek
-  pop bc
+  cp a, ASCII_LF
+  jr nz, .pairs
+  inc de
+.pairs
+  inc b
+  inc c
+  jr .start
 .loop
     ld a, [hli]
-    ld [de], a
-    inc de
-    ld a, h
-    cp a, HIGH(EDX_WINDOW+$200)
-    call z, DocNextBlock
-    dec bc
-    ld a, b
-    or a, c
+    cp a, ASCII_LF
+    jr z, .lf1
+  .second
+    ld a, [hli]
+    cp a, ASCII_LF
+    jr z, .lf2
+.start
+    dec c
     jr nz, .loop
-  pop bc
-  ld hl, _doc_pos
-  call DocAdd
-DocRestore:;the window's block from the stack
-  pop hl
-  ld a, l
-  ld [EDX_BLOCK], a
-  ld a, h
-  ld [EDX_BLOCK+1], a
+    dec b
+    jr nz, .loop
+  ld b, d
+  ld c, e
   ret
+.lf1
+  inc de
+  jr .second
+.lf2
+  inc de
+  jr .start
 END_PAGE
 ENDC

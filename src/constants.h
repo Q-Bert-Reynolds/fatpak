@@ -63,9 +63,8 @@
 #define DATA_BORDER_MAP    57//its map and palettes, 4KB
 #define DATA_BLOCKS        65
 #define DATA_VERSION       1//block 0 starts with "EDITOR.DAT" and this
-#define DOC_BLOCK          0x0400u//a file too big for the text buffer, CR and 0 dropped (src/fatfs/fatfs.c)
-#define DOC_MAX            0x100000//1MB, blocks 0x0400-0x0BFF
-#define WIN_SIZE           0xC000u//the part of it in the text buffer
+#define WIN_SIZE           0xC000u//the part of a large file in the text buffer (src/fatfs/fatfs.c)
+#define WIN_CHUNKS         WIN_SIZE/512+1//sector boundaries in it
 #else
 #define TB_BANKS     8//SRAM banks 0-7, positions are 16 bit
 #define TB_HOLE      0x1D00u//0xBD00-0xBD0F are EverDrive registers, never stored to

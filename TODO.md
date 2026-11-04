@@ -5,7 +5,7 @@ Priority
 - pages 7 and 10 are 95% full, page 14 is empty (check_pages.py)
 - time loading and saving a 64KB file on the X7 and in Gearboy, the numbers set the large file window size (see Large Files)
 - faster sector reads with auto-read streaming ($BD01 bit 2 + $BD06 bit 0, reading $BD00 clocks the next byte), and without checking the busy bit for each byte if the X7's SPI is fast enough at double speed
-- large files: viewing works (read only, up to 1MB), next editing and saving them, see Large Files
+- large files: viewing works (read only, from the card), next editing and saving them, see Large Files
 
 Text Rendering
 
@@ -52,21 +52,24 @@ File I/O
 
 Large Files
 
-OS mode only (the SD card is only reachable there). Done: read only files up to 1MB (DOC_MAX). Opening copies
-the file to PSRAM from block DOC_BLOCK ($0400, 512KB) with CRs and 0s dropped, counting line feeds, so document
-positions are win_start + text buffer positions. The text buffer is a 48KB window (WIN_SIZE) that slides when
-the cursor is within 8KB of an edge that isn't the document's (Slide in editor.c), starting at a line start
-(fs_DocLineStart looks back up to 4KB). Ctrl+Home/End load the first/last window. While a large file is open
-the text buffer's signature is cleared and the swap file isn't written, so a reset restores the swap file
-instead of a window that could be saved over the file. Variables are in ROM0 (RAM in OS mode, WRAM0 is full).
+OS mode only (the SD card is only reachable there). Done: read only files of any size. The file stays open
+and the text buffer is a 48KB window of it (WIN_SIZE, fs_LoadWindow), read from the card: opening a file takes
+~0.9s in Gearboy whatever its size. The window slides when the cursor is within 8KB of an edge that isn't the
+file's (Slide in editor.c), starting at a line start (fs_DocLineStart looks back up to 4KB). CRs aren't in the
+window, so window positions aren't file offsets: win_kept has the window position of each sector boundary, a
+forward slide starts from one of them, a backward one marks the old start (win_mark). Line numbers are counted
+across slides; Ctrl+End shows "Line ?" until the line feeds before the window are counted in the background
+(fs_ScanStep, ~56KB/s, sectors only start if they end before VBlank). While a large file is open the text
+buffer's signature is cleared and the swap file isn't written, so a reset restores the swap file instead of a
+window that could be saved over the file. Variables are in ROM0 (RAM in OS mode, WRAM0 is full).
 Next:
-- editing: a piece table over the PSRAM document (original + an append only add buffer in PSRAM), the window
-  is committed to it before a slide when edited. Undo history and a selection stop at the window for now
+- editing: a piece table over the file (original + an append only add buffer in PSRAM), the window is
+  committed to it before a slide when edited. Undo history and a selection stop at the window for now
 - save streams the pieces to name.tmp (CR LF if fs_crlf), then f_unlink the original and f_rename the temp file
   (needs FF_FS_MINIMIZE 0), shows a percentage
-- speed: opening is ~43KB/s in Gearboy (300KB in ~7s, untimed on the X7), mostly the per byte SD reads. A slide
-  is ~0.85s: tb_CountLines over the window (0.32s, could count while copying), DocRead + tb_Append through a
-  WRAM buffer (0.43s, the window could copy block to block), tb_Clear's 64KB clear (0.09s, not needed)
+- speed: a window load is tb_Append (0.37s, the SD read loop could drop CRs and write into the text buffer
+  itself, ~0.25s less) and sd_ReadSector (0.35s, auto-read streaming in Priority). Untimed on the X7
+- the line count after Ctrl+End starts from the file's start, it could start from the last known window
 - a markdown code block or C comment open at the window's start isn't seen (the lexer starts fresh there)
 - Ctrl+A selects the window, the status bar's position and selection counts are the window's
 - lines longer than the window's margin (8KB) with line wrap off
