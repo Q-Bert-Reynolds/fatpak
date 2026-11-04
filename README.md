@@ -28,7 +28,9 @@ characters are selected. F11 (or FULL SCREEN in the menu) hides them. F1 (or HEL
 
 PS/2 keyboards type directly: arrows, home, end, page up/down, backspace, delete, enter.
 Escape opens the menu: FILE (open, save, save as, new), EDIT (undo, redo, cut, copy, paste, select all),
-SETTINGS (line wrap, full screen) and HELP. B or Backspace goes back from a submenu, START or Escape closes
+SETTINGS (line wrap, full screen) and HELP (controls, keyboard test). The keyboard test shows each byte the
+PS/2 keyboard sends (hex, bits and start/parity/finish/timeout errors) and the key it makes, and listens for a
+keyboard even if none was found at boot (it keeps listening afterwards). B or Backspace goes back from a submenu, START or Escape closes
 the menu. Ctrl+O opens, Ctrl+S saves, Ctrl+N starts a new file.
 OPEN (Ctrl+O) browses the SD card: the top bar shows the folder, the bottom bar the selected file's size and date.
 Folders come first, enter or A opens, backspace, left or B goes up a folder, escape goes back to the text

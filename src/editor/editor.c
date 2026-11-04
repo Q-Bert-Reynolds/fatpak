@@ -12,7 +12,7 @@
 #define PADF_A      0x01
 #define PADF_DPAD   0xF0
 
-#define ITEM_SIZE      13 // menu items
+#define ITEM_SIZE      14 // menu items
 #define NAME_CHARS     32 // save as, Latin-1 chars are 2 bytes in UTF-8 so they fit in FS_NAME_SIZE
 #define LIST_ROWS      (TB_ROWS - 2) // file browser rows between the bars
 #define LIST_ALL       0xFFFF
@@ -93,8 +93,9 @@ static const char menu_items[][ITEM_SIZE] = {"FILE", "EDIT", "SETTINGS", "HELP"}
 static const char submenu_items[][ITEM_SIZE] = { // FILE, EDIT, SETTINGS
   "OPEN", "SAVE", "SAVE AS", "NEW",
   "UNDO", "REDO", "CUT", "COPY", "PASTE", "SELECT ALL",
-  "LINE WRAP", "FULL SCREEN"};
-static const unsigned char submenu_starts[] = {0, 4, 10, 12};
+  "LINE WRAP", "FULL SCREEN",
+  "CONTROLS", "KEYBOARD TEST"};
+static const unsigned char submenu_starts[] = {0, 4, 10, 12, 14};
 static const char discard_items[][ITEM_SIZE] = {"NO", "YES"};
 static const char help_lines[HELP_ROWS][HELP_COLS] = {
   "HELP",
@@ -1556,15 +1557,85 @@ static void ShowHelp(void) {
   EndFullScreen();
 }
 
-// FILE, EDIT, SETTINGS and HELP, B goes back from a submenu, start or escape close them
+// FILE, EDIT, SETTINGS and HELP submenus, B goes back from a submenu, start or escape close them
+static char* PutHex(char* dest, unsigned char n) {
+  unsigned char digit = n >> 4;
+  *dest++ = digit < 10 ? '0' + digit : 'A' - 10 + digit;
+  digit = n & 15;
+  *dest++ = digit < 10 ? '0' + digit : 'A' - 10 + digit;
+  return dest;
+}
+
+#define TEST_CODES 11 // scan code rows
+#define TEST_FIRST 5 // the first one's screen row
+static const char test_errors[][9] = {"finish", "parity", "start", "", "", "timeout"}; // PS2_ERROR_* bits
+
+// HELP > KEYBOARD TEST: the PS/2 interrupt's bytes (hex, bits, errors, counted from here, up to 255) and
+// the keys they make, listening
+// even if no keyboard was found at boot (it keeps listening afterwards)
+static void KeyboardTest(void) {
+  unsigned char codes[TEST_CODES], errors[TEST_CODES], read = kb_buffer_write, count = 0, boot = kb_type;
+  unsigned char row, i, bit, editor_font = font, bytes = kb_interrupt_count, errors_seen = kb_error_count;
+  unsigned int event;
+  char text[TB_STRIDE], *end;
+  font = FONT_VWF;
+  SetFont(font);
+  render_text = 0;
+  BeginFullScreen();
+  ClearScreen();
+  KBListen();
+  DrawRow(0, 0, "KEYBOARD TEST");
+  DrawRow(1, 0, boot == 1 ? "Found at boot: PS/2" : boot ? "Found at boot: iGKB" : "Found at boot: none, listening anyway");
+  DrawRow(4, 0, "Scan codes (newest last):");
+  DrawRow(TB_ROWS - 1, 0, "B or Start  back");
+  while (1) {
+    end = PutText(text, "Bytes ");
+    end = PutNumber(end, (unsigned char)(kb_interrupt_count - bytes));
+    end = PutText(end, "   with errors ");
+    end = PutNumber(end, (unsigned char)(kb_error_count - errors_seen));
+    *end = 0;
+    DrawRow(2, 0, text);
+    if (read != kb_buffer_write) {
+      while (read != kb_buffer_write) {
+        for (i = 1; i < TEST_CODES; ++i) codes[i - 1] = codes[i], errors[i - 1] = errors[i];
+        codes[TEST_CODES - 1] = kb_scan_code_buffer[read];
+        errors[TEST_CODES - 1] = kb_error_buffer[read];
+        read = (read + 1) & 63;
+        if (count < TEST_CODES) ++count;
+      }
+      for (i = 0; i < count; ++i) {
+        row = TEST_CODES - count + i;
+        end = PutHex(text, codes[row]);
+        *end++ = ' ';
+        for (bit = 0x80; bit; bit >>= 1) *end++ = codes[row] & bit ? '1' : '0';
+        for (bit = 0; bit < 6; ++bit) if (errors[row] & (1 << bit) && test_errors[bit][0]) *end++ = ' ', end = PutText(end, test_errors[bit]);
+        *end = 0;
+        DrawRow(TEST_FIRST + TEST_CODES - count + i, 0, text);
+      }
+    }
+    while ((event = KBPopEvent())) {
+      end = PutText(text, "Key ");
+      end = PutHex(end, (unsigned char)event);
+      if ((unsigned char)event >= ' ' && (unsigned char)event < KEY_LEFT) *end++ = ' ', *end++ = (unsigned char)event;
+      end = PutText(end, "   modifiers ");
+      end = PutHex(end, event >> 8);
+      *end = 0;
+      DrawRow(3, 0, text);
+    }
+    EditorDraw();
+    WaitFrame();
+    if (PadPressed() & (PADF_B | PADF_START)) break;
+  }
+  font = editor_font;
+  SetFont(font);
+  render_text = 1;
+  EndFullScreen();
+}
+
 static void FileMenu(void) {
   unsigned char menu = 0, item;
   while (1) {
     if ((menu = Choose(0, menu_items[0], 4, menu)) >= BACK) return;
-    if (menu == 3) {
-      ShowHelp();
-      return;
-    }
     item = submenu_starts[menu];
     if ((item = Choose(0, submenu_items[item], submenu_starts[menu + 1] - item, 0)) == CANCEL) return;
     if (item != BACK) break;
@@ -1582,6 +1653,8 @@ static void FileMenu(void) {
     case 13: SelectAll(); break;
     case 16: ToggleWrap(); break;
     case 17: ToggleBars(); break;
+    case 24: ShowHelp(); break;
+    case 25: KeyboardTest(); break;
   }
 }
 

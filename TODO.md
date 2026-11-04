@@ -73,7 +73,7 @@ Next:
 
 Peripherals
 
-- PS/2 keyboard is only detected at boot, re-detect when plugged in later
+- PS/2 keyboard is only detected at boot, re-detect when plugged in later (HELP > KEYBOARD TEST starts listening for one)
 - iGKB (also supports mouse and gamepad), needs Gearboy emulation first. Its home/end/page/delete handlers are written but untested
 - WorkBoy keyboard
 - use GB Printer to print text files

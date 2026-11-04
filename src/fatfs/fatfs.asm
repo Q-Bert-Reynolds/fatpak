@@ -149,7 +149,7 @@ INCLUDE "src/fatfs/_fatfs.asm";generated from fatfs.c
 
 IF DEF(EVERDRIVE_OS)
 ;A large file (src/fatfs/fatfs.c): PSRAM from DOC_BLOCK holds the document, positions are 32 bit
-SECTION "Large File Vars", ROM0;the OS image is RAM
+SECTION "Large File Vars", ROM0, ALIGN[8, $E0];the OS image is RAM, the alignment keeps it out of the RST vectors (it went at $0000)
 _doc_large:: DS 1;a large file is open, the text buffer is a window into it
 _doc_len:: DS 4
 _doc_lines:: DS 4;line feeds in it

@@ -39,15 +39,21 @@ SECTION "Keyboard Vars", WRAM0
 ; - the rest are incorrectly converted ASCII codes that can sometimes be converted back to HID codes
 
 kb_scan_code:: DB
+_kb_scan_code_buffer::
 kb_scan_code_buffer:: DS KB_SCAN_CODE_COUNT;holds last scan codes
+_kb_error_buffer::
 kb_error_buffer:: DS KB_SCAN_CODE_COUNT;holds last error codes
+_kb_buffer_write::
 kb_buffer_write:: DB
 kb_buffer_read:: DB
+_kb_interrupt_count::
 kb_interrupt_count:: DB
 kb_error:: DB;xxTUKSPF - (T)imeout, (U)nknown Scan Code, (K)eyboard $00 or $FF, (S)tart Bit, (P)arity Bit, (F)inish Bit
+_kb_error_count::
 kb_error_count:: DB
 kb_modifiers:: DB ;FSCAUPNL - (F)unction, (S)hift, (C)trl, (A)lt, S(U)per, Ca(P)s Lock, (N)um Lock, Scro(L)l Lock
 kb_flags:: DB;xxxxxxER - (E)xtended key flag, (R)elease key flag
+_kb_type::
 kb_type:: DB
 kb_mode:: DB
 kb_event_buffer:: DS KB_EVENT_COUNT*2;key, modifiers
@@ -92,6 +98,15 @@ KBPopEvent::;returns key in c (KEY_NONE if queue is empty), modifiers in b
   ld a, [hli]
   ld c, a
   ld b, [hl]
+  ret
+
+_KBListen::;listens for a PS/2 keyboard even if DetectKeyboard found none (the keyboard test), in ROM0 so C in any page can call it
+  ld a, KB_TYPE_PS2
+  ld [kb_type], a
+  xor a
+  ldh [rSB], a
+  ld a, SCF_START
+  ldh [rSC], a;bits come in on the keyboard's clock
   ret
 
   KEYBOARD_SECTION;the keyboard test adds to it (src/tests/test.asm)

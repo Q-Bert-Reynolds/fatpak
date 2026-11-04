@@ -9,3 +9,5 @@
 6: WordRight WordLeft CharClass MoveDown MoveUp PageUp PageDown MoveEnd HandleCtrlKey Copy Paste DeleteSelection GetSelection UndoRedo ToggleWrap ToggleBars SetLang
 # large files
 14: MoveWindow Slide GoStart GoEnd ReadOnly SelectAll Cut
+# help
+13: KeyboardTest PutHex test_errors
