@@ -1,10 +1,10 @@
 ;On screen keyboard, drawn into OSK_ROWS rows of tile_buffer below the text (the editor draws
 ;them with FONT_MONO).
 ;Keys are 1 tile wide with a 1 tile gap, OSK_COLS keys per row. The last row is
-;shift, symbols, space, menu, cursor left, cursor right for every layer.
+;shift, symbols, menu, space (4 keys), undo, redo, return for every layer.
 ;
 ;C functions (src/editor/editor.h)
-;   OSKShow                     a = show
+;   OSKShow                     a = show, the highlight goes back on [_osk_x], [_osk_y]
 ;   OSKDraw                     a = layer, e = first tile_buffer row
 ;   OSKSelect                   a = x, e = y, moves the highlight sprite
 ;   OSKGetKey                   a = layer, e = key index, returns char in a (0 = no key)
@@ -22,11 +22,17 @@ OSKLayouts:
 .lower   DB "1234567890qwertyuiopasdfghjkl;zxcvbnm,./"
 .shift   DB "!@#$%^&*()QWERTYUIOPASDFGHJKL:ZXCVBNM<>?"
 .symbols DB "`~-_=+[]\{\}\\|'\"¡¿áéíóúñü",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-OSKBottomRow: DB "▲ # __________◆ ◀ ▶ "
+OSKBottomRow: DB "▲ # ≡ ________↶ ↷ ↵ "
+ASSERT @ - OSKBottomRow == SCRN_X_B
 
-_OSKShow::;a = show, hides the highlight
+_OSKShow::;a = show, hides or shows the highlight
   and a
-  ret nz
+  jr z, .hide
+  ld a, [_osk_y]
+  ld e, a
+  ld a, [_osk_x]
+  jp _OSKSelect
+.hide
   ld de, 0
   ld c, OSK_SPRITE
   jp gbdk_MoveSprite

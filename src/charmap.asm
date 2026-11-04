@@ -45,8 +45,8 @@ charmap "○", 11 ; baseball
 charmap "◀", 12
 charmap "▶", 13
 charmap "▷", 14
-charmap "<to>", 15
-charmap "<yr>", 16
+charmap "↶", 15 ;undo
+charmap "↷", 16 ;redo
 charmap "┌", 17
 charmap "┐", 18
 charmap "└", 19
@@ -61,7 +61,7 @@ charmap "ꓘ", 27
 charmap "▼", 28 ;bottom of the inning
 charmap "▲", 29 ;top of the inning
 charmap "↵", 30 ;end/return
-charmap "┼", 31
+charmap "≡", 31 ;menu
 charmap "í", 237
 charmap "ü", 252
 charmap "ú", 250

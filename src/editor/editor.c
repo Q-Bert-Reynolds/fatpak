@@ -25,7 +25,7 @@
 #define STATUS_LINE      (TB_ROWS + 1)
 #define HEADER_BLOCK     8 // the bars' blocks work in either tile data mode (see src/editor/render.asm)
 #define STATUS_BLOCK     17
-#define OSK_BLOCK        9 // the on screen keyboard's blocks, 9 to 13
+#define OSK_BLOCK        9 // the on screen keyboard's blocks if it can't have the rows' it covers (PickOSKBlocks), 9 to 13
 #define WIN_MAP_ROWS     (OSK_ROWS + 2)
 #define BOX_LINE         (TB_ROWS + 2) // menu box text in tile_buffer rows from here, BOX_STRIDE chars per line
 #define BOX_PADDING      9 // 4 pixels each side of the text, and the border
@@ -54,6 +54,7 @@ unsigned char redraw; // rendered rows changed, text didn't
 unsigned char ring_top; // BG map row of text row 0
 unsigned char ring_pos; // index in ring_blocks of text row 0's block
 unsigned char ring_blocks[TB_ROWS + 1]; // blocks text rows use
+unsigned char osk_blocks[OSK_ROWS]; // blocks the on screen keyboard's rows use
 unsigned char map_blocks[BG_MAP_ROWS + WIN_MAP_ROWS]; // block each BG map row, then window map row, shows, 0xFF = none
 unsigned char bars_on; // file name and status bars (F11)
 unsigned char bars; // bars are shown now (not in menus)
@@ -105,8 +106,8 @@ static const char help_lines[HELP_ROWS][HELP_COLS] = {
   "",
   "Select  on screen keyboard",
   "A  type the selected key",
-  "B  backspace    Start  new line",
-  "D-pad  move",
+  "B  backspace    Start  menu",
+  "D-pad  move    A + D-pad  select",
   "Press any key to close",
 };
 
@@ -190,12 +191,20 @@ static unsigned char TextRows(void) {
 // window map rows, so they stay put while the text scrolls. Stages SCY and LCDC (RenderStage),
 // applied at line 144
 // On GBC the ring has a spare block (18) for the row scrolling in or out (see src/editor/render.asm)
+// Text row 0 keeps its block, so rows that keep theirs aren't drawn again
+static unsigned char IsOSKBlock(unsigned char block) {
+  unsigned char i;
+  for (i = 0; i < OSK_ROWS; ++i) if (osk_blocks[i] == block) return 1;
+  return 0;
+}
+
 static void Layout(void) {
   unsigned char row, line, block, map_row, i = 0, win_row = BG_MAP_ROWS, osk = TB_ROWS - (bars << 1) - tb_rows;
-  unsigned char length = tb_rows + render_gbc;
+  unsigned char length = tb_rows + render_gbc, first = ring_blocks[ring_pos];
   for (block = 0; block < TB_ROWS + render_gbc; ++block) {
     if (bars && (block == HEADER_BLOCK || block == STATUS_BLOCK)) continue;
-    if (osk && block >= OSK_BLOCK && block < OSK_BLOCK + OSK_ROWS) continue;
+    if (osk && IsOSKBlock(block)) continue;
+    if (block == first) ring_pos = i;
     ring_blocks[i++] = block;
   }
   if (ring_pos >= length) ring_pos = 0;
@@ -218,7 +227,7 @@ static void Layout(void) {
         render_row_fonts[row] = FONT_VWF;
       }
       else {
-        block = OSK_BLOCK + line - tb_rows;
+        block = osk_blocks[line - tb_rows];
         render_row_fonts[row] = FONT_MONO;
       }
     }
@@ -784,8 +793,34 @@ static void SetRows(void) {
   dirty = 1;
 }
 
+// the keyboard takes the blocks of the text rows it hides, the rows that stay keep theirs. If it would
+// cover the cursor the text scrolls up (the ring rotates, so those rows keep their blocks too). The
+// bars' blocks can't be taken, they'd clash when shown (then the keyboard uses 9-13 and Refresh scrolls)
+static void PickOSKBlocks(void) {
+  unsigned char i, j, row, length = tb_rows + render_gbc, rows = tb_rows - OSK_ROWS, shift = 0;
+  if (tb_found_row != 0xFF && tb_found_row >= rows) shift = tb_found_row - rows + 1;
+  row = rows + shift; // hidden: the rows below the ones that stay, then the ones scrolled off the top
+  for (j = 0; j < OSK_ROWS; ++j) {
+    if (row == tb_rows) row = 0;
+    i = ring_pos + row;
+    if (i >= length) i -= length;
+    osk_blocks[j] = ring_blocks[i];
+    if (osk_blocks[j] == HEADER_BLOCK || osk_blocks[j] == STATUS_BLOCK) {
+      for (j = 0; j < OSK_ROWS; ++j) osk_blocks[j] = OSK_BLOCK + j;
+      return;
+    }
+    ++row;
+  }
+  if (!shift) return;
+  ring_pos += shift;
+  if (ring_pos >= length) ring_pos -= length;
+  ring_top = (ring_top + shift) & (BG_MAP_ROWS - 1);
+  top = tb_row_starts[shift];
+}
+
 static void ToggleOSK(void) {
   osk_shown = !osk_shown;
+  if (osk_shown) PickOSKBlocks();
   SetRows();
 }
 
@@ -807,9 +842,10 @@ static unsigned char PressOSKKey(void) {
   if (osk_y == OSK_ROWS - 1) {
     if (osk_x == 0) SetOSKLayer(OSK_SHIFT);
     else if (osk_x == 1) SetOSKLayer(OSK_SYMBOLS);
-    else if (osk_x == OSK_COLS - 3) return KEY_MENU;
-    else if (osk_x == OSK_COLS - 2) return KEY_LEFT;
-    else if (osk_x == OSK_COLS - 1) return KEY_RIGHT;
+    else if (osk_x == 2) return KEY_MENU;
+    else if (osk_x == OSK_COLS - 3) UndoRedo(0);
+    else if (osk_x == OSK_COLS - 2) UndoRedo(1);
+    else if (osk_x == OSK_COLS - 1) return KEY_ENTER;
     else return ' ';
     return KEY_NONE;
   }
@@ -826,17 +862,21 @@ static void MoveOSKSelection(unsigned char held) {
   OSKSelect(osk_x, osk_y);
 }
 
-// SELECT = on screen keyboard, B = backspace, START = enter
-// d-pad moves the cursor, or the keyboard selection when it's shown (A = type)
+// SELECT = on screen keyboard, B = backspace, START = menu
+// d-pad moves the cursor (A + d-pad selects), or the keyboard selection when it's shown (A = type).
+// Sets pad_mods for the key it returns
+unsigned char pad_mods;
 static unsigned char PadKey(void) {
   unsigned char pressed = PadPressed();
   unsigned char held;
+  pad_mods = 0;
   if (pressed & PADF_SELECT) ToggleOSK();
   if (pressed & PADF_B) return KEY_BACKSPACE;
-  if (pressed & PADF_START) return KEY_ENTER;
+  if (pressed & PADF_START) return KEY_MENU;
   if (osk_shown && (pressed & PADF_A)) return PressOSKKey();
   held = DpadRepeat(pressed);
   if (!held) return KEY_NONE;
+  if (!osk_shown && (button_state & PADF_A)) pad_mods = KB_MOD_SHIFT;
   if (osk_shown) {
     MoveOSKSelection(held);
     return KEY_NONE;
@@ -847,14 +887,16 @@ static unsigned char PadKey(void) {
   return KEY_RIGHT;
 }
 
-// waits a frame, returns a key from the keyboard or d-pad (A, START = enter, B = backspace)
+// waits a frame, returns a key from the keyboard or d-pad (A = enter, B = backspace, START = menu,
+// which closes menus)
 static unsigned char MenuKey(void) {
   unsigned char key, pressed, held;
   WaitFrame();
   if ((key = (unsigned char)KBPopEvent())) return key;
   pressed = PadPressed();
-  if (pressed & (PADF_A | PADF_START)) return KEY_ENTER;
+  if (pressed & PADF_A) return KEY_ENTER;
   if (pressed & PADF_B) return KEY_BACKSPACE;
+  if (pressed & PADF_START) return KEY_MENU;
   held = DpadRepeat(pressed);
   if (held & PADF_UP) return KEY_UP;
   if (held & PADF_DOWN) return KEY_DOWN;
@@ -961,7 +1003,7 @@ static unsigned char Choose(const char* title, const char* items, unsigned char 
     if (key == KEY_UP) selected = selected ? selected - 1 : count - 1;
     else if (key == KEY_DOWN) selected = selected == count - 1 ? 0 : selected + 1;
     else if (key == KEY_ENTER) break;
-    else if (key == KEY_ESCAPE || key == KEY_BACKSPACE) {
+    else if (key == KEY_ESCAPE || key == KEY_BACKSPACE || key == KEY_MENU) {
       selected = CANCEL;
       break;
     }
@@ -1276,7 +1318,7 @@ static unsigned char Browse(void) {
       selected = ListFolder(path, name); // back on the folder it came from
       drawn = LIST_ALL;
     }
-    else if (key == KEY_ESCAPE || key == KEY_BACKSPACE) break;
+    else if (key == KEY_ESCAPE || key == KEY_BACKSPACE || key == KEY_MENU) break;
   }
   font = editor_font;
   SetFont(font);
@@ -1328,7 +1370,7 @@ static unsigned char AskFileName(void) {
       if (!key) key = PadKey();
     } while (!key);
     if (key == KEY_ENTER && length) break;
-    if (key == KEY_ESCAPE || (key == KEY_BACKSPACE && !length)) {
+    if (key == KEY_ESCAPE || key == KEY_MENU || (key == KEY_BACKSPACE && !length)) {
       dirty = 1;
       return 0;
     }
@@ -1586,7 +1628,7 @@ void Editor(void) {
       }
     }
     if ((key = PadKey())) {
-      if (!HandleFileKey(key, 0)) HandleKey(key, 0);
+      if (!HandleFileKey(key, pad_mods)) HandleKey(key, pad_mods);
     }
     if (dirty || edited || redraw || moved) idle_frames = 0;
     if (dirty) {

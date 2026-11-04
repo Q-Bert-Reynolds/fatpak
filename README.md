@@ -15,12 +15,13 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for how the code is organized.
 | Button | Action |
 | --- | --- |
 | D-pad | move cursor, or the on screen keyboard selection when it's open |
+| A + D-pad | select text (on screen keyboard closed) |
 | A | type the selected key |
 | B | backspace |
-| START | new line |
+| START | open/close the menu |
 | SELECT | show/hide the on screen keyboard |
 
-On screen keyboard bottom row: shift (one shot), symbols, space, file menu (◆), cursor left, cursor right.
+On screen keyboard bottom row: shift (one shot), symbols, menu (≡), space, undo (↶), redo (↷), new line (↵).
 
 The top bar shows the file name (* = unsaved changes), the bottom bar the line and column, or how many
 characters are selected. F11 (or FULL SCREEN in the menu) hides them. F1 (or HELP) shows the controls.
