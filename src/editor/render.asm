@@ -1473,7 +1473,7 @@ RenderBoxSig:
   ret
 
 ;draws the box over render_bitmap if it covers [render_row]: clears the box, draws the text
-;and the border, highlights the selected row (replacing the row's selection)
+;and the border, highlights the selected row (the text's selection stays outside the box)
 RenderBox:
   call RenderBoxSig
   and a
@@ -1485,9 +1485,6 @@ RenderBox:
   xor a
   bit 7, b
   push af;z = not selected
-  ld hl, render_mask
-  ld bc, TB_COLS
-  call mem_Set
 
   ld bc, $0008;all 8 lines
   ld a, [render_box_line]
@@ -1514,6 +1511,17 @@ RenderBox:
   ld [render_sel_end_x], a
   ld hl, render_box_mask
   call RenderMask
+  ld hl, render_mask;the selection isn't drawn in the box
+  ld de, render_box_mask
+  ld c, TB_COLS
+.unselect
+    ld a, [de]
+    inc de
+    cpl
+    and a, [hl]
+    ld [hli], a
+    dec c
+    jr nz, .unselect
   ld h, HIGH(render_bitmap)
   call .clear
   ld a, [render_inked]
@@ -1627,8 +1635,19 @@ RenderBox:
   add a, b
   sub a, 2
   ld [render_sel_end_x], a
+  ld hl, render_box_mask;done with it
+  call RenderMask
   ld hl, render_mask
-  jp RenderMask
+  ld de, render_box_mask
+  ld c, TB_COLS
+.select
+    ld a, [de]
+    inc de
+    or a, [hl]
+    ld [hli], a
+    dec c
+    jr nz, .select
+  ret
 
 .column;a = x, sets that pixel on the lines the box covers
   ld b, a

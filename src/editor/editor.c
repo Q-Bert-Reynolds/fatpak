@@ -20,6 +20,7 @@
 #define KIND_FOLDER    1
 #define KIND_FILE      2
 #define CANCEL         0xFF
+#define BACK           0xFE // Choose: B or backspace, CANCEL is start or escape
 #define BG_MAP_ROWS      32
 #define HEADER_LINE      TB_ROWS // tile_buffer rows of the file name and status bars
 #define STATUS_LINE      (TB_ROWS + 1)
@@ -88,7 +89,12 @@ unsigned long list_sizes[LIST_ROWS];
 unsigned int list_dates[LIST_ROWS];
 unsigned int list_times[LIST_ROWS];
 
-static const char menu_items[][ITEM_SIZE] = {"OPEN", "SAVE", "SAVE AS", "NEW", "UNDO", "REDO", "LINE WRAP", "FULL SCREEN", "HELP"};
+static const char menu_items[][ITEM_SIZE] = {"FILE", "EDIT", "SETTINGS", "HELP"};
+static const char submenu_items[][ITEM_SIZE] = { // FILE, EDIT, SETTINGS
+  "OPEN", "SAVE", "SAVE AS", "NEW",
+  "UNDO", "REDO", "CUT", "COPY", "PASTE", "SELECT ALL",
+  "LINE WRAP", "FULL SCREEN"};
+static const unsigned char submenu_starts[] = {0, 4, 10, 12};
 static const char discard_items[][ITEM_SIZE] = {"NO", "YES"};
 static const char help_lines[HELP_ROWS][HELP_COLS] = {
   "HELP",
@@ -677,20 +683,26 @@ static void UndoRedo(unsigned char redo) {
   dirty = 1;
 }
 
+static void SelectAll(void) {
+  anchor = 0;
+  cursor = tb_Length();
+  selecting = 1;
+  moved = 1;
+  redraw = 1;
+}
+
+static void Cut(void) {
+  if (Copy()) DeleteSelection();
+}
+
 // ctrl + A, X, C, V, Z, Y
 static void HandleCtrlKey(unsigned char key, unsigned char mods) {
   if (key >= 'A' && key <= 'Z') key += 'a' - 'A';
   if (key == 'z') UndoRedo(mods & KB_MOD_SHIFT);
   else if (key == 'y') UndoRedo(1);
-  if (key == 'a') {
-    anchor = 0;
-    cursor = tb_Length();
-    selecting = 1;
-    moved = 1;
-    redraw = 1;
-  }
+  if (key == 'a') SelectAll();
   else if (key == 'c') Copy();
-  else if (key == 'x' && Copy()) DeleteSelection();
+  else if (key == 'x') Cut();
   else if (key == 'v') Paste();
 }
 
@@ -980,31 +992,32 @@ static void HideBox(void) {
   render_box_top = 0xFF;
 }
 
-// shows a list of ITEM_SIZE strings in a box over the text, returns the chosen index or CANCEL
-static unsigned char Choose(const char* title, const char* items, unsigned char count) {
+// shows a list of ITEM_SIZE strings in a box over the text (under title, 0 = none) with item
+// selected highlighted, returns the chosen index, BACK or CANCEL
+static unsigned char Choose(const char* title, const char* items, unsigned char count, unsigned char selected) {
   char* line = RowAddress(BOX_LINE);
-  unsigned char i, key, selected = 0;
-  for (i = 0; i <= count; ++i, line += BOX_STRIDE) {
-    if (i) {
-      line[0] = ' ';
-      CopyName(line + 1, items);
-      items += ITEM_SIZE;
-    }
-    else CopyName(line, title);
+  unsigned char i, key, first = title ? 1 : 0;
+  if (title) CopyName(line, title), line += BOX_STRIDE;
+  for (i = 0; i < count; ++i, line += BOX_STRIDE, items += ITEM_SIZE) {
+    line[0] = ' ';
+    CopyName(line + 1, items);
   }
   EditorShowCursor(0);
   if (osk_shown) OSKShow(0);
-  NoHighlight();
-  OpenBox(count + 1);
+  OpenBox(count + first);
   while (1) {
-    render_box_sel = selected + 2;
+    render_box_sel = selected + first + 1;
     EditorDraw();
     while (!(key = MenuKey()));
     if (key == KEY_UP) selected = selected ? selected - 1 : count - 1;
     else if (key == KEY_DOWN) selected = selected == count - 1 ? 0 : selected + 1;
     else if (key == KEY_ENTER) break;
-    else if (key == KEY_ESCAPE || key == KEY_BACKSPACE || key == KEY_MENU) {
+    else if (key == KEY_ESCAPE || key == KEY_MENU) {
       selected = CANCEL;
+      break;
+    }
+    else if (key == KEY_BACKSPACE) {
+      selected = BACK;
       break;
     }
   }
@@ -1053,7 +1066,7 @@ static void CopyName(char* dest, const char* src) {
 
 // returns 1 if there are no unsaved changes or the user wants to lose them
 static unsigned char CanDiscard(void) {
-  return !modified || Choose("DISCARD CHANGES?", discard_items[0], 2) == 1;
+  return !modified || Choose("DISCARD CHANGES?", discard_items[0], 2, 0) == 1;
 }
 
 // styles the text by file_name's extension, code (and markdown's code) is fixed width, the rest variable
@@ -1431,17 +1444,32 @@ static void ShowHelp(void) {
   EndFullScreen();
 }
 
+// FILE, EDIT, SETTINGS and HELP, B goes back from a submenu, start or escape close them
 static void FileMenu(void) {
-  switch (Choose("MENU", menu_items[0], 9)) {
+  unsigned char menu = 0, item;
+  while (1) {
+    if ((menu = Choose(0, menu_items[0], 4, menu)) >= BACK) return;
+    if (menu == 3) {
+      ShowHelp();
+      return;
+    }
+    item = submenu_starts[menu];
+    if ((item = Choose(0, submenu_items[item], submenu_starts[menu + 1] - item, 0)) == CANCEL) return;
+    if (item != BACK) break;
+  }
+  switch ((menu << 3) | item) {
     case 0: OpenFile(); break;
     case 1: SaveFile(0); break;
     case 2: SaveFile(1); break;
     case 3: NewFile(); break;
-    case 4: UndoRedo(0); break;
-    case 5: UndoRedo(1); break;
-    case 6: ToggleWrap(); break;
-    case 7: ToggleBars(); break;
-    case 8: ShowHelp(); break;
+    case 8: UndoRedo(0); break;
+    case 9: UndoRedo(1); break;
+    case 10: Cut(); break;
+    case 11: Copy(); break;
+    case 12: Paste(); break;
+    case 13: SelectAll(); break;
+    case 16: ToggleWrap(); break;
+    case 17: ToggleBars(); break;
   }
 }
 
