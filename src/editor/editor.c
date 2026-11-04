@@ -1502,6 +1502,7 @@ static unsigned char IsGame(const char* name) {
 // the swap file first, returns if it can't. A large file's unsaved edits can't be kept
 static void LaunchGame(const char* path) {
   unsigned char result;
+  char text[24], *end;
   if (doc_large) {
     if (!CanDiscard()) return;
     FileCloseLarge();
@@ -1516,7 +1517,18 @@ static void LaunchGame(const char* path) {
     ShowError(result, "DISK FULL");
     return;
   }
-  if ((result = FileLoadGame(path))) {
+  result = FileGameOpen(path);
+  while (!result && game_block != game_blocks) { // "Loading 512/2048 KB"
+    end = PutText(text, "Loading ");
+    end = PutNumber(end, game_block >> 1);
+    *end++ = '/';
+    end = PutText(PutNumber(end, game_blocks >> 1), " KB");
+    *end = 0;
+    ShowBusy(text);
+    result = FileGameCopy();
+  }
+  if (!result) result = FileGameFinish(path);
+  if (result) {
     HideBox();
     ShowError(result, "TOO BIG");
     Reboot(); // PSRAM's text may be overwritten, booting restores it from the swap file
@@ -1900,6 +1912,10 @@ void Editor(void) {
 #ifdef EVERDRIVE_OS
   swap_dirty = 0; // the swap file has what booting restored
   doc_large = 0;
+  if (backup_skipped) ShowMessage("SAVE NOT BACKED UP");
+#ifdef INGAME_DIAG
+  if (*(volatile unsigned char*)0x01F2) ShowMessage("CART FLAG SET"); // the cart's flag the EverDrive's OS checks at boot
+#endif
   if (modified) Refresh();
   else { // the EverDrive's OS starts in the file browser (on a blank screen), the text is drawn if it's closed
     ClearScreen();

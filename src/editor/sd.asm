@@ -409,10 +409,11 @@ ENDC
   ld a, 1
   jp SDFinish
 
-IF DEF(SD_AUTO_READ);off: on the X7 saves failed with FR_INT_ERR (02) and a folder once read as FR_NO_FILE (04)
-;after it, maybe reads every 4 M-cycles in double speed are faster than the SPI clock (the EverDrive's OS
-;reads like this, perhaps in normal speed). Needs testing on the X7 (TODO.md)
-;turns auto read on or off, only affects a
+IF DEF(EVERDRIVE_OS)
+;turns auto read on or off, only affects a. _sd_ReadSector's SD_AUTO_READ loop (off) broke the X7's reads:
+;saves failed with FR_INT_ERR (02), a folder once read as FR_NO_FILE (04). It took the token by hand and
+;assumed a read returns the byte before it, if a read returns the byte it clocks every sector was one byte off.
+;_sd_ReadBlocks reads like the EverDrive's OS instead, which works either way
 SDAutoRead:
   ld a, [EDX_SPI_CTRL]
   or a, EDX_SPI_AUTO_READ
@@ -487,3 +488,173 @@ ENDR
 .error
   ld a, 1
   jp SDFinish
+
+IF DEF(EVERDRIVE_OS)
+DEF SD_CMD12 EQU $40+12;STOP_TRANSMISSION
+DEF SD_CMD18 EQU $40+18;READ_MULTIPLE_BLOCK
+
+PAGE GAME_PAGE
+;de = first PSRAM block, bc = sectors (> 0), [_sd_sector] = LBA, reads them into the blocks through the window
+;with one READ_MULTIPLE_BLOCK (a game's ROM, src/fatfs/fatfs.c), returns a = 0 if successful. With [_sd_fast]
+;set the card streams into the window like the EverDrive's OS (ReadBlocksFast, the CPU doesn't see the bytes,
+;fs_GameCopy checks the header checksum), otherwise the bytes are polled like _sd_ReadSector's. The window
+;shows the last block afterwards
+_sd_ReadBlocks::
+  push bc
+  push de
+  SD_REGS_ON
+  call SDSetSectorArg
+  ld a, SD_CMD18
+  call SDCommand
+  pop de
+  pop bc
+  and a
+  jp nz, .error
+  ld a, [_sd_fast]
+  and a
+  jp nz, ReadBlocksFast
+.block
+  ld a, e
+  ld [EDX_BLOCK], a
+  ld a, d
+  ld [EDX_BLOCK+1], a
+  push bc
+  push de
+  ld hl, 40000
+.waitForToken
+    SD_RECEIVE
+    cp a, $FF
+    jr nz, .token
+    dec hl
+    ld a, h
+    or a, l
+    jr nz, .waitForToken
+  jr .stopError
+.token
+  cp a, $FE
+  jr nz, .stopError
+  ld hl, EDX_WINDOW
+  ld bc, EDX_SPI_CTRL
+  ld de, EDX_SPI_DATA
+  ld a, 512/8
+  ld [sd_count], a
+.read8
+REPT 8
+    ld a, $FF
+    ld [de], a
+.wait\@
+      ld a, [bc]
+      add a, a;busy bit to carry
+      jr c, .wait\@
+    ld a, [de]
+    ld [hli], a
+ENDR
+    ld a, [sd_count]
+    dec a
+    ld [sd_count], a
+    jr nz, .read8
+  SD_RECEIVE;CRC
+  SD_RECEIVE
+  pop de
+  pop bc
+  inc de
+  dec bc
+  ld a, b
+  or a, c
+  jp nz, .block
+  call SDStop
+  jp SDFinish
+.stopError
+  pop de
+  pop bc
+  call SDStop
+.error
+  ld a, 1
+  jp SDFinish
+
+ReadBlocksFast:;like the EverDrive's OS: auto read and streaming ($BD06 bit 0) on, a read to start, then each
+;block's token read, 512 writes to the window (each stores the card's next byte, 2 M-cycles) and a CRC read
+  call SDAutoRead
+  ld a, [EDX_SPI_DATA]
+.block
+  ld a, e
+  ld [EDX_BLOCK], a
+  ld a, d
+  ld [EDX_BLOCK+1], a
+  push bc
+  push de
+  ld de, EDX_SPI_DATA
+  ld hl, 40000
+.waitForToken
+    ld a, [de]
+    cp a, $FE
+    jr z, .token
+    dec hl
+    ld a, h
+    or a, l
+    jr nz, .waitForToken
+  pop de
+  pop bc
+  call SDAutoReadOff
+  call SDStop
+  ld a, 1
+  jp SDFinish
+.token
+  ld hl, EDX_WINDOW
+  ld b, 512/16
+.write16
+REPT 16
+    ld [hli], a
+ENDR
+    dec b
+    jr nz, .write16
+  ld a, [de];CRC
+  pop de
+  pop bc
+  inc de
+  dec bc
+  ld a, b
+  or a, c
+  jr nz, .block
+  call SDAutoReadOff
+  call SDStop
+  jp SDFinish
+
+;ends a READ_MULTIPLE_BLOCK without deselecting the card: STOP_TRANSMISSION, a stuff byte, R1, then the busy
+;wait, returns a = 0 if it worked, affects b, hl
+SDStop:
+  ld a, SD_CMD12
+  call SDExchange
+  ld b, 4
+.argument
+    xor a
+    call SDExchange
+    dec b
+    jr nz, .argument
+  ld a, $01;dummy CRC and stop bit
+  call SDExchange
+  SD_RECEIVE;stuff byte
+  ld b, 10
+.response
+    SD_RECEIVE
+    bit 7, a
+    jr z, .busy
+    dec b
+    jr nz, .response
+  ld a, 1
+  ret
+.busy
+  ld hl, 50000
+.waitWhileBusy
+    SD_RECEIVE
+    cp a, $FF
+    ld a, 0
+    ret z
+    dec hl
+    ld a, h
+    or a, l
+    jr nz, .waitWhileBusy
+  ld a, 1
+  ret
+END_PAGE
+ENDC

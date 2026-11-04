@@ -14,11 +14,12 @@ ROM0: ld_16 ld_32 st_16 st_32 dbc_1st dbc_2nd sum_sfn
 # long file names and their code page conversion
 11: tchar2uni put_utf cmp_lfn pick_lfn put_lfn gen_numname create_name get_fileinfo ff_wtoupper ff_uni2oem ff_oem2uni
 DATA: ROM0
-THUNKS: ROM0
+THUNKS: FIXED
 # large files
 14: fs_LoadLarge fs_LoadWindow fs_DocLineStart fs_ScanStep AddCopy DocPiece DocRead DocReadAll OneFilePiece Split fs_CommitWindow SaveOut fs_SaveLarge
 # deleting and renaming (saving a large file), FF_FS_MINIMIZE 0 also builds f_stat f_getfree f_truncate f_mkdir
 13: f_unlink f_rename f_stat f_getfree f_truncate f_mkdir dir_remove
 13: fs_CloseLarge Signature
 # games
-15: SaveRamBlock SaveRamFile fs_BackupSave fs_LoadGame battery_types
+15: SaveRamBlock SaveRamFile RegistrySum fs_BackupSave fs_GameOpen fs_GameFinish battery_types
+12: fs_GameCopy GameSlow

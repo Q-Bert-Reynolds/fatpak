@@ -30,7 +30,9 @@ _FileScanStep::  BANKED_C _fs_ScanStep
 _FileCommitWindow:: BANKED_C _fs_CommitWindow
 _FileSaveLarge:: BANKED_C _fs_SaveLarge
 _FileBackupSave:: BANKED_C _fs_BackupSave
-_FileLoadGame::  BANKED_C _fs_LoadGame
+_FileGameOpen::  BANKED_C _fs_GameOpen
+_FileGameCopy::  BANKED_C _fs_GameCopy
+_FileGameFinish:: BANKED_C _fs_GameFinish
 
 
 _ByteSum::;de = data, bc = count, returns the sum of the bytes in bc
@@ -180,6 +182,14 @@ _save_file:: DS 64;a FIL for saving a large file and games' saves (fatfs.c check
 _game_mapper:: DS 1;GameLaunch's $BD07, $BD04 and $BD05 (fs_LoadGame)
 _game_rom_mask:: DS 1
 _game_ram_mask:: DS 1
+_game_config:: DS 1;GameLaunch's $BD06 and $BD20 (0 = not written), from the EverDrive OS's registry (RegistrySum)
+_game_bd20:: DS 1
+_game_banks:: DS 1;its save RAM banks, 0 = no battery
+_game_block:: DS 2;fs_GameCopy's progress
+_game_blocks:: DS 2
+_game_clst:: DS 4;the next cluster it copies
+_backup_skipped:: DS 1;fs_BackupSave didn't trust the save RAM (src/fatfs/fatfs.c)
+_sd_fast:: DS 1;sd_ReadBlocks reads like the EverDrive's OS (src/editor/sd.asm)
 
 PAGE DOC_PAGE
 _pieces:: DS 9*MAX_PIECES;source (0 = the file, 1 = the add buffer), offset, length (fatfs.c)
@@ -225,19 +235,47 @@ END_PAGE
 ENDC
 
 IF DEF(EVERDRIVE_OS)
-FIXED "Game Launch"
+PAGE LAUNCH_PAGE
 ;resets the Game Boy into the game fs_LoadGame copied to PSRAM, like the EverDrive's OS: $BD06 bit 3 makes the
 ;cart reset it through the boot ROM after the mapper is written (bit 2 switches without it). The MBC writes
-;land in the OS image's RAM, the routine mustn't be at $2000-$2100, $3000, $4000 or $6000
+;land in the OS image's RAM ($0000, $2000, $2100, $3000, $4000, $6000). The last part runs from
+;HRAM (LaunchStub): no game code runs before the reset, and if none comes in about half a second the game
+;starts at $0100 without the boot ROM (A = $11, a GBC)
+DEF LAUNCH_HRAM EQU $FF80
 _GameLaunch::
   di
+IF !DEF(BISECT_LAUNCH)
+  call gbdk_CPUSlow;normal speed like the EverDrive OS's launch (the cart doesn't reset the CPU's speed)
+  ld a, 1;the EverDrive OS's launch: $01F0 = 1, $01F3 = 1 if the game has save RAM (the cart may read them
+  ld [$01F0], a;for its in-game menu)
+  ld a, [_game_ram_mask]
+  and a
+  jr z, .noRam
+  ld a, 1
+.noRam
+  ld [$01F3], a
+  ld a, $A5;the card back to idle like the EverDrive OS's launch (CMD0, deselected): it leaves it uninitialized
+  ld [EDX_KEY], a
+  ld hl, sd_arg
+  xor a
+  ld [hli], a
+  ld [hli], a
+  ld [hli], a
+  ld [hl], a
+  ld a, SD_CMD0
+  call SDCommand
+  call SDDeselect
+ENDC
   ld a, [_game_rom_mask]
   ld [$BD04], a
   ld a, [_game_ram_mask]
   ld [$BD05], a
-  ld a, [EDX_CONFIG]
-  and a, $20
-  or a, $08
+  ld a, [_game_bd20]
+  and a
+  jr z, .config
+  ld [$BD20], a
+.config
+  ld a, [_game_config]
   ld [EDX_CONFIG], a
   xor a
   ld [$BD09], a
@@ -248,12 +286,37 @@ _GameLaunch::
   inc a
   ld [$2100], a
   ld [$2000], a
+  ld hl, $0041;$0040 jumps to the in-game menu (src/editor/ingame.asm)
+  ld [hl], LOW(InGameEntry)
+  inc l
+  ld [hl], HIGH(InGameEntry)
+  ld hl, LaunchStub;the wait runs from HRAM: the game's ROM is in at once, the reset may come later
+  ld c, LOW(LAUNCH_HRAM)
+.copy
+    ld a, [hli]
+    ldh [c], a
+    inc c
+    ld a, c
+    cp a, LOW(LAUNCH_HRAM) + LaunchStubEnd - LaunchStub
+    jr nz, .copy
+  ld bc, 0
   ld a, [_game_mapper]
+  jp LAUNCH_HRAM
+ASSERT BANK(_GameLaunch) == BANK(_LaunchGame), "LaunchGame calls it in its page"
+
+SECTION "Launch Stub", ROM0[$01E0];copied to LAUNCH_HRAM, a = mapper, bc = 0
+LaunchStub:
   ld [$BD07], a
 .wait
-  jr .wait
-GameLaunchEnd:
-ASSERT _GameLaunch > $4000 && GameLaunchEnd <= $6000 || _GameLaunch > $6000
+    dec bc
+    ld a, b
+    or a, c
+    jr nz, .wait
+  ld a, $11
+  jp $0100
+LaunchStubEnd:
+
+SECTION "Reboot", ROM0
 
 _Reboot::;starts the OS again (after a failed game load, the text comes back from the swap file)
   di

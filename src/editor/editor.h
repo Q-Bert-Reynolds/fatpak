@@ -91,7 +91,11 @@ extern unsigned char FileScanStep(void); // counts a sector's line feeds toward 
 extern unsigned char FileCommitWindow(void); // an edited window goes into the document, 0 if it's full
 extern unsigned char FileSaveLarge(const char* path); // FRESULT, saves the document (FR_DENIED: it or the card is full)
 extern unsigned char FileBackupSave(void); // FRESULT, writes the last launched game's save RAM to its .srm
-extern unsigned char FileLoadGame(const char* path); // FRESULT, copies a game to PSRAM and loads its save (src/fatfs/fatfs.c)
+extern unsigned char backup_skipped; // it didn't: the EverDrive OS launched a game since
+extern unsigned char FileGameOpen(const char* path); // FRESULT, checks a game (src/fatfs/fatfs.c)
+extern unsigned char FileGameCopy(void); // FRESULT, copies the next part of it to PSRAM
+extern unsigned char FileGameFinish(const char* path); // FRESULT, loads its save
+extern unsigned int game_block, game_blocks; // FileGameCopy's progress (sectors)
 extern void GameLaunch(void); // resets the Game Boy into it
 extern void Reboot(void); // starts the OS again
 extern unsigned char doc_large; // a large file is open, the text buffer is a window into it

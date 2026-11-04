@@ -5,6 +5,9 @@ INCLUDE "src/editor/keywords.asm"
 INCLUDE "src/editor/osk.asm"
 INCLUDE "src/editor/render.asm"
 INCLUDE "src/editor/sd.asm"
+IF DEF(EVERDRIVE_OS)
+INCLUDE "src/editor/ingame.asm"
+ENDC
 
 SECTION "Editor ROM0", ROM0
 ;C functions (src/editor/editor.h)

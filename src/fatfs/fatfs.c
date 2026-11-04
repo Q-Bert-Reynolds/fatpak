@@ -693,11 +693,29 @@ unsigned char fs_SaveLarge(const char* path) {
 // EverDrive OS's save files) in the cart's save RAM first, blank ($FF) if there isn't one, and GAME_RECORD
 // remembers it, so the next boot writes the save RAM back to that file (fs_BackupSave). Save RAM is only
 // touched here, through the window with $BD06 bit 1 set
-#define GAME_RECORD "/GBCSYS/EDITOR.GAM" // "GAM1", save RAM banks to back up (0 = done), the .srm path
+#define GAME_RECORD "/GBCSYS/EDITOR.GAM" // "GAM2", save RAM banks to back up (0 = done), RegistrySum, the .srm path
+#define REGISTRY "/GBCSYS/REGISTRY.BIN" // the EverDrive OS's, rewritten when it launches a game
 #define SAVE_FOLDER "/GBCSYS/SAVE/"
 #define GAME_BLOCKS 0x3E40 // PSRAM blocks before the EverDrive's save states
 #define rEDX_CONFIG (*(volatile BYTE*)0xBD06)
-extern unsigned char game_mapper, game_rom_mask, game_ram_mask; // src/fatfs/fatfs.asm, for GameLaunch
+extern unsigned char game_mapper, game_rom_mask, game_ram_mask, game_config, game_bd20; // src/fatfs/fatfs.asm, for GameLaunch
+extern unsigned char backup_skipped; // fs_BackupSave didn't trust the save RAM
+extern unsigned int ByteSum(const BYTE* data, unsigned int count); // src/fatfs/fatfs.asm
+
+// the EverDrive OS's registry, summed (into buffer): if it changed since a game was launched here the
+// EverDrive OS launched one since, and the save RAM is that game's (a backup wrote a Beisbol save over a
+// Pokemon one). 0 if there's none. Like the EverDrive OS's launch: $BD06 = $08, bit 5 set if its byte 5 ($C030)
+// is 0 (the system button?), $BD20 = 3 if byte 6 ($C031, Pocket fix) is 0, defaults 1 and 0
+static UINT RegistrySum(void) {
+  UINT done = 0;
+  if (!f_open(&save_file, REGISTRY, FA_READ)) {
+    if (f_read(&save_file, buffer, FS_BUFFER_SIZE, &done)) done = 0;
+    f_close(&save_file);
+  }
+  game_config = done > 6 && !buffer[5] ? 0x28 : 0x08;
+  game_bd20 = done > 6 && buffer[6] ? 0 : 3;
+  return done ? ByteSum(buffer, done) + done : 0;
+}
 static const BYTE battery_types[] = {0x03, 0x06, 0x09, 0x0D, 0x0F, 0x10, 0x13, 0x17, 0x1B, 0x1E, 0x22, 0xFF, 0}; // carts with saves
 
 // the window shows save RAM (on) or PSRAM block block
@@ -726,20 +744,55 @@ static FRESULT SaveRamFile(BYTE banks, BYTE write) {
   return result;
 }
 
-// at boot: if a game was launched, writes the save RAM to its .srm, returns an FRESULT
-unsigned char fs_BackupSave(void) {
+// at boot: if a game was launched, writes the save RAM to its .srm (the old one becomes .bak), unless the
+// EverDrive OS launched a game since (backup_skipped). Returns an FRESULT
+#ifdef INGAME_DIAG
+// the in-game menu's record ("IGDG") and trace ("IG", the last step, at +0x1F0) from the game's WRAM, which our
+// boot copied to PSRAM block 0x3E3E (src/main.asm, src/editor/ingame.asm), to /GBCSYS/INGAME.DMP at every boot
+static void DumpInGame(void) {
   UINT done;
-  FRESULT result = fs_Mount();
-  if (result || f_open(&save_file, GAME_RECORD, FA_READ)) return result;
-  result = f_read(&save_file, buffer, FS_BUFFER_SIZE, &done);
+  SetWindowBlock(0x3E3E);
+  memcpy(buffer, WINDOW, 512);
+  if (f_open(&save_file, "/GBCSYS/INGAME.DMP", FA_WRITE | FA_OPEN_ALWAYS)) return; // one record a boot, appended
+  f_lseek(&save_file, f_size(&save_file));
+  f_write(&save_file, buffer, 512, &done);
   f_close(&save_file);
-  if (result || done < 6 || memcmp(buffer, "GAM1", 4) || !buffer[4]) return result;
-  buffer[FS_BUFFER_SIZE - 1] = 0;
-  if ((result = f_open(&save_file, (const char*)buffer + 5, FA_WRITE | FA_CREATE_ALWAYS))) return result;
-  result = SaveRamFile(buffer[4], 1);
-  if (result) f_close(&save_file);
-  else result = f_close(&save_file);
+}
+#endif
+
+unsigned char fs_BackupSave(void) {
+  UINT done, sum, i;
+  BYTE path = 7;
+  char* bak = (char*)buffer + 256;
+  FRESULT result = fs_Mount();
+  backup_skipped = 0;
   if (result) return result;
+#ifdef INGAME_DIAG
+  DumpInGame();
+  SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
+#endif
+  sum = RegistrySum();
+  if (f_open(&save_file, GAME_RECORD, FA_READ)) return result;
+  result = f_read(&save_file, buffer, 255, &done);
+  f_close(&save_file);
+  if (result || done < 8 || !buffer[4]) return result;
+  if (!memcmp(buffer, "GAM1", 4)) path = 5; // before the registry check
+  else if (memcmp(buffer, "GAM2", 4)) return result;
+  buffer[255] = 0;
+  if (path == 7 && (buffer[5] | (buffer[6] << 8)) != sum) backup_skipped = 1;
+  else {
+    for (i = 0; (bak[i] = buffer[path + i]); ++i);
+    if (i > 4) {
+      memcpy(bak + i - 3, "bak", 3);
+      f_unlink(bak);
+      f_rename((const char*)buffer + path, bak);
+    }
+    if ((result = f_open(&save_file, (const char*)buffer + path, FA_WRITE | FA_CREATE_ALWAYS))) return result;
+    result = SaveRamFile(buffer[4], 1);
+    if (result) f_close(&save_file);
+    else result = f_close(&save_file);
+    if (result) return result;
+  }
   buffer[4] = 0; // done
   if (!(result = f_open(&save_file, GAME_RECORD, FA_WRITE))) {
     result = f_write(&save_file, buffer, 5, &done);
@@ -748,11 +801,19 @@ unsigned char fs_BackupSave(void) {
   return result;
 }
 
-// copies the game at path to PSRAM, loads its save and remembers it, sets game_mapper and the masks for
-// GameLaunch. Returns an FRESULT (FR_DENIED: too big). Past the header check PSRAM's text is overwritten
-unsigned char fs_LoadGame(const char* path) {
-  UINT block, blocks, done, i, end = 0, dot = 0;
-  BYTE type, banks, size, record[5 + sizeof(SAVE_FOLDER) + FS_NAME_SIZE + 4];
+// a game loads in steps (the file browser shows the progress): fs_GameOpen checks it and takes what
+// GameLaunch needs from the header, fs_GameCopy copies runs of consecutive clusters of it to PSRAM with one
+// multi-block read each (game_block of game_blocks), fs_GameFinish loads its save and remembers it.
+// Returns an FRESULT (FR_DENIED: too big). After fs_GameOpen PSRAM's text gets overwritten
+#define GAME_CHUNK 256 // sectors fs_GameCopy reads at most (128KB)
+extern unsigned int game_block, game_blocks; // src/fatfs/fatfs.asm
+extern unsigned long game_clst;
+extern unsigned char game_banks;
+extern unsigned char sd_ReadBlocks(unsigned int block, unsigned int count); // src/editor/sd.asm, from LBA sd_sector
+extern unsigned char sd_fast; // sd_ReadBlocks streams into the window like the EverDrive's OS
+unsigned char fs_GameOpen(const char* path) {
+  UINT done, i;
+  BYTE type, size;
   unsigned long length;
   FRESULT result;
   if ((result = fs_BackupSave())) return result; // an earlier game's save first, or its progress is lost
@@ -765,45 +826,87 @@ unsigned char fs_LoadGame(const char* path) {
   type = buffer[0x147];
   game_mapper = !type || type == 8 || type == 9 ? 4 : type <= 3 ? 1 : type <= 6 ? 2 : type >= 0x0F && type <= 0x13 ? 3 : 5;
   size = buffer[0x149];
-  banks = size == 3 ? 4 : size == 4 ? 16 : size == 5 ? 8 : 1;
-  game_ram_mask = game_mapper == 2 ? 0 : size == 1 || size == 2 ? 0 : banks - 1;
+  game_banks = size == 3 ? 4 : size == 4 ? 16 : size == 5 ? 8 : 1;
+  game_ram_mask = game_mapper == 2 ? 0 : size == 1 || size == 2 ? 0 : game_banks - 1;
   for (game_rom_mask = 0, length = (length + 0x7FFF) >> 15; length > 1; length = (length + 1) >> 1) game_rom_mask = (game_rom_mask << 1) | 1; // 32KB units
   for (i = 0; battery_types[i] && battery_types[i] != type; ++i);
-  if (!battery_types[i]) banks = 0;
-  blocks = (UINT)((f_size(&file) + 511) >> 9);
+  if (!battery_types[i]) game_banks = 0;
+  game_blocks = (UINT)((f_size(&file) + 511) >> 9);
+  game_block = 0;
+  game_clst = file.obj.sclust;
+  sd_fast = 1;
   Signature(0); // the text in PSRAM gets overwritten, the next boot restores the swap file
-  f_lseek(&file, 0);
-  for (block = 0; !result && block < blocks; ++block) {
-    SetWindowBlock(block);
-    result = f_read(&file, WINDOW, 512, &done);
+  return FR_OK;
+}
+
+// the fast reads (sd_fast) didn't work: the game is read again the slow way
+static void GameSlow(void) {
+  sd_fast = 0;
+  game_block = 0;
+  game_clst = file.obj.sclust;
+}
+
+unsigned char fs_GameCopy(void) {
+  FATFS* fs = file.obj.fs;
+  unsigned long next = game_clst, last;
+  UINT count = fs->csize, i;
+  BYTE check;
+  while (count < GAME_CHUNK && game_block + count < game_blocks) { // consecutive clusters
+    if ((last = get_fat(&file.obj, next)) != next + 1) break;
+    next = last;
+    count += fs->csize;
+  }
+  if (count > game_blocks - game_block) count = game_blocks - game_block;
+  if (!(sd_sector = clst2sect(fs, game_clst)) || sd_ReadBlocks(game_block, count)) {
+    SetWindowBlock(TB_PSRAM_HIGH << 8);
+    if (!sd_fast) return FR_DISK_ERR;
+    GameSlow();
+    return FR_OK;
+  }
+  game_block += count;
+  if (game_block == game_blocks && sd_fast) { // the header checksum (a byte off before $14D breaks it)
+    SetWindowBlock(0);
+    for (check = 0, i = 0x134; i < 0x14D; ++i) check = check - WINDOW[i] - 1;
+    if ((BYTE)check != WINDOW[0x14D] || memcmp(WINDOW + 0x134, buffer + 0x134, 0x1C)) GameSlow(); // the header fs_GameOpen read
   }
   SetWindowBlock(TB_PSRAM_HIGH << 8);
+  if (game_block && game_block != game_blocks && (game_clst = get_fat(&file.obj, next)) < 2) return FR_INT_ERR;
+  return FR_OK;
+}
+
+unsigned char fs_GameFinish(const char* path) {
+  UINT block, done, i, end = 0, dot = 0;
+  BYTE record[7 + sizeof(SAVE_FOLDER) + FS_NAME_SIZE + 4];
+  FRESULT result = FR_OK;
   f_close(&file);
-  if (result || !banks) return result;
-  memcpy(record, "GAM1", 4); // the record: its .srm, the name with the extension replaced
-  record[4] = banks;
-  memcpy(record + 5, SAVE_FOLDER, sizeof(SAVE_FOLDER) - 1);
+  if (!game_banks) return result;
+  memcpy(record, "GAM2", 4); // the record: its .srm, the name with the extension replaced
+  record[4] = game_banks;
+  memcpy(record + 7, SAVE_FOLDER, sizeof(SAVE_FOLDER) - 1);
   for (i = 0; path[i]; ++i) if (path[i] == '/') end = i + 1;
   for (i = end; path[i]; ++i) if (path[i] == '.') dot = i;
   if (!dot) dot = i;
   if (dot - end > FS_NAME_SIZE) return FR_INVALID_NAME;
-  memcpy(record + 4 + sizeof(SAVE_FOLDER), path + end, dot - end);
-  memcpy(record + 4 + sizeof(SAVE_FOLDER) + dot - end, ".srm", 5);
-  if (!f_open(&save_file, (const char*)record + 5, FA_READ)) { // its save, else blank save RAM
-    result = SaveRamFile(banks, 0);
+  memcpy(record + 6 + sizeof(SAVE_FOLDER), path + end, dot - end);
+  memcpy(record + 6 + sizeof(SAVE_FOLDER) + dot - end, ".srm", 5);
+  if (!f_open(&save_file, (const char*)record + 7, FA_READ)) { // its save, else blank save RAM
+    result = SaveRamFile(game_banks, 0);
     f_close(&save_file);
   }
   else {
     f_mkdir("/GBCSYS/SAVE");
-    for (block = 0; block < (UINT)banks << 4; ++block) {
+    for (block = 0; block < (UINT)game_banks << 4; ++block) {
       SaveRamBlock(block, 1);
       memset(WINDOW, 0xFF, 512);
     }
     SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
   }
   if (result) return result;
+  i = RegistrySum();
+  record[5] = (BYTE)i;
+  record[6] = i >> 8;
   if (!(result = f_open(&save_file, GAME_RECORD, FA_WRITE | FA_CREATE_ALWAYS))) {
-    i = 5 + sizeof(SAVE_FOLDER) + dot - end + 4;
+    i = 7 + sizeof(SAVE_FOLDER) + dot - end + 4;
     if (!(result = f_write(&save_file, record, i, &done)) && done != i) result = FR_DENIED;
     if (result) f_close(&save_file);
     else result = f_close(&save_file);
@@ -822,7 +925,6 @@ unsigned char fs_LoadGame(const char* path) {
 extern const char TBSignature[4]; // src/editor/text_buffer.asm
 extern unsigned int tb_Length(void);
 extern unsigned int tb_ClipLength(void);
-extern unsigned int ByteSum(const BYTE* data, unsigned int count); // src/fatfs/fatfs.asm
 WORD swap_sum;
 
 // reads or writes count bytes of PSRAM from offset in block, adds them to swap_sum

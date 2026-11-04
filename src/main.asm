@@ -41,10 +41,27 @@ IF DEF(EVERDRIVE_OS);the EverDrive's loader ran after the boot ROM, so its regis
   ldh [rSVBK], a
   xor a;sgb_Init enables interrupts before Main sets them up
   ldh [rIE], a
+  ld hl, $0041;$0040 jumps to our VBlank, not the in-game menu (src/editor/ingame.asm)
+  ld [hl], LOW(VBLInterrupt)
+  inc l
+  ld [hl], HIGH(VBLInterrupt)
   ld a, $A5;the registers stay unlocked
   ld [$BD0A], a
+IF !DEF(BISECT_LAUNCH)
+  xor a;$01F0 back to 0 like the EverDrive OS's boot (GameLaunch sets it)
+  ld [$01F0], a
+ENDC
+IF !DEF(BISECT_BOOT)
+  xor a;like the EverDrive OS's boot: mapper 0 (OS), $BD09 = 4 (the launch writes 0). Without it, a game launched
+  ld [$BD07], a;after one went back to the OS from its in-game menu went straight back to the OS on the X7
+  ld a, 4
+  ld [$BD09], a
+ENDC
   ld a, $04;the window shows PSRAM
   ld [EDX_CONFIG], a
+IF DEF(INGAME_DIAG);the in-game menu's record and trace in WRAM to PSRAM $3E3E (src/editor/ingame.asm)
+  call DiagBoot
+ENDC
   ld a, TB_PSRAM_HIGH
   ld [EDX_BLOCK+1], a
   ld bc, 0;not a GBA (can't tell), sgb_Init asks for a Super Game Boy

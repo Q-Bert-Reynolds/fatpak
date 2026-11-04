@@ -4,6 +4,9 @@ DEFINES   = -D LANG_$(LANGUAGE)
 ifeq ($(OS), 1)
 DEFINES  += -D EVERDRIVE_OS
 endif
+ifeq ($(DIAG), 1)
+DEFINES  += -D INGAME_DIAG
+endif
 
 GAME_NAME = TEXT_EDITOR
 ROM_NAME  = $(GAME_NAME).gbc

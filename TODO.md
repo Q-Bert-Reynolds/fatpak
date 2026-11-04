@@ -2,9 +2,11 @@ Priority
 
 - OS mode (bin/GBCOS.BIN as /GBCSYS/GBCOS.BIN, bin/EDITOR.DAT in /GBCSYS): games can't reach the EverDrive X registers, so the editor is the cart's OS. Games launch from the file browser (fs_LoadGame, GameLaunch): copied to PSRAM block 0, their save loaded from /GBCSYS/SAVE/<name>.srm and written back at the next boot (/GBCSYS/EDITOR.GAM). Next for games:
   - confirm on the X7 (Gearboy launches them, but can't return the game's RAM to the OS: its GBCOS.sav is reloaded)
-  - loading is ~9s per MB (a sector at a time through FatFs), the EverDrive OS streams multi-block reads into the window ($BD06 bit 0)
-  - MBC3 clocks (.rtc files, Pokemon Crystal), save states (/GBCSYS/SNAP), cheats, the in-game menu ($01F0-$01FF), the EverDrive OS's REGISTRY.BIN (booting the stock OS after a game ours launched backs the save RAM up to its last game)
-  - a progress bar while loading
+  - loading: runs of clusters with one READ_MULTIPLE_BLOCK each, streamed into the window like the EverDrive's OS (auto read + $BD06 bit 0: each write to $BE00 stores the card's next byte), ~0.5s per MB in Gearboy. Checked with the header checksum, a mismatch or read error loads it again the slow way. Confirm on the X7
+  - a progress bar (it shows KB loaded)
+  - in-game menu (src/editor/ingame.asm, the system button combo): RESUME and EXIT TO OS as sprites over the game. Confirm on the X7 (entry at $0670 like the EverDrive OS, or our $0040 with [in_game], $BD14-$BD17, the $BD09 strobes; through $0040 alone the X7 showed a blank screen). Next: more items (the tools in OS Utilities), a box that also covers the BG for games whose sprites are hidden behind it, save states
+  - idea, later: file I/O for games through that handler. The game writes a request at a fixed RAM address (tag, load/save, path, address, length) and asks the player to press the combo; the handler sets the game's memory aside, does the file work with SD access, writes the result and returns. Or without a button: a request in save RAM that our boot handles (needs a reset, and a relaunch)
+  - MBC3 clocks (.rtc files, Pokemon Crystal), save states (/GBCSYS/SNAP), cheats, the in-game menu ($01F0-$01FF), the EverDrive OS's REGISTRY.BIN: the stock OS backs save RAM up to the last game it launched, so running it after a game ours launched can write that game's save over another's. Ours skips its backup if REGISTRY.BIN changed since its launch (a Beisbol save was written over Pokemon Red's before), keeping its last game in the stock registry would make both agree
 - time the swap file autosave on the X7 with a big text (the editor stalls while it writes, 2 seconds after the last change)
 - pages 7 and 10 are 95% full, page 14 is empty (check_pages.py)
 - time loading and saving a 64KB file on the X7 and in Gearboy, the numbers set the large file window size (see Large Files)
@@ -101,8 +103,15 @@ Code
 - ROM0 is nearly full (~750 bytes free): move helper routines that don't take any args out of ROM0 behind TRAMPOLINE
 - utilize remaining HRAM space (~100 bytes free) and RST vectors
 
-IDE (ideas, not committed to)
+OS Utilities (ideas, not committed to)
 
+- overlays: utilities load their code from a file on the card into a page at $A000 when they're used (pages are RAM in OS mode). The page's own code is copied to PSRAM first and copied back after, so no page has to be given up. Built as a separate link at the page's address, calling the editor through a jump table in ROM0
+- in-game tools, through the $0670 handler (the system combo, game frozen): it copies the game's WRAM (all banks), HRAM, VRAM (both banks), OAM, registers and palette RAM (BCPD/OCPD) to PSRAM first, the tools use that copy and the screen freely, the game is restored after. Overlays:
+  - dump the game's memory to files (write-only registers can't be read, the mapper's current banks maybe not)
+  - a VRAM viewer: tile sheets (384 per bank), BG and window maps, OAM list, palettes
+  - images from it: BMP, or indexed PNG with stored (uncompressed) deflate blocks (only CRC32 and Adler-32 needed)
+  - a screenshot rebuilt from the snapshot (BG, window, sprites with the 10 per line limit, flips, priority, GBC attributes), as it stands at VBlank: per line scroll, LYC status bars and per line palettes come out wrong
+- PNG viewer (an overlay): inflate (a 32KB window in PSRAM, ~2-3KB of asm) and the row filters decode 8-bit grayscale, RGB, RGBA and palette images (not Adam7 or 16-bit at first) into PSRAM; fit, 1:1, 2x and 4x zoom panned with the d-pad, drawn into the renderer's 360 tiles (averaged when shrinking); 4 shades with ordered dithering on DMG, grayscale then colour on GBC (8 palettes of 4 colours, picked per tile). Guess: a few seconds to decode a 100-300KB PNG
 - assemble and run on device: a two pass assembler for an RGBDS subset (instructions, global and .local labels, DB/DW/DS, DEF/EQU, INCLUDE, later MACRO/REPT/IF) that reuses TBLexCode and the keyword tables (entries would also need opcode patterns, register numbers, directive ids), symbols in a hash table in SRAM, output into SRAM or GBC WRAM 1-7 and run from there. Before running, swap the SRAM a program needs (the undo log in banks 9-15, or all 128KB including the text) to a file on SD and restore it after, with a flag so boot restores it if the program crashes or the power goes off. Rough guess: a few hundred lines a second per pass
 - call the editor's routines by name (gbdk_SetBkgTiles, RevealTextAndWait, ...): build an export table (name, bank, address) from bin/TEXT_EDITOR.sym into a fixed size section in its own bank so it doesn't move the code it describes, the assembler resolves unknown symbols against it, banked targets go through a far call trampoline. C functions follow SDCC's convention (a, e, return in a), asm routines need their register args documented
 - a small API for user programs: jump table in ROM0 (print, keys, files, exit), the program returns to the editor, the text is safe in SRAM if it crashes
