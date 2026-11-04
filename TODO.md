@@ -4,7 +4,7 @@ Priority
 - time the swap file autosave on the X7 with a big text (the editor stalls while it writes, 2 seconds after the last change)
 - pages 7 and 10 are 95% full, page 14 is empty (check_pages.py)
 - time loading and saving a 64KB file on the X7 and in Gearboy, the numbers set the large file window size (see Large Files)
-- faster sector reads with auto-read streaming ($BD01 bit 2 + $BD06 bit 0, reading $BD00 clocks the next byte), and without checking the busy bit for each byte if the X7's SPI is fast enough at double speed
+- auto-read sector reads (done in OS mode, 3x faster in Gearboy): confirm on the X7. Next: multi-block reads (CMD18) like the EverDrive OS, and the window streaming mode ($BD06 bit 0: writes to $BE00 store the card's bytes)
 - large files: viewing works (read only, from the card), next editing and saving them, see Large Files
 
 Text Rendering
@@ -68,7 +68,7 @@ Next:
 - save streams the pieces to name.tmp (CR LF if fs_crlf), then f_unlink the original and f_rename the temp file
   (needs FF_FS_MINIMIZE 0), shows a percentage
 - speed: a window load is tb_Append (0.37s, the SD read loop could drop CRs and write into the text buffer
-  itself, ~0.25s less) and sd_ReadSector (0.35s, auto-read streaming in Priority). Untimed on the X7
+  itself, ~0.25s less) and sd_ReadSector (0.11s with auto-read). Untimed on the X7
 - the line count after Ctrl+End starts from the file's start, it could start from the last known window
 - a markdown code block or C comment open at the window's start isn't seen (the lexer starts fresh there)
 - Ctrl+A selects the window, the status bar's position and selection counts are the window's

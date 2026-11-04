@@ -16,6 +16,8 @@ DEF EDX_KEY_UNLOCK     EQU $A5
 DEF EDX_SPI_SS         EQU %00000001;1 = deselected
 DEF EDX_SPI_LOW_SPEED  EQU %00000010
 DEF EDX_SPI_BUSY       EQU 7
+DEF EDX_SPI_AUTO_READ  EQU %00000100;with EDX_CONFIG bit 0 (OS mode): reading the data register returns the
+;byte received and clocks the next one, no busy wait (like the EverDrive's OS, see _sd_ReadSector)
 
 DEF SD_CMD0   EQU $40+0 ;GO_IDLE_STATE
 DEF SD_CMD8   EQU $40+8 ;SEND_IF_COND
@@ -364,6 +366,20 @@ _sd_ReadSector::;de = 512 byte buffer, [_sd_sector] = LBA, returns a = 0 if succ
   jp nz, .error
   ld h, d
   ld l, e
+IF DEF(EVERDRIVE_OS)
+  call SDAutoRead
+  ld de, EDX_SPI_DATA
+  ld a, [de];the token, clocks the first byte
+  ld b, 512/16
+.read16;4 M-cycles a byte
+REPT 16
+    ld a, [de]
+    ld [hli], a
+ENDR
+    dec b
+    jr nz, .read16
+  call SDAutoReadOff;the first CRC byte is clocked, SD_RECEIVE clocks the second and one more $FF
+ELSE
   ld bc, EDX_SPI_CTRL
   ld de, EDX_SPI_DATA
   ld a, 512/8
@@ -383,6 +399,7 @@ ENDR
     dec a
     ld [sd_count], a
     jr nz, .read8
+ENDC
   SD_RECEIVE;CRC
   SD_RECEIVE
   xor a
@@ -390,6 +407,27 @@ ENDR
 .error
   ld a, 1
   jp SDFinish
+
+IF DEF(EVERDRIVE_OS)
+;turns auto read on or off, only affects a
+SDAutoRead:
+  ld a, [EDX_SPI_CTRL]
+  or a, EDX_SPI_AUTO_READ
+  ld [EDX_SPI_CTRL], a
+  ld a, [EDX_CONFIG]
+  or a, 1
+  ld [EDX_CONFIG], a
+  ret
+
+SDAutoReadOff:
+  ld a, [EDX_SPI_CTRL]
+  and a, ~EDX_SPI_AUTO_READ
+  ld [EDX_SPI_CTRL], a
+  ld a, [EDX_CONFIG]
+  and a, ~1
+  ld [EDX_CONFIG], a
+  ret
+ENDC
 
 _sd_WriteSector::;de = 512 byte buffer, [_sd_sector] = LBA, returns a = 0 if successful
   push de

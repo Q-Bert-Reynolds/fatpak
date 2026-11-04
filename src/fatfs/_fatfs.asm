@@ -29194,7 +29194,7 @@ _fs_ScanStep::
 	ld	[hl], a
 	ld	hl, sp+10
 	ld	a, [hl]
-	sub	a, $03
+	sub	a, $04
 	jp	NC, .l00112
 	ld	hl, sp+5
 	bit	0, [hl]
@@ -29246,7 +29246,7 @@ _fs_ScanStep::
 	ld	[hl], a
 .l00120:
 	ld	hl, sp+8
-	ld	a, $50
+	ld	a, $5A
 	sub	a, [hl]
 	inc	hl
 	ld	a, $00

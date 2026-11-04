@@ -450,11 +450,11 @@ void fs_DocLineStart(void) {
 }
 
 // counts the line feeds of up to SCAN_SECTORS sectors toward scan_target into scan_lines, returns 1 when
-// it's there (or the card can't be read). A sector takes ~64 lines of the screen's 154, another one starts
-// only if it ends before the next VBlank (the main loop waits for it). f_lseek divides longs (~5ms), so it's
-// only called when a window load moved the file's position
-#define SCAN_SECTORS 3
-#define SCAN_LAST_LINE 80 // lines since VBlank another sector can start at
+// it's there (or the card can't be read). A sector takes ~48 lines of the screen's 154 (CountLF ~18, the read ~12),
+// another one starts only if it ends before the next VBlank (the main loop waits for it). f_lseek divides
+// longs (~5ms), so it's only called when a window load moved the file's position
+#define SCAN_SECTORS 4
+#define SCAN_LAST_LINE 90 // lines since VBlank another sector can start at
 #define rLY (*(volatile BYTE*)0xFF44)
 unsigned char fs_ScanStep(void) {
   UINT count, done;
