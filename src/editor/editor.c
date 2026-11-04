@@ -89,7 +89,7 @@ unsigned long list_sizes[LIST_ROWS];
 unsigned int list_dates[LIST_ROWS];
 unsigned int list_times[LIST_ROWS];
 
-static const char menu_items[][ITEM_SIZE] = {"FILE", "EDIT", "SETTINGS", "HELP"};
+static const char menu_items[][ITEM_SIZE] = {"FILE", "EDIT", "SETTINGS", "HELP", "CLOSE"}; // CLOSE = OPEN
 static const char submenu_items[][ITEM_SIZE] = { // FILE, EDIT, SETTINGS
   "OPEN", "SAVE", "SAVE AS", "NEW",
   "UNDO", "REDO", "CUT", "COPY", "PASTE", "SELECT ALL",
@@ -1583,7 +1583,8 @@ static void ShowHelp(void) {
   EndFullScreen();
 }
 
-// FILE, EDIT, SETTINGS and HELP submenus, B goes back from a submenu, start or escape close them
+// FILE, EDIT, SETTINGS and HELP submenus and CLOSE (the file browser, like OPEN), B goes back from a
+// submenu, start or escape close them
 static char* PutHex(char* dest, unsigned char n) {
   unsigned char digit = n >> 4;
   *dest++ = digit < 10 ? '0' + digit : 'A' - 10 + digit;
@@ -1661,7 +1662,11 @@ static void KeyboardTest(void) {
 static void FileMenu(void) {
   unsigned char menu = 0, item;
   while (1) {
-    if ((menu = Choose(0, menu_items[0], 4, menu)) >= BACK) return;
+    if ((menu = Choose(0, menu_items[0], 5, menu)) >= BACK) return;
+    if (menu == 4) {
+      OpenFile();
+      return;
+    }
     item = submenu_starts[menu];
     if ((item = Choose(0, submenu_items[item], submenu_starts[menu + 1] - item, 0)) == CANCEL) return;
     if (item != BACK) break;
@@ -1845,11 +1850,18 @@ void Editor(void) {
   saved_modified = modified;
   SetFont(font);
   SetRows();
-  Refresh();
 #ifdef EVERDRIVE_OS
   swap_dirty = 0; // the swap file has what booting restored
   doc_large = 0;
-  if (!modified) OpenFile(); // the EverDrive's OS starts in the file browser
+  if (modified) Refresh();
+  else { // the EverDrive's OS starts in the file browser (on a blank screen), the text is drawn if it's closed
+    ClearScreen();
+    EditorDraw();
+    dirty = 1;
+    OpenFile();
+  }
+#else
+  Refresh();
 #endif
 
   while (1) {
