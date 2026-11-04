@@ -88,14 +88,14 @@ unsigned long list_sizes[LIST_ROWS];
 unsigned int list_dates[LIST_ROWS];
 unsigned int list_times[LIST_ROWS];
 
-static const char menu_items[][ITEM_SIZE] = {"OPEN", "SAVE", "SAVE AS", "NEW", "UNDO", "REDO", "FONT", "LINE WRAP", "FULL SCREEN", "HELP"};
+static const char menu_items[][ITEM_SIZE] = {"OPEN", "SAVE", "SAVE AS", "NEW", "UNDO", "REDO", "LINE WRAP", "FULL SCREEN", "HELP"};
 static const char discard_items[][ITEM_SIZE] = {"NO", "YES"};
 static const char help_lines[HELP_ROWS][HELP_COLS] = {
   "HELP",
   "Esc  menu      F1  help",
   "F11  full screen",
   "Ctrl+O, S, N  open, save, new",
-  "Ctrl+F  font    Alt+Z  line wrap",
+  "Alt+Z  line wrap",
   "Shift + moving  select",
   "Ctrl+A  select all",
   "Ctrl+X, C, V  cut, copy, paste",
@@ -1056,7 +1056,7 @@ static unsigned char CanDiscard(void) {
   return !modified || Choose("DISCARD CHANGES?", discard_items[0], 2) == 1;
 }
 
-// styles the text by file_name's extension: markdown for .md
+// styles the text by file_name's extension, code (and markdown's code) is fixed width, the rest variable
 // extensions and the LANG_* they style as, lowercase
 static const char * const lang_exts[] = { "md", "c", "h", "asm", "inc", "s" };
 static const unsigned char lang_ids[] = { LANG_MD, LANG_C, LANG_C, LANG_ASM, LANG_ASM, LANG_ASM };
@@ -1069,9 +1069,13 @@ static void SetLang(void) {
     for (c = dot + 1, e = lang_exts[i]; *e && (*c | 0x20) == *e; ++c, ++e);
     if (!*c && !*e) lang = lang_ids[i];
   }
+  font = lang == LANG_C || lang == LANG_ASM ? FONT_FIXED : FONT_VWF;
   if (lang == tb_lang) return;
   tb_lang = lang;
+  tb_ResetChecks();
   for (i = 0; i <= TB_ROWS; ++i) tb_row_states[i] = 0; // no markdown headings left in them
+  SetFont(font);
+  for (i = bars; i < bars + tb_rows; ++i) render_row_fonts[i] = font;
   EditorRedraw();
   dirty = 1;
 }
@@ -1411,15 +1415,6 @@ static void ToggleWrap(void) {
   SettingsSave();
 }
 
-// switches between the fixed and variable width fonts
-static void ToggleFont(void) {
-  font = font == FONT_VWF ? FONT_FIXED : FONT_VWF;
-  SetFont(font);
-  Layout(); // the rows' fonts
-  dirty = 1;
-  SettingsSave();
-}
-
 // F1, shown with the variable width font
 static void ShowHelp(void) {
   unsigned char row, editor_font = font;
@@ -1437,21 +1432,20 @@ static void ShowHelp(void) {
 }
 
 static void FileMenu(void) {
-  switch (Choose("MENU", menu_items[0], 10)) {
+  switch (Choose("MENU", menu_items[0], 9)) {
     case 0: OpenFile(); break;
     case 1: SaveFile(0); break;
     case 2: SaveFile(1); break;
     case 3: NewFile(); break;
     case 4: UndoRedo(0); break;
     case 5: UndoRedo(1); break;
-    case 6: ToggleFont(); break;
-    case 7: ToggleWrap(); break;
-    case 8: ToggleBars(); break;
-    case 9: ShowHelp(); break;
+    case 6: ToggleWrap(); break;
+    case 7: ToggleBars(); break;
+    case 8: ShowHelp(); break;
   }
 }
 
-// shortcuts: escape or the keyboard's menu key, F1, F11, alt + Z, ctrl + O, S, N, F
+// shortcuts: escape or the keyboard's menu key, F1, F11, alt + Z, ctrl + O, S, N
 static unsigned char HandleFileKey(unsigned char key, unsigned char mods) {
   if (key == KEY_MENU || key == KEY_ESCAPE) FileMenu();
   else if (key == KEY_F1) ShowHelp();
@@ -1461,7 +1455,6 @@ static unsigned char HandleFileKey(unsigned char key, unsigned char mods) {
   else if (key == 'o' || key == 'O') OpenFile();
   else if (key == 's' || key == 'S') SaveFile(0);
   else if (key == 'n' || key == 'N') NewFile();
-  else if (key == 'f' || key == 'F') ToggleFont();
   else return 0;
   dirty = 1;
   return 1;
@@ -1475,18 +1468,28 @@ static void Render(void) {
 #define KEEP_LEFT  40 // pixels of text left of the cursor after scrolling sideways to the right (more near the line's end)
 #define KEEP_RIGHT 120 // after scrolling to the left, most of the screen shows where it's going
 
+#define CODE_WIDTH 4 // FONT_FIXED's, markdown code is drawn with it
+#define MD_FENCE_STATE 0x4000 // tb_row_states: in a markdown code block (MD_FENCE)
+
 unsigned char head_level; // ScrollX: the line's heading level if it's in a heading font (1-4), else 0
+unsigned char code_line; // ScrollX: the line is in a markdown code block
 
 static unsigned char CharWidth(unsigned char c) {
   if (c < ' ') c = ' '; // control characters are drawn as spaces
+  if (code_line) return CODE_WIDTH;
   return head_level ? HeadingCharWidth(head_level, c) : font_widths[c];
 }
 
-// sets head_level for the line at start (close enough to scroll by, bold isn't counted)
-static void LineHeading(unsigned int start) {
+// sets head_level and code_line for the line at start, on screen row row (0xFF = not on screen)
+// (close enough to scroll by, bold and inline code aren't counted)
+static void LineHeading(unsigned int start, unsigned char row) {
   unsigned int pos = start, length = tb_Length();
   head_level = 0;
+  code_line = 0;
   if (tb_lang != LANG_MD) return;
+  while (pos < length && pos - start < 3 && tb_GetChar(pos) == '`') ++pos;
+  if (pos - start == 3 || (row != 0xFF && (tb_row_states[row] & MD_FENCE_STATE))) { code_line = 1; return; }
+  pos = start;
   while (pos < length && pos - start < 7 && tb_GetChar(pos) == '#') ++pos;
   if (pos == start || pos - start > 4 || pos == length || tb_GetChar(pos) != ' ') return;
   head_level = (unsigned char)(pos - start);
@@ -1505,7 +1508,7 @@ static unsigned char ScrollX(void) {
     if (col - tb_left < count) return 0;
     if (col - tb_left == count && cursor == LineEnd(row) && RenderCursorX(count) < TB_WIDTH - 1) return 0;
   }
-  LineHeading(start);
+  LineHeading(start, row);
   if (keep == KEEP_LEFT) { // more if the line ends sooner, so the screen isn't left empty
     for (pos = cursor, x = 0; pos < length && (c = tb_GetChar(pos)) != ASCII_LF && x <= TB_WIDTH; ++pos) x += CharWidth(c);
     if (x < TB_WIDTH - 1 - KEEP_LEFT) keep = TB_WIDTH - 1 - x;
@@ -1584,7 +1587,7 @@ void Editor(void) {
   edited = 0;
   pad_timer = 0;
   modified = 0;
-  font = FONT_FIXED; // until SettingsLoad
+  font = FONT_VWF; // SetLang
   file_name[0] = 0;
   file_dir[0] = 0;
   fs_crlf = 0;

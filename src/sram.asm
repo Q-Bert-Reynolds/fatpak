@@ -1,5 +1,5 @@
 ;text buffer, see src/editor/text_buffer.asm
-DEF SETTINGS_SIZE EQU 5+PATH_SIZE+FS_NAME_SIZE;SettingsTable
+DEF SETTINGS_SIZE EQU 4+PATH_SIZE+FS_NAME_SIZE;SettingsTable
 IF DEF(EVERDRIVE_OS);PSRAM through the window: the text buffer and undo log are blocks (see constants.asm),
 ;this is PSRAM block MAIN_SRAM_BANK and the clipboard's text starts at offset $100 of it (TB_CLIP_SIZE)
 DEF sram_tb_signature EQU TB_BASE
@@ -54,7 +54,7 @@ settings_load: DB;SettingsCopy's direction
 
 SECTION "Settings Code", ROM0
 
-SettingsSignature: DB "SET1"
+SettingsSignature: DB "SET2";SET1 had the font
 
 MACRO SETTING ;\1 = C variable, \2 = size
   DW \1
@@ -62,7 +62,6 @@ MACRO SETTING ;\1 = C variable, \2 = size
 ENDM
 
 SettingsTable:
-  SETTING _font, 1
   SETTING _tb_nowrap, 1
   SETTING _bars_on, 1
   SETTING _fs_crlf, 1

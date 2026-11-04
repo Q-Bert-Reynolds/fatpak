@@ -9,7 +9,7 @@ Priority
 
 Text Rendering
 
-- font selection: pick from a list of fonts (variable width, 4 pixel fixed, Tiny5 Mono in img/fonts/tiny5mono_font.png, ...) instead of the Ctrl+F toggle, saved with the settings
+- font selection: pick from a list of fonts (variable width, 4 pixel fixed, Tiny5 Mono in img/fonts/tiny5mono_font.png, ...) for text and for code (now code and markdown's code are fixed width, the rest variable width), saved with the settings
 - variable width font: accented and UI glyphs in vwf_font.png are copied from ui_font.png, redraw them
 - drawing a row on DMG waits for 40 HBlanks (~18K cycles), interleave glyph drawing with the waits (GBC uses HDMA)
 - buffer tile data, stagger writes to vram
@@ -82,6 +82,7 @@ Emulator
 
 Code
 
+- MBC5 build (OS=0): editor.c's code is 0x154 bytes over its 16KB bank (0x84 since the edit mode changes), split editor.c like the OS build (bank_split.py) or move code out
 - ROM0 is nearly full (~750 bytes free): move helper routines that don't take any args out of ROM0 behind TRAMPOLINE
 - utilize remaining HRAM space (~100 bytes free) and RST vectors
 

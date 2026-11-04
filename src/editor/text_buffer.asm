@@ -1252,7 +1252,10 @@ TBCheckEnd:
 ;Its state (tb_state, 2 bytes) is saved at each rendered row's start in tb_row_states, a row
 ;elsewhere is reached by scanning from its line's start (TBSyncState).
 ;Markdown: a line starting with 1-6 # and a space is a heading (1-4 use FONT_H1-FONT_H4, 5-6 are bold),
-;** toggles bold, * and _ italic (not inside a word), ` code. Markers stay visible.
+;** toggles bold, * and _ italic (not inside a word), ` code. Markers stay visible. A line starting
+;with ``` opens or closes a code block, its lines (fences too) are all code. Code is drawn with
+;FONT_FIXED's glyphs and width (CODE_WIDTH, RenderGlyph). The code block state crosses lines,
+;TBLineState finds it from a checkpoint (TBCheckRunMD).
 DEF MD_BOLD       EQU 0;state byte 0
 DEF MD_ITALIC     EQU 1
 DEF MD_CODE       EQU 2
@@ -1265,6 +1268,9 @@ DEF MD_HEADING    EQU %00000111;state byte 1: heading level
 DEF MD_MARK_WORD  EQU 3;the char before the marker was a letter or digit
 DEF MD_MARK_SPACE EQU 4;it was a space
 DEF MD_HASHES     EQU 5;in a heading's #s
+DEF MD_FENCE      EQU 6;in a code block, kept after a line feed
+DEF MD_FENCE_LINE EQU 7;the line is a fence (```)
+DEF CODE_WIDTH    EQU 4;FONT_FIXED's width
 
 ;what each style looks like: LOOK_* bits, the GBC accent palette in bits 4-6 (see EditorPalettes)
 StyleLooks:
@@ -1338,6 +1344,10 @@ TBLex:
   jr .styledWidth
 .notHeading
   ld a, b
+  cp a, STYLE_CODE << 4
+  ld a, CODE_WIDTH
+  jr z, .setAttr
+  ld a, b
   swap a
   add a, LOW(StyleLooks)
   ld l, a
@@ -1369,7 +1379,8 @@ TBLexMD:
   jr nz, .notLF
   ld a, (1 << MD_LINE) | (1 << MD_PREV_SPACE)
   ld [tb_next_state], a
-  xor a
+  ld a, [tb_next_state+1]
+  and a, 1 << MD_FENCE
   ld [tb_next_state+1], a
   ret
 .notLF
@@ -1379,9 +1390,26 @@ TBLexMD:
   res MD_LINE, a
   ld [tb_next_state], a
   ld a, c
+  cp a, '`'
+  call z, TBPeekFence
+  jr nz, .notFence
+  ld a, [tb_next_state+1]
+  xor a, 1 << MD_FENCE
+  or a, 1 << MD_FENCE_LINE
+  ld [tb_next_state+1], a
+  xor a
+  ld [tb_row_head], a
+  jr .pending
+.notFence;no headings in a code block
+  ld a, [tb_next_state+1]
+  and a, 1 << MD_FENCE
+  ld a, 0
+  jr nz, .head
+  ld a, c
   cp a, '#'
   ld a, 0
   call z, TBPeekHeading
+.head
   ld [tb_row_head], a
   ld b, a
   ld a, [tb_next_state+1]
@@ -1394,6 +1422,12 @@ TBLexMD:
 .setHeading
   ld [tb_next_state+1], a
 .pending
+  ld a, [tb_next_state+1]
+  and a, 1 << MD_FENCE | 1 << MD_FENCE_LINE
+  jr z, .inline
+  ld b, STYLE_CODE << 4
+  ret
+.inline
   push de
   ld de, 0;d bit 0: toggle bold after this char, bit 2: toggle code, e = 1: it's a marker
   ld hl, tb_next_state+1
@@ -1549,6 +1583,32 @@ TBIsWord:
   ccf
   ret nc
   cp a, 'z'+1
+  ret
+
+;hl and de at a `, returns z if it starts ``` (a code block's fence), preserves bc, de, hl
+TBPeekFence:
+  push bc
+  push de
+  ld b, 3
+.loop
+    call TBCheckEnd
+    jr z, .no
+    push bc
+    call TBReadNext
+    pop bc
+    cp a, '`'
+    jr nz, .done
+    dec b
+    jr nz, .loop
+  jr .done
+.no
+  or a, 1
+.done
+  pop de
+  push af
+  call TBReadSeek;back to the char
+  pop af
+  pop bc
   ret
 
 ;hl and de at a #, returns the heading level in a if the line is a heading (1-6 # then a space),
@@ -1923,11 +1983,23 @@ TBLookupWord:
 TBLineState:
   call TBResetState
   ld a, [_tb_lang]
+  cp a, LANG_MD
+  jr z, .check
   cp a, LANG_C
   ret nz
+.check
   push de
   call TBCheckState
   pop de
+  ld a, [_tb_lang]
+  cp a, LANG_MD
+  jr nz, .comment
+  bit 0, b
+  ret z
+  ld a, 1 << MD_FENCE
+  ld [tb_state+1], a
+  ret
+.comment
   ld a, b
   and a, CODE_MODE
   cp a, CM_BLOCK
@@ -1937,7 +2009,7 @@ TBLineState:
   ld [tb_state], a
   ret
 
-;Checkpoints: the C comment state (TBCheckRun) at every 1KB, [tb_checks_last] is the last one
+;Checkpoints: the C comment or markdown code block state (TBCheckRun) at every 1KB, [tb_checks_last] is the last one
 ;known, edits forget the ones after them (TBEdited). tb_check_pos is where the last TBCheckState
 ;ended, with its state in tb_check_state.
 
@@ -2107,6 +2179,9 @@ MACRO CHECK_NEXT;\1 = loop, \2 = state
   ret
 ENDM
 TBCheckRun:
+  ld a, [_tb_lang]
+  cp a, LANG_MD
+  jp z, TBCheckRunMD
   ld a, e
   and a
   jr z, .none
@@ -2208,6 +2283,42 @@ TBCheckRun:
   jp z, .noneNext
   jr .charNext
 
+;Markdown: e bit 0 = in a code block, bits 1-2 = backticks the line started with (0-2), 3 = not a
+;fence. Must agree with TBLexMD
+TBCheckRunMD:
+.loop
+    ld a, [hli]
+    cp a, ASCII_LF
+    jr nz, .notLF
+    ld a, e
+    and a, 1
+    ld e, a
+    jr .next
+  .notLF
+    cp a, '`'
+    ld a, e
+    jr nz, .notFence
+    and a, %110
+    cp a, %110
+    jr z, .next
+    cp a, %100
+    jr z, .fence
+    inc e
+    inc e
+    jr .next
+  .fence
+    ld a, e
+    xor a, 1
+  .notFence
+    or a, %110
+    ld e, a
+  .next
+    dec bc
+    ld a, b
+    or a, c
+    jr nz, .loop
+  ret
+
 ;de = position of an edit, forgets the checkpoints after it, only affects a
 TBEdited:
 IF DEF(EVERDRIVE_OS)
@@ -2242,6 +2353,7 @@ ENDC
   ret
 
 ;forgets the checkpoints, only affects a
+_tb_ResetChecks::
 TBResetChecks:
   xor a
   ld [tb_checks_last], a

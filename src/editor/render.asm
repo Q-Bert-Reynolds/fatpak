@@ -25,7 +25,8 @@
 ;the row, RenderWritePalettes), selected tiles palette 0. See EditorSetPalettes.
 ;
 ;C functions (src/editor/editor.h)
-;   SetFont                     a = font, sets _font_widths and redraws rows using it
+;   SetFont                     a = font, sets _font_widths and redraws rows using it (markdown code
+;                               is drawn with FONT_FIXED in any font, see RenderGlyph)
 ;   EditorDraw                  draws the screen rows whose characters, font or selection changed
 ;   EditorRedraw                forgets which rows are drawn so EditorDraw redraws all of them
 ;   RenderSetMapRow             a = BG map row (32 and up are window map rows), e = block, points the map row at the block's tiles
@@ -1699,10 +1700,24 @@ RenderGlyph:
   add hl, hl
   add hl, hl
   add hl, hl
+  ld a, [render_styled]
+  and a
+  jr z, .rowFont
+  ld a, [render_head]
+  and a
+  jr nz, .rowFont
+  ld a, [render_attr]
+  and a, $F0
+  cp a, STYLE_CODE << 4
+  jr nz, .rowFont
+  ld bc, FontFixedGlyphs;markdown code
+  jr .glyph
+.rowFont
   ld a, [render_glyphs]
   ld c, a
   ld a, [render_glyphs+1]
   ld b, a
+.glyph
   add hl, bc
   ld b, h
   ld c, l;glyph

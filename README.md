@@ -27,23 +27,25 @@ The top bar shows the file name (* = unsaved changes), the bottom bar the line a
 characters are selected. F11 (or FULL SCREEN in the menu) hides them. F1 (or HELP) shows the controls.
 
 PS/2 keyboards type directly: arrows, home, end, page up/down, backspace, delete, enter.
-Escape opens the menu (open, save, save as, new, undo, redo, font, line wrap, full screen, help), Ctrl+O opens, Ctrl+S saves, Ctrl+N starts a new file.
+Escape opens the menu (open, save, save as, new, undo, redo, line wrap, full screen, help), Ctrl+O opens, Ctrl+S saves, Ctrl+N starts a new file.
 OPEN (Ctrl+O) browses the SD card: the top bar shows the folder, the bottom bar the selected file's size and date.
 Folders come first, enter or A opens, backspace, left or B goes up a folder, escape goes back to the text
 (so do backspace and B in the root).
 Any file up to 63KB (65,408 bytes) opens as text, long file names (up to 64 characters) are shown. SAVE AS saves in the open
 file's folder. CR LF line endings are kept.
-Ctrl+F (or FONT in the menu) switches between the fixed width font (the default) and the variable width font.
+Code is drawn with the 4 pixel fixed width font, everything else with the variable width font: C and asm
+files are fixed width, plain text and markdown variable width except markdown's code.
 Markdown files (.md) are styled: a line starting with # to #### and a space is a heading in a wider,
 taller, bold font (8, 7, 6 and 5 pixels a character), ##### and ###### are bold, **bold** and *italic*
-or _italic_ (not inside a word) are drawn bold and slanted, `code` is red on GBC. The markers stay visible,
+or _italic_ (not inside a word) are drawn bold and slanted, `code` is fixed width and red on GBC, and so
+are the lines of a code block (from a line starting with ``` to the next one). The markers stay visible,
 dimmed (dark grey on DMG). Headings are blue on GBC.
 C (.c, .h) and RGBDS asm (.asm, .inc, .s) are highlighted: keywords and instructions are bold, comments
 dimmed. On GBC keywords, types and registers are blue, strings red, numbers purple, preprocessor lines,
 directives and asm labels orange (labels bold).
 Alt+Z (or LINE WRAP) turns line wrapping off and on. Without it each line is one row, and the text scrolls
 sideways to keep the cursor on screen.
-The font, line wrapping and full screen settings are kept in SRAM with the text, and so are the open file's
+The line wrapping and full screen settings are kept in SRAM with the text, and so are the open file's
 name and folder (and whether it has unsaved changes), so after turning the Game Boy off and on the file
 name bar still shows the file and OPEN starts in its folder.
 Ctrl+Left/Right move a word (or run of punctuation) at a time, Ctrl+Up/Down scroll a row without moving
