@@ -62,6 +62,9 @@ DEF DATA_BLOCKS        EQU 65
 DEF DATA_VERSION       EQU 1;block 0 starts with "EDITOR.DAT" and this
 DEF WIN_SIZE           EQU $C000;the part of a large file in the text buffer (src/fatfs/fatfs.c)
 DEF WIN_CHUNKS         EQU WIN_SIZE/512+1;sector boundaries in it
+DEF MAX_PIECES         EQU 96;a large file's piece table (src/fatfs/fatfs.c)
+DEF ADD_BLOCK          EQU $0400;text added to a large file, PSRAM 512KB up to the save states at $3E40
+DEF ADD_MAX            EQU $7A0000
 ELSE
 DEF TB_BANKS     EQU 8;SRAM banks 0-7, positions are 16 bit
 DEF TB_HOLE      EQU $1D00;$BD00-$BD0F are EverDrive registers, never stored to

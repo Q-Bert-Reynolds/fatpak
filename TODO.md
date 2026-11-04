@@ -4,8 +4,8 @@ Priority
 - time the swap file autosave on the X7 with a big text (the editor stalls while it writes, 2 seconds after the last change)
 - pages 7 and 10 are 95% full, page 14 is empty (check_pages.py)
 - time loading and saving a 64KB file on the X7 and in Gearboy, the numbers set the large file window size (see Large Files)
-- auto-read sector reads (done in OS mode, 3x faster in Gearboy): confirm on the X7. Next: multi-block reads (CMD18) like the EverDrive OS, and the window streaming mode ($BD06 bit 0: writes to $BE00 store the card's bytes)
-- large files: viewing works (read only, from the card), next editing and saving them, see Large Files
+- auto-read sector reads (SD_AUTO_READ in src/editor/sd.asm, off): on the X7 every save failed with SD ERROR 02 (FR_INT_ERR) and a folder once failed with 04 while it was on. Guess: in double speed a read every 4 M-cycles outruns the SPI clock. Try it with a delay per byte, or with a test that reads sectors both ways and compares. Also multi-block reads (CMD18) like the EverDrive OS, and the window streaming mode ($BD06 bit 0: writes to $BE00 store the card's bytes)
+- large files: viewing, editing and saving work, see Large Files for what's left (unsaved edits don't survive a reset)
 
 Text Rendering
 
@@ -52,26 +52,30 @@ File I/O
 
 Large Files
 
-OS mode only (the SD card is only reachable there). Done: read only files of any size. The file stays open
-and the text buffer is a 48KB window of it (WIN_SIZE, fs_LoadWindow), read from the card: opening a file takes
-~0.9s in Gearboy whatever its size. The window slides when the cursor is within 8KB of an edge that isn't the
-file's (Slide in editor.c), starting at a line start (fs_DocLineStart looks back up to 4KB). CRs aren't in the
-window, so window positions aren't file offsets: win_kept has the window position of each sector boundary, a
-forward slide starts from one of them, a backward one marks the old start (win_mark). Line numbers are counted
-across slides; Ctrl+End shows "Line ?" until the line feeds before the window are counted in the background
-(fs_ScanStep, ~56KB/s, sectors only start if they end before VBlank). While a large file is open the text
-buffer's signature is cleared and the swap file isn't written, so a reset restores the swap file instead of a
-window that could be saved over the file. Variables are in ROM0 (RAM in OS mode, WRAM0 is full).
+OS mode only (the SD card is only reachable there). Done: files of any size open in ~0.9s (Gearboy) and can be
+edited and saved. The file stays open and the text buffer is a 48KB window (WIN_SIZE) of the document, a list
+of pieces of the file and of the add buffer (PSRAM from ADD_BLOCK, ~7.6MB, text without CRs); see the top of
+the large file code in src/fatfs/fatfs.c. The window slides when the cursor is within 8KB of an edge that isn't
+the document's (Slide in editor.c), starting at a line start; an edited window is committed first (its text
+replaces the pieces it came from). Line numbers are counted across slides; Ctrl+End shows "Line ?" until the
+line feeds before the window are counted in the background (fs_ScanStep). Saving writes ~EDITOR.TMP in the
+file's folder (added text gets CR LF if the file had them), deletes the file and renames the temp file
+(FF_FS_MINIMIZE 0), then reopens it as one piece. While a large file is open the text buffer's signature is
+cleared and the swap file isn't written, so a reset restores the swap file instead of a window that could be
+saved over the file. Variables are in ROM0 (RAM in OS mode, WRAM0 is full), the piece table in page 14.
 Next:
-- editing: a piece table over the file (original + an append only add buffer in PSRAM), the window is
-  committed to it before a slide when edited. Undo history and a selection stop at the window for now
-- save streams the pieces to name.tmp (CR LF if fs_crlf), then f_unlink the original and f_rename the temp file
-  (needs FF_FS_MINIMIZE 0), shows a percentage
-- speed: a window load is tb_Append (0.37s, the SD read loop could drop CRs and write into the text buffer
-  itself, ~0.25s less) and sd_ReadSector (0.11s with auto-read). Untimed on the X7
+- unsaved edits to a large file are lost on a reset or power off (the piece table is in page 14, the image is
+  reloaded at boot): keep the piece table and add buffer length in PSRAM and restore them at boot if the file's
+  size and date still match
+- the undo history is cleared when the window moves, a selection stops at the window, Ctrl+A selects the window
+- the piece table holds MAX_PIECES (96), each commit adds up to 2: then "TOO MANY EDITS, SAVE FIRST" (adjacent
+  add buffer pieces could merge)
+- save speed: ~9s for 320KB in Gearboy (sector writes 1.7s, FatFs's partial sector copies 2s, FatFs call
+  overhead). The EverDrive's OS writes sector bytes without polling the busy bit (~0.8s less), multi-block
+  CMD25/CMD18 would cut command overhead. A save shows "Saving..." without progress
+- the window load is tb_Append (0.37s, the SD read loop could drop CRs and write into the text buffer itself)
 - the line count after Ctrl+End starts from the file's start, it could start from the last known window
 - a markdown code block or C comment open at the window's start isn't seen (the lexer starts fresh there)
-- Ctrl+A selects the window, the status bar's position and selection counts are the window's
 - lines longer than the window's margin (8KB) with line wrap off
 
 Peripherals

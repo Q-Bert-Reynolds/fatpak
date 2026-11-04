@@ -8,6 +8,6 @@
 6: PressOSKKey MoveOSKSelection SetOSKLayer ToggleOSK PadKey DpadRepeat MenuKey WaitDismiss ShowMessage OpenBox HideBox ShowHelp BeginFullScreen EndFullScreen DrawRow RowAddress ClearScreen
 6: WordRight WordLeft CharClass MoveDown MoveUp PageUp PageDown MoveEnd HandleCtrlKey Copy Paste DeleteSelection GetSelection UndoRedo ToggleWrap ToggleBars SetLang
 # large files
-14: LoadWindow ShiftPositions LinesUnknown Slide GoStart GoEnd ReadOnly SelectAll Cut
+6: LoadWindow ShiftPositions LinesUnknown Slide GoStart GoEnd Commit SelectAll Cut
 # help
 13: KeyboardTest PutHex test_errors

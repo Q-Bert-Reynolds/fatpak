@@ -16,4 +16,7 @@ ROM0: ld_16 ld_32 st_16 st_32 dbc_1st dbc_2nd sum_sfn
 DATA: ROM0
 THUNKS: ROM0
 # large files
-14: fs_LoadLarge fs_LoadWindow fs_CloseLarge fs_DocLineStart fs_ScanStep Signature
+14: fs_LoadLarge fs_LoadWindow fs_DocLineStart fs_ScanStep AddCopy DocPiece DocRead DocReadAll OneFilePiece Split fs_CommitWindow SaveOut fs_SaveLarge
+# deleting and renaming (saving a large file), FF_FS_MINIMIZE 0 also builds f_stat f_getfree f_truncate f_mkdir
+13: f_unlink f_rename f_stat f_getfree f_truncate f_mkdir dir_remove
+13: fs_CloseLarge Signature

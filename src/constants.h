@@ -65,6 +65,9 @@
 #define DATA_VERSION       1//block 0 starts with "EDITOR.DAT" and this
 #define WIN_SIZE           0xC000u//the part of a large file in the text buffer (src/fatfs/fatfs.c)
 #define WIN_CHUNKS         WIN_SIZE/512+1//sector boundaries in it
+#define MAX_PIECES         96//a large file's piece table (src/fatfs/fatfs.c)
+#define ADD_BLOCK          0x0400u//text added to a large file, PSRAM 512KB up to the save states at 0x3E40
+#define ADD_MAX            0x7A0000
 #else
 #define TB_BANKS     8//SRAM banks 0-7, positions are 16 bit
 #define TB_HOLE      0x1D00u//0xBD00-0xBD0F are EverDrive registers, never stored to

@@ -2337,6 +2337,7 @@ TBEdited:
 IF DEF(EVERDRIVE_OS)
   ld a, 1;the swap file needs writing (src/editor/editor.c)
   ld [_swap_dirty], a
+  ld [_win_edited], a;a large file's window needs committing (src/fatfs/fatfs.c)
 ENDC
   push bc
   ld a, [tb_checks_last]

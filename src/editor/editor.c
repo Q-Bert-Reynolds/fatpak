@@ -119,7 +119,6 @@ static const char help_lines[HELP_ROWS][HELP_COLS] = {
 };
 
 static void Render(void);
-static unsigned char ReadOnly(void);
 
 static char* RowAddress(unsigned char row);
 static void DrawRow(unsigned char row, unsigned char col, const char* text);
@@ -622,7 +621,7 @@ static unsigned char Copy(void) {
 
 static void Paste(void) {
   unsigned int length = tb_ClipLength(), room = TB_SIZE - tb_Length();
-  if (!length || ReadOnly()) return;
+  if (!length) return;
   if (GetSelection()) room += sel_end - sel_start;
   if (length > room) {
     ShowMessage("TEXT FULL");
@@ -683,7 +682,7 @@ static void ScrollLine(unsigned char down) {
 
 // Ctrl+Z (Ctrl+Shift+Z redoes) and Ctrl+Y
 static void UndoRedo(unsigned char redo) {
-  if (ReadOnly() || !(redo ? Redo() : Undo())) return;
+  if (!(redo ? Redo() : Undo())) return;
   cursor = undo_cursor;
   selecting = 0;
   Uncount(0);
@@ -700,16 +699,24 @@ static void SelectAll(void) {
 }
 
 static void Cut(void) {
-  if (!ReadOnly() && Copy()) DeleteSelection();
+  if (Copy()) DeleteSelection();
 }
 
 #ifdef EVERDRIVE_OS
 #define WIN_MARGIN 0x2000 // the window moves when the cursor is this close to an edge that isn't the file's
 #define NO_MARK 0xFFFFFFFF
 
+// an edited window goes into the document before it moves, returns 0 if it can't (then it doesn't move)
+static unsigned char Commit(void) {
+  if (FileCommitWindow()) return 1;
+  ShowMessage("TOO MANY EDITS, SAVE FIRST");
+  return 0;
+}
+
+// loads the window from win_start, the undo history was for the old one
 static void LoadWindow(void) {
   if (FileLoadWindow()) ShowMessage("SD ERROR");
-  selecting = 0;
+  UndoClear(modified);
   Uncount(0);
   dirty = 1;
 }
@@ -752,6 +759,7 @@ static void Slide(void) {
   unsigned int length = tb_Length(), shift, target;
   unsigned char i;
   if (cursor < WIN_MARGIN ? !win_start : (cursor + WIN_MARGIN <= length || win_end == doc_len)) return;
+  if (!Commit()) return;
   win_mark = NO_MARK;
   if (cursor >= WIN_MARGIN) { // from a sector boundary half a window before the cursor
     target = cursor - WIN_SIZE / 2;
@@ -762,7 +770,7 @@ static void Slide(void) {
     shift = win_kept[i] - doc_back;
     win_lines += tb_CountLines(0, shift);
     win_start = doc_pos;
-    if (FileLoadWindow()) ShowMessage("SD ERROR");
+    LoadWindow();
     ShiftPositions(shift, 1);
   }
   else { // half a window back, the old start's position is the shift
@@ -770,7 +778,7 @@ static void Slide(void) {
     DocLineStart();
     win_mark = win_start;
     win_start = doc_pos;
-    if (FileLoadWindow()) ShowMessage("SD ERROR");
+    LoadWindow();
     shift = win_mark_pos == 0xFFFF ? 0 : win_mark_pos;
     win_lines -= tb_CountLines(0, shift);
     ShiftPositions(shift, 0);
@@ -781,7 +789,8 @@ static void Slide(void) {
 // Ctrl+Home, the file's start
 static void GoStart(void) {
 #ifdef EVERDRIVE_OS
-  if (doc_large && win_start) {
+  if (doc_large && win_start && Commit()) {
+    selecting = 0;
     win_start = win_lines = 0;
     win_mark = NO_MARK;
     lines_known = 1;
@@ -794,7 +803,8 @@ static void GoStart(void) {
 // Ctrl+End, the file's end
 static void GoEnd(void) {
 #ifdef EVERDRIVE_OS
-  if (doc_large && win_end != doc_len) {
+  if (doc_large && win_end != doc_len && Commit()) {
+    selecting = 0;
     doc_pos = doc_len - WIN_SIZE / 2; // the window isn't the whole file, so it's longer than this
     DocLineStart();
     win_start = doc_pos;
@@ -804,17 +814,6 @@ static void GoEnd(void) {
   }
 #endif
   cursor = tb_Length();
-}
-
-// a large file is read only for now, returns 1 (after saying so) if one is open
-static unsigned char ReadOnly(void) {
-#ifdef EVERDRIVE_OS
-  if (doc_large) {
-    ShowMessage("READ ONLY");
-    return 1;
-  }
-#endif
-  return 0;
 }
 
 // ctrl + A, X, C, V, Z, Y
@@ -873,7 +872,7 @@ static void HandleKey(unsigned char key, unsigned char mods) {
     case KEY_END: MoveEnd(); return;
   }
   moved = 0;
-  if (key == KEY_ESCAPE || key == KEY_INSERT || ReadOnly()) return;
+  if (key == KEY_ESCAPE || key == KEY_INSERT) return;
   if (GetSelection()) { // typing replaces the selection
     DeleteSelection();
     if (key == KEY_BACKSPACE || key == KEY_DELETE) return;
@@ -1322,9 +1321,7 @@ static void ListBars(const char* path, unsigned char row, unsigned int count) {
     end = PutNumber2(end, time >> 11);
     *end++ = ':';
     end = PutNumber2(end, (time >> 5) & 63);
-#ifdef EVERDRIVE_OS
-    if (size > TB_SIZE) end = PutText(end, "  read only");
-#else
+#ifndef EVERDRIVE_OS
     if (size > TB_SIZE) end = PutText(end, "  too big");
 #endif
   }
@@ -1543,11 +1540,15 @@ static unsigned char AskFileName(void) {
 static void SaveFile(unsigned char ask) {
   char path[PATH_SIZE + FS_NAME_SIZE];
   unsigned char result;
-  if (ReadOnly() || ((ask || !file_name[0]) && !AskFileName())) return;
+  if ((ask || !file_name[0]) && !AskFileName()) return;
   JoinPath(path, file_dir, file_name, (unsigned char)(PATH_SIZE + FS_NAME_SIZE));
   ShowBusy("Saving...");
   result = FileMount();
+#ifdef EVERDRIVE_OS
+  if (!result) result = doc_large ? FileSaveLarge(path) : FileSave(path);
+#else
   if (!result) result = FileSave(path);
+#endif
   HideBox();
   SettingsSave(); // save as may have changed the name
   if (result) {

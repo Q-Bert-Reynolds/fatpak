@@ -88,7 +88,9 @@ extern unsigned char FileLoadWindow(void); // FRESULT, the text buffer is the fi
 extern void FileCloseLarge(void);
 extern void DocLineStart(void); // moves doc_pos (a file offset) to its line's start, doc_back = window positions it moved
 extern unsigned char FileScanStep(void); // counts a sector's line feeds toward scan_target, 1 when done
-extern unsigned char doc_large; // a large file is open (read only), the text buffer is a window into it
+extern unsigned char FileCommitWindow(void); // an edited window goes into the document, 0 if it's full
+extern unsigned char FileSaveLarge(const char* path); // FRESULT, saves the document (FR_DENIED: it or the card is full)
+extern unsigned char doc_large; // a large file is open, the text buffer is a window into it
 extern unsigned char lines_known, win_chunks;
 extern unsigned long doc_len, doc_pos, win_start, win_end, win_mark, win_lines, scan_pos, scan_target, scan_lines;
 extern unsigned int doc_back, win_mark_pos, win_kept[];

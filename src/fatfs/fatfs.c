@@ -338,17 +338,29 @@ unsigned char fs_LoadData(const char* path) {
   return result;
 }
 
-// A large file (bigger than the text buffer) stays open and is read from the card as needed: the text
-// buffer holds a window of it from win_start (fs_LoadWindow, read only for now). CRs and 0s aren't in the
-// window, so window positions aren't file offsets: win_kept has the window position of each sector boundary
-// in it, and a window loaded with win_mark in it gives that offset's window position. The text buffer's
-// signature is cleared while one is open so booting after a reset restores the swap file instead of a
-// window that could be saved over the file, and the swap file isn't written (src/editor/editor.c)
+// A large file (bigger than the text buffer) stays open and is read from the card as needed. Edits make it
+// a document: a list of pieces of the file and of the add buffer (PSRAM from ADD_BLOCK, text without CRs),
+// document offsets count the pieces' bytes (a file piece's CRs too). The text buffer holds a window of the
+// document from win_start (fs_LoadWindow). CRs and 0s aren't in it, so window positions aren't document
+// offsets: win_kept has the window position of each 512 byte boundary in it, and a window loaded with win_mark
+// in it gives that offset's window position. An edited window is committed before it moves or the document
+// is saved (fs_CommitWindow): its text goes in the add buffer as one piece in place of the ones it came from.
+// Saving writes a temp file in the file's folder and renames it over the file (fs_SaveLarge).
+// The text buffer's signature is cleared while one is open so booting after a reset restores the swap file
+// instead of a window that could be saved over the file, and the swap file isn't written (src/editor/editor.c)
 #define LINE_SCAN 4096 // fs_DocLineStart looks back this far
 #define NO_MARK 0xFFFFFFFF
-extern unsigned char doc_large, win_chunks;
+#define SRC_FILE 0
+#define SRC_ADD 1
+#define TEMP_NAME "~EDITOR.TMP"
+typedef struct { BYTE src; DWORD off; DWORD len; } Piece;
+extern Piece pieces[MAX_PIECES]; // src/fatfs/fatfs.asm, in page DOC_PAGE (only its functions can read it)
+extern unsigned char doc_large, win_chunks, win_edited, piece_count, piece_i;
 extern unsigned long doc_len, doc_pos, win_start, win_end, win_mark, scan_pos, scan_target, scan_lines;
+extern unsigned long piece_start, add_len;
 extern unsigned int doc_back, win_mark_pos, win_kept[];
+extern FIL save_file;
+typedef char save_file_fits[sizeof(FIL) <= 64 ? 1 : -1]; // fatfs.asm reserves 64 bytes
 extern unsigned int CountLF(const BYTE* data, unsigned int count); // src/fatfs/fatfs.asm
 extern void tb_Clear(void);
 extern void tb_Empty(void); // tb_Clear without zeroing the text buffer
@@ -364,6 +376,61 @@ static void Signature(const char* signature) {
   SetWindowBlock(TB_PSRAM_HIGH << 8);
 }
 
+// copies count bytes between data (WRAM) and the add buffer at offset pos, write = to the add buffer
+static void AddCopy(BYTE* data, unsigned long pos, UINT count, BYTE write) {
+  UINT at, size;
+  while (count) {
+    at = (UINT)pos & 511;
+    size = 512 - at;
+    if (size > count) size = count;
+    SetWindowBlock(ADD_BLOCK + (UINT)(pos >> 9));
+    if (write) memcpy(WINDOW + at, data, size);
+    else memcpy(data, WINDOW + at, size);
+    data += size;
+    pos += size;
+    count -= size;
+  }
+  SetWindowBlock(TB_PSRAM_HIGH << 8);
+}
+
+// the piece document offset pos is in (piece_i, piece_start), 0 at the end
+static Piece* DocPiece(unsigned long pos) {
+  if (pos < piece_start) {
+    piece_i = 0;
+    piece_start = 0;
+  }
+  while (piece_i < piece_count && pos >= piece_start + pieces[piece_i].len) piece_start += pieces[piece_i++].len;
+  return piece_i == piece_count ? 0 : &pieces[piece_i];
+}
+
+// reads up to count bytes of the document at pos into dest, not past the end of pos's piece, returns the
+// bytes read, 0 at the end or after an error
+static UINT DocRead(BYTE* dest, unsigned long pos, UINT count) {
+  Piece* piece = DocPiece(pos);
+  unsigned long in;
+  UINT done;
+  if (!piece) return 0;
+  in = pos - piece_start;
+  if (piece->len - in < count) count = (UINT)(piece->len - in);
+  in += piece->off;
+  if (piece->src == SRC_ADD) {
+    AddCopy(dest, in, count, 0);
+    return count;
+  }
+  if ((f_tell(&file) != in && f_lseek(&file, in)) || f_read(&file, dest, count, &done) || done != count) return 0;
+  return count;
+}
+
+// DocRead across pieces, returns 0 if it can't read them all
+static UINT DocReadAll(BYTE* dest, unsigned long pos, UINT count) {
+  UINT done = 0, size;
+  while (done != count) {
+    if (!(size = DocRead(dest + done, pos + done, count - done))) return 0;
+    done += size;
+  }
+  return count;
+}
+
 // leaves large file mode
 void fs_CloseLarge(void) {
   if (!doc_large) return;
@@ -372,12 +439,24 @@ void fs_CloseLarge(void) {
   Signature(TBSignature);
 }
 
+// the document is the open file
+static void OneFilePiece(void) {
+  doc_len = f_size(&file);
+  pieces[0].src = SRC_FILE;
+  pieces[0].off = 0;
+  pieces[0].len = doc_len;
+  piece_count = 1;
+  piece_i = 0;
+  piece_start = 0;
+  add_len = 0;
+}
+
 // opens the file and loads the window at its start, returns an FRESULT
 unsigned char fs_LoadLarge(const char* path) {
   FRESULT result;
   fs_CloseLarge();
   if ((result = Open(path, FA_READ))) return result;
-  doc_len = f_size(&file);
+  OneFilePiece();
   doc_large = 1;
   Signature(0);
   win_start = 0;
@@ -391,47 +470,48 @@ unsigned char fs_LoadLarge(const char* path) {
   return result;
 }
 
-// loads the file from win_start (up to WIN_SIZE bytes) into the text buffer, sets win_end, win_kept[i] to
-// the window position of file offset ((win_start + 511) & ~511) + 512 i and win_mark_pos to win_mark's
+// loads the document from win_start (up to WIN_SIZE bytes) into the text buffer, sets win_end, win_kept[i] to
+// the window position of document offset ((win_start + 511) & ~511) + 512 i and win_mark_pos to win_mark's
 // (0xFFFF if it isn't in the window), returns an FRESULT
 unsigned char fs_LoadWindow(void) {
   unsigned long pos = win_start, end = win_start + WIN_SIZE, next;
-  UINT count, done;
-  FRESULT result;
+  UINT count;
+  FRESULT result = FR_OK;
   if (end > doc_len) end = doc_len;
   tb_Empty();
   win_chunks = 0;
   win_mark_pos = 0xFFFF;
-  result = f_lseek(&file, pos);
-  while (!result) {
+  while (1) {
     if (!((UINT)pos & 511)) win_kept[win_chunks++] = tb_Length();
     if (pos == win_mark) win_mark_pos = tb_Length();
     if (pos == end) break;
     next = (pos | 511) + 1;
     if (next > end) next = end;
     if (win_mark > pos && win_mark < next) next = win_mark;
-    count = (UINT)(next - pos);
-    result = f_read(&file, buffer, count, &done);
-    if (!result && done != count) result = FR_INT_ERR;
-    if (!result) tb_Append(buffer, count);
-    pos = next;
+    if (!(count = DocRead(buffer, pos, (UINT)(next - pos)))) {
+      result = FR_INT_ERR;
+      break;
+    }
+    tb_Append(buffer, count);
+    pos += count;
   }
   win_end = pos;
+  win_edited = 0;
   return result;
 }
 
-// moves doc_pos (a file offset) to the start of its line, looking back at most LINE_SCAN bytes (it stays if
-// there's no line feed), sets doc_back to the window positions it moved back (CRs and 0s aren't counted)
+// moves doc_pos (a document offset) to the start of its line, looking back at most LINE_SCAN bytes (it stays
+// if there's no line feed), sets doc_back to the window positions it moved back (CRs and 0s aren't counted)
 void fs_DocLineStart(void) {
   unsigned long pos = doc_pos;
-  UINT count, i, done, kept = 0, scanned = 0;
+  UINT count, i, kept = 0, scanned = 0;
   BYTE c;
   doc_back = 0;
   while (pos && scanned < LINE_SCAN) {
     count = (UINT)pos & 511;
     if (!count) count = 512;
     pos -= count;
-    if (f_lseek(&file, pos) || f_read(&file, buffer, count, &done) || done != count) return;
+    if (!DocReadAll(buffer, pos, count)) return;
     for (i = count; i; --i) {
       c = buffer[i - 1];
       if (c == ASCII_LF) {
@@ -451,24 +531,160 @@ void fs_DocLineStart(void) {
 
 // counts the line feeds of up to SCAN_SECTORS sectors toward scan_target into scan_lines, returns 1 when
 // it's there (or the card can't be read). A sector takes ~48 lines of the screen's 154 (CountLF ~18, the read ~12),
-// another one starts only if it ends before the next VBlank (the main loop waits for it). f_lseek divides
-// longs (~5ms), so it's only called when a window load moved the file's position
+// another one starts only if it ends before the next VBlank (the main loop waits for it)
 #define SCAN_SECTORS 4
 #define SCAN_LAST_LINE 90 // lines since VBlank another sector can start at
 #define rLY (*(volatile BYTE*)0xFF44)
 unsigned char fs_ScanStep(void) {
-  UINT count, done;
+  UINT count;
   unsigned char i;
-  if (f_tell(&file) != scan_pos && f_lseek(&file, scan_pos)) return 1;
   for (i = 0; i < SCAN_SECTORS && scan_pos != scan_target; ++i) {
     if (i && (rLY >= 144 ? rLY - 144 : rLY + 10) > SCAN_LAST_LINE) break;
     count = 512 - ((UINT)scan_pos & 511);
     if (scan_target - scan_pos < count) count = (UINT)(scan_target - scan_pos);
-    if (f_read(&file, buffer, count, &done) || done != count) return 1;
+    if (!DocReadAll(buffer, scan_pos, count)) return 1;
     scan_lines += CountLF(buffer, count);
     scan_pos += count;
   }
   return scan_pos == scan_target;
+}
+
+// a piece starts at document offset pos (the one it's in is split), returns its index (piece_count at the
+// end), 0xFF if the table is full
+static unsigned char Split(unsigned long pos) {
+  unsigned long start = 0;
+  unsigned char i, j;
+  for (i = 0; i < piece_count; start += pieces[i++].len) {
+    if (pos == start) return i;
+    if (pos < start + pieces[i].len) {
+      if (piece_count == MAX_PIECES) return 0xFF;
+      for (j = piece_count; j > i; --j) pieces[j] = pieces[j - 1];
+      ++piece_count;
+      pieces[i + 1].off += pos - start;
+      pieces[i + 1].len -= pos - start;
+      pieces[i].len = pos - start;
+      return i + 1;
+    }
+  }
+  return i;
+}
+
+// if the window was edited, its text replaces the document range it came from (win_start, win_end) as one
+// piece of the add buffer. Returns 0 if the add buffer or the piece table is full
+unsigned char fs_CommitWindow(void) {
+  UINT length = tb_Length(), count;
+  unsigned long pos = add_len;
+  unsigned char a, b, i, j;
+  if (!win_edited) return 1;
+  if (add_len + length > ADD_MAX || piece_count > MAX_PIECES - 3) return 0;
+  tb_read_pos = 0;
+  while ((count = tb_Read(buffer, FS_BUFFER_SIZE))) {
+    AddCopy(buffer, pos, count, 1);
+    pos += count;
+  }
+  a = Split(win_start);
+  b = Split(win_end);
+  i = a + (length ? 1 : 0); // where piece b goes
+  if (i < b) for (j = b; j < piece_count; ++j) pieces[i + j - b] = pieces[j];
+  else if (i > b) for (j = piece_count; j > b; --j) pieces[j] = pieces[j - 1];
+  piece_count = piece_count + i - b;
+  if (length) {
+    pieces[a].src = SRC_ADD;
+    pieces[a].off = add_len;
+    pieces[a].len = length;
+  }
+  piece_i = 0;
+  piece_start = 0;
+  add_len = pos;
+  doc_len = doc_len - (win_end - win_start) + length;
+  win_end = win_start + length;
+  win_chunks = 0; // window positions are document offsets - win_start now
+  for (pos = (win_start + 511) & ~511UL; pos <= win_end && win_chunks < WIN_CHUNKS; pos += 512) win_kept[win_chunks++] = (UINT)(pos - win_start);
+  win_edited = 0;
+  return 1;
+}
+
+// adds count bytes to the save file's next sector (gathered in PSRAM block SAVE_BLOCK, *fill bytes so far),
+// writing it when it's full: whole sector writes skip FatFs's one sector cache (FF_FS_TINY), which the file's
+// reads need. Returns an FRESULT
+#define SAVE_BLOCK (ADD_BLOCK - 1)
+static FRESULT SaveOut(const BYTE* data, UINT count, UINT* fill) {
+  UINT size, done;
+  FRESULT result = FR_OK;
+  SetWindowBlock(SAVE_BLOCK);
+  while (count) {
+    size = 512 - *fill;
+    if (size > count) size = count;
+    memcpy(WINDOW + *fill, data, size);
+    *fill += size;
+    data += size;
+    count -= size;
+    if (*fill == 512) { // the window still shows the block while FatFs writes it
+      *fill = 0;
+      if ((result = f_write(&save_file, WINDOW, 512, &done)) || (done != 512 && (result = FR_DENIED))) break;
+    }
+  }
+  SetWindowBlock(TB_PSRAM_HIGH << 8);
+  return result;
+}
+
+// saves the document to path: writes TEMP_NAME in its folder (added text with CR LF line endings if
+// fs_crlf), deletes path and renames the temp file to it, then the document is that file (one piece) with
+// the window at the same text. Returns an FRESULT (FR_DENIED: the add buffer or piece table is full, or the
+// card is)
+unsigned char fs_SaveLarge(const char* path) {
+  char temp[PATH_SIZE + FS_NAME_SIZE];
+  unsigned long pos = 0, out = 0, start = 0;
+  UINT count, done, i, end = 0, fill = 0;
+  BYTE *src, *dest, c, crlf;
+  Piece* piece;
+  FRESULT result;
+  if (!fs_CommitWindow()) return FR_DENIED;
+  for (i = 0; path[i]; ++i) if (path[i] == '/') end = i + 1;
+  memcpy(temp, path, end);
+  memcpy(temp + end, TEMP_NAME, sizeof(TEMP_NAME));
+  if ((result = f_open(&save_file, temp, FA_WRITE | FA_CREATE_ALWAYS))) return result;
+  while (pos != doc_len) {
+    if (pos == win_start) start = out;
+    piece = DocPiece(pos);
+    crlf = fs_crlf && piece->src == SRC_ADD; // added text gets CRs, it's read into the second half
+    count = crlf ? 256 : 512;
+    if (piece->src == SRC_FILE) count -= (UINT)(pos - piece_start + piece->off) & 511; // whole sectors skip FatFs's copy
+    if (pos < win_start && win_start - pos < count) count = (UINT)(win_start - pos);
+    src = crlf ? buffer + 256 : buffer;
+    if (!(count = DocRead(src, pos, count))) {
+      result = FR_INT_ERR;
+      break;
+    }
+    pos += count;
+    if (crlf) { // in place: each line feed's CR is written before it's read
+      for (dest = buffer, i = 0; i < count; ++i) {
+        if ((c = src[i]) == ASCII_LF) *dest++ = ASCII_CR;
+        *dest++ = c;
+      }
+      src = buffer;
+      count = (UINT)(dest - buffer);
+    }
+    if ((result = SaveOut(src, count, &fill))) break;
+    out += count;
+  }
+  if (pos == win_start) start = out;
+  if (!result && fill) { // the last part of a sector
+    SetWindowBlock(SAVE_BLOCK);
+    if (!(result = f_write(&save_file, WINDOW, fill, &done)) && done != fill) result = FR_DENIED;
+    SetWindowBlock(TB_PSRAM_HIGH << 8);
+  }
+  if (!result) result = f_close(&save_file);
+  else f_close(&save_file);
+  if (result) return result;
+  f_close(&file);
+  result = f_unlink(path);
+  if (result && result != FR_NO_FILE) return result;
+  if ((result = f_rename(temp, path)) || (result = Open(path, FA_READ))) return result;
+  OneFilePiece();
+  win_start = start;
+  win_mark = NO_MARK;
+  return fs_LoadWindow();
 }
 
 // The swap file keeps what PSRAM loses when the power is off: block MAIN_SRAM_BANK's first 256 bytes

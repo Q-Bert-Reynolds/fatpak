@@ -35,9 +35,10 @@ the menu. Ctrl+O opens, Ctrl+S saves, Ctrl+N starts a new file.
 OPEN (Ctrl+O) browses the SD card: the top bar shows the folder, the bottom bar the selected file's size and date.
 Folders come first, enter or A opens, backspace, left or B goes up a folder, escape goes back to the text
 (so do backspace and B in the root).
-Any file up to 63KB (65,408 bytes) opens as text, and in OS mode bigger files open read only (the editor reads a
+Any file up to 63KB (65,408 bytes) opens as text, and in OS mode bigger files open too (the editor reads a
 48KB window of the file from the card that moves with the cursor, Ctrl+End shows "Line ?" until the lines
-before it are counted), long file names (up to 64 characters) are shown. SAVE AS saves in the open
+before it are counted; saving one writes ~EDITOR.TMP in its folder and renames it over the file, and unsaved
+edits to one don't survive a reset), long file names (up to 64 characters) are shown. SAVE AS saves in the open
 file's folder. CR LF line endings are kept.
 Code is drawn with the 4 pixel fixed width font, everything else with the variable width font: C and asm
 files are fixed width, plain text and markdown variable width except markdown's code.

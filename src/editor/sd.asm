@@ -365,8 +365,8 @@ _sd_ReadSector::;de = 512 byte buffer, [_sd_sector] = LBA, returns a = 0 if succ
   cp a, $FE
   jp nz, .error
   ld h, d
+IF DEF(SD_AUTO_READ)
   ld l, e
-IF DEF(EVERDRIVE_OS)
   call SDAutoRead
   ld de, EDX_SPI_DATA
   ld a, [de];the token, clocks the first byte
@@ -380,6 +380,7 @@ ENDR
     jr nz, .read16
   call SDAutoReadOff;the first CRC byte is clocked, SD_RECEIVE clocks the second and one more $FF
 ELSE
+  ld l, e
   ld bc, EDX_SPI_CTRL
   ld de, EDX_SPI_DATA
   ld a, 512/8
@@ -408,7 +409,9 @@ ENDC
   ld a, 1
   jp SDFinish
 
-IF DEF(EVERDRIVE_OS)
+IF DEF(SD_AUTO_READ);off: on the X7 saves failed with FR_INT_ERR (02) and a folder once read as FR_NO_FILE (04)
+;after it, maybe reads every 4 M-cycles in double speed are faster than the SPI clock (the EverDrive's OS
+;reads like this, perhaps in normal speed). Needs testing on the X7 (TODO.md)
 ;turns auto read on or off, only affects a
 SDAutoRead:
   ld a, [EDX_SPI_CTRL]

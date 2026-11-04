@@ -27,6 +27,8 @@ _FileLoadWindow:: BANKED_C _fs_LoadWindow
 _FileCloseLarge:: BANKED_C _fs_CloseLarge
 _DocLineStart::  BANKED_C _fs_DocLineStart
 _FileScanStep::  BANKED_C _fs_ScanStep
+_FileCommitWindow:: BANKED_C _fs_CommitWindow
+_FileSaveLarge:: BANKED_C _fs_SaveLarge
 
 _ByteSum::;de = data, bc = count, returns the sum of the bytes in bc
   ld h, d
@@ -165,9 +167,17 @@ _win_lines:: DS 4;line feeds before win_start
 _scan_pos:: DS 4;counting line feeds from the start to scan_target in the background
 _scan_target:: DS 4
 _scan_lines:: DS 4
-_win_kept:: DS 2*WIN_CHUNKS;window position of each sector boundary in the window
+_win_kept:: DS 2*WIN_CHUNKS;window position of each 512 byte boundary of the document in the window
+_win_edited:: DS 1;the window changed since it was loaded (TBEdited)
+_piece_count:: DS 1
+_piece_i:: DS 1;the piece DocRead found last
+_piece_start:: DS 4;and its document offset
+_add_len:: DS 4;bytes in the add buffer
+_save_file:: DS 64;a FIL for saving a large file (fatfs.c checks the size)
 
 PAGE DOC_PAGE
+_pieces:: DS 9*MAX_PIECES;source (0 = the file, 1 = the add buffer), offset, length (fatfs.c)
+
 _CountLF::;de = data, bc = count, returns the line feeds in it in bc (two bytes a loop, ~8 M-cycles a byte)
   ld h, d
   ld l, e
