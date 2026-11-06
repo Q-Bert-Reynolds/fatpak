@@ -37,7 +37,7 @@ INCLUDE "src/memory1.asm"
 ;     Copies data to SNES WRAM using either DATA_SND or DATA_TRN
 ;     Input: a = SNES bank, bc = byte count, de = SNES address, hl = src data
 
-DEF SGB_CHECK EQU 0;0 = sys check only, 1 = controller test
+DEF SGB_CHECK EQU 1;0 = sys check only, 1 = controller test
 
 DEF SGB_CODE_PAL01    EQU $00 ;Set SGB Palette 0,1 Data
 DEF SGB_CODE_PAL23    EQU $01 ;Set SGB Palette 2,3 Data
