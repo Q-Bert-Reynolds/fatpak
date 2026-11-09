@@ -4,9 +4,6 @@ DEFINES   = -D LANG_$(LANGUAGE)
 ifeq ($(OS), 1)
 DEFINES  += -D EVERDRIVE_OS
 endif
-ifeq ($(DIAG), 1)
-DEFINES  += -D INGAME_DIAG
-endif
 
 GAME_NAME = TEXT_EDITOR
 ROM_NAME  = $(GAME_NAME).gbc
@@ -91,15 +88,6 @@ osdiag:
 	rgblink -t -n $(BIN_DIR)/GBCOS_DIAG.sym -o $(BIN_DIR)/GBCOS_DIAG.BIN $(BUILD_DIR)/osdiag.o
 	$(PYTHON) -c "p='$(BIN_DIR)/GBCOS_DIAG.BIN'; d=bytearray(open(p,'rb').read()); d+=b'\xff'*(131072-len(d)); exec('for c in range(16): d[c*8192+0x1C00:c*8192+0x1C06]=b\'OSDG\'+bytes([c,255-c])'); open(p,'wb').write(d)"
 	rgbfix -v -c -s -j -t GBXOS -i KRKZ -l 0x33 -m 0 -r 0 -p 0xFF $(BIN_DIR)/GBCOS_DIAG.BIN
-
-# SD card image for Gearboy's EverDrive X emulation, 64MB MBR + FAT32 with the files in sd/
-sdcard:
-	@mkdir -p $(BIN_DIR)
-	@rm -f $(SD_IMAGE)
-	truncate -s 64M $(SD_IMAGE)
-	echo 'start=2048, type=c' | /usr/sbin/sfdisk -q $(SD_IMAGE)
-	/usr/sbin/mkfs.fat -F 32 --offset 2048 -n TEXTEDITOR $(SD_IMAGE) 64512 > /dev/null
-	mcopy -i $(SD_IMAGE)@@1M $(SD_DIR)/* ::
 
 clean:
 	@rm -rf $(BUILD_DIR)

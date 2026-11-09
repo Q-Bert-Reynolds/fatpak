@@ -1913,9 +1913,6 @@ void Editor(void) {
   swap_dirty = 0; // the swap file has what booting restored
   doc_large = 0;
   if (backup_skipped) ShowMessage("SAVE NOT BACKED UP");
-#ifdef INGAME_DIAG
-  if (*(volatile unsigned char*)0x01F2) ShowMessage("CART FLAG SET"); // the cart's flag the EverDrive's OS checks at boot
-#endif
   if (modified) Refresh();
   else { // the EverDrive's OS starts in the file browser (on a blank screen), the text is drawn if it's closed
     ClearScreen();

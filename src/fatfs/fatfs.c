@@ -746,19 +746,6 @@ static FRESULT SaveRamFile(BYTE banks, BYTE write) {
 
 // at boot: if a game was launched, writes the save RAM to its .srm (the old one becomes .bak), unless the
 // EverDrive OS launched a game since (backup_skipped). Returns an FRESULT
-#ifdef INGAME_DIAG
-// the in-game menu's record ("IGDG") and trace ("IG", the last step, at +0x1F0) from the game's WRAM, which our
-// boot copied to PSRAM block 0x3E3E (src/main.asm, src/editor/ingame.asm), to /GBCSYS/INGAME.DMP at every boot
-static void DumpInGame(void) {
-  UINT done;
-  SetWindowBlock(0x3E3E);
-  memcpy(buffer, WINDOW, 512);
-  if (f_open(&save_file, "/GBCSYS/INGAME.DMP", FA_WRITE | FA_OPEN_ALWAYS)) return; // one record a boot, appended
-  f_lseek(&save_file, f_size(&save_file));
-  f_write(&save_file, buffer, 512, &done);
-  f_close(&save_file);
-}
-#endif
 
 unsigned char fs_BackupSave(void) {
   UINT done, sum, i;
@@ -767,10 +754,6 @@ unsigned char fs_BackupSave(void) {
   FRESULT result = fs_Mount();
   backup_skipped = 0;
   if (result) return result;
-#ifdef INGAME_DIAG
-  DumpInGame();
-  SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
-#endif
   sum = RegistrySum();
   if (f_open(&save_file, GAME_RECORD, FA_READ)) return result;
   result = f_read(&save_file, buffer, 255, &done);

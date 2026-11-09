@@ -15020,7 +15020,7 @@ _Editor::
 	ld	de, ___str_98
 	call	_ShowMessage__far
 .l00105:
-;src/editor/editor.c:1919: if (modified) Refresh();
+;src/editor/editor.c:1916: if (modified) Refresh();
 	ld	hl, _modified
 	ld	a, [hl]
 	or	a, a
@@ -15028,18 +15028,18 @@ _Editor::
 	call	_Refresh
 	jp	.l00183
 .l00107:
-;src/editor/editor.c:1921: ClearScreen();
+;src/editor/editor.c:1918: ClearScreen();
 	call	_ClearScreen__far
-;src/editor/editor.c:1922: EditorDraw();
+;src/editor/editor.c:1919: EditorDraw();
 	call	_EditorDraw
-;src/editor/editor.c:1923: dirty = 1;
+;src/editor/editor.c:1920: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
-;src/editor/editor.c:1924: OpenFile();
+;src/editor/editor.c:1921: OpenFile();
 	call	_OpenFile__far
-;src/editor/editor.c:1930: while (1) {
+;src/editor/editor.c:1927: while (1) {
 .l00183:
-;src/editor/editor.c:1931: if (modified != saved_modified) {
+;src/editor/editor.c:1928: if (modified != saved_modified) {
 	ld	hl, _modified
 	ld	a, [hl]
 	ld	hl, _saved_modified
@@ -15047,31 +15047,31 @@ _Editor::
 	jp	NZ,.l00432
 	jp	.l00110
 .l00432:
-;src/editor/editor.c:1932: saved_modified = modified;
+;src/editor/editor.c:1929: saved_modified = modified;
 	ld	hl, _modified
 	ld	a, [hl]
 	ld	hl, _saved_modified
 	ld	[hl], a
-;src/editor/editor.c:1933: SettingsSave();
+;src/editor/editor.c:1930: SettingsSave();
 	call	_SettingsSave
 .l00110:
-;src/editor/editor.c:1935: if (bars_changed) { // status bar follows the cursor
+;src/editor/editor.c:1932: if (bars_changed) { // status bar follows the cursor
 	ld	hl, _bars_changed
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00114
-;src/editor/editor.c:1936: bars_changed = 0;
+;src/editor/editor.c:1933: bars_changed = 0;
 	ld	[hl], $00
-;src/editor/editor.c:1937: if (bars) Draw();
+;src/editor/editor.c:1934: if (bars) Draw();
 	ld	hl, _bars
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00114
 	call	_Draw
 .l00114:
-;src/editor/editor.c:1939: WaitFrame();
+;src/editor/editor.c:1936: WaitFrame();
 	call	_WaitFrame
-;src/editor/editor.c:1940: while ((key = (unsigned char)(event = KBPopEvent()))) {
+;src/editor/editor.c:1937: while ((key = (unsigned char)(event = KBPopEvent()))) {
 .l00126:
 	call	_KBPopEvent
 	ld	e, c
@@ -15080,7 +15080,7 @@ _Editor::
 	ld	c, a
 	or	a, a
 	jp	Z, .l00128
-;src/editor/editor.c:1941: if (!HandleFileKey(key, (unsigned char)(event >> 8))) HandleKey(key, (unsigned char)(event >> 8));
+;src/editor/editor.c:1938: if (!HandleFileKey(key, (unsigned char)(event >> 8))) HandleKey(key, (unsigned char)(event >> 8));
 	ld	l, d
 ;	spillPairReg hl
 ;	spillPairReg hl
@@ -15097,14 +15097,14 @@ _Editor::
 	ld	a, c
 	call	_HandleKey
 .l00116:
-;src/editor/editor.c:1943: if (doc_large) Slide(); // before the next key, which could reach the window's end
+;src/editor/editor.c:1940: if (doc_large) Slide(); // before the next key, which could reach the window's end
 	ld	hl, _doc_large
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00118
 	call	_Slide__far
 .l00118:
-;src/editor/editor.c:1945: if (dirty || edited) break; // text changed, rows need rendering before more keys
+;src/editor/editor.c:1942: if (dirty || edited) break; // text changed, rows need rendering before more keys
 	ld	hl, _dirty
 	ld	a, [hl]
 	or	a, a
@@ -15113,29 +15113,29 @@ _Editor::
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00128
-;src/editor/editor.c:1946: if (moved) { // keeps tb_found_row current for the next key
+;src/editor/editor.c:1943: if (moved) { // keeps tb_found_row current for the next key
 	ld	hl, _moved
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00126
-;src/editor/editor.c:1947: if (!PlaceCursor()) dirty = 1;
+;src/editor/editor.c:1944: if (!PlaceCursor()) dirty = 1;
 	call	_PlaceCursor
 	or	a, a
 	jp	NZ, .l00123
 	ld	hl, _dirty
 	ld	[hl], $01
 .l00123:
-;src/editor/editor.c:1948: moved = 0;
+;src/editor/editor.c:1945: moved = 0;
 	ld	hl, _moved
 	ld	[hl], $00
 	jp	.l00126
 .l00128:
-;src/editor/editor.c:1951: if ((key = PadKey())) {
+;src/editor/editor.c:1948: if ((key = PadKey())) {
 	call	_PadKey__far
 	ld	c, a
 	or	a, a
 	jp	Z, .l00132
-;src/editor/editor.c:1952: if (!HandleFileKey(key, pad_mods)) HandleKey(key, pad_mods);
+;src/editor/editor.c:1949: if (!HandleFileKey(key, pad_mods)) HandleKey(key, pad_mods);
 	push	bc
 	ld	hl, _pad_mods
 	ld	e, [hl]
@@ -15149,14 +15149,14 @@ _Editor::
 	ld	a, c
 	call	_HandleKey
 .l00132:
-;src/editor/editor.c:1955: if (doc_large) Slide(); // near the window's edge (sets dirty)
+;src/editor/editor.c:1952: if (doc_large) Slide(); // near the window's edge (sets dirty)
 	ld	hl, _doc_large
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00134
 	call	_Slide__far
 .l00134:
-;src/editor/editor.c:1957: if (dirty || edited || redraw || moved) idle_frames = 0;
+;src/editor/editor.c:1954: if (dirty || edited || redraw || moved) idle_frames = 0;
 	ld	hl, _dirty
 	ld	a, [hl]
 	or	a, a
@@ -15177,42 +15177,42 @@ _Editor::
 	ld	hl, _idle_frames
 	ld	[hl], $00
 .l00136:
-;src/editor/editor.c:1958: if (dirty) {
+;src/editor/editor.c:1955: if (dirty) {
 	ld	hl, _dirty
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00141
-;src/editor/editor.c:1959: Refresh();
+;src/editor/editor.c:1956: Refresh();
 	call	_Refresh
-;src/editor/editor.c:1960: dirty = 0;
+;src/editor/editor.c:1957: dirty = 0;
 	ld	hl, _dirty
 	ld	[hl], $00
-;src/editor/editor.c:1961: edited = 0;
+;src/editor/editor.c:1958: edited = 0;
 	ld	hl, _edited
 	ld	[hl], $00
-;src/editor/editor.c:1962: normalized = 0;
+;src/editor/editor.c:1959: normalized = 0;
 	ld	hl, _normalized
 	ld	[hl], $00
-;src/editor/editor.c:1963: continue;
+;src/editor/editor.c:1960: continue;
 	jp	.l00183
 .l00141:
-;src/editor/editor.c:1965: if (edited) {
+;src/editor/editor.c:1962: if (edited) {
 	ld	hl, _edited
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00156
-;src/editor/editor.c:1966: edited = 0;
+;src/editor/editor.c:1963: edited = 0;
 	ld	[hl], $00
-;src/editor/editor.c:1967: normalized = 0;
+;src/editor/editor.c:1964: normalized = 0;
 	ld	hl, _normalized
 	ld	[hl], $00
-;src/editor/editor.c:1968: RenderAfterEdit();
+;src/editor/editor.c:1965: RenderAfterEdit();
 	call	_RenderAfterEdit
-;src/editor/editor.c:1969: if (!PlaceCursor()) {
+;src/editor/editor.c:1966: if (!PlaceCursor()) {
 	call	_PlaceCursor
 	or	a, a
 	jp	NZ, .l00156
-;src/editor/editor.c:1970: if (cursor >= tb_row_starts[tb_rows] && tb_RowStart(cursor) == tb_row_starts[tb_rows]) ScrollDown();
+;src/editor/editor.c:1967: if (cursor >= tb_row_starts[tb_rows] && tb_RowStart(cursor) == tb_row_starts[tb_rows]) ScrollDown();
 	ld	hl, _tb_rows
 	ld	a, [hl]
 	ld	hl, sp+2
@@ -15299,7 +15299,7 @@ _Editor::
 	call	_ScrollDown
 	jp	.l00149
 .l00148:
-;src/editor/editor.c:1971: else if (top && cursor < top && tb_RowStart(cursor) == tb_RowStart(top - 1)) ScrollUp(tb_RowStart(cursor));
+;src/editor/editor.c:1968: else if (top && cursor < top && tb_RowStart(cursor) == tb_RowStart(top - 1)) ScrollUp(tb_RowStart(cursor));
 	ld	hl, _top + 1
 	ld	a, [hl]
 	dec	hl
@@ -15349,54 +15349,54 @@ _Editor::
 	call	_ScrollUp
 	jp	.l00149
 .l00143:
-;src/editor/editor.c:1973: Refresh();
+;src/editor/editor.c:1970: Refresh();
 	call	_Refresh
-;src/editor/editor.c:1974: continue;
+;src/editor/editor.c:1971: continue;
 	jp	.l00183
 .l00149:
-;src/editor/editor.c:1976: if (!PlaceCursor()) { // off the side
+;src/editor/editor.c:1973: if (!PlaceCursor()) { // off the side
 	call	_PlaceCursor
 	or	a, a
 	jp	NZ, .l00156
-;src/editor/editor.c:1977: Refresh();
+;src/editor/editor.c:1974: Refresh();
 	call	_Refresh
-;src/editor/editor.c:1978: continue;
+;src/editor/editor.c:1975: continue;
 	jp	.l00183
 .l00156:
-;src/editor/editor.c:1982: if (redraw) {
+;src/editor/editor.c:1979: if (redraw) {
 	ld	hl, _redraw
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00158
-;src/editor/editor.c:1983: Draw();
+;src/editor/editor.c:1980: Draw();
 	call	_Draw
-;src/editor/editor.c:1984: redraw = 0;
+;src/editor/editor.c:1981: redraw = 0;
 	ld	hl, _redraw
 	ld	[hl], $00
 .l00158:
-;src/editor/editor.c:1986: if (moved) {
+;src/editor/editor.c:1983: if (moved) {
 	ld	hl, _moved
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00162
-;src/editor/editor.c:1987: moved = 0;
+;src/editor/editor.c:1984: moved = 0;
 	ld	[hl], $00
-;src/editor/editor.c:1988: if (!PlaceCursor()) Refresh();
+;src/editor/editor.c:1985: if (!PlaceCursor()) Refresh();
 	call	_PlaceCursor
 	or	a, a
 	jp	NZ, .l00183
 	call	_Refresh
-;src/editor/editor.c:1989: continue;
+;src/editor/editor.c:1986: continue;
 	jp	.l00183
 .l00162:
-;src/editor/editor.c:1991: if (idle_frames < SWAP_DELAY) ++idle_frames;
+;src/editor/editor.c:1988: if (idle_frames < SWAP_DELAY) ++idle_frames;
 	ld	hl, _idle_frames
 	ld	a, [hl]
 	sub	a, $78
 	jp	NC, .l00164
 	inc	[hl]
 .l00164:
-;src/editor/editor.c:1993: if (doc_large && !lines_known && FileScanStep()) { // a sector a frame while idle
+;src/editor/editor.c:1990: if (doc_large && !lines_known && FileScanStep()) { // a sector a frame while idle
 	ld	hl, _doc_large
 	ld	a, [hl]
 	or	a, a
@@ -15408,7 +15408,7 @@ _Editor::
 	call	_FileScanStep
 	or	a, a
 	jp	Z, .l00166
-;src/editor/editor.c:1994: win_lines += scan_lines;
+;src/editor/editor.c:1991: win_lines += scan_lines;
 	ld	hl, _win_lines + 1
 	dec	hl
 	ld	e, [hl]
@@ -15443,14 +15443,14 @@ _Editor::
 	ld	[hl], a
 	dec	hl
 	ld	[hl], e
-;src/editor/editor.c:1995: lines_known = 1;
+;src/editor/editor.c:1992: lines_known = 1;
 	ld	hl, _lines_known
 	ld	[hl], $01
-;src/editor/editor.c:1996: bars_changed = 1;
+;src/editor/editor.c:1993: bars_changed = 1;
 	ld	hl, _bars_changed
 	ld	[hl], $01
 .l00166:
-;src/editor/editor.c:1999: if (idle_frames >= NORMALIZE_DELAY && !everdrive && !normalized) normalized = tb_NormalizeStep(); // keeps the .sav readable as text
+;src/editor/editor.c:1996: if (idle_frames >= NORMALIZE_DELAY && !everdrive && !normalized) normalized = tb_NormalizeStep(); // keeps the .sav readable as text
 	ld	hl, _idle_frames
 	ld	a, [hl]
 	sub	a, $1E
@@ -15467,7 +15467,7 @@ _Editor::
 	ld	hl, _normalized
 	ld	[hl], a
 .l00170:
-;src/editor/editor.c:2001: if (idle_frames >= SWAP_DELAY && swap_dirty && !doc_large) {
+;src/editor/editor.c:1998: if (idle_frames >= SWAP_DELAY && swap_dirty && !doc_large) {
 	ld	hl, _idle_frames
 	ld	a, [hl]
 	sub	a, $78
@@ -15480,13 +15480,13 @@ _Editor::
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00174
-;src/editor/editor.c:2002: swap_dirty = 0;
+;src/editor/editor.c:1999: swap_dirty = 0;
 	ld	hl, _swap_dirty
 	ld	[hl], $00
-;src/editor/editor.c:2003: FileSaveSwap();
+;src/editor/editor.c:2000: FileSaveSwap();
 	call	_FileSaveSwap
 .l00174:
-;src/editor/editor.c:2006: if (++blink_timer == CURSOR_BLINK) EditorShowCursor(0);
+;src/editor/editor.c:2003: if (++blink_timer == CURSOR_BLINK) EditorShowCursor(0);
 	ld	hl, _blink_timer
 	inc	[hl]
 	ld	a, [hl]
@@ -15500,7 +15500,7 @@ _Editor::
 	call	_EditorShowCursor
 	jp	.l00183
 .l00180:
-;src/editor/editor.c:2007: else if (blink_timer == CURSOR_BLINK + CURSOR_BLINK) {
+;src/editor/editor.c:2004: else if (blink_timer == CURSOR_BLINK + CURSOR_BLINK) {
 	ld	hl, _blink_timer
 	ld	a, [hl]
 	sub	a, $3C
@@ -15509,15 +15509,15 @@ _Editor::
 .l00440:
 	jp	.l00183
 .l00441:
-;src/editor/editor.c:2008: EditorShowCursor(1);
+;src/editor/editor.c:2005: EditorShowCursor(1);
 	ld	a, $01
 	call	_EditorShowCursor
-;src/editor/editor.c:2009: blink_timer = 0;
+;src/editor/editor.c:2006: blink_timer = 0;
 	ld	hl, _blink_timer
 	ld	[hl], $00
 	jp	.l00183
 .l00187:
-;src/editor/editor.c:2012: }
+;src/editor/editor.c:2009: }
 	add	sp, 4
 	ret
 	SECTION FRAGMENT "src/editor/editor.c FIXED",ROMX,BANK[1]

@@ -275,6 +275,11 @@ ENDC
   jr z, .config
   ld [$BD20], a
 .config
+  ; Patch while OS mode is still established, before launch config/MBC writes.
+  ld hl, $0041
+  ld [hl], LOW(InGameEntry)
+  inc l
+  ld [hl], HIGH(InGameEntry)
   ld a, [_game_config]
   ld [EDX_CONFIG], a
   xor a
@@ -286,10 +291,6 @@ ENDC
   inc a
   ld [$2100], a
   ld [$2000], a
-  ld hl, $0041;$0040 jumps to the in-game menu (src/editor/ingame.asm)
-  ld [hl], LOW(InGameEntry)
-  inc l
-  ld [hl], HIGH(InGameEntry)
   ld hl, LaunchStub;the wait runs from HRAM: the game's ROM is in at once, the reset may come later
   ld c, LOW(LAUNCH_HRAM)
 .copy
