@@ -1,15 +1,14 @@
 # TEXT EDITOR
 A text editor for the Game Boy, Game Boy Color, and Super Game Boy, built on the Béisbol engine.
 
-Planned for v1:
-- display and edit ASCII text with a fixed width font
-- PS/2 keyboard via the link port (same adapter LSDJ uses)
-- toggleable on-screen keyboard
-- read/write .txt files on the EverdriveGB X-series SD card
+The application is a 128 KiB EverDrive GB X7 OS image. It edits text on the SD card,
+uses variable-width and styled fonts, accepts PS/2 keyboard or joypad input, and
+launches Game Boy games with stock-compatible battery saves, RTC files, save states,
+and cheats.
 
-Later: more encodings, variable width fonts, rich text, WorkBoy keyboard, iGKB, Super Game Boy mouse.
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for how the code is organized.
+See [Architecture](notes/ARCHITECTURE.md) for the implementation,
+[EverDrive compatibility](notes/EVERDRIVE_FEATURES.md) for game files and limits,
+and [TODO](notes/TODO.md) for remaining work. Other project notes live in `notes/`.
 
 # Controls
 | Button | Action |
@@ -35,7 +34,7 @@ the menu. Ctrl+O opens, Ctrl+S saves, Ctrl+N starts a new file.
 OPEN (Ctrl+O) browses the SD card: the top bar shows the folder, the bottom bar the selected file's size and date.
 Folders come first, enter or A opens, backspace, left or B goes up a folder, escape goes back to the text
 (so do backspace and B in the root).
-Any file up to 63KB (65,408 bytes) opens as text, and bigger files open too (the editor reads a
+Files up to 63.5 KiB (65,024 bytes) open as text, and bigger files open too (the editor reads a
 48KB window of the file from the card that moves with the cursor, Ctrl+End shows "Line ?" until the lines
 before it are counted; saving one writes ~EDITOR.TMP in its folder and renames it over the file, and unsaved
 edits to one don't survive a reset), long file names (up to 64 characters) are shown. SAVE AS saves in the open
@@ -43,7 +42,7 @@ file's folder. .gb and .gbc files launch: the game is copied to the cart, its sa
 /GBCSYS/SAVE/<name>.srm (where the EverDrive's OS keeps them) and goes back there at the next boot. The cart's system
 button combo (Select+Start unless changed in the EverDrive's OS) opens Resume game, Save state,
 Load state, and Return to OS (which backs up the save). RTC clocks, state files, cheats and save ownership
-use stock EverDrive formats; see [EVERDRIVE_FEATURES.md](EVERDRIVE_FEATURES.md). CR LF line endings are kept.
+use stock EverDrive formats; see [EVERDRIVE_FEATURES.md](notes/EVERDRIVE_FEATURES.md). CR LF line endings are kept.
 Code is drawn with the 4 pixel fixed width font, everything else with the variable width font: C and asm
 files are fixed width, plain text and markdown variable width except markdown's code.
 Markdown files (.md) are styled: a line starting with # to #### and a space is a heading in a wider,
@@ -56,24 +55,24 @@ dimmed. On GBC keywords, types and registers are blue, strings red, numbers purp
 directives and asm labels orange (labels bold).
 Alt+Z (or LINE WRAP) turns line wrapping off and on. Without it each line is one row, and the text scrolls
 sideways to keep the cursor on screen.
-The line wrapping and full screen settings are kept in SRAM with the text, and so are the open file's
+The line wrapping and full screen settings are kept in PSRAM and the SD swap with the text, and so are the open file's
 name and folder (and whether it has unsaved changes), so after turning the Game Boy off and on the file
 name bar still shows the file and OPEN starts in its folder.
 Ctrl+Left/Right move a word (or run of punctuation) at a time, Ctrl+Up/Down scroll a row without moving
 the cursor, Ctrl+Home/End go to the start/end of the text.
 Shift + any of those keys selects text, Ctrl+A selects everything. Ctrl+X cuts, Ctrl+C copies,
-Ctrl+V pastes. Typing, backspace or delete replace the selection. The clipboard holds up to 7356 characters
-and is kept in SRAM. Selected text is inverted on DMG and highlighted on GBC and SGB.
-Ctrl+Z undoes, Ctrl+Y (or Ctrl+Shift+Z) redoes, a word or a run of deletes at a time. The history holds about
-56KB of edits and is cleared by opening a file, a new file, or turning the power off.
+Ctrl+V pastes. Typing, backspace or delete replace the selection. The clipboard holds up to 7936 characters
+and is kept in PSRAM and the SD swap. Selected text is inverted on DMG and highlighted on GBC and SGB.
+Ctrl+Z undoes, Ctrl+Y (or Ctrl+Shift+Z) redoes, a word or a run of deletes at a time. The history uses a 56 KiB log and is cleared by opening a file, a new file, or turning the power off.
 
-Text is kept in SRAM, so it's still there after turning the Game Boy off.
+Editor text, settings and clipboard live in PSRAM while running. The OS swap file
+(`/GBCSYS/EDITOR.SWP`) preserves them on the SD card across power-off; unsaved large-file
+windows are the exception described above.
 
 # Engine
 - FatFs (ChaN) with long file names for the SD card, split across resident code and OS pages by bank_split.py
-- asm for core routines (drawing, input, math, memory, audio), C (SDCC) for higher level logic
+- asm for core routines (drawing, input, math, memory), C (SDCC) for higher level logic
 - PS/2 and iGKB keyboard drivers (src/keyboard)
-- FX Hammer sfx (for error and confirmation sounds)
 - fades, GBC palettes, SGB borders/palettes
 - translated strings from CSV (en, es, fr, it, pt, de, ja)
 
@@ -83,7 +82,7 @@ The editor draws text as pixels, so fonts can be any width (src/editor/render.as
 - img/fonts/fixed_font.png, the 4 pixel fixed width font for text (40 characters per row), the
   left 4 pixels of each cell
 - img/fonts/tiny5mono_font.png, a 6 pixel fixed width font (26 characters per row), not built yet
-  (see font selection in TODO.md)
+  (see font selection in [TODO.md](notes/TODO.md))
 - img/fonts/vwf_font.png, the variable width font. Glyphs are moved to the left edge of their cell
   and each character's width is its last pixel + 2. Empty glyphs (space) are 4 pixels.
 
@@ -108,13 +107,17 @@ img/ui_font.png is 256 tiles. Tile index matches the character code:
 
 # Tests
 The HELP menu's keyboard test checks PS/2 and iGKB input. See
-[IN_GAME_MENU.md](IN_GAME_MENU.md) for cart-menu validation.
+[IN_GAME_MENU.md](notes/IN_GAME_MENU.md) for cart-menu validation. With the sibling
+Gearboy checkout, `make -C ../Gearboy/tests girlboss` runs assembled-OS integration
+tests against temporary SD folders; `make -C ../Gearboy/tests everdrive` runs the
+standalone cartridge component tests.
 
 # SD card
-Gearboy (the ps2keyboard branch of the fork) emulates the EverDrive X SD card with a folder on your computer, the
-home folder unless EverDrive X SD Folder... in its menu picks another (or GEARBOY_SD_DIR for one run). The Game Boy
-can read everything in it, saving writes the file straight to that folder. Nothing on your computer is ever deleted.
-`make sdcard` still builds bin/sdcard.img (64MB, MBR + FAT32) from sd/, GEARBOY_SD_IMAGE=bin/sdcard.img uses it instead.
+The Gearboy fork emulates EverDrive OS mapping, the cartridge button, SD access,
+and RTC hardware. Select a host folder with EverDrive X SD Folder... (or set
+`GEARBOY_SD_DIR`); its default is the home folder. SD writes update host files,
+including file replacement during saving. `GEARBOY_SD_IMAGE=/path/card.img` selects
+an existing FAT disk image instead.
 
 # Compiling:
     make clean

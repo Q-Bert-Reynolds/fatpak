@@ -1,5 +1,7 @@
 # EverDrive compatibility
 
+[README](../README.md) · [Architecture](ARCHITECTURE.md) · [TODO](TODO.md)
+
 Girlboss uses the stock GBCOS v1.06 file names and formats. Files are keyed by
 the ROM's basename, so identically named games in different folders share saves,
 just as they do in stock OS.
@@ -34,7 +36,8 @@ SRAM, RTC and the state slot. Invalid ownership is skipped instead of assigning
 unknown RAM to the previous Girlboss game.
 
 `EDITOR.GAM` uses version GAM3 internally; older GAM1/GAM2 records are still read.
-The stock registry and save files remain the interchange formats. Girlboss
+Legacy records back up SRAM without claiming a snapshot slot those builds never
+initialized. The stock registry and save files remain the interchange formats. Girlboss
 invalidates the SRAM marker before preparing a new game and publishes the valid
 marker only after its registry and ownership record have been written.
 

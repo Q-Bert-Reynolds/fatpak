@@ -1,5 +1,7 @@
 # In-game cart-button menu
 
+[README](../README.md) · [Architecture](ARCHITECTURE.md) · [EverDrive compatibility](EVERDRIVE_FEATURES.md)
+
 `make assemble` produces `bin/GBCOS.BIN`. When
 `/media/qbertreynolds/GAMEBOY` is mounted, the normal build copies the image to
 `GBCSYS/GBCOS.BIN` and flushes the write. There is one build/menu implementation.
@@ -22,7 +24,7 @@ immediately, write `$04` to `$BD06`, save SP, and switch to a resident stack bef
 reading the mapper registers at `$BD14-$BD17`. The normal VBlank vector is
 installed at startup; launch replaces it with the in-game entry vector.
 
-`src/editor/snapshot.asm` captures the stock 82 KiB layout:
+[`src/editor/snapshot.asm`](../src/editor/snapshot.asm) captures the stock 82 KiB layout:
 
 | PSRAM block | Contents |
 | --- | --- |
@@ -81,10 +83,12 @@ supports setting an offset through the same I2C interface as the cartridge.
 
 ## Validation
 
-`Gearboy/tests/girlboss_features_tests.cpp` runs the assembled routines against
+[`Gearboy/tests/girlboss_features_tests.cpp`](../../Gearboy/tests/girlboss_features_tests.cpp) runs the assembled routines against
 an isolated temporary SD folder. It covers DMG/CGB capture, stock state layout,
 save/load with changed game memory, all CGB WRAM banks, shared SRAM, mapper
 restore, malformed/missing states, Game Genie compare bytes, stock registry
-ownership, clock setup, FAT timestamps and clockless operation. The original
-menu regression also covers repeated Resume and warm return to the browser.
-The expanded capture and SD operations still need verification on hardware.
+ownership, clock setup, FAT timestamps and clockless operation. Legacy GAM2 migration and 128 KiB SRAM backup are covered too. Previous
+menu regression checks also exercised repeated Resume and warm return to the browser.
+From the Girlboss root, run `make -C ../Gearboy/tests girlboss`; these checks
+use temporary SD folders. The expanded capture and SD operations still need
+verification on hardware; see [TODO](TODO.md#priority).
