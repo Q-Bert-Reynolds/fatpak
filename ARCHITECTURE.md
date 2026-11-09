@@ -68,12 +68,18 @@ flowchart LR
 
 `Main` in `src/main.asm`:
 
-1. `SYS_CHECK` reads the boot ROM's registers and sets `sys_info` (DMG, GBC, GBA, SGB).
-2. Clears HRAM (except `sys_info`), sets up the SGB (border, palettes), turns the display off, and copies the OAM DMA routine into HRAM.
-3. On GBC: double speed, and loads `DefaultPalettes` (8 background + 8 object palettes).
-4. Clears WRAM, sets the stack (`stack_bottom`, 1KB), turns audio on, clears the screen, enables VBlank and serial interrupts, and looks for a PS/2 keyboard (`DetectKeyboard`).
-5. Runs the tests enabled in `src/constants.asm`.
+1. Establish the OS mapper/configuration, reset the cart-switch state, and restore the editor VBlank vector.
+2. Clear HRAM, then initialize `sys_info` from the VBK write/read probe. Retaining bit 0 as both 1 and 0 identifies CGB mode; otherwise it starts as DMG-compatible mode. Startup does not rely on boot-ROM register values, so it also works after the loader or a warm return. Pocket versus DMG and GBA versus CGB are not identified.
+3. Run the SGB multiplayer probe (`MLT_REQ`) outside CGB mode. A successful check adds `SYS_INFO_SGB`. Set up SGB palettes, turn the display off, and copy the OAM DMA routine to HRAM.
+4. In CGB mode, enable double speed and load `DefaultPalettes`.
+5. Clear WRAM, establish the editor stack, initialize audio/drawing and interrupts, and detect the keyboard.
 6. `TRAMPOLINE _Editor`, the C main loop, which never returns.
+
+`OS Info` at `$01F0-$01FF` contains stock-compatible launch, initialization,
+return-request and snapshot-RAM flags, followed by the mapper-write byte backup
+and reserved space. The initial bytes `0, 1` are flags, not an OS version.
+Girlboss's save-backup bookkeeping uses `EDITOR.GAM` independently of these
+compatibility flags. Startup and game launch refer to the fields by label.
 
 ## Memory map
 

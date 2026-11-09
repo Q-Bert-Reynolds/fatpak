@@ -57,41 +57,6 @@ INCLUDE "src/memory1.asm"
 DEF SYS_INFO_DMG EQU %00000000 ;Dot Matrix Game
 DEF SYS_INFO_SGB EQU %00000001 ;Super Game Boy
 DEF SYS_INFO_GBC EQU %00000010 ;Game Boy Color
-DEF SYS_INFO_GBA EQU %00000100 ;Game Boy Advance
-DEF SYS_INFO_GBP EQU %00001000 ;Game Boy Pocket and Super Game Boy 2
-
-MACRO SYS_CHECK ;must happen first
-  cp a, BOOTUP_A_DMG
-  jr z, .dmg
-  cp a, BOOTUP_A_MGB
-  jr z, .gbp
-.gbcCheck
-  cp a, BOOTUP_A_CGB
-  ld a, 0;don't xor here
-  jr nz, .setSysInfo
-  bit B_BOOTUP_B_AGB, b;is it also a GBA
-  jr z, .gbc
-.gba
-  or a, SYS_INFO_GBA
-.gbc
-  or a, SYS_INFO_GBC
-  jr .setSysInfo
-.gbp
-  ld a, SYS_INFO_GBP
-  jr .sgbCheck
-.dmg
-  ld a, SYS_INFO_DMG
-.sgbCheck
-  ld b, a;sys info
-  ld a, c
-  cp a, BOOTUP_C_SGB
-  ld a, b;sys info
-  jr nz, .setSysInfo
-.sgb
-  or a, SYS_INFO_SGB
-.setSysInfo
-  ldh [sys_info], a
-ENDM
 
 MACRO COPY_TO_HRAM; \1 = dest address in HRAM, \2 = first address to copy, \3 = last address to copy
   ld c, LOW(\1)

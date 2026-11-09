@@ -240,14 +240,14 @@ DEF LAUNCH_HRAM EQU $FF80
 _GameLaunch::
   di
   call gbdk_CPUSlow;normal speed like the EverDrive OS's launch (the cart doesn't reset the CPU's speed)
-  ld a, 1;the EverDrive OS's launch: $01F0 = 1, $01F3 = 1 if the game has save RAM (the cart may read them
-  ld [$01F0], a;for its in-game menu)
+  ld a, 1;keep the stock OS compatibility flags consistent with the launch
+  ld [os_game_launched], a
   ld a, [_game_ram_mask]
   and a
   jr z, .noRam
   ld a, 1
 .noRam
-  ld [$01F3], a
+  ld [os_snapshot_use_32k_ram], a
   ld a, $A5;the card back to idle like the EverDrive OS's launch (CMD0, deselected): it leaves it uninitialized
   ld [EDX_KEY], a
   ld hl, sd_arg
