@@ -101,38 +101,55 @@ its execution conditions, rather than RTC, initial CPU identification or the
 common FAT/ROM-placement code. It does not identify the exact electrical or
 FPGA timing cause.
 
-The next build restores streaming with these differences:
+The fast build with a plain static loading screen **also launched Crystal on
+hardware**, with much faster loading. Its transfer finished pending HDMA, used
+normal CPU speed and ran stock's eight-write inner loop from resident ROM0.
+This is the working basis for subsequent loading UI changes; the individual
+contribution of each change has not been measured on hardware.
 
-- `GameLoadingBegin` waits for the renderer's last HBlank DMA, masks IE and draws
-  a single VWF "Loading..." row on a plain background. It uses no sprites,
-  window splits or display interrupts. No per-chunk redraw runs while loading.
-- `sd_ReadBlocks` waits for any pending row DMA before enabling SPI auto-read.
-  It uses normal CGB CPU speed during the transfer, matching stock's eight
-  consecutive window writes (2 microseconds per write). Girlboss's former
-  double-speed loop wrote twice as quickly as stock even after matching the
-  instruction count. The inner write loop executes from resident ROM0.
-- Every exit disables streaming before restoring the caller's CPU speed, IE
-  and pending IF flags, without issuing EI. Ordinary file/save reads retain
-  the busy-polled single-sector path. Command/token failures report a disk
-  error rather than silently retrying the whole ROM slowly.
-- The error path restores the renderer and browser layout before showing its
-  normal error message. Successful launch retains the static screen until reset.
+### Loading box over the browser
 
-The retained 32-byte source header is compared against loaded PSRAM before
-finishing; a mismatch reports a disk error rather than launching. This checks
-the header, not the entire ROM. Native tests compare every loaded byte and
-exercise command delays, rejected commands, invalid/missing data tokens, header
-corruption, initially active HBlank DMA, both CGB speeds and DMG. They check that
-window writes come from ROM0 at normal speed with IE=0 and no active HDMA, and
-that return paths restore CPU/interrupt state. Screen tests cover the static
-VWF row and renderer recovery.
+The loading screen now retains the normal browser, header/footer and the
+existing "Loading..." box instead of clearing VRAM. During launch,
+`render_cpu_copy` selects the DMG renderer's HBlank CPU-copy loop on CGB while
+retaining CGB tile addresses, VRAM banks, palettes and attributes. It does not
+change `render_gbc`, which would invalidate the existing screen layout.
 
-**The new fast path still needs hardware confirmation.** Launch speed takes
-priority over animations; this static screen replaces progress animation during
-ROM loading. The slower build that successfully launched Crystal is preserved
-locally in `/tmp/girlboss-before-static-fast-loader` before installing this build.
+`GameLoadingBegin` finishes any older HDMA row and pending scroll, then switches
+to normal CPU speed once with LCD off. It restarts the existing raster layout
+and leaves only the resident LCD/STAT interrupt enabled. That handler maintains
+the window and tile-addressing changes needed to display the browser; it never
+starts DMA or accesses the SD interface. VBlank/OAM DMA, cursor/spinner sprites
+and input updates remain disabled throughout loading. No progress redraw runs
+between transfer chunks yet; a loading bar is future work.
+
+`sd_ReadBlocks` retains normal-speed streaming and the eight-write ROM0 loop.
+It allows only the caller's LCD interrupt, excluding every other handler, and
+finishes any pending HBlank DMA before starting. Cleanup disables streaming and
+restores the caller's CPU speed, IE and IF on every exit without issuing EI.
+In the real launch path the CPU is already at normal speed for the entire load,
+so no speed switches occur between chunks. Ordinary file/save reads continue
+to use the busy-polled single-sector path. Command/token failures report a disk
+error rather than silently retrying the whole ROM slowly.
+
+The error path restores CPU speed, sprite/display settings, interrupts and the
+normal renderer transfer mode before showing the existing error message. Since
+the browser's tiles/maps were preserved, no renderer rebuild is needed.
+The retained 32-byte source header is still compared against loaded PSRAM before
+finishing; this checks the header, not the entire ROM.
+
+Native checks compare CPU-drawn browser/box VRAM and rendered pixels against
+the normal renderer on DMG and CGB, monitor HDMA/OAM starts while the screen is
+held, and exercise failed-load recovery. Transfer tests cover command delays,
+missing/invalid tokens, a changed header, initial HDMA, both CGB speeds and DMG;
+they verify normal-speed ROM0 writes and exclude DMA-capable interrupts. Full
+browser tests compare every loaded Crystal ROM byte and reach its title screen.
+
+**The browser-overlay/CPU-copy version still needs a hardware retest.** The
+plain-screen fast build is preserved locally at
+`/tmp/girlboss-before-browser-loading` before installing this change.
 Gearboy does not reproduce cartridge electrical timing, so emulator tests alone
-cannot prove the hardware corruption is fixed.
+cannot prove the revised interrupt allowance is safe on hardware.
 
 ### Temporary hardware probes
 

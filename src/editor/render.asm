@@ -80,6 +80,7 @@ _render_pending_scy:: DB
 render_pending_wy: DB
 render_pending_anim: DB;GBC: scroll to the staged SCY a few pixels a frame
 render_target_scy: DB;SCY the screen is scrolling to
+_render_cpu_copy:: DB;1 while launching: CGB tiles use the DMG CPU-copy path instead of HDMA
 _render_gbc:: DB;1 on GBC: no tile data mode switches, smooth scrolling, rows sent with HDMA
 render_pending_lcdc: DB;staged render_top_lcdc, render_event_count and render_events, in that order
 render_pending_count: DB
@@ -1210,6 +1211,7 @@ RenderRow:
   ld a, [hli]
   ld e, a
   ld d, [hl]
+RenderCopyTiles:;DE = destination in the selected VRAM bank; DMG or CGB without HDMA
   ld hl, render_dma_buffer
   ld c, TB_WIDTH*2/RENDER_BURST
 .burst
@@ -1243,7 +1245,7 @@ ENDR
     jr nz, .burst
   ret
 
-;GBC: writes the row's palettes, starts an HBlank DMA of render_dma_buffer to the block, which runs
+;GBC: writes the row's palettes, then uses CPU copies during launch or starts an HBlank DMA, which runs
 ;while the CPU carries on (VBK stays on the block's bank until it's done, see RenderWaitDMA)
 RenderRowDMA:
   call RenderWritePalettes
@@ -1259,13 +1261,17 @@ RenderRowDMA:
   ld hl, BlockTileAddressGBC
   add hl, de
   add hl, de
+  ld a, [hli]
+  ld e, a
+  ld d, [hl]
+  ld a, [_render_cpu_copy]
+  and a
+  jp nz, RenderCopyTiles
   ld a, HIGH(render_dma_buffer)
   ldh [rHDMA1], a
   ld a, LOW(render_dma_buffer)
   ldh [rHDMA2], a
-  ld a, [hli]
-  ld e, a
-  ld a, [hl]
+  ld a, d
   ldh [rHDMA3], a
   ld a, e
   ldh [rHDMA4], a

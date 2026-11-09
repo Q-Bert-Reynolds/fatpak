@@ -59,7 +59,7 @@ flowchart LR
 | --- | --- |
 | `src/main.asm` | Cartridge header, boot sequence, starts the editor |
 | `src/text_editor.inc` | Includes every module (the include order matters for macros and constants) |
-| [`src/editor/`](../src/editor/) | Main loop/menus, text buffer, renderer, keyboard, SD driver, static launch screen (`game_loading.asm`), cart menu (`ingame.asm`) and capture/restore (`snapshot.asm`) |
+| [`src/editor/`](../src/editor/) | Main loop/menus, text buffer, renderer, keyboard, SD driver, loading overlay control (`game_loading.asm`), cart menu (`ingame.asm`) and capture/restore (`snapshot.asm`) |
 | `src/fatfs/` | FatFs, its disk glue, and the file API (`fatfs.c` includes everything in `lib/`) |
 | `src/keyboard/` | PS/2 and iGKB keyboard drivers |
 | [`src/rtc/`](../src/rtc/) | Calendar I2C interface, date validation, FAT timestamps, stock game-RTC advancement |
@@ -227,7 +227,7 @@ Text is drawn as pixels so fonts can be any width. Every screen cell has its own
 - **Scrolling** rotates the ring by one block: the block that leaves the screen draws the new row and SCY moves 8 pixels. `Layout` then re-points the BG map row whose block changed (the new row's, which is off screen or under the window until the scroll applies). The new SCY, WY and LCDC changes are staged and applied together at line 144, and `EditorDraw` waits for that before drawing into the block that left the screen. On DMG only whole rows scroll, because there aren't tiles for a 19th row.
 - **Smooth scrolling (GBC):** the text ring has one more block than there are text rows. The spare is the block the last scroll left, so the next scroll's new row is drawn into it while it's off screen, then the line 144 handler moves SCY 2 pixels a frame to the new position (`render_target_scy`) while the old row slides out. `RenderStage` stages a one row scroll as `render_pending` 2: `EditorDraw` waits for the last scroll to finish, draws the new row, and sets it to 1, so the scroll starts once the row's transfer is done. Anything else (jumps, layout changes) moves SCY at once.
 - **Row cache:** `bkg_buffer` holds the characters each block shows, `row_font` its font and `block_states` the lexer state its row started with (so a change of style earlier in the line redraws it). `RenderRow` skips rows that haven't changed, so after a scroll or an edit only one or two rows are drawn.
-- **Drawing a row:** glyphs are ORed into a 160x8 1bpp bitmap with 4KB of precomputed shift tables (in the renderer's bank, 4KB aligned), then the encoded tiles are written to VRAM, 8 bytes per HBlank on DMG. On GBC `RenderRowDMA` builds the row's 320 bytes of tiles in `render_dma_buffer` and starts an HBlank DMA (16 bytes per HBlank) that runs while the CPU carries on. VBK has to stay on the block's bank until it's done, so `RenderWaitDMA` comes before the next row and before map writes. Bitplane 1 is the byte and bitplane 0 is the byte XOR the tile's selection mask, so text is color 3 on color 0 and selected text is color 2 on color 1.
+- **Drawing a row:** glyphs are ORed into a 160x8 1bpp bitmap with 4KB of precomputed shift tables (in the renderer's bank, 4KB aligned), then the encoded tiles are written to VRAM, 8 bytes per HBlank on DMG. On GBC `RenderRowDMA` uploads the row's 320 bytes of tiles from `render_dma_buffer`, using CPU copies while launching (`render_cpu_copy`) or otherwise starting an HBlank DMA (16 bytes per HBlank) that runs while the CPU carries on. VBK has to stay on the block's bank until it's done, so `RenderWaitDMA` comes before the next row and before map writes. Bitplane 1 is the byte and bitplane 0 is the byte XOR the tile's selection mask, so text is color 3 on color 0 and selected text is color 2 on color 1.
 - **Menu box:** `render_box_*` put a box over screen rows: its pixel x and width, its text (`BOX_STRIDE` chars per line, `tile_buffer` rows 20 and on), and the highlighted row. `RenderBox` clears the box's pixels after a covered row's text is drawn, then draws the box's line in the variable width font, its border, and the highlight. Its first and last rows are half rows holding the top and bottom border, so the text around it stays visible. Each block remembers the box line it was drawn with (`RenderBoxSig`, which includes `render_box_gen` so a new box redraws), so opening, moving through and closing a menu only draws the rows it covers. `RenderTextWidth` measures the lines so `Choose` can size and center the box.
 - **Selection:** before drawing, the editor sets `render_sel` (first and end column of each row, end `$FF` for the right edge) from the selection and the row tables. A row whose selection changed is redrawn. The palettes set in `EditorSetup` show colors 1 and 2 as inverted on DMG (BGP) and as a blue highlight on GBC and SGB (palette 0). The cursor turns white at the start of a selection (OBP1) so it shows on DMG.
 - **Fonts:** `fonts.py` converts `img/ui_font.png` (fixed width, 8 pixels), `img/fonts/fixed_font.png` (fixed width, 4 pixels) and `img/fonts/vwf_font.png` (variable width) into 8 bytes of 1bpp glyph rows and a width per character code. Plain text and markdown use the VWF; C and assembly use the 4-pixel fixed font, selected by `SetLang`. There is no font-selection menu yet. Rows below `tb_rows` (the on screen keyboard) always use the 8 pixel font, and the bars and help screen the variable width font.
@@ -252,7 +252,7 @@ flowchart LR
 ```
 
 - **EverDrive registers** respond after `$A5` is written to `$BD0A`: `$BD00` is SPI data and `$BD01` is SPI control. The OS page ends at `$BCFF`; registers and the independent PSRAM/save window occupy `$BD00-$BFFF`. Editor text uses only the window. The sibling EverDrive disassembly is the reference for the stock interface.
-- **`sd.asm`** detects the register interface, initializes SD v1/v2/SDHC cards and transfers 512-byte sectors. Ordinary FatFs IO uses sector reads/writes with busy polling; ROM loading uses streaming `sd_ReadBlocks` for runs of consecutive clusters, with DMA finished, IE masked and normal CPU speed. The resident inner loop matches stock's eight-write cadence. See the game-launch section for the static loading screen and validation status.
+- **`sd.asm`** detects the register interface, initializes SD v1/v2/SDHC cards and transfers 512-byte sectors. Ordinary FatFs IO uses sector reads/writes with busy polling; ROM loading uses streaming `sd_ReadBlocks` for runs of consecutive clusters, with DMA finished, only LCD interrupts allowed and normal CPU speed. The resident inner loop matches stock's eight-write cadence. See the game-launch section for the browser loading overlay and validation status.
 - **FatFs** R0.16 (`src/fatfs/lib`) is compiled into `fatfs.c` with its Unicode and runtime helpers. Configuration enables FAT, UTF-8 long names up to the configured 64-character limit, code page 437 short names, `FF_FS_TINY=1`, and `FF_FS_MINIMIZE=0` so rename, unlink and mkdir are available. The browser doesn't yet expose those directory-management operations. `FF_FS_NORTC=0` calls the calendar timestamp service. `.banks` files distribute this code across the OS pages. `clst2sect` uses a shift for power-of-two cluster sizes rather than a multiply.
 - **Mounting:** `fs_Mount` mounts the card the first time. A failed sector read or write clears `disk_ready`, so FatFs mounts it again on its next call, and listing, loading and saving retry once after `FR_DISK_ERR`. A swapped card fails its first command (it hasn't been initialized), so it's mounted again before anything is written to it.
 - **File API:** `fs_Load` replaces the text buffer with a file 512 bytes at a time: `tb_Append` copies a PSRAM sector run at a time, dropping 0s and CRs and setting `tb_cr` when it drops a CR, so `fs_crlf` remembers that the file used CR LF. `fs_Save` writes the buffer (around the gap) with `tb_Read`, or with `tb_ReadLines`, which adds the CRs back, both a run at a time. `fs_List` reads a folder once: `NextEntry` walks the directory's 32 byte slots in the sector buffer the way FatFs's `dir_read` does, without decoding names, skipping hidden, system and dot names. It counts the folders and files and marks the slot where every 16th of each kind starts (in the 512 byte load buffer, which nothing else uses while browsing; when a kind passes 128 marks, every other one is dropped and the spacing doubles). `fs_ListEntry` reads one entry (`FileEntry` in `src/fatfs/file_api.h`: UTF-8 name, size, date) by seeking to the mark before it, or carrying on from the last one read. `GetName` turns its long name into UTF-8 itself, `get_fileinfo` is only used for names it can't handle (characters outside the BMP, short names with bytes above `$7F`).
@@ -279,18 +279,22 @@ a partial window over it.
 
 `LaunchGame` saves the editor swap, then calls `FileGameOpen`, `FileGameCopy` in
 steps, and `FileGameFinish`. Open backs up the previous game's save before any
-RAM is reassigned. `GameLoadingBegin` waits for the last render DMA and displays
-one static VWF "Loading..." row on a plain background with IE=0, no sprites and
-no window. No progress redraw runs between chunks. `sd_ReadBlocks` finishes any
-pending HBlank DMA, masks IE and streams at normal CPU speed, using stock's eight
-consecutive writes from a resident ROM0 loop. Its cleanup disables streaming,
-then restores CPU speed, pending IF and IE without changing IME. A final
-comparison checks the loaded header against the 32 retained source bytes.
-Busy-polled loading successfully booted Crystal on hardware, isolating the
-streaming path; the new fast path still needs hardware confirmation. Launch
-speed takes priority over animations. On a failed load, `GameLoadingEnd`
-reinitializes the renderer, then `Layout` reconstructs the browser map before
-the error box is drawn. Finish loads SRAM/RTC/state files, applies enabled cheats,
+RAM is reassigned. Before showing the existing "Loading..." box, LaunchGame
+sets `render_cpu_copy`: CGB keeps its layout and attributes but uses the DMG
+HBlank CPU-copy loop for VRAM uploads. `GameLoadingBegin` finishes older HDMA and
+scrolling, switches to normal CPU speed once with LCD off, then retains the
+browser/box in VRAM with only LCD/STAT interrupts enabled and sprites disabled.
+The resident LCD handler maintains window/tile addressing; VBlank/OAM DMA and
+input/spinner updates remain stopped. No progress redraw runs between chunks.
+`sd_ReadBlocks` finishes any pending HDMA and allows only LCD interrupts while
+streaming, using stock's normal-speed eight-write loop from ROM0. Cleanup
+restores the caller's CPU speed, pending IF and IE; the real launch path stays
+at normal speed throughout, so it does not switch speeds between chunks. A
+final comparison checks the loaded header against the retained source bytes.
+Both busy-polled loading and the fast plain-screen loader booted Crystal on
+hardware. The browser overlay with CPU copies still needs hardware confirmation.
+On failure, `GameLoadingEnd` restores CPU speed, sprites, interrupts and normal
+renderer uploads; the browser tiles and layout were preserved. Finish loads SRAM/RTC/state files, applies enabled cheats,
 and updates stock registry metadata/checksum plus Girlboss's GAM3 ownership
 record. It publishes the stock SRAM marker only after preparation succeeds.
 The filename header is rendered before `_GameLaunch` configures the mapper,

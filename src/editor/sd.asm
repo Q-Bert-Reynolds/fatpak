@@ -444,7 +444,8 @@ DEF SD_CMD18 EQU $40+18;READ_MULTIPLE_BLOCK
 
 SECTION "SD Stream Writes", ROM0
 ;Execute the eight-write inner loop from resident memory, as stock does. The
-;caller has stopped DMA, masked IE and selected normal CPU speed (2us/store).
+;caller has stopped DMA and selected normal CPU speed (about 2us/store).
+;Only the resident LCD handler may interrupt; it never starts DMA or touches SPI.
 SDStreamSector:
   ld hl, EDX_WINDOW
   ld b, 512/8
@@ -459,13 +460,13 @@ ENDR
 PAGE GAME_PAGE
 ;de = first PSRAM sector, bc = sector count (> 0), [_sd_sector] = LBA.
 ;CMD18 auto-read streams bytes directly into the window. Keep every transfer
-;at stock's normal-speed cadence, without interrupts or pending HBlank DMA.
+;at stock's normal-speed cadence, without VBlank/OAM DMA or pending HBlank DMA.
 ;Restore CPU speed, IE and IF on all exits; IME is unchanged. Ordinary file IO
 ;still uses the busy-polled single-sector reader.
 _sd_ReadBlocks::
   ldh a, [rIE]
   push af
-  xor a
+  and a, IEF_STAT;keep the browser's window/tile addressing, exclude all DMA handlers
   ldh [rIE], a
   call RenderWaitDMA
   ldh a, [rIF]

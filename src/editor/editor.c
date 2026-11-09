@@ -1488,8 +1488,10 @@ static void LaunchGame(const char* path) {
     modified = 0;
     SettingsSave();
   }
+  render_cpu_copy = 1; // keep CGB layout/palettes, draw loading tiles without HDMA
   ShowBusy("Loading...");
   if ((result = FileSaveSwap())) {
+    render_cpu_copy = 0;
     HideBox();
     ShowError(result, "DISK FULL");
     return;
@@ -1501,10 +1503,10 @@ static void LaunchGame(const char* path) {
     if (!result) result = FileGameFinish(path);
     if (result) {
       GameLoadingEnd();
-      Layout(); // rebuild the browser's map before showing its error box
     }
   }
   if (result) {
+    render_cpu_copy = 0;
     HideBox();
     ShowError(result, "TOO BIG");
     Reboot(); // PSRAM's text may be overwritten, booting restores it from the swap file
