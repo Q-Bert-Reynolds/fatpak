@@ -44,6 +44,7 @@ Main::
   ld [EDX_SWITCH], a;needed when launching another game after a warm return
   ld a, $04;the window shows PSRAM
   ld [EDX_CONFIG], a
+  call CartConfigureFeatures;model-specific RTC/snapshot gates, like stock startup
   ; Restore the editor's vector after the mapper and cart switch are in OS mode.
   ld hl, $0041;$0040 jumps to our VBlank, not the in-game menu (src/editor/ingame.asm)
   ld [hl], LOW(VBLInterrupt)

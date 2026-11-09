@@ -4,7 +4,8 @@
 
 ## Priority
 
-- Retest RTC on hardware: Pokemon Crystal previously froze white after the Nintendo logo, and SETTINGS > CLOCK drew garbage. The clock field layout/resident strings, I2C receive handling, and stock pre-launch RTC programming sequence have been corrected. Check clock setting and Crystal time across power-off; emulator success does not establish the hardware fix. See [compatibility notes](EVERDRIVE_FEATURES.md#clock).
+- Retest Crystal with the restored fast loader. **Busy-polled loading launched Crystal on hardware**, confirming the streaming path as the focus. The new fast path waits for pending HBlank DMA, masks interrupts, uses stock's normal-speed eight-write cadence from ROM0, and shows a static VWF "Loading..." screen. It restores CPU speed/IE/IF on every return and rebuilds the renderer on failure. **Launch speed is the priority; animations are expendable.** Hardware must confirm both correct boot and acceptable speed. See [ROM transfer investigation](EVERDRIVE_FEATURES.md#rom-transfer-investigation). Remove temporary probe ROMs after confirmation.
+- Clock setting is hardware-confirmed. Verify RTC time across power-off separately from Crystal's ROM-loading failure.
 - Save states have been tested successfully on hardware. Remaining compatibility checks: switching between Girlboss and stock OS, interrupted file operations, and 128 KiB battery saves. Cheat testing is deferred. See [cart-menu validation](IN_GAME_MENU.md#validation).
 - Exercise full/read-only SD cards and interrupted state replacement on hardware. Failed state loads must still allow Resume, and backups must keep the correct game's ownership.
 - Plan code space before adding more services: most OS pages are close to their `$1d00` limit. Consider moving data, splitting helpers or the overlay approach below.

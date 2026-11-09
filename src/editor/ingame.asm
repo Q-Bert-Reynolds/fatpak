@@ -471,36 +471,8 @@ END_PAGE
 PAGE LAUNCH_PAGE
 ;DE = Latin-1 basename. Called by LaunchGame before the game owns WRAM/HRAM.
 _InGameHeader::
-  ld a, e
-  ld [render_src], a
-  ld a, d
-  ld [render_src+1], a
-  ld hl, render_bitmap
-  ld bc, TB_WIDTH
-  xor a
-  call mem_Set
-  xor a
-  ld [render_styled], a
-  ld [render_head], a
-  ld hl, FontVWFGlyphs
-  ST_HL_VAR render_glyphs
-  ld hl, FontVWFWidths
-  ST_HL_VAR render_widths
   ld a, 5;the editor's bar inset: space (4px), plus the initial pixel
-  ld [render_x], a
-.char
-  LD_HL_VAR render_src
-  ld a, [hli]
-  and a
-  jr z, .save
-  ld c, a
-  ST_HL_VAR render_src
-  ld a, c
-  call RenderGlyph
-  ld a, [render_x]
-  cp a, TB_WIDTH-4
-  jr c, .char
-.save
+  call RenderMenuText
   ld a, $04
   ld [EDX_CONFIG], a
   ld a, HIGH(MENU_BLOCK)
@@ -518,5 +490,37 @@ _InGameHeader::
   ld a, b
   or a, c
   jr nz, .copy
+  ret
+
+RenderMenuText:;a = left inset, de = Latin-1 text, returns its 1bpp row in render_bitmap
+  ld [render_x], a
+  ld a, e
+  ld [render_src], a
+  ld a, d
+  ld [render_src+1], a
+  ld hl, render_bitmap
+  ld bc, TB_WIDTH
+  xor a
+  call mem_Set
+  xor a
+  ld [render_styled], a
+  ld [render_head], a
+  ld hl, FontVWFGlyphs
+  ST_HL_VAR render_glyphs
+  ld hl, FontVWFWidths
+  ST_HL_VAR render_widths
+.char
+  LD_HL_VAR render_src
+  ld a, [hli]
+  and a
+  jr z, .done
+  ld c, a
+  ST_HL_VAR render_src
+  ld a, c
+  call RenderGlyph
+  ld a, [render_x]
+  cp a, TB_WIDTH-4
+  jr c, .char
+.done
   ret
 END_PAGE

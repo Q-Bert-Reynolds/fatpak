@@ -29,12 +29,143 @@ index 6 set to 0 instead. Gearboy does not model that control register's effect,
 so integration tests observe the actual firmware bus writes against the stock
 sequence rather than treating an emulator launch as hardware proof.
 
+Startup also reads the factory model byte at EEPROM `$A0:$3f18` and writes the
+stock cartridge-feature mask to `$BD0F`: X3 = `$01`, X5 = `$00`, X7 = `$06`.
+Stock derives bit 1 from RTC capability and bit 2 from snapshot capability.
+On X7, the mapper RTC control at index 6 is cleared before normal calendar use,
+matching stock `CheckAndInitializeRTC`. Unknown models or failed EEPROM reads
+preserve the bootloader's feature configuration. Girlboss previously omitted
+this setup, and Gearboy silently ignored `$BD0F` writes. Gearboy now records the
+mask and supplies an X7 factory model for startup regression tests; the full
+hardware effects of all feature bits are not emulated.
+
 The clock-menu garbage was caused by 40-byte row spacing where menu boxes use
 20-byte rows, plus page-local field-name pointers passed to a text routine on
 another page. Fields now use packed box rows and resident strings. Calendar
 reads poll completion without checking the slave ACK bit during reception,
-matching stock `I2C_ReadBytes`. These corrections still need a hardware retest
-of clock setting and Crystal's previously white screen after the boot logo.
+matching stock `I2C_ReadBytes`. Clock setting is hardware-confirmed. The same
+Crystal ROM boots with stock GBCOS on the GBA SP but remained white with Girlboss,
+including after factory-feature initialization and without save/RTC files.
+Red, Blue, Gold and Silver launch, so RTC alone does not explain the failure.
+Emulator checks cover the complete browser launch, all loaded ROM bytes, the
+title screen, and RTC/SRAM file round trips.
+
+## Game launch and device identification
+
+Stock `Cart_LaunchGame` writes launch config `$08` (preserving option bit 5),
+initializes the mapper latches, writes the mapper to `$BD07`, then waits forever
+in resident cartridge code. It does not set the game's initial CPU registers;
+the reset/boot path is responsible for them. Before this handoff, stock selects
+normal CPU speed, leaves IE disabled and explicitly enables audio at `$FF26`.
+
+Girlboss now follows that sequence. The former HRAM wait timed out after about
+half a second and jumped to `$0100` with a hard-coded `A=$11`, without establishing
+the rest of the boot state. The new resident wait has no timeout or direct game
+entry. Hardware retesting found no change: the new state has the same bad CGB
+flag and saved CPU position. The FPGA's internal reset implementation has not
+been inspected.
+
+The first frozen states had Crystal's `hCGB` at `$ffe6` equal to 0 in actual CGB
+mode. Importing a state into Gearboy and changing only that byte to 1 reaches
+the title. This explains the white picture, but did not establish why the flag
+became zero. The first entry probe recorded A `$64` and `hCGB=0` before HRAM
+clearing; it overwrote its record on every entry, so a restart could hide the
+original boot state.
+
+The hardware `Crystal Entry History.gbc` state resolves that ambiguity:
+
+- First registers: AF `$1100`, BC `$0100`, DE `$ff56`, HL `$000d`, SP `$fffe`.
+  These are correct GBA boot values, including A `$11`.
+- The entry counter was `$37` (55), with latest A `$64`. Crystal repeatedly
+  re-entered startup; the bad device flag is a later symptom.
+- The loaded 2 MiB ROM summed to `$7cd7`; the identical SD file sums to `$6a52`.
+  Per-bank sums differ in 14 banks: `$00,$10,$11,$1f,$2d,$2e,$2f,$31,$33,$35,$55,$58,$61,$64`.
+  The other 114 bank sums agree. This is not simply a wrong ROM-bank mask.
+
+The cartridge receives valid initial CPU registers. The current investigation
+is corrupted ROM data in memory, rather than RTC or CGB-only device detection.
+Factory-feature initialization and the resident launch wait did not fix it.
+The precise hardware cause of the changed bytes is still unconfirmed.
+
+### ROM transfer investigation
+
+Hardware retesting of the uninterrupted, eight-write streaming loop still left
+Crystal frozen and introduced garbage while loading. Masking IE across an entire
+128 KiB transfer also prevents the renderer's LCD interrupts from selecting the
+right window/tile addressing as the screen is drawn. That attempt did not fix
+the ROM corruption and has been removed.
+
+The busy-polled multiblock reader **launched Crystal on hardware**, although
+loading was painfully slow. This narrows the failure to the streaming path and
+its execution conditions, rather than RTC, initial CPU identification or the
+common FAT/ROM-placement code. It does not identify the exact electrical or
+FPGA timing cause.
+
+The next build restores streaming with these differences:
+
+- `GameLoadingBegin` waits for the renderer's last HBlank DMA, masks IE and draws
+  a single VWF "Loading..." row on a plain background. It uses no sprites,
+  window splits or display interrupts. No per-chunk redraw runs while loading.
+- `sd_ReadBlocks` waits for any pending row DMA before enabling SPI auto-read.
+  It uses normal CGB CPU speed during the transfer, matching stock's eight
+  consecutive window writes (2 microseconds per write). Girlboss's former
+  double-speed loop wrote twice as quickly as stock even after matching the
+  instruction count. The inner write loop executes from resident ROM0.
+- Every exit disables streaming before restoring the caller's CPU speed, IE
+  and pending IF flags, without issuing EI. Ordinary file/save reads retain
+  the busy-polled single-sector path. Command/token failures report a disk
+  error rather than silently retrying the whole ROM slowly.
+- The error path restores the renderer and browser layout before showing its
+  normal error message. Successful launch retains the static screen until reset.
+
+The retained 32-byte source header is compared against loaded PSRAM before
+finishing; a mismatch reports a disk error rather than launching. This checks
+the header, not the entire ROM. Native tests compare every loaded byte and
+exercise command delays, rejected commands, invalid/missing data tokens, header
+corruption, initially active HBlank DMA, both CGB speeds and DMG. They check that
+window writes come from ROM0 at normal speed with IE=0 and no active HDMA, and
+that return paths restore CPU/interrupt state. Screen tests cover the static
+VWF row and renderer recovery.
+
+**The new fast path still needs hardware confirmation.** Launch speed takes
+priority over animations; this static screen replaces progress animation during
+ROM loading. The slower build that successfully launched Crystal is preserved
+locally in `/tmp/girlboss-before-static-fast-loader` before installing this build.
+Gearboy does not reproduce cartridge electrical timing, so emulator tests alone
+cannot prove the hardware corruption is fixed.
+
+### Temporary hardware probes
+
+`Crystal Entry Check.gbc` and `Crystal Entry History.gbc` are separate local test
+ROM copies on the SD root. They do not add OS build variants or a game-specific
+production patch. The history probe retains the first registers, startup count
+and loaded-ROM checksums in WRAM bank 7:
+
+| WRAM bank 7 address | Contents |
+| --- | --- |
+| `$d000-$d0ff` | Cumulative 16-bit sums after banks 0-127, little endian |
+| `$dfe0/$dfe2/$dfe4/$dfe6/$dfe8` | First HL/DE/BC/AF/SP, little endian |
+| `$dff0-$dff1` | `EP` signature |
+| `$dff2` | Entry count |
+| `$dff4` | Latest entry A |
+| `$dff5-$dff6` | Whole loaded-ROM sum, little endian; expected `$6a52` |
+
+The history probe occupies originally zero bytes `$0063-$00fc`, redirects
+`$0100` there, repairs the global checksum, and preserves game code/data from
+`$0150` onward. It restores all incoming CPU registers and the WRAM bank before
+Crystal's original startup. The logs survive initialization, which only clears
+WRAM bank 1. Its checksum takes about half a minute at normal speed. Logs are
+cumulative across software restarts and repeated launches while WRAM survives;
+an existing `EP` log also means the checksum is not recomputed. A fresh log is
+needed before using the same history ROM to assess another loading attempt.
+Original ROM/save filenames are separate. Remove the temporary probe files
+once the loading fix is confirmed.
+
+Gearboy honors `$BD04` when extracting the launched ROM, including masked
+address-line mirroring. Previously it used the header's size, hiding bad mask
+settings. Ordinary launch still resets the emulated console immediately, so a
+separate bus-probe regression suppresses reset to check the resident wait, IE,
+audio enable and unmodified HRAM beyond the former timeout.
 
 ## Battery saves and registry
 

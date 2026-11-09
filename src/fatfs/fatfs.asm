@@ -191,7 +191,6 @@ _game_block:: DS 2;fs_GameCopy's progress
 _game_blocks:: DS 2
 _game_clst:: DS 4;the next cluster it copies
 _backup_skipped:: DS 1;fs_BackupSave didn't trust the save RAM (src/fatfs/fatfs.c)
-_sd_fast:: DS 1;sd_ReadBlocks reads like the EverDrive's OS (src/editor/sd.asm)
 
 PAGE DOC_PAGE
 _pieces:: DS 9*MAX_PIECES;source (0 = the file, 1 = the add buffer), offset, length (fatfs.c)
@@ -238,13 +237,17 @@ END_PAGE
 PAGE LAUNCH_PAGE
 ;resets the Game Boy into the game fs_LoadGame copied to PSRAM, like the EverDrive's OS: $BD06 bit 3 makes the
 ;cart reset it through the boot ROM after the mapper is written (bit 2 switches without it). The MBC writes
-;land in the OS image's RAM ($0000, $2000, $2100, $3000, $4000, $6000). The last part runs from
-;HRAM (LaunchStub): no game code runs before the reset, and if none comes in about half a second the game
-;starts at $0100 without the boot ROM (A = $11, a GBC)
-DEF LAUNCH_HRAM EQU $FF80
+;land in the OS image's RAM ($0000, $2000, $2100, $3000, $4000, $6000). Like stock
+;Cart_LaunchGame, the final mapper write and reset wait execute in resident cartridge
+;code. The boot path supplies the game's initial registers; there is no timed jump
+;to $0100 or synthesized device ID.
 _GameLaunch::
   di
-  call gbdk_CPUSlow;normal speed like the EverDrive OS's launch (the cart doesn't reset the CPU's speed)
+  call gbdk_CPUSlow;normal speed like the EverDrive OS's launch
+  xor a;CPUSlow restores IE; stock leaves it disabled before the reset request
+  ldh [rIE], a
+  ld a, AUDENA_ON;stock explicitly powers audio on before handing off to the cart
+  ldh [rAUDENA], a
   ld a, 1;keep the stock OS compatibility flags consistent with the launch
   ld [os_game_launched], a
   ld a, [_game_ram_mask]
@@ -303,30 +306,15 @@ _GameLaunch::
   inc a
   ld [$2100], a
   ld [$2000], a
-  ld hl, LaunchStub;the wait runs from HRAM: the game's ROM is in at once, the reset may come later
-  ld c, LOW(LAUNCH_HRAM)
-.copy
-    ld a, [hli]
-    ldh [c], a
-    inc c
-    ld a, c
-    cp a, LOW(LAUNCH_HRAM) + LaunchStubEnd - LaunchStub
-    jr nz, .copy
-  ld bc, 0
   ld a, [_game_mapper]
-  jp LAUNCH_HRAM
+  jp LaunchStub
 ASSERT BANK(_GameLaunch) == BANK(_LaunchGame), "LaunchGame calls it in its page"
 
-SECTION "Launch Stub", ROM0[$01E0];copied to LAUNCH_HRAM, a = mapper, bc = 0
+SECTION "Launch Stub", ROM0[$01E0];resident reset handoff, a = mapper
 LaunchStub:
   ld [$BD07], a
 .wait
-    dec bc
-    ld a, b
-    or a, c
-    jr nz, .wait
-  ld a, $11
-  jp $0100
+  jp .wait;stock waits in cartridge code for reset, without an HRAM fallback
 LaunchStubEnd:
 
 SECTION "Reboot", ROM0

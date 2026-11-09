@@ -59,7 +59,7 @@ flowchart LR
 | --- | --- |
 | `src/main.asm` | Cartridge header, boot sequence, starts the editor |
 | `src/text_editor.inc` | Includes every module (the include order matters for macros and constants) |
-| [`src/editor/`](../src/editor/) | Main loop/menus, text buffer, renderer, keyboard, SD driver, cart menu (`ingame.asm`) and capture/restore (`snapshot.asm`) |
+| [`src/editor/`](../src/editor/) | Main loop/menus, text buffer, renderer, keyboard, SD driver, static launch screen (`game_loading.asm`), cart menu (`ingame.asm`) and capture/restore (`snapshot.asm`) |
 | `src/fatfs/` | FatFs, its disk glue, and the file API (`fatfs.c` includes everything in `lib/`) |
 | `src/keyboard/` | PS/2 and iGKB keyboard drivers |
 | [`src/rtc/`](../src/rtc/) | Calendar I2C interface, date validation, FAT timestamps, stock game-RTC advancement |
@@ -252,7 +252,7 @@ flowchart LR
 ```
 
 - **EverDrive registers** respond after `$A5` is written to `$BD0A`: `$BD00` is SPI data and `$BD01` is SPI control. The OS page ends at `$BCFF`; registers and the independent PSRAM/save window occupy `$BD00-$BFFF`. Editor text uses only the window. The sibling EverDrive disassembly is the reference for the stock interface.
-- **`sd.asm`** detects the register interface, initializes SD v1/v2/SDHC cards and transfers 512-byte sectors. Ordinary FatFs IO uses sector reads/writes with busy polling; ROM loading uses `sd_ReadBlocks` for runs of consecutive clusters, with streaming and a slow retry path if header verification fails.
+- **`sd.asm`** detects the register interface, initializes SD v1/v2/SDHC cards and transfers 512-byte sectors. Ordinary FatFs IO uses sector reads/writes with busy polling; ROM loading uses streaming `sd_ReadBlocks` for runs of consecutive clusters, with DMA finished, IE masked and normal CPU speed. The resident inner loop matches stock's eight-write cadence. See the game-launch section for the static loading screen and validation status.
 - **FatFs** R0.16 (`src/fatfs/lib`) is compiled into `fatfs.c` with its Unicode and runtime helpers. Configuration enables FAT, UTF-8 long names up to the configured 64-character limit, code page 437 short names, `FF_FS_TINY=1`, and `FF_FS_MINIMIZE=0` so rename, unlink and mkdir are available. The browser doesn't yet expose those directory-management operations. `FF_FS_NORTC=0` calls the calendar timestamp service. `.banks` files distribute this code across the OS pages. `clst2sect` uses a shift for power-of-two cluster sizes rather than a multiply.
 - **Mounting:** `fs_Mount` mounts the card the first time. A failed sector read or write clears `disk_ready`, so FatFs mounts it again on its next call, and listing, loading and saving retry once after `FR_DISK_ERR`. A swapped card fails its first command (it hasn't been initialized), so it's mounted again before anything is written to it.
 - **File API:** `fs_Load` replaces the text buffer with a file 512 bytes at a time: `tb_Append` copies a PSRAM sector run at a time, dropping 0s and CRs and setting `tb_cr` when it drops a CR, so `fs_crlf` remembers that the file used CR LF. `fs_Save` writes the buffer (around the gap) with `tb_Read`, or with `tb_ReadLines`, which adds the CRs back, both a run at a time. `fs_List` reads a folder once: `NextEntry` walks the directory's 32 byte slots in the sector buffer the way FatFs's `dir_read` does, without decoding names, skipping hidden, system and dot names. It counts the folders and files and marks the slot where every 16th of each kind starts (in the 512 byte load buffer, which nothing else uses while browsing; when a kind passes 128 marks, every other one is dropped and the spacing doubles). `fs_ListEntry` reads one entry (`FileEntry` in `src/fatfs/file_api.h`: UTF-8 name, size, date) by seeking to the mark before it, or carrying on from the last one read. `GetName` turns its long name into UTF-8 itself, `get_fileinfo` is only used for names it can't handle (characters outside the BMP, short names with bytes above `$7F`).
@@ -279,11 +279,27 @@ a partial window over it.
 
 `LaunchGame` saves the editor swap, then calls `FileGameOpen`, `FileGameCopy` in
 steps, and `FileGameFinish`. Open backs up the previous game's save before any
-RAM is reassigned. Finish loads SRAM/RTC/state files, applies enabled cheats,
+RAM is reassigned. `GameLoadingBegin` waits for the last render DMA and displays
+one static VWF "Loading..." row on a plain background with IE=0, no sprites and
+no window. No progress redraw runs between chunks. `sd_ReadBlocks` finishes any
+pending HBlank DMA, masks IE and streams at normal CPU speed, using stock's eight
+consecutive writes from a resident ROM0 loop. Its cleanup disables streaming,
+then restores CPU speed, pending IF and IE without changing IME. A final
+comparison checks the loaded header against the 32 retained source bytes.
+Busy-polled loading successfully booted Crystal on hardware, isolating the
+streaming path; the new fast path still needs hardware confirmation. Launch
+speed takes priority over animations. On a failed load, `GameLoadingEnd`
+reinitializes the renderer, then `Layout` reconstructs the browser map before
+the error box is drawn. Finish loads SRAM/RTC/state files, applies enabled cheats,
 and updates stock registry metadata/checksum plus Girlboss's GAM3 ownership
 record. It publishes the stock SRAM marker only after preparation succeeds.
 The filename header is rendered before `_GameLaunch` configures the mapper,
-installs the cart-menu vector and starts the game through the launch stub.
+installs the cart-menu vector and enters the resident launch stub. Like stock
+GBCOS, launch uses normal CPU speed, disables IE, enables audio, initializes the
+mapper latches, writes `$BD07`, then waits in cartridge code for the reset/boot
+path to supply the game's initial registers. There is no HRAM timeout or direct
+jump to `$0100`. The current Crystal hardware investigation and Gearboy's reset
+model limitations are documented in [launch and ROM-transfer investigation](EVERDRIVE_FEATURES.md#game-launch-and-device-identification).
 
 Stock formats are `/GBCSYS/SAVE/<basename>.srm`, the 512-byte `.rtc` image,
 `/GBCSYS/SNAP/<basename>.sav` and `/GBCSYS/CHEATS/<basename>.txt`.
@@ -311,6 +327,13 @@ ROM; a DMG game leaves the OS in DMG mode even on CGB hardware. See
 [In-game menu](IN_GAME_MENU.md) for the memory layout and restore policy.
 
 ### Calendar and game RTC
+
+Startup reads the model byte from the factory EEPROM at `$A0:$3f18` (high byte
+of its big-endian model word), then sets `$BD0F` like stock GBCOS: `$01` for X3,
+`$00` for X5, `$06` for X7. The X7 mask includes RTC and snapshot capabilities;
+its mapper RTC control is initially cleared at index 6. Unknown models and bus
+errors leave the bootloader's feature mask intact. The factory read uses no
+WRAM and runs before the startup RAM clear, including on warm return.
 
 `src/rtc/rtc.asm` implements bounded I2C transactions at `$BD0c/$BD0d` for the
 calendar device `$d0/$d1`; `rtc.c` validates BCD dates, sets the clock, builds FAT

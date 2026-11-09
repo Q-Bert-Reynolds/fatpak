@@ -383,28 +383,6 @@ ENDR
   ld a, 1
   jp SDFinish
 
-;turns auto read on or off, only affects a. A removed experimental single-sector loop broke X7 reads:
-;saves failed with FR_INT_ERR (02), a folder once read as FR_NO_FILE (04). It took the token by hand and
-;assumed a read returns the byte before it, if a read returns the byte it clocks every sector was one byte off.
-;_sd_ReadBlocks reads like the EverDrive's OS instead, which works either way
-SDAutoRead:
-  ld a, [EDX_SPI_CTRL]
-  or a, EDX_SPI_AUTO_READ
-  ld [EDX_SPI_CTRL], a
-  ld a, [EDX_CONFIG]
-  or a, 1
-  ld [EDX_CONFIG], a
-  ret
-
-SDAutoReadOff:
-  ld a, [EDX_SPI_CTRL]
-  and a, ~EDX_SPI_AUTO_READ
-  ld [EDX_SPI_CTRL], a
-  ld a, [EDX_CONFIG]
-  and a, ~1
-  ld [EDX_CONFIG], a
-  ret
-
 _sd_WriteSector::;de = 512 byte buffer, [_sd_sector] = LBA, returns a = 0 if successful
   push de
   SD_REGS_ON
@@ -464,89 +442,53 @@ ENDR
 DEF SD_CMD12 EQU $40+12;STOP_TRANSMISSION
 DEF SD_CMD18 EQU $40+18;READ_MULTIPLE_BLOCK
 
+SECTION "SD Stream Writes", ROM0
+;Execute the eight-write inner loop from resident memory, as stock does. The
+;caller has stopped DMA, masked IE and selected normal CPU speed (2us/store).
+SDStreamSector:
+  ld hl, EDX_WINDOW
+  ld b, 512/8
+.write8
+REPT 8
+    ld [hli], a
+ENDR
+  dec b
+  jr nz, .write8
+  ret
+
 PAGE GAME_PAGE
-;de = first PSRAM block, bc = sectors (> 0), [_sd_sector] = LBA, reads them into the blocks through the window
-;with one READ_MULTIPLE_BLOCK (a game's ROM, src/fatfs/fatfs.c), returns a = 0 if successful. With [_sd_fast]
-;set the card streams into the window like the EverDrive's OS (ReadBlocksFast, the CPU doesn't see the bytes,
-;fs_GameCopy checks the header checksum), otherwise the bytes are polled like _sd_ReadSector's. The window
-;shows the last block afterwards
+;de = first PSRAM sector, bc = sector count (> 0), [_sd_sector] = LBA.
+;CMD18 auto-read streams bytes directly into the window. Keep every transfer
+;at stock's normal-speed cadence, without interrupts or pending HBlank DMA.
+;Restore CPU speed, IE and IF on all exits; IME is unchanged. Ordinary file IO
+;still uses the busy-polled single-sector reader.
 _sd_ReadBlocks::
+  ldh a, [rIE]
+  push af
+  xor a
+  ldh [rIE], a
+  call RenderWaitDMA
+  ldh a, [rIF]
+  push af
+  ldh a, [sys_info]
+  and a, SYS_INFO_GBC
+  jr z, .saveSpeed;never execute a CGB speed-switch STOP on DMG
+  ldh a, [rKEY1]
+  and a, KEY1F_DBLSPEED
+.saveSpeed
+  push af
+  and a
+  call nz, gbdk_CPUSlow
   push bc
   push de
-  SD_REGS_ON
   call SDSetSectorArg
   ld a, SD_CMD18
   call SDCommand
   pop de
   pop bc
   and a
-  jp nz, .error
-  ld a, [_sd_fast]
-  and a
-  jp nz, ReadBlocksFast
-.block
-  ld a, e
-  ld [EDX_BLOCK], a
-  ld a, d
-  ld [EDX_BLOCK+1], a
-  push bc
-  push de
-  ld hl, 40000
-.waitForToken
-    SD_RECEIVE
-    cp a, $FF
-    jr nz, .token
-    dec hl
-    ld a, h
-    or a, l
-    jr nz, .waitForToken
-  jr .stopError
-.token
-  cp a, $FE
-  jr nz, .stopError
-  ld hl, EDX_WINDOW
-  ld bc, EDX_SPI_CTRL
-  ld de, EDX_SPI_DATA
-  ld a, 512/8
-  ld [sd_count], a
-.read8
-REPT 8
-    ld a, $FF
-    ld [de], a
-.wait\@
-      ld a, [bc]
-      add a, a;busy bit to carry
-      jr c, .wait\@
-    ld a, [de]
-    ld [hli], a
-ENDR
-    ld a, [sd_count]
-    dec a
-    ld [sd_count], a
-    jr nz, .read8
-  SD_RECEIVE;CRC
-  SD_RECEIVE
-  pop de
-  pop bc
-  inc de
-  dec bc
-  ld a, b
-  or a, c
-  jp nz, .block
-  call SDStop
-  jp SDFinish
-.stopError
-  pop de
-  pop bc
-  call SDStop
-.error
-  ld a, 1
-  jp SDFinish
-
-ReadBlocksFast:;like the EverDrive's OS: auto read and streaming ($BD06 bit 0) on, a read to start, then each
-;block's token read, 512 writes to the window (each stores the card's next byte, 2 M-cycles) and a CRC read
+  jr nz, .commandError
   call SDAutoRead
-  ld a, [EDX_SPI_DATA]
 .block
   ld a, e
   ld [EDX_BLOCK], a
@@ -555,6 +497,7 @@ ReadBlocksFast:;like the EverDrive's OS: auto read and streaming ($BD06 bit 0) o
   push bc
   push de
   ld de, EDX_SPI_DATA
+  ld a, [de];prime the token/CRC pipeline before each sector, as stock does
   ld hl, 40000
 .waitForToken
     ld a, [de]
@@ -568,17 +511,11 @@ ReadBlocksFast:;like the EverDrive's OS: auto read and streaming ($BD06 bit 0) o
   pop bc
   call SDAutoReadOff
   call SDStop
+.commandError
   ld a, 1
-  jp SDFinish
+  jr ReadBlocksFinish
 .token
-  ld hl, EDX_WINDOW
-  ld b, 512/16
-.write16
-REPT 16
-    ld [hli], a
-ENDR
-    dec b
-    jr nz, .write16
+  call SDStreamSector
   ld a, [de];CRC
   pop de
   pop bc
@@ -589,7 +526,39 @@ ENDR
   jr nz, .block
   call SDAutoReadOff
   call SDStop
-  jp SDFinish
+ReadBlocksFinish:
+  call SDFinish
+  ld b, a
+  pop af;original speed: restore only if the caller was in CGB double speed
+  push bc
+  and a
+  call nz, gbdk_CPUFast
+  pop bc
+  pop af
+  ldh [rIF], a
+  pop af
+  ldh [rIE], a
+  ld a, b
+  and a
+  ret
+
+SDAutoRead:
+  ld a, [EDX_SPI_CTRL]
+  or a, EDX_SPI_AUTO_READ
+  ld [EDX_SPI_CTRL], a
+  ld a, [EDX_CONFIG]
+  or a, 1
+  ld [EDX_CONFIG], a
+  ret
+
+SDAutoReadOff:
+  ld a, [EDX_SPI_CTRL]
+  and a, ~EDX_SPI_AUTO_READ
+  ld [EDX_SPI_CTRL], a
+  ld a, [EDX_CONFIG]
+  and a, ~1
+  ld [EDX_CONFIG], a
+  ret
 
 ;ends a READ_MULTIPLE_BLOCK without deselecting the card: STOP_TRANSMISSION, a stuff byte, R1, then the busy
 ;wait, returns a = 0 if it worked, affects b, hl
@@ -627,4 +596,5 @@ SDStop:
     jr nz, .waitWhileBusy
   ld a, 1
   ret
+
 END_PAGE

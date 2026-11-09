@@ -1,6 +1,12 @@
 ; EverDrive byte-level I2C calendar interface, matching stock GBCOS.
 DEF RTC_CONTROL EQU $BD0C
 DEF RTC_DATA EQU $BD0D
+DEF MAPPER_RTC_CURRENT EQU $BD10
+DEF MAPPER_RTC_INDEX EQU $BD13
+DEF CART_FEATURES EQU $BD0F
+DEF CART_FEATURE_X3 EQU 1
+DEF CART_FEATURE_RTC EQU 2
+DEF CART_FEATURE_SNAPSHOT EQU 4
 
 SECTION "Clock API", ROM0
 _ClockRead:: BANKED_C _rtc_Read
@@ -111,5 +117,70 @@ _RTCWrite::
   dec b
   jr nz, .write
   jp RTCReset
+
+; Stock OS page 6 reads the factory EEPROM at $3F00. Its model ID is
+; the high byte of the big-endian word at offset $18: $0D=X3, $0E=X5, $0F=X7.
+; Initialize the FPGA's feature mask exactly as stock startup does. Reading
+; the calendar is separate from enabling its MBC3 interface for games.
+CartConfigureFeatures::
+  call RTCStart
+  jp nz, RTCError
+  ld a, $A0
+  call RTCByte
+  jp nz, RTCError
+  ld a, $3F
+  call RTCByte
+  jp nz, RTCError
+  ld a, $18
+  call RTCByte
+  jp nz, RTCError
+  call RTCStart
+  jp nz, RTCError
+  ld a, $A1
+  call RTCByte
+  jp nz, RTCError
+  ld a, $10
+  ld [RTC_CONTROL], a
+  ld a, $FF
+  ld [RTC_DATA], a
+  call RTCWait
+  jp nz, RTCError
+  ld a, [RTC_DATA]
+  push af
+  ld a, $11
+  ld [RTC_CONTROL], a
+  ld a, $FF
+  ld [RTC_DATA], a
+  call RTCWait
+  jr nz, .readError
+  call RTCReset
+  jr nz, .readError
+  pop af
+  cp a, $0D
+  jr z, .x3
+  cp a, $0E
+  jr z, .x5
+  cp a, $0F
+  ret nz ; an unknown model keeps the bootloader's configuration
+  ld a, CART_FEATURE_RTC | CART_FEATURE_SNAPSHOT
+  jr .configure
+.x3
+  ld a, CART_FEATURE_X3
+  jr .configure
+.x5
+  xor a
+.configure
+  ld [CART_FEATURES], a
+  and a, CART_FEATURE_RTC
+  ret z
+  ; Match CheckAndInitializeRTC before calendar access or game preparation.
+  ld a, 6
+  ld [MAPPER_RTC_INDEX], a
+  xor a
+  ld [MAPPER_RTC_CURRENT], a
+  ret
+.readError
+  pop af
+  jp RTCError
 
 INCLUDE "src/rtc/_rtc.asm"

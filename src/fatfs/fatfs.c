@@ -803,7 +803,6 @@ extern unsigned int game_block, game_blocks; // src/fatfs/fatfs.asm
 extern unsigned long game_clst;
 extern unsigned char game_banks;
 extern unsigned char sd_ReadBlocks(unsigned int block, unsigned int count); // src/editor/sd.asm, from LBA sd_sector
-extern unsigned char sd_fast; // sd_ReadBlocks streams into the window like the EverDrive's OS
 unsigned char fs_GameOpen(const char* path) {
   UINT done, i;
   BYTE type, size;
@@ -830,23 +829,15 @@ unsigned char fs_GameOpen(const char* path) {
   game_blocks = (UINT)((f_size(&file) + 511) >> 9);
   game_block = 0;
   game_clst = file.obj.sclust;
-  sd_fast = 1;
   Signature(0); // the text in PSRAM gets overwritten, the next boot restores the swap file
   return FR_OK;
-}
-
-// the fast reads (sd_fast) didn't work: the game is read again the slow way
-static void GameSlow(void) {
-  sd_fast = 0;
-  game_block = 0;
-  game_clst = file.obj.sclust;
 }
 
 unsigned char fs_GameCopy(void) {
   FATFS* fs = file.obj.fs;
   unsigned long next = game_clst, last;
-  UINT count = fs->csize, i;
-  BYTE check;
+  UINT count = fs->csize;
+  BYTE check = 0;
   while (count < GAME_CHUNK && game_block + count < game_blocks) { // consecutive clusters
     if ((last = get_fat(&file.obj, next)) != next + 1) break;
     next = last;
@@ -855,18 +846,16 @@ unsigned char fs_GameCopy(void) {
   if (count > game_blocks - game_block) count = game_blocks - game_block;
   if (!(sd_sector = clst2sect(fs, game_clst)) || sd_ReadBlocks(game_block, count)) {
     SetWindowBlock(TB_PSRAM_HIGH << 8);
-    if (!sd_fast) return FR_DISK_ERR;
-    GameSlow();
-    return FR_OK;
+    return FR_DISK_ERR;
   }
   game_block += count;
-  if (game_block == game_blocks && sd_fast) { // the header checksum (a byte off before $14D breaks it)
+  if (game_block == game_blocks) { // compare to the source header retained by fs_GameOpen
     SetWindowBlock(0);
-    for (check = 0, i = 0x134; i < 0x14D; ++i) check = check - WINDOW[i] - 1;
-    if ((BYTE)check != WINDOW[0x14D] || memcmp(WINDOW + 0x134, buffer + 0x134, 0x1C)) GameSlow(); // the header fs_GameOpen read
+    check = memcmp(WINDOW + 0x134, game_header, sizeof(game_header)) != 0;
   }
   SetWindowBlock(TB_PSRAM_HIGH << 8);
-  if (game_block && game_block != game_blocks && (game_clst = get_fat(&file.obj, next)) < 2) return FR_INT_ERR;
+  if (check) return FR_DISK_ERR;
+  if (game_block != game_blocks && (game_clst = get_fat(&file.obj, next)) < 2) return FR_INT_ERR;
   return FR_OK;
 }
 
