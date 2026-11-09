@@ -96,6 +96,7 @@ extern unsigned char FileGameOpen(const char* path); // FRESULT, checks a game (
 extern unsigned char FileGameCopy(void); // FRESULT, copies the next part of it to PSRAM
 extern unsigned char FileGameFinish(const char* path); // FRESULT, loads its save
 extern unsigned int game_block, game_blocks; // FileGameCopy's progress (sectors)
+extern void InGameHeader(const char* name); // prepares the in-game filename bar
 extern void GameLaunch(void); // resets the Game Boy into it
 extern void Reboot(void); // starts the OS again
 extern unsigned char doc_large; // a large file is open, the text buffer is a window into it

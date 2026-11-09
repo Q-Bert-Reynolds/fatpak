@@ -1502,7 +1502,8 @@ static unsigned char IsGame(const char* name) {
 // the swap file first, returns if it can't. A large file's unsaved edits can't be kept
 static void LaunchGame(const char* path) {
   unsigned char result;
-  char text[24], *end;
+  char text[TB_STRIDE], *end;
+  const char *basename, *scan;
   if (doc_large) {
     if (!CanDiscard()) return;
     FileCloseLarge();
@@ -1533,6 +1534,11 @@ static void LaunchGame(const char* path) {
     ShowError(result, "TOO BIG");
     Reboot(); // PSRAM's text may be overwritten, booting restores it from the swap file
   }
+  // Preserve the basename as pixels before game RAM replaces the editor state.
+  basename = path;
+  for (scan = path; *scan; ++scan) if (*scan == '/') basename = scan + 1;
+  *ToLatin1(text, basename, sizeof(text) - 1) = 0;
+  InGameHeader(text);
   GameLaunch();
 }
 #endif

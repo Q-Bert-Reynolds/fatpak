@@ -1,43 +1,74 @@
 # In-game cart-button menu
 
-Build with `make assemble`. There is one in-game menu implementation: RESUME
-and EXIT TO OS. B resumes; up/down/select moves; A or Start selects the item.
+Build with `make assemble`. B resumes; up/down/select moves the highlight; A or
+Start chooses Resume game or Return to OS. There is one menu implementation.
+When `/media/qbertreynolds/GAMEBOY` is mounted, a successful OS build also
+copies `GBCOS.BIN` to its `GBCSYS` folder and flushes the write to the card.
 
-The entry and resume sequence now follows stock GBCOS v1.06 more closely:
+The cart-button entry follows stock GBCOS v1.06: push the interrupted registers,
+unlock immediately, write `$04` to `$BD06`, save SP, and select an OS page and
+resident stack before reading the game mapper registers at `$BD14-$BD17`.
+The normal OS VBlank vector is installed at startup; launch replaces it with
+the in-game entry vector.
 
-- Establish OS mapper/config/switch state before patching the OS VBlank vector
-  at boot. Install the in-game vector before launch configuration and MBC writes.
-- Push the interrupted registers and unlock immediately, removing the former
-  one-second delay. Write `$04` to `$BD06`, save SP, and switch to a resident stack.
-- Keep the small state variables and stack in resident OS memory. Only the
-  borrowed palettes, sprite tiles and OAM use PSRAM block `$3e3f`.
-- Select page 9 explicitly. A previous read of 9 did not establish that the page
-  register was immutable.
-- Finish PSRAM reads before clearing `$BD06`, restoring the game SP and mapper,
-  pulsing `$BD09`, restoring CPU registers, and jumping to `$0040` to deliver
-  the pending VBlank to the game's handler.
+The full-screen background menu disables sprites and the window. Its labels
+use the editor's variable-width font: `ingame_menu.py` composes their pixels
+from `img/fonts/font_vwf.asm` during the normal build. Static labels avoid
+using the editor renderer's scratch variables while game RAM is live. Change
+the labels and positions in that script. The box follows the editor's OpenBox
+geometry: a dark one-pixel border, four-pixel padding, half-row top/bottom,
+and no title. DMG selection is inverted; CGB uses the shared editor theme.
+Both bars match that selection treatment. The footer shows button hints; the
+OS currently has no clock reader.
 
-The context occupies the unused `$0009-$001f` gap between the reboot stub and
-RST `$20`. Its nine-byte stack has a maximum call depth of four bytes. Link
-assertions prevent overlap and keep resume code away from mapper write addresses.
-The menu leaves game WRAM/HRAM alone apart from pushing interrupted registers
-onto the original game stack.
+Before launch, the basename is converted from UTF-8 to the editor's Latin-1
+charset and drawn with the existing VWF renderer. Its 160-byte ink bitmap is
+kept at `$BE20` in PSRAM block `$3e3f`, outside game WRAM/HRAM. Entry encodes
+it for the current hardware mode. Long filenames are clipped at the right edge.
+This also works for games without battery RAM; it does not depend on a save
+record or the cartridge header's internal title.
 
-Gearboy now fetches the OS's actual `$0040` vector rather than injecting a jump
-to `$0670`, and exposes captured mapper bytes at `$BD14-$BD17`. These changes
-make emulator testing less likely to hide replacement-OS mistakes.
+Only BG tiles `$8000-$87ff`, BG map `$9800-$9bff`, CGB attributes for that map,
+and BG palette 0 are borrowed. Their original contents are saved in PSRAM
+blocks `$3e30-$3e37` and `$3e3f`. Other tiles, maps, palettes and OAM remain
+untouched. Resume restores the borrowed data, LCDC, scrolling, BGP, VBK and
+BCPS before restoring the game SP and mapper, pulsing `$BD09`, and jumping to
+`$0040` to deliver the pending VBlank. The game picture is hidden during the
+menu; its sprites do not compete with menu text.
 
-Validation: the OS assembles and passes its page layout check. A core harness
-launches synthetic MBC5 games in DMG and CGB modes, then checks three repeated
-menu entry/resume cycles, resident stack headroom, VBlank progress after resume,
-and restoration of ROM bank 3.
+The small context and nine-byte stack occupy `$0009-$001f`, between the reboot
+stub and RST `$20`. The deepest call chain uses six bytes, leaving three spare.
+Link assertions protect this gap and keep resume code below mapper-write
+addresses. Apart from pushing interrupted registers on the game stack, the
+menu leaves game WRAM/HRAM alone. The menu explicitly selects page 4 and uses a resident trampoline to load its
+static graphics from page 9; it does not use the editor's page-switching
+scratch variables. The prelaunch filename renderer uses the normal OS stack
+and editor scratch space while the game is not running.
 
-Hardware testing has confirmed that the menu appears and RESUME works. EXIT TO
-OS rebooted through the Nintendo logo but reopened the in-game menu. The return
-path now installs the normal editor VBlank vector and clears the cart-switch
-latch before writing `$BD06=$10`. Startup also restores that vector after setting
-mapper 0, `$BD09=4`, and `$BD06=4`.
+Return to OS is a warm restart. It stops interrupts, timer, serial, sound and
+active CGB HBlank DMA, turns off the LCD, restores the six resident bytes
+written as mapper registers, and jumps directly to `Main`. Launch saves those
+bytes before configuring the game mapper. Main resets cartridge switch state,
+installs the normal VBlank vector, initializes the editor, backs up the game's
+save, and opens the file browser. No `$BD06=$10` reset or Nintendo logo is
+requested. A DMG game leaves the OS in DMG mode even on a CGB/GBA; changing
+that hardware mode requires the boot ROM and a full reset.
 
-The reboot fix still requires a hardware test. Copy `bin/GBCOS.BIN` to
-`/GBCSYS/GBCOS.BIN` on the test card and check EXIT TO OS, followed by launching
-another game and entering/resuming its menu. Building does not update the card.
+Gearboy distinguishes `$BD09` bit 2 (select OS) from `$BD06` bit 4 (reset OS),
+keeps the CPU running for a warm return, and copies shared cartridge save RAM
+into the OS mapping when the cart button is pressed.
+
+Hardware previously confirmed the sprite menu, Resume, and the reset-based
+return. The revised editor-style menu and warm return still need hardware testing:
+copy `bin/GBCOS.BIN` to `/GBCSYS/GBCOS.BIN`, resume a game, then return to the
+file browser and launch another game. `EDITOR.DAT` is unchanged by this menu.
+
+Emulator validation covers DMG and CGB MBC5 games, three repeated menu/resume
+cycles, byte-for-byte restoration of both VRAM banks, palettes, OAM and display
+registers, stack headroom, continued VBlank interrupts and ROM-bank restoration.
+The warm-return check observes the direct jump to Main without a reset request,
+checks repaired resident bytes and unchanged hardware mode, and confirms the
+file browser renders. Shared game save RAM and launching another game after
+warm return (including its menu and Resume) are also checked. Selection
+pixels, one-pixel borders, filename-bar encoding and the real file-browser
+launch path are checked with the revised layout.

@@ -44,6 +44,8 @@ else
 endif
 
 assemble: $(C_ASM)
+	@mkdir -p $(BUILD_DIR) $(BIN_DIR)
+	$(PYTHON) ingame_menu.py
 	rgbasm $(DEFINES) -o $(BUILD_DIR)/main.o $(SRC_DIR)/main.asm
 ifeq ($(OS), 1)
 	rgblink -l pages.link -m $(BUILD_DIR)/main.map -n $(SYM_FILE) -o $(ROM_FILE) $(BUILD_DIR)/main.o
@@ -55,6 +57,11 @@ ifeq ($(OS), 1)
 	rgbfix -v -c -s -j -t GBXOS -i KRKZ -l 0x33 -m 0 -r 0 -p 255 $(ROM_FILE)
 	cp $(ROM_FILE) $(BIN_DIR)/GBCOS.BIN
 	$(PYTHON) data_file.py $(BIN_DIR)/EDITOR.DAT
+	@if mountpoint -q /media/qbertreynolds/GAMEBOY; then \
+		cp $(BIN_DIR)/GBCOS.BIN /media/qbertreynolds/GAMEBOY/GBCSYS/GBCOS.BIN && \
+		sync -f /media/qbertreynolds/GAMEBOY/GBCSYS/GBCOS.BIN && \
+		echo "Copied GBCOS.BIN to mounted GAMEBOY card"; \
+	fi
 else
 	rgbfix -jvcs -k 01 -l 0x33 -m 0x1B -p 255 $(ROM_FILE)
 endif

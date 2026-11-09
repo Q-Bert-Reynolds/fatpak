@@ -280,6 +280,20 @@ ENDC
   ld [hl], LOW(InGameEntry)
   inc l
   ld [hl], HIGH(InGameEntry)
+  ; A warm return keeps the live OS image. Preserve bytes before mapper writes
+  ; so restarting the editor does not execute modified resident instructions.
+  ld a, [$0000]
+  ld [ingame_os_bytes+0], a
+  ld a, [$2000]
+  ld [ingame_os_bytes+1], a
+  ld a, [$2100]
+  ld [ingame_os_bytes+2], a
+  ld a, [$3000]
+  ld [ingame_os_bytes+3], a
+  ld a, [$4000]
+  ld [ingame_os_bytes+4], a
+  ld a, [$6000]
+  ld [ingame_os_bytes+5], a
   ld a, [_game_config]
   ld [EDX_CONFIG], a
   xor a

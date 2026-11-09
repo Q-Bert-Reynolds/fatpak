@@ -1,17 +1,6 @@
 Priority
 
-- OS mode (bin/GBCOS.BIN as /GBCSYS/GBCOS.BIN, bin/EDITOR.DAT in /GBCSYS): games can't reach the EverDrive X registers, so the editor is the cart's OS. Games launch from the file browser (fs_LoadGame, GameLaunch): copied to PSRAM block 0, their save loaded from /GBCSYS/SAVE/<name>.srm and written back at the next boot (/GBCSYS/EDITOR.GAM). Next for games:
-  - confirm on the X7 (Gearboy launches them, but can't return the game's RAM to the OS: its GBCOS.sav is reloaded)
-  - loading: runs of clusters with one READ_MULTIPLE_BLOCK each, streamed into the window like the EverDrive's OS (auto read + $BD06 bit 0: each write to $BE00 stores the card's next byte), ~0.5s per MB in Gearboy. Checked with the header checksum, a mismatch or read error loads it again the slow way. Confirm on the X7
-  - a progress bar (it shows KB loaded)
-  - in-game menu (src/editor/ingame.asm, the system button combo): RESUME and EXIT TO OS as sprites over the game. Confirm on the X7 (entry at $0670 like the EverDrive OS, or our $0040 with [in_game], $BD14-$BD17, the $BD09 strobes; through $0040 alone the X7 showed a blank screen). Next: more items (the tools in OS Utilities), a box that also covers the BG for games whose sprites are hidden behind it, save states
-  - idea, later: file I/O for games through that handler. The game writes a request at a fixed RAM address (tag, load/save, path, address, length) and asks the player to press the combo; the handler sets the game's memory aside, does the file work with SD access, writes the result and returns. Or without a button: a request in save RAM that our boot handles (needs a reset, and a relaunch)
-  - MBC3 clocks (.rtc files, Pokemon Crystal), save states (/GBCSYS/SNAP), cheats, the in-game menu ($01F0-$01FF), the EverDrive OS's REGISTRY.BIN: the stock OS backs save RAM up to the last game it launched, so running it after a game ours launched can write that game's save over another's. Ours skips its backup if REGISTRY.BIN changed since its launch (a Beisbol save was written over Pokemon Red's before), keeping its last game in the stock registry would make both agree
-- time the swap file autosave on the X7 with a big text (the editor stalls while it writes, 2 seconds after the last change)
-- pages 7 and 10 are 95% full, page 14 is empty (check_pages.py)
-- time loading and saving a 64KB file on the X7 and in Gearboy, the numbers set the large file window size (see Large Files)
-- auto-read sector reads (SD_AUTO_READ in src/editor/sd.asm, off): on the X7 every save failed with SD ERROR 02 (FR_INT_ERR) and a folder once failed with 04 while it was on. Guess: in double speed a read every 4 M-cycles outruns the SPI clock. Try it with a delay per byte, or with a test that reads sectors both ways and compares. Also multi-block reads (CMD18) like the EverDrive OS, and the window streaming mode ($BD06 bit 0: writes to $BE00 store the card's bytes)
-- large files: viewing, editing and saving work, see Large Files for what's left (unsaved edits don't survive a reset)
+- MBC3 clocks (.rtc files, Pokemon Crystal), save states (/GBCSYS/SNAP), cheats, the in-game menu ($01F0-$01FF), the EverDrive OS's REGISTRY.BIN: the stock OS backs save RAM up to the last game it launched, so running it after a game ours launched can write that game's save over another's. Ours skips its backup if REGISTRY.BIN changed since its launch (a Beisbol save was written over Pokemon Red's before), keeping its last game in the stock registry would make both agree
 
 Text Rendering
 

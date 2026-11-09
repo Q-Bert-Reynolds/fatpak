@@ -28,7 +28,10 @@ ENDC
 IF DEF(EVERDRIVE_OS)
 SECTION "OS Info", ROM0[$01F0];like GBCOS.BIN: version 0, 1, and $01F2 is a flag the cart may set
   DB 0, 1
-  DS 14, 0
+  DS 2, 0
+; Original resident bytes at the six addresses written as mapper registers.
+ingame_os_bytes:: DS 6, 0
+  DS 6, 0
 SECTION "Main", ROM0
 ELSE
 SECTION "Main", ROM0[$0150]

@@ -80,3 +80,6 @@ __pycache__/*
 # Editor config folder
 # *.vscode
 node_modules
+
+# Composed from the VWF font by the normal build
+/build/ingame_menu.asm

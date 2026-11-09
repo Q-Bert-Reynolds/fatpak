@@ -5,6 +5,13 @@ INCLUDE "src/editor/keywords.asm"
 INCLUDE "src/editor/osk.asm"
 INCLUDE "src/editor/render.asm"
 INCLUDE "src/editor/sd.asm"
+;theme (UI and syntax colors in the settings later)
+DEF_RGB EDITOR_PAPER,      29, 29, 27
+DEF_RGB EDITOR_HIGHLIGHT,  20, 25, 31
+DEF_RGB EDITOR_DIM,        14, 17, 14;grey-green: comments, markdown markers
+DEF_RGB EDITOR_INK,         2,  2,  3
+DEF EDITOR_ACCENTS EQU 4
+
 IF DEF(EVERDRIVE_OS)
 INCLUDE "src/editor/ingame.asm"
 ENDC
@@ -136,13 +143,6 @@ EditorSetPalettes:
   ld a, DMG_PAL_BDLW
   ldh [rBGP], a
   ret
-
-;theme (UI and syntax colors in the settings later)
-DEF_RGB EDITOR_PAPER,      29, 29, 27
-DEF_RGB EDITOR_HIGHLIGHT,  20, 25, 31
-DEF_RGB EDITOR_DIM,        14, 17, 14;grey-green: comments, markdown markers
-DEF_RGB EDITOR_INK,         2,  2,  3
-DEF EDITOR_ACCENTS EQU 4
 
 EditorPalette:
   EDITOR_PAPER
