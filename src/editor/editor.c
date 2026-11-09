@@ -1478,7 +1478,7 @@ static unsigned char IsGame(const char* name) {
 // the swap file first, returns if it can't. A large file's unsaved edits can't be kept
 static void LaunchGame(const char* path) {
   unsigned char result;
-  char text[TB_STRIDE];
+  char text[TB_STRIDE], *end;
   const char *basename, *scan;
   if (doc_large) {
     if (!CanDiscard()) return;
@@ -1497,14 +1497,16 @@ static void LaunchGame(const char* path) {
     return;
   }
   result = FileGameOpen(path);
-  if (!result) {
-    GameLoadingBegin();
-    while (!result && game_block != game_blocks) result = FileGameCopy();
-    if (!result) result = FileGameFinish(path);
-    if (result) {
-      GameLoadingEnd();
-    }
+  while (!result && game_block != game_blocks) { // "Loading 512/2048 KB"
+    end = PutText(text, "Loading ");
+    end = PutNumber(end, game_block >> 1);
+    *end++ = '/';
+    end = PutText(PutNumber(end, game_blocks >> 1), " KB");
+    *end = 0;
+    ShowBusy(text);
+    result = FileGameCopy();
   }
+  if (!result) result = FileGameFinish(path);
   if (result) {
     render_cpu_copy = 0;
     HideBox();

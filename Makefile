@@ -1,7 +1,7 @@
 LANGUAGE  = EN#EN ES FR IT PT DE JA
 DEFINES   = -D LANG_$(LANGUAGE)
 
-GAME_NAME = TEXT_EDITOR
+GAME_NAME = GBCOS
 ROM_NAME  = $(GAME_NAME).gbc
 ROM_FILE  = $(BIN_DIR)/$(ROM_NAME)
 SYM_FILE  = $(BIN_DIR)/$(GAME_NAME).sym
@@ -10,8 +10,6 @@ SRC_DIR   = src
 DATA_DIR  = data
 BIN_DIR   = bin
 BUILD_DIR = build
-SD_DIR    = sd
-SD_IMAGE  = $(BIN_DIR)/sdcard.img
 
 ifeq ($(OS), Windows_NT)
 PYTHON	  = python
@@ -74,14 +72,6 @@ assets:
 	$(PYTHON) keywords.py
 	$(PYTHON) sgb_border.py img/default_sgb_border.png img/default_sgb_border.asm
 	$(PYTHON) translate.py 
-
-# EverDrive X SD test that runs in OS mode, copy to /GBCSYS/GBCOS.BIN on the card (keep the real one)
-osdiag:
-	@mkdir -p $(BUILD_DIR) $(BIN_DIR)
-	rgbasm -o $(BUILD_DIR)/osdiag.o src/osdiag/osdiag.asm
-	rgblink -t -n $(BIN_DIR)/GBCOS_DIAG.sym -o $(BIN_DIR)/GBCOS_DIAG.BIN $(BUILD_DIR)/osdiag.o
-	$(PYTHON) -c "p='$(BIN_DIR)/GBCOS_DIAG.BIN'; d=bytearray(open(p,'rb').read()); d+=b'\xff'*(131072-len(d)); exec('for c in range(16): d[c*8192+0x1C00:c*8192+0x1C06]=b\'OSDG\'+bytes([c,255-c])'); open(p,'wb').write(d)"
-	rgbfix -v -c -s -j -t GBXOS -i KRKZ -l 0x33 -m 0 -r 0 -p 0xFF $(BIN_DIR)/GBCOS_DIAG.BIN
 
 clean:
 	@rm -rf $(BUILD_DIR)
