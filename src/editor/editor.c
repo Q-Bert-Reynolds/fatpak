@@ -1698,12 +1698,13 @@ static const char clock_fields[][8] = {"Year", "Month", "Day", "Hour", "Minute",
 static void ClockSetup(void) {
   ClockDate date;
   unsigned char selected = 0, i, key, *value = (unsigned char*)&date;
-  char* end;
+  char *line, *end;
   if (ClockRead(&date)) { date.year = 26; date.month = date.day = 1; date.hour = date.minute = date.second = 0; }
   DrawRow(STATUS_LINE, 1, "Left/right: adjust  A: set  B: cancel");
   while (1) {
-    for (i = 0; i < 6; ++i) {
-      end = PutText(RowAddress(BOX_LINE + i), " ");
+    line = RowAddress(BOX_LINE);
+    for (i = 0; i < 6; ++i, line += BOX_STRIDE) {
+      end = PutText(line, " ");
       end = PutText(end, clock_fields[i]); *end++ = ' ';
       if (!i) end = PutNumber(end, 2000 + value[i]); else end = PutNumber2(end, value[i]);
       *end = 0;

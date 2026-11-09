@@ -39026,18 +39026,21 @@ _ReadGameRTC:
 	ld	d, h
 	call	_ClockAdvance
 .l00125:
-;src/fatfs/fatfs.c:899: *(volatile BYTE*)0xBD13 = 6; *(volatile BYTE*)0xBD10 = 1;
+;src/fatfs/fatfs.c:901: *(volatile BYTE*)0xBD13 = 4;
 	ld	hl, $BD13
-	ld	[hl], $06
+	ld	[hl], $04
+;src/fatfs/fatfs.c:902: *(volatile BYTE*)0xBD10 = 0x40; *(volatile BYTE*)0xBD11 = 0x40;
 	ld	l, $10
-	ld	[hl], $01
-;src/fatfs/fatfs.c:900: for (i = 0; i < 5; ++i) {
+	ld	[hl], $40
+	ld	l, $11
+	ld	[hl], $40
+;src/fatfs/fatfs.c:903: for (i = 0; i < 5; ++i) {
 	ld	c, $00
 .l00129:
-;src/fatfs/fatfs.c:901: *(volatile BYTE*)0xBD13 = i;
+;src/fatfs/fatfs.c:904: *(volatile BYTE*)0xBD13 = i;
 	ld	hl, $BD13
 	ld	[hl], c
-;src/fatfs/fatfs.c:902: *(volatile BYTE*)0xBD10 = rtc[i]; *(volatile BYTE*)0xBD11 = rtc[i + 5];
+;src/fatfs/fatfs.c:905: *(volatile BYTE*)0xBD10 = rtc[i]; *(volatile BYTE*)0xBD11 = rtc[i + 5];
 	ld	e, c
 	ld	d, $00
 	ld	hl, 0
@@ -39058,23 +39061,26 @@ _ReadGameRTC:
 	ld	a, [hl]
 	ld	hl, $BD11
 	ld	[hl], a
-;src/fatfs/fatfs.c:900: for (i = 0; i < 5; ++i) {
+;src/fatfs/fatfs.c:903: for (i = 0; i < 5; ++i) {
 	inc	c
 	ld	a, c
 	sub	a, $05
 	jp	C, .l00129
-;src/fatfs/fatfs.c:904: *(volatile BYTE*)0xBD13 = 6; *(volatile BYTE*)0xBD10 = 0;
+;src/fatfs/fatfs.c:907: *(volatile BYTE*)0xBD13 = 6; *(volatile BYTE*)0xBD10 = 1;
 	ld	l, $13
 	ld	[hl], $06
 	ld	l, $10
+	ld	[hl], $01
+;src/fatfs/fatfs.c:908: *(volatile BYTE*)0xBD13 = 0;
+	ld	l, $13
 	ld	[hl], $00
-;src/fatfs/fatfs.c:905: return FR_OK;
+;src/fatfs/fatfs.c:909: return FR_OK;
 	xor	a, a
 .l00131:
-;src/fatfs/fatfs.c:906: }
+;src/fatfs/fatfs.c:910: }
 	add	sp, 20
 	ret
-;src/fatfs/fatfs.c:907: static FRESULT WriteGameRTC(const char* path) {
+;src/fatfs/fatfs.c:911: static FRESULT WriteGameRTC(const char* path) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 12",ROMX,BANK[6]
 	LOAD FRAGMENT "Page 12 RAM",SRAM,BANK[12]
@@ -39086,11 +39092,11 @@ _WriteGameRTC:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/fatfs/fatfs.c:911: SaveRamBlock(255, 1);
+;src/fatfs/fatfs.c:915: SaveRamBlock(255, 1);
 	ld	a, $01
 	ld	de, $00FF
 	call	_SaveRamBlock__far
-;src/fatfs/fatfs.c:912: for (i = 0; i < 5; ++i) { rtc[i] = WINDOW[496 + i * 2]; rtc[i + 5] = WINDOW[497 + i * 2]; }
+;src/fatfs/fatfs.c:916: for (i = 0; i < 5; ++i) { rtc[i] = WINDOW[496 + i * 2]; rtc[i + 5] = WINDOW[497 + i * 2]; }
 	ld	hl, sp+14
 	ld	[hl], $00
 .l00110:
@@ -39144,11 +39150,11 @@ _WriteGameRTC:
 	ld	a, [hl]
 	sub	a, $05
 	jp	C, .l00110
-;src/fatfs/fatfs.c:913: SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
+;src/fatfs/fatfs.c:917: SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
 	xor	a, a
 	ld	de, $0100
 	call	_SaveRamBlock__far
-;src/fatfs/fatfs.c:914: if (rtc[4] == 0x40 && rtc[9] == 0x40) return FR_OK;
+;src/fatfs/fatfs.c:918: if (rtc[4] == 0x40 && rtc[9] == 0x40) return FR_OK;
 	ld	hl, sp+4
 	ld	a, [hl]
 	sub	a, $40
@@ -39168,7 +39174,7 @@ _WriteGameRTC:
 	xor	a, a
 	jp	.l00112
 .l00103:
-;src/fatfs/fatfs.c:915: memset(buffer, 0, 512); memcpy(buffer, rtc, sizeof(rtc));
+;src/fatfs/fatfs.c:919: memset(buffer, 0, 512); memcpy(buffer, rtc, sizeof(rtc));
 	ld	de, $0200
 	push	de
 	ld	bc, $0000
@@ -39182,7 +39188,7 @@ _WriteGameRTC:
 	ld	b, h
 	ld	de, _buffer
 	call	___memcpy
-;src/fatfs/fatfs.c:916: result = f_open(&save_file, path, FA_WRITE | FA_CREATE_ALWAYS);
+;src/fatfs/fatfs.c:920: result = f_open(&save_file, path, FA_WRITE | FA_CREATE_ALWAYS);
 	ld	a, $0A
 	push	af
 	inc	sp
@@ -39192,12 +39198,12 @@ _WriteGameRTC:
 	ld	b, [hl]
 	ld	de, _save_file
 	call	_f_open__far
-;src/fatfs/fatfs.c:917: if (result) return result;
+;src/fatfs/fatfs.c:921: if (result) return result;
 	or	a, a
 	jp	Z, .l00106
 	jp	.l00112
 .l00106:
-;src/fatfs/fatfs.c:918: result = f_write(&save_file, buffer, 512, &done);
+;src/fatfs/fatfs.c:922: result = f_write(&save_file, buffer, 512, &done);
 	ld	hl, 10
 	add	hl, sp
 	ld	e, l
@@ -39209,7 +39215,7 @@ _WriteGameRTC:
 	ld	de, _save_file
 	call	_f_write__far
 	ld	c, a
-;src/fatfs/fatfs.c:919: if (!result && done != 512) result = FR_DENIED;
+;src/fatfs/fatfs.c:923: if (!result && done != 512) result = FR_DENIED;
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00108
@@ -39225,18 +39231,18 @@ _WriteGameRTC:
 .l00155:
 	ld	c, $07
 .l00108:
-;src/fatfs/fatfs.c:920: f_close(&save_file);
+;src/fatfs/fatfs.c:924: f_close(&save_file);
 	push	bc
 	ld	de, _save_file
 	call	_f_close__far
 	pop	bc
-;src/fatfs/fatfs.c:921: return result;
+;src/fatfs/fatfs.c:925: return result;
 	ld	a, c
 .l00112:
-;src/fatfs/fatfs.c:922: }
+;src/fatfs/fatfs.c:926: }
 	add	sp, 15
 	ret
-;src/fatfs/fatfs.c:926: static FRESULT RegistryGame(const char* path) {
+;src/fatfs/fatfs.c:930: static FRESULT RegistryGame(const char* path) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 8",ROMX,BANK[4]
 	LOAD FRAGMENT "Page 8 RAM",SRAM,BANK[8]
@@ -39248,13 +39254,13 @@ _RegistryGame:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/fatfs/fatfs.c:927: UINT done, i, base = 0, length = 0, sum;
+;src/fatfs/fatfs.c:931: UINT done, i, base = 0, length = 0, sum;
 	xor	a, a
 	inc	hl
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/fatfs/fatfs.c:928: DWORD cluster = file.obj.sclust, size = f_size(&file), id = (file.dir_sect << 4) | ((file.dir_ptr - fs.win) >> 5);
+;src/fatfs/fatfs.c:932: DWORD cluster = file.obj.sclust, size = f_size(&file), id = (file.dir_sect << 4) | ((file.dir_ptr - fs.win) >> 5);
 	ld	de, (_file + 6) + 0
 	ld	a, [de]
 	ld	hl, sp+14
@@ -39360,7 +39366,7 @@ _RegistryGame:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], a
-;src/fatfs/fatfs.c:930: for (i = 0; path[i]; ++i) if (path[i] == '/') base = i + 1;
+;src/fatfs/fatfs.c:934: for (i = 0; path[i]; ++i) if (path[i] == '/') base = i + 1;
 	ld	bc, $0000
 .l00142:
 	ld	hl, sp+29
@@ -39387,13 +39393,13 @@ _RegistryGame:
 .l00143:
 	jp	.l00142
 .l00103:
-;src/fatfs/fatfs.c:931: memset(buffer, 0, 512);
+;src/fatfs/fatfs.c:935: memset(buffer, 0, 512);
 	ld	de, $0200
 	push	de
 	ld	bc, $0000
 	ld	de, _buffer
 	call	_memset
-;src/fatfs/fatfs.c:932: result = f_open(&save_file, REGISTRY, FA_READ);
+;src/fatfs/fatfs.c:936: result = f_open(&save_file, REGISTRY, FA_READ);
 	ld	a, $01
 	push	af
 	inc	sp
@@ -39401,12 +39407,12 @@ _RegistryGame:
 	ld	de, _save_file
 	call	_f_open__far
 	ld	c, a
-;src/fatfs/fatfs.c:936: if (done < 266 || buffer[0] != 0x34 || buffer[1] != 0x12 || ByteSum(buffer, 264) != ld_16(buffer + 264)) return FR_INT_ERR;
-;src/fatfs/fatfs.c:933: if (!result) {
+;src/fatfs/fatfs.c:940: if (done < 266 || buffer[0] != 0x34 || buffer[1] != 0x12 || ByteSum(buffer, 264) != ld_16(buffer + 264)) return FR_INT_ERR;
+;src/fatfs/fatfs.c:937: if (!result) {
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00116
-;src/fatfs/fatfs.c:934: result = f_read(&save_file, buffer, 512, &done); f_close(&save_file);
+;src/fatfs/fatfs.c:938: result = f_read(&save_file, buffer, 512, &done); f_close(&save_file);
 	ld	hl, sp+0
 	ld	c, l
 	ld	b, h
@@ -39421,14 +39427,14 @@ _RegistryGame:
 	ld	de, _save_file
 	call	_f_close__far
 	pop	bc
-;src/fatfs/fatfs.c:935: if (result) return result;
+;src/fatfs/fatfs.c:939: if (result) return result;
 	ld	a, c
 	or	a, a
 	jp	Z, .l00105
 	ld	a, c
 	jp	.l00151
 .l00105:
-;src/fatfs/fatfs.c:936: if (done < 266 || buffer[0] != 0x34 || buffer[1] != 0x12 || ByteSum(buffer, 264) != ld_16(buffer + 264)) return FR_INT_ERR;
+;src/fatfs/fatfs.c:940: if (done < 266 || buffer[0] != 0x34 || buffer[1] != 0x12 || ByteSum(buffer, 264) != ld_16(buffer + 264)) return FR_INT_ERR;
 	ld	hl, sp+0
 	ld	a, [hl]
 	sub	a, $0A
@@ -39471,7 +39477,7 @@ _RegistryGame:
 	ld	a, $02
 	jp	.l00151
 .l00116:
-;src/fatfs/fatfs.c:938: else if (result == FR_NO_FILE || result == FR_NO_PATH) { buffer[0] = 0x34; buffer[1] = 0x12; buffer[2] = buffer[5] = 1; }
+;src/fatfs/fatfs.c:942: else if (result == FR_NO_FILE || result == FR_NO_PATH) { buffer[0] = 0x34; buffer[1] = 0x12; buffer[2] = buffer[5] = 1; }
 	ld	a, c
 	sub	a, $04
 	jp	NZ,.l00311
@@ -39495,17 +39501,17 @@ _RegistryGame:
 	ld	[hl], $01
 	jp	.l00117
 .l00112:
-;src/fatfs/fatfs.c:939: else return result;
+;src/fatfs/fatfs.c:943: else return result;
 	ld	a, c
 	jp	.l00151
 .l00117:
-;src/fatfs/fatfs.c:940: memset(buffer + 7, 0, 257);
+;src/fatfs/fatfs.c:944: memset(buffer + 7, 0, 257);
 	ld	de, $0101
 	push	de
 	ld	bc, $0000
 	ld	de, (_buffer + 7)
 	call	_memset
-;src/fatfs/fatfs.c:941: buffer[7] = game_mapper; buffer[8] = game_rom_mask; buffer[9] = game_ram_mask;
+;src/fatfs/fatfs.c:945: buffer[7] = game_mapper; buffer[8] = game_rom_mask; buffer[9] = game_ram_mask;
 	ld	de, (_buffer + 7)
 	ld	hl, _game_mapper
 	ld	a, [hl]
@@ -39518,7 +39524,7 @@ _RegistryGame:
 	ld	hl, _game_ram_mask
 	ld	a, [hl]
 	ld	[de], a
-;src/fatfs/fatfs.c:942: buffer[10] = game_has_rtc || game_save_sectors; buffer[11] = game_header[18] == 3; buffer[12] = game_header[15] & 0x80 ? 1 : 0;
+;src/fatfs/fatfs.c:946: buffer[10] = game_has_rtc || game_save_sectors; buffer[11] = game_header[18] == 3; buffer[12] = game_header[15] & 0x80 ? 1 : 0;
 	ld	hl, _game_has_rtc
 	ld	a, [hl]
 	or	a, a
@@ -39557,7 +39563,7 @@ _RegistryGame:
 .l00157:
 	ld	hl, (_buffer + 12)
 	ld	[hl], c
-;src/fatfs/fatfs.c:943: buffer[13] = game_has_rtc; st_16(buffer + 14, game_blocks); st_16(buffer + 16, game_save_sectors);
+;src/fatfs/fatfs.c:947: buffer[13] = game_has_rtc; st_16(buffer + 14, game_blocks); st_16(buffer + 16, game_save_sectors);
 	ld	de, (_buffer + 13)
 	ld	hl, _game_has_rtc
 	ld	a, [hl]
@@ -39574,13 +39580,13 @@ _RegistryGame:
 	ld	b, [hl]
 	ld	de, (_buffer + 16)
 	call	_st_16
-;src/fatfs/fatfs.c:944: memcpy(buffer + 18, game_header, 16);
+;src/fatfs/fatfs.c:948: memcpy(buffer + 18, game_header, 16);
 	ld	de, $0010
 	push	de
 	ld	bc, _game_header
 	ld	de, (_buffer + 18)
 	call	___memcpy
-;src/fatfs/fatfs.c:945: for (i = base; path[i] && length < 207; ++i) {
+;src/fatfs/fatfs.c:949: for (i = base; path[i] && length < 207; ++i) {
 	ld	bc, $0000
 .l00146:
 	ld	hl, sp+30
@@ -39605,10 +39611,10 @@ _RegistryGame:
 	ld	a, b
 	sbc	a, $00
 	jp	NC, .l00187
-;src/fatfs/fatfs.c:946: BYTE c = path[i];
+;src/fatfs/fatfs.c:950: BYTE c = path[i];
 	ld	hl, sp+26
 	ld	[hl], e
-;src/fatfs/fatfs.c:947: if (c == 0xC2 || c == 0xC3) { BYTE next = path[i + 1]; if ((next & 0xC0) == 0x80) { c = ((c & 3) << 6) | (next & 63); ++i; } }
+;src/fatfs/fatfs.c:951: if (c == 0xC2 || c == 0xC3) { BYTE next = path[i + 1]; if ((next & 0xC0) == 0x80) { c = ((c & 3) << 6) | (next & 63); ++i; } }
 	ld	a, [hl]
 	sub	a, $C2
 	jp	NZ,.l00317
@@ -39688,7 +39694,7 @@ _RegistryGame:
 	inc	hl
 	ld	[hl], e
 .l00121:
-;src/fatfs/fatfs.c:948: buffer[34 + length++] = c;
+;src/fatfs/fatfs.c:952: buffer[34 + length++] = c;
 	ld	a, c
 	ld	d, b
 	inc	bc
@@ -39704,7 +39710,7 @@ _RegistryGame:
 	ld	hl, sp+26
 	ld	a, [hl]
 	ld	[de], a
-;src/fatfs/fatfs.c:945: for (i = base; path[i] && length < 207; ++i) {
+;src/fatfs/fatfs.c:949: for (i = base; path[i] && length < 207; ++i) {
 	ld	hl, sp+31
 	inc	[hl]
 	jp	NZ, .l00323
@@ -39717,7 +39723,7 @@ _RegistryGame:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/fatfs/fatfs.c:951: if (length == 11) {
+;src/fatfs/fatfs.c:955: if (length == 11) {
 	ld	a, c
 	sub	a, $0B
 	or	a, b
@@ -39726,10 +39732,10 @@ _RegistryGame:
 .l00324:
 	jp	.l00132
 .l00325:
-;src/fatfs/fatfs.c:952: BYTE dot = 0;
+;src/fatfs/fatfs.c:956: BYTE dot = 0;
 	inc	hl
 	ld	[hl], $00
-;src/fatfs/fatfs.c:953: for (i = 0; i < length; ++i) if (buffer[34 + i] == '.') dot = i;
+;src/fatfs/fatfs.c:957: for (i = 0; i < length; ++i) if (buffer[34 + i] == '.') dot = i;
 	xor	a, a
 	ld	hl, sp+31
 	ld	[hl], a
@@ -39778,7 +39784,7 @@ _RegistryGame:
 .l00328:
 	jp	.l00149
 .l00126:
-;src/fatfs/fatfs.c:954: if (dot && dot <= 8 && length - dot - 1 <= 3) {
+;src/fatfs/fatfs.c:958: if (dot && dot <= 8 && length - dot - 1 <= 3) {
 	ld	hl, sp+28
 	ld	a, [hl]
 	or	a, a
@@ -39807,7 +39813,7 @@ _RegistryGame:
 	ld	a, $00
 	sbc	a, d
 	jp	C, .l00132
-;src/fatfs/fatfs.c:955: BYTE short_name[12]; memset(short_name, ' ', 11); short_name[11] = 0;
+;src/fatfs/fatfs.c:959: BYTE short_name[12]; memset(short_name, ' ', 11); short_name[11] = 0;
 	push	de
 	ld	bc, $000B
 	push	bc
@@ -39824,7 +39830,7 @@ _RegistryGame:
 	ld	b, h
 	xor	a, a
 	ld	[bc], a
-;src/fatfs/fatfs.c:956: memcpy(short_name, buffer + 34, dot); memcpy(short_name + 8, buffer + 35 + dot, length - dot - 1);
+;src/fatfs/fatfs.c:960: memcpy(short_name, buffer + 34, dot); memcpy(short_name + 8, buffer + 35 + dot, length - dot - 1);
 	ld	hl, sp+28
 	ld	c, [hl]
 	ld	b, $00
@@ -39850,7 +39856,7 @@ _RegistryGame:
 	ld	e, l
 	ld	d, h
 	call	___memcpy
-;src/fatfs/fatfs.c:957: memcpy(buffer + 34, short_name, 12);
+;src/fatfs/fatfs.c:961: memcpy(buffer + 34, short_name, 12);
 	ld	de, $000C
 	push	de
 	ld	hl, 4
@@ -39860,7 +39866,7 @@ _RegistryGame:
 	ld	de, (_buffer + 34)
 	call	___memcpy
 .l00132:
-;src/fatfs/fatfs.c:960: st_32(buffer + 34 + 216, id); st_32(buffer + 34 + 220, cluster); st_32(buffer + 34 + 224, size);
+;src/fatfs/fatfs.c:964: st_32(buffer + 34 + 216, id); st_32(buffer + 34 + 220, cluster); st_32(buffer + 34 + 224, size);
 	ld	hl, sp+24
 	ld	e, [hl]
 	inc	hl
@@ -39897,7 +39903,7 @@ _RegistryGame:
 	push	de
 	ld	de, (_buffer + 258)
 	call	_st_32
-;src/fatfs/fatfs.c:961: buffer[263] = 1; sum = ByteSum(buffer, 264); st_16(buffer + 264, sum);
+;src/fatfs/fatfs.c:965: buffer[263] = 1; sum = ByteSum(buffer, 264); st_16(buffer + 264, sum);
 	ld	hl, (_buffer + 263)
 	ld	[hl], $01
 	ld	bc, $0108
@@ -39905,19 +39911,19 @@ _RegistryGame:
 	call	_ByteSum
 	ld	de, (_buffer + 264)
 	call	_st_16
-;src/fatfs/fatfs.c:962: result = f_open(&save_file, REGISTRY, FA_WRITE | FA_CREATE_ALWAYS);
+;src/fatfs/fatfs.c:966: result = f_open(&save_file, REGISTRY, FA_WRITE | FA_CREATE_ALWAYS);
 	ld	a, $0A
 	push	af
 	inc	sp
 	ld	bc, ___src_fatfs_fatfs_c_str_15
 	ld	de, _save_file
 	call	_f_open__far
-;src/fatfs/fatfs.c:963: if (result) return result;
+;src/fatfs/fatfs.c:967: if (result) return result;
 	or	a, a
 	jp	Z, .l00134
 	jp	.l00151
 .l00134:
-;src/fatfs/fatfs.c:964: result = f_write(&save_file, buffer, 512, &done);
+;src/fatfs/fatfs.c:968: result = f_write(&save_file, buffer, 512, &done);
 	ld	bc, _buffer
 	ld	de, _save_file
 	ld	hl, 0
@@ -39927,7 +39933,7 @@ _RegistryGame:
 	push	hl
 	call	_f_write__far
 	ld	c, a
-;src/fatfs/fatfs.c:965: if (!result && done != 512) result = FR_DENIED;
+;src/fatfs/fatfs.c:969: if (!result && done != 512) result = FR_DENIED;
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00136
@@ -39943,7 +39949,7 @@ _RegistryGame:
 .l00329:
 	ld	c, $07
 .l00136:
-;src/fatfs/fatfs.c:966: if (result) f_close(&save_file); else result = f_close(&save_file);
+;src/fatfs/fatfs.c:970: if (result) f_close(&save_file); else result = f_close(&save_file);
 	ld	a, c
 	or	a, a
 	jp	Z, .l00139
@@ -39957,17 +39963,17 @@ _RegistryGame:
 	call	_f_close__far
 	ld	c, a
 .l00140:
-;src/fatfs/fatfs.c:967: return result;
+;src/fatfs/fatfs.c:971: return result;
 	ld	a, c
 .l00151:
-;src/fatfs/fatfs.c:968: }
+;src/fatfs/fatfs.c:972: }
 	add	sp, 33
 	ret
 	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
 ___src_fatfs_fatfs_c_str_15:
 	DB "/GBCSYS/REGISTRY.BIN"
 	DB $00
-;src/fatfs/fatfs.c:973: static BYTE CheatHex(BYTE c) {
+;src/fatfs/fatfs.c:977: static BYTE CheatHex(BYTE c) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 13",ROMX,BANK[6]
 	LOAD FRAGMENT "Page 13 RAM",SRAM,BANK[13]
@@ -39975,7 +39981,7 @@ ___src_fatfs_fatfs_c_str_15:
 ; ---------------------------------
 _CheatHex:
 	ld	c, a
-;src/fatfs/fatfs.c:974: if (c >= '0' && c <= '9') return c-'0';
+;src/fatfs/fatfs.c:978: if (c >= '0' && c <= '9') return c-'0';
 	ld	a, c
 	sub	a, $30
 	jp	C, .l00102
@@ -39986,7 +39992,7 @@ _CheatHex:
 	add	a, $D0
 	jp	.l00104
 .l00102:
-;src/fatfs/fatfs.c:975: c |= 32; return c >= 'a' && c <= 'f' ? c-'a'+10 : 0xFF;
+;src/fatfs/fatfs.c:979: c |= 32; return c >= 'a' && c <= 'f' ? c-'a'+10 : 0xFF;
 	set	5, c
 	ld	a, c
 	sub	a, $61
@@ -40006,9 +40012,9 @@ _CheatHex:
 .l00107:
 	ld	a, c
 .l00104:
-;src/fatfs/fatfs.c:976: }
+;src/fatfs/fatfs.c:980: }
 	ret
-;src/fatfs/fatfs.c:977: static void CheatApply(const BYTE* code) {
+;src/fatfs/fatfs.c:981: static void CheatApply(const BYTE* code) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -40020,7 +40026,7 @@ _CheatApply:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/fatfs/fatfs.c:980: if (code[0]>15 || code[1]>15 || code[2]>15 || code[3]>15 || code[4]>15 || code[5]<8 || code[5]>15) return;
+;src/fatfs/fatfs.c:984: if (code[0]>15 || code[1]>15 || code[2]>15 || code[3]>15 || code[4]>15 || code[5]<8 || code[5]>15) return;
 	dec	hl
 	ld	e, [hl]
 	inc	hl
@@ -40101,7 +40107,7 @@ _CheatApply:
 .l00101:
 	jp	.l00116
 .l00102:
-;src/fatfs/fatfs.c:981: address=((UINT)(code[5]^15)<<12)|((UINT)code[2]<<8)|((UINT)code[3]<<4)|code[4];
+;src/fatfs/fatfs.c:985: address=((UINT)(code[5]^15)<<12)|((UINT)code[2]<<8)|((UINT)code[3]<<4)|code[4];
 	ld	a, e
 	xor	a, $0F
 	ld	e, a
@@ -40150,7 +40156,7 @@ _CheatApply:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], a
-;src/fatfs/fatfs.c:982: value=(code[0]<<4)|code[1];
+;src/fatfs/fatfs.c:986: value=(code[0]<<4)|code[1];
 	ld	hl, sp+7
 	ld	a, [hl]
 	swap	a
@@ -40159,7 +40165,7 @@ _CheatApply:
 	or	a, [hl]
 	ld	hl, sp+2
 	ld	[hl], a
-;src/fatfs/fatfs.c:983: check=code[6]<16 && code[8]<16;
+;src/fatfs/fatfs.c:987: check=code[6]<16 && code[8]<16;
 	ld	hl, sp+10
 	dec	hl
 	ld	e, [hl]
@@ -40196,13 +40202,13 @@ _CheatApply:
 .l00120:
 	ld	hl, sp+3
 	ld	[hl], a
-;src/fatfs/fatfs.c:984: hi=((code[6]<<4)|code[8])^255;
+;src/fatfs/fatfs.c:988: hi=((code[6]<<4)|code[8])^255;
 	ld	a, b
 	swap	a
 	and	a, $F0
 	or	a, c
 	cpl
-;src/fatfs/fatfs.c:985: compare=((hi>>2)|(hi<<6))^0x45;
+;src/fatfs/fatfs.c:989: compare=((hi>>2)|(hi<<6))^0x45;
 	push	af
 	rrca
 	rrca
@@ -40216,7 +40222,7 @@ _CheatApply:
 	xor	a, $45
 	inc	hl
 	ld	[hl], a
-;src/fatfs/fatfs.c:988: block=(address & 0x3FFF)>>9; last=check ? game_blocks : block+1;
+;src/fatfs/fatfs.c:992: block=(address & 0x3FFF)>>9; last=check ? game_blocks : block+1;
 	ld	hl, sp+0
 	ld	c, [hl]
 	inc	hl
@@ -40274,7 +40280,7 @@ _CheatApply:
 	inc	hl
 	ld	d, [hl]
 .l00114:
-;src/fatfs/fatfs.c:989: for (; block<last; block+=32) {
+;src/fatfs/fatfs.c:993: for (; block<last; block+=32) {
 	ld	hl, sp+7
 	ld	a, e
 	sub	a, [hl]
@@ -40282,13 +40288,13 @@ _CheatApply:
 	ld	a, d
 	sbc	a, [hl]
 	jp	NC, .l00116
-;src/fatfs/fatfs.c:990: SetWindowBlock(block);
+;src/fatfs/fatfs.c:994: SetWindowBlock(block);
 	push	bc
 	push	de
 	call	_SetWindowBlock
 	pop	de
 	pop	bc
-;src/fatfs/fatfs.c:991: if (!check || WINDOW[address&511]==compare) WINDOW[address&511]=value;
+;src/fatfs/fatfs.c:995: if (!check || WINDOW[address&511]==compare) WINDOW[address&511]=value;
 	ld	hl, sp+3
 	ld	a, [hl]
 	or	a, a
@@ -40312,17 +40318,17 @@ _CheatApply:
 	ld	a, [hl]
 	ld	[bc], a
 .l00115:
-;src/fatfs/fatfs.c:989: for (; block<last; block+=32) {
+;src/fatfs/fatfs.c:993: for (; block<last; block+=32) {
 	ld	hl, $0020
 	add	hl, de
 	ld	e, l
 	ld	d, h
 	jp	.l00114
 .l00116:
-;src/fatfs/fatfs.c:993: }
+;src/fatfs/fatfs.c:997: }
 	add	sp, 11
 	ret
-;src/fatfs/fatfs.c:994: static FRESULT GameCheats(const char* path) {
+;src/fatfs/fatfs.c:998: static FRESULT GameCheats(const char* path) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 13",ROMX,BANK[6]
 	LOAD FRAGMENT "Page 13 RAM",SRAM,BANK[13]
@@ -40336,12 +40342,12 @@ _GameCheats:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/fatfs/fatfs.c:996: BYTE codes[144], digit=0, row=0, c, column=0;
+;src/fatfs/fatfs.c:1000: BYTE codes[144], digit=0, row=0, c, column=0;
 	inc	hl
 	ld	[hl], $00
 	inc	hl
 	ld	[hl], $00
-;src/fatfs/fatfs.c:998: if (!game_cheats) return FR_OK;
+;src/fatfs/fatfs.c:1002: if (!game_cheats) return FR_OK;
 	ld	hl, _game_cheats
 	ld	a, [hl]
 	or	a, a
@@ -40349,7 +40355,7 @@ _GameCheats:
 	xor	a, a
 	jp	.l00137
 .l00102:
-;src/fatfs/fatfs.c:999: GamePath(name,path,".txt");
+;src/fatfs/fatfs.c:1003: GamePath(name,path,".txt");
 	ld	de, ___src_fatfs_fatfs_c_str_17
 	push	de
 	ld	hl, 235
@@ -40362,7 +40368,7 @@ _GameCheats:
 	ld	e, l
 	ld	d, h
 	call	_GamePath__far
-;src/fatfs/fatfs.c:1000: for (i=0; name[i]; ++i);
+;src/fatfs/fatfs.c:1004: for (i=0; name[i]; ++i);
 	ld	de, $0000
 .l00130:
 	ld	hl, 0
@@ -40373,7 +40379,7 @@ _GameCheats:
 	jp	Z, .l00142
 	inc	de
 	jp	.l00130
-;src/fatfs/fatfs.c:1001: do { name[i+2]=name[i]; } while (i-- > sizeof(SAVE_FOLDER)-1);
+;src/fatfs/fatfs.c:1005: do { name[i+2]=name[i]; } while (i-- > sizeof(SAVE_FOLDER)-1);
 .l00142:
 .l00104:
 	ld	a, e
@@ -40400,7 +40406,7 @@ _GameCheats:
 	ld	a, $00
 	sbc	a, b
 	jp	C, .l00104
-;src/fatfs/fatfs.c:1002: memcpy(name,CHEAT_FOLDER,sizeof(CHEAT_FOLDER)-1);
+;src/fatfs/fatfs.c:1006: memcpy(name,CHEAT_FOLDER,sizeof(CHEAT_FOLDER)-1);
 	ld	de, $000F
 	push	de
 	ld	bc, __str_16
@@ -40409,7 +40415,7 @@ _GameCheats:
 	ld	e, l
 	ld	d, h
 	call	___memcpy
-;src/fatfs/fatfs.c:1003: result=f_open(&save_file,name,FA_READ);
+;src/fatfs/fatfs.c:1007: result=f_open(&save_file,name,FA_READ);
 	ld	a, $01
 	push	af
 	inc	sp
@@ -40419,7 +40425,7 @@ _GameCheats:
 	ld	b, h
 	ld	de, _save_file
 	call	_f_open__far
-;src/fatfs/fatfs.c:1004: if (result==FR_NO_FILE || result==FR_NO_PATH) return FR_OK;
+;src/fatfs/fatfs.c:1008: if (result==FR_NO_FILE || result==FR_NO_PATH) return FR_OK;
 	cp	a, $04
 	jp	NZ,.l00243
 	jp	.l00107
@@ -40434,12 +40440,12 @@ _GameCheats:
 	xor	a, a
 	jp	.l00137
 .l00108:
-;src/fatfs/fatfs.c:1005: if (result) return result;
+;src/fatfs/fatfs.c:1009: if (result) return result;
 	or	a, a
 	jp	Z, .l00111
 	jp	.l00137
 .l00111:
-;src/fatfs/fatfs.c:1006: result=f_read(&save_file,buffer,512,&done); f_close(&save_file); if (result) return result;
+;src/fatfs/fatfs.c:1010: result=f_read(&save_file,buffer,512,&done); f_close(&save_file); if (result) return result;
 	ld	bc, _buffer
 	ld	de, _save_file
 	ld	hl, 229
@@ -40459,7 +40465,7 @@ _GameCheats:
 	ld	a, c
 	jp	.l00137
 .l00113:
-;src/fatfs/fatfs.c:1007: memset(codes,0xFF,sizeof(codes));
+;src/fatfs/fatfs.c:1011: memset(codes,0xFF,sizeof(codes));
 	ld	de, $0090
 	push	de
 	ld	bc, $00FF
@@ -40468,7 +40474,7 @@ _GameCheats:
 	ld	e, l
 	ld	d, h
 	call	_memset
-;src/fatfs/fatfs.c:1008: for (i=0; i<done && row<16; ++i) {
+;src/fatfs/fatfs.c:1012: for (i=0; i<done && row<16; ++i) {
 	ld	hl, 237
 	add	hl, sp
 	ld	[hl], $00
@@ -40496,7 +40502,7 @@ _GameCheats:
 	ld	a, [hl]
 	sub	a, $10
 	jp	NC, .l00127
-;src/fatfs/fatfs.c:1009: c=buffer[i];
+;src/fatfs/fatfs.c:1013: c=buffer[i];
 	inc	hl
 	inc	hl
 	dec	hl
@@ -40521,13 +40527,13 @@ _GameCheats:
 	ld	d, [hl]
 	ld	a, [de]
 	ld	c, a
-;src/fatfs/fatfs.c:1010: if (c=='\r') continue;
+;src/fatfs/fatfs.c:1014: if (c=='\r') continue;
 	ld	a, c
 	sub	a, $0D
 	jp	NZ,.l00246
 	jp	.l00126
 .l00246:
-;src/fatfs/fatfs.c:1011: if (c=='\n') { if (column) ++row; digit=column=0; continue; }
+;src/fatfs/fatfs.c:1015: if (c=='\n') { if (column) ++row; digit=column=0; continue; }
 	ld	a, c
 	sub	a, $0A
 	jp	NZ,.l00247
@@ -40550,7 +40556,7 @@ _GameCheats:
 	ld	[hl], $00
 	jp	.l00126
 .l00119:
-;src/fatfs/fatfs.c:1012: if (c=='-' || c==' ' || c=='\t') continue;
+;src/fatfs/fatfs.c:1016: if (c=='-' || c==' ' || c=='\t') continue;
 	ld	a, c
 	sub	a, $2D
 	jp	NZ,.l00249
@@ -40566,7 +40572,7 @@ _GameCheats:
 	jp	NZ,.l00251
 	jp	.l00126
 .l00251:
-;src/fatfs/fatfs.c:1013: if (digit<9) codes[row*9+digit++]=CheatHex(c);
+;src/fatfs/fatfs.c:1017: if (digit<9) codes[row*9+digit++]=CheatHex(c);
 	ld	hl, 235
 	add	hl, sp
 	ld	a, [hl]
@@ -40622,12 +40628,12 @@ _GameCheats:
 	pop	hl
 	ld	[hl], a
 .l00125:
-;src/fatfs/fatfs.c:1014: ++column;
+;src/fatfs/fatfs.c:1018: ++column;
 	ld	hl, 236
 	add	hl, sp
 	inc	[hl]
 .l00126:
-;src/fatfs/fatfs.c:1008: for (i=0; i<done && row<16; ++i) {
+;src/fatfs/fatfs.c:1012: for (i=0; i<done && row<16; ++i) {
 	ld	hl, 238
 	add	hl, sp
 	inc	[hl]
@@ -40637,7 +40643,7 @@ _GameCheats:
 .l00252:
 	jp	.l00134
 .l00127:
-;src/fatfs/fatfs.c:1016: for (i=0; i<16; ++i) CheatApply(codes+i*9);
+;src/fatfs/fatfs.c:1020: for (i=0; i<16; ++i) CheatApply(codes+i*9);
 	ld	bc, $0000
 .l00135:
 	ld	l, c
@@ -40664,13 +40670,13 @@ _GameCheats:
 	ld	a, b
 	sbc	a, $00
 	jp	C, .l00135
-;src/fatfs/fatfs.c:1017: SetWindowBlock(TB_PSRAM_HIGH << 8);
+;src/fatfs/fatfs.c:1021: SetWindowBlock(TB_PSRAM_HIGH << 8);
 	ld	de, $0100
 	call	_SetWindowBlock
-;src/fatfs/fatfs.c:1018: return FR_OK;
+;src/fatfs/fatfs.c:1022: return FR_OK;
 	xor	a, a
 .l00137:
-;src/fatfs/fatfs.c:1019: }
+;src/fatfs/fatfs.c:1023: }
 	add	sp, 127
 	add	sp, 113
 	ret
@@ -40686,14 +40692,14 @@ ___src_fatfs_fatfs_c_str_17:
 __str_18:
 	DB "/GBCSYS/SAVE/"
 	DB $00
-;src/fatfs/fatfs.c:1029: static void SnapshotPath(char* out, const char* path) {
+;src/fatfs/fatfs.c:1033: static void SnapshotPath(char* out, const char* path) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 13",ROMX,BANK[6]
 	LOAD FRAGMENT "Page 13 RAM",SRAM,BANK[13]
 ; Function SnapshotPath
 ; ---------------------------------
 _SnapshotPath:
-;src/fatfs/fatfs.c:1030: GamePath(out, path, ".sav"); memcpy(out, SNAP_FOLDER, sizeof(SNAP_FOLDER) - 1);
+;src/fatfs/fatfs.c:1034: GamePath(out, path, ".sav"); memcpy(out, SNAP_FOLDER, sizeof(SNAP_FOLDER) - 1);
 	push	de
 	ld	hl, ___src_fatfs_fatfs_c_str_19
 	push	hl
@@ -40704,7 +40710,7 @@ _SnapshotPath:
 	push	hl
 	call	___memcpy
 .l00101:
-;src/fatfs/fatfs.c:1031: }
+;src/fatfs/fatfs.c:1035: }
 	ret
 	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
 ___src_fatfs_fatfs_c_str_19:
@@ -40714,7 +40720,7 @@ ___src_fatfs_fatfs_c_str_19:
 ___src_fatfs_fatfs_c_str_20:
 	DB "/GBCSYS/SNAP/"
 	DB $00
-;src/fatfs/fatfs.c:1032: static FRESULT SnapshotFile(const char* path, BYTE write, UINT first) {
+;src/fatfs/fatfs.c:1036: static FRESULT SnapshotFile(const char* path, BYTE write, UINT first) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -40726,7 +40732,7 @@ _SnapshotFile:
 	ld	b, d
 	ld	hl, sp+6
 	ld	[hl], a
-;src/fatfs/fatfs.c:1034: result = f_open(&save_file, path, write ? FA_WRITE | FA_CREATE_ALWAYS : FA_READ);
+;src/fatfs/fatfs.c:1038: result = f_open(&save_file, path, write ? FA_WRITE | FA_CREATE_ALWAYS : FA_READ);
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00121
@@ -40741,14 +40747,14 @@ _SnapshotFile:
 	ld	de, _save_file
 	call	_f_open__far
 	ld	c, a
-;src/fatfs/fatfs.c:1035: if (result) return result;
+;src/fatfs/fatfs.c:1039: if (result) return result;
 	ld	a, c
 	or	a, a
 	jp	Z, .l00102
 	ld	a, c
 	jp	.l00119
 .l00102:
-;src/fatfs/fatfs.c:1036: if (!write && f_size(&save_file) != 83968UL) result = FR_INT_ERR;
+;src/fatfs/fatfs.c:1040: if (!write && f_size(&save_file) != 83968UL) result = FR_INT_ERR;
 	ld	hl, sp+6
 	ld	a, [hl]
 	or	a, a
@@ -40786,7 +40792,7 @@ _SnapshotFile:
 	jp	.l00140
 .l00203:
 	ld	c, $02
-;src/fatfs/fatfs.c:1037: for (n = 0; !result && n < SNAP_SECTORS; ++n) {
+;src/fatfs/fatfs.c:1041: for (n = 0; !result && n < SNAP_SECTORS; ++n) {
 .l00140:
 	ld	de, $0000
 .l00117:
@@ -40798,7 +40804,7 @@ _SnapshotFile:
 	ld	a, d
 	sbc	a, $00
 	jp	NC, .l00114
-;src/fatfs/fatfs.c:1038: SetWindowBlock(first + n);
+;src/fatfs/fatfs.c:1042: SetWindowBlock(first + n);
 	push	de
 	ld	hl, sp+11
 	ld	a, [hl+]
@@ -40813,7 +40819,7 @@ _SnapshotFile:
 	ld	d, b
 	call	_SetWindowBlock
 	pop	de
-;src/fatfs/fatfs.c:1039: result = write ? f_write(&save_file, WINDOW, 512, &done) : f_read(&save_file, WINDOW, 512, &done);
+;src/fatfs/fatfs.c:1043: result = write ? f_write(&save_file, WINDOW, 512, &done) : f_read(&save_file, WINDOW, 512, &done);
 	ld	hl, sp+6
 	ld	a, [hl]
 	or	a, a
@@ -40844,7 +40850,7 @@ _SnapshotFile:
 	pop	de
 .l00124:
 	ld	c, a
-;src/fatfs/fatfs.c:1040: if (!result && done != 512) result = FR_DENIED;
+;src/fatfs/fatfs.c:1044: if (!result && done != 512) result = FR_DENIED;
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00107
@@ -40860,7 +40866,7 @@ _SnapshotFile:
 .l00204:
 	ld	c, $07
 .l00107:
-;src/fatfs/fatfs.c:1041: if (!result && !write && !n && memcmp(WINDOW, "SAVE", 4)) result = FR_INT_ERR;
+;src/fatfs/fatfs.c:1045: if (!result && !write && !n && memcmp(WINDOW, "SAVE", 4)) result = FR_INT_ERR;
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00118
@@ -40891,16 +40897,16 @@ _SnapshotFile:
 	jp	Z, .l00118
 	ld	c, $02
 .l00118:
-;src/fatfs/fatfs.c:1037: for (n = 0; !result && n < SNAP_SECTORS; ++n) {
+;src/fatfs/fatfs.c:1041: for (n = 0; !result && n < SNAP_SECTORS; ++n) {
 	inc	de
 	jp	.l00117
 .l00114:
-;src/fatfs/fatfs.c:1043: SetWindowBlock(TB_PSRAM_HIGH << 8);
+;src/fatfs/fatfs.c:1047: SetWindowBlock(TB_PSRAM_HIGH << 8);
 	push	bc
 	ld	de, $0100
 	call	_SetWindowBlock
 	pop	bc
-;src/fatfs/fatfs.c:1044: closed = f_close(&save_file); return result ? result : closed;
+;src/fatfs/fatfs.c:1048: closed = f_close(&save_file); return result ? result : closed;
 	push	bc
 	ld	de, _save_file
 	call	_f_close__far
@@ -40915,7 +40921,7 @@ _SnapshotFile:
 	ld	a, e
 .l00126:
 .l00119:
-;src/fatfs/fatfs.c:1045: }
+;src/fatfs/fatfs.c:1049: }
 	add	sp, 7
 	pop	hl
 	inc	sp
@@ -40925,7 +40931,7 @@ _SnapshotFile:
 ___src_fatfs_fatfs_c_str_21:
 	DB "SAVE"
 	DB $00
-;src/fatfs/fatfs.c:1047: static void SnapshotCopy(BYTE kind) {
+;src/fatfs/fatfs.c:1051: static void SnapshotCopy(BYTE kind) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -40935,7 +40941,7 @@ _SnapshotCopy:
 	add	sp, -9
 	ld	hl, sp+6
 	ld	[hl], a
-;src/fatfs/fatfs.c:1049: for (n = 0; n < SNAP_SECTORS; ++n) {
+;src/fatfs/fatfs.c:1053: for (n = 0; n < SNAP_SECTORS; ++n) {
 	ld	a, [hl]
 	dec	a
 	jp	NZ,.l00158
@@ -40977,7 +40983,7 @@ _SnapshotCopy:
 	inc	hl
 	ld	[hl], a
 .l00102:
-;src/fatfs/fatfs.c:1050: SaveRamBlock((kind == 3 ? 64 : kind == 1 ? SNAP_FIRST : SNAP_STAGE) + n, kind == 3);
+;src/fatfs/fatfs.c:1054: SaveRamBlock((kind == 3 ? 64 : kind == 1 ? SNAP_FIRST : SNAP_STAGE) + n, kind == 3);
 	ld	hl, sp+3
 	ld	a, [hl]
 	or	a, a
@@ -41015,13 +41021,13 @@ _SnapshotCopy:
 	ld	hl, sp+3
 	ld	a, [hl]
 	call	_SaveRamBlock__far
-;src/fatfs/fatfs.c:1051: memcpy(buffer, WINDOW, 512);
+;src/fatfs/fatfs.c:1055: memcpy(buffer, WINDOW, 512);
 	ld	de, $0200
 	push	de
 	ld	bc, $BE00
 	ld	de, _buffer
 	call	___memcpy
-;src/fatfs/fatfs.c:1052: SaveRamBlock((kind == 3 ? SNAP_STAGE : kind ? 64 : SNAP_FIRST) + n, kind == 1 || kind == 2);
+;src/fatfs/fatfs.c:1056: SaveRamBlock((kind == 3 ? SNAP_STAGE : kind ? 64 : SNAP_FIRST) + n, kind == 1 || kind == 2);
 	ld	hl, sp+2
 	bit	0, [hl]
 	jp	NZ, .l00111
@@ -41059,13 +41065,13 @@ _SnapshotCopy:
 	ld	d, h
 	ld	a, c
 	call	_SaveRamBlock__far
-;src/fatfs/fatfs.c:1053: memcpy(WINDOW, buffer, 512);
+;src/fatfs/fatfs.c:1057: memcpy(WINDOW, buffer, 512);
 	ld	de, $0200
 	push	de
 	ld	bc, _buffer
 	ld	de, $BE00
 	call	___memcpy
-;src/fatfs/fatfs.c:1049: for (n = 0; n < SNAP_SECTORS; ++n) {
+;src/fatfs/fatfs.c:1053: for (n = 0; n < SNAP_SECTORS; ++n) {
 	ld	hl, sp+7
 	inc	[hl]
 	jp	NZ, .l00164
@@ -41079,15 +41085,15 @@ _SnapshotCopy:
 	ld	a, [hl]
 	sbc	a, $00
 	jp	C, .l00102
-;src/fatfs/fatfs.c:1055: SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
+;src/fatfs/fatfs.c:1059: SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
 	xor	a, a
 	ld	de, $0100
 	call	_SaveRamBlock__far
 .l00104:
-;src/fatfs/fatfs.c:1056: }
+;src/fatfs/fatfs.c:1060: }
 	add	sp, 9
 	ret
-;src/fatfs/fatfs.c:1057: static FRESULT SnapshotStore(char* path, UINT first) {
+;src/fatfs/fatfs.c:1061: static FRESULT SnapshotStore(char* path, UINT first) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -41103,7 +41109,7 @@ _SnapshotStore:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/fatfs/fatfs.c:1060: result = f_mkdir("/GBCSYS/SNAP"); if (result && result != FR_EXIST) return result;
+;src/fatfs/fatfs.c:1064: result = f_mkdir("/GBCSYS/SNAP"); if (result && result != FR_EXIST) return result;
 	ld	de, ___src_fatfs_fatfs_c_str_23
 	call	_f_mkdir__far
 	ld	hl, sp+94
@@ -41120,7 +41126,7 @@ _SnapshotStore:
 	ld	a, [hl]
 	jp	.l00113
 .l00102:
-;src/fatfs/fatfs.c:1061: memcpy(temp, path, sizeof(temp));
+;src/fatfs/fatfs.c:1065: memcpy(temp, path, sizeof(temp));
 	ld	hl, sp+91
 	ld	c, [hl]
 	inc	hl
@@ -41132,7 +41138,7 @@ _SnapshotStore:
 	ld	e, l
 	ld	d, h
 	call	___memcpy
-;src/fatfs/fatfs.c:1062: for (n = 0; temp[n]; ++n); memcpy(temp + n - 3, "tmp", 3);
+;src/fatfs/fatfs.c:1066: for (n = 0; temp[n]; ++n); memcpy(temp + n - 3, "tmp", 3);
 	xor	a, a
 	ld	hl, sp+93
 	ld	[hl], a
@@ -41203,7 +41209,7 @@ _SnapshotStore:
 	push	bc
 	ld	bc, ___src_fatfs_fatfs_c_str_24
 	call	___memcpy
-;src/fatfs/fatfs.c:1063: if ((result = SnapshotFile(temp, 1, first))) return result;
+;src/fatfs/fatfs.c:1067: if ((result = SnapshotFile(temp, 1, first))) return result;
 	ld	hl, sp+89
 	ld	e, [hl]
 	inc	hl
@@ -41221,7 +41227,7 @@ _SnapshotStore:
 	ld	a, c
 	jp	.l00113
 .l00106:
-;src/fatfs/fatfs.c:1065: memcpy(path + n - 3, "bak", 3); f_unlink(path);
+;src/fatfs/fatfs.c:1069: memcpy(path + n - 3, "bak", 3); f_unlink(path);
 	ld	hl, sp+94
 	dec	hl
 	ld	e, [hl]
@@ -41266,7 +41272,7 @@ _SnapshotStore:
 	inc	hl
 	ld	d, [hl]
 	call	_f_unlink__far
-;src/fatfs/fatfs.c:1066: memcpy(temp + n - 3, "sav", 3); result = f_rename(temp, path);
+;src/fatfs/fatfs.c:1070: memcpy(temp + n - 3, "sav", 3); result = f_rename(temp, path);
 	ld	hl, sp+85
 	ld	a, [hl]
 	ld	hl, sp+93
@@ -41292,7 +41298,7 @@ _SnapshotStore:
 	ld	e, l
 	ld	d, h
 	call	_f_rename__far
-;src/fatfs/fatfs.c:1067: if (result && result != FR_NO_FILE) return result;
+;src/fatfs/fatfs.c:1071: if (result && result != FR_NO_FILE) return result;
 	or	a, a
 	jp	Z, .l00108
 	cp	a, $04
@@ -41301,7 +41307,7 @@ _SnapshotStore:
 .l00153:
 	jp	.l00113
 .l00108:
-;src/fatfs/fatfs.c:1068: memcpy(temp + n - 3, "tmp", 3); memcpy(path + n - 3, "sav", 3);
+;src/fatfs/fatfs.c:1072: memcpy(temp + n - 3, "tmp", 3); memcpy(path + n - 3, "sav", 3);
 	push	hl
 	ld	hl, 2
 	add	hl, sp
@@ -41389,7 +41395,7 @@ _SnapshotStore:
 	inc	hl
 	ld	d, [hl]
 	call	___memcpy
-;src/fatfs/fatfs.c:1069: result = f_rename(temp, path);
+;src/fatfs/fatfs.c:1073: result = f_rename(temp, path);
 	ld	hl, sp+91
 	ld	c, [hl]
 	inc	hl
@@ -41401,11 +41407,11 @@ _SnapshotStore:
 	call	_f_rename__far
 	ld	hl, sp+94
 	ld	[hl], a
-;src/fatfs/fatfs.c:1070: return result;
+;src/fatfs/fatfs.c:1074: return result;
 	ld	hl, sp+94
 	ld	a, [hl]
 .l00113:
-;src/fatfs/fatfs.c:1071: }
+;src/fatfs/fatfs.c:1075: }
 	add	sp, 95
 	ret
 	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
@@ -41428,7 +41434,7 @@ ___src_fatfs_fatfs_c_str_25:
 ___src_fatfs_fatfs_c_str_26:
 	DB "sav"
 	DB $00
-;src/fatfs/fatfs.c:1074: static FRESULT BackupSnapshot(char* path, UINT sectors) {
+;src/fatfs/fatfs.c:1078: static FRESULT BackupSnapshot(char* path, UINT sectors) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 14",ROMX,BANK[7]
 	LOAD FRAGMENT "Page 14 RAM",SRAM,BANK[14]
@@ -41440,7 +41446,7 @@ _BackupSnapshot:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/fatfs/fatfs.c:1076: if (sectors > 64) return FR_OK;
+;src/fatfs/fatfs.c:1080: if (sectors > 64) return FR_OK;
 	ld	a, $40
 	cp	a, c
 	ld	a, $00
@@ -41449,7 +41455,7 @@ _BackupSnapshot:
 	xor	a, a
 	jp	.l00109
 .l00102:
-;src/fatfs/fatfs.c:1077: SaveRamBlock(64, 1); n = memcmp(WINDOW, "SAVE", 4);
+;src/fatfs/fatfs.c:1081: SaveRamBlock(64, 1); n = memcmp(WINDOW, "SAVE", 4);
 	ld	a, $01
 	ld	de, $0040
 	call	_SaveRamBlock__far
@@ -41458,23 +41464,23 @@ _BackupSnapshot:
 	ld	bc, ___src_fatfs_fatfs_c_str_27
 	ld	de, $BE00
 	call	_memcmp
-;src/fatfs/fatfs.c:1078: SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
+;src/fatfs/fatfs.c:1082: SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
 	push	bc
 	xor	a, a
 	ld	de, $0100
 	call	_SaveRamBlock__far
 	pop	bc
-;src/fatfs/fatfs.c:1079: if (n) return FR_OK;
+;src/fatfs/fatfs.c:1083: if (n) return FR_OK;
 	ld	a, b
 	or	a, c
 	jp	Z, .l00104
 	xor	a, a
 	jp	.l00109
 .l00104:
-;src/fatfs/fatfs.c:1080: SnapshotCopy(3);
+;src/fatfs/fatfs.c:1084: SnapshotCopy(3);
 	ld	a, $03
 	call	_SnapshotCopy__far
-;src/fatfs/fatfs.c:1081: memcpy(path, SNAP_FOLDER, sizeof(SNAP_FOLDER)-1);
+;src/fatfs/fatfs.c:1085: memcpy(path, SNAP_FOLDER, sizeof(SNAP_FOLDER)-1);
 	ld	bc, ___src_fatfs_fatfs_c_str_28+0
 	pop	hl
 	pop	de
@@ -41483,7 +41489,7 @@ _BackupSnapshot:
 	ld	hl, $000D
 	push	hl
 	call	___memcpy
-;src/fatfs/fatfs.c:1082: for (n = 0; path[n]; ++n); memcpy(path+n-3, "sav", 3);
+;src/fatfs/fatfs.c:1086: for (n = 0; path[n]; ++n); memcpy(path+n-3, "sav", 3);
 	ld	bc, $0000
 .l00107:
 	ld	hl, sp+2
@@ -41517,7 +41523,7 @@ _BackupSnapshot:
 	push	bc
 	ld	bc, ___src_fatfs_fatfs_c_str_29
 	call	___memcpy
-;src/fatfs/fatfs.c:1083: return SnapshotStore(path, SNAP_STAGE);
+;src/fatfs/fatfs.c:1087: return SnapshotStore(path, SNAP_STAGE);
 	ld	bc, $3C00
 	pop	hl
 	pop	de
@@ -41525,7 +41531,7 @@ _BackupSnapshot:
 	push	hl
 	call	_SnapshotStore__far
 .l00109:
-;src/fatfs/fatfs.c:1084: }
+;src/fatfs/fatfs.c:1088: }
 	add	sp, 4
 	ret
 	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
@@ -41540,7 +41546,7 @@ ___src_fatfs_fatfs_c_str_28:
 ___src_fatfs_fatfs_c_str_29:
 	DB "sav"
 	DB $00
-;src/fatfs/fatfs.c:1087: static FRESULT BackupRegistry(UINT sum) {
+;src/fatfs/fatfs.c:1091: static FRESULT BackupRegistry(UINT sum) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 12",ROMX,BANK[6]
 	LOAD FRAGMENT "Page 12 RAM",SRAM,BANK[12]
@@ -41552,8 +41558,8 @@ _BackupRegistry:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/fatfs/fatfs.c:1089: char* path = (char*)record + 10;
-;src/fatfs/fatfs.c:1092: if ((result = f_open(&save_file, REGISTRY, FA_READ))) return result == FR_NO_FILE ? FR_OK : result;
+;src/fatfs/fatfs.c:1093: char* path = (char*)record + 10;
+;src/fatfs/fatfs.c:1096: if ((result = f_open(&save_file, REGISTRY, FA_READ))) return result == FR_NO_FILE ? FR_OK : result;
 	ld	a, $01
 	push	af
 	inc	sp
@@ -41588,7 +41594,7 @@ _BackupRegistry:
 .l00165:
 	jp	.l00162
 .l00102:
-;src/fatfs/fatfs.c:1093: result = f_read(&save_file, buffer, 512, &done); f_close(&save_file);
+;src/fatfs/fatfs.c:1097: result = f_read(&save_file, buffer, 512, &done); f_close(&save_file);
 	ld	hl, 93
 	add	hl, sp
 	ld	e, l
@@ -41603,7 +41609,7 @@ _BackupRegistry:
 	ld	[hl], a
 	ld	de, _save_file
 	call	_f_close__far
-;src/fatfs/fatfs.c:1094: if (result) return result;
+;src/fatfs/fatfs.c:1098: if (result) return result;
 	ld	hl, sp+107
 	ld	a, [hl]
 	or	a, a
@@ -41611,7 +41617,7 @@ _BackupRegistry:
 	ld	a, [hl]
 	jp	.l00162
 .l00104:
-;src/fatfs/fatfs.c:1095: if (done < 266 || ld_16(buffer) != 0x1234 || ByteSum(buffer,264) != ld_16(buffer+264) || !buffer[263]) return FR_OK;
+;src/fatfs/fatfs.c:1099: if (done < 266 || ld_16(buffer) != 0x1234 || ByteSum(buffer,264) != ld_16(buffer+264) || !buffer[263]) return FR_OK;
 	ld	hl, sp+93
 	ld	a, [hl]
 	sub	a, $0A
@@ -41657,7 +41663,7 @@ _BackupRegistry:
 	xor	a, a
 	jp	.l00162
 .l00106:
-;src/fatfs/fatfs.c:1096: sectors = ld_16(buffer+16); rtc = buffer[13];
+;src/fatfs/fatfs.c:1100: sectors = ld_16(buffer+16); rtc = buffer[13];
 	ld	de, (_buffer + 16)
 	call	_ld_16
 	ld	hl, sp+95
@@ -41668,7 +41674,7 @@ _BackupRegistry:
 	ld	a, [hl]
 	ld	hl, sp+97
 	ld	[hl], a
-;src/fatfs/fatfs.c:1097: if (sectors > 256) return FR_INT_ERR;
+;src/fatfs/fatfs.c:1101: if (sectors > 256) return FR_INT_ERR;
 	ld	hl, sp+95
 	ld	a, $00
 	sub	a, [hl]
@@ -41679,7 +41685,7 @@ _BackupRegistry:
 	ld	a, $02
 	jp	.l00162
 .l00111:
-;src/fatfs/fatfs.c:1098: memcpy(path,SAVE_FOLDER,sizeof(SAVE_FOLDER)-1);
+;src/fatfs/fatfs.c:1102: memcpy(path,SAVE_FOLDER,sizeof(SAVE_FOLDER)-1);
 	ld	de, $000D
 	push	de
 	ld	bc, __str_30
@@ -41688,7 +41694,7 @@ _BackupRegistry:
 	ld	e, l
 	ld	d, h
 	call	___memcpy
-;src/fatfs/fatfs.c:1099: for (i=0; i<208 && buffer[34+i]; ++i);
+;src/fatfs/fatfs.c:1103: for (i=0; i<208 && buffer[34+i]; ++i);
 	xor	a, a
 	ld	hl, sp+106
 	ld	[hl], a
@@ -41745,7 +41751,7 @@ _BackupRegistry:
 .l00362:
 	jp	.l00148
 .l00112:
-;src/fatfs/fatfs.c:1100: if (!i || i >= FS_NAME_SIZE) { backup_skipped=1; return FR_OK; }
+;src/fatfs/fatfs.c:1104: if (!i || i >= FS_NAME_SIZE) { backup_skipped=1; return FR_OK; }
 	ld	hl, sp+107
 	ld	a, [hl]
 	dec	hl
@@ -41763,7 +41769,7 @@ _BackupRegistry:
 	xor	a, a
 	jp	.l00162
 .l00114:
-;src/fatfs/fatfs.c:1101: raw = i == 11; n = sizeof(SAVE_FOLDER)-1;
+;src/fatfs/fatfs.c:1105: raw = i == 11; n = sizeof(SAVE_FOLDER)-1;
 	ld	hl, sp+106
 	ld	a, [hl]
 	sub	a, $0B
@@ -41779,7 +41785,7 @@ _BackupRegistry:
 	ld	[hl], a
 	ld	hl, sp+105
 	ld	[hl], $0D
-;src/fatfs/fatfs.c:1102: for (i=0; buffer[34+i] && i<208; ++i) {
+;src/fatfs/fatfs.c:1106: for (i=0; buffer[34+i] && i<208; ++i) {
 	xor	a, a
 	inc	hl
 	ld	[hl], a
@@ -41819,7 +41825,7 @@ _BackupRegistry:
 	ld	a, [hl]
 	sbc	a, $00
 	jp	NC, .l00122
-;src/fatfs/fatfs.c:1103: if (raw && i==8) path[n++]='.';
+;src/fatfs/fatfs.c:1107: if (raw && i==8) path[n++]='.';
 	ld	hl, sp+98
 	ld	a, [hl]
 	or	a, a
@@ -41864,7 +41870,7 @@ _BackupRegistry:
 	ld	l, a
 	ld	[hl], $2E
 .l00117:
-;src/fatfs/fatfs.c:1102: for (i=0; buffer[34+i] && i<208; ++i) {
+;src/fatfs/fatfs.c:1106: for (i=0; buffer[34+i] && i<208; ++i) {
 	ld	hl, sp+100
 	dec	hl
 	ld	e, [hl]
@@ -41872,7 +41878,7 @@ _BackupRegistry:
 	ld	d, [hl]
 	ld	a, [de]
 	ld	c, a
-;src/fatfs/fatfs.c:1104: if (!raw || buffer[34+i]!=' ') path[n++]=buffer[34+i];
+;src/fatfs/fatfs.c:1108: if (!raw || buffer[34+i]!=' ') path[n++]=buffer[34+i];
 	dec	hl
 	dec	hl
 	ld	a, [hl]
@@ -41893,7 +41899,7 @@ _BackupRegistry:
 	add	hl, de
 	ld	[hl], c
 .l00153:
-;src/fatfs/fatfs.c:1102: for (i=0; buffer[34+i] && i<208; ++i) {
+;src/fatfs/fatfs.c:1106: for (i=0; buffer[34+i] && i<208; ++i) {
 	ld	hl, sp+106
 	inc	[hl]
 	jp	NZ, .l00368
@@ -41902,7 +41908,7 @@ _BackupRegistry:
 .l00368:
 	jp	.l00152
 .l00122:
-;src/fatfs/fatfs.c:1106: path[n]=0;
+;src/fatfs/fatfs.c:1110: path[n]=0;
 	push	hl
 	ld	hl, 12
 	add	hl, sp
@@ -41917,7 +41923,7 @@ _BackupRegistry:
 	ld	b, h
 	xor	a, a
 	ld	[bc], a
-;src/fatfs/fatfs.c:1107: for (i=n; i>sizeof(SAVE_FOLDER)-1 && path[i]!='.'; --i);
+;src/fatfs/fatfs.c:1111: for (i=n; i>sizeof(SAVE_FOLDER)-1 && path[i]!='.'; --i);
 	ld	hl, sp+105
 	ld	a, [hl]
 	ld	hl, sp+101
@@ -41949,7 +41955,7 @@ _BackupRegistry:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/fatfs/fatfs.c:1108: if (i==sizeof(SAVE_FOLDER)-1) i=n;
+;src/fatfs/fatfs.c:1112: if (i==sizeof(SAVE_FOLDER)-1) i=n;
 	ld	a, c
 	sub	a, $0D
 	or	a, b
@@ -41967,7 +41973,7 @@ _BackupRegistry:
 	ld	hl, sp+107
 	ld	[hl], a
 .l00125:
-;src/fatfs/fatfs.c:1109: memcpy(path+i,".srm",5);
+;src/fatfs/fatfs.c:1113: memcpy(path+i,".srm",5);
 	push	hl
 	ld	hl, 12
 	add	hl, sp
@@ -41995,7 +42001,7 @@ _BackupRegistry:
 	push	bc
 	ld	bc, ___src_fatfs_fatfs_c_str_32
 	call	___memcpy
-;src/fatfs/fatfs.c:1110: if (sectors<256) {
+;src/fatfs/fatfs.c:1114: if (sectors<256) {
 	ld	hl, sp+95
 	ld	a, [hl]
 	sub	a, $00
@@ -42003,11 +42009,11 @@ _BackupRegistry:
 	ld	a, [hl]
 	sbc	a, $01
 	jp	NC, .l00130
-;src/fatfs/fatfs.c:1111: SaveRamBlock(255,1);
+;src/fatfs/fatfs.c:1115: SaveRamBlock(255,1);
 	ld	a, $01
 	ld	de, $00FF
 	call	_SaveRamBlock__far
-;src/fatfs/fatfs.c:1112: for (n=0; n<16 && WINDOW[480+n]==n; ++n);
+;src/fatfs/fatfs.c:1116: for (n=0; n<16 && WINDOW[480+n]==n; ++n);
 	ld	hl, sp+107
 	ld	[hl], $00
 .l00160:
@@ -42035,11 +42041,11 @@ _BackupRegistry:
 	inc	[hl]
 	jp	.l00160
 .l00126:
-;src/fatfs/fatfs.c:1113: SaveRamBlock(TB_PSRAM_HIGH << 8,0);
+;src/fatfs/fatfs.c:1117: SaveRamBlock(TB_PSRAM_HIGH << 8,0);
 	xor	a, a
 	ld	de, $0100
 	call	_SaveRamBlock__far
-;src/fatfs/fatfs.c:1114: if (n!=16) { backup_skipped=1; return FR_OK; }
+;src/fatfs/fatfs.c:1118: if (n!=16) { backup_skipped=1; return FR_OK; }
 	ld	hl, sp+107
 	ld	a, [hl]
 	sub	a, $10
@@ -42051,16 +42057,16 @@ _BackupRegistry:
 	xor	a, a
 	jp	.l00162
 .l00130:
-;src/fatfs/fatfs.c:1116: f_mkdir("/GBCSYS/SAVE");
+;src/fatfs/fatfs.c:1120: f_mkdir("/GBCSYS/SAVE");
 	ld	de, ___src_fatfs_fatfs_c_str_33
 	call	_f_mkdir__far
-;src/fatfs/fatfs.c:1117: if (sectors) {
+;src/fatfs/fatfs.c:1121: if (sectors) {
 	ld	hl, sp+96
 	ld	a, [hl]
 	dec	hl
 	or	a, [hl]
 	jp	Z, .l00137
-;src/fatfs/fatfs.c:1118: if ((result=f_open(&save_file,path,FA_WRITE|FA_CREATE_ALWAYS))) return result;
+;src/fatfs/fatfs.c:1122: if ((result=f_open(&save_file,path,FA_WRITE|FA_CREATE_ALWAYS))) return result;
 	ld	a, $0A
 	push	af
 	inc	sp
@@ -42076,7 +42082,7 @@ _BackupRegistry:
 	ld	a, c
 	jp	.l00162
 .l00132:
-;src/fatfs/fatfs.c:1119: result=SaveRamFile(sectors,1); closed=f_close(&save_file); if (result || closed) return result ? result : closed;
+;src/fatfs/fatfs.c:1123: result=SaveRamFile(sectors,1); closed=f_close(&save_file); if (result || closed) return result ? result : closed;
 	ld	a, $01
 	ld	hl, sp+95
 	ld	e, [hl]
@@ -42112,7 +42118,7 @@ _BackupRegistry:
 	ld	a, [hl]
 	jp	.l00162
 .l00137:
-;src/fatfs/fatfs.c:1121: if (rtc) { memcpy(path+i+1,"rtc",3); if ((result=WriteGameRTC(path))) return result; }
+;src/fatfs/fatfs.c:1125: if (rtc) { memcpy(path+i+1,"rtc",3); if ((result=WriteGameRTC(path))) return result; }
 	ld	hl, sp+97
 	ld	a, [hl]
 	or	a, a
@@ -42151,7 +42157,7 @@ _BackupRegistry:
 	ld	a, c
 	jp	.l00162
 .l00141:
-;src/fatfs/fatfs.c:1122: if ((result=BackupSnapshot(path,sectors))) return result;
+;src/fatfs/fatfs.c:1126: if ((result=BackupSnapshot(path,sectors))) return result;
 	ld	hl, sp+95
 	ld	c, [hl]
 	inc	hl
@@ -42167,7 +42173,7 @@ _BackupRegistry:
 	ld	a, c
 	jp	.l00162
 .l00143:
-;src/fatfs/fatfs.c:1123: memcpy(record,"GAM3",4); record[4]=0; st_16(record+5,sum); record[7]=rtc; st_16(record+8,sectors);
+;src/fatfs/fatfs.c:1127: memcpy(record,"GAM3",4); record[4]=0; st_16(record+5,sum); record[7]=rtc; st_16(record+8,sectors);
 	ld	de, $0004
 	push	de
 	ld	bc, ___src_fatfs_fatfs_c_str_35
@@ -42217,7 +42223,7 @@ _BackupRegistry:
 	ld	e, l
 	ld	d, h
 	call	_st_16
-;src/fatfs/fatfs.c:1125: if ((result=f_open(&save_file,GAME_RECORD,FA_WRITE|FA_CREATE_ALWAYS))) return result;
+;src/fatfs/fatfs.c:1129: if ((result=f_open(&save_file,GAME_RECORD,FA_WRITE|FA_CREATE_ALWAYS))) return result;
 	ld	a, $0A
 	push	af
 	inc	sp
@@ -42230,7 +42236,7 @@ _BackupRegistry:
 	ld	a, c
 	jp	.l00162
 .l00145:
-;src/fatfs/fatfs.c:1126: result=f_write(&save_file,record,10,&done); closed=f_close(&save_file);
+;src/fatfs/fatfs.c:1130: result=f_write(&save_file,record,10,&done); closed=f_close(&save_file);
 	ld	hl, 93
 	add	hl, sp
 	ld	e, l
@@ -42250,7 +42256,7 @@ _BackupRegistry:
 	call	_f_close__far
 	ld	hl, sp+107
 	ld	[hl], a
-;src/fatfs/fatfs.c:1127: return result ? result : done!=10 ? FR_DENIED : closed;
+;src/fatfs/fatfs.c:1131: return result ? result : done!=10 ? FR_DENIED : closed;
 	ld	hl, sp+106
 	ld	a, [hl]
 	or	a, a
@@ -42280,7 +42286,7 @@ _BackupRegistry:
 	ld	hl, sp+107
 	ld	a, [hl]
 .l00162:
-;src/fatfs/fatfs.c:1128: }
+;src/fatfs/fatfs.c:1132: }
 	add	sp, 108
 	ret
 	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
@@ -42311,7 +42317,7 @@ ___src_fatfs_fatfs_c_str_35:
 ___src_fatfs_fatfs_c_str_36:
 	DB "/GBCSYS/EDITOR.GAM"
 	DB $00
-;src/fatfs/fatfs.c:1131: unsigned char fs_Snapshot(BYTE action) {
+;src/fatfs/fatfs.c:1135: unsigned char fs_Snapshot(BYTE action) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -42321,10 +42327,10 @@ _fs_Snapshot::
 	add	sp, -84
 	ld	hl, sp+83
 	ld	[hl], a
-;src/fatfs/fatfs.c:1134: SetWindowBlock(GAME_META);
+;src/fatfs/fatfs.c:1138: SetWindowBlock(GAME_META);
 	ld	de, $3E2F
 	call	_SetWindowBlock
-;src/fatfs/fatfs.c:1135: if (WINDOW[128] > 64 || WINDOW[129]) { SetWindowBlock(TB_PSRAM_HIGH << 8); return FR_DENIED; }
+;src/fatfs/fatfs.c:1139: if (WINDOW[128] > 64 || WINDOW[129]) { SetWindowBlock(TB_PSRAM_HIGH << 8); return FR_DENIED; }
 	ld	hl, $BE80
 	ld	c, [hl]
 	ld	a, $40
@@ -42339,7 +42345,7 @@ _fs_Snapshot::
 	ld	a, $07
 	jp	.l00116
 .l00102:
-;src/fatfs/fatfs.c:1136: memcpy(path, WINDOW, sizeof(path)); path[sizeof(path)-1] = 0;
+;src/fatfs/fatfs.c:1140: memcpy(path, WINDOW, sizeof(path)); path[sizeof(path)-1] = 0;
 	ld	de, $0053
 	push	de
 	ld	bc, $BE00
@@ -42350,10 +42356,10 @@ _fs_Snapshot::
 	call	___memcpy
 	ld	hl, sp+82
 	ld	[hl], $00
-;src/fatfs/fatfs.c:1137: SetWindowBlock(TB_PSRAM_HIGH << 8);
+;src/fatfs/fatfs.c:1141: SetWindowBlock(TB_PSRAM_HIGH << 8);
 	ld	de, $0100
 	call	_SetWindowBlock
-;src/fatfs/fatfs.c:1138: if (!path[0]) return FR_NO_FILE;
+;src/fatfs/fatfs.c:1142: if (!path[0]) return FR_NO_FILE;
 	ld	hl, sp+0
 	ld	a, [hl]
 	or	a, a
@@ -42361,7 +42367,7 @@ _fs_Snapshot::
 	ld	a, $04
 	jp	.l00116
 .l00105:
-;src/fatfs/fatfs.c:1139: if ((result = fs_Mount())) return result;
+;src/fatfs/fatfs.c:1143: if ((result = fs_Mount())) return result;
 	call	_fs_Mount__far
 	ld	c, a
 	or	a, a
@@ -42369,12 +42375,12 @@ _fs_Snapshot::
 	ld	a, c
 	jp	.l00116
 .l00107:
-;src/fatfs/fatfs.c:1140: if (action) {
+;src/fatfs/fatfs.c:1144: if (action) {
 	ld	hl, sp+83
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00113
-;src/fatfs/fatfs.c:1141: if ((result = SnapshotFile(path, 0, SNAP_STAGE))) return result;
+;src/fatfs/fatfs.c:1145: if ((result = SnapshotFile(path, 0, SNAP_STAGE))) return result;
 	ld	de, $3C00
 	push	de
 	xor	a, a
@@ -42389,10 +42395,10 @@ _fs_Snapshot::
 	ld	a, c
 	jp	.l00116
 .l00109:
-;src/fatfs/fatfs.c:1142: SetWindowBlock(SNAP_STAGE);
+;src/fatfs/fatfs.c:1146: SetWindowBlock(SNAP_STAGE);
 	ld	de, $3C00
 	call	_SetWindowBlock
-;src/fatfs/fatfs.c:1143: result = !memcmp(WINDOW + 10, "GB\1", 3) && WINDOW[13] != snapshot_model ? FR_DENIED : FR_OK;
+;src/fatfs/fatfs.c:1147: result = !memcmp(WINDOW + 10, "GB\1", 3) && WINDOW[13] != snapshot_model ? FR_DENIED : FR_OK;
 	ld	de, $0003
 	push	de
 	ld	bc, ___src_fatfs_fatfs_c_str_38
@@ -42414,19 +42420,19 @@ _fs_Snapshot::
 .l00118:
 	ld	bc, $0000
 .l00119:
-;src/fatfs/fatfs.c:1144: SetWindowBlock(TB_PSRAM_HIGH << 8);
+;src/fatfs/fatfs.c:1148: SetWindowBlock(TB_PSRAM_HIGH << 8);
 	push	bc
 	ld	de, $0100
 	call	_SetWindowBlock
 	pop	bc
-;src/fatfs/fatfs.c:1145: if (result) return result;
+;src/fatfs/fatfs.c:1149: if (result) return result;
 	ld	a, c
 	or	a, a
 	jp	Z, .l00111
 	ld	a, c
 	jp	.l00116
 .l00111:
-;src/fatfs/fatfs.c:1146: SnapshotCopy(0); SnapshotCopy(1); return FR_OK;
+;src/fatfs/fatfs.c:1150: SnapshotCopy(0); SnapshotCopy(1); return FR_OK;
 	xor	a, a
 	call	_SnapshotCopy
 	ld	a, $01
@@ -42434,7 +42440,7 @@ _fs_Snapshot::
 	xor	a, a
 	jp	.l00116
 .l00113:
-;src/fatfs/fatfs.c:1148: result = SnapshotStore(path, SNAP_FIRST);
+;src/fatfs/fatfs.c:1152: result = SnapshotStore(path, SNAP_FIRST);
 	ld	bc, $3E40
 	ld	hl, 0
 	add	hl, sp
@@ -42442,7 +42448,7 @@ _fs_Snapshot::
 	ld	d, h
 	call	_SnapshotStore
 	ld	c, a
-;src/fatfs/fatfs.c:1149: if (!result) SnapshotCopy(1);
+;src/fatfs/fatfs.c:1153: if (!result) SnapshotCopy(1);
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00115
@@ -42451,10 +42457,10 @@ _fs_Snapshot::
 	call	_SnapshotCopy
 	pop	bc
 .l00115:
-;src/fatfs/fatfs.c:1150: return result;
+;src/fatfs/fatfs.c:1154: return result;
 	ld	a, c
 .l00116:
-;src/fatfs/fatfs.c:1151: }
+;src/fatfs/fatfs.c:1155: }
 	add	sp, 84
 	ret
 	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
@@ -42466,7 +42472,7 @@ ___src_fatfs_fatfs_c_str_38:
 	DB "GB"
 	DB $01
 	DB $00
-;src/fatfs/fatfs.c:1153: unsigned char fs_GameFinish(const char* path) {
+;src/fatfs/fatfs.c:1157: unsigned char fs_GameFinish(const char* path) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 11",ROMX,BANK[5]
 	LOAD FRAGMENT "Page 11 RAM",SRAM,BANK[11]
@@ -42480,7 +42486,7 @@ _fs_GameFinish::
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/fatfs/fatfs.c:1158: if (game_save_sectors < 256) {
+;src/fatfs/fatfs.c:1162: if (game_save_sectors < 256) {
 	ld	hl, _game_save_sectors
 	ld	a, [hl]
 	sub	a, $00
@@ -42488,7 +42494,7 @@ _fs_GameFinish::
 	ld	a, [hl]
 	sbc	a, $01
 	jp	NC, .l00102
-;src/fatfs/fatfs.c:1159: SaveRamBlock(255, 1); memset(WINDOW + 480, 0, 16); SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
+;src/fatfs/fatfs.c:1163: SaveRamBlock(255, 1); memset(WINDOW + 480, 0, 16); SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
 	ld	a, $01
 	ld	de, $00FF
 	call	_SaveRamBlock__far
@@ -42501,7 +42507,7 @@ _fs_GameFinish::
 	ld	de, $0100
 	call	_SaveRamBlock__far
 .l00102:
-;src/fatfs/fatfs.c:1161: result = f_mkdir("/GBCSYS/SAVE"); if (result && result != FR_EXIST) return result;
+;src/fatfs/fatfs.c:1165: result = f_mkdir("/GBCSYS/SAVE"); if (result && result != FR_EXIST) return result;
 	ld	de, ___src_fatfs_fatfs_c_str_40
 	call	_f_mkdir__far
 	ld	hl, 182
@@ -42520,7 +42526,7 @@ _fs_GameFinish::
 	ld	a, [hl]
 	jp	.l00158
 .l00104:
-;src/fatfs/fatfs.c:1162: GamePath((char*)record + 10, path, ".srm");
+;src/fatfs/fatfs.c:1166: GamePath((char*)record + 10, path, ".srm");
 	ld	de, ___src_fatfs_fatfs_c_str_41
 	push	de
 	ld	hl, 181
@@ -42533,7 +42539,7 @@ _fs_GameFinish::
 	ld	e, l
 	ld	d, h
 	call	_GamePath__far
-;src/fatfs/fatfs.c:1163: GamePath(rtc_path, path, ".rtc");
+;src/fatfs/fatfs.c:1167: GamePath(rtc_path, path, ".rtc");
 	ld	de, ___src_fatfs_fatfs_c_str_42
 	push	de
 	ld	hl, 181
@@ -42546,13 +42552,13 @@ _fs_GameFinish::
 	ld	e, l
 	ld	d, h
 	call	_GamePath__far
-;src/fatfs/fatfs.c:1164: if (game_save_sectors) {
+;src/fatfs/fatfs.c:1168: if (game_save_sectors) {
 	ld	hl, _game_save_sectors + 1
 	ld	a, [hl]
 	dec	hl
 	or	a, [hl]
 	jp	Z, .l00117
-;src/fatfs/fatfs.c:1165: result = f_open(&save_file, (const char*)record + 10, FA_READ);
+;src/fatfs/fatfs.c:1169: result = f_open(&save_file, (const char*)record + 10, FA_READ);
 	ld	a, $01
 	push	af
 	inc	sp
@@ -42565,11 +42571,11 @@ _fs_GameFinish::
 	ld	hl, 182
 	add	hl, sp
 	ld	[hl], a
-;src/fatfs/fatfs.c:1166: if (!result) {
+;src/fatfs/fatfs.c:1170: if (!result) {
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00112
-;src/fatfs/fatfs.c:1167: result = SaveRamFile(game_save_sectors, 0); f_close(&save_file);
+;src/fatfs/fatfs.c:1171: result = SaveRamFile(game_save_sectors, 0); f_close(&save_file);
 	xor	a, a
 	ld	hl, _game_save_sectors
 	ld	e, [hl]
@@ -42583,7 +42589,7 @@ _fs_GameFinish::
 	call	_f_close__far
 	jp	.l00113
 .l00112:
-;src/fatfs/fatfs.c:1169: else if (result == FR_NO_FILE || result == FR_NO_PATH) {
+;src/fatfs/fatfs.c:1173: else if (result == FR_NO_FILE || result == FR_NO_PATH) {
 	ld	hl, 182
 	add	hl, sp
 	ld	a, [hl]
@@ -42601,14 +42607,14 @@ _fs_GameFinish::
 	jp	.l00108
 .l00323:
 .l00107:
-;src/fatfs/fatfs.c:1170: result = FR_OK;
+;src/fatfs/fatfs.c:1174: result = FR_OK;
 	ld	hl, 178
 	add	hl, sp
 	ld	[hl], $00
-;src/fatfs/fatfs.c:1171: f_mkdir("/GBCSYS/SAVE");
+;src/fatfs/fatfs.c:1175: f_mkdir("/GBCSYS/SAVE");
 	ld	de, ___src_fatfs_fatfs_c_str_40
 	call	_f_mkdir__far
-;src/fatfs/fatfs.c:1172: for (block = 0; block < game_save_sectors; ++block) { SaveRamBlock(block, 1); memset(WINDOW, 0xFF, 512); }
+;src/fatfs/fatfs.c:1176: for (block = 0; block < game_save_sectors; ++block) { SaveRamBlock(block, 1); memset(WINDOW, 0xFF, 512); }
 	xor	a, a
 	ld	hl, sp+0
 	ld	[hl], a
@@ -42674,19 +42680,19 @@ _fs_GameFinish::
 	ld	a, [hl]
 	ld	hl, sp+1
 	ld	[hl], a
-;src/fatfs/fatfs.c:1173: SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
+;src/fatfs/fatfs.c:1177: SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
 	xor	a, a
 	ld	de, $0100
 	call	_SaveRamBlock__far
 	jp	.l00113
 .l00108:
-;src/fatfs/fatfs.c:1175: else return result;
+;src/fatfs/fatfs.c:1179: else return result;
 	ld	hl, 182
 	add	hl, sp
 	ld	a, [hl]
 	jp	.l00158
 .l00113:
-;src/fatfs/fatfs.c:1176: if (result) return result;
+;src/fatfs/fatfs.c:1180: if (result) return result;
 	ld	hl, 178
 	add	hl, sp
 	ld	a, [hl]
@@ -42695,7 +42701,7 @@ _fs_GameFinish::
 	ld	a, [hl]
 	jp	.l00158
 .l00117:
-;src/fatfs/fatfs.c:1178: if (game_save_sectors <= 64) { SaveRamBlock(64, 1); memset(WINDOW, 0, 4); SaveRamBlock(TB_PSRAM_HIGH << 8, 0); }
+;src/fatfs/fatfs.c:1182: if (game_save_sectors <= 64) { SaveRamBlock(64, 1); memset(WINDOW, 0, 4); SaveRamBlock(TB_PSRAM_HIGH << 8, 0); }
 	ld	hl, _game_save_sectors
 	ld	a, $40
 	sub	a, [hl]
@@ -42715,7 +42721,7 @@ _fs_GameFinish::
 	ld	de, $0100
 	call	_SaveRamBlock__far
 .l00119:
-;src/fatfs/fatfs.c:1179: if (game_has_rtc && (result = ReadGameRTC(rtc_path))) return result;
+;src/fatfs/fatfs.c:1183: if (game_has_rtc && (result = ReadGameRTC(rtc_path))) return result;
 	ld	hl, _game_has_rtc
 	ld	a, [hl]
 	or	a, a
@@ -42731,7 +42737,7 @@ _fs_GameFinish::
 	ld	a, c
 	jp	.l00158
 .l00121:
-;src/fatfs/fatfs.c:1180: SnapshotPath(rtc_path, path);
+;src/fatfs/fatfs.c:1184: SnapshotPath(rtc_path, path);
 	ld	hl, 179
 	add	hl, sp
 	ld	c, [hl]
@@ -42742,7 +42748,7 @@ _fs_GameFinish::
 	ld	e, l
 	ld	d, h
 	call	_SnapshotPath__far
-;src/fatfs/fatfs.c:1181: SetWindowBlock(GAME_META); memset(WINDOW, 0, 512);
+;src/fatfs/fatfs.c:1185: SetWindowBlock(GAME_META); memset(WINDOW, 0, 512);
 	ld	de, $3E2F
 	call	_SetWindowBlock
 	ld	de, $0200
@@ -42750,7 +42756,7 @@ _fs_GameFinish::
 	ld	bc, $0000
 	ld	de, $BE00
 	call	_memset
-;src/fatfs/fatfs.c:1182: memcpy(WINDOW, rtc_path, sizeof(rtc_path)); WINDOW[128] = game_ram_mask > 3 ? 255 : game_save_sectors; WINDOW[129] = game_save_sectors >> 8;
+;src/fatfs/fatfs.c:1186: memcpy(WINDOW, rtc_path, sizeof(rtc_path)); WINDOW[128] = game_ram_mask > 3 ? 255 : game_save_sectors; WINDOW[129] = game_save_sectors >> 8;
 	ld	de, $0053
 	push	de
 	ld	hl, 97
@@ -42777,10 +42783,10 @@ _fs_GameFinish::
 	ld	a, [hl]
 	ld	hl, $BE81
 	ld	[hl], a
-;src/fatfs/fatfs.c:1183: SetWindowBlock(TB_PSRAM_HIGH << 8);
+;src/fatfs/fatfs.c:1187: SetWindowBlock(TB_PSRAM_HIGH << 8);
 	ld	de, $0100
 	call	_SetWindowBlock
-;src/fatfs/fatfs.c:1184: if (game_save_sectors <= 64) {
+;src/fatfs/fatfs.c:1188: if (game_save_sectors <= 64) {
 	ld	hl, _game_save_sectors
 	ld	a, $40
 	sub	a, [hl]
@@ -42788,7 +42794,7 @@ _fs_GameFinish::
 	ld	a, $00
 	sbc	a, [hl]
 	jp	C, .l00131
-;src/fatfs/fatfs.c:1185: result = SnapshotFile(rtc_path, 0, SNAP_STAGE);
+;src/fatfs/fatfs.c:1189: result = SnapshotFile(rtc_path, 0, SNAP_STAGE);
 	ld	de, $3C00
 	push	de
 	xor	a, a
@@ -42797,14 +42803,14 @@ _fs_GameFinish::
 	ld	e, l
 	ld	d, h
 	call	_SnapshotFile__far
-;src/fatfs/fatfs.c:1186: if (!result) SnapshotCopy(2);
+;src/fatfs/fatfs.c:1190: if (!result) SnapshotCopy(2);
 	or	a, a
 	jp	NZ, .l00128
 	ld	a, $02
 	call	_SnapshotCopy__far
 	jp	.l00131
 .l00128:
-;src/fatfs/fatfs.c:1187: else if (result != FR_NO_FILE && result != FR_NO_PATH && result != FR_INT_ERR) return result;
+;src/fatfs/fatfs.c:1191: else if (result != FR_NO_FILE && result != FR_NO_PATH && result != FR_INT_ERR) return result;
 	cp	a, $04
 	jp	NZ,.l00325
 	jp	.l00131
@@ -42819,7 +42825,7 @@ _fs_GameFinish::
 .l00327:
 	jp	.l00158
 .l00131:
-;src/fatfs/fatfs.c:1189: result = GameCheats(path);
+;src/fatfs/fatfs.c:1193: result = GameCheats(path);
 	ld	hl, 179
 	add	hl, sp
 	ld	e, [hl]
@@ -42827,7 +42833,7 @@ _fs_GameFinish::
 	ld	d, [hl]
 	call	_GameCheats__far
 	ld	c, a
-;src/fatfs/fatfs.c:1190: if (!result) result = RegistryGame(path);
+;src/fatfs/fatfs.c:1194: if (!result) result = RegistryGame(path);
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00133
@@ -42839,7 +42845,7 @@ _fs_GameFinish::
 	call	_RegistryGame__far
 	ld	c, a
 .l00133:
-;src/fatfs/fatfs.c:1191: { FRESULT closed = f_close(&file); if (!result) result = closed; }
+;src/fatfs/fatfs.c:1195: { FRESULT closed = f_close(&file); if (!result) result = closed; }
 	push	bc
 	ld	de, _file
 	call	_f_close__far
@@ -42850,21 +42856,21 @@ _fs_GameFinish::
 	jp	NZ, .l00135
 	ld	c, b
 .l00135:
-;src/fatfs/fatfs.c:1192: if (result) return result;
+;src/fatfs/fatfs.c:1196: if (result) return result;
 	ld	a, c
 	or	a, a
 	jp	Z, .l00137
 	ld	a, c
 	jp	.l00158
 .l00137:
-;src/fatfs/fatfs.c:1193: sum = RegistrySum();
+;src/fatfs/fatfs.c:1197: sum = RegistrySum();
 	call	_RegistrySum__far
 	ld	hl, 181
 	add	hl, sp
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/fatfs/fatfs.c:1194: memcpy(record, "GAM3", 4); record[4] = 1;
+;src/fatfs/fatfs.c:1198: memcpy(record, "GAM3", 4); record[4] = 1;
 	ld	de, $0004
 	push	de
 	ld	bc, ___src_fatfs_fatfs_c_str_43
@@ -42875,7 +42881,7 @@ _fs_GameFinish::
 	call	___memcpy
 	ld	hl, sp+6
 	ld	[hl], $01
-;src/fatfs/fatfs.c:1195: record[5] = sum; record[6] = sum >> 8; record[7] = game_has_rtc;
+;src/fatfs/fatfs.c:1199: record[5] = sum; record[6] = sum >> 8; record[7] = game_has_rtc;
 	ld	hl, 181
 	add	hl, sp
 	ld	a, [hl]
@@ -42890,7 +42896,7 @@ _fs_GameFinish::
 	ld	a, [hl]
 	ld	hl, sp+9
 	ld	[hl], a
-;src/fatfs/fatfs.c:1196: record[8] = game_save_sectors; record[9] = game_save_sectors >> 8;
+;src/fatfs/fatfs.c:1200: record[8] = game_save_sectors; record[9] = game_save_sectors >> 8;
 	ld	hl, _game_save_sectors
 	ld	a, [hl]
 	ld	hl, sp+10
@@ -42899,7 +42905,7 @@ _fs_GameFinish::
 	ld	a, [hl]
 	ld	hl, sp+11
 	ld	[hl], a
-;src/fatfs/fatfs.c:1197: if (!(result = f_open(&save_file, GAME_RECORD, FA_WRITE | FA_CREATE_ALWAYS))) {
+;src/fatfs/fatfs.c:1201: if (!(result = f_open(&save_file, GAME_RECORD, FA_WRITE | FA_CREATE_ALWAYS))) {
 	ld	a, $0A
 	push	af
 	inc	sp
@@ -42911,7 +42917,7 @@ _fs_GameFinish::
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00145
-;src/fatfs/fatfs.c:1198: for (done = 10; record[done]; ++done);
+;src/fatfs/fatfs.c:1202: for (done = 10; record[done]; ++done);
 	ld	de, $000A
 .l00154:
 	ld	hl, 2
@@ -42923,8 +42929,8 @@ _fs_GameFinish::
 	jp	Z, .l00138
 	jp	.l00154
 .l00138:
-;src/fatfs/fatfs.c:1199: ++done;
-;src/fatfs/fatfs.c:1200: result = f_write(&save_file, record, done, &block);
+;src/fatfs/fatfs.c:1203: ++done;
+;src/fatfs/fatfs.c:1204: result = f_write(&save_file, record, done, &block);
 	ld	hl, 2
 	add	hl, sp
 	ld	c, l
@@ -42938,7 +42944,7 @@ _fs_GameFinish::
 	call	_f_write__far
 	pop	de
 	ld	b, a
-;src/fatfs/fatfs.c:1201: if (!result && block != done) result = FR_DENIED;
+;src/fatfs/fatfs.c:1205: if (!result && block != done) result = FR_DENIED;
 	ld	a, b
 	or	a, a
 	jp	NZ, .l00140
@@ -42954,7 +42960,7 @@ _fs_GameFinish::
 .l00328:
 	ld	b, $07
 .l00140:
-;src/fatfs/fatfs.c:1202: { FRESULT closed = f_close(&save_file); if (!result) result = closed; }
+;src/fatfs/fatfs.c:1206: { FRESULT closed = f_close(&save_file); if (!result) result = closed; }
 	push	bc
 	ld	de, _save_file
 	call	_f_close__far
@@ -42965,7 +42971,7 @@ _fs_GameFinish::
 	jp	NZ, .l00145
 	ld	b, c
 .l00145:
-;src/fatfs/fatfs.c:1204: if (!result && game_save_sectors < 256) {
+;src/fatfs/fatfs.c:1208: if (!result && game_save_sectors < 256) {
 	ld	a, b
 	or	a, a
 	jp	NZ, .l00148
@@ -42976,7 +42982,7 @@ _fs_GameFinish::
 	ld	a, [hl]
 	sbc	a, $01
 	jp	NC, .l00148
-;src/fatfs/fatfs.c:1205: SaveRamBlock(255, 1); for (done = 0; done < 16; ++done) WINDOW[480 + done] = done;
+;src/fatfs/fatfs.c:1209: SaveRamBlock(255, 1); for (done = 0; done < 16; ++done) WINDOW[480 + done] = done;
 	push	bc
 	ld	a, $01
 	ld	de, $00FF
@@ -42999,17 +43005,17 @@ _fs_GameFinish::
 	ld	a, d
 	sbc	a, $00
 	jp	C, .l00156
-;src/fatfs/fatfs.c:1206: SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
+;src/fatfs/fatfs.c:1210: SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
 	push	bc
 	xor	a, a
 	ld	de, $0100
 	call	_SaveRamBlock__far
 	pop	bc
 .l00148:
-;src/fatfs/fatfs.c:1208: return result;
+;src/fatfs/fatfs.c:1212: return result;
 	ld	a, b
 .l00158:
-;src/fatfs/fatfs.c:1209: }
+;src/fatfs/fatfs.c:1213: }
 	add	sp, 127
 	add	sp, 56
 	ret
@@ -43037,7 +43043,7 @@ ___src_fatfs_fatfs_c_str_43:
 ___src_fatfs_fatfs_c_str_44:
 	DB "/GBCSYS/EDITOR.GAM"
 	DB $00
-;src/fatfs/fatfs.c:1225: static FRESULT SwapBlocks(BYTE write, WORD block, WORD offset, WORD count) {
+;src/fatfs/fatfs.c:1229: static FRESULT SwapBlocks(BYTE write, WORD block, WORD offset, WORD count) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 8",ROMX,BANK[4]
 	LOAD FRAGMENT "Page 8 RAM",SRAM,BANK[8]
@@ -43051,10 +43057,10 @@ _SwapBlocks:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/fatfs/fatfs.c:1227: FRESULT result = FR_OK;
+;src/fatfs/fatfs.c:1231: FRESULT result = FR_OK;
 	ld	hl, sp+2
 	ld	[hl], $00
-;src/fatfs/fatfs.c:1228: while (count && !result) {
+;src/fatfs/fatfs.c:1232: while (count && !result) {
 .l00107:
 	ld	hl, sp+21
 	ld	a, [hl]
@@ -43065,7 +43071,7 @@ _SwapBlocks:
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00109
-;src/fatfs/fatfs.c:1229: size = 512 - offset;
+;src/fatfs/fatfs.c:1233: size = 512 - offset;
 	ld	de, $0200
 	ld	hl, sp+18
 	ld	a, [hl+]
@@ -43081,7 +43087,7 @@ _SwapBlocks:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], a
-;src/fatfs/fatfs.c:1230: if (size > count) size = count;
+;src/fatfs/fatfs.c:1234: if (size > count) size = count;
 	dec	hl
 	ld	c, [hl]
 	inc	hl
@@ -43112,7 +43118,7 @@ _SwapBlocks:
 	dec	hl
 	ld	[hl], a
 .l00102:
-;src/fatfs/fatfs.c:1231: SetWindowBlock(block++);
+;src/fatfs/fatfs.c:1235: SetWindowBlock(block++);
 	ld	hl, sp+14
 	ld	e, [hl]
 	inc	hl
@@ -43124,7 +43130,7 @@ _SwapBlocks:
 	inc	[hl]
 .l00150:
 	call	_SetWindowBlock
-;src/fatfs/fatfs.c:1232: result = write ? f_write(&file, WINDOW + offset, size, &done) : f_read(&file, WINDOW + offset, size, &done);
+;src/fatfs/fatfs.c:1236: result = write ? f_write(&file, WINDOW + offset, size, &done) : f_read(&file, WINDOW + offset, size, &done);
 	ld	hl, sp+19
 	dec	hl
 	ld	e, [hl]
@@ -43179,7 +43185,7 @@ _SwapBlocks:
 .l00113:
 	ld	hl, sp+2
 	ld	[hl], a
-;src/fatfs/fatfs.c:1233: if (!result && done != size) result = FR_DENIED;
+;src/fatfs/fatfs.c:1237: if (!result && done != size) result = FR_DENIED;
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00104
@@ -43200,7 +43206,7 @@ _SwapBlocks:
 	ld	hl, sp+2
 	ld	[hl], $07
 .l00104:
-;src/fatfs/fatfs.c:1234: swap_sum += ByteSum(WINDOW + offset, size);
+;src/fatfs/fatfs.c:1238: swap_sum += ByteSum(WINDOW + offset, size);
 	ld	hl, sp+3
 	ld	c, [hl]
 	inc	hl
@@ -43243,7 +43249,7 @@ _SwapBlocks:
 	ld	a, [hl]
 	ld	hl, _swap_sum + 1
 	ld	[hl], a
-;src/fatfs/fatfs.c:1235: count -= size;
+;src/fatfs/fatfs.c:1239: count -= size;
 	ld	hl, sp+6
 	dec	hl
 	ld	e, [hl]
@@ -43263,7 +43269,7 @@ _SwapBlocks:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], a
-;src/fatfs/fatfs.c:1236: offset = 0;
+;src/fatfs/fatfs.c:1240: offset = 0;
 	xor	a, a
 	ld	hl, sp+18
 	ld	[hl], a
@@ -43271,19 +43277,19 @@ _SwapBlocks:
 	ld	[hl], a
 	jp	.l00107
 .l00109:
-;src/fatfs/fatfs.c:1238: SetWindowBlock(TB_PSRAM_HIGH << 8);
+;src/fatfs/fatfs.c:1242: SetWindowBlock(TB_PSRAM_HIGH << 8);
 	ld	de, $0100
 	call	_SetWindowBlock
-;src/fatfs/fatfs.c:1239: return result;
+;src/fatfs/fatfs.c:1243: return result;
 	ld	hl, sp+2
 	ld	a, [hl]
 .l00110:
-;src/fatfs/fatfs.c:1240: }
+;src/fatfs/fatfs.c:1244: }
 	add	sp, 16
 	pop	hl
 	add	sp, 4
 	jp hl
-;src/fatfs/fatfs.c:1243: unsigned char fs_SaveSwap(void) {
+;src/fatfs/fatfs.c:1247: unsigned char fs_SaveSwap(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 8",ROMX,BANK[4]
 	LOAD FRAGMENT "Page 8 RAM",SRAM,BANK[8]
@@ -43291,7 +43297,7 @@ _SwapBlocks:
 ; ---------------------------------
 _fs_SaveSwap::
 	add	sp, -9
-;src/fatfs/fatfs.c:1245: WORD clip = tb_ClipLength(), length = tb_Length();
+;src/fatfs/fatfs.c:1249: WORD clip = tb_ClipLength(), length = tb_Length();
 	call	_tb_ClipLength
 	ld	hl, sp+7
 	ld	[hl], c
@@ -43316,11 +43322,11 @@ _fs_SaveSwap::
 	ld	a, [hl]
 	ld	hl, sp+7
 	ld	[hl], a
-;src/fatfs/fatfs.c:1246: FRESULT result = fs_Mount();
+;src/fatfs/fatfs.c:1250: FRESULT result = fs_Mount();
 	call	_fs_Mount
 	ld	hl, sp+8
 	ld	[hl], a
-;src/fatfs/fatfs.c:1247: if (!result) result = Open(SWAP_PATH, FA_WRITE | FA_OPEN_ALWAYS);
+;src/fatfs/fatfs.c:1251: if (!result) result = Open(SWAP_PATH, FA_WRITE | FA_OPEN_ALWAYS);
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00102
@@ -43330,7 +43336,7 @@ _fs_SaveSwap::
 	ld	hl, sp+8
 	ld	[hl], a
 .l00102:
-;src/fatfs/fatfs.c:1248: if (result) return result;
+;src/fatfs/fatfs.c:1252: if (result) return result;
 	ld	hl, sp+8
 	ld	a, [hl]
 	or	a, a
@@ -43338,13 +43344,13 @@ _fs_SaveSwap::
 	ld	a, [hl]
 	jp	.l00121
 .l00104:
-;src/fatfs/fatfs.c:1249: swap_sum = 0;
+;src/fatfs/fatfs.c:1253: swap_sum = 0;
 	xor	a, a
 	ld	hl, _swap_sum
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/fatfs/fatfs.c:1250: result = f_lseek(&file, SWAP_DATA);
+;src/fatfs/fatfs.c:1254: result = f_lseek(&file, SWAP_DATA);
 	ld	de, $0000
 	push	de
 	ld	d, $02
@@ -43353,7 +43359,7 @@ _fs_SaveSwap::
 	call	_f_lseek__far
 	ld	hl, sp+8
 	ld	[hl], a
-;src/fatfs/fatfs.c:1251: if (!result) result = SwapBlocks(1, MAIN_BLOCK, TB_CLIP_OFFSET, clip);
+;src/fatfs/fatfs.c:1255: if (!result) result = SwapBlocks(1, MAIN_BLOCK, TB_CLIP_OFFSET, clip);
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00106
@@ -43370,13 +43376,13 @@ _fs_SaveSwap::
 	ld	hl, sp+8
 	ld	[hl], a
 .l00106:
-;src/fatfs/fatfs.c:1252: tb_read_pos = 0;
+;src/fatfs/fatfs.c:1256: tb_read_pos = 0;
 	xor	a, a
 	ld	hl, _tb_read_pos
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/fatfs/fatfs.c:1253: while (!result && (size = tb_Read(buffer, FS_BUFFER_SIZE))) {
+;src/fatfs/fatfs.c:1257: while (!result && (size = tb_Read(buffer, FS_BUFFER_SIZE))) {
 .l00111:
 	ld	hl, sp+8
 	ld	a, [hl]
@@ -43390,7 +43396,7 @@ _fs_SaveSwap::
 	ld	a, b
 	or	a, c
 	jp	Z, .l00113
-;src/fatfs/fatfs.c:1254: swap_sum += ByteSum(buffer, size);
+;src/fatfs/fatfs.c:1258: swap_sum += ByteSum(buffer, size);
 	push	de
 	ld	c, e
 	ld	b, d
@@ -43410,7 +43416,7 @@ _fs_SaveSwap::
 	ld	[_swap_sum], a
 	ld	a, h
 	ld	[_swap_sum + 1], a
-;src/fatfs/fatfs.c:1255: result = f_write(&file, buffer, size, &done);
+;src/fatfs/fatfs.c:1259: result = f_write(&file, buffer, size, &done);
 	ld	bc, _buffer
 	push	de
 	ld	hl, 4
@@ -43422,7 +43428,7 @@ _fs_SaveSwap::
 	pop	de
 	ld	hl, sp+8
 	ld	[hl], a
-;src/fatfs/fatfs.c:1256: if (!result && done != size) result = FR_DENIED;
+;src/fatfs/fatfs.c:1260: if (!result && done != size) result = FR_DENIED;
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00111
@@ -43440,7 +43446,7 @@ _fs_SaveSwap::
 	ld	[hl], $07
 	jp	.l00111
 .l00113:
-;src/fatfs/fatfs.c:1258: if (!result) result = f_lseek(&file, 0); // the header goes last, a write cut short leaves a bad sum
+;src/fatfs/fatfs.c:1262: if (!result) result = f_lseek(&file, 0); // the header goes last, a write cut short leaves a bad sum
 	ld	hl, sp+8
 	ld	a, [hl]
 	or	a, a
@@ -43453,36 +43459,36 @@ _fs_SaveSwap::
 	ld	hl, sp+8
 	ld	[hl], a
 .l00115:
-;src/fatfs/fatfs.c:1259: if (!result) {
+;src/fatfs/fatfs.c:1263: if (!result) {
 	ld	hl, sp+8
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00117
-;src/fatfs/fatfs.c:1260: SetWindowBlock(MAIN_BLOCK);
+;src/fatfs/fatfs.c:1264: SetWindowBlock(MAIN_BLOCK);
 	ld	de, $01F0
 	call	_SetWindowBlock
-;src/fatfs/fatfs.c:1261: memcpy(buffer, WINDOW, SWAP_INFO);
+;src/fatfs/fatfs.c:1265: memcpy(buffer, WINDOW, SWAP_INFO);
 	ld	de, $0100
 	push	de
 	ld	bc, $BE00
 	ld	de, _buffer
 	call	___memcpy
-;src/fatfs/fatfs.c:1262: SetWindowBlock(TB_PSRAM_HIGH << 8);
+;src/fatfs/fatfs.c:1266: SetWindowBlock(TB_PSRAM_HIGH << 8);
 	ld	de, $0100
 	call	_SetWindowBlock
-;src/fatfs/fatfs.c:1263: memset(buffer + SWAP_INFO, 0, SWAP_DATA - SWAP_INFO);
+;src/fatfs/fatfs.c:1267: memset(buffer + SWAP_INFO, 0, SWAP_DATA - SWAP_INFO);
 	ld	de, $0100
 	push	de
 	ld	bc, $0000
 	ld	de, (_buffer + 256)
 	call	_memset
-;src/fatfs/fatfs.c:1264: memcpy(buffer + SWAP_INFO, "SWP1", 4);
+;src/fatfs/fatfs.c:1268: memcpy(buffer + SWAP_INFO, "SWP1", 4);
 	ld	de, $0004
 	push	de
 	ld	bc, ___src_fatfs_fatfs_c_str_46
 	ld	de, (_buffer + 256)
 	call	___memcpy
-;src/fatfs/fatfs.c:1265: ((WORD*)(buffer + SWAP_INFO))[2] = length;
+;src/fatfs/fatfs.c:1269: ((WORD*)(buffer + SWAP_INFO))[2] = length;
 	ld	de, (_buffer + 260)
 	ld	hl, sp+6
 	ld	a, [hl]
@@ -43491,7 +43497,7 @@ _fs_SaveSwap::
 	inc	hl
 	ld	a, [hl]
 	ld	[de], a
-;src/fatfs/fatfs.c:1266: ((WORD*)(buffer + SWAP_INFO))[3] = swap_sum;
+;src/fatfs/fatfs.c:1270: ((WORD*)(buffer + SWAP_INFO))[3] = swap_sum;
 	ld	de, (_buffer + 262)
 	ld	hl, _swap_sum
 	ld	a, [hl]
@@ -43500,7 +43506,7 @@ _fs_SaveSwap::
 	inc	hl
 	ld	a, [hl]
 	ld	[de], a
-;src/fatfs/fatfs.c:1267: ((WORD*)(buffer + SWAP_INFO))[4] = clip;
+;src/fatfs/fatfs.c:1271: ((WORD*)(buffer + SWAP_INFO))[4] = clip;
 	ld	de, (_buffer + 264)
 	ld	hl, sp+4
 	ld	a, [hl]
@@ -43509,7 +43515,7 @@ _fs_SaveSwap::
 	inc	hl
 	ld	a, [hl]
 	ld	[de], a
-;src/fatfs/fatfs.c:1268: result = f_write(&file, buffer, SWAP_DATA, &done);
+;src/fatfs/fatfs.c:1272: result = f_write(&file, buffer, SWAP_DATA, &done);
 	ld	hl, sp+2
 	ld	c, l
 	ld	b, h
@@ -43522,7 +43528,7 @@ _fs_SaveSwap::
 	ld	hl, sp+8
 	ld	[hl], a
 .l00117:
-;src/fatfs/fatfs.c:1270: if (f_close(&file) && !result) result = FR_DISK_ERR;
+;src/fatfs/fatfs.c:1274: if (f_close(&file) && !result) result = FR_DISK_ERR;
 	ld	de, _file
 	call	_f_close__far
 	ld	hl, sp+7
@@ -43537,11 +43543,11 @@ _fs_SaveSwap::
 	jp	NZ, .l00119
 	ld	[hl], $01
 .l00119:
-;src/fatfs/fatfs.c:1271: return result;
+;src/fatfs/fatfs.c:1275: return result;
 	ld	hl, sp+8
 	ld	a, [hl]
 .l00121:
-;src/fatfs/fatfs.c:1272: }
+;src/fatfs/fatfs.c:1276: }
 	add	sp, 9
 	ret
 	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
@@ -43552,7 +43558,7 @@ ___src_fatfs_fatfs_c_str_45:
 ___src_fatfs_fatfs_c_str_46:
 	DB "SWP1"
 	DB $00
-;src/fatfs/fatfs.c:1276: unsigned char fs_LoadSwap(void) {
+;src/fatfs/fatfs.c:1280: unsigned char fs_LoadSwap(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 8",ROMX,BANK[4]
 	LOAD FRAGMENT "Page 8 RAM",SRAM,BANK[8]
@@ -43560,10 +43566,10 @@ ___src_fatfs_fatfs_c_str_46:
 ; ---------------------------------
 _fs_LoadSwap::
 	add	sp, -7
-;src/fatfs/fatfs.c:1280: SetWindowBlock(MAIN_BLOCK);
+;src/fatfs/fatfs.c:1284: SetWindowBlock(MAIN_BLOCK);
 	ld	de, $01F0
 	call	_SetWindowBlock
-;src/fatfs/fatfs.c:1281: result = memcmp(WINDOW, TBSignature, 4) ? FR_OK : FR_EXIST; // PSRAM kept it (a reset), it's newer
+;src/fatfs/fatfs.c:1285: result = memcmp(WINDOW, TBSignature, 4) ? FR_OK : FR_EXIST; // PSRAM kept it (a reset), it's newer
 	ld	de, $0004
 	push	de
 	ld	bc, _TBSignature
@@ -43577,19 +43583,19 @@ _fs_LoadSwap::
 .l00130:
 	ld	bc, $0008
 .l00131:
-;src/fatfs/fatfs.c:1282: SetWindowBlock(TB_PSRAM_HIGH << 8);
+;src/fatfs/fatfs.c:1286: SetWindowBlock(TB_PSRAM_HIGH << 8);
 	push	bc
 	ld	de, $0100
 	call	_SetWindowBlock
 	pop	bc
-;src/fatfs/fatfs.c:1283: if (!result) result = fs_Mount();
+;src/fatfs/fatfs.c:1287: if (!result) result = fs_Mount();
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00102
 	call	_fs_Mount
 	ld	c, a
 .l00102:
-;src/fatfs/fatfs.c:1284: if (!result) result = Open(SWAP_PATH, FA_READ);
+;src/fatfs/fatfs.c:1288: if (!result) result = Open(SWAP_PATH, FA_READ);
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00104
@@ -43598,14 +43604,14 @@ _fs_LoadSwap::
 	call	_Open
 	ld	c, a
 .l00104:
-;src/fatfs/fatfs.c:1285: if (result) return result;
+;src/fatfs/fatfs.c:1289: if (result) return result;
 	ld	a, c
 	or	a, a
 	jp	Z, .l00106
 	ld	a, c
 	jp	.l00128
 .l00106:
-;src/fatfs/fatfs.c:1286: result = f_read(&file, buffer, SWAP_DATA, &done);
+;src/fatfs/fatfs.c:1290: result = f_read(&file, buffer, SWAP_DATA, &done);
 	ld	bc, _buffer
 	ld	de, _file
 	ld	hl, 0
@@ -43616,7 +43622,7 @@ _fs_LoadSwap::
 	call	_f_read__far
 	ld	hl, sp+6
 	ld	[hl], a
-;src/fatfs/fatfs.c:1287: if (!result && (done != SWAP_DATA || memcmp(buffer + SWAP_INFO, "SWP1", 4))) result = FR_INVALID_OBJECT;
+;src/fatfs/fatfs.c:1291: if (!result && (done != SWAP_DATA || memcmp(buffer + SWAP_INFO, "SWP1", 4))) result = FR_INVALID_OBJECT;
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00108
@@ -43644,25 +43650,25 @@ _fs_LoadSwap::
 	ld	hl, sp+6
 	ld	[hl], $09
 .l00108:
-;src/fatfs/fatfs.c:1288: if (result) {
+;src/fatfs/fatfs.c:1292: if (result) {
 	ld	hl, sp+6
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00112
-;src/fatfs/fatfs.c:1289: f_close(&file);
+;src/fatfs/fatfs.c:1293: f_close(&file);
 	ld	de, _file
 	call	_f_close__far
-;src/fatfs/fatfs.c:1290: return result;
+;src/fatfs/fatfs.c:1294: return result;
 	ld	hl, sp+6
 	ld	a, [hl]
 	jp	.l00128
 .l00112:
-;src/fatfs/fatfs.c:1292: length = ((WORD*)(buffer + SWAP_INFO))[2];
+;src/fatfs/fatfs.c:1296: length = ((WORD*)(buffer + SWAP_INFO))[2];
 	ld	hl, (_buffer + 256) + 4
 	ld	c, [hl]
 	inc	hl
 	ld	b, [hl]
-;src/fatfs/fatfs.c:1293: sum = ((WORD*)(buffer + SWAP_INFO))[3];
+;src/fatfs/fatfs.c:1297: sum = ((WORD*)(buffer + SWAP_INFO))[3];
 	ld	de, (_buffer + 262) + 0
 	ld	a, [de]
 	ld	hl, sp+2
@@ -43671,7 +43677,7 @@ _fs_LoadSwap::
 	ld	a, [de]
 	inc	hl
 	ld	[hl], a
-;src/fatfs/fatfs.c:1294: clip = ((WORD*)(buffer + SWAP_INFO))[4];
+;src/fatfs/fatfs.c:1298: clip = ((WORD*)(buffer + SWAP_INFO))[4];
 	ld	hl, (_buffer + 256) + 8
 	ld	a, [hl+]
 	ld	h, [hl]
@@ -43679,14 +43685,14 @@ _fs_LoadSwap::
 	ld	l, a
 ;	spillPairReg hl
 ;	spillPairReg hl
-;src/fatfs/fatfs.c:1295: SetWindowBlock(MAIN_BLOCK); // the header, without the signature until the sum checks out
+;src/fatfs/fatfs.c:1299: SetWindowBlock(MAIN_BLOCK); // the header, without the signature until the sum checks out
 	push	hl
 	push	bc
 	ld	de, $01F0
 	call	_SetWindowBlock
 	pop	bc
 	pop	hl
-;src/fatfs/fatfs.c:1296: memcpy(WINDOW + 4, buffer + 4, SWAP_INFO - 4);
+;src/fatfs/fatfs.c:1300: memcpy(WINDOW + 4, buffer + 4, SWAP_INFO - 4);
 	push	hl
 	push	bc
 	ld	de, $00FC
@@ -43696,11 +43702,11 @@ _fs_LoadSwap::
 	call	___memcpy
 	pop	bc
 	pop	hl
-;src/fatfs/fatfs.c:1297: swap_sum = 0;
+;src/fatfs/fatfs.c:1301: swap_sum = 0;
 	xor	a, a
 	ld	[_swap_sum], a
 	ld	[_swap_sum + 1], a
-;src/fatfs/fatfs.c:1298: result = SwapBlocks(0, MAIN_BLOCK, TB_CLIP_OFFSET, clip);
+;src/fatfs/fatfs.c:1302: result = SwapBlocks(0, MAIN_BLOCK, TB_CLIP_OFFSET, clip);
 	push	bc
 	push	hl
 	ld	de, $0100
@@ -43711,11 +43717,11 @@ _fs_LoadSwap::
 	pop	bc
 	ld	hl, sp+4
 	ld	[hl], a
-;src/fatfs/fatfs.c:1299: tb_Clear();
+;src/fatfs/fatfs.c:1303: tb_Clear();
 	push	bc
 	call	_tb_Clear
 	pop	bc
-;src/fatfs/fatfs.c:1300: while (!result && length) {
+;src/fatfs/fatfs.c:1304: while (!result && length) {
 .l00119:
 	ld	hl, sp+4
 	ld	a, [hl]
@@ -43724,7 +43730,7 @@ _fs_LoadSwap::
 	ld	a, b
 	or	a, c
 	jp	Z, .l00121
-;src/fatfs/fatfs.c:1301: result = f_read(&file, buffer, length < FS_BUFFER_SIZE ? length : FS_BUFFER_SIZE, &done);
+;src/fatfs/fatfs.c:1305: result = f_read(&file, buffer, length < FS_BUFFER_SIZE ? length : FS_BUFFER_SIZE, &done);
 	inc	hl
 	ld	[hl], c
 	inc	hl
@@ -43753,7 +43759,7 @@ _fs_LoadSwap::
 	call	_f_read__far
 	ld	hl, sp+4
 	ld	[hl], a
-;src/fatfs/fatfs.c:1302: if (!result && !done) result = FR_INVALID_OBJECT;
+;src/fatfs/fatfs.c:1306: if (!result && !done) result = FR_INVALID_OBJECT;
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00114
@@ -43765,12 +43771,12 @@ _fs_LoadSwap::
 	ld	hl, sp+4
 	ld	[hl], $09
 .l00114:
-;src/fatfs/fatfs.c:1303: if (result) break;
+;src/fatfs/fatfs.c:1307: if (result) break;
 	ld	hl, sp+4
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00121
-;src/fatfs/fatfs.c:1304: swap_sum += ByteSum(buffer, done);
+;src/fatfs/fatfs.c:1308: swap_sum += ByteSum(buffer, done);
 	pop	bc
 	push	bc
 	ld	de, _buffer
@@ -43790,12 +43796,12 @@ _fs_LoadSwap::
 	ld	[hl], c
 	inc	hl
 	ld	[hl], a
-;src/fatfs/fatfs.c:1305: tb_Append(buffer, done);
+;src/fatfs/fatfs.c:1309: tb_Append(buffer, done);
 	pop	bc
 	push	bc
 	ld	de, _buffer
 	call	_tb_Append
-;src/fatfs/fatfs.c:1306: length -= done;
+;src/fatfs/fatfs.c:1310: length -= done;
 	ld	hl, sp+6
 	dec	hl
 	ld	e, [hl]
@@ -43812,10 +43818,10 @@ _fs_LoadSwap::
 	ld	b, a
 	jp	.l00119
 .l00121:
-;src/fatfs/fatfs.c:1308: f_close(&file);
+;src/fatfs/fatfs.c:1312: f_close(&file);
 	ld	de, _file
 	call	_f_close__far
-;src/fatfs/fatfs.c:1309: if (!result && swap_sum != sum) result = FR_INVALID_OBJECT;
+;src/fatfs/fatfs.c:1313: if (!result && swap_sum != sum) result = FR_INVALID_OBJECT;
 	ld	hl, sp+4
 	ld	a, [hl]
 	or	a, a
@@ -43835,17 +43841,17 @@ _fs_LoadSwap::
 	ld	hl, sp+4
 	ld	[hl], $09
 .l00123:
-;src/fatfs/fatfs.c:1310: if (result) {
+;src/fatfs/fatfs.c:1314: if (result) {
 	ld	hl, sp+4
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00126
-;src/fatfs/fatfs.c:1311: tb_Clear();
+;src/fatfs/fatfs.c:1315: tb_Clear();
 	call	_tb_Clear
-;src/fatfs/fatfs.c:1312: SetWindowBlock(MAIN_BLOCK); // and the settings
+;src/fatfs/fatfs.c:1316: SetWindowBlock(MAIN_BLOCK); // and the settings
 	ld	de, $01F0
 	call	_SetWindowBlock
-;src/fatfs/fatfs.c:1313: memset(WINDOW, 0, SWAP_INFO);
+;src/fatfs/fatfs.c:1317: memset(WINDOW, 0, SWAP_INFO);
 	ld	de, $0100
 	push	de
 	ld	bc, $0000
@@ -43853,24 +43859,24 @@ _fs_LoadSwap::
 	call	_memset
 	jp	.l00127
 .l00126:
-;src/fatfs/fatfs.c:1315: SetWindowBlock(MAIN_BLOCK);
+;src/fatfs/fatfs.c:1319: SetWindowBlock(MAIN_BLOCK);
 	ld	de, $01F0
 	call	_SetWindowBlock
-;src/fatfs/fatfs.c:1316: memcpy(WINDOW, TBSignature, 4);
+;src/fatfs/fatfs.c:1320: memcpy(WINDOW, TBSignature, 4);
 	ld	de, $0004
 	push	de
 	ld	bc, _TBSignature
 	ld	de, $BE00
 	call	___memcpy
 .l00127:
-;src/fatfs/fatfs.c:1318: SetWindowBlock(TB_PSRAM_HIGH << 8);
+;src/fatfs/fatfs.c:1322: SetWindowBlock(TB_PSRAM_HIGH << 8);
 	ld	de, $0100
 	call	_SetWindowBlock
-;src/fatfs/fatfs.c:1319: return result;
+;src/fatfs/fatfs.c:1323: return result;
 	ld	hl, sp+4
 	ld	a, [hl]
 .l00128:
-;src/fatfs/fatfs.c:1320: }
+;src/fatfs/fatfs.c:1324: }
 	add	sp, 7
 	ret
 	SECTION FRAGMENT "src/fatfs/fatfs.c ROM0",ROM0
@@ -43881,7 +43887,7 @@ ___src_fatfs_fatfs_c_str_47:
 ___src_fatfs_fatfs_c_str_48:
 	DB "SWP1"
 	DB $00
-;src/fatfs/fatfs.c:1323: unsigned char fs_Save(const char* path) {
+;src/fatfs/fatfs.c:1327: unsigned char fs_Save(const char* path) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 8",ROMX,BANK[4]
 	LOAD FRAGMENT "Page 8 RAM",SRAM,BANK[8]
@@ -43889,25 +43895,25 @@ ___src_fatfs_fatfs_c_str_48:
 ; ---------------------------------
 _fs_Save::
 	add	sp, -3
-;src/fatfs/fatfs.c:1325: FRESULT result = Open(path, FA_WRITE | FA_CREATE_ALWAYS);
+;src/fatfs/fatfs.c:1329: FRESULT result = Open(path, FA_WRITE | FA_CREATE_ALWAYS);
 	ld	a, $0A
 	call	_Open
 	ld	hl, sp+2
 	ld	[hl], a
-;src/fatfs/fatfs.c:1326: if (result) return result;
+;src/fatfs/fatfs.c:1330: if (result) return result;
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00102
 	ld	a, [hl]
 	jp	.l00113
 .l00102:
-;src/fatfs/fatfs.c:1327: tb_read_pos = 0;
+;src/fatfs/fatfs.c:1331: tb_read_pos = 0;
 	xor	a, a
 	ld	hl, _tb_read_pos
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/fatfs/fatfs.c:1328: while ((size = fs_crlf ? tb_ReadLines(buffer, FS_BUFFER_SIZE) : tb_Read(buffer, FS_BUFFER_SIZE))) {
+;src/fatfs/fatfs.c:1332: while ((size = fs_crlf ? tb_ReadLines(buffer, FS_BUFFER_SIZE) : tb_Read(buffer, FS_BUFFER_SIZE))) {
 .l00107:
 	ld	hl, _fs_crlf
 	ld	a, [hl]
@@ -43927,7 +43933,7 @@ _fs_Save::
 	ld	a, b
 	or	a, c
 	jp	Z, .l00109
-;src/fatfs/fatfs.c:1329: if ((result = f_write(&file, buffer, size, &written))) break;
+;src/fatfs/fatfs.c:1333: if ((result = f_write(&file, buffer, size, &written))) break;
 	ld	bc, _buffer
 	push	de
 	ld	hl, 2
@@ -43941,7 +43947,7 @@ _fs_Save::
 	ld	[hl], a
 	or	a, a
 	jp	NZ, .l00109
-;src/fatfs/fatfs.c:1330: if (written != size) {
+;src/fatfs/fatfs.c:1334: if (written != size) {
 	dec	hl
 	dec	hl
 	ld	a, [hl]
@@ -43953,12 +43959,12 @@ _fs_Save::
 	jp	NZ,.l00157
 	jp	.l00107
 .l00157:
-;src/fatfs/fatfs.c:1331: result = FR_DENIED; // disk full
+;src/fatfs/fatfs.c:1335: result = FR_DENIED; // disk full
 	ld	hl, sp+2
 	ld	[hl], $07
-;src/fatfs/fatfs.c:1332: break;
+;src/fatfs/fatfs.c:1336: break;
 .l00109:
-;src/fatfs/fatfs.c:1335: if (f_close(&file) && !result) result = FR_DISK_ERR;
+;src/fatfs/fatfs.c:1339: if (f_close(&file) && !result) result = FR_DISK_ERR;
 	ld	de, _file
 	call	_f_close__far
 	or	a, a
@@ -43969,14 +43975,14 @@ _fs_Save::
 	jp	NZ, .l00111
 	ld	[hl], $01
 .l00111:
-;src/fatfs/fatfs.c:1336: return result;
+;src/fatfs/fatfs.c:1340: return result;
 	ld	hl, sp+2
 	ld	a, [hl]
 .l00113:
-;src/fatfs/fatfs.c:1337: }
+;src/fatfs/fatfs.c:1341: }
 	add	sp, 3
 	ret
-;src/fatfs/fatfs.c:1339: DWORD get_fattime(void) { return ClockFatTime(); }
+;src/fatfs/fatfs.c:1343: DWORD get_fattime(void) { return ClockFatTime(); }
 ;	---------------------------------
 	SECTION FRAGMENT "Page 12",ROMX,BANK[6]
 	LOAD FRAGMENT "Page 12 RAM",SRAM,BANK[12]

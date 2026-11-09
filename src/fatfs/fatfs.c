@@ -896,12 +896,16 @@ static FRESULT ReadGameRTC(const char* path) {
   for (i = 0; i < 2; ++i) if (rtc[i*5] >= 60 || rtc[i*5+1] >= 60 || rtc[i*5+2] >= 24 || (rtc[i*5+4] & 0x3E)) return FR_INT_ERR;
   if (result) { ClockDate date; if (!ClockRead(&date)) { rtc[4] = 0x40; ClockAdvance(rtc); rtc[4] = 0; } }
   else ClockAdvance(rtc); // clock-less carts keep the stored registers
-  *(volatile BYTE*)0xBD13 = 6; *(volatile BYTE*)0xBD10 = 1;
+  // Match stock WriteMapperRTCRegisters and its pre-launch handoff ($629F).
+  // Halt both counters while replacing their seconds/day fields.
+  *(volatile BYTE*)0xBD13 = 4;
+  *(volatile BYTE*)0xBD10 = 0x40; *(volatile BYTE*)0xBD11 = 0x40;
   for (i = 0; i < 5; ++i) {
     *(volatile BYTE*)0xBD13 = i;
     *(volatile BYTE*)0xBD10 = rtc[i]; *(volatile BYTE*)0xBD11 = rtc[i + 5];
   }
-  *(volatile BYTE*)0xBD13 = 6; *(volatile BYTE*)0xBD10 = 0;
+  *(volatile BYTE*)0xBD13 = 6; *(volatile BYTE*)0xBD10 = 1;
+  *(volatile BYTE*)0xBD13 = 0;
   return FR_OK;
 }
 static FRESULT WriteGameRTC(const char* path) {

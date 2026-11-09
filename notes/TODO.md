@@ -4,7 +4,8 @@
 
 ## Priority
 
-- Verify RTC, stock save states, cheats and registry ownership on hardware. Test Pokemon Crystal time across power-off, state files across power-off, switching between Girlboss and stock OS, and 128 KiB battery saves. These features are implemented and pass emulator checks; see [compatibility notes](EVERDRIVE_FEATURES.md) and [cart-menu validation](IN_GAME_MENU.md#validation).
+- Retest RTC on hardware: Pokemon Crystal previously froze white after the Nintendo logo, and SETTINGS > CLOCK drew garbage. The clock field layout/resident strings, I2C receive handling, and stock pre-launch RTC programming sequence have been corrected. Check clock setting and Crystal time across power-off; emulator success does not establish the hardware fix. See [compatibility notes](EVERDRIVE_FEATURES.md#clock).
+- Save states have been tested successfully on hardware. Remaining compatibility checks: switching between Girlboss and stock OS, interrupted file operations, and 128 KiB battery saves. Cheat testing is deferred. See [cart-menu validation](IN_GAME_MENU.md#validation).
 - Exercise full/read-only SD cards and interrupted state replacement on hardware. Failed state loads must still allow Resume, and backups must keep the correct game's ownership.
 - Plan code space before adding more services: most OS pages are close to their `$1d00` limit. Consider moving data, splitting helpers or the overlay approach below.
 - ROM launch currently reserves snapshot-load staging above `$3c00`, limiting ROMs to 7.5 MiB. Supporting a full 8 MiB ROM needs a different staging allocation. Stock state files remain limited to 32 KiB of cartridge RAM; normal battery saves support 128 KiB.

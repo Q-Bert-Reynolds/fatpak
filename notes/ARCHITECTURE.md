@@ -320,7 +320,15 @@ SETTINGS > CLOCK. Missing/invalid calendars use the 2026-01-01 FAT date.
 MBC3 RTC games load five game registers and five reference registers from `.rtc`,
 advance by elapsed calendar time (halt/carry and nine-bit days included), then
 program the cart's paired RTC registers at `$BD10-$BD13`. Backup reads their
-interleaved save-RAM shadow. Snapshot restore doesn't roll back RTC time.
+interleaved save-RAM shadow. Programming halts both counters at index 4 before
+replacing fields, then uses the stock pre-launch handoff (index 6 / `$BD10=1`,
+selector back to 0). Calendar reception checks busy completion rather than
+slave ACK status. Snapshot restore doesn't roll back RTC time.
+
+The clock setup box uses `BOX_STRIDE` (20 bytes) for its six text rows, rather
+than the main text buffer's 40-byte stride. Its field names are resident because
+`PutText` runs on another page; a far call preserves the return page but cannot
+keep a page-local string pointer mapped during the callee.
 
 ## Retained engine modules
 

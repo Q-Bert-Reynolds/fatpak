@@ -22,6 +22,20 @@ clock at zero with the current reference time. With no calendar device, stored
 registers are retained without offline advancement. Like stock, the reference
 counter wraps every 512 days.
 
+RTC programming follows stock GBCOS's pre-launch `$629f` routine: halt both
+counters through index 4, write the five paired fields, write 1 to `$BD10` at
+index 6, then leave `$BD13` at 0. The former restore-file sequence ended with
+index 6 set to 0 instead. Gearboy does not model that control register's effect,
+so integration tests observe the actual firmware bus writes against the stock
+sequence rather than treating an emulator launch as hardware proof.
+
+The clock-menu garbage was caused by 40-byte row spacing where menu boxes use
+20-byte rows, plus page-local field-name pointers passed to a text routine on
+another page. Fields now use packed box rows and resident strings. Calendar
+reads poll completion without checking the slave ACK bit during reception,
+matching stock `I2C_ReadBytes`. These corrections still need a hardware retest
+of clock setting and Crystal's previously white screen after the boot logo.
+
 ## Battery saves and registry
 
 Battery SRAM uses `/GBCSYS/SAVE/<basename>.srm`. MBC2 saves are 512 bytes;
@@ -60,4 +74,5 @@ bank zero); codes without a compare byte patch the first physical bank only.
 The offset within each bank ignores address bit 14. Changing cheats takes effect on the next launch.
 
 This implements stock ROM patching. Continuous GameShark RAM writes aren't part
-of this cheat format. The expanded capture and SD operations still need hardware verification.
+of this cheat format. Save states have been tested successfully on hardware;
+cheat testing is deferred.

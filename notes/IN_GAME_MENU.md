@@ -90,5 +90,6 @@ restore, malformed/missing states, Game Genie compare bytes, stock registry
 ownership, clock setup, FAT timestamps and clockless operation. Legacy GAM2 migration and 128 KiB SRAM backup are covered too. Previous
 menu regression checks also exercised repeated Resume and warm return to the browser.
 From the Girlboss root, run `make -C ../Gearboy/tests girlboss`; these checks
-use temporary SD folders. The expanded capture and SD operations still need
-verification on hardware; see [TODO](TODO.md#priority).
+use temporary SD folders. Save states have also been tested successfully on
+hardware. RTC corrections still need hardware verification; see
+[TODO](TODO.md#priority).

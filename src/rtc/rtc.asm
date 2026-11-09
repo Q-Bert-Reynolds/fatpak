@@ -20,6 +20,7 @@ RTCWait:
   dec b
   jr nz, .wait
   ld a, 1
+  or a ; callers test NZ for timeout, not just the returned byte
   pop bc
   ret
 .ready
@@ -74,8 +75,10 @@ _RTCRead::
   ld [RTC_CONTROL], a
   ld b, 16
 .read
+  ; During a read the master supplies ACK; only poll completion, not slave ACK.
   ld a, $FF
-  call RTCByte
+  ld [RTC_DATA], a
+  call RTCWait
   jr nz, RTCError
   ld a, [RTC_DATA]
   ld [hli], a
@@ -84,7 +87,9 @@ _RTCRead::
   ld a, $11
   ld [RTC_CONTROL], a
   ld a, $FF
-  call RTCByte
+  ld [RTC_DATA], a
+  call RTCWait
+  jp nz, RTCError
   jp RTCReset
 
 _RTCWrite::
