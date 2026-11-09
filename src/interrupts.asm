@@ -1,6 +1,5 @@
 
 SECTION "Interrupt HRAM", HRAM
-vbl_timer:: DB ;counts to 60
 busy_frames:: DB ;frames since the main loop waited for one, 0 = it's waiting
 rLCDInterrupt:: DW;location of LCD interrupt subroutine
   
@@ -101,8 +100,6 @@ VBLInterrupt::
 
   call gbdk_DMATransfer
   call LatchPad
-  call UpdateTime
-  call UpdateAudio
   call UpdateBusy
 
   ld a, 1
@@ -145,43 +142,3 @@ BusyFlips:;clockwise
 ;a ring in color 2 with its top left quarter in color 3, shows on the bars and on text
 BusyTile::
   DB $30, $3C, $40, $42, $80, $81, $80, $81, $00, $81, $00, $81, $00, $42, $00, $3C
-
-UpdateTime:
-  ldh a, [vbl_timer]
-  inc a
-  ldh [vbl_timer], a
-  cp a, 60
-  ret c
-  xor a
-  ldh [vbl_timer], a
-
-.checkGameState
-  ld a, [game_state]
-  and a, GAME_STATE_CLOCK_STARTED
-  ret z
-
-.incrementSeconds
-  ld a, [seconds]
-  inc a
-  ld [seconds], a
-  cp a, 60
-  ret c
-
-.incrementMinutes
-  xor a
-  ld [seconds], a
-  ld a, [minutes]
-  inc a
-  ld [minutes], a
-  cp a, 60
-  ret c
-
-.incrementHours
-  xor a
-  ld [minutes], a
-  ld hl, hours+1 ;low byte
-  inc [hl] ;increment low byte inplace
-  ret nz ;done if no overflow
-  dec hl ;high byte
-  inc [hl]
-  ret

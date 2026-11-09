@@ -18,8 +18,6 @@ INCLUDE "src/interrupts.asm"
 
 INCLUDE "src/color.asm"
 INCLUDE "src/sgb.asm"
-INCLUDE "src/audio/audio.asm"
-INCLUDE "src/ui.asm"
 
 INCLUDE "src/core.asm"
 

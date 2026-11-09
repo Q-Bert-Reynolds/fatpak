@@ -133,9 +133,5 @@ Main::
   ei
   TRAMPOLINE DetectKeyboard
 
-.startClock
-  ld a, GAME_STATE_CLOCK_STARTED
-  ld [game_state], a
-
 .start
   TRAMPOLINE _Editor;never returns

@@ -1,10 +1,3 @@
-; game_state masks
-DEF GAME_STATE_CLOCK_STARTED   EQU %00000001
-DEF GAME_STATE_PAUSED          EQU %00001000
-
-; rom banks
-DEF MAX_ROM_BANKS        EQU 64;1MB
-
 ; busy spinner (src/interrupts.asm), shown when the main loop hasn't waited for a frame in a while
 DEF BUSY_SPRITE EQU 2
 DEF BUSY_TILE   EQU 122;sprite tile, the editor's tile blocks don't use 122-127
@@ -14,7 +7,6 @@ DEF BUSY_Y      EQU 16
 DEF BUSY_PALETTE EQU 4;GBC object palette (PaletteSlate), color 2 is dark
 
 ; ram banks 
-DEF MAX_RAM_BANKS  EQU 16;128KB
 DEF MAIN_SRAM_BANK EQU 240;PSRAM blocks 240-255 hold settings and the clipboard
 
 ; sprite props

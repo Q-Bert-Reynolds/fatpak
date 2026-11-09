@@ -3,23 +3,6 @@ SECTION "Gloval Vars", WRAM0
 ; labels that start with an underscore are available in C using extern
 ; labels without the underscore are not available in C
 
-;game state
-_game_state::
-game_state:: DB
-
-;UI
-list_selection:: DB
-
-;text
-text_speed:: DB;0 = fast, 1 = medium, 2 = slow (UIRevealText)
-
-;main save data
-main_save::
-hours:: DW
-minutes:: DB
-seconds:: DB
-main_save_end::
-
 _data_loaded:: DB;the data file is in PSRAM (DATA_BLOCK)
 sgb_from_window:: DB;_sgb_VRAMTransfer's source is PSRAM blocks
 _swap_dirty:: DB;the text, clipboard or settings changed since the swap file was written

@@ -83,15 +83,9 @@ Peripherals
 Emulator
 
 - Test PS/2 input on the LSDJ rom
-- Test Everdrive emulation on GBSYS/GBOS.BIN (the Everdrive rom)
 - iGKB emulation (see Peripherals)
 
-Code
-
-- ROM0 is nearly full (~750 bytes free): move helper routines that don't take any args out of ROM0 behind TRAMPOLINE
-- utilize remaining HRAM space (~100 bytes free) and RST vectors
-
-OS Utilities (ideas, not committed to)
+OS Utilities
 
 - overlays: utilities load their code from a file on the card into a page at $A000 when they're used (pages are RAM in OS mode). The page's own code is copied to PSRAM first and copied back after, so no page has to be given up. Built as a separate link at the page's address, calling the editor through a jump table in ROM0
 - in-game tools, through the $0670 handler (the system combo, game frozen): it copies the game's WRAM (all banks), HRAM, VRAM (both banks), OAM, registers and palette RAM (BCPD/OCPD) to PSRAM first, the tools use that copy and the screen freely, the game is restored after. Overlays:

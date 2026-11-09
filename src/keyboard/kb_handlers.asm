@@ -64,7 +64,7 @@ KBHandleCharacter::;a = character in ASCII
 
   ld a, [kb_mode]
   cp a, KB_MODE_TYPING
-  jr z, .findCharXY
+  ret z ;ui.asm is no longer with us
   
 
 .updateButtonState
@@ -77,48 +77,6 @@ KBHandleCharacter::;a = character in ASCII
   jp z, KBUpdateButtons
   ld b, 0
   jp KBUpdateButtons
-
-.findCharXY;ASCII in b
-  PUSH_VAR _c
-  ld a, 1
-  ld [_c], a;assume lowercase
-  ld c, 0
-  ld hl, UILowerCase
-.lowerLoop
-    ld a, [hli]
-    cp a, b
-    jr z, .charFound
-    inc c
-    ld a, 43
-    cp a, c
-    jr nc, .lowerLoop
-  xor a
-  ld [_c], a;upper case
-  ld c, 0
-  ld hl, UIUpperCase
-.upperLoop
-    ld a, [hli]
-    cp a, b
-    jr z, .charFound
-    inc c
-    ld a, 25
-    cp a, c
-    jr nc, .upperLoop
-  POP_VAR _c
-  ret
-
-.charFound
-  pop af;discard old _c
-  ld h, c
-  ld c, 9
-  call math_Divide8;l (remainder a) = h / c
-  ld [_x], a
-  ld a, l
-  ld [_y], a
-  TRAMPOLINE DrawTextEntryBox
-  ldh a, [button_state]
-  or a, PADF_A
-  ldh [button_state], a
 
   ret
 

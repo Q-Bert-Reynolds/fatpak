@@ -6,8 +6,6 @@ SECTION "Core ROM0", ROM0
 
 ; Trampoline                      b = bank, hl = address, can only use a, e, and RAM for args, can return in any register
 ; UpdateInput
-; PauseGame
-; ResumeGame
 ; ClearTiles                      a = clear tile, display should be off
 ; ClearScreen                     a = clear tile, display should be off
 ; HideSpritesInRect               hl = wh, de = xy(left/top)
@@ -39,18 +37,6 @@ Trampoline:: ;b = bank, hl = address, can use a, de, and RAM for args, can retur
   pop af;old bank
   SET_BANK
   ldh a, [temp_a_reg]
-  ret
-
-PauseGame::
-  ld a, [game_state]
-  or a, GAME_STATE_PAUSED
-  ld [game_state], a
-  ret
-
-ResumeGame::
-  ld a, [game_state]
-  and a, ~GAME_STATE_PAUSED
-  ld [game_state], a
   ret
 
 ClearTiles:: ;a = tile, display should be off

@@ -3,11 +3,6 @@ DEF SETTINGS_SIZE EQU 4+PATH_SIZE+FS_NAME_SIZE;SettingsTable
 ;PSRAM through the window: the text buffer and undo log are blocks (see constants.asm),
 ;this is PSRAM block MAIN_SRAM_BANK and the clipboard's text starts at offset $100 of it (TB_CLIP_SIZE)
 DEF sram_tb_signature EQU TB_BASE
-DEF sram_main_save    EQU TB_BASE+4
-DEF sram_hours        EQU TB_BASE+4
-DEF sram_minutes      EQU TB_BASE+6
-DEF sram_seconds      EQU TB_BASE+7
-DEF sram_main_save_end EQU TB_BASE+8
 DEF sram_clip_length  EQU TB_BASE+$10
 DEF sram_clip_check   EQU TB_BASE+$12
 DEF sram_settings_signature EQU TB_BASE+$20
@@ -122,26 +117,3 @@ _SettingsLoad::
   DISABLE_RAM_MBC5
   xor a
   ret
-
-SECTION "Save/Load Code", ROM0
-LoadGame::
-  di
-  ENABLE_RAM_MBC5
-  SWITCH_RAM_MBC5 MAIN_SRAM_BANK
-  ld hl, sram_main_save
-  ld de, main_save
-  ld bc, sram_main_save_end - sram_main_save
-  call mem_Copy
-  DISABLE_RAM_MBC5
-  reti
-
-SaveGame::
-  di
-  ENABLE_RAM_MBC5
-  SWITCH_RAM_MBC5 MAIN_SRAM_BANK
-  ld hl, main_save
-  ld de, sram_main_save
-  ld bc, sram_main_save_end - sram_main_save
-  call mem_Copy
-  DISABLE_RAM_MBC5
-  reti

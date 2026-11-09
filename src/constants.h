@@ -1,13 +1,6 @@
 #ifndef CONSTANTS
 #define CONSTANTS
 
-// game_state masks
-#define GAME_STATE_CLOCK_STARTED   0b00000001
-#define GAME_STATE_PAUSED          0b00001000
-
-// rom banks
-#define MAX_ROM_BANKS        64//1MB
-
 // busy spinner (src/interrupts.asm), shown when the main loop hasn't waited for a frame in a while
 #define BUSY_SPRITE 2
 #define BUSY_TILE   122//sprite tile, the editor's tile blocks don't use 122-127
@@ -17,7 +10,6 @@
 #define BUSY_PALETTE 4//GBC object palette (PaletteSlate), color 2 is dark
 
 // ram banks 
-#define MAX_RAM_BANKS  16//128KB
 #define MAIN_SRAM_BANK 240//PSRAM blocks 240-255 hold settings and the clipboard
 
 // sprite props
