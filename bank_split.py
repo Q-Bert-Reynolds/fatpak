@@ -37,7 +37,7 @@ def read_config(path):
 
 def main(asm_path, config_path):
   with open(asm_path, encoding="utf8") as file:
-    lines = file.read().split("\n")
+    lines = [line.rstrip() for line in file.read().split("\n")]
   config, special = read_config(config_path)
   fixed = "FIXED"
   default = special.get("*", "4")
@@ -78,6 +78,9 @@ def main(asm_path, config_path):
     return (f'\tSECTION FRAGMENT "Page {page}",ROMX,BANK[{page >> 1}]\n'
             f'\tLOAD FRAGMENT "Page {page} RAM",SRAM,BANK[{page}]')
 
+  # SDCC numbers string literals independently in every C translation unit.
+  # All generated units are included by one RGBDS assembly, so qualify them.
+  lines = [re.sub(r'\b___str_(\d+)\b', lambda m: "___" + re.sub(r"\W", "_", base) + "_str_" + m[1], line) for line in lines]
   out = []
   thunks = set()
   in_code = False

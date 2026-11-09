@@ -3,6 +3,7 @@
 // Called from other banks through the ROM0 stubs in src/fatfs/fatfs.asm.
 // NOTE: no static initializers (_GSINIT doesn't run)
 #include "fatfs.h"
+#include "../rtc/rtc.h"
 #include "lib/ff.c"
 #include "lib/ffunicode.c"
 #include "../constants.h"
@@ -692,12 +693,14 @@ unsigned char fs_SaveLarge(const char* path) {
 // EverDrive OS's save files) in the cart's save RAM first, blank ($FF) if there isn't one, and GAME_RECORD
 // remembers it, so the next boot writes the save RAM back to that file (fs_BackupSave). Save RAM is only
 // touched here, through the window with $BD06 bit 1 set
-#define GAME_RECORD "/GBCSYS/EDITOR.GAM" // "GAM2", save RAM banks to back up (0 = done), RegistrySum, the .srm path
+#define GAME_RECORD "/GBCSYS/EDITOR.GAM" // GAM3: pending, RegistrySum, RTC flag, SRAM sectors, .srm path
 #define REGISTRY "/GBCSYS/REGISTRY.BIN" // the EverDrive OS's, rewritten when it launches a game
 #define SAVE_FOLDER "/GBCSYS/SAVE/"
-#define GAME_BLOCKS 0x3E40 // PSRAM blocks before the EverDrive's save states
+#define GAME_BLOCKS 0x3C00 // PSRAM blocks before the EverDrive's save states
 #define rEDX_CONFIG (*(volatile BYTE*)0xBD06)
 extern unsigned char game_mapper, game_rom_mask, game_ram_mask, game_config, game_bd20; // src/fatfs/fatfs.asm, for GameLaunch
+extern unsigned char game_has_rtc, game_header[32], game_cheats;
+extern unsigned int game_save_sectors;
 extern unsigned char backup_skipped; // fs_BackupSave didn't trust the save RAM
 extern unsigned int ByteSum(const BYTE* data, unsigned int count); // src/fatfs/fatfs.asm
 
@@ -711,6 +714,7 @@ static UINT RegistrySum(void) {
     if (f_read(&save_file, buffer, FS_BUFFER_SIZE, &done)) done = 0;
     f_close(&save_file);
   }
+  game_cheats = done > 2 ? buffer[2] : 1;
   game_config = done > 6 && !buffer[5] ? 0x28 : 0x08;
   game_bd20 = done > 6 && buffer[6] ? 0 : 3;
   return done ? ByteSum(buffer, done) + done : 0;
@@ -725,10 +729,10 @@ static void SaveRamBlock(UINT block, BYTE on) {
 }
 
 // copies banks 8KB banks of save RAM to the open file (write) or from it (0xFF where it ends)
-static FRESULT SaveRamFile(BYTE banks, BYTE write) {
+static FRESULT SaveRamFile(UINT sectors, BYTE write) {
   UINT block, done;
   FRESULT result = FR_OK;
-  for (block = 0; !result && block < (UINT)banks << 4; ++block) {
+  for (block = 0; !result && block < sectors; ++block) {
     if (write) {
       SaveRamBlock(block, 1);
       if (!(result = f_write(&save_file, WINDOW, 512, &done)) && done != 512) result = FR_DENIED;
@@ -746,38 +750,45 @@ static FRESULT SaveRamFile(BYTE banks, BYTE write) {
 // at boot: if a game was launched, writes the save RAM to its .srm (the old one becomes .bak), unless the
 // EverDrive OS launched a game since (backup_skipped). Returns an FRESULT
 
+static FRESULT WriteGameRTC(const char* path);
+static FRESULT BackupRegistry(UINT sum);
+static FRESULT BackupSnapshot(char* path, UINT sectors);
 unsigned char fs_BackupSave(void) {
-  UINT done, sum, i;
-  BYTE path = 7;
-  char* bak = (char*)buffer + 256;
+  UINT done, sum, i, sectors;
+  BYTE path = 7, rtc = 0;
+  char saved[sizeof(SAVE_FOLDER) + FS_NAME_SIZE + 4], bak[sizeof(SAVE_FOLDER) + FS_NAME_SIZE + 4];
   FRESULT result = fs_Mount();
   backup_skipped = 0;
   if (result) return result;
   sum = RegistrySum();
-  if (f_open(&save_file, GAME_RECORD, FA_READ)) return result;
-  result = f_read(&save_file, buffer, 255, &done);
-  f_close(&save_file);
-  if (result || done < 8 || !buffer[4]) return result;
-  if (!memcmp(buffer, "GAM1", 4)) path = 5; // before the registry check
-  else if (memcmp(buffer, "GAM2", 4)) return result;
-  buffer[255] = 0;
-  if (path == 7 && (buffer[5] | (buffer[6] << 8)) != sum) backup_skipped = 1;
+  if (f_open(&save_file, GAME_RECORD, FA_READ)) return BackupRegistry(sum);
+  result = f_read(&save_file, buffer, 255, &done); f_close(&save_file);
+  if (result) return result;
+  if (done < 8) return FR_INT_ERR;
+  if (!buffer[4]) return ld_16(buffer + 5) == sum ? FR_OK : BackupRegistry(sum);
+  if (!memcmp(buffer, "GAM1", 4)) path = 5;
+  else if (!memcmp(buffer, "GAM3", 4)) { if (done < 11) return FR_INT_ERR; path = 10; rtc = buffer[7]; }
+  else if (memcmp(buffer, "GAM2", 4)) return FR_INT_ERR;
+  sectors = path == 10 ? buffer[8] | ((UINT)buffer[9] << 8) : (UINT)buffer[4] << 4;
+  if (path != 5 && ld_16(buffer + 5) != sum) { backup_skipped = 1; return BackupRegistry(sum); }
   else {
-    for (i = 0; (bak[i] = buffer[path + i]); ++i);
-    if (i > 4) {
-      memcpy(bak + i - 3, "bak", 3);
-      f_unlink(bak);
-      f_rename((const char*)buffer + path, bak);
+    buffer[254] = 0;
+    for (i = 0; i < sizeof(saved) - 1 && (saved[i] = buffer[path + i]); ++i);
+    if (i == sizeof(saved) - 1 || i < 4) return FR_INT_ERR;
+    memcpy(bak, saved, i + 1); memcpy(bak + i - 3, "bak", 3);
+    if (sectors) {
+      f_unlink(bak); f_rename(saved, bak);
+      if ((result = f_open(&save_file, saved, FA_WRITE | FA_CREATE_ALWAYS))) return result;
+      result = SaveRamFile(sectors, 1); f_close(&save_file); if (result) return result;
     }
-    if ((result = f_open(&save_file, (const char*)buffer + path, FA_WRITE | FA_CREATE_ALWAYS))) return result;
-    result = SaveRamFile(buffer[4], 1);
-    if (result) f_close(&save_file);
-    else result = f_close(&save_file);
-    if (result) return result;
+    if (rtc) { memcpy(saved + i - 3, "rtc", 3); if ((result = WriteGameRTC(saved))) return result; }
+    // Older Girlboss launches never initialized the stock snapshot slot.
+    if (path == 10 && (result = BackupSnapshot(saved, sectors))) return result;
   }
-  buffer[4] = 0; // done
   if (!(result = f_open(&save_file, GAME_RECORD, FA_WRITE))) {
-    result = f_write(&save_file, buffer, 5, &done);
+    const BYTE finished = 0;
+    result = f_lseek(&save_file, 4);
+    if (!result) result = f_write(&save_file, &finished, 1, &done);
     f_close(&save_file);
   }
   return result;
@@ -805,7 +816,9 @@ unsigned char fs_GameOpen(const char* path) {
     f_close(&file);
     return result ? result : FR_DENIED;
   }
+  memcpy(game_header, buffer + 0x134, 32);
   type = buffer[0x147];
+  game_has_rtc = type == 0x0F || type == 0x10;
   game_mapper = !type || type == 8 || type == 9 ? 4 : type <= 3 ? 1 : type <= 6 ? 2 : type >= 0x0F && type <= 0x13 ? 3 : 5;
   size = buffer[0x149];
   game_banks = size == 3 ? 4 : size == 4 ? 16 : size == 5 ? 8 : 1;
@@ -813,6 +826,7 @@ unsigned char fs_GameOpen(const char* path) {
   for (game_rom_mask = 0, length = (length + 0x7FFF) >> 15; length > 1; length = (length + 1) >> 1) game_rom_mask = (game_rom_mask << 1) | 1; // 32KB units
   for (i = 0; battery_types[i] && battery_types[i] != type; ++i);
   if (!battery_types[i]) game_banks = 0;
+  game_save_sectors = !game_banks ? 0 : game_mapper == 2 ? 1 : !size ? 0 : size == 1 ? 4 : (UINT)game_banks << 4;
   game_blocks = (UINT)((f_size(&file) + 511) >> 9);
   game_block = 0;
   game_clst = file.obj.sclust;
@@ -856,42 +870,340 @@ unsigned char fs_GameCopy(void) {
   return FR_OK;
 }
 
-unsigned char fs_GameFinish(const char* path) {
-  UINT block, done, i, end = 0, dot = 0;
-  BYTE record[7 + sizeof(SAVE_FOLDER) + FS_NAME_SIZE + 4];
-  FRESULT result = FR_OK;
-  f_close(&file);
-  if (!game_banks) return result;
-  memcpy(record, "GAM2", 4); // the record: its .srm, the name with the extension replaced
-  record[4] = game_banks;
-  memcpy(record + 7, SAVE_FOLDER, sizeof(SAVE_FOLDER) - 1);
-  for (i = 0; path[i]; ++i) if (path[i] == '/') end = i + 1;
-  for (i = end; path[i]; ++i) if (path[i] == '.') dot = i;
+static void GamePath(char* out, const char* path, const char* extension) {
+  UINT i, base = 0, dot = 0;
+  for (i = 0; path[i]; ++i) if (path[i] == '/') base = i + 1;
+  for (i = base; path[i]; ++i) if (path[i] == '.') dot = i;
   if (!dot) dot = i;
-  if (dot - end > FS_NAME_SIZE) return FR_INVALID_NAME;
-  memcpy(record + 6 + sizeof(SAVE_FOLDER), path + end, dot - end);
-  memcpy(record + 6 + sizeof(SAVE_FOLDER) + dot - end, ".srm", 5);
-  if (!f_open(&save_file, (const char*)record + 7, FA_READ)) { // its save, else blank save RAM
-    result = SaveRamFile(game_banks, 0);
+  memcpy(out, SAVE_FOLDER, sizeof(SAVE_FOLDER) - 1);
+  memcpy(out + sizeof(SAVE_FOLDER) - 1, path + base, dot - base);
+  memcpy(out + sizeof(SAVE_FOLDER) - 1 + dot - base, extension, 5);
+}
+static FRESULT ReadGameRTC(const char* path) {
+  BYTE rtc[10], i;
+  UINT done;
+  FRESULT result;
+  memset(rtc, 0, sizeof(rtc));
+  if (!(result = f_open(&save_file, path, FA_READ))) {
+    result = f_read(&save_file, rtc, sizeof(rtc), &done);
     f_close(&save_file);
+    if (!result && done != sizeof(rtc)) result = FR_INT_ERR;
+    if (result) return result;
   }
-  else {
-    f_mkdir("/GBCSYS/SAVE");
-    for (block = 0; block < (UINT)game_banks << 4; ++block) {
-      SaveRamBlock(block, 1);
-      memset(WINDOW, 0xFF, 512);
-    }
-    SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
+  else if (result != FR_NO_FILE && result != FR_NO_PATH) return result;
+  // Both halted is the stock "uninitialized" marker. A new clock starts at zero.
+  if ((rtc[4] & 0x40) && (rtc[9] & 0x40)) { memset(rtc, 0, sizeof(rtc)); result = FR_NO_FILE; }
+  for (i = 0; i < 2; ++i) if (rtc[i*5] >= 60 || rtc[i*5+1] >= 60 || rtc[i*5+2] >= 24 || (rtc[i*5+4] & 0x3E)) return FR_INT_ERR;
+  if (result) { ClockDate date; if (!ClockRead(&date)) { rtc[4] = 0x40; ClockAdvance(rtc); rtc[4] = 0; } }
+  else ClockAdvance(rtc); // clock-less carts keep the stored registers
+  *(volatile BYTE*)0xBD13 = 6; *(volatile BYTE*)0xBD10 = 1;
+  for (i = 0; i < 5; ++i) {
+    *(volatile BYTE*)0xBD13 = i;
+    *(volatile BYTE*)0xBD10 = rtc[i]; *(volatile BYTE*)0xBD11 = rtc[i + 5];
   }
+  *(volatile BYTE*)0xBD13 = 6; *(volatile BYTE*)0xBD10 = 0;
+  return FR_OK;
+}
+static FRESULT WriteGameRTC(const char* path) {
+  BYTE rtc[10], i;
+  UINT done;
+  FRESULT result;
+  SaveRamBlock(255, 1);
+  for (i = 0; i < 5; ++i) { rtc[i] = WINDOW[496 + i * 2]; rtc[i + 5] = WINDOW[497 + i * 2]; }
+  SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
+  if (rtc[4] == 0x40 && rtc[9] == 0x40) return FR_OK;
+  memset(buffer, 0, 512); memcpy(buffer, rtc, sizeof(rtc));
+  result = f_open(&save_file, path, FA_WRITE | FA_CREATE_ALWAYS);
   if (result) return result;
-  i = RegistrySum();
-  record[5] = (BYTE)i;
-  record[6] = i >> 8;
+  result = f_write(&save_file, buffer, 512, &done);
+  if (!result && done != 512) result = FR_DENIED;
+  f_close(&save_file);
+  return result;
+}
+// Preserve options, replace the stock last-game metadata/entry, and recompute
+// its additive checksum. The stock backup path needs the same basename and RAM
+// sector count as Girlboss; otherwise changing OS can overwrite another save.
+static FRESULT RegistryGame(const char* path) {
+  UINT done, i, base = 0, length = 0, sum;
+  DWORD cluster = file.obj.sclust, size = f_size(&file), id = (file.dir_sect << 4) | ((file.dir_ptr - fs.win) >> 5);
+  FRESULT result;
+  for (i = 0; path[i]; ++i) if (path[i] == '/') base = i + 1;
+  memset(buffer, 0, 512);
+  result = f_open(&save_file, REGISTRY, FA_READ);
+  if (!result) {
+    result = f_read(&save_file, buffer, 512, &done); f_close(&save_file);
+    if (result) return result;
+    if (done < 266 || buffer[0] != 0x34 || buffer[1] != 0x12 || ByteSum(buffer, 264) != ld_16(buffer + 264)) return FR_INT_ERR;
+  }
+  else if (result == FR_NO_FILE || result == FR_NO_PATH) { buffer[0] = 0x34; buffer[1] = 0x12; buffer[2] = buffer[5] = 1; }
+  else return result;
+  memset(buffer + 7, 0, 257);
+  buffer[7] = game_mapper; buffer[8] = game_rom_mask; buffer[9] = game_ram_mask;
+  buffer[10] = game_has_rtc || game_save_sectors; buffer[11] = game_header[18] == 3; buffer[12] = game_header[15] & 0x80 ? 1 : 0;
+  buffer[13] = game_has_rtc; st_16(buffer + 14, game_blocks); st_16(buffer + 16, game_save_sectors);
+  memcpy(buffer + 18, game_header, 16);
+  for (i = base; path[i] && length < 207; ++i) {
+    BYTE c = path[i];
+    if (c == 0xC2 || c == 0xC3) { BYTE next = path[i + 1]; if ((next & 0xC0) == 0x80) { c = ((c & 3) << 6) | (next & 63); ++i; } }
+    buffer[34 + length++] = c;
+  }
+  // The stock path builder treats exactly eleven name bytes as raw FAT 8+3.
+  if (length == 11) {
+    BYTE dot = 0;
+    for (i = 0; i < length; ++i) if (buffer[34 + i] == '.') dot = i;
+    if (dot && dot <= 8 && length - dot - 1 <= 3) {
+      BYTE short_name[12]; memset(short_name, ' ', 11); short_name[11] = 0;
+      memcpy(short_name, buffer + 34, dot); memcpy(short_name + 8, buffer + 35 + dot, length - dot - 1);
+      memcpy(buffer + 34, short_name, 12);
+    }
+  }
+  st_32(buffer + 34 + 216, id); st_32(buffer + 34 + 220, cluster); st_32(buffer + 34 + 224, size);
+  buffer[263] = 1; sum = ByteSum(buffer, 264); st_16(buffer + 264, sum);
+  result = f_open(&save_file, REGISTRY, FA_WRITE | FA_CREATE_ALWAYS);
+  if (result) return result;
+  result = f_write(&save_file, buffer, 512, &done);
+  if (!result && done != 512) result = FR_DENIED;
+  if (result) f_close(&save_file); else result = f_close(&save_file);
+  return result;
+}
+
+// The stock cheat file is sixteen XXX-XXX-XXX lines, with X for unused
+// digits/slots. These are Game Genie ROM patches, applied before launching.
+#define CHEAT_FOLDER "/GBCSYS/CHEATS/"
+static BYTE CheatHex(BYTE c) {
+  if (c >= '0' && c <= '9') return c-'0';
+  c |= 32; return c >= 'a' && c <= 'f' ? c-'a'+10 : 0xFF;
+}
+static void CheatApply(const BYTE* code) {
+  BYTE value, compare, check, hi;
+  UINT address, block, last;
+  if (code[0]>15 || code[1]>15 || code[2]>15 || code[3]>15 || code[4]>15 || code[5]<8 || code[5]>15) return;
+  address=((UINT)(code[5]^15)<<12)|((UINT)code[2]<<8)|((UINT)code[3]<<4)|code[4];
+  value=(code[0]<<4)|code[1];
+  check=code[6]<16 && code[8]<16;
+  hi=((code[6]<<4)|code[8])^255;
+  compare=((hi>>2)|(hi<<6))^0x45;
+  // Match stock A757: compare codes scan every 16KiB physical bank;
+  // no-compare codes patch only the first bank, with address bit 14 ignored.
+  block=(address & 0x3FFF)>>9; last=check ? game_blocks : block+1;
+  for (; block<last; block+=32) {
+    SetWindowBlock(block);
+    if (!check || WINDOW[address&511]==compare) WINDOW[address&511]=value;
+  }
+}
+static FRESULT GameCheats(const char* path) {
+  char name[sizeof(CHEAT_FOLDER)+FS_NAME_SIZE+4];
+  BYTE codes[144], digit=0, row=0, c, column=0;
+  UINT i, done; FRESULT result;
+  if (!game_cheats) return FR_OK;
+  GamePath(name,path,".txt");
+  for (i=0; name[i]; ++i);
+  do { name[i+2]=name[i]; } while (i-- > sizeof(SAVE_FOLDER)-1);
+  memcpy(name,CHEAT_FOLDER,sizeof(CHEAT_FOLDER)-1);
+  result=f_open(&save_file,name,FA_READ);
+  if (result==FR_NO_FILE || result==FR_NO_PATH) return FR_OK;
+  if (result) return result;
+  result=f_read(&save_file,buffer,512,&done); f_close(&save_file); if (result) return result;
+  memset(codes,0xFF,sizeof(codes));
+  for (i=0; i<done && row<16; ++i) {
+    c=buffer[i];
+    if (c=='\r') continue;
+    if (c=='\n') { if (column) ++row; digit=column=0; continue; }
+    if (c=='-' || c==' ' || c=='\t') continue;
+    if (digit<9) codes[row*9+digit++]=CheatHex(c);
+    ++column;
+  }
+  for (i=0; i<16; ++i) CheatApply(codes+i*9);
+  SetWindowBlock(TB_PSRAM_HIGH << 8);
+  return FR_OK;
+}
+
+// Stock snapshots are 164 512-byte sectors. Load into spare PSRAM first:
+// a failed/short read must leave the suspended game available to Resume.
+#define SNAP_FOLDER "/GBCSYS/SNAP/"
+#define SNAP_FIRST 0x3E40
+#define SNAP_STAGE 0x3C00
+#define SNAP_SECTORS 164
+#define GAME_META 0x3E2F
+extern unsigned char snapshot_model;
+static void SnapshotPath(char* out, const char* path) {
+  GamePath(out, path, ".sav"); memcpy(out, SNAP_FOLDER, sizeof(SNAP_FOLDER) - 1);
+}
+static FRESULT SnapshotFile(const char* path, BYTE write, UINT first) {
+  UINT n, done; FRESULT result, closed;
+  result = f_open(&save_file, path, write ? FA_WRITE | FA_CREATE_ALWAYS : FA_READ);
+  if (result) return result;
+  if (!write && f_size(&save_file) != 83968UL) result = FR_INT_ERR;
+  for (n = 0; !result && n < SNAP_SECTORS; ++n) {
+    SetWindowBlock(first + n);
+    result = write ? f_write(&save_file, WINDOW, 512, &done) : f_read(&save_file, WINDOW, 512, &done);
+    if (!result && done != 512) result = FR_DENIED;
+    if (!result && !write && !n && memcmp(WINDOW, "SAVE", 4)) result = FR_INT_ERR;
+  }
+  SetWindowBlock(TB_PSRAM_HIGH << 8);
+  closed = f_close(&save_file); return result ? result : closed;
+}
+// kind 0: staged -> live; 1: live -> slot; 2: staged -> slot; 3: slot -> staged.
+static void SnapshotCopy(BYTE kind) {
+  UINT n;
+  for (n = 0; n < SNAP_SECTORS; ++n) {
+    SaveRamBlock((kind == 3 ? 64 : kind == 1 ? SNAP_FIRST : SNAP_STAGE) + n, kind == 3);
+    memcpy(buffer, WINDOW, 512);
+    SaveRamBlock((kind == 3 ? SNAP_STAGE : kind ? 64 : SNAP_FIRST) + n, kind == 1 || kind == 2);
+    memcpy(WINDOW, buffer, 512);
+  }
+  SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
+}
+static FRESULT SnapshotStore(char* path, UINT first) {
+  char temp[sizeof(SAVE_FOLDER) + FS_NAME_SIZE + 4];
+  UINT n; FRESULT result;
+  result = f_mkdir("/GBCSYS/SNAP"); if (result && result != FR_EXIST) return result;
+  memcpy(temp, path, sizeof(temp));
+  for (n = 0; temp[n]; ++n); memcpy(temp + n - 3, "tmp", 3);
+  if ((result = SnapshotFile(temp, 1, first))) return result;
+  // Keep the previous image as .bak until the complete new file is installed.
+  memcpy(path + n - 3, "bak", 3); f_unlink(path);
+  memcpy(temp + n - 3, "sav", 3); result = f_rename(temp, path);
+  if (result && result != FR_NO_FILE) return result;
+  memcpy(temp + n - 3, "tmp", 3); memcpy(path + n - 3, "sav", 3);
+  result = f_rename(temp, path);
+  return result;
+}
+
+// Persist the battery-backed slot on boot, including states made by stock OS.
+static FRESULT BackupSnapshot(char* path, UINT sectors) {
+  UINT n;
+  if (sectors > 64) return FR_OK;
+  SaveRamBlock(64, 1); n = memcmp(WINDOW, "SAVE", 4);
+  SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
+  if (n) return FR_OK;
+  SnapshotCopy(3);
+  memcpy(path, SNAP_FOLDER, sizeof(SNAP_FOLDER)-1);
+  for (n = 0; path[n]; ++n); memcpy(path+n-3, "sav", 3);
+  return SnapshotStore(path, SNAP_STAGE);
+}
+// A stock launch supersedes EDITOR.GAM. Trust only a checked stock registry
+// and the stock SRAM marker, then import its ownership before touching RAM.
+static FRESULT BackupRegistry(UINT sum) {
+  BYTE record[10 + sizeof(SAVE_FOLDER) + FS_NAME_SIZE + 4], rtc, n, raw;
+  char* path = (char*)record + 10;
+  UINT sectors, done, i;
+  FRESULT result, closed;
+  if ((result = f_open(&save_file, REGISTRY, FA_READ))) return result == FR_NO_FILE ? FR_OK : result;
+  result = f_read(&save_file, buffer, 512, &done); f_close(&save_file);
+  if (result) return result;
+  if (done < 266 || ld_16(buffer) != 0x1234 || ByteSum(buffer,264) != ld_16(buffer+264) || !buffer[263]) return FR_OK;
+  sectors = ld_16(buffer+16); rtc = buffer[13];
+  if (sectors > 256) return FR_INT_ERR;
+  memcpy(path,SAVE_FOLDER,sizeof(SAVE_FOLDER)-1);
+  for (i=0; i<208 && buffer[34+i]; ++i);
+  if (!i || i >= FS_NAME_SIZE) { backup_skipped=1; return FR_OK; }
+  raw = i == 11; n = sizeof(SAVE_FOLDER)-1;
+  for (i=0; buffer[34+i] && i<208; ++i) {
+    if (raw && i==8) path[n++]='.';
+    if (!raw || buffer[34+i]!=' ') path[n++]=buffer[34+i];
+  }
+  path[n]=0;
+  for (i=n; i>sizeof(SAVE_FOLDER)-1 && path[i]!='.'; --i);
+  if (i==sizeof(SAVE_FOLDER)-1) i=n;
+  memcpy(path+i,".srm",5);
+  if (sectors<256) {
+    SaveRamBlock(255,1);
+    for (n=0; n<16 && WINDOW[480+n]==n; ++n);
+    SaveRamBlock(TB_PSRAM_HIGH << 8,0);
+    if (n!=16) { backup_skipped=1; return FR_OK; }
+  }
+  f_mkdir("/GBCSYS/SAVE");
+  if (sectors) {
+    if ((result=f_open(&save_file,path,FA_WRITE|FA_CREATE_ALWAYS))) return result;
+    result=SaveRamFile(sectors,1); closed=f_close(&save_file); if (result || closed) return result ? result : closed;
+  }
+  if (rtc) { memcpy(path+i+1,"rtc",3); if ((result=WriteGameRTC(path))) return result; }
+  if ((result=BackupSnapshot(path,sectors))) return result;
+  memcpy(record,"GAM3",4); record[4]=0; st_16(record+5,sum); record[7]=rtc; st_16(record+8,sectors);
+  // A finished record is only an ownership cookie; its path isn't used.
+  if ((result=f_open(&save_file,GAME_RECORD,FA_WRITE|FA_CREATE_ALWAYS))) return result;
+  result=f_write(&save_file,record,10,&done); closed=f_close(&save_file);
+  return result ? result : done!=10 ? FR_DENIED : closed;
+}
+
+// action 0 saves, 1 loads. Called only after SnapshotCapture has freed OS WRAM.
+unsigned char fs_Snapshot(BYTE action) {
+  char path[sizeof(SAVE_FOLDER) + FS_NAME_SIZE + 4];
+  FRESULT result;
+  SetWindowBlock(GAME_META);
+  if (WINDOW[128] > 64 || WINDOW[129]) { SetWindowBlock(TB_PSRAM_HIGH << 8); return FR_DENIED; }
+  memcpy(path, WINDOW, sizeof(path)); path[sizeof(path)-1] = 0;
+  SetWindowBlock(TB_PSRAM_HIGH << 8);
+  if (!path[0]) return FR_NO_FILE;
+  if ((result = fs_Mount())) return result;
+  if (action) {
+    if ((result = SnapshotFile(path, 0, SNAP_STAGE))) return result;
+    SetWindowBlock(SNAP_STAGE);
+    result = !memcmp(WINDOW + 10, "GB\1", 3) && WINDOW[13] != snapshot_model ? FR_DENIED : FR_OK;
+    SetWindowBlock(TB_PSRAM_HIGH << 8);
+    if (result) return result;
+    SnapshotCopy(0); SnapshotCopy(1); return FR_OK;
+  }
+  result = SnapshotStore(path, SNAP_FIRST);
+  if (!result) SnapshotCopy(1);
+  return result;
+}
+
+unsigned char fs_GameFinish(const char* path) {
+  UINT block, done, sum;
+  BYTE record[10 + sizeof(SAVE_FOLDER) + FS_NAME_SIZE + 4];
+  char rtc_path[sizeof(SAVE_FOLDER) + FS_NAME_SIZE + 4];
+  FRESULT result = FR_OK;
+  if (game_save_sectors < 256) {
+    SaveRamBlock(255, 1); memset(WINDOW + 480, 0, 16); SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
+  }
+  result = f_mkdir("/GBCSYS/SAVE"); if (result && result != FR_EXIST) return result;
+  GamePath((char*)record + 10, path, ".srm");
+  GamePath(rtc_path, path, ".rtc");
+  if (game_save_sectors) {
+    result = f_open(&save_file, (const char*)record + 10, FA_READ);
+    if (!result) {
+      result = SaveRamFile(game_save_sectors, 0); f_close(&save_file);
+    }
+    else if (result == FR_NO_FILE || result == FR_NO_PATH) {
+      result = FR_OK;
+      f_mkdir("/GBCSYS/SAVE");
+      for (block = 0; block < game_save_sectors; ++block) { SaveRamBlock(block, 1); memset(WINDOW, 0xFF, 512); }
+      SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
+    }
+    else return result;
+    if (result) return result;
+  }
+  if (game_save_sectors <= 64) { SaveRamBlock(64, 1); memset(WINDOW, 0, 4); SaveRamBlock(TB_PSRAM_HIGH << 8, 0); }
+  if (game_has_rtc && (result = ReadGameRTC(rtc_path))) return result;
+  SnapshotPath(rtc_path, path);
+  SetWindowBlock(GAME_META); memset(WINDOW, 0, 512);
+  memcpy(WINDOW, rtc_path, sizeof(rtc_path)); WINDOW[128] = game_ram_mask > 3 ? 255 : game_save_sectors; WINDOW[129] = game_save_sectors >> 8;
+  SetWindowBlock(TB_PSRAM_HIGH << 8);
+  if (game_save_sectors <= 64) {
+    result = SnapshotFile(rtc_path, 0, SNAP_STAGE);
+    if (!result) SnapshotCopy(2);
+    else if (result != FR_NO_FILE && result != FR_NO_PATH && result != FR_INT_ERR) return result;
+  }
+  result = GameCheats(path);
+  if (!result) result = RegistryGame(path);
+  { FRESULT closed = f_close(&file); if (!result) result = closed; }
+  if (result) return result;
+  sum = RegistrySum();
+  memcpy(record, "GAM3", 4); record[4] = 1;
+  record[5] = sum; record[6] = sum >> 8; record[7] = game_has_rtc;
+  record[8] = game_save_sectors; record[9] = game_save_sectors >> 8;
   if (!(result = f_open(&save_file, GAME_RECORD, FA_WRITE | FA_CREATE_ALWAYS))) {
-    i = 7 + sizeof(SAVE_FOLDER) + dot - end + 4;
-    if (!(result = f_write(&save_file, record, i, &done)) && done != i) result = FR_DENIED;
-    if (result) f_close(&save_file);
-    else result = f_close(&save_file);
+    for (done = 10; record[done]; ++done);
+    ++done;
+    result = f_write(&save_file, record, done, &block);
+    if (!result && block != done) result = FR_DENIED;
+    { FRESULT closed = f_close(&save_file); if (!result) result = closed; }
+  }
+  if (!result && game_save_sectors < 256) {
+    SaveRamBlock(255, 1); for (done = 0; done < 16; ++done) WINDOW[480 + done] = done;
+    SaveRamBlock(TB_PSRAM_HIGH << 8, 0);
   }
   return result;
 }
@@ -1023,3 +1335,5 @@ unsigned char fs_Save(const char* path) {
   if (f_close(&file) && !result) result = FR_DISK_ERR;
   return result;
 }
+
+DWORD get_fattime(void) { return ClockFatTime(); }

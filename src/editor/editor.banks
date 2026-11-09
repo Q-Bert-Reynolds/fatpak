@@ -13,3 +13,5 @@
 13: KeyboardTest PutHex test_errors
 # games
 6: IsGame LaunchGame
+
+6: ClockSetup clock_fields

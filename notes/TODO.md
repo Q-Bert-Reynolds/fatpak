@@ -1,6 +1,6 @@
 Priority
 
-- MBC3 clocks (.rtc files, Pokemon Crystal), save states (/GBCSYS/SNAP), cheats, the in-game menu ($01F0-$01FF), the EverDrive OS's REGISTRY.BIN: the stock OS backs save RAM up to the last game it launched, so running it after a game ours launched can write that game's save over another's. Ours skips its backup if REGISTRY.BIN changed since its launch (a Beisbol save was written over Pokemon Red's before), keeping its last game in the stock registry would make both agree
+- Hardware verification of RTC, stock-compatible save states, cheats and registry ownership (implemented; see EVERDRIVE_FEATURES.md and IN_GAME_MENU.md). In particular: Pokemon Crystal time across power-off, states across power-off, changing between Girlboss and stock OS, and 128 KiB battery saves. State files are limited to 32 KiB cartridge RAM by the stock format.
 
 Text Rendering
 
@@ -43,7 +43,7 @@ File I/O
 - file browser: sort by name (needs the names in memory), make folders, delete and rename files (FF_FS_MINIMIZE 0, also needed for large files)
 - save as into another folder
 - bank_split.py keeps FatFs helpers in ROM0, some could go in a bank behind far calls
-- timestamps from the X7's RTC: FatFs has FF_FS_NORTC 1, so every saved file is dated 1 Jan 2026. Set it to 0 and add get_fattime() reading the clock over I2C ($BD0C-$BD0F, the OS's routines are at bank_000.asm:707 in ~/Projects/everdrive-gb, reference only). Needs Gearboy emulation of the I2C RTC, and a way to set the clock (the EverDrive menu can). Carts without a clock keep the fixed date
+
 
 Large Files
 

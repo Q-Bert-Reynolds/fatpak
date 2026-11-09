@@ -28,7 +28,7 @@ characters are selected. F11 (or FULL SCREEN in the menu) hides them. F1 (or HEL
 
 PS/2 keyboards type directly: arrows, home, end, page up/down, backspace, delete, enter.
 Escape opens the menu: FILE (open, save, save as, new), EDIT (undo, redo, cut, copy, paste, select all),
-SETTINGS (line wrap, full screen), HELP (controls, keyboard test) and CLOSE (the file browser). The keyboard test shows each byte the
+SETTINGS (line wrap, full screen, clock), HELP (controls, keyboard test) and CLOSE (the file browser). The keyboard test shows each byte the
 PS/2 keyboard sends (hex, bits and start/parity/finish/timeout errors) and the key it makes, and listens for a
 keyboard even if none was found at boot (it keeps listening afterwards). B or Backspace goes back from a submenu, START or Escape closes
 the menu. Ctrl+O opens, Ctrl+S saves, Ctrl+N starts a new file.
@@ -41,8 +41,9 @@ before it are counted; saving one writes ~EDITOR.TMP in its folder and renames i
 edits to one don't survive a reset), long file names (up to 64 characters) are shown. SAVE AS saves in the open
 file's folder. .gb and .gbc files launch: the game is copied to the cart, its save comes from
 /GBCSYS/SAVE/<name>.srm (where the EverDrive's OS keeps them) and goes back there at the next boot. The cart's system
-button combo (Select+Start unless changed in the EverDrive's OS) opens a menu over the game: RESUME, or EXIT TO
-OS (which backs up the save). CR LF line endings are kept.
+button combo (Select+Start unless changed in the EverDrive's OS) opens Resume game, Save state,
+Load state, and Return to OS (which backs up the save). RTC clocks, state files, cheats and save ownership
+use stock EverDrive formats; see [EVERDRIVE_FEATURES.md](EVERDRIVE_FEATURES.md). CR LF line endings are kept.
 Code is drawn with the 4 pixel fixed width font, everything else with the variable width font: C and asm
 files are fixed width, plain text and markdown variable width except markdown's code.
 Markdown files (.md) are styled: a line starting with # to #### and a space is a heading in a wider,

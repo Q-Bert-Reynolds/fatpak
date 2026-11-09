@@ -1,25 +1,18 @@
-# bank_split.py: FatFs in EverDrive X OS mode pages, data and far call thunks go in FIXED.
-# The byte helpers called for every character stay in ROM0 so they don't need far calls.
+# Functions share the X7's 4-15 OS pages; BD00-BFFF is registers/window.
+# Keep byte helpers and literal data resident for calls from every page.
 ROM0: ld_16 ld_32 st_16 st_32 dbc_1st dbc_2nd sum_sfn
-# file API (fatfs.c) and directory listing
 *: 8
-8: dir_read f_opendir f_readdir f_closedir clst2sect uni2oem_sbcs oem2uni_sbcs
-# read side
-7: f_read f_open get_fat follow_path validate dir_sdi dir_next dir_find
-# mount, seek, sync
-9: mount_volume check_fs find_volume get_ldnumber f_mount f_lseek sync_fs f_sync f_close
-9: disk_status disk_initialize disk_read disk_write disk_ioctl
-# write side
-10: f_write create_chain put_fat dir_register remove_chain sync_window dir_clear dir_alloc move_window ld_clust st_clust
-# long file names and their code page conversion
-11: tchar2uni put_utf cmp_lfn pick_lfn put_lfn gen_numname create_name get_fileinfo ff_wtoupper ff_uni2oem ff_oem2uni
 DATA: ROM0
-THUNKS: FIXED
-# large files
-14: fs_LoadLarge fs_LoadWindow fs_DocLineStart fs_ScanStep AddCopy DocPiece DocRead DocReadAll OneFilePiece Split fs_CommitWindow SaveOut fs_SaveLarge
-# deleting and renaming (saving a large file), FF_FS_MINIMIZE 0 also builds f_stat f_getfree f_truncate f_mkdir
-13: f_unlink f_rename f_stat f_getfree f_truncate f_mkdir dir_remove
-13: fs_CloseLarge Signature
-# games
-15: SaveRamBlock SaveRamFile RegistrySum fs_BackupSave fs_GameOpen fs_GameFinish battery_types
-12: fs_GameCopy GameSlow
+THUNKS: ROM0
+8: dir_read f_opendir f_readdir f_closedir clst2sect uni2oem_sbcs oem2uni_sbcs RegistryGame
+7: f_read f_open get_fat follow_path validate dir_sdi dir_next dir_find pick_lfn
+9: mount_volume check_fs find_volume get_ldnumber f_mount f_lseek sync_fs f_sync f_close disk_status disk_initialize disk_write disk_ioctl
+10: f_write create_chain put_fat dir_register remove_chain sync_window dir_clear dir_alloc move_window ld_clust st_clust
+11: tchar2uni put_utf cmp_lfn put_lfn gen_numname create_name get_fileinfo ff_wtoupper ff_uni2oem ff_oem2uni fs_GameFinish
+14: fs_LoadLarge fs_LoadWindow fs_DocLineStart fs_ScanStep AddCopy DocPiece DocRead DocReadAll OneFilePiece Split fs_CommitWindow SaveOut fs_SaveLarge disk_read BackupSnapshot
+13: f_unlink f_rename f_stat f_getfree f_truncate f_mkdir dir_remove fs_CloseLarge Signature SnapshotPath CheatHex GameCheats
+15: SaveRamBlock SaveRamFile fs_BackupSave fs_GameOpen battery_types
+12: fs_GameCopy GameSlow get_fattime ReadGameRTC WriteGameRTC BackupRegistry RegistrySum
+4: SnapshotCopy SnapshotStore fs_Snapshot
+6: SnapshotFile GamePath
+5: CheatApply

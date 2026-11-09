@@ -13,6 +13,7 @@ DEF_RGB EDITOR_INK,         2,  2,  3
 DEF EDITOR_ACCENTS EQU 4
 
 INCLUDE "src/editor/ingame.asm"
+INCLUDE "src/editor/snapshot.asm"
 
 SECTION "Editor ROM0", ROM0
 ;C functions (src/editor/editor.h)

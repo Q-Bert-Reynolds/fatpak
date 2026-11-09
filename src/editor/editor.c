@@ -1,6 +1,7 @@
 // src/editor/editor.c
 // NOTE: no static initializers (_GSINIT doesn't run) and no int multiply/divide (no SDCC libs)
 #include "editor.h"
+#include "../rtc/rtc.h"
 
 #define PADF_DOWN   0x80
 #define PADF_UP     0x40
@@ -93,9 +94,9 @@ static const char menu_items[][ITEM_SIZE] = {"FILE", "EDIT", "SETTINGS", "HELP",
 static const char submenu_items[][ITEM_SIZE] = { // FILE, EDIT, SETTINGS
   "OPEN", "SAVE", "SAVE AS", "NEW",
   "UNDO", "REDO", "CUT", "COPY", "PASTE", "SELECT ALL",
-  "LINE WRAP", "FULL SCREEN",
+  "LINE WRAP", "FULL SCREEN", "CLOCK",
   "CONTROLS", "KEYBOARD TEST"};
-static const unsigned char submenu_starts[] = {0, 4, 10, 12, 14};
+static const unsigned char submenu_starts[] = {0, 4, 10, 13, 15};
 static const char discard_items[][ITEM_SIZE] = {"NO", "YES"};
 static const char help_lines[HELP_ROWS][HELP_COLS] = {
   "HELP",
@@ -1693,6 +1694,39 @@ static void KeyboardTest(void) {
   EndFullScreen();
 }
 
+static const char clock_fields[][8] = {"Year", "Month", "Day", "Hour", "Minute", "Second"};
+static void ClockSetup(void) {
+  ClockDate date;
+  unsigned char selected = 0, i, key, *value = (unsigned char*)&date;
+  char* end;
+  if (ClockRead(&date)) { date.year = 26; date.month = date.day = 1; date.hour = date.minute = date.second = 0; }
+  DrawRow(STATUS_LINE, 1, "Left/right: adjust  A: set  B: cancel");
+  while (1) {
+    for (i = 0; i < 6; ++i) {
+      end = PutText(RowAddress(BOX_LINE + i), " ");
+      end = PutText(end, clock_fields[i]); *end++ = ' ';
+      if (!i) end = PutNumber(end, 2000 + value[i]); else end = PutNumber2(end, value[i]);
+      *end = 0;
+    }
+    OpenBox(6); render_box_sel = selected + 1; EditorDraw();
+    while (!(key = MenuKey()));
+    if (key == KEY_ESCAPE || key == KEY_MENU) break;
+    if (key == KEY_UP) selected = selected ? selected - 1 : 5;
+    else if (key == KEY_DOWN) selected = selected == 5 ? 0 : selected + 1;
+    else if (key == KEY_LEFT || key == KEY_RIGHT) {
+      unsigned char low = selected == 1 || selected == 2 ? 1 : 0;
+      unsigned char high = !selected ? 99 : selected == 1 ? 12 : selected == 2 ? 31 : selected == 3 ? 23 : 59;
+      if (key == KEY_LEFT) value[selected] = value[selected] == low ? high : value[selected] - 1;
+      else value[selected] = value[selected] == high ? low : value[selected] + 1;
+    }
+    else if (key == KEY_ENTER) {
+      if (!ClockWrite(&date)) break;
+      ShowMessage("Invalid date or clock unavailable");
+    }
+  }
+  HideBox(); bars_changed = 1; dirty = 1;
+}
+
 static void FileMenu(void) {
   unsigned char menu = 0, item;
   while (1) {
@@ -1718,6 +1752,7 @@ static void FileMenu(void) {
     case 13: SelectAll(); break;
     case 16: ToggleWrap(); break;
     case 17: ToggleBars(); break;
+    case 18: ClockSetup(); break;
     case 24: ShowHelp(); break;
     case 25: KeyboardTest(); break;
   }

@@ -1,18 +1,15 @@
 ;Cart-button entry follows stock GBCOS: unlock before reading resident state,
 ;capture the interrupted registers and mapper, then use a resident OS stack.
-;The full-screen menu uses precomposed labels from the editor's VWF font. It
-;borrows 128 BG tiles, map $9800 and BG palette 0, backed up in PSRAM. No game
-;WRAM/HRAM or OAM is used by the renderer. Resume restores everything borrowed;
-;Return to OS repairs mapper-write bytes and restarts Main without resetting.
+;The full-screen VWF menu uses the stock snapshot workspace. After capture,
+;OS services may use WRAM/HRAM and the normal stack. Resume restores the full
+;image; Return to OS repairs mapper-write bytes and restarts Main without reset.
 
 DEF INGAME_PAGE EQU 4
 DEF MENU_GRAPHICS_PAGE EQU 9
 DEF MENU_BLOCK EQU $3E3F;metadata, below stock save-state workspace at $3E40
-DEF MENU_VRAM_BLOCK EQU $30;within PSRAM bank $3E: eight 512-byte backup chunks
 DEF MENU_LCDC EQU LCDCF_ON | LCDCF_BG8000 | LCDCF_BGON
 DEF EDX_MAPPER EQU $BD07
 DEF EDX_SWITCH EQU $BD09;bit 1 resumes the game, bit 2 selects the OS without reset
-DEF menu_palettes EQU $BE00;BG palette 0, eight bytes in MENU_BLOCK
 DEF menu_header EQU $BE20;160-byte 1bpp filename, prepared before launch
 
 SECTION "In-Game Entry", ROM0[$0670]
@@ -44,6 +41,14 @@ MenuLoadGraphics:
   ld a, MENU_GRAPHICS_PAGE
   ld [EDX_PAGE], a
   call MenuGraphics
+  ld a, INGAME_PAGE
+  ld [EDX_PAGE], a
+  ret
+
+MenuLoadError:
+  ld a, MENU_GRAPHICS_PAGE
+  ld [EDX_PAGE], a
+  call MenuError
   ld a, INGAME_PAGE
   ld [EDX_PAGE], a
   ret
@@ -99,6 +104,7 @@ ASSERT InGameEntryEnd <= $2000, "resuming a game writes $2000, $2100 and $3000"
 SECTION "In-Game State", ROM0[$0009]
 ingame_sp: DW 0
 ingame_mbc: DS 4, 0
+_snapshot_model::
 menu_cgb: DB 0
 menu_lcdc: DB 0
 menu_bgp: DB 0
@@ -133,40 +139,18 @@ InGameMenu:
   ld [menu_scroll+1], a
   call MenuOff
 
-  ld hl, $8000
-  ld a, MENU_VRAM_BLOCK
-  ld c, 4
-  call MenuSaveChunks
-  ld hl, $9800
-  ld a, MENU_VRAM_BLOCK+4
-  ld c, 2
-  call MenuSaveChunks
+  call SnapshotCaptureGame
+  ld sp, stack_bottom;the game RAM/stack is now in the full snapshot
   ld a, [menu_cgb]
   and a
   jr z, .draw
   ld a, 1
   ldh [rVBK], a
   ld hl, $9800
-  ld a, MENU_VRAM_BLOCK+6
-  ld c, 2
-  call MenuSaveChunks
-  ld hl, $9800
   ld bc, $400
   call MenuClear
   xor a
   ldh [rVBK], a
-  ld a, $80
-  ld hl, menu_palettes
-  ld b, 8
-.savePalette
-  ldh [rBCPS], a
-  ld c, a
-  ldh a, [rBCPD]
-  ld [hli], a
-  ld a, c
-  inc a
-  dec b
-  jr nz, .savePalette
   ld hl, MenuPalette
   ld a, $80
   ldh [rBCPS], a
@@ -225,7 +209,14 @@ InGameMenu:
   jr .loop
 .move
   ld a, [menu_sel]
-  xor a, 1
+  bit PADB_UP, c
+  jr z, .down
+  dec a
+  jr .selection
+.down
+  inc a
+.selection
+  and a, 3
   ld [menu_sel], a
   call MenuOff
   call MenuLoadGraphics
@@ -240,68 +231,43 @@ InGameMenu:
 .choose
   ld a, [menu_sel]
   and a
-  jp nz, ExitToOS
+  jr z, .resume
+  cp a, 3
+  jp z, ExitToOS
+  dec a;0 save, 1 load
+  push af
+  call MenuOff
+  pop af
+  call _FileSnapshot
+  and a
+  jr z, .resume
+  call MenuLoadError
+  ld hl, MENU_FOOTER_VRAM
+  ld de, MenuBarMasks
+  ld b, 20
+  call MenuTint
+  ld a, MENU_LCDC
+  ldh [rLCDC], a
+  jp .loop
 .resume
   call MenuOff
-  ld de, $8000
-  ld a, MENU_VRAM_BLOCK
-  ld c, 4
-  call MenuRestoreChunks
-  ld de, $9800
-  ld a, MENU_VRAM_BLOCK+4
-  ld c, 2
-  call MenuRestoreChunks
-  ld a, [menu_cgb]
-  and a
-  jr z, .registers
-  ld a, 1
-  ldh [rVBK], a
-  ld de, $9800
-  ld a, MENU_VRAM_BLOCK+6
-  ld c, 2
-  call MenuRestoreChunks
-  ld a, $80
-  ldh [rBCPS], a
-  ld hl, menu_palettes
-  ld b, 8
-.restorePalette
-  ld a, [hli]
-  ldh [rBCPD], a
-  dec b
-  jr nz, .restorePalette
-  ld a, [menu_vbk]
-  ldh [rVBK], a
-  ld a, [menu_bcps]
-  ldh [rBCPS], a
-.registers
-  ld a, [menu_scroll]
-  ldh [rSCX], a
-  ld a, [menu_scroll+1]
-  ldh [rSCY], a
-  ld a, [menu_bgp]
-  ldh [rBGP], a
-  ld a, [menu_lcdc]
-  ldh [rLCDC], a
-  ld hl, ingame_mbc
-  ld a, [hli]
-  ld b, a
-  ld a, [hli]
-  ld c, a
-  ld a, [hli]
-  ld d, a
-  ld e, [hl]
-  jp InGameResume
+  jp SnapshotRestoreGame
 
 MenuSelection:
-  ld hl, MENU_CHOICE0_VRAM
   ld a, [menu_sel]
-  and a
-  jr z, .selected
-  ld hl, MENU_CHOICE1_VRAM
-.selected
+  add a, a
+  ld e, a
+  ld d, 0
+  ld hl, MenuChoiceTiles
+  add hl, de
+  ld a, [hli]
+  ld h, [hl]
+  ld l, a
   ld de, MenuHighlightMasks
   ld b, MENU_BOX_COLS
   jp MenuTint
+MenuChoiceTiles:
+  DW MENU_CHOICE0_VRAM,MENU_CHOICE1_VRAM,MENU_CHOICE2_VRAM,MENU_CHOICE3_VRAM
 
 ;HL = unique normal-ink tiles, DE = horizontal masks, B = tile count.
 ;Match RenderEncode: DMG inverts selected pixels; CGB uses color 1 behind ink.
@@ -357,40 +323,6 @@ MenuDrawHeader:
   inc de
   dec b
   jr nz, .line
-  ret
-
-;A = first block (high byte stays $3E), C = number of 512-byte chunks.
-;Each helper returns with metadata block $3E3F selected. Six stack bytes max.
-MenuSaveChunks:
-.loop
-  ld [EDX_BLOCK], a
-  ld de, $BE00
-  push bc
-  ld bc, 512
-  call MenuCopy
-  pop bc
-  ld a, [EDX_BLOCK]
-  inc a
-  dec c
-  jr nz, .loop
-  ld a, LOW(MENU_BLOCK)
-  ld [EDX_BLOCK], a
-  ret
-
-MenuRestoreChunks:
-.loop
-  ld [EDX_BLOCK], a
-  ld hl, $BE00
-  push bc
-  ld bc, 512
-  call MenuCopy
-  pop bc
-  ld a, [EDX_BLOCK]
-  inc a
-  dec c
-  jr nz, .loop
-  ld a, LOW(MENU_BLOCK)
-  ld [EDX_BLOCK], a
   ret
 
 MenuClear:

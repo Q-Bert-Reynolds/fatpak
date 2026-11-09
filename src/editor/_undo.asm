@@ -496,7 +496,7 @@ _Push:
 	pop	hl
 	inc	sp
 	inc	sp
-	jp hl 
+	jp hl
 ;src/editor/undo.c:92: static unsigned char CanMerge(unsigned char ok) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 15",ROMX,BANK[7]

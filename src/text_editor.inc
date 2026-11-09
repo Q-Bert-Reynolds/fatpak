@@ -15,6 +15,7 @@ INCLUDE "src/far_call.asm"
 INCLUDE "src/keyboard/keyboard.asm"
 INCLUDE "src/input.asm"
 INCLUDE "src/interrupts.asm"
+INCLUDE "src/rtc/rtc.asm"
 
 INCLUDE "src/color.asm"
 INCLUDE "src/sgb.asm"

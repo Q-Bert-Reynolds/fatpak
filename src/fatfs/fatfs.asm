@@ -32,6 +32,7 @@ _FileBackupSave:: BANKED_C _fs_BackupSave
 _FileGameOpen::  BANKED_C _fs_GameOpen
 _FileGameCopy::  BANKED_C _fs_GameCopy
 _FileGameFinish:: BANKED_C _fs_GameFinish
+_FileSnapshot:: BANKED_C _fs_Snapshot
 
 
 _ByteSum::;de = data, bc = count, returns the sum of the bytes in bc
@@ -181,6 +182,10 @@ _game_rom_mask:: DS 1
 _game_ram_mask:: DS 1
 _game_config:: DS 1;GameLaunch's $BD06 and $BD20 (0 = not written), from the EverDrive OS's registry (RegistrySum)
 _game_bd20:: DS 1
+_game_cheats:: DB 0
+_game_has_rtc:: DS 1
+_game_save_sectors:: DS 2
+_game_header:: DS 32;header $134-$153, retained until registry preparation
 _game_banks:: DS 1;its save RAM banks, 0 = no battery
 _game_block:: DS 2;fs_GameCopy's progress
 _game_blocks:: DS 2
