@@ -5,8 +5,8 @@ and EXIT TO OS. B resumes; up/down/select moves; A or Start selects the item.
 
 The entry and resume sequence now follows stock GBCOS v1.06 more closely:
 
-- Unlock before patching the OS VBlank vector at boot. Install the in-game
-  vector before launch configuration and MBC writes.
+- Establish OS mapper/config/switch state before patching the OS VBlank vector
+  at boot. Install the in-game vector before launch configuration and MBC writes.
 - Push the interrupted registers and unlock immediately, removing the former
   one-second delay. Write `$04` to `$BD06`, save SP, and switch to a resident stack.
 - Keep the small state variables and stack in resident OS memory. Only the
@@ -32,8 +32,12 @@ launches synthetic MBC5 games in DMG and CGB modes, then checks three repeated
 menu entry/resume cycles, resident stack headroom, VBlank progress after resume,
 and restoration of ROM bank 3.
 
-This remains a hardware test candidate. The reported DMG/GBA SP freezes,
-blank/disabled display, garbage and occasional return to the browser have not
-been reproduced or confirmed fixed on physical hardware. Copy `bin/GBCOS.BIN`
-to `/GBCSYS/GBCOS.BIN` on the test card, retaining the previous OS, and test
-entry, repeated resume, and EXIT TO OS. Building does not update the card.
+Hardware testing has confirmed that the menu appears and RESUME works. EXIT TO
+OS rebooted through the Nintendo logo but reopened the in-game menu. The return
+path now installs the normal editor VBlank vector and clears the cart-switch
+latch before writing `$BD06=$10`. Startup also restores that vector after setting
+mapper 0, `$BD09=4`, and `$BD06=4`.
+
+The reboot fix still requires a hardware test. Copy `bin/GBCOS.BIN` to
+`/GBCSYS/GBCOS.BIN` on the test card and check EXIT TO OS, followed by launching
+another game and entering/resuming its menu. Building does not update the card.

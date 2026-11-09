@@ -97,9 +97,17 @@ InGameResume:
   pop af
   jp $0040
 
-ExitToOS:;the cart reboots into the OS, like the EverDrive's "Back to menu" ($BD06 = $10 at its boot with $01F2 set,
-  ld a, $10;then it waits). Mapper 0 and a $BD09 bit 2 strobe froze the X7
-  ld [EDX_CONFIG], a
+ExitToOS:
+  ; The OS image is writable and may survive a cart reboot. Stop advertising
+  ; the in-game handler before requesting reset, not just when Main runs later.
+  ld hl, $0041
+  ld [hl], LOW(VBLInterrupt)
+  inc l
+  ld [hl], HIGH(VBLInterrupt)
+  xor a
+  ld [EDX_SWITCH], a ; clear any pending resume request
+  ld a, $10
+  ld [EDX_CONFIG], a ; use the stock reboot request, not a mapper-0/switch-4 pulse
   jr @
 InGameEntryEnd:
 ASSERT InGameEntryEnd <= $2000, "resuming a game writes $2000, $2100 and $3000"
