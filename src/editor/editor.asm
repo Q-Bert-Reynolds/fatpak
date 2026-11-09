@@ -12,9 +12,7 @@ DEF_RGB EDITOR_DIM,        14, 17, 14;grey-green: comments, markdown markers
 DEF_RGB EDITOR_INK,         2,  2,  3
 DEF EDITOR_ACCENTS EQU 4
 
-IF DEF(EVERDRIVE_OS)
 INCLUDE "src/editor/ingame.asm"
-ENDC
 
 SECTION "Editor ROM0", ROM0
 ;C functions (src/editor/editor.h)

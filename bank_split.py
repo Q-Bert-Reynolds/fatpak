@@ -1,18 +1,11 @@
-"""Splits SDCC's rgbds output for one C file across ROM0 and several ROMX sections, or EverDrive X OS
-mode pages.
+"""Split SDCC RGBDS output across EverDrive OS pages and resident code.
 
-usage: python3 bank_split.py generated.asm banks.txt [--os]
+usage: python3 bank_split.py generated.asm config.banks
 
-banks.txt lists functions (without the leading underscore) per section, one section per line:
-  ROM0: ld_16 ld_32 ...
-  B: mount_volume f_write ...
-Unlisted functions go in section A, data (tables, strings) goes in ROM0 so every bank can read it,
-unless it's listed too (only the functions in its section can read it then).
-These can be changed with "*: section" (unlisted functions), "DATA: section" and "THUNKS: section".
-With --os, sections are ROM0, FIXED (ROMX bank 1, always mapped) or a page number (4-15, PAGE in
-src/macros.asm), and data and thunks default to FIXED.
-Calls and jumps between functions in different ROMX sections or pages, or from ROM0 to them, go
-through thunks that use FarCallInline (src/far_call.asm).
+Config lines map function names to ROM0, FIXED (always-mapped ROMX bank 1),
+or a page number (4-15, see PAGE in src/macros.asm). Special entries *:,
+DATA:, and THUNKS: set defaults; data and far-call thunks default to FIXED.
+Cross-page calls use FarCallInline (src/far_call.asm).
 """
 import re
 import sys
@@ -42,12 +35,12 @@ def read_config(path):
   return dests, special
 
 
-def main(asm_path, config_path, os_mode):
+def main(asm_path, config_path):
   with open(asm_path, encoding="utf8") as file:
     lines = file.read().split("\n")
   config, special = read_config(config_path)
-  fixed = "FIXED" if os_mode else "ROM0"
-  default = special.get("*", "A")
+  fixed = "FIXED"
+  default = special.get("*", "4")
   data_dest = special.get("DATA", fixed)
   thunk_dest = special.get("THUNKS", fixed)
   near = ("ROM0", "FIXED")  # always mapped
@@ -77,13 +70,13 @@ def main(asm_path, config_path, os_mode):
   def section(dest):
     if dest == "ROM0":
       return f'\tSECTION FRAGMENT "{base} ROM0",ROM0'
-    if os_mode and dest == "FIXED":
+    if dest == "FIXED":
       return f'\tSECTION FRAGMENT "{base} FIXED",ROMX,BANK[1]'
-    if os_mode:
-      page = int(dest)
-      return (f'\tSECTION FRAGMENT "Page {page}",ROMX,BANK[{page >> 1}]\n'
-              f'\tLOAD FRAGMENT "Page {page} RAM",SRAM,BANK[{page}]')
-    return f'\tSECTION FRAGMENT "{base} {dest}",ROMX'
+    page = int(dest)
+    if not 4 <= page <= 15:
+      raise ValueError(f"Invalid OS page: {page}")
+    return (f'\tSECTION FRAGMENT "Page {page}",ROMX,BANK[{page >> 1}]\n'
+            f'\tLOAD FRAGMENT "Page {page} RAM",SRAM,BANK[{page}]')
 
   out = []
   thunks = set()
@@ -139,4 +132,4 @@ def main(asm_path, config_path, os_mode):
 
 
 if __name__ == "__main__":
-  main(sys.argv[1], sys.argv[2], "--os" in sys.argv[3:])
+  main(sys.argv[1], sys.argv[2])

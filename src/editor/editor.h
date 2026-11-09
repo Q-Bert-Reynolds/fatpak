@@ -76,7 +76,6 @@ extern unsigned int fs_count; // entries FileList found
 extern unsigned int fs_found; // index of the folder it was asked to find, 0xFFFF if it isn't there
 extern unsigned char FileLoad(const char* path); // FRESULT, replaces the text buffer
 extern unsigned char FileSave(const char* path); // FRESULT
-#ifdef EVERDRIVE_OS
 extern unsigned char FileLoadData(const char* path); // FRESULT, copies the data file to PSRAM
 extern unsigned char data_loaded; // the styled fonts and SGB border are in PSRAM
 extern void SGBSetDefaultBorder(void);
@@ -103,7 +102,6 @@ extern unsigned char doc_large; // a large file is open, the text buffer is a wi
 extern unsigned char lines_known, win_chunks;
 extern unsigned long doc_len, doc_pos, win_start, win_end, win_mark, win_lines, scan_pos, scan_target, scan_lines;
 extern unsigned int doc_back, win_mark_pos, win_kept[];
-#endif
 extern unsigned char fs_crlf; // loaded file used CR LF, saving writes CR LF
 
 // src/wram.asm

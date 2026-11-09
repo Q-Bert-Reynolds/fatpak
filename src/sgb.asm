@@ -37,7 +37,6 @@ INCLUDE "src/memory1.asm"
 ;     Copies data to SNES WRAM using either DATA_SND or DATA_TRN
 ;     Input: a = SNES bank, bc = byte count, de = SNES address, hl = src data
 
-DEF SGB_CHECK EQU 1;0 = sys check only, 1 = controller test
 
 DEF SGB_CODE_PAL01    EQU $00 ;Set SGB Palette 0,1 Data
 DEF SGB_CODE_PAL23    EQU $01 ;Set SGB Palette 2,3 Data
@@ -177,13 +176,8 @@ MACRO PAL_RPI ;\1 = priority (0=user,1=game)
   DS 14
 ENDM
 
-IF DEF(EVERDRIVE_OS);the border is in the data file (sgb_SetDefaultBorder)
+;the border is in the data file (sgb_SetDefaultBorder)
   PAGE SGB_PAGE
-ELSE
-SECTION "Super GameBoy Banked", ROMX
-
-INCLUDE "img/default_sgb_border.asm"
-ENDC
 
 ; Initialization packets extracted from the official documentation
 DataSnd0: DB $79, $5D, $08, $00, $0B, $8C, $D0, $F4, $60, $00, $00, $00, $00, $00, $00, $00
@@ -202,7 +196,7 @@ sgb_MltReqOnePlayer:  MLT_REQ 1
 
 ; Super Game Boy initialization
 sgb_Init::
-IF DEF(EVERDRIVE_OS);the EverDrive's loader ran after the boot ROM, so ask for 2 players (MLT_REQ)
+;the EverDrive's loader ran after the boot ROM, so ask for 2 players (MLT_REQ)
   ldh a, [sys_info]
   and a, SYS_INFO_GBC
   ret nz
@@ -215,48 +209,10 @@ IF DEF(EVERDRIVE_OS);the EverDrive's loader ran after the boot ROM, so ask for 2
   di
   DISPLAY_OFF
   call sgb_SendInitPackets
-ELSE
-IF SGB_CHECK == 0
-  ldh a, [sys_info]
-  and a, SYS_INFO_SGB
-  ret z
-ENDC
-
-  di
-  DISPLAY_OFF
-  call sgb_SendInitPackets        ; 8 initialization data packet sending, according to the official documentation
-
-IF SGB_CHECK == 1
-  call sgb_Check                  ; check multiplayer even if register check has passed
-  ldh a, [sys_info]
-  jr nc, .doubleCheck             ; multiplayer fail might be a fluke, check registers
-  or a, SYS_INFO_SGB
-  ldh [sys_info], a
-.doubleCheck
-  and a, SYS_INFO_SGB
-  jr nz, .success
-.fail
-  reti                            ; both register and multiplayer checks failed
-ENDC
-ENDC
 
 .success
   ld hl, sgb_MaskEnFreeze
   call  _sgb_PacketTransfer       ; Freezes the visualization of the Super Game Boy screen to hide the graphic garbage during the VRAM transfers  
-IF !DEF(EVERDRIVE_OS);OS mode sends the border once the data file loads
-
-  ld de, sgb_ChrTrn1
-  ld hl, DefaultSgbBorderTiles
-  call _sgb_VRAMTransfer          ; Copies first 128 tiles of the frame (256 Game Boy tiles) to SNES RAM
-
-  ld de, sgb_ChrTrn2
-  ld hl, DefaultSgbBorderTiles+$1000
-  call _sgb_VRAMTransfer          ; Copies second 128 tiles of the frame (256 Game Boy tiles) SNES RAM
-
-  ld de, sgb_PctTrn
-  ld hl, DefaultSgbBorderTileMap
-  call _sgb_VRAMTransfer          ; Copies frame map to SNES RAM 
-ENDC
 
   TRAMPOLINE SGBTransferPalettes  ; Copies custom game palettes to SNES RAM
 
@@ -337,7 +293,6 @@ sgb_MaskEnCancel: MASK_EN 0
 sgb_PalPriGame:   PAL_RPI 1
 sgb_PalPriUser:   PAL_RPI 0
 
-IF DEF(EVERDRIVE_OS)
 _SGBSetDefaultBorder::
 sgb_SetDefaultBorder::;from the data file, if it loaded
   ldh a, [sys_info]
@@ -396,50 +351,6 @@ sgb_CopyWindow:;hl = first block, de = destination, copies 8 blocks (4KB)
   pop af
   ld [EDX_BLOCK], a
   ret
-ELSE
-sgb_SetDefaultBorder::
-  ld a, BANK(DefaultSgbBorderTiles)
-  ld hl, DefaultSgbBorderTiles
-  ld de, DefaultSgbBorderTileMap
-sgb_SetBorder:: ;a = bank, hl = tiles, de = tile map
-  ld b, a;bank
-  ldh a, [sys_info]
-  and a, SYS_INFO_SGB
-  ret z
-
-  di
-  ldh a, [loaded_bank]
-  push af;old bank
-  ld a, b;new bank
-  push de;tile map
-  push hl;tiles
-  SET_BANK
-
-  ld hl, sgb_MaskEnFreeze
-  call  _sgb_PacketTransfer      ; Freezes the visualization of the Super Game Boy screen to hide the graphic garbage during the VRAM transfers
-
-  pop hl;tiles
-  push hl;tiles
-  ld de, sgb_ChrTrn1
-  call _sgb_VRAMTransfer          ; Copies first 128 tiles of the frame (256 Game Boy tiles) to SNES RAM
-
-  ld de, sgb_ChrTrn2
-  pop hl;tiles
-  ld bc, $1000
-  add hl, bc
-  call _sgb_VRAMTransfer          ; Copies second 128 tiles of the frame (256 Game Boy tiles) SNES RAM
-
-  ld de, sgb_PctTrn
-  pop hl;tile map
-  call _sgb_VRAMTransfer          ; Copies frame map to SNES RAM 
-
-  ld hl, sgb_MaskEnCancel
-  call _sgb_PacketTransfer       ; Super Game Boy screen visualization unfreezing
-
-  pop af;old bank
-  SET_BANK
-  reti
-ENDC
 
 sgb_PlaySound:: ;a = sound A, b = sound B, c = attributes
   push bc
@@ -579,14 +490,12 @@ _sgb_VRAMTransfer:
   ld a, %11100100
   ldh [rBGP], a                ; VRAM-transfer background palette value
   ld de, _VRAM + 2048
-IF DEF(EVERDRIVE_OS)
   ld a, [sgb_from_window]
   and a
   jr z, .copy
   call sgb_CopyWindow
   jr .copied
 .copy
-ENDC
   ld bc, 4096
   call mem_Copy               ; We copy to the Game Boy VRAM the 4KB data that is going to be transferred to the SNES RAM
 .copied

@@ -257,7 +257,7 @@ _code_line:
 ; code
 ;--------------------------------------------------------
 	SECTION FRAGMENT "src/editor/editor.c_CODE",ROMX
-;src/editor/editor.c:133: static unsigned char FindRow(unsigned int pos) {
+;src/editor/editor.c:131: static unsigned char FindRow(unsigned int pos) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -268,7 +268,7 @@ _FindRow:
 	dec	sp
 	ld	c, e
 	ld	b, d
-;src/editor/editor.c:135: for (row = 0; row < tb_rows; ++row) {
+;src/editor/editor.c:133: for (row = 0; row < tb_rows; ++row) {
 	ld	hl, sp+0
 	ld	[hl], $00
 	inc	hl
@@ -279,7 +279,7 @@ _FindRow:
 	ld	hl, _tb_rows
 	sub	a, [hl]
 	jp	NC, .l00105
-;src/editor/editor.c:136: if (pos < tb_row_starts[row]) return 0xFF;
+;src/editor/editor.c:134: if (pos < tb_row_starts[row]) return 0xFF;
 	ld	hl, sp+1
 	ld	a, [hl]
 	ld	e, $00
@@ -302,7 +302,7 @@ _FindRow:
 	ld	a, $FF
 	jp	.l00109
 .l00102:
-;src/editor/editor.c:137: if (pos < tb_row_starts[row + 1]) return row;
+;src/editor/editor.c:135: if (pos < tb_row_starts[row + 1]) return row;
 	ld	hl, sp+1
 	ld	a, [hl]
 	inc	a
@@ -330,7 +330,7 @@ _FindRow:
 	ld	a, [hl]
 	jp	.l00109
 .l00108:
-;src/editor/editor.c:135: for (row = 0; row < tb_rows; ++row) {
+;src/editor/editor.c:133: for (row = 0; row < tb_rows; ++row) {
 	ld	hl, sp+1
 	inc	[hl]
 	ld	a, [hl]
@@ -338,7 +338,7 @@ _FindRow:
 	ld	[hl], a
 	jp	.l00107
 .l00105:
-;src/editor/editor.c:139: return pos == tb_Length() ? tb_end_row : 0xFF;
+;src/editor/editor.c:137: return pos == tb_Length() ? tb_end_row : 0xFF;
 	push	bc
 	call	_tb_Length
 	ld	e, c
@@ -363,7 +363,7 @@ _FindRow:
 	ld	c, $00
 .l00112:
 .l00109:
-;src/editor/editor.c:140: }
+;src/editor/editor.c:138: }
 	inc	sp
 	inc	sp
 	ret
@@ -855,7 +855,7 @@ _help_lines:
 	DB $00
 	DB $00
 	DB $00
-;src/editor/editor.c:146: static unsigned int LineEnd(unsigned char row) {
+;src/editor/editor.c:144: static unsigned int LineEnd(unsigned char row) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -863,7 +863,7 @@ _help_lines:
 ; ---------------------------------
 _LineEnd:
 	ld	c, a
-;src/editor/editor.c:147: return row == tb_end_row ? tb_Length() : tb_row_starts[row + 1] - 1;
+;src/editor/editor.c:145: return row == tb_end_row ? tb_Length() : tb_row_starts[row + 1] - 1;
 	ld	hl, _tb_end_row
 	ld	a, [hl]
 	sub	a, c
@@ -892,9 +892,9 @@ _LineEnd:
 	dec	bc
 .l00104:
 .l00101:
-;src/editor/editor.c:148: }
+;src/editor/editor.c:146: }
 	ret
-;src/editor/editor.c:151: static unsigned char PlaceCursor(void) {
+;src/editor/editor.c:149: static unsigned char PlaceCursor(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -902,7 +902,7 @@ _LineEnd:
 ; ---------------------------------
 _PlaceCursor:
 	dec	sp
-;src/editor/editor.c:152: unsigned char row = FindRow(cursor), count;
+;src/editor/editor.c:150: unsigned char row = FindRow(cursor), count;
 	ld	hl, _cursor
 	ld	e, [hl]
 	inc	hl
@@ -910,7 +910,7 @@ _PlaceCursor:
 	call	_FindRow
 	ld	hl, sp+0
 	ld	[hl], a
-;src/editor/editor.c:154: if (row == 0xFF) return 0;
+;src/editor/editor.c:152: if (row == 0xFF) return 0;
 	ld	a, [hl]
 	inc	a
 	jp	NZ,.l00161
@@ -921,7 +921,7 @@ _PlaceCursor:
 	xor	a, a
 	jp	.l00116
 .l00102:
-;src/editor/editor.c:155: col = cursor - tb_row_starts[row];
+;src/editor/editor.c:153: col = cursor - tb_row_starts[row];
 	ld	bc, _tb_row_starts+0
 	ld	hl, sp+0
 	ld	e, [hl]
@@ -941,7 +941,7 @@ _PlaceCursor:
 	ld	a, [hl]
 	sbc	a, b
 	ld	d, a
-;src/editor/editor.c:156: count = tb_row_counts[row];
+;src/editor/editor.c:154: count = tb_row_counts[row];
 	ld	bc, _tb_row_counts+0
 	ld	hl, sp+0
 	ld	l, [hl]
@@ -950,15 +950,15 @@ _PlaceCursor:
 	ld	c, l
 	ld	b, h
 	ld	a, [bc]
-;src/editor/editor.c:160: if (col > count || (col == count && cursor != LineEnd(row))) return 0;
+;src/editor/editor.c:158: if (col > count || (col == count && cursor != LineEnd(row))) return 0;
 	ld	c, a
 	ld	b, $00
-;src/editor/editor.c:157: if (tb_nowrap) { // its character is drawn, or it's after the line's last one
+;src/editor/editor.c:155: if (tb_nowrap) { // its character is drawn, or it's after the line's last one
 	ld	hl, _tb_nowrap
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00112
-;src/editor/editor.c:158: if (col < tb_left) return 0;
+;src/editor/editor.c:156: if (col < tb_left) return 0;
 	ld	hl, _tb_left
 	ld	a, e
 	sub	a, [hl]
@@ -969,7 +969,7 @@ _PlaceCursor:
 	xor	a, a
 	jp	.l00116
 .l00104:
-;src/editor/editor.c:159: col -= tb_left;
+;src/editor/editor.c:157: col -= tb_left;
 	ld	a, e
 	ld	hl, _tb_left
 	sub	a, [hl]
@@ -978,7 +978,7 @@ _PlaceCursor:
 	inc	hl
 	sbc	a, [hl]
 	ld	d, a
-;src/editor/editor.c:160: if (col > count || (col == count && cursor != LineEnd(row))) return 0;
+;src/editor/editor.c:158: if (col > count || (col == count && cursor != LineEnd(row))) return 0;
 	ld	a, c
 	sub	a, e
 	ld	a, b
@@ -1013,7 +1013,7 @@ _PlaceCursor:
 	xor	a, a
 	jp	.l00116
 .l00112:
-;src/editor/editor.c:162: else if (col > count) col = count; // hanging spaces
+;src/editor/editor.c:160: else if (col > count) col = count; // hanging spaces
 	ld	a, c
 	sub	a, e
 	ld	a, b
@@ -1022,15 +1022,15 @@ _PlaceCursor:
 	ld	e, c
 	ld	d, b
 .l00113:
-;src/editor/editor.c:163: tb_found_row = row;
+;src/editor/editor.c:161: tb_found_row = row;
 	ld	hl, sp+0
 	ld	a, [hl]
 	ld	hl, _tb_found_row
 	ld	[hl], a
-;src/editor/editor.c:164: tb_found_col = (unsigned char)col;
+;src/editor/editor.c:162: tb_found_col = (unsigned char)col;
 	ld	hl, _tb_found_col
 	ld	[hl], e
-;src/editor/editor.c:165: if (!keep_x) want_x = RenderCursorX(tb_found_col);
+;src/editor/editor.c:163: if (!keep_x) want_x = RenderCursorX(tb_found_col);
 	ld	hl, _keep_x
 	ld	a, [hl]
 	or	a, a
@@ -1041,13 +1041,13 @@ _PlaceCursor:
 	ld	hl, _want_x
 	ld	[hl], a
 .l00115:
-;src/editor/editor.c:166: keep_x = 0;
+;src/editor/editor.c:164: keep_x = 0;
 	ld	hl, _keep_x
 	ld	[hl], $00
-;src/editor/editor.c:167: blink_timer = 0;
+;src/editor/editor.c:165: blink_timer = 0;
 	ld	hl, _blink_timer
 	ld	[hl], $00
-;src/editor/editor.c:168: EditorInvertCursor(GetSelection() && cursor == sel_start); // the selection starts at the cursor's x
+;src/editor/editor.c:166: EditorInvertCursor(GetSelection() && cursor == sel_start); // the selection starts at the cursor's x
 	call	_GetSelection__far
 	or	a, a
 	jp	Z, .l00118
@@ -1071,19 +1071,19 @@ _PlaceCursor:
 .l00120:
 	ld	a, c
 	call	_EditorInvertCursor
-;src/editor/editor.c:169: EditorShowCursor(1);
+;src/editor/editor.c:167: EditorShowCursor(1);
 	ld	a, $01
 	call	_EditorShowCursor
-;src/editor/editor.c:170: bars_changed = 1;
+;src/editor/editor.c:168: bars_changed = 1;
 	ld	hl, _bars_changed
 	ld	[hl], $01
-;src/editor/editor.c:171: return 1;
+;src/editor/editor.c:169: return 1;
 	ld	a, $01
 .l00116:
-;src/editor/editor.c:172: }
+;src/editor/editor.c:170: }
 	inc	sp
 	ret
-;src/editor/editor.c:175: static unsigned int PosAtX(unsigned char row, unsigned char x) {
+;src/editor/editor.c:173: static unsigned int PosAtX(unsigned char row, unsigned char x) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -1095,7 +1095,7 @@ _PosAtX:
 	ld	[hl], a
 	dec	hl
 	ld	[hl], e
-;src/editor/editor.c:176: unsigned char* attrs = (unsigned char*)RowAddress(row) + (tile_attrs - tile_buffer);
+;src/editor/editor.c:174: unsigned char* attrs = (unsigned char*)RowAddress(row) + (tile_attrs - tile_buffer);
 	inc	hl
 	ld	a, [hl]
 	call	_RowAddress__far
@@ -1136,7 +1136,7 @@ _PosAtX:
 	ld	a, [hl]
 	ld	hl, sp+1
 	ld	[hl], a
-;src/editor/editor.c:177: unsigned char count = tb_row_counts[row], col = 0, width;
+;src/editor/editor.c:175: unsigned char count = tb_row_counts[row], col = 0, width;
 	ld	bc, _tb_row_counts+0
 	ld	hl, sp+7
 	ld	l, [hl]
@@ -1147,7 +1147,7 @@ _PosAtX:
 	ld	a, [bc]
 	ld	hl, sp+2
 	ld	[hl], a
-;src/editor/editor.c:179: while (col < count) {
+;src/editor/editor.c:177: while (col < count) {
 	ld	hl, sp+8
 	ld	[hl], $00
 .l00103:
@@ -1156,7 +1156,7 @@ _PosAtX:
 	ld	hl, sp+2
 	sub	a, [hl]
 	jp	NC, .l00105
-;src/editor/editor.c:180: width = attrs[col] & STYLE_WIDTH;
+;src/editor/editor.c:178: width = attrs[col] & STYLE_WIDTH;
 	pop	de
 	push	de
 	ld	hl, sp+8
@@ -1169,7 +1169,7 @@ _PosAtX:
 	and	a, $0F
 	ld	hl, sp+3
 	ld	[hl], a
-;src/editor/editor.c:181: if (x < ((width + 1) >> 1)) break;
+;src/editor/editor.c:179: if (x < ((width + 1) >> 1)) break;
 	ld	c, [hl]
 	ld	b, $00
 	inc	bc
@@ -1203,7 +1203,7 @@ _PosAtX:
 	scf
 .l00165:
 	jp	C, .l00105
-;src/editor/editor.c:182: x = x < width ? 0 : x - width;
+;src/editor/editor.c:180: x = x < width ? 0 : x - width;
 	ld	hl, sp+6
 	ld	a, [hl]
 	ld	hl, sp+3
@@ -1230,13 +1230,13 @@ _PosAtX:
 	inc	hl
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:183: ++col;
+;src/editor/editor.c:181: ++col;
 	inc	hl
 	inc	hl
 	inc	[hl]
 	jp	.l00103
 .l00105:
-;src/editor/editor.c:185: pos = tb_row_starts[row] + col;
+;src/editor/editor.c:183: pos = tb_row_starts[row] + col;
 	ld	hl, sp+7
 	ld	a, [hl]
 	ld	hl, sp+4
@@ -1299,12 +1299,12 @@ _PosAtX:
 	ld	a, h
 	ld	hl, sp+5
 	ld	[hl], a
-;src/editor/editor.c:186: if (tb_nowrap) {
+;src/editor/editor.c:184: if (tb_nowrap) {
 	ld	hl, _tb_nowrap
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00107
-;src/editor/editor.c:187: pos += tb_left;
+;src/editor/editor.c:185: pos += tb_left;
 	ld	hl, sp+5
 	dec	hl
 	ld	e, [hl]
@@ -1321,7 +1321,7 @@ _PosAtX:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:188: return pos > LineEnd(row) ? LineEnd(row) : pos;
+;src/editor/editor.c:186: return pos > LineEnd(row) ? LineEnd(row) : pos;
 	inc	hl
 	inc	hl
 	ld	a, [hl]
@@ -1349,7 +1349,7 @@ _PosAtX:
 	ld	b, [hl]
 	jp	.l00112
 .l00107:
-;src/editor/editor.c:190: if (col == count && pos == tb_row_starts[row + 1] && tb_end_row != row) --pos; // stay on wrapped row
+;src/editor/editor.c:188: if (col == count && pos == tb_row_starts[row + 1] && tb_end_row != row) --pos; // stay on wrapped row
 	ld	hl, sp+2
 	ld	a, [hl]
 	ld	hl, sp+8
@@ -1442,23 +1442,23 @@ _PosAtX:
 	inc	hl
 	ld	[hl], d
 .l00109:
-;src/editor/editor.c:191: return pos;
+;src/editor/editor.c:189: return pos;
 	ld	hl, sp+4
 	ld	c, [hl]
 	inc	hl
 	ld	b, [hl]
 .l00112:
-;src/editor/editor.c:192: }
+;src/editor/editor.c:190: }
 	add	sp, 9
 	ret
-;src/editor/editor.c:195: static unsigned char TextRows(void) {
+;src/editor/editor.c:193: static unsigned char TextRows(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function TextRows
 ; ---------------------------------
 _TextRows:
-;src/editor/editor.c:196: return TB_ROWS - (bars << 1) - (osk_shown ? OSK_ROWS : 0);
+;src/editor/editor.c:194: return TB_ROWS - (bars << 1) - (osk_shown ? OSK_ROWS : 0);
 	ld	hl, _bars
 	ld	a, [hl]
 	add	a, a
@@ -1478,9 +1478,9 @@ _TextRows:
 	ld	a, c
 	sub	a, e
 .l00101:
-;src/editor/editor.c:197: }
+;src/editor/editor.c:195: }
 	ret
-;src/editor/editor.c:206: static unsigned char IsOSKBlock(unsigned char block) {
+;src/editor/editor.c:204: static unsigned char IsOSKBlock(unsigned char block) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -1488,7 +1488,7 @@ _TextRows:
 ; ---------------------------------
 _IsOSKBlock:
 	ld	c, a
-;src/editor/editor.c:208: for (i = 0; i < OSK_ROWS; ++i) if (osk_blocks[i] == block) return 1;
+;src/editor/editor.c:206: for (i = 0; i < OSK_ROWS; ++i) if (osk_blocks[i] == block) return 1;
 	ld	d, $00
 .l00104:
 	ld	a, LOW(_osk_blocks)
@@ -1515,12 +1515,12 @@ _IsOSKBlock:
 	ld	a, d
 	sub	a, $05
 	jp	C, .l00104
-;src/editor/editor.c:209: return 0;
+;src/editor/editor.c:207: return 0;
 	xor	a, a
 .l00106:
-;src/editor/editor.c:210: }
+;src/editor/editor.c:208: }
 	ret
-;src/editor/editor.c:212: static void Layout(void) {
+;src/editor/editor.c:210: static void Layout(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -1528,7 +1528,7 @@ _IsOSKBlock:
 ; ---------------------------------
 _Layout:
 	add	sp, -8
-;src/editor/editor.c:213: unsigned char row, line, block, map_row, i = 0, win_row = BG_MAP_ROWS, osk = TB_ROWS - (bars << 1) - tb_rows;
+;src/editor/editor.c:211: unsigned char row, line, block, map_row, i = 0, win_row = BG_MAP_ROWS, osk = TB_ROWS - (bars << 1) - tb_rows;
 	ld	hl, _bars
 	ld	a, [hl]
 	add	a, a
@@ -1539,7 +1539,7 @@ _Layout:
 	ld	c, [hl]
 	sub	a, c
 	ld	c, a
-;src/editor/editor.c:214: unsigned char length = tb_rows + render_gbc, first = ring_blocks[ring_pos];
+;src/editor/editor.c:212: unsigned char length = tb_rows + render_gbc, first = ring_blocks[ring_pos];
 	ld	a, [hl]
 	ld	hl, _render_gbc
 	add	a, [hl]
@@ -1555,7 +1555,7 @@ _Layout:
 	ld	a, [de]
 	ld	hl, sp+2
 	ld	[hl], a
-;src/editor/editor.c:215: for (block = 0; block < TB_ROWS + render_gbc; ++block) {
+;src/editor/editor.c:213: for (block = 0; block < TB_ROWS + render_gbc; ++block) {
 	ld	hl, sp+7
 	ld	[hl], $00
 	ld	b, $00
@@ -1602,7 +1602,7 @@ _Layout:
 	scf
 .l00221:
 	jp	NC, .l00111
-;src/editor/editor.c:216: if (bars && (block == HEADER_BLOCK || block == STATUS_BLOCK)) continue;
+;src/editor/editor.c:214: if (bars && (block == HEADER_BLOCK || block == STATUS_BLOCK)) continue;
 	ld	hl, _bars
 	ld	a, [hl]
 	or	a, a
@@ -1618,7 +1618,7 @@ _Layout:
 	jp	.l00110
 .l00223:
 .l00102:
-;src/editor/editor.c:217: if (osk && IsOSKBlock(block)) continue;
+;src/editor/editor.c:215: if (osk && IsOSKBlock(block)) continue;
 	ld	a, c
 	or	a, a
 	jp	Z, .l00106
@@ -1629,7 +1629,7 @@ _Layout:
 	or	a, a
 	jp	NZ, .l00110
 .l00106:
-;src/editor/editor.c:218: if (block == first) ring_pos = i;
+;src/editor/editor.c:216: if (block == first) ring_pos = i;
 	ld	hl, sp+2
 	ld	a, [hl]
 	sub	a, b
@@ -1643,7 +1643,7 @@ _Layout:
 	ld	hl, _ring_pos
 	ld	[hl], a
 .l00109:
-;src/editor/editor.c:219: ring_blocks[i++] = block;
+;src/editor/editor.c:217: ring_blocks[i++] = block;
 	ld	de, _ring_blocks
 	ld	hl, sp+7
 	ld	l, [hl]
@@ -1656,11 +1656,11 @@ _Layout:
 	ld	a, b
 	ld	[de], a
 .l00110:
-;src/editor/editor.c:215: for (block = 0; block < TB_ROWS + render_gbc; ++block) {
+;src/editor/editor.c:213: for (block = 0; block < TB_ROWS + render_gbc; ++block) {
 	inc	b
 	jp	.l00129
 .l00111:
-;src/editor/editor.c:221: if (ring_pos >= length) ring_pos = 0;
+;src/editor/editor.c:219: if (ring_pos >= length) ring_pos = 0;
 	ld	hl, _ring_pos
 	ld	a, [hl]
 	ld	hl, sp+0
@@ -1669,38 +1669,38 @@ _Layout:
 	ld	hl, _ring_pos
 	ld	[hl], $00
 .l00113:
-;src/editor/editor.c:222: i = ring_pos;
+;src/editor/editor.c:220: i = ring_pos;
 	ld	hl, _ring_pos
 	ld	a, [hl]
 	ld	hl, sp+5
 	ld	[hl], a
-;src/editor/editor.c:223: render_pending = 0;
+;src/editor/editor.c:221: render_pending = 0;
 	ld	hl, _render_pending
 	ld	[hl], $00
-;src/editor/editor.c:224: render_text_top = bars;
+;src/editor/editor.c:222: render_text_top = bars;
 	ld	hl, _bars
 	ld	a, [hl]
 	ld	hl, _render_text_top
 	ld	[hl], a
-;src/editor/editor.c:225: for (row = 0; row < TB_ROWS; ++row) {
+;src/editor/editor.c:223: for (row = 0; row < TB_ROWS; ++row) {
 	ld	hl, sp+6
 	ld	[hl], $20
 	inc	hl
 	ld	[hl], $00
 .l00130:
-;src/editor/editor.c:226: line = row - bars;
+;src/editor/editor.c:224: line = row - bars;
 	ld	hl, sp+7
 	ld	a, [hl]
 	ld	hl, _bars
 	sub	a, [hl]
 	ld	hl, sp+4
 	ld	[hl], a
-;src/editor/editor.c:227: if (line < tb_rows) {
+;src/editor/editor.c:225: if (line < tb_rows) {
 	ld	a, [hl]
 	ld	hl, _tb_rows
 	sub	a, [hl]
 	jp	NC, .l00122
-;src/editor/editor.c:228: block = ring_blocks[i];
+;src/editor/editor.c:226: block = ring_blocks[i];
 	ld	de, _ring_blocks
 	ld	hl, sp+5
 	ld	l, [hl]
@@ -1722,7 +1722,7 @@ _Layout:
 	dec	hl
 	dec	hl
 	ld	[hl], a
-;src/editor/editor.c:229: if (++i == length) i = 0;
+;src/editor/editor.c:227: if (++i == length) i = 0;
 	ld	hl, sp+5
 	inc	[hl]
 	ld	hl, sp+0
@@ -1737,7 +1737,7 @@ _Layout:
 	ld	hl, sp+5
 	ld	[hl], $00
 .l00115:
-;src/editor/editor.c:230: map_row = (ring_top + line) & (BG_MAP_ROWS - 1);
+;src/editor/editor.c:228: map_row = (ring_top + line) & (BG_MAP_ROWS - 1);
 	ld	hl, _ring_top
 	ld	a, [hl]
 	ld	hl, sp+4
@@ -1746,7 +1746,7 @@ _Layout:
 	dec	hl
 	dec	hl
 	ld	[hl], a
-;src/editor/editor.c:231: render_row_fonts[row] = font;
+;src/editor/editor.c:229: render_row_fonts[row] = font;
 	ld	de, _render_row_fonts
 	ld	hl, sp+7
 	ld	l, [hl]
@@ -1759,14 +1759,14 @@ _Layout:
 	ld	[bc], a
 	jp	.l00123
 .l00122:
-;src/editor/editor.c:234: map_row = win_row++;
+;src/editor/editor.c:232: map_row = win_row++;
 	ld	hl, sp+6
 	ld	a, [hl]
 	ld	hl, sp+2
 	ld	[hl], a
 	ld	hl, sp+6
 	inc	[hl]
-;src/editor/editor.c:235: if (bars && (!row || row == TB_ROWS - 1)) {
+;src/editor/editor.c:233: if (bars && (!row || row == TB_ROWS - 1)) {
 	ld	hl, _bars
 	ld	a, [hl]
 	or	a, a
@@ -1783,7 +1783,7 @@ _Layout:
 	jp	.l00117
 .l00229:
 .l00116:
-;src/editor/editor.c:236: block = row ? STATUS_BLOCK : HEADER_BLOCK;
+;src/editor/editor.c:234: block = row ? STATUS_BLOCK : HEADER_BLOCK;
 	ld	hl, sp+7
 	ld	a, [hl]
 	or	a, a
@@ -1795,7 +1795,7 @@ _Layout:
 .l00135:
 	ld	hl, sp+1
 	ld	[hl], c
-;src/editor/editor.c:237: line = row ? STATUS_LINE : HEADER_LINE;
+;src/editor/editor.c:235: line = row ? STATUS_LINE : HEADER_LINE;
 	ld	hl, sp+7
 	ld	a, [hl]
 	or	a, a
@@ -1817,7 +1817,7 @@ _Layout:
 	ld	a, [hl]
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:238: render_row_fonts[row] = FONT_VWF;
+;src/editor/editor.c:236: render_row_fonts[row] = FONT_VWF;
 	ld	de, _render_row_fonts
 	ld	hl, sp+7
 	ld	l, [hl]
@@ -1829,7 +1829,7 @@ _Layout:
 	ld	[bc], a
 	jp	.l00123
 .l00117:
-;src/editor/editor.c:241: block = osk_blocks[line - tb_rows];
+;src/editor/editor.c:239: block = osk_blocks[line - tb_rows];
 	ld	hl, sp+4
 	ld	a, [hl]
 	ld	hl, _tb_rows
@@ -1841,7 +1841,7 @@ _Layout:
 	ld	a, [hl]
 	ld	hl, sp+1
 	ld	[hl], a
-;src/editor/editor.c:242: render_row_fonts[row] = FONT_MONO;
+;src/editor/editor.c:240: render_row_fonts[row] = FONT_MONO;
 	ld	de, _render_row_fonts
 	ld	hl, sp+7
 	ld	l, [hl]
@@ -1852,7 +1852,7 @@ _Layout:
 	xor	a, a
 	ld	[bc], a
 .l00123:
-;src/editor/editor.c:245: render_row_blocks[row] = block;
+;src/editor/editor.c:243: render_row_blocks[row] = block;
 	ld	de, _render_row_blocks
 	ld	hl, sp+7
 	ld	l, [hl]
@@ -1863,7 +1863,7 @@ _Layout:
 	ld	hl, sp+1
 	ld	a, [hl]
 	ld	[bc], a
-;src/editor/editor.c:246: render_row_lines[row] = line;
+;src/editor/editor.c:244: render_row_lines[row] = line;
 	ld	de, _render_row_lines
 	ld	hl, sp+7
 	ld	l, [hl]
@@ -1874,7 +1874,7 @@ _Layout:
 	ld	hl, sp+4
 	ld	a, [hl]
 	ld	[bc], a
-;src/editor/editor.c:247: if (map_blocks[map_row] != block || block_map_rows[block] != map_row) { // a block can still be listed in a map row it left
+;src/editor/editor.c:245: if (map_blocks[map_row] != block || block_map_rows[block] != map_row) { // a block can still be listed in a map row it left
 	ld	de, _map_blocks
 	dec	hl
 	dec	hl
@@ -1909,23 +1909,23 @@ _Layout:
 	jp	.l00131
 .l00232:
 .l00124:
-;src/editor/editor.c:248: map_blocks[map_row] = block;
+;src/editor/editor.c:246: map_blocks[map_row] = block;
 	ld	hl, sp+1
 	ld	a, [hl]
 	ld	[bc], a
-;src/editor/editor.c:249: RenderSetMapRow(map_row, block);
+;src/editor/editor.c:247: RenderSetMapRow(map_row, block);
 	ld	e, [hl]
 	inc	hl
 	ld	a, [hl]
 	call	_RenderSetMapRow
 .l00131:
-;src/editor/editor.c:225: for (row = 0; row < TB_ROWS; ++row) {
+;src/editor/editor.c:223: for (row = 0; row < TB_ROWS; ++row) {
 	ld	hl, sp+7
 	inc	[hl]
 	ld	a, [hl]
 	sub	a, $12
 	jp	C, .l00130
-;src/editor/editor.c:252: render_pending_scy = (ring_top - bars) << 3;
+;src/editor/editor.c:250: render_pending_scy = (ring_top - bars) << 3;
 	ld	hl, _ring_top
 	ld	a, [hl]
 	ld	hl, _bars
@@ -1935,13 +1935,13 @@ _Layout:
 	add	a, a
 	ld	hl, _render_pending_scy
 	ld	[hl], a
-;src/editor/editor.c:253: RenderStage();
+;src/editor/editor.c:251: RenderStage();
 	call	_RenderStage
 .l00132:
-;src/editor/editor.c:254: }
+;src/editor/editor.c:252: }
 	add	sp, 8
 	ret
-;src/editor/editor.c:257: static void ScrollRing(unsigned char down) {
+;src/editor/editor.c:255: static void ScrollRing(unsigned char down) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -1951,29 +1951,29 @@ _ScrollRing:
 	add	sp, -7
 	ld	hl, sp+6
 	ld	[hl], a
-;src/editor/editor.c:258: unsigned char length = tb_rows + render_gbc;
+;src/editor/editor.c:256: unsigned char length = tb_rows + render_gbc;
 	ld	hl, _tb_rows
 	ld	a, [hl]
 	ld	hl, _render_gbc
 	add	a, [hl]
 	ld	hl, sp+5
 	ld	[hl], a
-;src/editor/editor.c:260: ring_pos = ring_pos == length - 1 ? 0 : ring_pos + 1;
+;src/editor/editor.c:258: ring_pos = ring_pos == length - 1 ? 0 : ring_pos + 1;
 	ld	hl, _ring_pos
 	ld	a, [hl]
 	ld	hl, sp+0
 	ld	[hl], a
-;src/editor/editor.c:261: ring_top = (ring_top + 1) & (BG_MAP_ROWS - 1);
+;src/editor/editor.c:259: ring_top = (ring_top + 1) & (BG_MAP_ROWS - 1);
 	ld	hl, _ring_top
 	ld	a, [hl]
 	ld	hl, sp+1
 	ld	[hl], a
-;src/editor/editor.c:259: if (down) {
+;src/editor/editor.c:257: if (down) {
 	ld	hl, sp+6
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00102
-;src/editor/editor.c:260: ring_pos = ring_pos == length - 1 ? 0 : ring_pos + 1;
+;src/editor/editor.c:258: ring_pos = ring_pos == length - 1 ? 0 : ring_pos + 1;
 	dec	hl
 	ld	a, [hl]
 	dec	hl
@@ -2029,7 +2029,7 @@ _ScrollRing:
 .l00107:
 	ld	hl, _ring_pos
 	ld	[hl], c
-;src/editor/editor.c:261: ring_top = (ring_top + 1) & (BG_MAP_ROWS - 1);
+;src/editor/editor.c:259: ring_top = (ring_top + 1) & (BG_MAP_ROWS - 1);
 	ld	hl, sp+1
 	ld	a, [hl]
 	inc	a
@@ -2038,7 +2038,7 @@ _ScrollRing:
 	ld	[hl], a
 	jp	.l00103
 .l00102:
-;src/editor/editor.c:264: ring_pos = ring_pos ? ring_pos - 1 : length - 1;
+;src/editor/editor.c:262: ring_pos = ring_pos ? ring_pos - 1 : length - 1;
 	ld	hl, _ring_pos
 	ld	a, [hl]
 	or	a, a
@@ -2054,7 +2054,7 @@ _ScrollRing:
 .l00109:
 	ld	hl, _ring_pos
 	ld	[hl], a
-;src/editor/editor.c:265: ring_top = (ring_top - 1) & (BG_MAP_ROWS - 1);
+;src/editor/editor.c:263: ring_top = (ring_top - 1) & (BG_MAP_ROWS - 1);
 	ld	hl, sp+1
 	ld	a, [hl]
 	dec	a
@@ -2062,33 +2062,33 @@ _ScrollRing:
 	ld	hl, _ring_top
 	ld	[hl], a
 .l00103:
-;src/editor/editor.c:267: Layout();
+;src/editor/editor.c:265: Layout();
 	call	_Layout
 .l00104:
-;src/editor/editor.c:268: }
+;src/editor/editor.c:266: }
 	add	sp, 7
 	ret
-;src/editor/editor.c:271: static void ScrollDown(void) {
+;src/editor/editor.c:269: static void ScrollDown(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function ScrollDown
 ; ---------------------------------
 _ScrollDown:
-;src/editor/editor.c:272: ScrollRing(1);
+;src/editor/editor.c:270: ScrollRing(1);
 	ld	a, $01
 	call	_ScrollRing
-;src/editor/editor.c:273: tb_ScrollRows(1);
+;src/editor/editor.c:271: tb_ScrollRows(1);
 	ld	a, $01
 	call	_tb_ScrollRows
-;src/editor/editor.c:274: tb_RenderRows(tb_rows - 1, tb_rows);
+;src/editor/editor.c:272: tb_RenderRows(tb_rows - 1, tb_rows);
 	ld	hl, _tb_rows
 	ld	c, [hl]
 	dec	c
 	ld	e, [hl]
 	ld	a, c
 	call	_tb_RenderRows
-;src/editor/editor.c:275: top = tb_row_starts[0];
+;src/editor/editor.c:273: top = tb_row_starts[0];
 	ld	de, _tb_row_starts + 0
 	ld	a, [de]
 	ld	hl, _top
@@ -2097,13 +2097,13 @@ _ScrollDown:
 	ld	a, [de]
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:276: redraw = 1;
+;src/editor/editor.c:274: redraw = 1;
 	ld	hl, _redraw
 	ld	[hl], $01
 .l00101:
-;src/editor/editor.c:277: }
+;src/editor/editor.c:275: }
 	ret
-;src/editor/editor.c:280: static void ScrollUp(unsigned int new_top) {
+;src/editor/editor.c:278: static void ScrollUp(unsigned int new_top) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -2112,39 +2112,39 @@ _ScrollDown:
 _ScrollUp:
 	ld	c, e
 	ld	b, d
-;src/editor/editor.c:281: ScrollRing(0);
+;src/editor/editor.c:279: ScrollRing(0);
 	push	bc
 	xor	a, a
 	call	_ScrollRing
 	pop	bc
-;src/editor/editor.c:282: tb_ScrollRows(0);
+;src/editor/editor.c:280: tb_ScrollRows(0);
 	push	bc
 	xor	a, a
 	call	_tb_ScrollRows
 	pop	bc
-;src/editor/editor.c:283: tb_row_starts[0] = new_top;
+;src/editor/editor.c:281: tb_row_starts[0] = new_top;
 	ld	hl, _tb_row_starts
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:284: tb_RenderRows(0, 1);
+;src/editor/editor.c:282: tb_RenderRows(0, 1);
 	push	bc
 	ld	e, $01
 	xor	a, a
 	call	_tb_RenderRows
 	pop	bc
-;src/editor/editor.c:285: top = new_top;
+;src/editor/editor.c:283: top = new_top;
 	ld	hl, _top
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:286: redraw = 1;
+;src/editor/editor.c:284: redraw = 1;
 	ld	hl, _redraw
 	ld	[hl], $01
 .l00101:
-;src/editor/editor.c:287: }
+;src/editor/editor.c:285: }
 	ret
-;src/editor/editor.c:291: static void RenderAfterEdit(void) {
+;src/editor/editor.c:289: static void RenderAfterEdit(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -2152,7 +2152,7 @@ _ScrollUp:
 ; ---------------------------------
 _RenderAfterEdit:
 	add	sp, -16
-;src/editor/editor.c:292: unsigned char row = edit_row, end_row = tb_end_row, i;
+;src/editor/editor.c:290: unsigned char row = edit_row, end_row = tb_end_row, i;
 	ld	hl, _edit_row
 	ld	a, [hl]
 	ld	hl, sp+14
@@ -2161,7 +2161,7 @@ _RenderAfterEdit:
 	ld	a, [hl]
 	ld	hl, sp+0
 	ld	[hl], a
-;src/editor/editor.c:293: unsigned int old_next, old_state, expected, delta = (unsigned int)(int)edit_delta;
+;src/editor/editor.c:291: unsigned int old_next, old_state, expected, delta = (unsigned int)(int)edit_delta;
 	ld	hl, _edit_delta
 	ld	a, [hl]
 	ld	c, a
@@ -2172,14 +2172,14 @@ _RenderAfterEdit:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:294: if (row) --row; // the previous row's wrapping can change too
+;src/editor/editor.c:292: if (row) --row; // the previous row's wrapping can change too
 	ld	hl, sp+14
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00102
 	dec	[hl]
 .l00102:
-;src/editor/editor.c:295: if (end_row != 0xFF && end_row >= row) tb_end_row = 0xFF; // found again while scanning
+;src/editor/editor.c:293: if (end_row != 0xFF && end_row >= row) tb_end_row = 0xFF; // found again while scanning
 	ld	hl, sp+0
 	ld	a, [hl]
 	inc	a
@@ -2206,13 +2206,13 @@ _RenderAfterEdit:
 	inc	hl
 	ld	[hl], a
 .l00119:
-;src/editor/editor.c:296: for (; row < tb_rows; ++row) {
+;src/editor/editor.c:294: for (; row < tb_rows; ++row) {
 	ld	hl, sp+15
 	ld	a, [hl]
 	ld	hl, _tb_rows
 	sub	a, [hl]
 	jp	NC, .l00114
-;src/editor/editor.c:297: old_next = tb_row_starts[row + 1];
+;src/editor/editor.c:295: old_next = tb_row_starts[row + 1];
 	ld	hl, sp+15
 	ld	a, [hl]
 	ld	hl, sp+4
@@ -2255,7 +2255,7 @@ _RenderAfterEdit:
 	inc	de
 	ld	a, [de]
 	ld	b, a
-;src/editor/editor.c:298: old_state = tb_row_states[row + 1];
+;src/editor/editor.c:296: old_state = tb_row_states[row + 1];
 	ld	de, _tb_row_states
 	ld	hl, sp+12
 	ld	a, [hl+]
@@ -2281,7 +2281,7 @@ _RenderAfterEdit:
 	ld	a, [de]
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:299: expected = old_next + delta;
+;src/editor/editor.c:297: expected = old_next + delta;
 	ld	hl, sp+1
 	ld	a, [hl+]
 	ld	h, [hl]
@@ -2293,7 +2293,7 @@ _RenderAfterEdit:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:300: tb_RenderRows(row, row + 1);
+;src/editor/editor.c:298: tb_RenderRows(row, row + 1);
 	push	bc
 	ld	hl, sp+7
 	ld	e, [hl]
@@ -2301,7 +2301,7 @@ _RenderAfterEdit:
 	ld	a, [hl]
 	call	_tb_RenderRows
 	pop	bc
-;src/editor/editor.c:301: if (old_next > edit_pos && tb_row_starts[row + 1] == expected && tb_row_states[row + 1] == old_state) {
+;src/editor/editor.c:299: if (old_next > edit_pos && tb_row_starts[row + 1] == expected && tb_row_states[row + 1] == old_state) {
 	ld	hl, _edit_pos
 	ld	a, [hl]
 	sub	a, c
@@ -2353,7 +2353,7 @@ _RenderAfterEdit:
 .l00189:
 	jp	.l00120
 .l00190:
-;src/editor/editor.c:302: for (i = row + 2; i <= tb_rows; ++i) tb_row_starts[i] += delta; // rows below just moved
+;src/editor/editor.c:300: for (i = row + 2; i <= tb_rows; ++i) tb_row_starts[i] += delta; // rows below just moved
 	ld	hl, sp+4
 	ld	a, [hl]
 	add	a, $02
@@ -2403,7 +2403,7 @@ _RenderAfterEdit:
 	inc	[hl]
 	jp	.l00116
 .l00106:
-;src/editor/editor.c:303: if (end_row != 0xFF && end_row > row) tb_end_row = end_row;
+;src/editor/editor.c:301: if (end_row != 0xFF && end_row > row) tb_end_row = end_row;
 	ld	hl, sp+3
 	bit	0, [hl]
 	jp	NZ, .l00114
@@ -2415,10 +2415,10 @@ _RenderAfterEdit:
 	ld	a, [hl]
 	ld	hl, _tb_end_row
 	ld	[hl], a
-;src/editor/editor.c:304: break;
+;src/editor/editor.c:302: break;
 	jp	.l00114
 .l00120:
-;src/editor/editor.c:296: for (; row < tb_rows; ++row) {
+;src/editor/editor.c:294: for (; row < tb_rows; ++row) {
 	ld	hl, sp+15
 	inc	[hl]
 	ld	a, [hl]
@@ -2426,14 +2426,14 @@ _RenderAfterEdit:
 	ld	[hl], a
 	jp	.l00119
 .l00114:
-;src/editor/editor.c:307: redraw = 1;
+;src/editor/editor.c:305: redraw = 1;
 	ld	hl, _redraw
 	ld	[hl], $01
 .l00121:
-;src/editor/editor.c:308: }
+;src/editor/editor.c:306: }
 	add	sp, 16
 	ret
-;src/editor/editor.c:311: static void Edited(unsigned int pos, signed char delta) {
+;src/editor/editor.c:309: static void Edited(unsigned int pos, signed char delta) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -2441,10 +2441,10 @@ _RenderAfterEdit:
 ; ---------------------------------
 _Edited:
 	ld	c, a
-;src/editor/editor.c:312: modified = 1;
+;src/editor/editor.c:310: modified = 1;
 	ld	hl, _modified
 	ld	[hl], $01
-;src/editor/editor.c:313: if (edited) dirty = 1;
+;src/editor/editor.c:311: if (edited) dirty = 1;
 	ld	hl, _edited
 	ld	a, [hl]
 	or	a, a
@@ -2452,33 +2452,33 @@ _Edited:
 	ld	hl, _dirty
 	ld	[hl], $01
 .l00102:
-;src/editor/editor.c:314: edited = 1;
+;src/editor/editor.c:312: edited = 1;
 	ld	hl, _edited
 	ld	[hl], $01
-;src/editor/editor.c:315: edit_row = tb_found_row;
+;src/editor/editor.c:313: edit_row = tb_found_row;
 	ld	hl, _tb_found_row
 	ld	a, [hl]
 	ld	hl, _edit_row
 	ld	[hl], a
-;src/editor/editor.c:316: edit_pos = pos;
+;src/editor/editor.c:314: edit_pos = pos;
 	ld	hl, _edit_pos
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:317: edit_delta = delta;
+;src/editor/editor.c:315: edit_delta = delta;
 	ld	hl, _edit_delta
 	ld	[hl], c
 .l00103:
-;src/editor/editor.c:318: }
+;src/editor/editor.c:316: }
 	ret
-;src/editor/editor.c:321: static unsigned char GetSelection(void) {
+;src/editor/editor.c:319: static unsigned char GetSelection(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function GetSelection
 ; ---------------------------------
 _GetSelection:
-;src/editor/editor.c:322: if (!selecting || anchor == cursor) return 0;
+;src/editor/editor.c:320: if (!selecting || anchor == cursor) return 0;
 	ld	hl, _selecting
 	ld	a, [hl]
 	or	a, a
@@ -2501,17 +2501,17 @@ _GetSelection:
 	xor	a, a
 	jp	.l00107
 .l00102:
-;src/editor/editor.c:324: sel_start = anchor;
+;src/editor/editor.c:322: sel_start = anchor;
 	ld	hl, _anchor
 	ld	c, [hl]
 	inc	hl
 	ld	b, [hl]
-;src/editor/editor.c:325: sel_end = cursor;
+;src/editor/editor.c:323: sel_end = cursor;
 	ld	hl, _cursor
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-;src/editor/editor.c:323: if (anchor < cursor) {
+;src/editor/editor.c:321: if (anchor < cursor) {
 	push	de
 	ld	de, _anchor
 	dec	hl
@@ -2523,42 +2523,42 @@ _GetSelection:
 	sbc	a, [hl]
 	pop	de
 	jp	NC, .l00105
-;src/editor/editor.c:324: sel_start = anchor;
+;src/editor/editor.c:322: sel_start = anchor;
 	ld	hl, _sel_start
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:325: sel_end = cursor;
+;src/editor/editor.c:323: sel_end = cursor;
 	ld	hl, _sel_end
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
 	jp	.l00106
 .l00105:
-;src/editor/editor.c:328: sel_start = cursor;
+;src/editor/editor.c:326: sel_start = cursor;
 	ld	hl, _sel_start
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:329: sel_end = anchor;
+;src/editor/editor.c:327: sel_end = anchor;
 	ld	hl, _sel_end
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
 .l00106:
-;src/editor/editor.c:331: return 1;
+;src/editor/editor.c:329: return 1;
 	ld	a, $01
 .l00107:
-;src/editor/editor.c:332: }
+;src/editor/editor.c:330: }
 	ret
-;src/editor/editor.c:334: static void ClearSelection(void) {
+;src/editor/editor.c:332: static void ClearSelection(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function ClearSelection
 ; ---------------------------------
 _ClearSelection:
-;src/editor/editor.c:335: if (selecting) redraw = 1;
+;src/editor/editor.c:333: if (selecting) redraw = 1;
 	ld	hl, _selecting
 	ld	a, [hl]
 	or	a, a
@@ -2566,20 +2566,20 @@ _ClearSelection:
 	ld	hl, _redraw
 	ld	[hl], $01
 .l00102:
-;src/editor/editor.c:336: selecting = 0;
+;src/editor/editor.c:334: selecting = 0;
 	ld	hl, _selecting
 	ld	[hl], $00
 .l00103:
-;src/editor/editor.c:337: }
+;src/editor/editor.c:335: }
 	ret
-;src/editor/editor.c:340: static void NoHighlight(void) {
+;src/editor/editor.c:338: static void NoHighlight(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function NoHighlight
 ; ---------------------------------
 _NoHighlight:
-;src/editor/editor.c:342: for (i = 0; i < TB_ROWS * 2; ++i) render_sel[i] = 0;
+;src/editor/editor.c:340: for (i = 0; i < TB_ROWS * 2; ++i) render_sel[i] = 0;
 	ld	c, $00
 .l00104:
 	ld	hl, _render_sel
@@ -2590,7 +2590,7 @@ _NoHighlight:
 	ld	a, c
 	sub	a, $24
 	jp	C, .l00104
-;src/editor/editor.c:343: if (bars) render_sel[1] = render_sel[(TB_ROWS << 1) - 1] = 0xFF;
+;src/editor/editor.c:341: if (bars) render_sel[1] = render_sel[(TB_ROWS << 1) - 1] = 0xFF;
 	ld	hl, _bars
 	ld	a, [hl]
 	or	a, a
@@ -2600,9 +2600,9 @@ _NoHighlight:
 	ld	hl, (_render_sel + 1)
 	ld	[hl], $FF
 .l00106:
-;src/editor/editor.c:344: }
+;src/editor/editor.c:342: }
 	ret
-;src/editor/editor.c:347: static void SetHighlight(void) {
+;src/editor/editor.c:345: static void SetHighlight(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -2610,16 +2610,16 @@ _NoHighlight:
 ; ---------------------------------
 _SetHighlight:
 	add	sp, -12
-;src/editor/editor.c:350: NoHighlight();
+;src/editor/editor.c:348: NoHighlight();
 	call	_NoHighlight
-;src/editor/editor.c:351: if (!GetSelection()) return;
+;src/editor/editor.c:349: if (!GetSelection()) return;
 	call	_GetSelection__far
 	ld	c, a
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00140
 	jp	.l00119
-;src/editor/editor.c:352: for (row = 0; row < tb_rows; ++row) {
+;src/editor/editor.c:350: for (row = 0; row < tb_rows; ++row) {
 .l00140:
 	ld	bc, _tb_row_starts+0
 	ld	hl, sp+11
@@ -2630,7 +2630,7 @@ _SetHighlight:
 	ld	hl, _tb_rows
 	sub	a, [hl]
 	jp	NC, .l00119
-;src/editor/editor.c:353: row_start = tb_row_starts[row];
+;src/editor/editor.c:351: row_start = tb_row_starts[row];
 	ld	hl, sp+11
 	ld	a, [hl]
 	ld	e, $00
@@ -2647,7 +2647,7 @@ _SetHighlight:
 	ld	a, [de]
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:354: next = tb_row_starts[row + 1];
+;src/editor/editor.c:352: next = tb_row_starts[row + 1];
 	ld	hl, sp+11
 	ld	a, [hl]
 	inc	a
@@ -2668,7 +2668,7 @@ _SetHighlight:
 	ld	a, [de]
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:355: if (sel_end <= row_start) break;
+;src/editor/editor.c:353: if (sel_end <= row_start) break;
 	ld	hl, sp+7
 	ld	e, l
 	ld	d, h
@@ -2680,7 +2680,7 @@ _SetHighlight:
 	ld	a, [de]
 	sbc	a, [hl]
 	jp	NC, .l00119
-;src/editor/editor.c:356: if (sel_start >= next) continue;
+;src/editor/editor.c:354: if (sel_start >= next) continue;
 	ld	de, _sel_start
 	ld	hl, sp+9
 	ld	a, [de]
@@ -2690,7 +2690,7 @@ _SetHighlight:
 	ld	a, [de]
 	sbc	a, [hl]
 	jp	NC, .l00115
-;src/editor/editor.c:357: count = tb_row_counts[row];
+;src/editor/editor.c:355: count = tb_row_counts[row];
 	ld	de, _tb_row_counts
 	ld	hl, sp+11
 	ld	l, [hl]
@@ -2701,7 +2701,7 @@ _SetHighlight:
 	ld	a, [de]
 	ld	hl, sp+2
 	ld	[hl], a
-;src/editor/editor.c:358: base = row_start + (tb_nowrap ? tb_left : 0); // first drawn character
+;src/editor/editor.c:356: base = row_start + (tb_nowrap ? tb_left : 0); // first drawn character
 	ld	hl, _tb_nowrap
 	ld	a, [hl]
 	or	a, a
@@ -2725,10 +2725,10 @@ _SetHighlight:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:359: first = 0;
+;src/editor/editor.c:357: first = 0;
 	inc	hl
 	ld	[hl], $00
-;src/editor/editor.c:360: if (sel_start > base) first = sel_start - base > count ? count : (unsigned char)(sel_start - base);
+;src/editor/editor.c:358: if (sel_start > base) first = sel_start - base > count ? count : (unsigned char)(sel_start - base);
 	ld	hl, sp+2
 	ld	a, [hl]
 	ld	hl, sp+6
@@ -2791,7 +2791,7 @@ _SetHighlight:
 	ld	hl, sp+5
 	ld	[hl], a
 .l00108:
-;src/editor/editor.c:361: if (sel_end < next || row == tb_end_row) { // ends in this row
+;src/editor/editor.c:359: if (sel_end < next || row == tb_end_row) { // ends in this row
 	ld	de, _sel_end
 	ld	hl, sp+9
 	ld	a, [de]
@@ -2811,7 +2811,7 @@ _SetHighlight:
 	jp	.l00112
 .l00191:
 .l00111:
-;src/editor/editor.c:362: end = sel_end <= base ? 0 : sel_end - base > count ? count : (unsigned char)(sel_end - base);
+;src/editor/editor.c:360: end = sel_end <= base ? 0 : sel_end - base > count ? count : (unsigned char)(sel_end - base);
 	ld	hl, sp+3
 	ld	e, l
 	ld	d, h
@@ -2869,7 +2869,7 @@ _SetHighlight:
 .l00126:
 	ld	hl, sp+10
 	ld	[hl], a
-;src/editor/editor.c:363: if (end <= first) continue;
+;src/editor/editor.c:361: if (end <= first) continue;
 	ld	hl, sp+5
 	ld	a, [hl]
 	ld	hl, sp+10
@@ -2877,11 +2877,11 @@ _SetHighlight:
 	jp	C, .l00113
 	jp	.l00115
 .l00112:
-;src/editor/editor.c:365: else end = 0xFF; // continues, so the line feed or wrap is selected too
+;src/editor/editor.c:363: else end = 0xFF; // continues, so the line feed or wrap is selected too
 	ld	hl, sp+10
 	ld	[hl], $FF
 .l00113:
-;src/editor/editor.c:366: render_sel[(row + bars) << 1] = first;
+;src/editor/editor.c:364: render_sel[(row + bars) << 1] = first;
 	ld	hl, sp+11
 	ld	a, [hl]
 	ld	hl, _bars
@@ -2898,7 +2898,7 @@ _SetHighlight:
 	ld	hl, sp+5
 	ld	a, [hl]
 	ld	[de], a
-;src/editor/editor.c:367: render_sel[((row + bars) << 1) + 1] = end;
+;src/editor/editor.c:365: render_sel[((row + bars) << 1) + 1] = end;
 	ld	hl, sp+11
 	ld	a, [hl]
 	ld	hl, _bars
@@ -2917,22 +2917,22 @@ _SetHighlight:
 	ld	a, [hl]
 	ld	[de], a
 .l00115:
-;src/editor/editor.c:352: for (row = 0; row < tb_rows; ++row) {
+;src/editor/editor.c:350: for (row = 0; row < tb_rows; ++row) {
 	ld	hl, sp+11
 	inc	[hl]
 	jp	.l00118
 .l00119:
-;src/editor/editor.c:369: }
+;src/editor/editor.c:367: }
 	add	sp, 12
 	ret
-;src/editor/editor.c:372: static unsigned int LinesBefore(unsigned int pos) {
+;src/editor/editor.c:370: static unsigned int LinesBefore(unsigned int pos) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function LinesBefore
 ; ---------------------------------
 _LinesBefore:
-;src/editor/editor.c:373: if (pos >= counted_pos) counted_lines += tb_CountLines(counted_pos, pos);
+;src/editor/editor.c:371: if (pos >= counted_pos) counted_lines += tb_CountLines(counted_pos, pos);
 	ld	hl, _counted_pos
 	ld	a, e
 	sub	a, [hl]
@@ -2959,7 +2959,7 @@ _LinesBefore:
 	ld	[hl], a
 	jp	.l00106
 .l00105:
-;src/editor/editor.c:374: else if (pos < counted_pos - pos) counted_lines = tb_CountLines(0, pos);
+;src/editor/editor.c:372: else if (pos < counted_pos - pos) counted_lines = tb_CountLines(0, pos);
 	ld	hl, _counted_pos
 	ld	a, [hl]
 	sub	a, e
@@ -2985,7 +2985,7 @@ _LinesBefore:
 	ld	[hl], b
 	jp	.l00106
 .l00102:
-;src/editor/editor.c:375: else counted_lines -= tb_CountLines(pos, counted_pos);
+;src/editor/editor.c:373: else counted_lines -= tb_CountLines(pos, counted_pos);
 	push	de
 	ld	hl, _counted_pos
 	ld	c, [hl]
@@ -3002,20 +3002,20 @@ _LinesBefore:
 	sbc	a, b
 	ld	[hl], a
 .l00106:
-;src/editor/editor.c:376: counted_pos = pos;
+;src/editor/editor.c:374: counted_pos = pos;
 	ld	hl, _counted_pos
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:377: return counted_lines;
+;src/editor/editor.c:375: return counted_lines;
 	ld	hl, _counted_lines
 	ld	c, [hl]
 	inc	hl
 	ld	b, [hl]
 .l00107:
-;src/editor/editor.c:378: }
+;src/editor/editor.c:376: }
 	ret
-;src/editor/editor.c:381: static void CountEdit(unsigned int pos, unsigned char c, unsigned char inserted) {
+;src/editor/editor.c:379: static void CountEdit(unsigned int pos, unsigned char c, unsigned char inserted) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -3023,7 +3023,7 @@ _LinesBefore:
 ; ---------------------------------
 _CountEdit:
 	ld	c, a
-;src/editor/editor.c:382: if (pos >= counted_pos) return;
+;src/editor/editor.c:380: if (pos >= counted_pos) return;
 	ld	hl, _counted_pos
 	ld	a, e
 	sub	a, [hl]
@@ -3033,7 +3033,7 @@ _CountEdit:
 	jp	C, .l00102
 	jp	.l00110
 .l00102:
-;src/editor/editor.c:385: if (c == ASCII_LF) ++counted_lines;
+;src/editor/editor.c:383: if (c == ASCII_LF) ++counted_lines;
 	ld	a, c
 	sub	a, $0A
 	jp	NZ,.l00132
@@ -3043,19 +3043,19 @@ _CountEdit:
 	xor	a,a
 .l00133:
 	ld	c, a
-;src/editor/editor.c:383: if (inserted) {
+;src/editor/editor.c:381: if (inserted) {
 	ld	hl, sp+2
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00108
-;src/editor/editor.c:384: ++counted_pos;
+;src/editor/editor.c:382: ++counted_pos;
 	ld	hl, _counted_pos
 	inc	[hl]
 	jp	NZ, .l00134
 	inc	hl
 	inc	[hl]
 .l00134:
-;src/editor/editor.c:385: if (c == ASCII_LF) ++counted_lines;
+;src/editor/editor.c:383: if (c == ASCII_LF) ++counted_lines;
 	ld	a, c
 	or	a, a
 	jp	Z, .l00110
@@ -3067,7 +3067,7 @@ _CountEdit:
 .l00135:
 	jp	.l00110
 .l00108:
-;src/editor/editor.c:388: --counted_pos;
+;src/editor/editor.c:386: --counted_pos;
 	ld	hl, _counted_pos + 1
 	dec	hl
 	ld	e, [hl]
@@ -3078,7 +3078,7 @@ _CountEdit:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:389: if (c == ASCII_LF) --counted_lines;
+;src/editor/editor.c:387: if (c == ASCII_LF) --counted_lines;
 	ld	a, c
 	or	a, a
 	jp	Z, .l00110
@@ -3093,18 +3093,18 @@ _CountEdit:
 	inc	hl
 	ld	[hl], d
 .l00110:
-;src/editor/editor.c:391: }
+;src/editor/editor.c:389: }
 	pop	hl
 	inc	sp
 	jp hl 
-;src/editor/editor.c:394: static void Uncount(unsigned int pos) {
+;src/editor/editor.c:392: static void Uncount(unsigned int pos) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function Uncount
 ; ---------------------------------
 _Uncount:
-;src/editor/editor.c:395: if (pos < counted_pos) counted_pos = counted_lines = 0;
+;src/editor/editor.c:393: if (pos < counted_pos) counted_pos = counted_lines = 0;
 	ld	hl, _counted_pos
 	ld	a, e
 	sub	a, [hl]
@@ -3123,9 +3123,9 @@ _Uncount:
 	inc	hl
 	ld	[hl], a
 .l00103:
-;src/editor/editor.c:396: }
+;src/editor/editor.c:394: }
 	ret
-;src/editor/editor.c:399: static unsigned char RowEndsLine(unsigned char row) {
+;src/editor/editor.c:397: static unsigned char RowEndsLine(unsigned char row) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -3133,7 +3133,7 @@ _Uncount:
 ; ---------------------------------
 _RowEndsLine:
 	ld	e, a
-;src/editor/editor.c:400: return tb_GetChar(tb_row_starts[row + 1] - 1) == ASCII_LF;
+;src/editor/editor.c:398: return tb_GetChar(tb_row_starts[row + 1] - 1) == ASCII_LF;
 	ld	bc, _tb_row_starts+0
 	inc	e
 	ld	a, e
@@ -3158,23 +3158,23 @@ _RowEndsLine:
 	xor	a,a
 .l00104:
 .l00101:
-;src/editor/editor.c:401: }
+;src/editor/editor.c:399: }
 	ret
-;src/editor/editor.c:403: static unsigned int CursorLine(void) {
+;src/editor/editor.c:401: static unsigned int CursorLine(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function CursorLine
 ; ---------------------------------
 _CursorLine:
-;src/editor/editor.c:404: unsigned int line = LinesBefore(top) + 1;
+;src/editor/editor.c:402: unsigned int line = LinesBefore(top) + 1;
 	ld	hl, _top
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	call	_LinesBefore
 	inc	bc
-;src/editor/editor.c:406: for (row = 0; row < tb_found_row; ++row) if (RowEndsLine(row)) ++line;
+;src/editor/editor.c:404: for (row = 0; row < tb_found_row; ++row) if (RowEndsLine(row)) ++line;
 	ld	e, $00
 .l00105:
 	ld	a, e
@@ -3194,11 +3194,11 @@ _CursorLine:
 	inc	e
 	jp	.l00105
 .l00103:
-;src/editor/editor.c:407: return line;
+;src/editor/editor.c:405: return line;
 .l00107:
-;src/editor/editor.c:408: }
+;src/editor/editor.c:406: }
 	ret
-;src/editor/editor.c:410: static unsigned int CursorColumn(void) {
+;src/editor/editor.c:408: static unsigned int CursorColumn(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -3207,10 +3207,10 @@ _CursorLine:
 _CursorColumn:
 	dec	sp
 	dec	sp
-;src/editor/editor.c:411: unsigned char row = tb_found_row;
+;src/editor/editor.c:409: unsigned char row = tb_found_row;
 	ld	hl, _tb_found_row
 	ld	c, [hl]
-;src/editor/editor.c:413: while (row && !RowEndsLine(row - 1)) --row;
+;src/editor/editor.c:411: while (row && !RowEndsLine(row - 1)) --row;
 .l00102:
 	ld	a, c
 	or	a, a
@@ -3226,7 +3226,7 @@ _CursorColumn:
 	dec	c
 	jp	.l00102
 .l00104:
-;src/editor/editor.c:414: start = tb_row_starts[row];
+;src/editor/editor.c:412: start = tb_row_starts[row];
 	ld	l, c
 ;	spillPairReg hl
 ;	spillPairReg hl
@@ -3245,7 +3245,7 @@ _CursorColumn:
 	ld	a, [de]
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:415: if (!row && start && tb_GetChar(start - 1) != ASCII_LF) start = tb_LineStart(start);
+;src/editor/editor.c:413: if (!row && start && tb_GetChar(start - 1) != ASCII_LF) start = tb_LineStart(start);
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00106
@@ -3270,7 +3270,7 @@ _CursorColumn:
 	pop	hl
 	push	bc
 .l00106:
-;src/editor/editor.c:416: return cursor - start + 1;
+;src/editor/editor.c:414: return cursor - start + 1;
 	ld	hl, _cursor + 1
 	dec	hl
 	ld	e, [hl]
@@ -3287,18 +3287,18 @@ _CursorColumn:
 	ld	c, e
 	inc	bc
 .l00109:
-;src/editor/editor.c:417: }
+;src/editor/editor.c:415: }
 	inc	sp
 	inc	sp
 	ret
-;src/editor/editor.c:419: static char* PutText(char* dest, const char* text) {
+;src/editor/editor.c:417: static char* PutText(char* dest, const char* text) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function PutText
 ; ---------------------------------
 _PutText:
-;src/editor/editor.c:420: while (*text) *dest++ = *text++;
+;src/editor/editor.c:418: while (*text) *dest++ = *text++;
 .l00101:
 	ld	a, [bc]
 	or	a, a
@@ -3308,13 +3308,13 @@ _PutText:
 	inc	de
 	jp	.l00101
 .l00103:
-;src/editor/editor.c:421: return dest;
+;src/editor/editor.c:419: return dest;
 	ld	c, e
 	ld	b, d
 .l00104:
-;src/editor/editor.c:422: }
+;src/editor/editor.c:420: }
 	ret
-;src/editor/editor.c:426: static char* PutNumber(char* dest, unsigned long n) {
+;src/editor/editor.c:424: static char* PutNumber(char* dest, unsigned long n) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -3326,13 +3326,13 @@ _PutNumber:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:427: unsigned char i, digit, started = 0;
+;src/editor/editor.c:425: unsigned char i, digit, started = 0;
 	ld	hl, sp+4
 	ld	[hl], $00
-;src/editor/editor.c:428: for (i = 0; i < 6; ++i) {
+;src/editor/editor.c:426: for (i = 0; i < 6; ++i) {
 	ld	hl, sp+8
 	ld	[hl], $00
-;src/editor/editor.c:430: while (n >= powers_of_ten[i]) {
+;src/editor/editor.c:428: while (n >= powers_of_ten[i]) {
 .l00113:
 	ld	hl, sp+9
 	ld	[hl], $30
@@ -3382,7 +3382,7 @@ _PutNumber:
 	ld	a, [de]
 	sbc	a, [hl]
 	jp	C, .l00117
-;src/editor/editor.c:431: n -= powers_of_ten[i];
+;src/editor/editor.c:429: n -= powers_of_ten[i];
 	ld	hl, sp+13
 	dec	hl
 	ld	e, [hl]
@@ -3417,7 +3417,7 @@ _PutNumber:
 	ld	[hl], a
 	dec	hl
 	ld	[hl], e
-;src/editor/editor.c:432: ++digit;
+;src/editor/editor.c:430: ++digit;
 	ld	hl, sp+9
 	inc	[hl]
 	jp	.l00101
@@ -3426,7 +3426,7 @@ _PutNumber:
 	ld	a, [hl]
 	ld	hl, sp+5
 	ld	[hl], a
-;src/editor/editor.c:434: if (started || digit != '0') {
+;src/editor/editor.c:432: if (started || digit != '0') {
 	dec	hl
 	ld	a, [hl]
 	or	a, a
@@ -3438,7 +3438,7 @@ _PutNumber:
 	jp	.l00109
 .l00139:
 .l00104:
-;src/editor/editor.c:435: *dest++ = digit;
+;src/editor/editor.c:433: *dest++ = digit;
 	ld	hl, sp+7
 	dec	hl
 	ld	e, [hl]
@@ -3454,17 +3454,17 @@ _PutNumber:
 	inc	hl
 	inc	[hl]
 .l00140:
-;src/editor/editor.c:436: started = 1;
+;src/editor/editor.c:434: started = 1;
 	ld	hl, sp+4
 	ld	[hl], $01
 .l00109:
-;src/editor/editor.c:428: for (i = 0; i < 6; ++i) {
+;src/editor/editor.c:426: for (i = 0; i < 6; ++i) {
 	ld	hl, sp+8
 	inc	[hl]
 	ld	a, [hl]
 	sub	a, $06
 	jp	C, .l00113
-;src/editor/editor.c:439: *dest++ = '0' + (unsigned char)n;
+;src/editor/editor.c:437: *dest++ = '0' + (unsigned char)n;
 	ld	hl, sp+12
 	ld	a, [hl]
 	add	a, $30
@@ -3479,9 +3479,9 @@ _PutNumber:
 	inc	hl
 	ld	b, [hl]
 	inc	bc
-;src/editor/editor.c:440: return dest;
+;src/editor/editor.c:438: return dest;
 .l00110:
-;src/editor/editor.c:441: }
+;src/editor/editor.c:439: }
 	add	sp, 10
 	pop	hl
 	add	sp, 4
@@ -3494,14 +3494,14 @@ _powers_of_ten:
 	DB $E8, $03, $00, $00	; 1000
 	DB $64, $00, $00, $00	; 100
 	DB $0A, $00, $00, $00	; 10
-;src/editor/editor.c:444: static char* PutNumber2(char* dest, unsigned int n) {
+;src/editor/editor.c:442: static char* PutNumber2(char* dest, unsigned int n) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
 ; Function PutNumber2
 ; ---------------------------------
 _PutNumber2:
-;src/editor/editor.c:445: if (n < 10) *dest++ = '0';
+;src/editor/editor.c:443: if (n < 10) *dest++ = '0';
 	ld	a, c
 	sub	a, $0A
 	ld	a, b
@@ -3511,15 +3511,15 @@ _PutNumber2:
 	ld	[de], a
 	inc	de
 .l00102:
-;src/editor/editor.c:446: return PutNumber(dest, n);
+;src/editor/editor.c:444: return PutNumber(dest, n);
 	ld	hl, $0000
 	push	hl
 	push	bc
 	call	_PutNumber
 .l00103:
-;src/editor/editor.c:447: }
+;src/editor/editor.c:445: }
 	ret
-;src/editor/editor.c:450: static char* ToLatin1(char* dest, const char* text, unsigned char count) {
+;src/editor/editor.c:448: static char* ToLatin1(char* dest, const char* text, unsigned char count) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -3531,7 +3531,7 @@ _ToLatin1:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:452: while ((c = *text++) && count--) {
+;src/editor/editor.c:450: while ((c = *text++) && count--) {
 	ld	hl, sp+11
 	ld	a, [hl]
 	ld	hl, sp+6
@@ -3550,16 +3550,16 @@ _ToLatin1:
 	ld	a, e
 	or	a, a
 	jp	Z, .l00115
-;src/editor/editor.c:453: if (c >= 0x80) {
+;src/editor/editor.c:451: if (c >= 0x80) {
 	inc	hl
 	inc	hl
 	ld	a, [hl]
 	sub	a, $80
 	jp	C, .l00111
-;src/editor/editor.c:454: next = *text;
+;src/editor/editor.c:452: next = *text;
 	ld	a, [bc]
 	ld	e, a
-;src/editor/editor.c:455: if ((c & 0xFE) == 0xC2 && (next & 0xC0) == 0x80) { // U+0080-U+00FF
+;src/editor/editor.c:453: if ((c & 0xFE) == 0xC2 && (next & 0xC0) == 0x80) { // U+0080-U+00FF
 	ld	d, [hl]
 	xor	a, a
 	res	0, d
@@ -3589,9 +3589,9 @@ _ToLatin1:
 .l00167:
 	jp	.l00125
 .l00168:
-;src/editor/editor.c:456: ++text;
+;src/editor/editor.c:454: ++text;
 	inc	bc
-;src/editor/editor.c:457: c = (c << 6) | (next & 0x3F);
+;src/editor/editor.c:455: c = (c << 6) | (next & 0x3F);
 	ld	hl, sp+8
 	ld	a, [hl]
 	rrca
@@ -3602,13 +3602,13 @@ _ToLatin1:
 	and	a, $3F
 	or	a, d
 	ld	[hl], a
-;src/editor/editor.c:458: if (c < 0xA0) c = '?';
+;src/editor/editor.c:456: if (c < 0xA0) c = '?';
 	ld	a, [hl]
 	sub	a, $A0
 	jp	NC, .l00111
 	ld	[hl], $3F
 	jp	.l00111
-;src/editor/editor.c:461: while ((*text & 0xC0) == 0x80) ++text;
+;src/editor/editor.c:459: while ((*text & 0xC0) == 0x80) ++text;
 .l00125:
 	ld	hl, sp+7
 	ld	[hl], c
@@ -3658,10 +3658,10 @@ _ToLatin1:
 	ld	c, [hl]
 	inc	hl
 	ld	b, [hl]
-;src/editor/editor.c:462: c = '?';
+;src/editor/editor.c:460: c = '?';
 	ld	[hl], $3F
 .l00111:
-;src/editor/editor.c:465: *dest++ = c;
+;src/editor/editor.c:463: *dest++ = c;
 	ld	hl, sp+5
 	dec	hl
 	ld	e, [hl]
@@ -3678,18 +3678,18 @@ _ToLatin1:
 .l00172:
 	jp	.l00113
 .l00115:
-;src/editor/editor.c:467: return dest;
+;src/editor/editor.c:465: return dest;
 	ld	hl, sp+4
 	ld	c, [hl]
 	inc	hl
 	ld	b, [hl]
 .l00116:
-;src/editor/editor.c:468: }
+;src/editor/editor.c:466: }
 	add	sp, 9
 	pop	hl
 	inc	sp
 	jp hl 
-;src/editor/editor.c:471: static void ToUtf8(char* dest, const char* text) {
+;src/editor/editor.c:469: static void ToUtf8(char* dest, const char* text) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -3702,18 +3702,18 @@ _ToUtf8:
 	ld	h, d
 ;	spillPairReg hl
 ;	spillPairReg hl
-;src/editor/editor.c:473: while ((c = *text++)) {
+;src/editor/editor.c:471: while ((c = *text++)) {
 .l00103:
 	ld	a, [bc]
 	inc	bc
 	ld	e, a
 	or	a, a
 	jp	Z, .l00105
-;src/editor/editor.c:474: if (c >= 0x80) {
+;src/editor/editor.c:472: if (c >= 0x80) {
 	ld	a, e
 	sub	a, $80
 	jp	C, .l00102
-;src/editor/editor.c:475: *dest++ = 0xC0 | (c >> 6);
+;src/editor/editor.c:473: *dest++ = 0xC0 | (c >> 6);
 	ld	a, e
 	rlca
 	rlca
@@ -3721,23 +3721,23 @@ _ToUtf8:
 	or	a, $C0
 	ld	[hl], a
 	inc	hl
-;src/editor/editor.c:476: c = 0x80 | (c & 0x3F);
+;src/editor/editor.c:474: c = 0x80 | (c & 0x3F);
 	ld	a, e
 	and	a, $3F
 	ld	e, a
 	set	7, e
 .l00102:
-;src/editor/editor.c:478: *dest++ = c;
+;src/editor/editor.c:476: *dest++ = c;
 	ld	[hl], e
 	inc	hl
 	jp	.l00103
 .l00105:
-;src/editor/editor.c:480: *dest = 0;
+;src/editor/editor.c:478: *dest = 0;
 	ld	[hl], $00
 .l00106:
-;src/editor/editor.c:481: }
+;src/editor/editor.c:479: }
 	ret
-;src/editor/editor.c:484: static void PutPath(char* dest, const char* path, unsigned char count) {
+;src/editor/editor.c:482: static void PutPath(char* dest, const char* path, unsigned char count) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -3752,7 +3752,7 @@ _PutPath:
 	inc	sp
 	inc	sp
 	push	bc
-;src/editor/editor.c:486: while (path[length]) ++length;
+;src/editor/editor.c:484: while (path[length]) ++length;
 	ld	e, $00
 .l00101:
 	push	de
@@ -3771,7 +3771,7 @@ _PutPath:
 	inc	e
 	jp	.l00101
 .l00103:
-;src/editor/editor.c:487: if (!length) path = "/";
+;src/editor/editor.c:485: if (!length) path = "/";
 	ld	a, e
 	or	a, a
 	jp	NZ, .l00107
@@ -3783,12 +3783,12 @@ _PutPath:
 	ld	[hl], a
 	jp	.l00108
 .l00107:
-;src/editor/editor.c:488: else if (length > count) {
+;src/editor/editor.c:486: else if (length > count) {
 	ld	hl, sp+6
 	ld	a, [hl]
 	sub	a, e
 	jp	NC, .l00108
-;src/editor/editor.c:489: dest = PutText(dest, "...");
+;src/editor/editor.c:487: dest = PutText(dest, "...");
 	push	de
 	ld	bc, ___str_39
 	ld	hl, sp+4
@@ -3801,7 +3801,7 @@ _PutPath:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:490: path += length - count;
+;src/editor/editor.c:488: path += length - count;
 	ld	a, e
 	ld	c, $00
 	ld	hl, sp+6
@@ -3819,7 +3819,7 @@ _PutPath:
 	inc	sp
 	push	hl
 .l00108:
-;src/editor/editor.c:492: *ToLatin1(dest, path, count) = 0;
+;src/editor/editor.c:490: *ToLatin1(dest, path, count) = 0;
 	ld	hl, sp+6
 	ld	a, [hl]
 	push	af
@@ -3836,7 +3836,7 @@ _PutPath:
 	xor	a, a
 	ld	[bc], a
 .l00109:
-;src/editor/editor.c:493: }
+;src/editor/editor.c:491: }
 	add	sp, 4
 	pop	hl
 	inc	sp
@@ -3849,7 +3849,7 @@ ___str_38:
 ___str_39:
 	DB "..."
 	DB $00
-;src/editor/editor.c:496: static unsigned char JoinPath(char* dest, const char* dir, const char* name, unsigned char size) {
+;src/editor/editor.c:494: static unsigned char JoinPath(char* dest, const char* dir, const char* name, unsigned char size) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -3860,7 +3860,7 @@ _JoinPath:
 	inc	sp
 	inc	sp
 	push	de
-;src/editor/editor.c:497: while (*dir) {
+;src/editor/editor.c:495: while (*dir) {
 	ld	hl, sp+10
 	ld	a, [hl]
 	ld	hl, sp+5
@@ -3874,7 +3874,7 @@ _JoinPath:
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00105
-;src/editor/editor.c:498: if (!--size) return 0;
+;src/editor/editor.c:496: if (!--size) return 0;
 	ld	hl, sp+5
 	dec	[hl]
 	ld	a, [hl]
@@ -3887,7 +3887,7 @@ _JoinPath:
 	xor	a, a
 	jp	.l00113
 .l00102:
-;src/editor/editor.c:499: *dest++ = *dir++;
+;src/editor/editor.c:497: *dest++ = *dir++;
 	ld	hl, sp+2
 	ld	a, [hl]
 	inc	bc
@@ -3898,7 +3898,7 @@ _JoinPath:
 	push	de
 	jp	.l00103
 .l00105:
-;src/editor/editor.c:501: if (!--size) return 0;
+;src/editor/editor.c:499: if (!--size) return 0;
 	ld	hl, sp+10
 	dec	[hl]
 	ld	a, [hl]
@@ -3907,7 +3907,7 @@ _JoinPath:
 	xor	a, a
 	jp	.l00113
 .l00107:
-;src/editor/editor.c:502: *dest++ = '/';
+;src/editor/editor.c:500: *dest++ = '/';
 	pop	hl
 	push	hl
 	ld	[hl], $2F
@@ -3923,7 +3923,7 @@ _JoinPath:
 	ld	a, h
 	ld	hl, sp+4
 	ld	[hl], a
-;src/editor/editor.c:503: while (*name) {
+;src/editor/editor.c:501: while (*name) {
 	ld	hl, sp+10
 	ld	a, [hl]
 	dec	hl
@@ -3945,14 +3945,14 @@ _JoinPath:
 	inc	l
 	dec	l
 	jp	Z, .l00112
-;src/editor/editor.c:504: if (!--size) return 0;
+;src/editor/editor.c:502: if (!--size) return 0;
 	dec	a
 	or	a, a
 	jp	NZ, .l00109
 	xor	a, a
 	jp	.l00113
 .l00109:
-;src/editor/editor.c:505: *dest++ = *name++;
+;src/editor/editor.c:503: *dest++ = *name++;
 	push	af
 	ld	a, l
 	ld	hl, sp+7
@@ -3971,21 +3971,21 @@ _JoinPath:
 	ld	[hl], d
 	jp	.l00110
 .l00112:
-;src/editor/editor.c:507: *dest = 0;
+;src/editor/editor.c:505: *dest = 0;
 	ld	hl, sp+3
 	ld	a, [hl+]
 	ld	h, [hl]
 	ld	l, a
 	ld	[hl], $00
-;src/editor/editor.c:508: return 1;
+;src/editor/editor.c:506: return 1;
 	ld	a, $01
 .l00113:
-;src/editor/editor.c:509: }
+;src/editor/editor.c:507: }
 	add	sp, 6
 	pop	hl
 	add	sp, 3
 	jp hl 
-;src/editor/editor.c:512: static void UpdateBars(void) {
+;src/editor/editor.c:510: static void UpdateBars(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -3993,7 +3993,7 @@ _JoinPath:
 ; ---------------------------------
 _UpdateBars:
 	add	sp, -48
-;src/editor/editor.c:514: char* end = file_name[0] ? ToLatin1(text, file_name, TB_STRIDE - 3) : PutText(text, "Untitled");
+;src/editor/editor.c:512: char* end = file_name[0] ? ToLatin1(text, file_name, TB_STRIDE - 3) : PutText(text, "Untitled");
 	ld	bc, _file_name+0
 	ld	a, [bc]
 	ld	e, a
@@ -4016,7 +4016,7 @@ _UpdateBars:
 	ld	d, h
 	call	_PutText
 .l00117:
-;src/editor/editor.c:515: if (modified) *end++ = '*';
+;src/editor/editor.c:513: if (modified) *end++ = '*';
 	ld	hl, _modified
 	ld	a, [hl]
 	or	a, a
@@ -4025,17 +4025,17 @@ _UpdateBars:
 	ld	[bc], a
 	inc	bc
 .l00102:
-;src/editor/editor.c:516: *end = 0;
+;src/editor/editor.c:514: *end = 0;
 	xor	a, a
 	ld	[bc], a
-;src/editor/editor.c:517: DrawRow(HEADER_LINE, 1, text);
+;src/editor/editor.c:515: DrawRow(HEADER_LINE, 1, text);
 	ld	hl, 0
 	add	hl, sp
 	push	hl
 	ld	e, $01
 	ld	a, $12
 	call	_DrawRow__far
-;src/editor/editor.c:518: if (tb_found_row == 0xFF) return; // cursor isn't on screen
+;src/editor/editor.c:516: if (tb_found_row == 0xFF) return; // cursor isn't on screen
 	ld	hl, _tb_found_row
 	ld	a, [hl]
 	inc	a
@@ -4046,13 +4046,13 @@ _UpdateBars:
 .l00149:
 	jp	.l00114
 .l00104:
-;src/editor/editor.c:519: if (GetSelection()) {
+;src/editor/editor.c:517: if (GetSelection()) {
 	call	_GetSelection__far
 	ld	c, a
 	ld	a, c
 	or	a, a
 	jp	Z, .l00112
-;src/editor/editor.c:520: end = PutNumber(text, sel_end - sel_start);
+;src/editor/editor.c:518: end = PutNumber(text, sel_end - sel_start);
 	ld	hl, _sel_end
 	ld	a, [hl]
 	ld	hl, _sel_start
@@ -4073,21 +4073,21 @@ _UpdateBars:
 	call	_PutNumber__far
 	ld	e, c
 	ld	d, b
-;src/editor/editor.c:521: end = PutText(end, " selected");
+;src/editor/editor.c:519: end = PutText(end, " selected");
 	ld	bc, ___str_41
 	call	_PutText
 	ld	e, c
 	ld	d, b
 	jp	.l00113
 .l00112:
-;src/editor/editor.c:524: end = PutText(text, "Line ");
+;src/editor/editor.c:522: end = PutText(text, "Line ");
 	ld	bc, ___str_42
 	ld	hl, 0
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_PutText
-;src/editor/editor.c:526: if (!doc_large) end = PutNumber(end, CursorLine());
+;src/editor/editor.c:523: if (!doc_large) end = PutNumber(end, CursorLine());
 	ld	hl, _doc_large
 	ld	a, [hl]
 	or	a, a
@@ -4107,7 +4107,7 @@ _UpdateBars:
 	ld	d, b
 	jp	.l00110
 .l00109:
-;src/editor/editor.c:527: else if (lines_known) end = PutNumber(end, CursorLine() + win_lines);
+;src/editor/editor.c:524: else if (lines_known) end = PutNumber(end, CursorLine() + win_lines);
 	ld	hl, _lines_known
 	ld	a, [hl]
 	or	a, a
@@ -4177,19 +4177,19 @@ _UpdateBars:
 	ld	d, b
 	jp	.l00110
 .l00106:
-;src/editor/editor.c:528: else *end++ = '?';
+;src/editor/editor.c:525: else *end++ = '?';
 	ld	a, $3F
 	ld	[bc], a
 	ld	e, c
 	ld	d, b
 	inc	de
 .l00110:
-;src/editor/editor.c:532: end = PutText(end, ", Col ");
+;src/editor/editor.c:526: end = PutText(end, ", Col ");
 	ld	bc, ___str_43
 	call	_PutText
 	ld	e, c
 	ld	d, b
-;src/editor/editor.c:533: end = PutNumber(end, CursorColumn());
+;src/editor/editor.c:527: end = PutNumber(end, CursorColumn());
 	push	de
 	call	_CursorColumn
 	pop	de
@@ -4200,10 +4200,10 @@ _UpdateBars:
 	ld	e, c
 	ld	d, b
 .l00113:
-;src/editor/editor.c:535: *end = 0;
+;src/editor/editor.c:529: *end = 0;
 	xor	a, a
 	ld	[de], a
-;src/editor/editor.c:536: DrawRow(STATUS_LINE, 1, text);
+;src/editor/editor.c:530: DrawRow(STATUS_LINE, 1, text);
 	ld	hl, 0
 	add	hl, sp
 	push	hl
@@ -4211,7 +4211,7 @@ _UpdateBars:
 	ld	a, $13
 	call	_DrawRow__far
 .l00114:
-;src/editor/editor.c:537: }
+;src/editor/editor.c:531: }
 	add	sp, 48
 	ret
 	SECTION FRAGMENT "src/editor/editor.c FIXED",ROMX,BANK[1]
@@ -4230,28 +4230,28 @@ ___str_42:
 ___str_43:
 	DB ", Col "
 	DB $00
-;src/editor/editor.c:539: static void Draw(void) {
+;src/editor/editor.c:533: static void Draw(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function Draw
 ; ---------------------------------
 _Draw:
-;src/editor/editor.c:540: SetHighlight();
+;src/editor/editor.c:534: SetHighlight();
 	call	_SetHighlight
-;src/editor/editor.c:541: if (bars) UpdateBars();
+;src/editor/editor.c:535: if (bars) UpdateBars();
 	ld	hl, _bars
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00102
 	call	_UpdateBars
 .l00102:
-;src/editor/editor.c:542: EditorDraw();
+;src/editor/editor.c:536: EditorDraw();
 	jp	_EditorDraw
 .l00103:
-;src/editor/editor.c:543: }
+;src/editor/editor.c:537: }
 	ret
-;src/editor/editor.c:546: static void ScrollTo(unsigned int new_top) {
+;src/editor/editor.c:540: static void ScrollTo(unsigned int new_top) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -4262,28 +4262,28 @@ _ScrollTo:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:548: Render();
+;src/editor/editor.c:542: Render();
 	call	_Render
-;src/editor/editor.c:549: redraw = 1;
+;src/editor/editor.c:543: redraw = 1;
 	ld	hl, _redraw
 	ld	[hl], $01
 .l00101:
-;src/editor/editor.c:550: }
+;src/editor/editor.c:544: }
 	ret
-;src/editor/editor.c:552: static void MoveUp(void) {
+;src/editor/editor.c:546: static void MoveUp(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function MoveUp
 ; ---------------------------------
 _MoveUp:
-;src/editor/editor.c:553: unsigned char row = tb_found_row;
+;src/editor/editor.c:547: unsigned char row = tb_found_row;
 	ld	hl, _tb_found_row
 	ld	a, [hl]
-;src/editor/editor.c:554: keep_x = 1;
+;src/editor/editor.c:548: keep_x = 1;
 	ld	hl, _keep_x
 	ld	[hl], $01
-;src/editor/editor.c:555: if (row) cursor = PosAtX(row - 1, want_x);
+;src/editor/editor.c:549: if (row) cursor = PosAtX(row - 1, want_x);
 	or	a, a
 	jp	Z, .l00105
 	ld	c, a
@@ -4298,7 +4298,7 @@ _MoveUp:
 	ld	[hl], b
 	jp	.l00107
 .l00105:
-;src/editor/editor.c:556: else if (!top) cursor = 0;
+;src/editor/editor.c:550: else if (!top) cursor = 0;
 	ld	hl, _top + 1
 	ld	a, [hl]
 	dec	hl
@@ -4311,7 +4311,7 @@ _MoveUp:
 	ld	[hl], a
 	jp	.l00107
 .l00102:
-;src/editor/editor.c:558: ScrollUp(tb_RowStart(top - 1));
+;src/editor/editor.c:552: ScrollUp(tb_RowStart(top - 1));
 	ld	hl, _top + 1
 	dec	hl
 	ld	e, [hl]
@@ -4322,7 +4322,7 @@ _MoveUp:
 	ld	e, c
 	ld	d, b
 	call	_ScrollUp__far
-;src/editor/editor.c:559: cursor = PosAtX(0, want_x);
+;src/editor/editor.c:553: cursor = PosAtX(0, want_x);
 	ld	hl, _want_x
 	ld	e, [hl]
 	xor	a, a
@@ -4332,9 +4332,9 @@ _MoveUp:
 	inc	hl
 	ld	[hl], b
 .l00107:
-;src/editor/editor.c:561: }
+;src/editor/editor.c:555: }
 	ret
-;src/editor/editor.c:563: static void MoveDown(void) {
+;src/editor/editor.c:557: static void MoveDown(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -4342,15 +4342,15 @@ _MoveUp:
 ; ---------------------------------
 _MoveDown:
 	dec	sp
-;src/editor/editor.c:564: unsigned char row = tb_found_row;
+;src/editor/editor.c:558: unsigned char row = tb_found_row;
 	ld	hl, _tb_found_row
 	ld	a, [hl]
 	ld	hl, sp+0
 	ld	[hl], a
-;src/editor/editor.c:565: keep_x = 1;
+;src/editor/editor.c:559: keep_x = 1;
 	ld	hl, _keep_x
 	ld	[hl], $01
-;src/editor/editor.c:566: if (tb_end_row == row) cursor = tb_Length(); // last row
+;src/editor/editor.c:560: if (tb_end_row == row) cursor = tb_Length(); // last row
 	ld	hl, _tb_end_row
 	ld	a, [hl]
 	ld	hl, sp+0
@@ -4367,7 +4367,7 @@ _MoveDown:
 	ld	[hl], b
 	jp	.l00107
 .l00105:
-;src/editor/editor.c:567: else if (row + 1 < tb_rows) cursor = PosAtX(row + 1, want_x);
+;src/editor/editor.c:561: else if (row + 1 < tb_rows) cursor = PosAtX(row + 1, want_x);
 	ld	hl, sp+0
 	ld	c, [hl]
 	ld	b, $00
@@ -4412,9 +4412,9 @@ _MoveDown:
 	ld	[hl], b
 	jp	.l00107
 .l00102:
-;src/editor/editor.c:569: ScrollDown();
+;src/editor/editor.c:563: ScrollDown();
 	call	_ScrollDown__far
-;src/editor/editor.c:570: cursor = PosAtX(row, want_x);
+;src/editor/editor.c:564: cursor = PosAtX(row, want_x);
 	ld	hl, _want_x
 	ld	e, [hl]
 	ld	hl, sp+0
@@ -4425,38 +4425,38 @@ _MoveDown:
 	inc	hl
 	ld	[hl], b
 .l00107:
-;src/editor/editor.c:572: }
+;src/editor/editor.c:566: }
 	inc	sp
 	ret
-;src/editor/editor.c:574: static void PageUp(void) {
+;src/editor/editor.c:568: static void PageUp(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function PageUp
 ; ---------------------------------
 _PageUp:
-;src/editor/editor.c:575: unsigned char row = tb_found_row, i;
+;src/editor/editor.c:569: unsigned char row = tb_found_row, i;
 	ld	hl, _tb_found_row
 	ld	c, [hl]
-;src/editor/editor.c:576: keep_x = 1;
+;src/editor/editor.c:570: keep_x = 1;
 	ld	hl, _keep_x
 	ld	[hl], $01
-;src/editor/editor.c:577: if (!top) {
+;src/editor/editor.c:571: if (!top) {
 	ld	hl, _top + 1
 	ld	a, [hl]
 	dec	hl
 	or	a, [hl]
 	jp	NZ, .l00102
-;src/editor/editor.c:578: cursor = 0;
+;src/editor/editor.c:572: cursor = 0;
 	xor	a, a
 	ld	hl, _cursor
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:579: return;
+;src/editor/editor.c:573: return;
 	jp	.l00108
 .l00102:
-;src/editor/editor.c:581: for (i = tb_rows - 1; i && top; --i) top = tb_RowStart(top - 1);
+;src/editor/editor.c:575: for (i = tb_rows - 1; i && top; --i) top = tb_RowStart(top - 1);
 	ld	hl, _tb_rows
 	ld	b, [hl]
 	dec	b
@@ -4487,7 +4487,7 @@ _PageUp:
 	dec	b
 	jp	.l00106
 .l00103:
-;src/editor/editor.c:582: ScrollTo(top);
+;src/editor/editor.c:576: ScrollTo(top);
 	push	bc
 	ld	hl, _top
 	ld	e, [hl]
@@ -4495,7 +4495,7 @@ _PageUp:
 	ld	d, [hl]
 	call	_ScrollTo__far
 	pop	bc
-;src/editor/editor.c:583: cursor = PosAtX(row, want_x);
+;src/editor/editor.c:577: cursor = PosAtX(row, want_x);
 	ld	hl, _want_x
 	ld	e, [hl]
 	ld	a, c
@@ -4505,38 +4505,38 @@ _PageUp:
 	inc	hl
 	ld	[hl], b
 .l00108:
-;src/editor/editor.c:584: }
+;src/editor/editor.c:578: }
 	ret
-;src/editor/editor.c:586: static void PageDown(void) {
+;src/editor/editor.c:580: static void PageDown(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function PageDown
 ; ---------------------------------
 _PageDown:
-;src/editor/editor.c:587: unsigned char row = tb_found_row;
+;src/editor/editor.c:581: unsigned char row = tb_found_row;
 	ld	hl, _tb_found_row
 	ld	c, [hl]
-;src/editor/editor.c:588: keep_x = 1;
+;src/editor/editor.c:582: keep_x = 1;
 	ld	hl, _keep_x
 	ld	[hl], $01
-;src/editor/editor.c:589: if (tb_end_row != 0xFF) {
+;src/editor/editor.c:583: if (tb_end_row != 0xFF) {
 	ld	hl, _tb_end_row
 	ld	a, [hl]
 	inc	a
 	jp	NZ,.l00123
 	jp	.l00102
 .l00123:
-;src/editor/editor.c:590: cursor = tb_Length();
+;src/editor/editor.c:584: cursor = tb_Length();
 	call	_tb_Length
 	ld	hl, _cursor
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:591: return;
+;src/editor/editor.c:585: return;
 	jp	.l00106
 .l00102:
-;src/editor/editor.c:593: ScrollTo(tb_row_starts[tb_rows - 1]);
+;src/editor/editor.c:587: ScrollTo(tb_row_starts[tb_rows - 1]);
 	ld	hl, _tb_rows
 	ld	a, [hl]
 	dec	a
@@ -4560,7 +4560,7 @@ _PageDown:
 	ld	d, h
 	call	_ScrollTo__far
 	pop	bc
-;src/editor/editor.c:594: if (tb_end_row != 0xFF && row > tb_end_row) row = tb_end_row;
+;src/editor/editor.c:588: if (tb_end_row != 0xFF && row > tb_end_row) row = tb_end_row;
 	ld	hl, _tb_end_row
 	ld	a, [hl]
 	inc	a
@@ -4573,7 +4573,7 @@ _PageDown:
 	jp	NC, .l00104
 	ld	c, [hl]
 .l00104:
-;src/editor/editor.c:595: cursor = PosAtX(row, want_x);
+;src/editor/editor.c:589: cursor = PosAtX(row, want_x);
 	ld	hl, _want_x
 	ld	e, [hl]
 	ld	a, c
@@ -4583,9 +4583,9 @@ _PageDown:
 	inc	hl
 	ld	[hl], b
 .l00106:
-;src/editor/editor.c:596: }
+;src/editor/editor.c:590: }
 	ret
-;src/editor/editor.c:599: static void MoveEnd(void) {
+;src/editor/editor.c:593: static void MoveEnd(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -4593,29 +4593,29 @@ _PageDown:
 ; ---------------------------------
 _MoveEnd:
 	add	sp, -4
-;src/editor/editor.c:600: unsigned char row = tb_found_row, count = tb_row_counts[row];
+;src/editor/editor.c:594: unsigned char row = tb_found_row, count = tb_row_counts[row];
 	ld	hl, _tb_found_row
 	ld	c, [hl]
 	ld	hl, _tb_row_counts
 	ld	b, $00
 	add	hl, bc
 	ld	b, [hl]
-;src/editor/editor.c:601: if (tb_nowrap) {
+;src/editor/editor.c:595: if (tb_nowrap) {
 	ld	hl, _tb_nowrap
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00102
-;src/editor/editor.c:602: cursor = LineEnd(row);
+;src/editor/editor.c:596: cursor = LineEnd(row);
 	ld	a, c
 	call	_LineEnd__far
 	ld	hl, _cursor
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:603: return;
+;src/editor/editor.c:597: return;
 	jp	.l00108
 .l00102:
-;src/editor/editor.c:605: cursor = tb_row_starts[row] + count;
+;src/editor/editor.c:599: cursor = tb_row_starts[row] + count;
 	ld	l, c
 ;	spillPairReg hl
 ;	spillPairReg hl
@@ -4651,7 +4651,7 @@ _MoveEnd:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:606: if (count && cursor == tb_row_starts[row + 1] && tb_end_row != row && RowAddress(row)[count - 1] == ' ') --cursor;
+;src/editor/editor.c:600: if (count && cursor == tb_row_starts[row + 1] && tb_end_row != row && RowAddress(row)[count - 1] == ' ') --cursor;
 	ld	a, b
 	or	a, a
 	jp	Z, .l00108
@@ -4729,17 +4729,17 @@ _MoveEnd:
 	inc	hl
 	ld	[hl], d
 .l00108:
-;src/editor/editor.c:607: }
+;src/editor/editor.c:601: }
 	add	sp, 4
 	ret
-;src/editor/editor.c:609: static void DeleteSelection(void) {
+;src/editor/editor.c:603: static void DeleteSelection(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function DeleteSelection
 ; ---------------------------------
 _DeleteSelection:
-;src/editor/editor.c:610: UndoDeleting(sel_start, sel_end - sel_start);
+;src/editor/editor.c:604: UndoDeleting(sel_start, sel_end - sel_start);
 	ld	hl, _sel_end
 	ld	a, [hl]
 	ld	hl, _sel_start
@@ -4755,13 +4755,13 @@ _DeleteSelection:
 	inc	hl
 	ld	d, [hl]
 	call	_UndoDeleting
-;src/editor/editor.c:611: Uncount(sel_start);
+;src/editor/editor.c:605: Uncount(sel_start);
 	ld	hl, _sel_start
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	call	_Uncount__far
-;src/editor/editor.c:612: tb_DeleteRange(sel_start, sel_end - sel_start);
+;src/editor/editor.c:606: tb_DeleteRange(sel_start, sel_end - sel_start);
 	ld	hl, _sel_end
 	ld	a, [hl]
 	ld	hl, _sel_start
@@ -4777,7 +4777,7 @@ _DeleteSelection:
 	inc	hl
 	ld	d, [hl]
 	call	_tb_DeleteRange
-;src/editor/editor.c:613: cursor = sel_start;
+;src/editor/editor.c:607: cursor = sel_start;
 	ld	hl, _sel_start
 	ld	a, [hl]
 	ld	hl, _cursor
@@ -4786,33 +4786,33 @@ _DeleteSelection:
 	ld	a, [hl]
 	ld	hl, _cursor + 1
 	ld	[hl], a
-;src/editor/editor.c:614: selecting = 0;
+;src/editor/editor.c:608: selecting = 0;
 	ld	hl, _selecting
 	ld	[hl], $00
-;src/editor/editor.c:615: modified = 1;
+;src/editor/editor.c:609: modified = 1;
 	ld	hl, _modified
 	ld	[hl], $01
-;src/editor/editor.c:616: dirty = 1;
+;src/editor/editor.c:610: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
 .l00101:
-;src/editor/editor.c:617: }
+;src/editor/editor.c:611: }
 	ret
-;src/editor/editor.c:619: static unsigned char Copy(void) {
+;src/editor/editor.c:613: static unsigned char Copy(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function Copy
 ; ---------------------------------
 _Copy:
-;src/editor/editor.c:620: if (!GetSelection()) return 0;
+;src/editor/editor.c:614: if (!GetSelection()) return 0;
 	call	_GetSelection
 	or	a, a
 	jp	NZ, .l00102
 	xor	a, a
 	jp	.l00105
 .l00102:
-;src/editor/editor.c:621: if (tb_Copy(sel_start, sel_end - sel_start)) return 1;
+;src/editor/editor.c:615: if (tb_Copy(sel_start, sel_end - sel_start)) return 1;
 	ld	hl, _sel_end
 	ld	a, [hl]
 	ld	hl, _sel_start
@@ -4833,19 +4833,19 @@ _Copy:
 	ld	a, $01
 	jp	.l00105
 .l00104:
-;src/editor/editor.c:622: ShowMessage("TOO BIG TO COPY");
+;src/editor/editor.c:616: ShowMessage("TOO BIG TO COPY");
 	ld	de, ___str_44
 	call	_ShowMessage
-;src/editor/editor.c:623: return 0;
+;src/editor/editor.c:617: return 0;
 	xor	a, a
 .l00105:
-;src/editor/editor.c:624: }
+;src/editor/editor.c:618: }
 	ret
 	SECTION FRAGMENT "src/editor/editor.c FIXED",ROMX,BANK[1]
 ___str_44:
 	DB "TOO BIG TO COPY"
 	DB $00
-;src/editor/editor.c:626: static void Paste(void) {
+;src/editor/editor.c:620: static void Paste(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -4853,7 +4853,7 @@ ___str_44:
 ; ---------------------------------
 _Paste:
 	add	sp, -6
-;src/editor/editor.c:627: unsigned int length = tb_ClipLength(), room = TB_SIZE - tb_Length();
+;src/editor/editor.c:621: unsigned int length = tb_ClipLength(), room = TB_SIZE - tb_Length();
 	call	_tb_ClipLength
 	ld	hl, sp+4
 	ld	[hl], c
@@ -4886,7 +4886,7 @@ _Paste:
 	ld	[hl], a
 	dec	hl
 	ld	[hl], e
-;src/editor/editor.c:628: if (!length) return;
+;src/editor/editor.c:622: if (!length) return;
 	ld	hl, sp+1
 	ld	a, [hl]
 	dec	hl
@@ -4894,7 +4894,7 @@ _Paste:
 	jp	NZ, .l00102
 	jp	.l00109
 .l00102:
-;src/editor/editor.c:629: if (GetSelection()) room += sel_end - sel_start;
+;src/editor/editor.c:623: if (GetSelection()) room += sel_end - sel_start;
 	call	_GetSelection
 	or	a, a
 	jp	Z, .l00104
@@ -4922,7 +4922,7 @@ _Paste:
 	ld	hl, sp+5
 	ld	[hl], a
 .l00104:
-;src/editor/editor.c:630: if (length > room) {
+;src/editor/editor.c:624: if (length > room) {
 	ld	hl, sp+4
 	ld	e, l
 	ld	d, h
@@ -4934,35 +4934,35 @@ _Paste:
 	ld	a, [de]
 	sbc	a, [hl]
 	jp	NC, .l00106
-;src/editor/editor.c:631: ShowMessage("TEXT FULL");
+;src/editor/editor.c:625: ShowMessage("TEXT FULL");
 	ld	de, ___str_45
 	call	_ShowMessage
-;src/editor/editor.c:632: return;
+;src/editor/editor.c:626: return;
 	jp	.l00109
 .l00106:
-;src/editor/editor.c:634: undo_join = GetSelection();
+;src/editor/editor.c:628: undo_join = GetSelection();
 	call	_GetSelection
 	ld	hl, _undo_join
 	ld	[hl], a
-;src/editor/editor.c:635: if (undo_join) DeleteSelection();
+;src/editor/editor.c:629: if (undo_join) DeleteSelection();
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00108
 	call	_DeleteSelection
 .l00108:
-;src/editor/editor.c:636: Uncount(cursor);
+;src/editor/editor.c:630: Uncount(cursor);
 	ld	hl, _cursor
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	call	_Uncount__far
-;src/editor/editor.c:637: tb_Paste(cursor);
+;src/editor/editor.c:631: tb_Paste(cursor);
 	ld	hl, _cursor
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	call	_tb_Paste
-;src/editor/editor.c:638: UndoInserted(cursor, length);
+;src/editor/editor.c:632: UndoInserted(cursor, length);
 	pop	bc
 	push	bc
 	ld	hl, _cursor
@@ -4970,7 +4970,7 @@ _Paste:
 	inc	hl
 	ld	d, [hl]
 	call	_UndoInserted
-;src/editor/editor.c:639: cursor += length;
+;src/editor/editor.c:633: cursor += length;
 	ld	hl, _cursor + 1
 	dec	hl
 	ld	e, [hl]
@@ -4985,21 +4985,21 @@ _Paste:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:640: modified = 1;
+;src/editor/editor.c:634: modified = 1;
 	ld	hl, _modified
 	ld	[hl], $01
-;src/editor/editor.c:641: dirty = 1;
+;src/editor/editor.c:635: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
 .l00109:
-;src/editor/editor.c:642: }
+;src/editor/editor.c:636: }
 	add	sp, 6
 	ret
 	SECTION FRAGMENT "src/editor/editor.c FIXED",ROMX,BANK[1]
 ___str_45:
 	DB "TEXT FULL"
 	DB $00
-;src/editor/editor.c:645: static unsigned char CharClass(unsigned char c) {
+;src/editor/editor.c:639: static unsigned char CharClass(unsigned char c) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -5007,7 +5007,7 @@ ___str_45:
 ; ---------------------------------
 _CharClass:
 	ld	c, a
-;src/editor/editor.c:646: if (c == ' ' || c == ASCII_TAB || c == ASCII_LF) return 0;
+;src/editor/editor.c:640: if (c == ' ' || c == ASCII_TAB || c == ASCII_LF) return 0;
 	ld	a, c
 	sub	a, $20
 	jp	NZ,.l00146
@@ -5029,7 +5029,7 @@ _CharClass:
 	xor	a, a
 	jp	.l00114
 .l00102:
-;src/editor/editor.c:647: if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_' || c >= 0xC0) return 1;
+;src/editor/editor.c:641: if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_' || c >= 0xC0) return 1;
 	ld	a, c
 	sub	a, $30
 	jp	C, .l00109
@@ -5063,12 +5063,12 @@ _CharClass:
 	ld	a, $01
 	jp	.l00114
 .l00106:
-;src/editor/editor.c:648: return 2;
+;src/editor/editor.c:642: return 2;
 	ld	a, $02
 .l00114:
-;src/editor/editor.c:649: }
+;src/editor/editor.c:643: }
 	ret
-;src/editor/editor.c:652: static void WordRight(void) {
+;src/editor/editor.c:646: static void WordRight(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -5076,9 +5076,9 @@ _CharClass:
 ; ---------------------------------
 _WordRight:
 	dec	sp
-;src/editor/editor.c:653: unsigned int length = tb_Length();
+;src/editor/editor.c:647: unsigned int length = tb_Length();
 	call	_tb_Length
-;src/editor/editor.c:655: while (cursor < length && !CharClass(tb_GetChar(cursor))) ++cursor;
+;src/editor/editor.c:649: while (cursor < length && !CharClass(tb_GetChar(cursor))) ++cursor;
 .l00102:
 	ld	hl, _cursor
 	ld	a, [hl]
@@ -5109,7 +5109,7 @@ _WordRight:
 .l00143:
 	jp	.l00102
 .l00104:
-;src/editor/editor.c:656: if (cursor == length) return;
+;src/editor/editor.c:650: if (cursor == length) return;
 	ld	hl, _cursor
 	ld	a, [hl]
 	sub	a, c
@@ -5124,7 +5124,7 @@ _WordRight:
 .l00145:
 	jp	.l00111
 .l00106:
-;src/editor/editor.c:657: token = CharClass(tb_GetChar(cursor));
+;src/editor/editor.c:651: token = CharClass(tb_GetChar(cursor));
 	push	bc
 	ld	hl, _cursor
 	ld	e, [hl]
@@ -5139,7 +5139,7 @@ _WordRight:
 	pop	bc
 	ld	hl, sp+0
 	ld	[hl], a
-;src/editor/editor.c:658: do ++cursor;
+;src/editor/editor.c:652: do ++cursor;
 .l00108:
 	ld	hl, _cursor
 	inc	[hl]
@@ -5147,7 +5147,7 @@ _WordRight:
 	inc	hl
 	inc	[hl]
 .l00146:
-;src/editor/editor.c:659: while (cursor < length && CharClass(tb_GetChar(cursor)) == token);
+;src/editor/editor.c:653: while (cursor < length && CharClass(tb_GetChar(cursor)) == token);
 	ld	hl, _cursor
 	ld	a, [hl]
 	sub	a, c
@@ -5175,17 +5175,17 @@ _WordRight:
 	jp	.l00108
 .l00147:
 .l00111:
-;src/editor/editor.c:660: }
+;src/editor/editor.c:654: }
 	inc	sp
 	ret
-;src/editor/editor.c:663: static void WordLeft(void) {
+;src/editor/editor.c:657: static void WordLeft(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function WordLeft
 ; ---------------------------------
 _WordLeft:
-;src/editor/editor.c:665: while (cursor && !CharClass(tb_GetChar(cursor - 1))) --cursor;
+;src/editor/editor.c:659: while (cursor && !CharClass(tb_GetChar(cursor - 1))) --cursor;
 .l00102:
 	ld	hl, _cursor + 1
 	dec	hl
@@ -5215,7 +5215,7 @@ _WordLeft:
 	ld	[hl], d
 	jp	.l00102
 .l00104:
-;src/editor/editor.c:666: if (!cursor) return;
+;src/editor/editor.c:660: if (!cursor) return;
 	ld	hl, _cursor + 1
 	ld	a, [hl]
 	dec	hl
@@ -5223,13 +5223,13 @@ _WordLeft:
 	jp	NZ, .l00106
 	jp	.l00111
 .l00106:
-;src/editor/editor.c:667: token = CharClass(tb_GetChar(cursor - 1));
+;src/editor/editor.c:661: token = CharClass(tb_GetChar(cursor - 1));
 	call	_tb_GetChar
 	ld	c, a
 	ld	a, c
 	call	_CharClass
 	ld	c, a
-;src/editor/editor.c:668: do --cursor;
+;src/editor/editor.c:662: do --cursor;
 .l00108:
 	ld	hl, _cursor + 1
 	dec	hl
@@ -5241,7 +5241,7 @@ _WordLeft:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:669: while (cursor && CharClass(tb_GetChar(cursor - 1)) == token);
+;src/editor/editor.c:663: while (cursor && CharClass(tb_GetChar(cursor - 1)) == token);
 	ld	a, [hl]
 	dec	hl
 	or	a, [hl]
@@ -5265,9 +5265,9 @@ _WordLeft:
 	jp	.l00108
 .l00143:
 .l00111:
-;src/editor/editor.c:670: }
+;src/editor/editor.c:664: }
 	ret
-;src/editor/editor.c:673: static void ScrollLine(unsigned char down) {
+;src/editor/editor.c:667: static void ScrollLine(unsigned char down) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -5275,17 +5275,17 @@ _WordLeft:
 ; ---------------------------------
 _ScrollLine:
 	ld	c, a
-;src/editor/editor.c:674: unsigned char row = tb_found_row;
+;src/editor/editor.c:668: unsigned char row = tb_found_row;
 	ld	hl, _tb_found_row
 	ld	b, [hl]
-;src/editor/editor.c:675: keep_x = 1;
+;src/editor/editor.c:669: keep_x = 1;
 	ld	hl, _keep_x
 	ld	[hl], $01
-;src/editor/editor.c:676: if (down) {
+;src/editor/editor.c:670: if (down) {
 	ld	a, c
 	or	a, a
 	jp	Z, .l00110
-;src/editor/editor.c:677: if (tb_end_row != 0xFF) return; // the end of the text is on screen
+;src/editor/editor.c:671: if (tb_end_row != 0xFF) return; // the end of the text is on screen
 	ld	hl, _tb_end_row
 	ld	a, [hl]
 	inc	a
@@ -5294,11 +5294,11 @@ _ScrollLine:
 .l00139:
 	jp	.l00112
 .l00102:
-;src/editor/editor.c:678: ScrollDown();
+;src/editor/editor.c:672: ScrollDown();
 	push	bc
 	call	_ScrollDown
 	pop	bc
-;src/editor/editor.c:679: if (!row) cursor = PosAtX(0, want_x);
+;src/editor/editor.c:673: if (!row) cursor = PosAtX(0, want_x);
 	ld	a, b
 	or	a, a
 	jp	NZ, .l00112
@@ -5312,13 +5312,13 @@ _ScrollLine:
 	ld	[hl], b
 	jp	.l00112
 .l00110:
-;src/editor/editor.c:681: else if (top) {
+;src/editor/editor.c:675: else if (top) {
 	ld	hl, _top + 1
 	ld	a, [hl]
 	dec	hl
 	or	a, [hl]
 	jp	Z, .l00112
-;src/editor/editor.c:682: ScrollUp(tb_RowStart(top - 1));
+;src/editor/editor.c:676: ScrollUp(tb_RowStart(top - 1));
 	inc	hl
 	dec	hl
 	ld	e, [hl]
@@ -5333,7 +5333,7 @@ _ScrollLine:
 	push	bc
 	call	_ScrollUp
 	pop	bc
-;src/editor/editor.c:683: if (row == tb_rows - 1) cursor = PosAtX(row, want_x);
+;src/editor/editor.c:677: if (row == tb_rows - 1) cursor = PosAtX(row, want_x);
 	ld	hl, _tb_rows
 	ld	e, [hl]
 	ld	d, $00
@@ -5361,9 +5361,9 @@ _ScrollLine:
 	inc	hl
 	ld	[hl], b
 .l00112:
-;src/editor/editor.c:685: }
+;src/editor/editor.c:679: }
 	ret
-;src/editor/editor.c:688: static void UndoRedo(unsigned char redo) {
+;src/editor/editor.c:682: static void UndoRedo(unsigned char redo) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -5371,7 +5371,7 @@ _ScrollLine:
 ; ---------------------------------
 _UndoRedo:
 	ld	c, a
-;src/editor/editor.c:689: if (!(redo ? Redo() : Undo())) return;
+;src/editor/editor.c:683: if (!(redo ? Redo() : Undo())) return;
 	ld	a, c
 	or	a, a
 	jp	Z, .l00105
@@ -5384,7 +5384,7 @@ _UndoRedo:
 	jp	NZ, .l00102
 	jp	.l00103
 .l00102:
-;src/editor/editor.c:690: cursor = undo_cursor;
+;src/editor/editor.c:684: cursor = undo_cursor;
 	ld	hl, _undo_cursor
 	ld	a, [hl]
 	ld	hl, _cursor
@@ -5393,13 +5393,13 @@ _UndoRedo:
 	ld	a, [hl]
 	ld	hl, _cursor + 1
 	ld	[hl], a
-;src/editor/editor.c:691: selecting = 0;
+;src/editor/editor.c:685: selecting = 0;
 	ld	hl, _selecting
 	ld	[hl], $00
-;src/editor/editor.c:692: Uncount(0);
+;src/editor/editor.c:686: Uncount(0);
 	ld	de, $0000
 	call	_Uncount__far
-;src/editor/editor.c:693: modified = !undo_at_save;
+;src/editor/editor.c:687: modified = !undo_at_save;
 	ld	hl, _undo_at_save
 	ld	a, [hl]
 	sub	a,$01
@@ -5407,116 +5407,116 @@ _UndoRedo:
 	rla
 	ld	hl, _modified
 	ld	[hl], a
-;src/editor/editor.c:694: dirty = 1;
+;src/editor/editor.c:688: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
 .l00103:
-;src/editor/editor.c:695: }
+;src/editor/editor.c:689: }
 	ret
-;src/editor/editor.c:697: static void SelectAll(void) {
+;src/editor/editor.c:691: static void SelectAll(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function SelectAll
 ; ---------------------------------
 _SelectAll:
-;src/editor/editor.c:698: anchor = 0;
+;src/editor/editor.c:692: anchor = 0;
 	xor	a, a
 	ld	hl, _anchor
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:699: cursor = tb_Length();
+;src/editor/editor.c:693: cursor = tb_Length();
 	call	_tb_Length
 	ld	hl, _cursor
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:700: selecting = 1;
+;src/editor/editor.c:694: selecting = 1;
 	ld	hl, _selecting
 	ld	[hl], $01
-;src/editor/editor.c:701: moved = 1;
+;src/editor/editor.c:695: moved = 1;
 	ld	hl, _moved
 	ld	[hl], $01
-;src/editor/editor.c:702: redraw = 1;
+;src/editor/editor.c:696: redraw = 1;
 	ld	hl, _redraw
 	ld	[hl], $01
 .l00101:
-;src/editor/editor.c:703: }
+;src/editor/editor.c:697: }
 	ret
-;src/editor/editor.c:705: static void Cut(void) {
+;src/editor/editor.c:699: static void Cut(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function Cut
 ; ---------------------------------
 _Cut:
-;src/editor/editor.c:706: if (Copy()) DeleteSelection();
+;src/editor/editor.c:700: if (Copy()) DeleteSelection();
 	call	_Copy
 	or	a, a
 	jp	Z, .l00103
 	jp	_DeleteSelection
 .l00103:
-;src/editor/editor.c:707: }
+;src/editor/editor.c:701: }
 	ret
-;src/editor/editor.c:714: static unsigned char Commit(void) {
+;src/editor/editor.c:707: static unsigned char Commit(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function Commit
 ; ---------------------------------
 _Commit:
-;src/editor/editor.c:715: if (FileCommitWindow()) return 1;
+;src/editor/editor.c:708: if (FileCommitWindow()) return 1;
 	call	_FileCommitWindow
 	or	a, a
 	jp	Z, .l00102
 	ld	a, $01
 	jp	.l00103
 .l00102:
-;src/editor/editor.c:716: ShowMessage("TOO MANY EDITS, SAVE FIRST");
+;src/editor/editor.c:709: ShowMessage("TOO MANY EDITS, SAVE FIRST");
 	ld	de, ___str_46
 	call	_ShowMessage
-;src/editor/editor.c:717: return 0;
+;src/editor/editor.c:710: return 0;
 	xor	a, a
 .l00103:
-;src/editor/editor.c:718: }
+;src/editor/editor.c:711: }
 	ret
 	SECTION FRAGMENT "src/editor/editor.c FIXED",ROMX,BANK[1]
 ___str_46:
 	DB "TOO MANY EDITS, SAVE FIRST"
 	DB $00
-;src/editor/editor.c:721: static void LoadWindow(void) {
+;src/editor/editor.c:714: static void LoadWindow(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function LoadWindow
 ; ---------------------------------
 _LoadWindow:
-;src/editor/editor.c:722: if (FileLoadWindow()) ShowMessage("SD ERROR");
+;src/editor/editor.c:715: if (FileLoadWindow()) ShowMessage("SD ERROR");
 	call	_FileLoadWindow
 	or	a, a
 	jp	Z, .l00102
 	ld	de, ___str_47
 	call	_ShowMessage
 .l00102:
-;src/editor/editor.c:723: UndoClear(modified);
+;src/editor/editor.c:716: UndoClear(modified);
 	ld	hl, _modified
 	ld	a, [hl]
 	call	_UndoClear
-;src/editor/editor.c:724: Uncount(0);
+;src/editor/editor.c:717: Uncount(0);
 	ld	de, $0000
 	call	_Uncount__far
-;src/editor/editor.c:725: dirty = 1;
+;src/editor/editor.c:718: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
 .l00103:
-;src/editor/editor.c:726: }
+;src/editor/editor.c:719: }
 	ret
 	SECTION FRAGMENT "src/editor/editor.c FIXED",ROMX,BANK[1]
 ___str_47:
 	DB "SD ERROR"
 	DB $00
-;src/editor/editor.c:730: static void ShiftPositions(unsigned int shift, unsigned char down) {
+;src/editor/editor.c:723: static void ShiftPositions(unsigned int shift, unsigned char down) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -5528,7 +5528,7 @@ _ShiftPositions:
 	ld	b, d
 	ld	hl, sp+2
 	ld	[hl], a
-;src/editor/editor.c:731: unsigned int length = tb_Length();
+;src/editor/editor.c:724: unsigned int length = tb_Length();
 	push	bc
 	call	_tb_Length
 	ld	e, c
@@ -5537,12 +5537,12 @@ _ShiftPositions:
 	inc	sp
 	inc	sp
 	push	de
-;src/editor/editor.c:732: if (down) {
+;src/editor/editor.c:725: if (down) {
 	ld	hl, sp+2
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00108
-;src/editor/editor.c:733: cursor = cursor > shift ? cursor - shift : 0;
+;src/editor/editor.c:726: cursor = cursor > shift ? cursor - shift : 0;
 	ld	hl, _cursor
 	ld	a, c
 	sub	a, [hl]
@@ -5566,7 +5566,7 @@ _ShiftPositions:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:734: top = top > shift ? top - shift : 0;
+;src/editor/editor.c:727: top = top > shift ? top - shift : 0;
 	ld	hl, _top
 	ld	a, c
 	sub	a, [hl]
@@ -5590,7 +5590,7 @@ _ShiftPositions:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:735: if (anchor < shift) selecting = 0;
+;src/editor/editor.c:728: if (anchor < shift) selecting = 0;
 	ld	hl, _anchor
 	ld	a, [hl]
 	sub	a, c
@@ -5602,7 +5602,7 @@ _ShiftPositions:
 	ld	[hl], $00
 	jp	.l00109
 .l00102:
-;src/editor/editor.c:736: else anchor -= shift;
+;src/editor/editor.c:729: else anchor -= shift;
 	ld	hl, _anchor
 	ld	a, [hl]
 	sub	a, c
@@ -5613,7 +5613,7 @@ _ShiftPositions:
 	ld	[hl], a
 	jp	.l00109
 .l00108:
-;src/editor/editor.c:739: cursor += shift;
+;src/editor/editor.c:732: cursor += shift;
 	ld	hl, _cursor
 	ld	a, [hl]
 	add	a, c
@@ -5622,7 +5622,7 @@ _ShiftPositions:
 	ld	a, [hl]
 	adc	a, b
 	ld	[hl], a
-;src/editor/editor.c:740: top += shift;
+;src/editor/editor.c:733: top += shift;
 	ld	hl, _top
 	ld	a, [hl]
 	add	a, c
@@ -5631,7 +5631,7 @@ _ShiftPositions:
 	ld	a, [hl]
 	adc	a, b
 	ld	[hl], a
-;src/editor/editor.c:741: if (anchor + shift > length) selecting = 0;
+;src/editor/editor.c:734: if (anchor + shift > length) selecting = 0;
 	ld	a, c
 	ld	hl, _anchor
 	add	a, [hl]
@@ -5651,13 +5651,13 @@ _ShiftPositions:
 	ld	[hl], $00
 	jp	.l00109
 .l00105:
-;src/editor/editor.c:742: else anchor += shift;
+;src/editor/editor.c:735: else anchor += shift;
 	ld	hl, _anchor
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
 .l00109:
-;src/editor/editor.c:744: if (cursor > length) cursor = length;
+;src/editor/editor.c:737: if (cursor > length) cursor = length;
 	ld	hl, sp+0
 	ld	e, l
 	ld	d, h
@@ -5678,7 +5678,7 @@ _ShiftPositions:
 	ld	hl, _cursor + 1
 	ld	[hl], a
 .l00111:
-;src/editor/editor.c:745: if (top > length) top = length;
+;src/editor/editor.c:738: if (top > length) top = length;
 	ld	hl, sp+0
 	ld	e, l
 	ld	d, h
@@ -5699,27 +5699,27 @@ _ShiftPositions:
 	ld	hl, _top + 1
 	ld	[hl], a
 .l00113:
-;src/editor/editor.c:746: Uncount(0);
+;src/editor/editor.c:739: Uncount(0);
 	ld	de, $0000
 	call	_Uncount__far
-;src/editor/editor.c:747: dirty = 1;
+;src/editor/editor.c:740: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
 .l00114:
-;src/editor/editor.c:748: }
+;src/editor/editor.c:741: }
 	add	sp, 3
 	ret
-;src/editor/editor.c:752: static void LinesUnknown(void) {
+;src/editor/editor.c:745: static void LinesUnknown(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function LinesUnknown
 ; ---------------------------------
 _LinesUnknown:
-;src/editor/editor.c:753: lines_known = 0;
+;src/editor/editor.c:746: lines_known = 0;
 	ld	hl, _lines_known
 	ld	[hl], $00
-;src/editor/editor.c:754: win_lines = 0;
+;src/editor/editor.c:747: win_lines = 0;
 	xor	a, a
 	ld	hl, _win_lines
 	ld	[hl], a
@@ -5729,7 +5729,7 @@ _LinesUnknown:
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:755: scan_target = win_start;
+;src/editor/editor.c:748: scan_target = win_start;
 	ld	hl, _win_start
 	ld	d, h
 	ld	e, l
@@ -5745,7 +5745,7 @@ _LinesUnknown:
 	inc	de
 	ld	a, [de]
 	ld	[hl], a
-;src/editor/editor.c:756: scan_pos = 0;
+;src/editor/editor.c:749: scan_pos = 0;
 	xor	a, a
 	ld	hl, _scan_pos
 	ld	[hl], a
@@ -5755,7 +5755,7 @@ _LinesUnknown:
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:757: scan_lines = 0;
+;src/editor/editor.c:750: scan_lines = 0;
 	xor	a, a
 	ld	hl, _scan_lines
 	ld	[hl], a
@@ -5766,9 +5766,9 @@ _LinesUnknown:
 	inc	hl
 	ld	[hl], a
 .l00101:
-;src/editor/editor.c:758: }
+;src/editor/editor.c:751: }
 	ret
-;src/editor/editor.c:762: static void Slide(void) {
+;src/editor/editor.c:755: static void Slide(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -5776,9 +5776,9 @@ _LinesUnknown:
 ; ---------------------------------
 _Slide:
 	add	sp, -11
-;src/editor/editor.c:763: unsigned int length = tb_Length(), shift, target;
+;src/editor/editor.c:756: unsigned int length = tb_Length(), shift, target;
 	call	_tb_Length
-;src/editor/editor.c:765: if (cursor < WIN_MARGIN ? !win_start : (cursor + WIN_MARGIN <= length || win_end == doc_len)) return;
+;src/editor/editor.c:758: if (cursor < WIN_MARGIN ? !win_start : (cursor + WIN_MARGIN <= length || win_end == doc_len)) return;
 	ld	hl, _cursor
 	ld	a, [hl]
 	sub	a, $00
@@ -5844,13 +5844,13 @@ _Slide:
 	jp	Z, .l00102
 	jp	.l00115
 .l00102:
-;src/editor/editor.c:766: if (!Commit()) return;
+;src/editor/editor.c:759: if (!Commit()) return;
 	call	_Commit
 	or	a, a
 	jp	NZ, .l00104
 	jp	.l00115
 .l00104:
-;src/editor/editor.c:767: win_mark = NO_MARK;
+;src/editor/editor.c:760: win_mark = NO_MARK;
 	ld	hl, _win_mark
 	ld	[hl], $FF
 	inc	hl
@@ -5859,7 +5859,7 @@ _Slide:
 	ld	[hl], $FF
 	inc	hl
 	ld	[hl], $FF
-;src/editor/editor.c:768: if (cursor >= WIN_MARGIN) { // from a sector boundary half a window before the cursor
+;src/editor/editor.c:761: if (cursor >= WIN_MARGIN) { // from a sector boundary half a window before the cursor
 	ld	hl, _cursor
 	ld	a, [hl]
 	sub	a, $00
@@ -5867,7 +5867,7 @@ _Slide:
 	ld	a, [hl]
 	sbc	a, $20
 	jp	C, .l00109
-;src/editor/editor.c:769: target = cursor - WIN_SIZE / 2;
+;src/editor/editor.c:762: target = cursor - WIN_SIZE / 2;
 	dec	hl
 	ld	e, [hl]
 	inc	hl
@@ -5882,7 +5882,7 @@ _Slide:
 	ld	[hl], a
 	dec	hl
 	ld	[hl], e
-;src/editor/editor.c:770: for (i = win_chunks - 1; i && win_kept[i] > target; --i);
+;src/editor/editor.c:763: for (i = win_chunks - 1; i && win_kept[i] > target; --i);
 	ld	hl, _win_chunks
 	ld	a, [hl]
 	add	a, $FF
@@ -5931,14 +5931,14 @@ _Slide:
 	dec	[hl]
 	jp	.l00113
 .l00105:
-;src/editor/editor.c:771: if (!i) return;
+;src/editor/editor.c:764: if (!i) return;
 	ld	hl, sp+10
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00107
 	jp	.l00115
 .l00107:
-;src/editor/editor.c:772: doc_pos = ((win_start + 511) & ~511UL) + ((unsigned long)i << 9);
+;src/editor/editor.c:765: doc_pos = ((win_start + 511) & ~511UL) + ((unsigned long)i << 9);
 	ld	hl, _win_start + 1
 	dec	hl
 	ld	e, [hl]
@@ -6039,9 +6039,9 @@ _Slide:
 	ld	[hl], a
 	dec	hl
 	ld	[hl], e
-;src/editor/editor.c:773: DocLineStart();
+;src/editor/editor.c:766: DocLineStart();
 	call	_DocLineStart
-;src/editor/editor.c:774: shift = win_kept[i] - doc_back;
+;src/editor/editor.c:767: shift = win_kept[i] - doc_back;
 	pop	de
 	push	de
 	ld	a, [de]
@@ -6057,7 +6057,7 @@ _Slide:
 	inc	hl
 	sbc	a, [hl]
 	ld	b, a
-;src/editor/editor.c:775: win_lines += tb_CountLines(0, shift);
+;src/editor/editor.c:768: win_lines += tb_CountLines(0, shift);
 	push	bc
 	ld	de, $0000
 	call	_tb_CountLines
@@ -6107,7 +6107,7 @@ _Slide:
 	ld	[hl], a
 	dec	hl
 	ld	[hl], e
-;src/editor/editor.c:776: win_start = doc_pos;
+;src/editor/editor.c:769: win_start = doc_pos;
 	ld	hl, _doc_pos
 	ld	d, h
 	ld	e, l
@@ -6123,18 +6123,18 @@ _Slide:
 	inc	de
 	ld	a, [de]
 	ld	[hl], a
-;src/editor/editor.c:777: LoadWindow();
+;src/editor/editor.c:770: LoadWindow();
 	push	bc
 	call	_LoadWindow
 	pop	bc
-;src/editor/editor.c:778: ShiftPositions(shift, 1);
+;src/editor/editor.c:771: ShiftPositions(shift, 1);
 	ld	a, $01
 	ld	e, c
 	ld	d, b
 	call	_ShiftPositions
 	jp	.l00115
 .l00109:
-;src/editor/editor.c:781: doc_pos = win_start > WIN_SIZE / 2 ? win_start - WIN_SIZE / 2 : 0;
+;src/editor/editor.c:774: doc_pos = win_start > WIN_SIZE / 2 ? win_start - WIN_SIZE / 2 : 0;
 	ld	hl, _win_start
 	ld	a, $00
 	sub	a, [hl]
@@ -6205,9 +6205,9 @@ _Slide:
 	inc	de
 	ld	a, [de]
 	ld	[hl], a
-;src/editor/editor.c:782: DocLineStart();
+;src/editor/editor.c:775: DocLineStart();
 	call	_DocLineStart
-;src/editor/editor.c:783: win_mark = win_start;
+;src/editor/editor.c:776: win_mark = win_start;
 	ld	hl, _win_start
 	ld	d, h
 	ld	e, l
@@ -6223,7 +6223,7 @@ _Slide:
 	inc	de
 	ld	a, [de]
 	ld	[hl], a
-;src/editor/editor.c:784: win_start = doc_pos;
+;src/editor/editor.c:777: win_start = doc_pos;
 	ld	hl, _doc_pos
 	ld	d, h
 	ld	e, l
@@ -6239,9 +6239,9 @@ _Slide:
 	inc	de
 	ld	a, [de]
 	ld	[hl], a
-;src/editor/editor.c:785: LoadWindow();
+;src/editor/editor.c:778: LoadWindow();
 	call	_LoadWindow
-;src/editor/editor.c:786: shift = win_mark_pos == 0xFFFF ? 0 : win_mark_pos;
+;src/editor/editor.c:779: shift = win_mark_pos == 0xFFFF ? 0 : win_mark_pos;
 	ld	hl, _win_mark_pos
 	ld	a, [hl]
 	inc	a
@@ -6262,7 +6262,7 @@ _Slide:
 	inc	hl
 	ld	b, [hl]
 .l00125:
-;src/editor/editor.c:787: win_lines -= tb_CountLines(0, shift);
+;src/editor/editor.c:780: win_lines -= tb_CountLines(0, shift);
 	push	bc
 	ld	de, $0000
 	call	_tb_CountLines
@@ -6312,23 +6312,23 @@ _Slide:
 	ld	[hl], a
 	dec	hl
 	ld	[hl], e
-;src/editor/editor.c:788: ShiftPositions(shift, 0);
+;src/editor/editor.c:781: ShiftPositions(shift, 0);
 	xor	a, a
 	ld	e, c
 	ld	d, b
 	call	_ShiftPositions
 .l00115:
-;src/editor/editor.c:790: }
+;src/editor/editor.c:783: }
 	add	sp, 11
 	ret
-;src/editor/editor.c:794: static void GoStart(void) {
+;src/editor/editor.c:786: static void GoStart(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function GoStart
 ; ---------------------------------
 _GoStart:
-;src/editor/editor.c:796: if (doc_large && win_start && Commit()) {
+;src/editor/editor.c:787: if (doc_large && win_start && Commit()) {
 	ld	hl, _doc_large
 	ld	a, [hl]
 	or	a, a
@@ -6345,10 +6345,10 @@ _GoStart:
 	call	_Commit
 	or	a, a
 	jp	Z, .l00102
-;src/editor/editor.c:797: selecting = 0;
+;src/editor/editor.c:788: selecting = 0;
 	ld	hl, _selecting
 	ld	[hl], $00
-;src/editor/editor.c:798: win_start = win_lines = 0;
+;src/editor/editor.c:789: win_start = win_lines = 0;
 	xor	a, a
 	ld	hl, _win_lines
 	ld	[hl], a
@@ -6367,7 +6367,7 @@ _GoStart:
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:799: win_mark = NO_MARK;
+;src/editor/editor.c:790: win_mark = NO_MARK;
 	ld	hl, _win_mark
 	ld	[hl], $FF
 	inc	hl
@@ -6376,29 +6376,29 @@ _GoStart:
 	ld	[hl], $FF
 	inc	hl
 	ld	[hl], $FF
-;src/editor/editor.c:800: lines_known = 1;
+;src/editor/editor.c:791: lines_known = 1;
 	ld	hl, _lines_known
 	ld	[hl], $01
-;src/editor/editor.c:801: LoadWindow();
+;src/editor/editor.c:792: LoadWindow();
 	call	_LoadWindow
 .l00102:
-;src/editor/editor.c:804: cursor = 0;
+;src/editor/editor.c:794: cursor = 0;
 	xor	a, a
 	ld	hl, _cursor
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
 .l00105:
-;src/editor/editor.c:805: }
+;src/editor/editor.c:795: }
 	ret
-;src/editor/editor.c:808: static void GoEnd(void) {
+;src/editor/editor.c:798: static void GoEnd(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function GoEnd
 ; ---------------------------------
 _GoEnd:
-;src/editor/editor.c:810: if (doc_large && win_end != doc_len && Commit()) {
+;src/editor/editor.c:799: if (doc_large && win_end != doc_len && Commit()) {
 	ld	hl, _doc_large
 	ld	a, [hl]
 	or	a, a
@@ -6428,10 +6428,10 @@ _GoEnd:
 	call	_Commit
 	or	a, a
 	jp	Z, .l00102
-;src/editor/editor.c:811: selecting = 0;
+;src/editor/editor.c:800: selecting = 0;
 	ld	hl, _selecting
 	ld	[hl], $00
-;src/editor/editor.c:812: doc_pos = doc_len - WIN_SIZE / 2; // the window isn't the whole file, so it's longer than this
+;src/editor/editor.c:801: doc_pos = doc_len - WIN_SIZE / 2; // the window isn't the whole file, so it's longer than this
 	ld	hl, _doc_len + 1
 	dec	hl
 	ld	e, [hl]
@@ -6462,9 +6462,9 @@ _GoEnd:
 	ld	[hl], a
 	dec	hl
 	ld	[hl], e
-;src/editor/editor.c:813: DocLineStart();
+;src/editor/editor.c:802: DocLineStart();
 	call	_DocLineStart
-;src/editor/editor.c:814: win_start = doc_pos;
+;src/editor/editor.c:803: win_start = doc_pos;
 	ld	hl, _doc_pos
 	ld	d, h
 	ld	e, l
@@ -6480,7 +6480,7 @@ _GoEnd:
 	inc	de
 	ld	a, [de]
 	ld	[hl], a
-;src/editor/editor.c:815: win_mark = NO_MARK;
+;src/editor/editor.c:804: win_mark = NO_MARK;
 	ld	hl, _win_mark
 	ld	[hl], $FF
 	inc	hl
@@ -6489,21 +6489,21 @@ _GoEnd:
 	ld	[hl], $FF
 	inc	hl
 	ld	[hl], $FF
-;src/editor/editor.c:816: LoadWindow();
+;src/editor/editor.c:805: LoadWindow();
 	call	_LoadWindow
-;src/editor/editor.c:817: LinesUnknown();
+;src/editor/editor.c:806: LinesUnknown();
 	call	_LinesUnknown
 .l00102:
-;src/editor/editor.c:820: cursor = tb_Length();
+;src/editor/editor.c:808: cursor = tb_Length();
 	call	_tb_Length
 	ld	hl, _cursor
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
 .l00105:
-;src/editor/editor.c:821: }
+;src/editor/editor.c:809: }
 	ret
-;src/editor/editor.c:824: static void HandleCtrlKey(unsigned char key, unsigned char mods) {
+;src/editor/editor.c:812: static void HandleCtrlKey(unsigned char key, unsigned char mods) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -6513,7 +6513,7 @@ _HandleCtrlKey:
 	ld	l, a
 ;	spillPairReg hl
 ;	spillPairReg hl
-;src/editor/editor.c:825: if (key >= 'A' && key <= 'Z') key += 'a' - 'A';
+;src/editor/editor.c:813: if (key >= 'A' && key <= 'Z') key += 'a' - 'A';
 	ld	a, l
 	sub	a, $41
 	jp	C, .l00102
@@ -6523,7 +6523,7 @@ _HandleCtrlKey:
 	ld	c, $20
 	add	hl, bc
 .l00102:
-;src/editor/editor.c:826: if (key == 'z') UndoRedo(mods & KB_MOD_SHIFT);
+;src/editor/editor.c:814: if (key == 'z') UndoRedo(mods & KB_MOD_SHIFT);
 	ld	a, l
 	sub	a, $7A
 	jp	NZ,.l00162
@@ -6540,7 +6540,7 @@ _HandleCtrlKey:
 	pop	hl
 	jp	.l00108
 .l00107:
-;src/editor/editor.c:827: else if (key == 'y') UndoRedo(1);
+;src/editor/editor.c:815: else if (key == 'y') UndoRedo(1);
 	ld	a, l
 	sub	a, $79
 	jp	NZ,.l00164
@@ -6553,7 +6553,7 @@ _HandleCtrlKey:
 	call	_UndoRedo
 	pop	hl
 .l00108:
-;src/editor/editor.c:828: if (key == 'a') SelectAll();
+;src/editor/editor.c:816: if (key == 'a') SelectAll();
 	ld	a, l
 	sub	a, $61
 	jp	NZ,.l00166
@@ -6564,7 +6564,7 @@ _HandleCtrlKey:
 	jp	_SelectAll
 	jp	.l00120
 .l00118:
-;src/editor/editor.c:829: else if (key == 'c') Copy();
+;src/editor/editor.c:817: else if (key == 'c') Copy();
 	ld	a, l
 	sub	a, $63
 	jp	NZ,.l00168
@@ -6575,7 +6575,7 @@ _HandleCtrlKey:
 	jp	_Copy
 	jp	.l00120
 .l00115:
-;src/editor/editor.c:830: else if (key == 'x') Cut();
+;src/editor/editor.c:818: else if (key == 'x') Cut();
 	ld	a, l
 	sub	a, $78
 	jp	NZ,.l00170
@@ -6586,7 +6586,7 @@ _HandleCtrlKey:
 	jp	_Cut
 	jp	.l00120
 .l00112:
-;src/editor/editor.c:831: else if (key == 'v') Paste();
+;src/editor/editor.c:819: else if (key == 'v') Paste();
 	ld	a, l
 	sub	a, $76
 	jp	NZ,.l00172
@@ -6596,9 +6596,9 @@ _HandleCtrlKey:
 .l00173:
 	jp	_Paste
 .l00120:
-;src/editor/editor.c:832: }
+;src/editor/editor.c:820: }
 	ret
-;src/editor/editor.c:835: static void HandleKey(unsigned char key, unsigned char mods) {
+;src/editor/editor.c:823: static void HandleKey(unsigned char key, unsigned char mods) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -6610,14 +6610,14 @@ _HandleKey:
 	ld	[hl], a
 	dec	hl
 	ld	[hl], e
-;src/editor/editor.c:836: unsigned char ctrl = mods & KB_MOD_CTRL, join = 0;
+;src/editor/editor.c:824: unsigned char ctrl = mods & KB_MOD_CTRL, join = 0;
 	ld	a, [hl]
 	and	a, $20
 	ld	hl, sp+0
 	ld	[hl], a
 	inc	hl
 	ld	[hl], $00
-;src/editor/editor.c:837: if (mods & (KB_MOD_ALT | KB_MOD_SUPER)) return;
+;src/editor/editor.c:825: if (mods & (KB_MOD_ALT | KB_MOD_SUPER)) return;
 	ld	hl, sp+4
 	ld	a, [hl]
 	and	a, $18
@@ -6626,7 +6626,7 @@ _HandleKey:
 .l00349:
 	jp	.l00170
 .l00102:
-;src/editor/editor.c:838: if (key >= KEY_LEFT && key <= KEY_PAGE_DOWN) undo_merge = 0; // moving starts a new undo step
+;src/editor/editor.c:826: if (key >= KEY_LEFT && key <= KEY_PAGE_DOWN) undo_merge = 0; // moving starts a new undo step
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $80
@@ -6637,7 +6637,7 @@ _HandleKey:
 	ld	hl, _undo_merge
 	ld	[hl], $00
 .l00104:
-;src/editor/editor.c:839: if (key < KEY_LEFT || key > KEY_PAGE_DOWN) {
+;src/editor/editor.c:827: if (key < KEY_LEFT || key > KEY_PAGE_DOWN) {
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $80
@@ -6653,21 +6653,21 @@ _HandleKey:
 	sub	a, [hl]
 	jp	NC, .l00120
 .l00119:
-;src/editor/editor.c:840: if (ctrl) {
+;src/editor/editor.c:828: if (ctrl) {
 	ld	hl, sp+0
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00121
-;src/editor/editor.c:841: HandleCtrlKey(key, mods);
+;src/editor/editor.c:829: HandleCtrlKey(key, mods);
 	ld	hl, sp+4
 	ld	e, [hl]
 	inc	hl
 	ld	a, [hl]
 	call	_HandleCtrlKey__far
-;src/editor/editor.c:842: return;
+;src/editor/editor.c:830: return;
 	jp	.l00170
 .l00120:
-;src/editor/editor.c:845: else if (mods & KB_MOD_SHIFT) { // shift + movement selects
+;src/editor/editor.c:833: else if (mods & KB_MOD_SHIFT) { // shift + movement selects
 	push	hl
 	ld	hl, sp+6
 	bit	6, [hl]
@@ -6675,7 +6675,7 @@ _HandleKey:
 	jp	NZ,.l00350
 	jp	.l00117
 .l00350:
-;src/editor/editor.c:846: if (!selecting) anchor = cursor;
+;src/editor/editor.c:834: if (!selecting) anchor = cursor;
 	ld	hl, _selecting
 	ld	a, [hl]
 	or	a, a
@@ -6689,15 +6689,15 @@ _HandleKey:
 	ld	hl, _anchor + 1
 	ld	[hl], a
 .l00109:
-;src/editor/editor.c:847: selecting = 1;
+;src/editor/editor.c:835: selecting = 1;
 	ld	hl, _selecting
 	ld	[hl], $01
-;src/editor/editor.c:848: redraw = 1;
+;src/editor/editor.c:836: redraw = 1;
 	ld	hl, _redraw
 	ld	[hl], $01
 	jp	.l00121
 .l00117:
-;src/editor/editor.c:850: else if (!ctrl && GetSelection() && (key == KEY_LEFT || key == KEY_RIGHT)) { // to that end of the selection
+;src/editor/editor.c:838: else if (!ctrl && GetSelection() && (key == KEY_LEFT || key == KEY_RIGHT)) { // to that end of the selection
 	ld	hl, sp+0
 	ld	a, [hl]
 	or	a, a
@@ -6729,7 +6729,7 @@ _HandleKey:
 	jp	.l00111
 .l00354:
 .l00110:
-;src/editor/editor.c:851: cursor = key == KEY_LEFT ? sel_start : sel_end;
+;src/editor/editor.c:839: cursor = key == KEY_LEFT ? sel_start : sel_end;
 	ld	hl, sp+3
 	ld	a, [hl]
 	or	a, a
@@ -6761,26 +6761,26 @@ _HandleKey:
 	ld	a, [hl]
 	ld	hl, _cursor + 1
 	ld	[hl], a
-;src/editor/editor.c:852: ClearSelection();
+;src/editor/editor.c:840: ClearSelection();
 	call	_ClearSelection
-;src/editor/editor.c:853: moved = 1;
+;src/editor/editor.c:841: moved = 1;
 	ld	hl, _moved
 	ld	[hl], $01
-;src/editor/editor.c:854: return;
+;src/editor/editor.c:842: return;
 	jp	.l00170
 .l00111:
-;src/editor/editor.c:856: else ClearSelection();
+;src/editor/editor.c:844: else ClearSelection();
 	call	_ClearSelection
 .l00121:
-;src/editor/editor.c:857: moved = 1;
+;src/editor/editor.c:845: moved = 1;
 	ld	hl, _moved
 	ld	[hl], $01
-;src/editor/editor.c:858: if (ctrl) {
+;src/editor/editor.c:846: if (ctrl) {
 	ld	hl, sp+0
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00131
-;src/editor/editor.c:859: switch (key) {
+;src/editor/editor.c:847: switch (key) {
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $80
@@ -6818,35 +6818,35 @@ _HandleKey:
 	jp	.l00128
 .l00360:
 	jp	.l00131
-;src/editor/editor.c:860: case KEY_LEFT: WordLeft(); return;
+;src/editor/editor.c:848: case KEY_LEFT: WordLeft(); return;
 .l00123:
 	call	_WordLeft__far
 	jp	.l00170
-;src/editor/editor.c:861: case KEY_RIGHT: WordRight(); return;
+;src/editor/editor.c:849: case KEY_RIGHT: WordRight(); return;
 .l00124:
 	call	_WordRight__far
 	jp	.l00170
-;src/editor/editor.c:862: case KEY_UP: ScrollLine(0); return;
+;src/editor/editor.c:850: case KEY_UP: ScrollLine(0); return;
 .l00125:
 	xor	a, a
 	call	_ScrollLine
 	jp	.l00170
-;src/editor/editor.c:863: case KEY_DOWN: ScrollLine(1); return;
+;src/editor/editor.c:851: case KEY_DOWN: ScrollLine(1); return;
 .l00126:
 	ld	a, $01
 	call	_ScrollLine
 	jp	.l00170
-;src/editor/editor.c:864: case KEY_HOME: GoStart(); return;
+;src/editor/editor.c:852: case KEY_HOME: GoStart(); return;
 .l00127:
 	call	_GoStart__far
 	jp	.l00170
-;src/editor/editor.c:865: case KEY_END: GoEnd(); return;
+;src/editor/editor.c:853: case KEY_END: GoEnd(); return;
 .l00128:
 	call	_GoEnd__far
 	jp	.l00170
-;src/editor/editor.c:866: }
+;src/editor/editor.c:854: }
 .l00131:
-;src/editor/editor.c:868: switch (key) {
+;src/editor/editor.c:856: switch (key) {
 	ld	hl, sp+2
 	ld	a, [hl]
 	or	a, a
@@ -6873,23 +6873,23 @@ _HandleKey:
 	jp	.l00143
 	jp	.l00134
 	jp	.l00135
-;src/editor/editor.c:869: case KEY_UP: MoveUp(); return;
+;src/editor/editor.c:857: case KEY_UP: MoveUp(); return;
 .l00132:
 	call	_MoveUp__far
 	jp	.l00170
-;src/editor/editor.c:870: case KEY_DOWN: MoveDown(); return;
+;src/editor/editor.c:858: case KEY_DOWN: MoveDown(); return;
 .l00133:
 	call	_MoveDown__far
 	jp	.l00170
-;src/editor/editor.c:871: case KEY_PAGE_UP: PageUp(); return;
+;src/editor/editor.c:859: case KEY_PAGE_UP: PageUp(); return;
 .l00134:
 	call	_PageUp__far
 	jp	.l00170
-;src/editor/editor.c:872: case KEY_PAGE_DOWN: PageDown(); return;
+;src/editor/editor.c:860: case KEY_PAGE_DOWN: PageDown(); return;
 .l00135:
 	call	_PageDown__far
 	jp	.l00170
-;src/editor/editor.c:873: case KEY_LEFT: if (cursor) --cursor; return;
+;src/editor/editor.c:861: case KEY_LEFT: if (cursor) --cursor; return;
 .l00136:
 	ld	hl, _cursor + 1
 	ld	a, [hl]
@@ -6908,7 +6908,7 @@ _HandleKey:
 	ld	[hl], d
 .l00138:
 	jp	.l00170
-;src/editor/editor.c:874: case KEY_RIGHT: if (cursor != tb_Length()) ++cursor; return;
+;src/editor/editor.c:862: case KEY_RIGHT: if (cursor != tb_Length()) ++cursor; return;
 .l00139:
 	call	_tb_Length
 	ld	hl, _cursor
@@ -6929,7 +6929,7 @@ _HandleKey:
 .l00363:
 .l00141:
 	jp	.l00170
-;src/editor/editor.c:875: case KEY_HOME: cursor = tb_row_starts[tb_found_row]; return;
+;src/editor/editor.c:863: case KEY_HOME: cursor = tb_row_starts[tb_found_row]; return;
 .l00142:
 	ld	hl, _tb_found_row
 	ld	a, [hl]
@@ -6975,16 +6975,16 @@ _HandleKey:
 	inc	hl
 	ld	[hl], a
 	jp	.l00170
-;src/editor/editor.c:876: case KEY_END: MoveEnd(); return;
+;src/editor/editor.c:864: case KEY_END: MoveEnd(); return;
 .l00143:
 	call	_MoveEnd__far
 	jp	.l00170
-;src/editor/editor.c:877: }
+;src/editor/editor.c:865: }
 .l00144:
-;src/editor/editor.c:878: moved = 0;
+;src/editor/editor.c:866: moved = 0;
 	ld	hl, _moved
 	ld	[hl], $00
-;src/editor/editor.c:879: if (key == KEY_ESCAPE || key == KEY_INSERT) return;
+;src/editor/editor.c:867: if (key == KEY_ESCAPE || key == KEY_INSERT) return;
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $1B
@@ -7002,13 +7002,13 @@ _HandleKey:
 .l00145:
 	jp	.l00170
 .l00146:
-;src/editor/editor.c:880: if (GetSelection()) { // typing replaces the selection
+;src/editor/editor.c:868: if (GetSelection()) { // typing replaces the selection
 	call	_GetSelection__far
 	or	a, a
 	jp	Z, .l00152
-;src/editor/editor.c:881: DeleteSelection();
+;src/editor/editor.c:869: DeleteSelection();
 	call	_DeleteSelection__far
-;src/editor/editor.c:882: if (key == KEY_BACKSPACE || key == KEY_DELETE) return;
+;src/editor/editor.c:870: if (key == KEY_BACKSPACE || key == KEY_DELETE) return;
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $08
@@ -7026,14 +7026,14 @@ _HandleKey:
 .l00148:
 	jp	.l00170
 .l00149:
-;src/editor/editor.c:883: join = 1;
+;src/editor/editor.c:871: join = 1;
 	ld	hl, sp+1
 	ld	[hl], $01
 .l00152:
-;src/editor/editor.c:885: selecting = 0;
+;src/editor/editor.c:873: selecting = 0;
 	ld	hl, _selecting
 	ld	[hl], $00
-;src/editor/editor.c:886: switch (key) {
+;src/editor/editor.c:874: switch (key) {
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $08
@@ -7047,15 +7047,15 @@ _HandleKey:
 	jp	.l00156
 .l00372:
 	jp	.l00159
-;src/editor/editor.c:887: case KEY_BACKSPACE:
+;src/editor/editor.c:875: case KEY_BACKSPACE:
 .l00153:
-;src/editor/editor.c:888: if (!cursor) break;
+;src/editor/editor.c:876: if (!cursor) break;
 	ld	hl, _cursor + 1
 	ld	a, [hl]
 	dec	hl
 	or	a, [hl]
 	jp	Z, .l00170
-;src/editor/editor.c:889: --cursor;
+;src/editor/editor.c:877: --cursor;
 	inc	hl
 	dec	hl
 	ld	e, [hl]
@@ -7066,9 +7066,9 @@ _HandleKey:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:891: case KEY_DELETE:
+;src/editor/editor.c:879: case KEY_DELETE:
 .l00156:
-;src/editor/editor.c:892: if (cursor < tb_Length()) {
+;src/editor/editor.c:880: if (cursor < tb_Length()) {
 	call	_tb_Length
 	ld	hl, _cursor
 	ld	a, [hl]
@@ -7077,14 +7077,14 @@ _HandleKey:
 	ld	a, [hl]
 	sbc	a, b
 	jp	NC, .l00170
-;src/editor/editor.c:893: UndoDeleting(cursor, 1);
+;src/editor/editor.c:881: UndoDeleting(cursor, 1);
 	ld	bc, $0001
 	dec	hl
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	call	_UndoDeleting
-;src/editor/editor.c:894: CountEdit(cursor, tb_Delete(cursor), 0);
+;src/editor/editor.c:882: CountEdit(cursor, tb_Delete(cursor), 0);
 	ld	hl, _cursor
 	ld	e, [hl]
 	inc	hl
@@ -7100,18 +7100,18 @@ _HandleKey:
 	inc	hl
 	ld	d, [hl]
 	call	_CountEdit
-;src/editor/editor.c:895: Edited(cursor, -1);
+;src/editor/editor.c:883: Edited(cursor, -1);
 	ld	a, $FF
 	ld	hl, _cursor
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	call	_Edited
-;src/editor/editor.c:897: break;
+;src/editor/editor.c:885: break;
 	jp	.l00170
-;src/editor/editor.c:898: default:
+;src/editor/editor.c:886: default:
 .l00159:
-;src/editor/editor.c:899: if (key < ' ' && key != ASCII_TAB && key != ASCII_LF) return;
+;src/editor/editor.c:887: if (key < ' ' && key != ASCII_TAB && key != ASCII_LF) return;
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $20
@@ -7129,7 +7129,7 @@ _HandleKey:
 .l00374:
 	jp	.l00170
 .l00161:
-;src/editor/editor.c:900: if (key >= KEY_LEFT && key < 0xA0) return; // unprintable in Latin-1
+;src/editor/editor.c:888: if (key >= KEY_LEFT && key < 0xA0) return; // unprintable in Latin-1
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $80
@@ -7139,7 +7139,7 @@ _HandleKey:
 	jp	NC, .l00165
 	jp	.l00170
 .l00165:
-;src/editor/editor.c:901: if (tb_Insert(cursor, key)) {
+;src/editor/editor.c:889: if (tb_Insert(cursor, key)) {
 	ld	hl, sp+5
 	ld	a, [hl]
 	ld	hl, _cursor
@@ -7149,19 +7149,19 @@ _HandleKey:
 	call	_tb_Insert
 	or	a, a
 	jp	Z, .l00170
-;src/editor/editor.c:902: undo_join = join;
+;src/editor/editor.c:890: undo_join = join;
 	ld	hl, sp+1
 	ld	a, [hl]
 	ld	hl, _undo_join
 	ld	[hl], a
-;src/editor/editor.c:903: UndoInserted(cursor, 1);
+;src/editor/editor.c:891: UndoInserted(cursor, 1);
 	ld	bc, $0001
 	ld	hl, _cursor
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	call	_UndoInserted
-;src/editor/editor.c:904: CountEdit(cursor, key, 1);
+;src/editor/editor.c:892: CountEdit(cursor, key, 1);
 	ld	a, $01
 	push	af
 	inc	sp
@@ -7172,7 +7172,7 @@ _HandleKey:
 	inc	hl
 	ld	d, [hl]
 	call	_CountEdit
-;src/editor/editor.c:905: Edited(cursor++, 1);
+;src/editor/editor.c:893: Edited(cursor++, 1);
 	ld	hl, _cursor
 	ld	e, [hl]
 	inc	hl
@@ -7185,12 +7185,12 @@ _HandleKey:
 .l00375:
 	ld	a, $01
 	call	_Edited
-;src/editor/editor.c:907: }
+;src/editor/editor.c:895: }
 .l00170:
-;src/editor/editor.c:908: }
+;src/editor/editor.c:896: }
 	add	sp, 6
 	ret
-;src/editor/editor.c:911: static unsigned char DpadRepeat(unsigned char pressed) {
+;src/editor/editor.c:899: static unsigned char DpadRepeat(unsigned char pressed) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -7198,19 +7198,19 @@ _HandleKey:
 ; ---------------------------------
 _DpadRepeat:
 	ld	c, a
-;src/editor/editor.c:912: unsigned char held = (button_state | pressed) & PADF_DPAD;
+;src/editor/editor.c:900: unsigned char held = (button_state | pressed) & PADF_DPAD;
 	ld	hl, _button_state
 	ld	a, [hl]
 	or	a, c
 	and	a, $F0
 	ld	b, a
-;src/editor/editor.c:913: if (!held) return 0;
+;src/editor/editor.c:901: if (!held) return 0;
 	or	a, a
 	jp	NZ, .l00102
 	xor	a, a
 	jp	.l00109
 .l00102:
-;src/editor/editor.c:914: if (pressed & PADF_DPAD) pad_timer = PAD_REPEAT_DELAY;
+;src/editor/editor.c:902: if (pressed & PADF_DPAD) pad_timer = PAD_REPEAT_DELAY;
 	ld	a, c
 	and	a, $F0
 	jp	NZ,.l00126
@@ -7220,7 +7220,7 @@ _DpadRepeat:
 	ld	[hl], $14
 	jp	.l00108
 .l00107:
-;src/editor/editor.c:915: else if (--pad_timer) return 0;
+;src/editor/editor.c:903: else if (--pad_timer) return 0;
 	ld	hl, _pad_timer
 	dec	[hl]
 	ld	a, [hl]
@@ -7229,62 +7229,62 @@ _DpadRepeat:
 	xor	a, a
 	jp	.l00109
 .l00104:
-;src/editor/editor.c:916: else pad_timer = PAD_REPEAT_RATE;
+;src/editor/editor.c:904: else pad_timer = PAD_REPEAT_RATE;
 	ld	hl, _pad_timer
 	ld	[hl], $04
 .l00108:
-;src/editor/editor.c:917: return held;
+;src/editor/editor.c:905: return held;
 	ld	a, b
 .l00109:
-;src/editor/editor.c:918: }
+;src/editor/editor.c:906: }
 	ret
-;src/editor/editor.c:921: static void SetRows(void) {
+;src/editor/editor.c:909: static void SetRows(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function SetRows
 ; ---------------------------------
 _SetRows:
-;src/editor/editor.c:922: bars = bars_on;
+;src/editor/editor.c:910: bars = bars_on;
 	ld	hl, _bars_on
 	ld	a, [hl]
 	ld	hl, _bars
 	ld	[hl], a
-;src/editor/editor.c:923: tb_rows = TextRows();
+;src/editor/editor.c:911: tb_rows = TextRows();
 	call	_TextRows
 	ld	hl, _tb_rows
 	ld	[hl], a
-;src/editor/editor.c:924: Layout();
+;src/editor/editor.c:912: Layout();
 	call	_Layout
-;src/editor/editor.c:925: if (osk_shown) {
+;src/editor/editor.c:913: if (osk_shown) {
 	ld	hl, _osk_shown
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00102
-;src/editor/editor.c:926: OSKDraw(osk_layer, tb_rows);
+;src/editor/editor.c:914: OSKDraw(osk_layer, tb_rows);
 	ld	hl, _tb_rows
 	ld	e, [hl]
 	ld	hl, _osk_layer
 	ld	a, [hl]
 	call	_OSKDraw
-;src/editor/editor.c:927: OSKSelect(osk_x, osk_y);
+;src/editor/editor.c:915: OSKSelect(osk_x, osk_y);
 	ld	hl, _osk_y
 	ld	e, [hl]
 	ld	hl, _osk_x
 	ld	a, [hl]
 	call	_OSKSelect
 .l00102:
-;src/editor/editor.c:929: OSKShow(osk_shown);
+;src/editor/editor.c:917: OSKShow(osk_shown);
 	ld	hl, _osk_shown
 	ld	a, [hl]
 	call	_OSKShow
-;src/editor/editor.c:930: dirty = 1;
+;src/editor/editor.c:918: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
 .l00103:
-;src/editor/editor.c:931: }
+;src/editor/editor.c:919: }
 	ret
-;src/editor/editor.c:936: static void PickOSKBlocks(void) {
+;src/editor/editor.c:924: static void PickOSKBlocks(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -7292,7 +7292,7 @@ _SetRows:
 ; ---------------------------------
 _PickOSKBlocks:
 	add	sp, -6
-;src/editor/editor.c:937: unsigned char i, j, row, length = tb_rows + render_gbc, rows = tb_rows - OSK_ROWS, shift = 0;
+;src/editor/editor.c:925: unsigned char i, j, row, length = tb_rows + render_gbc, rows = tb_rows - OSK_ROWS, shift = 0;
 	ld	hl, _tb_rows
 	ld	a, [hl]
 	ld	hl, _render_gbc
@@ -7305,7 +7305,7 @@ _PickOSKBlocks:
 	ld	c, a
 	ld	hl, sp+1
 	ld	[hl], $00
-;src/editor/editor.c:938: if (tb_found_row != 0xFF && tb_found_row >= rows) shift = tb_found_row - rows + 1;
+;src/editor/editor.c:926: if (tb_found_row != 0xFF && tb_found_row >= rows) shift = tb_found_row - rows + 1;
 	ld	hl, _tb_found_row
 	ld	a, [hl]
 	inc	a
@@ -7322,17 +7322,17 @@ _PickOSKBlocks:
 	ld	hl, sp+1
 	ld	[hl], a
 .l00102:
-;src/editor/editor.c:939: row = rows + shift; // hidden: the rows below the ones that stay, then the ones scrolled off the top
+;src/editor/editor.c:927: row = rows + shift; // hidden: the rows below the ones that stay, then the ones scrolled off the top
 	ld	a, c
 	ld	hl, sp+1
 	add	a, [hl]
 	ld	hl, sp+4
 	ld	[hl], a
-;src/editor/editor.c:940: for (j = 0; j < OSK_ROWS; ++j) {
+;src/editor/editor.c:928: for (j = 0; j < OSK_ROWS; ++j) {
 	inc	hl
 	ld	[hl], $00
 .l00119:
-;src/editor/editor.c:941: if (row == tb_rows) row = 0;
+;src/editor/editor.c:929: if (row == tb_rows) row = 0;
 	ld	hl, _tb_rows
 	ld	a, [hl]
 	ld	hl, sp+4
@@ -7345,13 +7345,13 @@ _PickOSKBlocks:
 	ld	hl, sp+4
 	ld	[hl], $00
 .l00105:
-;src/editor/editor.c:942: i = ring_pos + row;
+;src/editor/editor.c:930: i = ring_pos + row;
 	ld	hl, _ring_pos
 	ld	a, [hl]
 	ld	hl, sp+4
 	add	a, [hl]
 	ld	c, a
-;src/editor/editor.c:943: if (i >= length) i -= length;
+;src/editor/editor.c:931: if (i >= length) i -= length;
 	ld	a, c
 	ld	hl, sp+0
 	sub	a, [hl]
@@ -7360,7 +7360,7 @@ _PickOSKBlocks:
 	sub	a, [hl]
 	ld	c, a
 .l00107:
-;src/editor/editor.c:944: osk_blocks[j] = ring_blocks[i];
+;src/editor/editor.c:932: osk_blocks[j] = ring_blocks[i];
 	ld	de, _osk_blocks
 	ld	hl, sp+5
 	ld	l, [hl]
@@ -7383,7 +7383,7 @@ _PickOSKBlocks:
 	ld	h, [hl]
 	ld	l, a
 	ld	[hl], c
-;src/editor/editor.c:945: if (osk_blocks[j] == HEADER_BLOCK || osk_blocks[j] == STATUS_BLOCK) {
+;src/editor/editor.c:933: if (osk_blocks[j] == HEADER_BLOCK || osk_blocks[j] == STATUS_BLOCK) {
 	ld	a, c
 	sub	a, $08
 	jp	NZ,.l00182
@@ -7401,7 +7401,7 @@ _PickOSKBlocks:
 .l00183:
 	jp	.l00110
 .l00184:
-;src/editor/editor.c:946: for (j = 0; j < OSK_ROWS; ++j) osk_blocks[j] = OSK_BLOCK + j;
+;src/editor/editor.c:934: for (j = 0; j < OSK_ROWS; ++j) osk_blocks[j] = OSK_BLOCK + j;
 .l00128:
 	ld	c, $00
 .l00117:
@@ -7415,33 +7415,33 @@ _PickOSKBlocks:
 	ld	a, c
 	sub	a, $05
 	jp	C, .l00117
-;src/editor/editor.c:947: return;
+;src/editor/editor.c:935: return;
 	jp	.l00121
 .l00110:
-;src/editor/editor.c:949: ++row;
+;src/editor/editor.c:937: ++row;
 	ld	hl, sp+4
 	inc	[hl]
-;src/editor/editor.c:940: for (j = 0; j < OSK_ROWS; ++j) {
+;src/editor/editor.c:928: for (j = 0; j < OSK_ROWS; ++j) {
 	inc	hl
 	inc	[hl]
 	ld	a, [hl]
 	sub	a, $05
 	jp	C, .l00119
-;src/editor/editor.c:951: if (!shift) return;
+;src/editor/editor.c:939: if (!shift) return;
 	ld	hl, sp+1
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00114
 	jp	.l00121
 .l00114:
-;src/editor/editor.c:952: ring_pos += shift;
+;src/editor/editor.c:940: ring_pos += shift;
 	ld	hl, _ring_pos
 	ld	a, [hl]
 	ld	hl, sp+1
 	add	a, [hl]
 	ld	hl, _ring_pos
 	ld	[hl], a
-;src/editor/editor.c:953: if (ring_pos >= length) ring_pos -= length;
+;src/editor/editor.c:941: if (ring_pos >= length) ring_pos -= length;
 	ld	a, [hl]
 	ld	hl, sp+0
 	sub	a, [hl]
@@ -7453,7 +7453,7 @@ _PickOSKBlocks:
 	ld	hl, _ring_pos
 	ld	[hl], a
 .l00116:
-;src/editor/editor.c:954: ring_top = (ring_top + shift) & (BG_MAP_ROWS - 1);
+;src/editor/editor.c:942: ring_top = (ring_top + shift) & (BG_MAP_ROWS - 1);
 	ld	hl, _ring_top
 	ld	a, [hl]
 	ld	hl, sp+1
@@ -7461,7 +7461,7 @@ _PickOSKBlocks:
 	and	a, $1F
 	ld	hl, _ring_top
 	ld	[hl], a
-;src/editor/editor.c:955: top = tb_row_starts[shift];
+;src/editor/editor.c:943: top = tb_row_starts[shift];
 	ld	hl, sp+1
 	ld	a, [hl]
 	ld	hl, sp+4
@@ -7498,56 +7498,56 @@ _PickOSKBlocks:
 	inc	hl
 	ld	[hl], a
 .l00121:
-;src/editor/editor.c:956: }
+;src/editor/editor.c:944: }
 	add	sp, 6
 	ret
-;src/editor/editor.c:958: static void ToggleOSK(void) {
+;src/editor/editor.c:946: static void ToggleOSK(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function ToggleOSK
 ; ---------------------------------
 _ToggleOSK:
-;src/editor/editor.c:959: osk_shown = !osk_shown;
+;src/editor/editor.c:947: osk_shown = !osk_shown;
 	ld	hl, _osk_shown
 	ld	a, [hl]
 	sub	a,$01
 	ld	a, $00
 	rla
 	ld	[hl], a
-;src/editor/editor.c:960: if (osk_shown) PickOSKBlocks();
+;src/editor/editor.c:948: if (osk_shown) PickOSKBlocks();
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00102
 	call	_PickOSKBlocks__far
 .l00102:
-;src/editor/editor.c:961: SetRows();
+;src/editor/editor.c:949: SetRows();
 	jp	_SetRows__far
 .l00103:
-;src/editor/editor.c:962: }
+;src/editor/editor.c:950: }
 	ret
-;src/editor/editor.c:965: static void ToggleBars(void) {
+;src/editor/editor.c:953: static void ToggleBars(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function ToggleBars
 ; ---------------------------------
 _ToggleBars:
-;src/editor/editor.c:966: bars_on = !bars_on;
+;src/editor/editor.c:954: bars_on = !bars_on;
 	ld	hl, _bars_on
 	ld	a, [hl]
 	sub	a,$01
 	ld	a, $00
 	rla
 	ld	[hl], a
-;src/editor/editor.c:967: SetRows();
+;src/editor/editor.c:955: SetRows();
 	call	_SetRows__far
-;src/editor/editor.c:968: SettingsSave();
+;src/editor/editor.c:956: SettingsSave();
 	jp	_SettingsSave
 .l00101:
-;src/editor/editor.c:969: }
+;src/editor/editor.c:957: }
 	ret
-;src/editor/editor.c:971: static void SetOSKLayer(unsigned char layer) {
+;src/editor/editor.c:959: static void SetOSKLayer(unsigned char layer) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -7555,7 +7555,7 @@ _ToggleBars:
 ; ---------------------------------
 _SetOSKLayer:
 	ld	c, a
-;src/editor/editor.c:972: osk_layer = osk_layer == layer ? OSK_LOWER : layer;
+;src/editor/editor.c:960: osk_layer = osk_layer == layer ? OSK_LOWER : layer;
 	ld	hl, _osk_layer
 	ld	a, [hl]
 	sub	a, c
@@ -7576,26 +7576,26 @@ _SetOSKLayer:
 ;	spillPairReg hl
 .l00104:
 	ld	[_osk_layer], a
-;src/editor/editor.c:973: OSKDraw(osk_layer, tb_rows);
+;src/editor/editor.c:961: OSKDraw(osk_layer, tb_rows);
 	ld	hl, _tb_rows
 	ld	e, [hl]
 	ld	hl, _osk_layer
 	ld	a, [hl]
 	call	_OSKDraw
-;src/editor/editor.c:974: dirty = 1;
+;src/editor/editor.c:962: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
 .l00101:
-;src/editor/editor.c:975: }
+;src/editor/editor.c:963: }
 	ret
-;src/editor/editor.c:977: static unsigned char PressOSKKey(void) {
+;src/editor/editor.c:965: static unsigned char PressOSKKey(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function PressOSKKey
 ; ---------------------------------
 _PressOSKKey:
-;src/editor/editor.c:979: if (osk_y == OSK_ROWS - 1) {
+;src/editor/editor.c:967: if (osk_y == OSK_ROWS - 1) {
 	ld	hl, _osk_y
 	ld	a, [hl]
 	sub	a, $04
@@ -7604,7 +7604,7 @@ _PressOSKKey:
 .l00165:
 	jp	.l00120
 .l00166:
-;src/editor/editor.c:980: if (osk_x == 0) SetOSKLayer(OSK_SHIFT);
+;src/editor/editor.c:968: if (osk_x == 0) SetOSKLayer(OSK_SHIFT);
 	ld	hl, _osk_x
 	ld	a, [hl]
 	or	a, a
@@ -7613,7 +7613,7 @@ _PressOSKKey:
 	call	_SetOSKLayer
 	jp	.l00118
 .l00117:
-;src/editor/editor.c:981: else if (osk_x == 1) SetOSKLayer(OSK_SYMBOLS);
+;src/editor/editor.c:969: else if (osk_x == 1) SetOSKLayer(OSK_SYMBOLS);
 	ld	hl, _osk_x
 	ld	a, [hl]
 	dec	a
@@ -7626,7 +7626,7 @@ _PressOSKKey:
 	call	_SetOSKLayer
 	jp	.l00118
 .l00114:
-;src/editor/editor.c:982: else if (osk_x == 2) return KEY_MENU;
+;src/editor/editor.c:970: else if (osk_x == 2) return KEY_MENU;
 	ld	hl, _osk_x
 	ld	a, [hl]
 	sub	a, $02
@@ -7638,7 +7638,7 @@ _PressOSKKey:
 	ld	a, $89
 	jp	.l00123
 .l00111:
-;src/editor/editor.c:983: else if (osk_x == OSK_COLS - 3) UndoRedo(0);
+;src/editor/editor.c:971: else if (osk_x == OSK_COLS - 3) UndoRedo(0);
 	ld	hl, _osk_x
 	ld	a, [hl]
 	sub	a, $07
@@ -7651,7 +7651,7 @@ _PressOSKKey:
 	call	_UndoRedo
 	jp	.l00118
 .l00108:
-;src/editor/editor.c:984: else if (osk_x == OSK_COLS - 2) UndoRedo(1);
+;src/editor/editor.c:972: else if (osk_x == OSK_COLS - 2) UndoRedo(1);
 	ld	hl, _osk_x
 	ld	a, [hl]
 	sub	a, $08
@@ -7664,7 +7664,7 @@ _PressOSKKey:
 	call	_UndoRedo
 	jp	.l00118
 .l00105:
-;src/editor/editor.c:985: else if (osk_x == OSK_COLS - 1) return KEY_ENTER;
+;src/editor/editor.c:973: else if (osk_x == OSK_COLS - 1) return KEY_ENTER;
 	ld	hl, _osk_x
 	ld	a, [hl]
 	sub	a, $09
@@ -7676,15 +7676,15 @@ _PressOSKKey:
 	ld	a, $0A
 	jp	.l00123
 .l00102:
-;src/editor/editor.c:986: else return ' ';
+;src/editor/editor.c:974: else return ' ';
 	ld	a, $20
 	jp	.l00123
 .l00118:
-;src/editor/editor.c:987: return KEY_NONE;
+;src/editor/editor.c:975: return KEY_NONE;
 	xor	a, a
 	jp	.l00123
 .l00120:
-;src/editor/editor.c:989: key = OSKGetKey(osk_layer, (osk_y << 3) + (osk_y << 1) + osk_x);
+;src/editor/editor.c:977: key = OSKGetKey(osk_layer, (osk_y << 3) + (osk_y << 1) + osk_x);
 	ld	hl, _osk_y
 	ld	c, [hl]
 	ld	a, c
@@ -7701,7 +7701,7 @@ _PressOSKKey:
 	ld	a, [hl]
 	call	_OSKGetKey
 	ld	c, a
-;src/editor/editor.c:990: if (osk_layer == OSK_SHIFT) SetOSKLayer(OSK_SHIFT); // shift is one shot
+;src/editor/editor.c:978: if (osk_layer == OSK_SHIFT) SetOSKLayer(OSK_SHIFT); // shift is one shot
 	ld	hl, _osk_layer
 	ld	a, [hl]
 	dec	a
@@ -7715,12 +7715,12 @@ _PressOSKKey:
 	call	_SetOSKLayer
 	pop	bc
 .l00122:
-;src/editor/editor.c:991: return key;
+;src/editor/editor.c:979: return key;
 	ld	a, c
 .l00123:
-;src/editor/editor.c:992: }
+;src/editor/editor.c:980: }
 	ret
-;src/editor/editor.c:994: static void MoveOSKSelection(unsigned char held) {
+;src/editor/editor.c:982: static void MoveOSKSelection(unsigned char held) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -7728,7 +7728,7 @@ _PressOSKKey:
 ; ---------------------------------
 _MoveOSKSelection:
 	ld	c, a
-;src/editor/editor.c:995: if (held & PADF_UP) osk_y = osk_y ? osk_y - 1 : OSK_ROWS - 1;
+;src/editor/editor.c:983: if (held & PADF_UP) osk_y = osk_y ? osk_y - 1 : OSK_ROWS - 1;
 	ld	hl, _osk_y
 	ld	b, [hl]
 	bit	6, c
@@ -7748,7 +7748,7 @@ _MoveOSKSelection:
 	ld	[hl], b
 	jp	.l00105
 .l00104:
-;src/editor/editor.c:996: else if (held & PADF_DOWN) osk_y = osk_y == OSK_ROWS - 1 ? 0 : osk_y + 1;
+;src/editor/editor.c:984: else if (held & PADF_DOWN) osk_y = osk_y == OSK_ROWS - 1 ? 0 : osk_y + 1;
 	bit	7, c
 	jp	NZ,.l00162
 	jp	.l00105
@@ -7773,7 +7773,7 @@ _MoveOSKSelection:
 	ld	hl, _osk_y
 	ld	[hl], b
 .l00105:
-;src/editor/editor.c:997: if (held & PADF_LEFT) osk_x = osk_x ? osk_x - 1 : OSK_COLS - 1;
+;src/editor/editor.c:985: if (held & PADF_LEFT) osk_x = osk_x ? osk_x - 1 : OSK_COLS - 1;
 	ld	hl, _osk_x
 	ld	e, [hl]
 	bit	5, c
@@ -7793,7 +7793,7 @@ _MoveOSKSelection:
 	ld	[hl], e
 	jp	.l00110
 .l00109:
-;src/editor/editor.c:998: else if (held & PADF_RIGHT) osk_x = osk_x == OSK_COLS - 1 ? 0 : osk_x + 1;
+;src/editor/editor.c:986: else if (held & PADF_RIGHT) osk_x = osk_x == OSK_COLS - 1 ? 0 : osk_x + 1;
 	bit	4, c
 	jp	NZ,.l00166
 	jp	.l00110
@@ -7818,29 +7818,29 @@ _MoveOSKSelection:
 	ld	hl, _osk_x
 	ld	[hl], e
 .l00110:
-;src/editor/editor.c:999: OSKSelect(osk_x, osk_y);
+;src/editor/editor.c:987: OSKSelect(osk_x, osk_y);
 	ld	hl, _osk_y
 	ld	e, [hl]
 	ld	hl, _osk_x
 	ld	a, [hl]
 	jp	_OSKSelect
 .l00111:
-;src/editor/editor.c:1000: }
+;src/editor/editor.c:988: }
 	ret
-;src/editor/editor.c:1006: static unsigned char PadKey(void) {
+;src/editor/editor.c:994: static unsigned char PadKey(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function PadKey
 ; ---------------------------------
 _PadKey:
-;src/editor/editor.c:1007: unsigned char pressed = PadPressed();
+;src/editor/editor.c:995: unsigned char pressed = PadPressed();
 	call	_PadPressed
 	ld	c, a
-;src/editor/editor.c:1009: pad_mods = 0;
+;src/editor/editor.c:997: pad_mods = 0;
 	ld	hl, _pad_mods
 	ld	[hl], $00
-;src/editor/editor.c:1010: if (pressed & PADF_SELECT) ToggleOSK();
+;src/editor/editor.c:998: if (pressed & PADF_SELECT) ToggleOSK();
 	bit	2, c
 	jp	NZ,.l00185
 	jp	.l00102
@@ -7849,7 +7849,7 @@ _PadKey:
 	call	_ToggleOSK
 	pop	bc
 .l00102:
-;src/editor/editor.c:1011: if (pressed & PADF_B) return KEY_BACKSPACE;
+;src/editor/editor.c:999: if (pressed & PADF_B) return KEY_BACKSPACE;
 	bit	1, c
 	jp	NZ,.l00186
 	jp	.l00104
@@ -7857,7 +7857,7 @@ _PadKey:
 	ld	a, $08
 	jp	.l00123
 .l00104:
-;src/editor/editor.c:1012: if (pressed & PADF_START) return KEY_MENU;
+;src/editor/editor.c:1000: if (pressed & PADF_START) return KEY_MENU;
 	bit	3, c
 	jp	NZ,.l00187
 	jp	.l00106
@@ -7865,7 +7865,7 @@ _PadKey:
 	ld	a, $89
 	jp	.l00123
 .l00106:
-;src/editor/editor.c:1013: if (osk_shown && (pressed & PADF_A)) return PressOSKKey();
+;src/editor/editor.c:1001: if (osk_shown && (pressed & PADF_A)) return PressOSKKey();
 	ld	hl, _osk_shown
 	ld	a, [hl]
 	or	a, a
@@ -7877,18 +7877,18 @@ _PadKey:
 	jp	_PressOSKKey
 	jp	.l00123
 .l00108:
-;src/editor/editor.c:1014: held = DpadRepeat(pressed);
+;src/editor/editor.c:1002: held = DpadRepeat(pressed);
 	ld	a, c
 	call	_DpadRepeat
 	ld	c, a
-;src/editor/editor.c:1015: if (!held) return KEY_NONE;
+;src/editor/editor.c:1003: if (!held) return KEY_NONE;
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00111
 	xor	a, a
 	jp	.l00123
 .l00111:
-;src/editor/editor.c:1016: if (!osk_shown && (button_state & PADF_A)) pad_mods = KB_MOD_SHIFT;
+;src/editor/editor.c:1004: if (!osk_shown && (button_state & PADF_A)) pad_mods = KB_MOD_SHIFT;
 	ld	hl, _osk_shown
 	ld	a, [hl]
 	or	a, a
@@ -7902,19 +7902,19 @@ _PadKey:
 	ld	hl, _pad_mods
 	ld	[hl], $40
 .l00113:
-;src/editor/editor.c:1017: if (osk_shown) {
+;src/editor/editor.c:1005: if (osk_shown) {
 	ld	hl, _osk_shown
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00116
-;src/editor/editor.c:1018: MoveOSKSelection(held);
+;src/editor/editor.c:1006: MoveOSKSelection(held);
 	ld	a, c
 	call	_MoveOSKSelection
-;src/editor/editor.c:1019: return KEY_NONE;
+;src/editor/editor.c:1007: return KEY_NONE;
 	xor	a, a
 	jp	.l00123
 .l00116:
-;src/editor/editor.c:1021: if (held & PADF_UP) return KEY_UP;
+;src/editor/editor.c:1009: if (held & PADF_UP) return KEY_UP;
 	bit	6, c
 	jp	NZ,.l00190
 	jp	.l00118
@@ -7922,7 +7922,7 @@ _PadKey:
 	ld	a, $82
 	jp	.l00123
 .l00118:
-;src/editor/editor.c:1022: if (held & PADF_DOWN) return KEY_DOWN;
+;src/editor/editor.c:1010: if (held & PADF_DOWN) return KEY_DOWN;
 	bit	7, c
 	jp	NZ,.l00191
 	jp	.l00120
@@ -7930,7 +7930,7 @@ _PadKey:
 	ld	a, $83
 	jp	.l00123
 .l00120:
-;src/editor/editor.c:1023: if (held & PADF_LEFT) return KEY_LEFT;
+;src/editor/editor.c:1011: if (held & PADF_LEFT) return KEY_LEFT;
 	bit	5, c
 	jp	NZ,.l00192
 	jp	.l00122
@@ -7938,21 +7938,21 @@ _PadKey:
 	ld	a, $80
 	jp	.l00123
 .l00122:
-;src/editor/editor.c:1024: return KEY_RIGHT;
+;src/editor/editor.c:1012: return KEY_RIGHT;
 	ld	a, $81
 .l00123:
-;src/editor/editor.c:1025: }
+;src/editor/editor.c:1013: }
 	ret
-;src/editor/editor.c:1029: static unsigned char MenuKey(void) {
+;src/editor/editor.c:1017: static unsigned char MenuKey(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function MenuKey
 ; ---------------------------------
 _MenuKey:
-;src/editor/editor.c:1031: WaitFrame();
+;src/editor/editor.c:1019: WaitFrame();
 	call	_WaitFrame
-;src/editor/editor.c:1032: if ((key = (unsigned char)KBPopEvent())) return key;
+;src/editor/editor.c:1020: if ((key = (unsigned char)KBPopEvent())) return key;
 	call	_KBPopEvent
 	ld	a, c
 	ld	c, a
@@ -7961,10 +7961,10 @@ _MenuKey:
 	ld	a, c
 	jp	.l00117
 .l00102:
-;src/editor/editor.c:1033: pressed = PadPressed();
+;src/editor/editor.c:1021: pressed = PadPressed();
 	call	_PadPressed
 	ld	c, a
-;src/editor/editor.c:1034: if (pressed & PADF_A) return KEY_ENTER;
+;src/editor/editor.c:1022: if (pressed & PADF_A) return KEY_ENTER;
 	bit	0, c
 	jp	NZ,.l00159
 	jp	.l00104
@@ -7972,7 +7972,7 @@ _MenuKey:
 	ld	a, $0A
 	jp	.l00117
 .l00104:
-;src/editor/editor.c:1035: if (pressed & PADF_B) return KEY_BACKSPACE;
+;src/editor/editor.c:1023: if (pressed & PADF_B) return KEY_BACKSPACE;
 	bit	1, c
 	jp	NZ,.l00160
 	jp	.l00106
@@ -7980,7 +7980,7 @@ _MenuKey:
 	ld	a, $08
 	jp	.l00117
 .l00106:
-;src/editor/editor.c:1036: if (pressed & PADF_START) return KEY_MENU;
+;src/editor/editor.c:1024: if (pressed & PADF_START) return KEY_MENU;
 	bit	3, c
 	jp	NZ,.l00161
 	jp	.l00108
@@ -7988,10 +7988,10 @@ _MenuKey:
 	ld	a, $89
 	jp	.l00117
 .l00108:
-;src/editor/editor.c:1037: held = DpadRepeat(pressed);
+;src/editor/editor.c:1025: held = DpadRepeat(pressed);
 	ld	a, c
 	call	_DpadRepeat
-;src/editor/editor.c:1038: if (held & PADF_UP) return KEY_UP;
+;src/editor/editor.c:1026: if (held & PADF_UP) return KEY_UP;
 	bit	6, a
 	jp	NZ,.l00162
 	jp	.l00110
@@ -7999,7 +7999,7 @@ _MenuKey:
 	ld	a, $82
 	jp	.l00117
 .l00110:
-;src/editor/editor.c:1039: if (held & PADF_DOWN) return KEY_DOWN;
+;src/editor/editor.c:1027: if (held & PADF_DOWN) return KEY_DOWN;
 	bit	7, a
 	jp	NZ,.l00163
 	jp	.l00112
@@ -8007,7 +8007,7 @@ _MenuKey:
 	ld	a, $83
 	jp	.l00117
 .l00112:
-;src/editor/editor.c:1040: if (held & PADF_LEFT) return KEY_LEFT;
+;src/editor/editor.c:1028: if (held & PADF_LEFT) return KEY_LEFT;
 	bit	5, a
 	jp	NZ,.l00164
 	jp	.l00114
@@ -8015,7 +8015,7 @@ _MenuKey:
 	ld	a, $80
 	jp	.l00117
 .l00114:
-;src/editor/editor.c:1041: if (held & PADF_RIGHT) return KEY_RIGHT;
+;src/editor/editor.c:1029: if (held & PADF_RIGHT) return KEY_RIGHT;
 	bit	4, a
 	jp	NZ,.l00165
 	jp	.l00116
@@ -8023,28 +8023,28 @@ _MenuKey:
 	ld	a, $81
 	jp	.l00117
 .l00116:
-;src/editor/editor.c:1042: return KEY_NONE;
+;src/editor/editor.c:1030: return KEY_NONE;
 	xor	a, a
 .l00117:
-;src/editor/editor.c:1043: }
+;src/editor/editor.c:1031: }
 	ret
-;src/editor/editor.c:1047: static void WaitDismiss(void) {
+;src/editor/editor.c:1035: static void WaitDismiss(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function WaitDismiss
 ; ---------------------------------
 _WaitDismiss:
-;src/editor/editor.c:1049: while (1) {
+;src/editor/editor.c:1037: while (1) {
 .l00109:
-;src/editor/editor.c:1050: WaitFrame();
+;src/editor/editor.c:1038: WaitFrame();
 	call	_WaitFrame
-;src/editor/editor.c:1051: if ((key = KBPeekKey())) {
+;src/editor/editor.c:1039: if ((key = KBPeekKey())) {
 	call	_KBPeekKey
 	ld	c, a
 	or	a, a
 	jp	Z, .l00105
-;src/editor/editor.c:1052: if (key == KEY_ESCAPE || key == KEY_ENTER) KBPopEvent();
+;src/editor/editor.c:1040: if (key == KEY_ESCAPE || key == KEY_ENTER) KBPopEvent();
 	ld	a, c
 	sub	a, $1B
 	jp	NZ,.l00133
@@ -8060,17 +8060,17 @@ _WaitDismiss:
 .l00101:
 	jp	_KBPopEvent
 .l00102:
-;src/editor/editor.c:1053: return;
+;src/editor/editor.c:1041: return;
 	jp	.l00111
 .l00105:
-;src/editor/editor.c:1055: if (PadPressed()) return;
+;src/editor/editor.c:1043: if (PadPressed()) return;
 	call	_PadPressed
 	or	a, a
 	jp	Z, .l00109
 .l00111:
-;src/editor/editor.c:1057: }
+;src/editor/editor.c:1045: }
 	ret
-;src/editor/editor.c:1059: static char* RowAddress(unsigned char row) {
+;src/editor/editor.c:1047: static char* RowAddress(unsigned char row) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -8078,9 +8078,9 @@ _WaitDismiss:
 ; ---------------------------------
 _RowAddress:
 	ld	e, a
-;src/editor/editor.c:1060: unsigned int offset = row;
+;src/editor/editor.c:1048: unsigned int offset = row;
 	ld	d, $00
-;src/editor/editor.c:1061: return (char*)tile_buffer + (offset << 5) + (offset << 3); // row * TB_STRIDE
+;src/editor/editor.c:1049: return (char*)tile_buffer + (offset << 5) + (offset << 3); // row * TB_STRIDE
 	ld	bc, _tile_buffer+0
 	ld	l, e
 	ld	h, d
@@ -8101,9 +8101,9 @@ _RowAddress:
 	ld	c, l
 	ld	b, h
 .l00101:
-;src/editor/editor.c:1062: }
+;src/editor/editor.c:1050: }
 	ret
-;src/editor/editor.c:1065: static void DrawRow(unsigned char row, unsigned char col, const char* text) {
+;src/editor/editor.c:1053: static void DrawRow(unsigned char row, unsigned char col, const char* text) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -8115,10 +8115,10 @@ _DrawRow:
 	ld	c, a
 	ld	hl, sp+1
 	ld	[hl], e
-;src/editor/editor.c:1066: char* dest = RowAddress(row);
+;src/editor/editor.c:1054: char* dest = RowAddress(row);
 	ld	a, c
 	call	_RowAddress
-;src/editor/editor.c:1068: for (i = 0; i < TB_STRIDE; ++i) dest[i] = ' ';
+;src/editor/editor.c:1056: for (i = 0; i < TB_STRIDE; ++i) dest[i] = ' ';
 	ld	e, $00
 .l00103:
 	ld	l, e
@@ -8129,7 +8129,7 @@ _DrawRow:
 	ld	a, e
 	sub	a, $28
 	jp	C, .l00103
-;src/editor/editor.c:1069: for (dest += col; *text && col < TB_STRIDE; ++col) *dest++ = *text++;
+;src/editor/editor.c:1057: for (dest += col; *text && col < TB_STRIDE; ++col) *dest++ = *text++;
 	ld	hl, sp+1
 	ld	l, [hl]
 	ld	h, $00
@@ -8168,21 +8168,21 @@ _DrawRow:
 	inc	a
 	jp	.l00107
 .l00109:
-;src/editor/editor.c:1070: }
+;src/editor/editor.c:1058: }
 	inc	sp
 	inc	sp
 	pop	hl
 	inc	sp
 	inc	sp
 	jp hl 
-;src/editor/editor.c:1072: static void ClearScreen(void) {
+;src/editor/editor.c:1060: static void ClearScreen(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function ClearScreen
 ; ---------------------------------
 _ClearScreen:
-;src/editor/editor.c:1074: for (row = 0; row < TB_ROWS; ++row) DrawRow(row, 0, "");
+;src/editor/editor.c:1062: for (row = 0; row < TB_ROWS; ++row) DrawRow(row, 0, "");
 	ld	c, $00
 .l00102:
 	push	bc
@@ -8197,22 +8197,22 @@ _ClearScreen:
 	sub	a, $12
 	jp	C, .l00102
 .l00104:
-;src/editor/editor.c:1075: }
+;src/editor/editor.c:1063: }
 	ret
 	SECTION FRAGMENT "src/editor/editor.c FIXED",ROMX,BANK[1]
 ___str_48:
 	DB $00
-;src/editor/editor.c:1078: static void BeginFullScreen(void) {
+;src/editor/editor.c:1066: static void BeginFullScreen(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function BeginFullScreen
 ; ---------------------------------
 _BeginFullScreen:
-;src/editor/editor.c:1079: EditorShowCursor(0);
+;src/editor/editor.c:1067: EditorShowCursor(0);
 	xor	a, a
 	call	_EditorShowCursor
-;src/editor/editor.c:1080: if (osk_shown) OSKShow(0);
+;src/editor/editor.c:1068: if (osk_shown) OSKShow(0);
 	ld	hl, _osk_shown
 	ld	a, [hl]
 	or	a, a
@@ -8220,35 +8220,35 @@ _BeginFullScreen:
 	xor	a, a
 	call	_OSKShow
 .l00102:
-;src/editor/editor.c:1081: bars = 0;
+;src/editor/editor.c:1069: bars = 0;
 	ld	hl, _bars
 	ld	[hl], $00
-;src/editor/editor.c:1082: tb_rows = TB_ROWS;
+;src/editor/editor.c:1070: tb_rows = TB_ROWS;
 	ld	hl, _tb_rows
 	ld	[hl], $12
-;src/editor/editor.c:1083: Layout();
+;src/editor/editor.c:1071: Layout();
 	call	_Layout__far
-;src/editor/editor.c:1084: NoHighlight();
+;src/editor/editor.c:1072: NoHighlight();
 	call	_NoHighlight__far
-;src/editor/editor.c:1085: dirty = 1;
+;src/editor/editor.c:1073: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
 .l00103:
-;src/editor/editor.c:1086: }
+;src/editor/editor.c:1074: }
 	ret
-;src/editor/editor.c:1088: static void EndFullScreen(void) {
+;src/editor/editor.c:1076: static void EndFullScreen(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function EndFullScreen
 ; ---------------------------------
 _EndFullScreen:
-;src/editor/editor.c:1089: SetRows();
+;src/editor/editor.c:1077: SetRows();
 	jp	_SetRows__far
 .l00101:
-;src/editor/editor.c:1090: }
+;src/editor/editor.c:1078: }
 	ret
-;src/editor/editor.c:1093: static void OpenBox(unsigned char lines) {
+;src/editor/editor.c:1081: static void OpenBox(unsigned char lines) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -8256,14 +8256,14 @@ _EndFullScreen:
 ; ---------------------------------
 _OpenBox:
 	ld	e, a
-;src/editor/editor.c:1094: char* line = RowAddress(BOX_LINE);
+;src/editor/editor.c:1082: char* line = RowAddress(BOX_LINE);
 	push	de
 	ld	a, $14
 	call	_RowAddress
 	pop	de
-;src/editor/editor.c:1095: unsigned char i, width, widest = 0;
+;src/editor/editor.c:1083: unsigned char i, width, widest = 0;
 	ld	d, $00
-;src/editor/editor.c:1096: for (i = 0; i < lines; ++i, line += BOX_STRIDE) {
+;src/editor/editor.c:1084: for (i = 0; i < lines; ++i, line += BOX_STRIDE) {
 	ld	l, $00
 ;	spillPairReg hl
 ;	spillPairReg hl
@@ -8271,7 +8271,7 @@ _OpenBox:
 	ld	a, l
 	sub	a, e
 	jp	NC, .l00103
-;src/editor/editor.c:1097: width = RenderTextWidth(line);
+;src/editor/editor.c:1085: width = RenderTextWidth(line);
 	push	hl
 	push	bc
 	push	de
@@ -8284,13 +8284,13 @@ _OpenBox:
 	ld	h, a
 ;	spillPairReg hl
 ;	spillPairReg hl
-;src/editor/editor.c:1098: if (width > widest) widest = width;
+;src/editor/editor.c:1086: if (width > widest) widest = width;
 	ld	a, d
 	sub	a, h
 	jp	NC, .l00106
 	ld	d, h
 .l00106:
-;src/editor/editor.c:1096: for (i = 0; i < lines; ++i, line += BOX_STRIDE) {
+;src/editor/editor.c:1084: for (i = 0; i < lines; ++i, line += BOX_STRIDE) {
 	inc	l
 	ld	a, c
 	add	a, $14
@@ -8300,7 +8300,7 @@ _OpenBox:
 .l00125:
 	jp	.l00105
 .l00103:
-;src/editor/editor.c:1100: render_box_text = RowAddress(BOX_LINE);
+;src/editor/editor.c:1088: render_box_text = RowAddress(BOX_LINE);
 	push	de
 	ld	a, $14
 	call	_RowAddress
@@ -8309,12 +8309,12 @@ _OpenBox:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:1101: render_box_w = widest + BOX_PADDING;
+;src/editor/editor.c:1089: render_box_w = widest + BOX_PADDING;
 	ld	a, d
 	add	a, $09
 	ld	hl, _render_box_w
 	ld	[hl], a
-;src/editor/editor.c:1102: render_box_x = (TB_WIDTH - render_box_w) >> 1;
+;src/editor/editor.c:1090: render_box_x = (TB_WIDTH - render_box_w) >> 1;
 	ld	c, [hl]
 	ld	b, $00
 	ld	a, $A0
@@ -8327,12 +8327,12 @@ _OpenBox:
 	rr	c
 	ld	hl, _render_box_x
 	ld	[hl], c
-;src/editor/editor.c:1103: render_box_rows = lines + 2; // half rows above and below
+;src/editor/editor.c:1091: render_box_rows = lines + 2; // half rows above and below
 	ld	a, e
 	add	a, $02
 	ld	hl, _render_box_rows
 	ld	[hl], a
-;src/editor/editor.c:1104: render_box_top = (TB_ROWS - render_box_rows) >> 1;
+;src/editor/editor.c:1092: render_box_top = (TB_ROWS - render_box_rows) >> 1;
 	ld	c, [hl]
 	ld	b, $00
 	ld	a, $12
@@ -8345,16 +8345,16 @@ _OpenBox:
 	rr	c
 	ld	hl, _render_box_top
 	ld	[hl], c
-;src/editor/editor.c:1105: render_box_sel = 0xFF;
+;src/editor/editor.c:1093: render_box_sel = 0xFF;
 	ld	hl, _render_box_sel
 	ld	[hl], $FF
-;src/editor/editor.c:1106: ++render_box_gen;
+;src/editor/editor.c:1094: ++render_box_gen;
 	ld	hl, _render_box_gen
 	inc	[hl]
 .l00107:
-;src/editor/editor.c:1107: }
+;src/editor/editor.c:1095: }
 	ret
-;src/editor/editor.c:1110: static void ShowBusy(const char* text) {
+;src/editor/editor.c:1098: static void ShowBusy(const char* text) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -8363,7 +8363,7 @@ _OpenBox:
 _ShowBusy:
 	ld	c, e
 	ld	b, d
-;src/editor/editor.c:1111: CopyName(RowAddress(BOX_LINE), text);
+;src/editor/editor.c:1099: CopyName(RowAddress(BOX_LINE), text);
 	push	bc
 	ld	a, $14
 	call	_RowAddress__far
@@ -8371,28 +8371,28 @@ _ShowBusy:
 	ld	d, b
 	pop	bc
 	call	_CopyName
-;src/editor/editor.c:1112: OpenBox(1);
+;src/editor/editor.c:1100: OpenBox(1);
 	ld	a, $01
 	call	_OpenBox__far
-;src/editor/editor.c:1113: EditorDraw();
+;src/editor/editor.c:1101: EditorDraw();
 	jp	_EditorDraw
 .l00101:
-;src/editor/editor.c:1114: }
+;src/editor/editor.c:1102: }
 	ret
-;src/editor/editor.c:1116: static void HideBox(void) {
+;src/editor/editor.c:1104: static void HideBox(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function HideBox
 ; ---------------------------------
 _HideBox:
-;src/editor/editor.c:1117: render_box_top = 0xFF;
+;src/editor/editor.c:1105: render_box_top = 0xFF;
 	ld	hl, _render_box_top
 	ld	[hl], $FF
 .l00101:
-;src/editor/editor.c:1118: }
+;src/editor/editor.c:1106: }
 	ret
-;src/editor/editor.c:1122: static unsigned char Choose(const char* title, const char* items, unsigned char count, unsigned char selected) {
+;src/editor/editor.c:1110: static unsigned char Choose(const char* title, const char* items, unsigned char count, unsigned char selected) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -8404,7 +8404,7 @@ _Choose:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:1123: char* line = RowAddress(BOX_LINE);
+;src/editor/editor.c:1111: char* line = RowAddress(BOX_LINE);
 	push	de
 	ld	a, $14
 	call	_RowAddress__far
@@ -8413,7 +8413,7 @@ _Choose:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:1124: unsigned char i, key, first = title ? 1 : 0;
+;src/editor/editor.c:1112: unsigned char i, key, first = title ? 1 : 0;
 	ld	a, d
 	or	a, e
 	jp	Z, .l00134
@@ -8424,7 +8424,7 @@ _Choose:
 .l00135:
 	ld	hl, sp+0
 	ld	[hl], c
-;src/editor/editor.c:1125: if (title) CopyName(line, title), line += BOX_STRIDE;
+;src/editor/editor.c:1113: if (title) CopyName(line, title), line += BOX_STRIDE;
 	ld	a, d
 	or	a, e
 	jp	Z, .l00143
@@ -8450,7 +8450,7 @@ _Choose:
 	ld	a, h
 	ld	hl, sp+5
 	ld	[hl], a
-;src/editor/editor.c:1126: for (i = 0; i < count; ++i, line += BOX_STRIDE, items += ITEM_SIZE) {
+;src/editor/editor.c:1114: for (i = 0; i < count; ++i, line += BOX_STRIDE, items += ITEM_SIZE) {
 .l00143:
 	ld	hl, sp+3
 	ld	[hl], $00
@@ -8473,10 +8473,10 @@ _Choose:
 	ld	hl, sp+8
 	sub	a, [hl]
 	jp	NC, .l00103
-;src/editor/editor.c:1127: line[0] = ' ';
+;src/editor/editor.c:1115: line[0] = ' ';
 	ld	a, $20
 	ld	[de], a
-;src/editor/editor.c:1128: CopyName(line + 1, items);
+;src/editor/editor.c:1116: CopyName(line + 1, items);
 	ld	l, e
 ;	spillPairReg hl
 ;	spillPairReg hl
@@ -8497,7 +8497,7 @@ _Choose:
 	ld	d, h
 	call	_CopyName
 	pop	de
-;src/editor/editor.c:1126: for (i = 0; i < count; ++i, line += BOX_STRIDE, items += ITEM_SIZE) {
+;src/editor/editor.c:1114: for (i = 0; i < count; ++i, line += BOX_STRIDE, items += ITEM_SIZE) {
 	ld	hl, sp+3
 	inc	[hl]
 	ld	hl, $0014
@@ -8523,10 +8523,10 @@ _Choose:
 	ld	[hl], a
 	jp	.l00130
 .l00103:
-;src/editor/editor.c:1130: EditorShowCursor(0);
+;src/editor/editor.c:1118: EditorShowCursor(0);
 	xor	a, a
 	call	_EditorShowCursor
-;src/editor/editor.c:1131: if (osk_shown) OSKShow(0);
+;src/editor/editor.c:1119: if (osk_shown) OSKShow(0);
 	ld	hl, _osk_shown
 	ld	a, [hl]
 	or	a, a
@@ -8534,7 +8534,7 @@ _Choose:
 	xor	a, a
 	call	_OSKShow
 .l00105:
-;src/editor/editor.c:1132: OpenBox(count + first);
+;src/editor/editor.c:1120: OpenBox(count + first);
 	ld	hl, sp+8
 	ld	a, [hl]
 	ld	hl, sp+0
@@ -8542,9 +8542,9 @@ _Choose:
 	ld	c, a
 	ld	a, c
 	call	_OpenBox__far
-;src/editor/editor.c:1133: while (1) {
+;src/editor/editor.c:1121: while (1) {
 .l00125:
-;src/editor/editor.c:1134: render_box_sel = selected + first + 1;
+;src/editor/editor.c:1122: render_box_sel = selected + first + 1;
 	ld	hl, sp+9
 	ld	a, [hl]
 	ld	hl, sp+0
@@ -8552,16 +8552,16 @@ _Choose:
 	inc	a
 	ld	hl, _render_box_sel
 	ld	[hl], a
-;src/editor/editor.c:1135: EditorDraw();
+;src/editor/editor.c:1123: EditorDraw();
 	call	_EditorDraw
-;src/editor/editor.c:1136: while (!(key = MenuKey()));
+;src/editor/editor.c:1124: while (!(key = MenuKey()));
 .l00106:
 	call	_MenuKey__far
 	ld	hl, sp+5
 	ld	[hl], a
 	or	a, a
 	jp	Z, .l00106
-;src/editor/editor.c:1137: if (key == KEY_UP) selected = selected ? selected - 1 : count - 1;
+;src/editor/editor.c:1125: if (key == KEY_UP) selected = selected ? selected - 1 : count - 1;
 	ld	hl, sp+9
 	ld	e, [hl]
 	ld	hl, sp+5
@@ -8587,7 +8587,7 @@ _Choose:
 	ld	[hl], e
 	jp	.l00125
 .l00122:
-;src/editor/editor.c:1138: else if (key == KEY_DOWN) selected = selected == count - 1 ? 0 : selected + 1;
+;src/editor/editor.c:1126: else if (key == KEY_DOWN) selected = selected == count - 1 ? 0 : selected + 1;
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $83
@@ -8631,14 +8631,14 @@ _Choose:
 	ld	[hl], e
 	jp	.l00125
 .l00119:
-;src/editor/editor.c:1139: else if (key == KEY_ENTER) break;
+;src/editor/editor.c:1127: else if (key == KEY_ENTER) break;
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $0A
 	jp	NZ,.l00227
 	jp	.l00126
 .l00227:
-;src/editor/editor.c:1140: else if (key == KEY_ESCAPE || key == KEY_MENU) {
+;src/editor/editor.c:1128: else if (key == KEY_ESCAPE || key == KEY_MENU) {
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $1B
@@ -8654,13 +8654,13 @@ _Choose:
 	jp	.l00112
 .l00230:
 .l00111:
-;src/editor/editor.c:1141: selected = CANCEL;
+;src/editor/editor.c:1129: selected = CANCEL;
 	ld	hl, sp+9
 	ld	[hl], $FF
-;src/editor/editor.c:1142: break;
+;src/editor/editor.c:1130: break;
 	jp	.l00126
 .l00112:
-;src/editor/editor.c:1144: else if (key == KEY_BACKSPACE) {
+;src/editor/editor.c:1132: else if (key == KEY_BACKSPACE) {
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $08
@@ -8669,14 +8669,14 @@ _Choose:
 .l00231:
 	jp	.l00125
 .l00232:
-;src/editor/editor.c:1145: selected = BACK;
+;src/editor/editor.c:1133: selected = BACK;
 	ld	hl, sp+9
 	ld	[hl], $FE
-;src/editor/editor.c:1146: break;
+;src/editor/editor.c:1134: break;
 .l00126:
-;src/editor/editor.c:1149: HideBox();
+;src/editor/editor.c:1137: HideBox();
 	call	_HideBox__far
-;src/editor/editor.c:1150: if (osk_shown) OSKShow(1);
+;src/editor/editor.c:1138: if (osk_shown) OSKShow(1);
 	ld	hl, _osk_shown
 	ld	a, [hl]
 	or	a, a
@@ -8684,60 +8684,60 @@ _Choose:
 	ld	a, $01
 	call	_OSKShow
 .l00128:
-;src/editor/editor.c:1151: dirty = 1;
+;src/editor/editor.c:1139: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
-;src/editor/editor.c:1152: return selected;
+;src/editor/editor.c:1140: return selected;
 	ld	hl, sp+9
 	ld	a, [hl]
 .l00132:
-;src/editor/editor.c:1153: }
+;src/editor/editor.c:1141: }
 	add	sp, 6
 	pop	hl
 	inc	sp
 	inc	sp
 	jp hl 
-;src/editor/editor.c:1156: static void ShowMessage(const char* text) {
+;src/editor/editor.c:1144: static void ShowMessage(const char* text) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function ShowMessage
 ; ---------------------------------
 _ShowMessage:
-;src/editor/editor.c:1157: HideBox();
+;src/editor/editor.c:1145: HideBox();
 	push	de
 	call	_HideBox
 	pop	de
-;src/editor/editor.c:1158: Render();
+;src/editor/editor.c:1146: Render();
 	push	de
 	call	_Render__far
 	pop	de
-;src/editor/editor.c:1159: EditorShowCursor(0);
+;src/editor/editor.c:1147: EditorShowCursor(0);
 	push	de
 	xor	a, a
 	call	_EditorShowCursor
 	pop	de
-;src/editor/editor.c:1160: NoHighlight();
+;src/editor/editor.c:1148: NoHighlight();
 	push	de
 	call	_NoHighlight__far
 	pop	de
-;src/editor/editor.c:1161: if (bars) {
+;src/editor/editor.c:1149: if (bars) {
 	ld	hl, _bars
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00102
-;src/editor/editor.c:1162: UpdateBars();
+;src/editor/editor.c:1150: UpdateBars();
 	push	de
 	call	_UpdateBars__far
 	pop	de
-;src/editor/editor.c:1163: DrawRow(STATUS_LINE, 1, text);
+;src/editor/editor.c:1151: DrawRow(STATUS_LINE, 1, text);
 	push	de
 	ld	e, $01
 	ld	a, $13
 	call	_DrawRow
 	jp	.l00103
 .l00102:
-;src/editor/editor.c:1165: else DrawRow(tb_rows - 1, 0, text);
+;src/editor/editor.c:1153: else DrawRow(tb_rows - 1, 0, text);
 	ld	hl, _tb_rows
 	ld	c, [hl]
 	dec	c
@@ -8746,17 +8746,17 @@ _ShowMessage:
 	ld	a, c
 	call	_DrawRow
 .l00103:
-;src/editor/editor.c:1166: EditorDraw();
+;src/editor/editor.c:1154: EditorDraw();
 	call	_EditorDraw
-;src/editor/editor.c:1167: WaitDismiss();
+;src/editor/editor.c:1155: WaitDismiss();
 	call	_WaitDismiss
-;src/editor/editor.c:1168: dirty = 1;
+;src/editor/editor.c:1156: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
 .l00104:
-;src/editor/editor.c:1169: }
+;src/editor/editor.c:1157: }
 	ret
-;src/editor/editor.c:1171: static void ShowError(unsigned char result, const char* denied) {
+;src/editor/editor.c:1159: static void ShowError(unsigned char result, const char* denied) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -8771,7 +8771,7 @@ _ShowError:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:1172: char text[12] = "SD ERROR ";
+;src/editor/editor.c:1160: char text[12] = "SD ERROR ";
 	ld	hl, sp+0
 	ld	[hl], $53
 	inc	hl
@@ -8796,7 +8796,7 @@ _ShowError:
 	ld	[hl], $00
 	inc	hl
 	ld	[hl], $00
-;src/editor/editor.c:1173: if (result == FR_NOT_READY) ShowMessage("NO SD CARD");
+;src/editor/editor.c:1161: if (result == FR_NOT_READY) ShowMessage("NO SD CARD");
 	ld	hl, sp+16
 	ld	a, [hl]
 	sub	a, $03
@@ -8809,7 +8809,7 @@ _ShowError:
 	call	_ShowMessage__far
 	jp	.l00113
 .l00111:
-;src/editor/editor.c:1174: else if (result == FR_NO_FILESYSTEM) ShowMessage("NO FAT VOLUME");
+;src/editor/editor.c:1162: else if (result == FR_NO_FILESYSTEM) ShowMessage("NO FAT VOLUME");
 	ld	hl, sp+16
 	ld	a, [hl]
 	sub	a, $0D
@@ -8822,7 +8822,7 @@ _ShowError:
 	call	_ShowMessage__far
 	jp	.l00113
 .l00108:
-;src/editor/editor.c:1175: else if (result == FR_DENIED) ShowMessage(denied);
+;src/editor/editor.c:1163: else if (result == FR_DENIED) ShowMessage(denied);
 	ld	hl, sp+16
 	ld	a, [hl]
 	sub	a, $07
@@ -8838,22 +8838,22 @@ _ShowError:
 	call	_ShowMessage__far
 	jp	.l00113
 .l00105:
-;src/editor/editor.c:1177: text[9] = '0';
+;src/editor/editor.c:1165: text[9] = '0';
 	ld	hl, sp+9
 	ld	[hl], $30
-;src/editor/editor.c:1178: while (result >= 10) {
+;src/editor/editor.c:1166: while (result >= 10) {
 .l00101:
-;src/editor/editor.c:1180: result -= 10;
+;src/editor/editor.c:1168: result -= 10;
 	ld	hl, sp+16
 	ld	a, [hl]
 	ld	hl, sp+12
 	ld	[hl], a
-;src/editor/editor.c:1178: while (result >= 10) {
+;src/editor/editor.c:1166: while (result >= 10) {
 	ld	hl, sp+16
 	ld	a, [hl]
 	sub	a, $0A
 	jp	C, .l00103
-;src/editor/editor.c:1179: ++text[9];
+;src/editor/editor.c:1167: ++text[9];
 	ld	hl, sp+9
 	ld	a, [hl]
 	ld	hl, sp+13
@@ -8862,7 +8862,7 @@ _ShowError:
 	inc	a
 	ld	hl, sp+9
 	ld	[hl], a
-;src/editor/editor.c:1180: result -= 10;
+;src/editor/editor.c:1168: result -= 10;
 	ld	hl, sp+12
 	ld	a, [hl]
 	add	a, $F6
@@ -8870,24 +8870,24 @@ _ShowError:
 	ld	[hl], a
 	jp	.l00101
 .l00103:
-;src/editor/editor.c:1182: text[10] = '0' + result;
+;src/editor/editor.c:1170: text[10] = '0' + result;
 	ld	hl, sp+12
 	ld	a, [hl]
 	add	a, $30
 	dec	hl
 	dec	hl
 	ld	[hl], a
-;src/editor/editor.c:1183: text[11] = 0;
+;src/editor/editor.c:1171: text[11] = 0;
 	inc	hl
 	ld	[hl], $00
-;src/editor/editor.c:1184: ShowMessage(text);
+;src/editor/editor.c:1172: ShowMessage(text);
 	ld	hl, 0
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_ShowMessage__far
 .l00113:
-;src/editor/editor.c:1186: }
+;src/editor/editor.c:1174: }
 	add	sp, 17
 	ret
 	SECTION FRAGMENT "src/editor/editor.c FIXED",ROMX,BANK[1]
@@ -8898,14 +8898,14 @@ ___str_50:
 ___str_51:
 	DB "NO FAT VOLUME"
 	DB $00
-;src/editor/editor.c:1188: static void CopyName(char* dest, const char* src) {
+;src/editor/editor.c:1176: static void CopyName(char* dest, const char* src) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
 ; Function CopyName
 ; ---------------------------------
 _CopyName:
-;src/editor/editor.c:1189: while ((*dest++ = *src++));
+;src/editor/editor.c:1177: while ((*dest++ = *src++));
 .l00101:
 	ld	a, [bc]
 	inc	bc
@@ -8914,16 +8914,16 @@ _CopyName:
 	or	a, a
 	jp	NZ, .l00101
 .l00104:
-;src/editor/editor.c:1190: }
+;src/editor/editor.c:1178: }
 	ret
-;src/editor/editor.c:1193: static unsigned char CanDiscard(void) {
+;src/editor/editor.c:1181: static unsigned char CanDiscard(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
 ; Function CanDiscard
 ; ---------------------------------
 _CanDiscard:
-;src/editor/editor.c:1194: return !modified || Choose("DISCARD CHANGES?", discard_items[0], 2, 0) == 1;
+;src/editor/editor.c:1182: return !modified || Choose("DISCARD CHANGES?", discard_items[0], 2, 0) == 1;
 	ld	hl, _modified
 	ld	a, [hl]
 	or	a, a
@@ -8947,13 +8947,13 @@ _CanDiscard:
 	ld	a, $01
 .l00105:
 .l00101:
-;src/editor/editor.c:1195: }
+;src/editor/editor.c:1183: }
 	ret
 	SECTION FRAGMENT "src/editor/editor.c FIXED",ROMX,BANK[1]
 ___str_52:
 	DB "DISCARD CHANGES?"
 	DB $00
-;src/editor/editor.c:1202: static void SetLang(void) {
+;src/editor/editor.c:1190: static void SetLang(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -8961,16 +8961,16 @@ ___str_52:
 ; ---------------------------------
 _SetLang:
 	add	sp, -10
-;src/editor/editor.c:1203: const char *c, *dot = 0, *e;
+;src/editor/editor.c:1191: const char *c, *dot = 0, *e;
 	xor	a, a
 	ld	hl, sp+6
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:1204: unsigned char lang = LANG_PLAIN, i;
+;src/editor/editor.c:1192: unsigned char lang = LANG_PLAIN, i;
 	ld	hl, sp+0
 	ld	[hl], $00
-;src/editor/editor.c:1205: for (c = file_name; *c; ++c) if (*c == '.') dot = c;
+;src/editor/editor.c:1193: for (c = file_name; *c; ++c) if (*c == '.') dot = c;
 	ld	hl, sp+8
 	ld	a, LOW(_file_name)
 	ld	[hl], a
@@ -9011,7 +9011,7 @@ _SetLang:
 .l00224:
 	jp	.l00116
 .l00103:
-;src/editor/editor.c:1206: if (dot) for (i = 0; i < sizeof(lang_ids); ++i) {
+;src/editor/editor.c:1194: if (dot) for (i = 0; i < sizeof(lang_ids); ++i) {
 	ld	hl, sp+7
 	ld	a, [hl]
 	dec	hl
@@ -9035,7 +9035,7 @@ _SetLang:
 	ld	hl, sp+5
 	ld	[hl], $00
 .l00122:
-;src/editor/editor.c:1207: for (c = dot + 1, e = lang_exts[i]; *e && (*c | 0x20) == *e; ++c, ++e);
+;src/editor/editor.c:1195: for (c = dot + 1, e = lang_exts[i]; *e && (*c | 0x20) == *e; ++c, ++e);
 	ld	hl, sp+1
 	ld	a, [hl]
 	ld	hl, sp+6
@@ -9134,7 +9134,7 @@ _SetLang:
 .l00229:
 	jp	.l00120
 .l00104:
-;src/editor/editor.c:1208: if (!*c && !*e) lang = lang_ids[i];
+;src/editor/editor.c:1196: if (!*c && !*e) lang = lang_ids[i];
 	ld	hl, sp+4
 	ld	a, [hl]
 	or	a, a
@@ -9165,14 +9165,14 @@ _SetLang:
 	ld	hl, sp+0
 	ld	[hl], a
 .l00123:
-;src/editor/editor.c:1206: if (dot) for (i = 0; i < sizeof(lang_ids); ++i) {
+;src/editor/editor.c:1194: if (dot) for (i = 0; i < sizeof(lang_ids); ++i) {
 	ld	hl, sp+5
 	inc	[hl]
 	ld	a, [hl]
 	sub	a, $06
 	jp	C, .l00122
 .l00110:
-;src/editor/editor.c:1210: font = lang == LANG_C || lang == LANG_ASM ? FONT_FIXED : FONT_VWF;
+;src/editor/editor.c:1198: font = lang == LANG_C || lang == LANG_ASM ? FONT_FIXED : FONT_VWF;
 	ld	hl, sp+0
 	ld	a, [hl]
 	sub	a, $02
@@ -9195,7 +9195,7 @@ _SetLang:
 .l00132:
 	ld	hl, _font
 	ld	[hl], c
-;src/editor/editor.c:1211: if (lang == tb_lang) return;
+;src/editor/editor.c:1199: if (lang == tb_lang) return;
 	ld	hl, _tb_lang
 	ld	a, [hl]
 	ld	hl, sp+0
@@ -9207,14 +9207,14 @@ _SetLang:
 .l00234:
 	jp	.l00129
 .l00112:
-;src/editor/editor.c:1212: tb_lang = lang;
+;src/editor/editor.c:1200: tb_lang = lang;
 	ld	hl, sp+0
 	ld	a, [hl]
 	ld	hl, _tb_lang
 	ld	[hl], a
-;src/editor/editor.c:1213: tb_ResetChecks();
+;src/editor/editor.c:1201: tb_ResetChecks();
 	call	_tb_ResetChecks
-;src/editor/editor.c:1214: for (i = 0; i <= TB_ROWS; ++i) tb_row_states[i] = 0; // no markdown headings left in them
+;src/editor/editor.c:1202: for (i = 0; i <= TB_ROWS; ++i) tb_row_states[i] = 0; // no markdown headings left in them
 	ld	bc, _tb_row_states+0
 	ld	e, $00
 .l00124:
@@ -9234,11 +9234,11 @@ _SetLang:
 	ld	a, $12
 	sub	a, e
 	jp	NC, .l00124
-;src/editor/editor.c:1215: SetFont(font);
+;src/editor/editor.c:1203: SetFont(font);
 	ld	hl, _font
 	ld	a, [hl]
 	call	_SetFont
-;src/editor/editor.c:1216: for (i = bars; i < bars + tb_rows; ++i) render_row_fonts[i] = font;
+;src/editor/editor.c:1204: for (i = bars; i < bars + tb_rows; ++i) render_row_fonts[i] = font;
 	ld	hl, _bars
 	ld	c, [hl]
 .l00127:
@@ -9304,13 +9304,13 @@ _SetLang:
 	inc	c
 	jp	.l00127
 .l00114:
-;src/editor/editor.c:1217: EditorRedraw();
+;src/editor/editor.c:1205: EditorRedraw();
 	call	_EditorRedraw
-;src/editor/editor.c:1218: dirty = 1;
+;src/editor/editor.c:1206: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
 .l00129:
-;src/editor/editor.c:1219: }
+;src/editor/editor.c:1207: }
 	add	sp, 10
 	ret
 	SECTION FRAGMENT "src/editor/editor.c FIXED",ROMX,BANK[1]
@@ -9353,94 +9353,94 @@ __str_57:
 __str_58:
 	DB "s"
 	DB $00
-;src/editor/editor.c:1221: static void ResetCursor(void) {
+;src/editor/editor.c:1209: static void ResetCursor(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function ResetCursor
 ; ---------------------------------
 _ResetCursor:
-;src/editor/editor.c:1222: SetLang();
+;src/editor/editor.c:1210: SetLang();
 	call	_SetLang__far
-;src/editor/editor.c:1223: cursor = 0;
+;src/editor/editor.c:1211: cursor = 0;
 	xor	a, a
 	ld	hl, _cursor
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:1224: counted_pos = 0;
+;src/editor/editor.c:1212: counted_pos = 0;
 	xor	a, a
 	ld	hl, _counted_pos
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:1225: counted_lines = 0;
+;src/editor/editor.c:1213: counted_lines = 0;
 	xor	a, a
 	ld	hl, _counted_lines
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:1226: selecting = 0;
+;src/editor/editor.c:1214: selecting = 0;
 	ld	hl, _selecting
 	ld	[hl], $00
-;src/editor/editor.c:1227: top = 0;
+;src/editor/editor.c:1215: top = 0;
 	xor	a, a
 	ld	hl, _top
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:1228: tb_left = 0;
+;src/editor/editor.c:1216: tb_left = 0;
 	xor	a, a
 	ld	hl, _tb_left
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:1229: want_x = 0;
+;src/editor/editor.c:1217: want_x = 0;
 	ld	hl, _want_x
 	ld	[hl], $00
-;src/editor/editor.c:1230: modified = 0;
+;src/editor/editor.c:1218: modified = 0;
 	ld	hl, _modified
 	ld	[hl], $00
-;src/editor/editor.c:1231: dirty = 1;
+;src/editor/editor.c:1219: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
-;src/editor/editor.c:1232: UndoClear(0);
+;src/editor/editor.c:1220: UndoClear(0);
 	xor	a, a
 	jp	_UndoClear
 .l00101:
-;src/editor/editor.c:1233: }
+;src/editor/editor.c:1221: }
 	ret
-;src/editor/editor.c:1235: static void NewFile(void) {
+;src/editor/editor.c:1223: static void NewFile(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
 ; Function NewFile
 ; ---------------------------------
 _NewFile:
-;src/editor/editor.c:1236: if (!CanDiscard()) return;
+;src/editor/editor.c:1224: if (!CanDiscard()) return;
 	call	_CanDiscard
 	or	a, a
 	jp	NZ, .l00102
 	jp	.l00103
 .l00102:
-;src/editor/editor.c:1238: FileCloseLarge();
+;src/editor/editor.c:1225: FileCloseLarge();
 	call	_FileCloseLarge
-;src/editor/editor.c:1240: tb_Clear();
+;src/editor/editor.c:1226: tb_Clear();
 	call	_tb_Clear
-;src/editor/editor.c:1241: file_name[0] = 0;
+;src/editor/editor.c:1227: file_name[0] = 0;
 	ld	hl, _file_name
 	ld	[hl], $00
-;src/editor/editor.c:1242: fs_crlf = 0;
+;src/editor/editor.c:1228: fs_crlf = 0;
 	ld	hl, _fs_crlf
 	ld	[hl], $00
-;src/editor/editor.c:1243: ResetCursor();
+;src/editor/editor.c:1229: ResetCursor();
 	call	_ResetCursor__far
-;src/editor/editor.c:1244: SettingsSave();
+;src/editor/editor.c:1230: SettingsSave();
 	jp	_SettingsSave
 .l00103:
-;src/editor/editor.c:1245: }
+;src/editor/editor.c:1231: }
 	ret
-;src/editor/editor.c:1249: static unsigned int ListFolder(const char* path, const char* find) {
+;src/editor/editor.c:1235: static unsigned int ListFolder(const char* path, const char* find) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -9452,7 +9452,7 @@ _ListFolder:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:1250: unsigned char up = path[0] != 0;
+;src/editor/editor.c:1236: unsigned char up = path[0] != 0;
 	ld	a, [de]
 	sub	a,$01
 	ld	a, $00
@@ -9461,13 +9461,13 @@ _ListFolder:
 	dec	hl
 	dec	hl
 	ld	[hl], a
-;src/editor/editor.c:1251: list_count = 0;
+;src/editor/editor.c:1237: list_count = 0;
 	xor	a, a
 	ld	hl, _list_count
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:1252: if ((list_result = FileList(path, find))) return 0;
+;src/editor/editor.c:1238: if ((list_result = FileList(path, find))) return 0;
 	ld	hl, sp+1
 	ld	c, [hl]
 	inc	hl
@@ -9480,7 +9480,7 @@ _ListFolder:
 	ld	bc, $0000
 	jp	.l00103
 .l00102:
-;src/editor/editor.c:1253: list_count = fs_count + up;
+;src/editor/editor.c:1239: list_count = fs_count + up;
 	ld	hl, sp+0
 	ld	c, [hl]
 	ld	b, $00
@@ -9494,7 +9494,7 @@ _ListFolder:
 	adc	a, b
 	ld	hl, _list_count + 1
 	ld	[hl], a
-;src/editor/editor.c:1254: return find && fs_found != 0xFFFF ? fs_found + up : 0;
+;src/editor/editor.c:1240: return find && fs_found != 0xFFFF ? fs_found + up : 0;
 	ld	hl, sp+2
 	ld	a, [hl]
 	dec	hl
@@ -9523,10 +9523,10 @@ _ListFolder:
 	ld	bc, $0000
 .l00106:
 .l00103:
-;src/editor/editor.c:1255: }
+;src/editor/editor.c:1241: }
 	add	sp, 3
 	ret
-;src/editor/editor.c:1258: static unsigned char ListEntry(const char* path, unsigned int index) {
+;src/editor/editor.c:1244: static unsigned char ListEntry(const char* path, unsigned int index) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -9538,7 +9538,7 @@ _ListEntry:
 	inc	sp
 	inc	sp
 	push	bc
-;src/editor/editor.c:1259: if (path[0] && !index--) {
+;src/editor/editor.c:1245: if (path[0] && !index--) {
 	ld	a, [de]
 	or	a, a
 	jp	Z, .l00102
@@ -9553,20 +9553,20 @@ _ListEntry:
 	ld	a, b
 	or	a, c
 	jp	NZ, .l00102
-;src/editor/editor.c:1260: entry.name[0] = '.';
+;src/editor/editor.c:1246: entry.name[0] = '.';
 	ld	hl, _entry
 	ld	[hl], $2E
-;src/editor/editor.c:1261: entry.name[1] = '.';
+;src/editor/editor.c:1247: entry.name[1] = '.';
 	ld	hl, (_entry + 1)
 	ld	[hl], $2E
-;src/editor/editor.c:1262: entry.name[2] = 0;
+;src/editor/editor.c:1248: entry.name[2] = 0;
 	ld	hl, (_entry + 2)
 	ld	[hl], $00
-;src/editor/editor.c:1263: return KIND_UP;
+;src/editor/editor.c:1249: return KIND_UP;
 	xor	a, a
 	jp	.l00106
 .l00102:
-;src/editor/editor.c:1265: if ((list_result = FileListEntry(index, &entry))) return 0xFF;
+;src/editor/editor.c:1251: if ((list_result = FileListEntry(index, &entry))) return 0xFF;
 	ld	bc, _entry
 	pop	de
 	push	de
@@ -9578,7 +9578,7 @@ _ListEntry:
 	ld	a, $FF
 	jp	.l00106
 .l00105:
-;src/editor/editor.c:1266: return entry.dir ? KIND_FOLDER : KIND_FILE;
+;src/editor/editor.c:1252: return entry.dir ? KIND_FOLDER : KIND_FILE;
 	ld	a, [(_entry + 73) + 0]
 	or	a, a
 	jp	Z, .l00108
@@ -9589,11 +9589,11 @@ _ListEntry:
 .l00109:
 	ld	a, c
 .l00106:
-;src/editor/editor.c:1267: }
+;src/editor/editor.c:1253: }
 	inc	sp
 	inc	sp
 	ret
-;src/editor/editor.c:1270: static void ListRows(const char* path, unsigned int first, unsigned char row, unsigned char end) {
+;src/editor/editor.c:1256: static void ListRows(const char* path, unsigned int first, unsigned char row, unsigned char end) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -9614,20 +9614,20 @@ _ListRows:
 	ld	hl, sp+11
 	ld	[hl], a
 .l00110:
-;src/editor/editor.c:1273: for (; row < end; ++row) {
+;src/editor/editor.c:1259: for (; row < end; ++row) {
 	ld	hl, sp+11
 	ld	a, [hl]
 	ld	hl, sp+15
 	sub	a, [hl]
 	jp	NC, .l00111
-;src/editor/editor.c:1274: DrawRow(row, 0, "");
+;src/editor/editor.c:1260: DrawRow(row, 0, "");
 	ld	de, ___str_59
 	push	de
 	ld	e, $00
 	ld	hl, sp+13
 	ld	a, [hl]
 	call	_DrawRow__far
-;src/editor/editor.c:1275: if (first + row >= list_count) continue;
+;src/editor/editor.c:1261: if (first + row >= list_count) continue;
 	ld	hl, sp+11
 	ld	a, [hl]
 	ld	hl, sp+0
@@ -9650,7 +9650,7 @@ _ListRows:
 	ld	a, b
 	sbc	a, [hl]
 	jp	NC, .l00107
-;src/editor/editor.c:1276: if ((kind = ListEntry(path, first + row)) == 0xFF) return;
+;src/editor/editor.c:1262: if ((kind = ListEntry(path, first + row)) == 0xFF) return;
 	ld	hl, sp+9
 	ld	e, [hl]
 	inc	hl
@@ -9666,7 +9666,7 @@ _ListRows:
 .l00139:
 	jp	.l00111
 .l00104:
-;src/editor/editor.c:1277: list_kinds[row] = kind;
+;src/editor/editor.c:1263: list_kinds[row] = kind;
 	ld	de, _list_kinds
 	ld	hl, sp+11
 	ld	l, [hl]
@@ -9677,7 +9677,7 @@ _ListRows:
 	ld	hl, sp+2
 	ld	a, [hl]
 	ld	[bc], a
-;src/editor/editor.c:1278: list_sizes[row] = entry.size;
+;src/editor/editor.c:1264: list_sizes[row] = entry.size;
 	dec	hl
 	dec	hl
 	ld	a, [hl]
@@ -9724,7 +9724,7 @@ _ListRows:
 	inc	hl
 	ld	a, [hl]
 	ld	[bc], a
-;src/editor/editor.c:1279: list_dates[row] = entry.date;
+;src/editor/editor.c:1265: list_dates[row] = entry.date;
 	pop	bc
 	push	bc
 	sla	c
@@ -9760,7 +9760,7 @@ _ListRows:
 	inc	hl
 	ld	a, [hl]
 	ld	[de], a
-;src/editor/editor.c:1280: list_times[row] = entry.time;
+;src/editor/editor.c:1266: list_times[row] = entry.time;
 	ld	hl, _list_times
 	add	hl, bc
 	push	hl
@@ -9782,7 +9782,7 @@ _ListRows:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:1281: dest = ToLatin1(RowAddress(row) + 1, entry.name, TB_STRIDE - 3);
+;src/editor/editor.c:1267: dest = ToLatin1(RowAddress(row) + 1, entry.name, TB_STRIDE - 3);
 	ld	hl, sp+11
 	ld	a, [hl]
 	call	_RowAddress__far
@@ -9798,7 +9798,7 @@ _ListRows:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:1282: if (kind == KIND_FOLDER) *dest = '/';
+;src/editor/editor.c:1268: if (kind == KIND_FOLDER) *dest = '/';
 	ld	hl, sp+2
 	ld	a, [hl]
 	dec	a
@@ -9813,12 +9813,12 @@ _ListRows:
 	ld	l, a
 	ld	[hl], $2F
 .l00107:
-;src/editor/editor.c:1273: for (; row < end; ++row) {
+;src/editor/editor.c:1259: for (; row < end; ++row) {
 	ld	hl, sp+11
 	inc	[hl]
 	jp	.l00110
 .l00111:
-;src/editor/editor.c:1284: }
+;src/editor/editor.c:1270: }
 	add	sp, 12
 	pop	hl
 	inc	sp
@@ -9827,7 +9827,7 @@ _ListRows:
 	SECTION FRAGMENT "src/editor/editor.c FIXED",ROMX,BANK[1]
 ___str_59:
 	DB $00
-;src/editor/editor.c:1287: static void ScrollList(const char* path, unsigned int first, unsigned char down) {
+;src/editor/editor.c:1273: static void ScrollList(const char* path, unsigned int first, unsigned char down) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -9843,19 +9843,19 @@ _ScrollList:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:1289: ScrollRing(down);
+;src/editor/editor.c:1275: ScrollRing(down);
 	ld	hl, sp+15
 	ld	a, [hl]
 	call	_ScrollRing__far
-;src/editor/editor.c:1290: tb_ScrollRows(down);
+;src/editor/editor.c:1276: tb_ScrollRows(down);
 	ld	hl, sp+15
 	ld	a, [hl]
 	call	_tb_ScrollRows
-;src/editor/editor.c:1291: for (i = 1; i < LIST_ROWS; ++i) {
+;src/editor/editor.c:1277: for (i = 1; i < LIST_ROWS; ++i) {
 	ld	hl, sp+12
 	ld	[hl], $01
 .l00102:
-;src/editor/editor.c:1292: to = down ? i - 1 : LIST_ROWS - i;
+;src/editor/editor.c:1278: to = down ? i - 1 : LIST_ROWS - i;
 	ld	hl, sp+12
 	ld	a, [hl]
 	ld	hl, sp+7
@@ -9874,7 +9874,7 @@ _ScrollList:
 	sub	a, [hl]
 .l00107:
 	ld	b, a
-;src/editor/editor.c:1293: from = down ? i : to - 1;
+;src/editor/editor.c:1279: from = down ? i : to - 1;
 	ld	hl, sp+15
 	ld	a, [hl]
 	or	a, a
@@ -9886,7 +9886,7 @@ _ScrollList:
 	ld	c, b
 	dec	c
 .l00109:
-;src/editor/editor.c:1294: list_kinds[to] = list_kinds[from];
+;src/editor/editor.c:1280: list_kinds[to] = list_kinds[from];
 	ld	a, LOW(_list_kinds)
 	add	a, b
 	ld	e, a
@@ -9905,7 +9905,7 @@ _ScrollList:
 ;	spillPairReg hl
 	ld	a, [hl]
 	ld	[de], a
-;src/editor/editor.c:1295: list_sizes[to] = list_sizes[from];
+;src/editor/editor.c:1281: list_sizes[to] = list_sizes[from];
 	ld	hl, sp+6
 	ld	[hl], b
 	inc	hl
@@ -9965,7 +9965,7 @@ _ScrollList:
 	inc	hl
 	ld	a, [hl]
 	ld	[de], a
-;src/editor/editor.c:1296: list_dates[to] = list_dates[from];
+;src/editor/editor.c:1282: list_dates[to] = list_dates[from];
 	inc	hl
 	ld	a, [hl]
 	ld	hl, sp+2
@@ -10017,7 +10017,7 @@ _ScrollList:
 	inc	hl
 	ld	a, [hl]
 	ld	[de], a
-;src/editor/editor.c:1297: list_times[to] = list_times[from];
+;src/editor/editor.c:1283: list_times[to] = list_times[from];
 	ld	hl, sp+3
 	dec	hl
 	ld	e, [hl]
@@ -10045,13 +10045,13 @@ _ScrollList:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:1291: for (i = 1; i < LIST_ROWS; ++i) {
+;src/editor/editor.c:1277: for (i = 1; i < LIST_ROWS; ++i) {
 	ld	hl, sp+12
 	inc	[hl]
 	ld	a, [hl]
 	sub	a, $10
 	jp	C, .l00102
-;src/editor/editor.c:1299: i = down ? LIST_ROWS - 1 : 0;
+;src/editor/editor.c:1285: i = down ? LIST_ROWS - 1 : 0;
 	ld	hl, sp+15
 	ld	a, [hl]
 	or	a, a
@@ -10062,7 +10062,7 @@ _ScrollList:
 	ld	de, $0000
 .l00111:
 	ld	a, e
-;src/editor/editor.c:1300: ListRows(path, first, i, i + 1);
+;src/editor/editor.c:1286: ListRows(path, first, i, i + 1);
 	ld	b, a
 	inc	b
 	push	bc
@@ -10079,12 +10079,12 @@ _ScrollList:
 	ld	d, [hl]
 	call	_ListRows
 .l00104:
-;src/editor/editor.c:1301: }
+;src/editor/editor.c:1287: }
 	add	sp, 13
 	pop	hl
 	inc	sp
 	jp hl 
-;src/editor/editor.c:1304: static void ListBars(const char* path, unsigned char row, unsigned int count) {
+;src/editor/editor.c:1290: static void ListBars(const char* path, unsigned char row, unsigned int count) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -10099,8 +10099,8 @@ _ListBars:
 	dec	hl
 	dec	hl
 	ld	[hl], a
-;src/editor/editor.c:1306: char* end = text;
-;src/editor/editor.c:1307: unsigned long size = list_sizes[row];
+;src/editor/editor.c:1292: char* end = text;
+;src/editor/editor.c:1293: unsigned long size = list_sizes[row];
 	ld	c, [hl]
 	ld	b, $00
 	ld	a, c
@@ -10139,8 +10139,8 @@ _ListBars:
 	ld	a, [de]
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:1308: unsigned char* bytes = (unsigned char*)&size;
-;src/editor/editor.c:1309: unsigned int date = list_dates[row], time = list_times[row];
+;src/editor/editor.c:1294: unsigned char* bytes = (unsigned char*)&size;
+;src/editor/editor.c:1295: unsigned int date = list_dates[row], time = list_times[row];
 	sla	c
 	rl	b
 	ld	hl, _list_dates
@@ -10165,7 +10165,7 @@ _ListBars:
 	ld	a, [de]
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:1310: PutPath(text, path, 30);
+;src/editor/editor.c:1296: PutPath(text, path, 30);
 	ld	a, $1E
 	push	af
 	inc	sp
@@ -10178,14 +10178,14 @@ _ListBars:
 	ld	e, l
 	ld	d, h
 	call	_PutPath
-;src/editor/editor.c:1311: DrawRow(HEADER_LINE, 1, text);
+;src/editor/editor.c:1297: DrawRow(HEADER_LINE, 1, text);
 	ld	hl, 0
 	add	hl, sp
 	push	hl
 	ld	e, $01
 	ld	a, $12
 	call	_DrawRow__far
-;src/editor/editor.c:1312: if (!count) end = PutText(end, "Empty folder");
+;src/editor/editor.c:1298: if (!count) end = PutText(end, "Empty folder");
 	ld	hl, sp+54
 	ld	a, [hl]
 	dec	hl
@@ -10203,7 +10203,7 @@ _ListBars:
 	ld	[hl], b
 	jp	.l00115
 .l00114:
-;src/editor/editor.c:1313: else if (list_kinds[row] == KIND_UP) end = PutText(end, "Parent folder");
+;src/editor/editor.c:1299: else if (list_kinds[row] == KIND_UP) end = PutText(end, "Parent folder");
 	ld	de, _list_kinds
 	ld	hl, sp+48
 	ld	l, [hl]
@@ -10226,7 +10226,7 @@ _ListBars:
 	ld	[hl], b
 	jp	.l00115
 .l00111:
-;src/editor/editor.c:1314: else if (list_kinds[row] == KIND_FOLDER) end = PutText(end, "Folder");
+;src/editor/editor.c:1300: else if (list_kinds[row] == KIND_FOLDER) end = PutText(end, "Folder");
 	dec	a
 	jp	NZ,.l00145
 	jp	.l00146
@@ -10245,7 +10245,7 @@ _ListBars:
 	ld	[hl], b
 	jp	.l00115
 .l00108:
-;src/editor/editor.c:1316: if (size < 10000) end = PutText(PutNumber(end, (unsigned int)size), " bytes  ");
+;src/editor/editor.c:1302: if (size < 10000) end = PutText(PutNumber(end, (unsigned int)size), " bytes  ");
 	ld	hl, sp+40
 	ld	a, [hl]
 	sub	a, $10
@@ -10277,7 +10277,7 @@ _ListBars:
 	call	_PutText__far
 	jp	.l00106
 .l00105:
-;src/editor/editor.c:1317: else if (size < 10485760) end = PutText(PutNumber(end, (bytes[1] >> 2) | (bytes[2] << 6)), " KB  ");
+;src/editor/editor.c:1303: else if (size < 10485760) end = PutText(PutNumber(end, (bytes[1] >> 2) | (bytes[2] << 6)), " KB  ");
 	ld	hl, sp+42
 	ld	c, [hl]
 	dec	hl
@@ -10338,7 +10338,7 @@ _ListBars:
 	call	_PutText__far
 	jp	.l00106
 .l00102:
-;src/editor/editor.c:1318: else end = PutText(PutNumber(end, (bytes[2] >> 4) | (bytes[3] << 4)), " MB  ");
+;src/editor/editor.c:1304: else end = PutText(PutNumber(end, (bytes[2] >> 4) | (bytes[3] << 4)), " MB  ");
 	srl	c
 	srl	c
 	srl	c
@@ -10378,7 +10378,7 @@ _ListBars:
 	ld	bc, ___str_65
 	call	_PutText__far
 .l00106:
-;src/editor/editor.c:1319: end = PutNumber(end, (date >> 9) + 1980);
+;src/editor/editor.c:1305: end = PutNumber(end, (date >> 9) + 1980);
 	ld	hl, sp+45
 	ld	a, [hl]
 	srl	a
@@ -10394,13 +10394,13 @@ _ListBars:
 	ld	e, c
 	ld	d, b
 	call	_PutNumber
-;src/editor/editor.c:1320: *end++ = '-';
+;src/editor/editor.c:1306: *end++ = '-';
 	ld	a, $2D
 	ld	[bc], a
 	ld	e, c
 	ld	d, b
 	inc	de
-;src/editor/editor.c:1321: end = PutNumber2(end, (date >> 5) & 15);
+;src/editor/editor.c:1307: end = PutNumber2(end, (date >> 5) & 15);
 	ld	hl, sp+45
 	dec	hl
 	ld	c, [hl]
@@ -10417,26 +10417,26 @@ _ListBars:
 	ld	c, a
 	ld	b, $00
 	call	_PutNumber2
-;src/editor/editor.c:1322: *end++ = '-';
+;src/editor/editor.c:1308: *end++ = '-';
 	ld	a, $2D
 	ld	[bc], a
 	ld	e, c
 	ld	d, b
 	inc	de
-;src/editor/editor.c:1323: end = PutNumber2(end, date & 31);
+;src/editor/editor.c:1309: end = PutNumber2(end, date & 31);
 	ld	hl, sp+44
 	ld	a, [hl]
 	and	a, $1F
 	ld	c, a
 	ld	b, $00
 	call	_PutNumber2
-;src/editor/editor.c:1324: *end++ = ' ';
+;src/editor/editor.c:1310: *end++ = ' ';
 	ld	a, $20
 	ld	[bc], a
 	ld	e, c
 	ld	d, b
 	inc	de
-;src/editor/editor.c:1325: end = PutNumber2(end, time >> 11);
+;src/editor/editor.c:1311: end = PutNumber2(end, time >> 11);
 	ld	hl, sp+47
 	ld	a, [hl]
 	swap	a
@@ -10445,13 +10445,13 @@ _ListBars:
 	ld	c, a
 	ld	b, $00
 	call	_PutNumber2
-;src/editor/editor.c:1326: *end++ = ':';
+;src/editor/editor.c:1312: *end++ = ':';
 	ld	a, $3A
 	ld	[bc], a
 	ld	e, c
 	ld	d, b
 	inc	de
-;src/editor/editor.c:1327: end = PutNumber2(end, (time >> 5) & 63);
+;src/editor/editor.c:1313: end = PutNumber2(end, (time >> 5) & 63);
 	ld	hl, sp+47
 	dec	hl
 	ld	c, [hl]
@@ -10473,13 +10473,13 @@ _ListBars:
 	inc	hl
 	ld	[hl], b
 .l00115:
-;src/editor/editor.c:1332: *end = 0;
+;src/editor/editor.c:1315: *end = 0;
 	ld	hl, sp+46
 	ld	a, [hl+]
 	ld	h, [hl]
 	ld	l, a
 	ld	[hl], $00
-;src/editor/editor.c:1333: DrawRow(STATUS_LINE, 1, text);
+;src/editor/editor.c:1316: DrawRow(STATUS_LINE, 1, text);
 	ld	hl, 0
 	add	hl, sp
 	push	hl
@@ -10487,7 +10487,7 @@ _ListBars:
 	ld	a, $13
 	call	_DrawRow__far
 .l00116:
-;src/editor/editor.c:1334: }
+;src/editor/editor.c:1317: }
 	add	sp, 51
 	pop	hl
 	inc	sp
@@ -10517,7 +10517,7 @@ ___str_64:
 ___str_65:
 	DB " MB  "
 	DB $00
-;src/editor/editor.c:1338: static void ListLoading(const char* path, unsigned char row) {
+;src/editor/editor.c:1321: static void ListLoading(const char* path, unsigned char row) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -10534,7 +10534,7 @@ _ListLoading:
 	dec	hl
 	dec	hl
 	ld	[hl], a
-;src/editor/editor.c:1340: char* end = path[0] ? ToLatin1(text, path, PATH_SIZE - 1) : text;
+;src/editor/editor.c:1323: char* end = path[0] ? ToLatin1(text, path, PATH_SIZE - 1) : text;
 	inc	hl
 	inc	hl
 	dec	hl
@@ -10575,27 +10575,27 @@ _ListLoading:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:1344: *end++ = '/';
+;src/editor/editor.c:1327: *end++ = '/';
 	dec	hl
 	ld	c, [hl]
 	inc	hl
 	ld	b, [hl]
 	inc	bc
-;src/editor/editor.c:1343: if (row != 0xFF) {
+;src/editor/editor.c:1326: if (row != 0xFF) {
 	inc	hl
 	ld	a, [hl]
 	inc	a
 	jp	NZ,.l00147
 	jp	.l00105
 .l00147:
-;src/editor/editor.c:1344: *end++ = '/';
+;src/editor/editor.c:1327: *end++ = '/';
 	ld	hl, 168
 	add	hl, sp
 	ld	a, [hl+]
 	ld	h, [hl]
 	ld	l, a
 	ld	[hl], $2F
-;src/editor/editor.c:1345: for (name = RowAddress(row) + 1; *name != '/'; ++name) *end++ = *name;
+;src/editor/editor.c:1328: for (name = RowAddress(row) + 1; *name != '/'; ++name) *end++ = *name;
 	push	bc
 	ld	hl, 172
 	add	hl, sp
@@ -10616,7 +10616,7 @@ _ListLoading:
 	inc	de
 	jp	.l00110
 .l00105:
-;src/editor/editor.c:1347: else if (!path[0]) *end++ = '/';
+;src/editor/editor.c:1330: else if (!path[0]) *end++ = '/';
 	ld	hl, 172
 	add	hl, sp
 	dec	hl
@@ -10637,9 +10637,9 @@ _ListLoading:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:1357: ShowBusy("Loading...");
+;src/editor/editor.c:1340: ShowBusy("Loading...");
 	jp	.l00106
-;src/editor/editor.c:1347: else if (!path[0]) *end++ = '/';
+;src/editor/editor.c:1330: else if (!path[0]) *end++ = '/';
 .l00122:
 	ld	hl, 168
 	add	hl, sp
@@ -10647,14 +10647,14 @@ _ListLoading:
 	inc	hl
 	ld	[hl], b
 .l00106:
-;src/editor/editor.c:1348: *end = 0;
+;src/editor/editor.c:1331: *end = 0;
 	ld	hl, 168
 	add	hl, sp
 	ld	a, [hl+]
 	ld	h, [hl]
 	ld	l, a
 	ld	[hl], $00
-;src/editor/editor.c:1349: length = (unsigned char)(end - text);
+;src/editor/editor.c:1332: length = (unsigned char)(end - text);
 	ld	hl, sp+0
 	ld	c, l
 	ld	b, h
@@ -10664,12 +10664,12 @@ _ListLoading:
 	ld	e, c
 	sub	a, e
 	ld	e, a
-;src/editor/editor.c:1350: end = text;
-;src/editor/editor.c:1351: if (length > 30) {
+;src/editor/editor.c:1333: end = text;
+;src/editor/editor.c:1334: if (length > 30) {
 	ld	a, $1E
 	sub	a, e
 	jp	NC, .l00108
-;src/editor/editor.c:1352: end += length - 33;
+;src/editor/editor.c:1335: end += length - 33;
 	ld	a, e
 	ld	e, $00
 	add	a, $DF
@@ -10684,7 +10684,7 @@ _ListLoading:
 	add	hl, bc
 	ld	c, l
 	ld	b, h
-;src/editor/editor.c:1353: end[0] = end[1] = end[2] = '.';
+;src/editor/editor.c:1336: end[0] = end[1] = end[2] = '.';
 	ld	e, c
 	ld	d, b
 	inc	de
@@ -10702,22 +10702,22 @@ _ListLoading:
 	ld	a, $2E
 	ld	[bc], a
 .l00108:
-;src/editor/editor.c:1355: DrawRow(HEADER_LINE, 1, end);
+;src/editor/editor.c:1338: DrawRow(HEADER_LINE, 1, end);
 	push	bc
 	ld	e, $01
 	ld	a, $12
 	call	_DrawRow__far
-;src/editor/editor.c:1356: DrawRow(STATUS_LINE, 1, "");
+;src/editor/editor.c:1339: DrawRow(STATUS_LINE, 1, "");
 	ld	de, ___str_66
 	push	de
 	ld	e, $01
 	ld	a, $13
 	call	_DrawRow__far
-;src/editor/editor.c:1357: ShowBusy("Loading...");
+;src/editor/editor.c:1340: ShowBusy("Loading...");
 	ld	de, ___str_67
 	call	_ShowBusy
 .l00112:
-;src/editor/editor.c:1358: }
+;src/editor/editor.c:1341: }
 	add	sp, 127
 	add	sp, 46
 	ret
@@ -10728,30 +10728,30 @@ ___str_66:
 ___str_67:
 	DB "Loading..."
 	DB $00
-;src/editor/editor.c:1361: static void ListMessage(const char* text) {
+;src/editor/editor.c:1344: static void ListMessage(const char* text) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
 ; Function ListMessage
 ; ---------------------------------
 _ListMessage:
-;src/editor/editor.c:1362: HideBox();
+;src/editor/editor.c:1345: HideBox();
 	push	de
 	call	_HideBox__far
 	pop	de
-;src/editor/editor.c:1363: DrawRow(STATUS_LINE, 1, text);
+;src/editor/editor.c:1346: DrawRow(STATUS_LINE, 1, text);
 	push	de
 	ld	e, $01
 	ld	a, $13
 	call	_DrawRow__far
-;src/editor/editor.c:1364: EditorDraw();
+;src/editor/editor.c:1347: EditorDraw();
 	call	_EditorDraw
-;src/editor/editor.c:1365: WaitDismiss();
+;src/editor/editor.c:1348: WaitDismiss();
 	jp	_WaitDismiss__far
 .l00101:
-;src/editor/editor.c:1366: }
+;src/editor/editor.c:1349: }
 	ret
-;src/editor/editor.c:1371: static unsigned char Browse(void) {
+;src/editor/editor.c:1354: static unsigned char Browse(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -10761,7 +10761,7 @@ _Browse:
 	ld	hl, -270
 	add	hl, sp
 	ld	sp, hl
-;src/editor/editor.c:1374: unsigned int selected = 0, first = 0, drawn = LIST_ALL;
+;src/editor/editor.c:1357: unsigned int selected = 0, first = 0, drawn = LIST_ALL;
 	xor	a, a
 	ld	hl, 268
 	add	hl, sp
@@ -10778,7 +10778,7 @@ _Browse:
 	ld	[hl], $FF
 	inc	hl
 	ld	[hl], $FF
-;src/editor/editor.c:1375: unsigned char key, result, row, opened = 0, editor_font = font, length;
+;src/editor/editor.c:1358: unsigned char key, result, row, opened = 0, editor_font = font, length;
 	inc	hl
 	ld	[hl], $00
 	ld	hl, _font
@@ -10786,26 +10786,26 @@ _Browse:
 	ld	hl, 263
 	add	hl, sp
 	ld	[hl], a
-;src/editor/editor.c:1376: CopyName(path, file_dir);
+;src/editor/editor.c:1359: CopyName(path, file_dir);
 	ld	bc, _file_dir
 	ld	hl, 0
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_CopyName
-;src/editor/editor.c:1377: font = FONT_VWF;
+;src/editor/editor.c:1360: font = FONT_VWF;
 	ld	hl, _font
 	ld	[hl], $01
-;src/editor/editor.c:1378: SetFont(font);
+;src/editor/editor.c:1361: SetFont(font);
 	ld	a, $01
 	call	_SetFont
-;src/editor/editor.c:1379: render_text = 0;
+;src/editor/editor.c:1362: render_text = 0;
 	ld	hl, _render_text
 	ld	[hl], $00
-;src/editor/editor.c:1380: EditorShowCursor(0);
+;src/editor/editor.c:1363: EditorShowCursor(0);
 	xor	a, a
 	call	_EditorShowCursor
-;src/editor/editor.c:1381: if (osk_shown) OSKShow(0);
+;src/editor/editor.c:1364: if (osk_shown) OSKShow(0);
 	ld	hl, _osk_shown
 	ld	a, [hl]
 	or	a, a
@@ -10813,35 +10813,35 @@ _Browse:
 	xor	a, a
 	call	_OSKShow
 .l00102:
-;src/editor/editor.c:1382: bars = 1;
+;src/editor/editor.c:1365: bars = 1;
 	ld	hl, _bars
 	ld	[hl], $01
-;src/editor/editor.c:1383: tb_rows = LIST_ROWS;
+;src/editor/editor.c:1366: tb_rows = LIST_ROWS;
 	ld	hl, _tb_rows
 	ld	[hl], $10
-;src/editor/editor.c:1384: Layout();
+;src/editor/editor.c:1367: Layout();
 	call	_Layout__far
-;src/editor/editor.c:1385: NoHighlight();
+;src/editor/editor.c:1368: NoHighlight();
 	call	_NoHighlight__far
-;src/editor/editor.c:1386: ListLoading(path, 0xFF);
+;src/editor/editor.c:1369: ListLoading(path, 0xFF);
 	ld	a, $FF
 	ld	hl, 0
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_ListLoading
-;src/editor/editor.c:1387: if ((result = FileMount())) {
+;src/editor/editor.c:1370: if ((result = FileMount())) {
 	call	_FileMount
 	ld	hl, 267
 	add	hl, sp
 	ld	[hl], a
 	or	a, a
 	jp	Z, .l00104
-;src/editor/editor.c:1388: ShowError(result, "");
+;src/editor/editor.c:1371: ShowError(result, "");
 	ld	de, ___str_68
 	ld	a, [hl]
 	call	_ShowError
-;src/editor/editor.c:1389: selected = LIST_ALL; // skips the list
+;src/editor/editor.c:1372: selected = LIST_ALL; // skips the list
 	ld	hl, 268
 	add	hl, sp
 	ld	[hl], $FF
@@ -10849,14 +10849,14 @@ _Browse:
 	ld	[hl], $FF
 	jp	.l00224
 .l00104:
-;src/editor/editor.c:1391: else ListFolder(path, 0);
+;src/editor/editor.c:1374: else ListFolder(path, 0);
 	ld	bc, $0000
 	ld	hl, 0
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_ListFolder
-;src/editor/editor.c:1392: while (selected != LIST_ALL) {
+;src/editor/editor.c:1375: while (selected != LIST_ALL) {
 .l00224:
 .l00196:
 	ld	hl, 268
@@ -10868,7 +10868,7 @@ _Browse:
 	jp	NZ,.l00474
 	jp	.l00198
 .l00474:
-;src/editor/editor.c:1393: if (selected < first) first = selected;
+;src/editor/editor.c:1376: if (selected < first) first = selected;
 	ld	hl, 268
 	add	hl, sp
 	ld	e, l
@@ -10896,7 +10896,7 @@ _Browse:
 	ld	[hl], a
 	jp	.l00110
 .l00109:
-;src/editor/editor.c:1394: else if (selected >= first + LIST_ROWS) first = selected - LIST_ROWS + 1;
+;src/editor/editor.c:1377: else if (selected >= first + LIST_ROWS) first = selected - LIST_ROWS + 1;
 	ld	hl, 259
 	add	hl, sp
 	dec	hl
@@ -10947,7 +10947,7 @@ _Browse:
 	add	hl, sp
 	ld	[hl], a
 .l00110:
-;src/editor/editor.c:1395: if (!list_result && first != drawn) {
+;src/editor/editor.c:1378: if (!list_result && first != drawn) {
 	ld	hl, _list_result
 	ld	a, [hl]
 	or	a, a
@@ -10967,7 +10967,7 @@ _Browse:
 	jp	NZ,.l00475
 	jp	.l00120
 .l00475:
-;src/editor/editor.c:1396: if (drawn != LIST_ALL && first == drawn + 1) ScrollList(path, first, 1);
+;src/editor/editor.c:1379: if (drawn != LIST_ALL && first == drawn + 1) ScrollList(path, first, 1);
 	ld	hl, 260
 	add	hl, sp
 	ld	a, [hl]
@@ -11035,7 +11035,7 @@ _Browse:
 	call	_ScrollList
 	jp	.l00117
 .l00116:
-;src/editor/editor.c:1397: else if (drawn != LIST_ALL && first + 1 == drawn) ScrollList(path, first, 0);
+;src/editor/editor.c:1380: else if (drawn != LIST_ALL && first + 1 == drawn) ScrollList(path, first, 0);
 	ld	hl, 265
 	add	hl, sp
 	bit	0, [hl]
@@ -11073,7 +11073,7 @@ _Browse:
 	call	_ScrollList
 	jp	.l00117
 .l00112:
-;src/editor/editor.c:1398: else ListRows(path, first, 0, LIST_ROWS);
+;src/editor/editor.c:1381: else ListRows(path, first, 0, LIST_ROWS);
 	ld	a, $10
 	push	af
 	inc	sp
@@ -11091,9 +11091,9 @@ _Browse:
 	ld	d, h
 	call	_ListRows
 .l00117:
-;src/editor/editor.c:1399: HideBox();
+;src/editor/editor.c:1382: HideBox();
 	call	_HideBox__far
-;src/editor/editor.c:1400: drawn = first;
+;src/editor/editor.c:1383: drawn = first;
 	ld	hl, 258
 	add	hl, sp
 	ld	a, [hl]
@@ -11106,35 +11106,35 @@ _Browse:
 	inc	hl
 	ld	[hl], a
 .l00120:
-;src/editor/editor.c:1402: if (list_result) {
+;src/editor/editor.c:1385: if (list_result) {
 	ld	hl, _list_result
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00125
-;src/editor/editor.c:1403: if (!path[0]) { // can't read the card
+;src/editor/editor.c:1386: if (!path[0]) { // can't read the card
 	ld	hl, sp+0
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00123
-;src/editor/editor.c:1404: ShowError(list_result, "");
+;src/editor/editor.c:1387: ShowError(list_result, "");
 	ld	de, ___str_68
 	ld	hl, _list_result
 	ld	a, [hl]
 	call	_ShowError
-;src/editor/editor.c:1405: break;
+;src/editor/editor.c:1388: break;
 	jp	.l00198
 .l00123:
-;src/editor/editor.c:1407: path[0] = 0; // folder is gone, back to the root
+;src/editor/editor.c:1390: path[0] = 0; // folder is gone, back to the root
 	ld	hl, sp+0
 	ld	[hl], $00
-;src/editor/editor.c:1408: ListLoading(path, 0xFF);
+;src/editor/editor.c:1391: ListLoading(path, 0xFF);
 	ld	a, $FF
 	ld	hl, 0
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_ListLoading
-;src/editor/editor.c:1409: selected = ListFolder(path, 0);
+;src/editor/editor.c:1392: selected = ListFolder(path, 0);
 	ld	bc, $0000
 	ld	hl, 0
 	add	hl, sp
@@ -11146,16 +11146,16 @@ _Browse:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:1410: drawn = LIST_ALL;
+;src/editor/editor.c:1393: drawn = LIST_ALL;
 	ld	hl, 260
 	add	hl, sp
 	ld	[hl], $FF
 	inc	hl
 	ld	[hl], $FF
-;src/editor/editor.c:1411: continue;
+;src/editor/editor.c:1394: continue;
 	jp	.l00196
 .l00125:
-;src/editor/editor.c:1413: row = (unsigned char)(selected - first);
+;src/editor/editor.c:1396: row = (unsigned char)(selected - first);
 	ld	hl, 268
 	add	hl, sp
 	ld	a, [hl]
@@ -11166,7 +11166,7 @@ _Browse:
 	ld	hl, 264
 	add	hl, sp
 	ld	[hl], a
-;src/editor/editor.c:1414: ListBars(path, row, list_count);
+;src/editor/editor.c:1397: ListBars(path, row, list_count);
 	ld	hl, _list_count
 	ld	e, [hl]
 	inc	hl
@@ -11180,9 +11180,9 @@ _Browse:
 	ld	e, l
 	ld	d, h
 	call	_ListBars
-;src/editor/editor.c:1415: NoHighlight();
+;src/editor/editor.c:1398: NoHighlight();
 	call	_NoHighlight__far
-;src/editor/editor.c:1416: if (list_count) render_sel[(row + 1) << 1] = 0, render_sel[((row + 1) << 1) + 1] = 0xFF;
+;src/editor/editor.c:1399: if (list_count) render_sel[(row + 1) << 1] = 0, render_sel[((row + 1) << 1) + 1] = 0xFF;
 	ld	hl, _list_count + 1
 	ld	a, [hl]
 	dec	hl
@@ -11211,9 +11211,9 @@ _Browse:
 	add	hl, bc
 	ld	[hl], $FF
 .l00127:
-;src/editor/editor.c:1417: EditorDraw();
+;src/editor/editor.c:1400: EditorDraw();
 	call	_EditorDraw
-;src/editor/editor.c:1418: while (!(key = MenuKey()));
+;src/editor/editor.c:1401: while (!(key = MenuKey()));
 .l00128:
 	call	_MenuKey__far
 	ld	hl, 265
@@ -11221,7 +11221,7 @@ _Browse:
 	ld	[hl], a
 	or	a, a
 	jp	Z, .l00128
-;src/editor/editor.c:1419: if (key == KEY_UP && selected) --selected;
+;src/editor/editor.c:1402: if (key == KEY_UP && selected) --selected;
 	ld	a, [hl]
 	sub	a, $82
 	jp	NZ,.l00482
@@ -11247,7 +11247,7 @@ _Browse:
 	ld	[hl], d
 	jp	.l00196
 .l00193:
-;src/editor/editor.c:1420: else if (key == KEY_DOWN && selected + 1 < list_count) ++selected;
+;src/editor/editor.c:1403: else if (key == KEY_DOWN && selected + 1 < list_count) ++selected;
 	ld	hl, 265
 	add	hl, sp
 	ld	a, [hl]
@@ -11277,7 +11277,7 @@ _Browse:
 	ld	[hl], b
 	jp	.l00196
 .l00189:
-;src/editor/editor.c:1421: else if (key == KEY_PAGE_UP) selected = selected > LIST_ROWS ? selected - LIST_ROWS : 0;
+;src/editor/editor.c:1404: else if (key == KEY_PAGE_UP) selected = selected > LIST_ROWS ? selected - LIST_ROWS : 0;
 	ld	hl, 265
 	add	hl, sp
 	ld	a, [hl]
@@ -11320,7 +11320,7 @@ _Browse:
 	ld	[hl], a
 	jp	.l00196
 .l00186:
-;src/editor/editor.c:1422: else if (key == KEY_PAGE_DOWN && list_count) selected = selected + LIST_ROWS < list_count ? selected + LIST_ROWS : list_count - 1;
+;src/editor/editor.c:1405: else if (key == KEY_PAGE_DOWN && list_count) selected = selected + LIST_ROWS < list_count ? selected + LIST_ROWS : list_count - 1;
 	ld	hl, _list_count + 1
 	dec	hl
 	ld	c, [hl]
@@ -11370,7 +11370,7 @@ _Browse:
 	ld	[hl], b
 	jp	.l00196
 .l00182:
-;src/editor/editor.c:1423: else if (key == KEY_HOME) selected = 0;
+;src/editor/editor.c:1406: else if (key == KEY_HOME) selected = 0;
 	ld	hl, 265
 	add	hl, sp
 	ld	a, [hl]
@@ -11388,7 +11388,7 @@ _Browse:
 	ld	[hl], a
 	jp	.l00196
 .l00179:
-;src/editor/editor.c:1424: else if (key == KEY_END && list_count) selected = list_count - 1;
+;src/editor/editor.c:1407: else if (key == KEY_END && list_count) selected = list_count - 1;
 	ld	hl, 265
 	add	hl, sp
 	ld	a, [hl]
@@ -11410,7 +11410,7 @@ _Browse:
 	ld	[hl], b
 	jp	.l00196
 .l00175:
-;src/editor/editor.c:1425: else if ((key == KEY_ENTER || key == KEY_RIGHT) && list_count && list_kinds[row] != KIND_UP) {
+;src/editor/editor.c:1408: else if ((key == KEY_ENTER || key == KEY_RIGHT) && list_count && list_kinds[row] != KIND_UP) {
 	ld	hl, 265
 	add	hl, sp
 	ld	a, [hl]
@@ -11461,7 +11461,7 @@ _Browse:
 	ld	a, [bc]
 	or	a, a
 	jp	Z, .l00169
-;src/editor/editor.c:1426: if (list_kinds[row] == KIND_FOLDER) ListLoading(path, row);
+;src/editor/editor.c:1409: if (list_kinds[row] == KIND_FOLDER) ListLoading(path, row);
 	dec	a
 	jp	NZ,.l00498
 	jp	.l00499
@@ -11478,11 +11478,11 @@ _Browse:
 	call	_ListLoading
 	jp	.l00133
 .l00132:
-;src/editor/editor.c:1427: else ShowBusy("Loading...");
+;src/editor/editor.c:1410: else ShowBusy("Loading...");
 	ld	de, ___str_69
 	call	_ShowBusy
 .l00133:
-;src/editor/editor.c:1428: if (ListEntry(path, selected) == 0xFF) continue; // its full name
+;src/editor/editor.c:1411: if (ListEntry(path, selected) == 0xFF) continue; // its full name
 	ld	hl, 268
 	add	hl, sp
 	ld	c, [hl]
@@ -11497,7 +11497,7 @@ _Browse:
 	jp	NZ,.l00500
 	jp	.l00196
 .l00500:
-;src/editor/editor.c:1429: for (length = 0; path[length]; ++length);
+;src/editor/editor.c:1412: for (length = 0; path[length]; ++length);
 	ld	c, $00
 .l00200:
 	push	hl
@@ -11532,11 +11532,11 @@ _Browse:
 	ld	hl, 267
 	add	hl, sp
 	ld	[hl], c
-;src/editor/editor.c:1430: if (entry.dir) {
+;src/editor/editor.c:1413: if (entry.dir) {
 	ld	a, [(_entry + 73) + 0]
 	or	a, a
 	jp	Z, .l00149
-;src/editor/editor.c:1431: if (JoinPath(path + length, "", entry.name, PATH_SIZE - length)) {
+;src/editor/editor.c:1414: if (JoinPath(path + length, "", entry.name, PATH_SIZE - length)) {
 	ld	a, $80
 	sub	a, c
 	dec	hl
@@ -11552,7 +11552,7 @@ _Browse:
 	call	_JoinPath
 	or	a, a
 	jp	Z, .l00138
-;src/editor/editor.c:1432: selected = ListFolder(path, 0);
+;src/editor/editor.c:1415: selected = ListFolder(path, 0);
 	ld	bc, $0000
 	ld	hl, 0
 	add	hl, sp
@@ -11564,7 +11564,7 @@ _Browse:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:1433: drawn = LIST_ALL;
+;src/editor/editor.c:1416: drawn = LIST_ALL;
 	ld	hl, 260
 	add	hl, sp
 	ld	[hl], $FF
@@ -11572,19 +11572,19 @@ _Browse:
 	ld	[hl], $FF
 	jp	.l00196
 .l00138:
-;src/editor/editor.c:1436: path[length] = 0;
+;src/editor/editor.c:1419: path[length] = 0;
 	ld	hl, 265
 	add	hl, sp
 	ld	a, [hl+]
 	ld	h, [hl]
 	ld	l, a
 	ld	[hl], $00
-;src/editor/editor.c:1437: ListMessage("Path is too long");
+;src/editor/editor.c:1420: ListMessage("Path is too long");
 	ld	de, ___str_70
 	call	_ListMessage
 	jp	.l00196
 .l00149:
-;src/editor/editor.c:1444: JoinPath(path + length, "", entry.name, FS_NAME_SIZE + 1);
+;src/editor/editor.c:1424: JoinPath(path + length, "", entry.name, FS_NAME_SIZE + 1);
 	ld	hl, 265
 	add	hl, sp
 	ld	e, [hl]
@@ -11597,34 +11597,34 @@ _Browse:
 	push	bc
 	ld	bc, ___str_68
 	call	_JoinPath
-;src/editor/editor.c:1446: if (IsGame(entry.name)) {
+;src/editor/editor.c:1425: if (IsGame(entry.name)) {
 	ld	de, _entry
 	call	_IsGame__far
 	or	a, a
 	jp	Z, .l00141
-;src/editor/editor.c:1447: LaunchGame(path); // returns if it doesn't launch
+;src/editor/editor.c:1426: LaunchGame(path); // returns if it doesn't launch
 	ld	hl, 0
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_LaunchGame__far
-;src/editor/editor.c:1448: path[length] = 0;
+;src/editor/editor.c:1427: path[length] = 0;
 	ld	hl, 265
 	add	hl, sp
 	ld	a, [hl+]
 	ld	h, [hl]
 	ld	l, a
 	ld	[hl], $00
-;src/editor/editor.c:1449: drawn = LIST_ALL;
+;src/editor/editor.c:1428: drawn = LIST_ALL;
 	ld	hl, 260
 	add	hl, sp
 	ld	[hl], $FF
 	inc	hl
 	ld	[hl], $FF
-;src/editor/editor.c:1450: continue;
+;src/editor/editor.c:1429: continue;
 	jp	.l00196
 .l00141:
-;src/editor/editor.c:1452: if (entry.size > TB_SIZE) result = FileLoadLarge(path);
+;src/editor/editor.c:1431: if (entry.size > TB_SIZE) result = FileLoadLarge(path);
 	ld	hl, (_entry + 65) + 0
 	ld	c, [hl]
 	inc	hl
@@ -11655,9 +11655,9 @@ _Browse:
 	ld	c, a
 	jp	.l00144
 .l00143:
-;src/editor/editor.c:1454: FileCloseLarge();
+;src/editor/editor.c:1433: FileCloseLarge();
 	call	_FileCloseLarge
-;src/editor/editor.c:1455: result = FileLoad(path);
+;src/editor/editor.c:1434: result = FileLoad(path);
 	ld	hl, 0
 	add	hl, sp
 	ld	e, l
@@ -11665,11 +11665,11 @@ _Browse:
 	call	_FileLoad
 	ld	c, a
 .l00144:
-;src/editor/editor.c:1460: HideBox();
+;src/editor/editor.c:1436: HideBox();
 	push	bc
 	call	_HideBox__far
 	pop	bc
-;src/editor/editor.c:1461: path[length] = 0;
+;src/editor/editor.c:1437: path[length] = 0;
 	push	hl
 	ld	hl, 2
 	add	hl, sp
@@ -11685,39 +11685,39 @@ _Browse:
 	ld	d, h
 	xor	a, a
 	ld	[de], a
-;src/editor/editor.c:1462: if (result) {
+;src/editor/editor.c:1438: if (result) {
 	ld	a, c
 	or	a, a
 	jp	Z, .l00146
-;src/editor/editor.c:1463: file_name[0] = 0; // the text buffer only has part of it, don't save over the file
+;src/editor/editor.c:1439: file_name[0] = 0; // the text buffer only has part of it, don't save over the file
 	ld	hl, _file_name
 	ld	[hl], $00
-;src/editor/editor.c:1464: ShowError(result, "TOO BIG");
+;src/editor/editor.c:1440: ShowError(result, "TOO BIG");
 	ld	de, ___str_71
 	ld	a, c
 	call	_ShowError
 	jp	.l00147
 .l00146:
-;src/editor/editor.c:1467: CopyName(file_dir, path);
+;src/editor/editor.c:1443: CopyName(file_dir, path);
 	ld	hl, 0
 	add	hl, sp
 	ld	c, l
 	ld	b, h
 	ld	de, _file_dir
 	call	_CopyName
-;src/editor/editor.c:1468: CopyName(file_name, entry.name);
+;src/editor/editor.c:1444: CopyName(file_name, entry.name);
 	ld	bc, _entry
 	ld	de, _file_name
 	call	_CopyName
 .l00147:
-;src/editor/editor.c:1470: opened = 1;
+;src/editor/editor.c:1446: opened = 1;
 	ld	hl, 262
 	add	hl, sp
 	ld	[hl], $01
-;src/editor/editor.c:1471: break;
+;src/editor/editor.c:1447: break;
 	jp	.l00198
 .l00169:
-;src/editor/editor.c:1474: else if (path[0] && (key == KEY_LEFT || key == KEY_BACKSPACE ||
+;src/editor/editor.c:1450: else if (path[0] && (key == KEY_LEFT || key == KEY_BACKSPACE ||
 	ld	hl, sp+0
 	ld	c, [hl]
 	ld	hl, 265
@@ -11744,7 +11744,7 @@ _Browse:
 	ld	a, e
 	or	a, a
 	jp	NZ, .l00258
-;src/editor/editor.c:1475: ((key == KEY_ENTER || key == KEY_RIGHT) && list_count && list_kinds[row] == KIND_UP))) {
+;src/editor/editor.c:1451: ((key == KEY_ENTER || key == KEY_RIGHT) && list_count && list_kinds[row] == KIND_UP))) {
 	ld	hl, 266
 	add	hl, sp
 	ld	a, [hl]
@@ -11773,7 +11773,7 @@ _Browse:
 	ld	a, [bc]
 	or	a, a
 	jp	NZ, .l00160
-;src/editor/editor.c:1476: for (length = 0; path[length]; ++length);
+;src/editor/editor.c:1452: for (length = 0; path[length]; ++length);
 .l00258:
 	ld	c, $00
 .l00203:
@@ -11787,7 +11787,7 @@ _Browse:
 	jp	Z, .l00259
 	inc	c
 	jp	.l00203
-;src/editor/editor.c:1477: while (path[--length] != '/');
+;src/editor/editor.c:1453: while (path[--length] != '/');
 .l00259:
 .l00152:
 	dec	c
@@ -11821,7 +11821,7 @@ _Browse:
 .l00504:
 	jp	.l00152
 .l00505:
-;src/editor/editor.c:1478: CopyName(name, path + length + 1);
+;src/editor/editor.c:1454: CopyName(name, path + length + 1);
 	dec	hl
 	ld	c, [hl]
 	inc	hl
@@ -11832,21 +11832,21 @@ _Browse:
 	ld	e, l
 	ld	d, h
 	call	_CopyName
-;src/editor/editor.c:1479: path[length] = 0;
+;src/editor/editor.c:1455: path[length] = 0;
 	ld	hl, 268
 	add	hl, sp
 	ld	a, [hl+]
 	ld	h, [hl]
 	ld	l, a
 	ld	[hl], $00
-;src/editor/editor.c:1480: ListLoading(path, 0xFF);
+;src/editor/editor.c:1456: ListLoading(path, 0xFF);
 	ld	a, $FF
 	ld	hl, 0
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_ListLoading
-;src/editor/editor.c:1481: selected = ListFolder(path, name); // back on the folder it came from
+;src/editor/editor.c:1457: selected = ListFolder(path, name); // back on the folder it came from
 	ld	hl, 193
 	add	hl, sp
 	ld	c, l
@@ -11861,7 +11861,7 @@ _Browse:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:1482: drawn = LIST_ALL;
+;src/editor/editor.c:1458: drawn = LIST_ALL;
 	ld	hl, 260
 	add	hl, sp
 	ld	[hl], $FF
@@ -11869,7 +11869,7 @@ _Browse:
 	ld	[hl], $FF
 	jp	.l00196
 .l00160:
-;src/editor/editor.c:1484: else if (key == KEY_ESCAPE || key == KEY_BACKSPACE || key == KEY_MENU) break;
+;src/editor/editor.c:1460: else if (key == KEY_ESCAPE || key == KEY_BACKSPACE || key == KEY_MENU) break;
 	ld	hl, 265
 	add	hl, sp
 	ld	a, [hl]
@@ -11890,26 +11890,26 @@ _Browse:
 	jp	.l00196
 .l00508:
 .l00198:
-;src/editor/editor.c:1486: font = editor_font;
+;src/editor/editor.c:1462: font = editor_font;
 	ld	hl, 263
 	add	hl, sp
 	ld	a, [hl]
 	ld	hl, _font
 	ld	[hl], a
-;src/editor/editor.c:1487: SetFont(font);
+;src/editor/editor.c:1463: SetFont(font);
 	ld	a, [hl]
 	call	_SetFont
-;src/editor/editor.c:1488: render_text = 1;
+;src/editor/editor.c:1464: render_text = 1;
 	ld	hl, _render_text
 	ld	[hl], $01
-;src/editor/editor.c:1489: SetRows();
+;src/editor/editor.c:1465: SetRows();
 	call	_SetRows__far
-;src/editor/editor.c:1490: return opened;
+;src/editor/editor.c:1466: return opened;
 	ld	hl, 262
 	add	hl, sp
 	ld	a, [hl]
 .l00205:
-;src/editor/editor.c:1491: }
+;src/editor/editor.c:1467: }
 	ld	hl, 270
 	add	hl, sp
 	ld	sp, hl
@@ -11929,18 +11929,18 @@ ___str_70:
 ___str_71:
 	DB "TOO BIG"
 	DB $00
-;src/editor/editor.c:1495: static unsigned char IsGame(const char* name) {
+;src/editor/editor.c:1470: static unsigned char IsGame(const char* name) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function IsGame
 ; ---------------------------------
 _IsGame:
-;src/editor/editor.c:1496: const char* dot = 0;
+;src/editor/editor.c:1471: const char* dot = 0;
 	ld	bc, $0000
-;src/editor/editor.c:1498: return dot && (dot[1] | 0x20) == 'g' && (dot[2] | 0x20) == 'b' && (!dot[3] || ((dot[3] | 0x20) == 'c' && !dot[4]));
+;src/editor/editor.c:1473: return dot && (dot[1] | 0x20) == 'g' && (dot[2] | 0x20) == 'b' && (!dot[3] || ((dot[3] | 0x20) == 'c' && !dot[4]));
 .l00105:
-;src/editor/editor.c:1497: for (; *name; ++name) if (*name == '.') dot = name;
+;src/editor/editor.c:1472: for (; *name; ++name) if (*name == '.') dot = name;
 	ld	a, [de]
 	or	a, a
 	jp	Z, .l00103
@@ -11956,7 +11956,7 @@ _IsGame:
 	inc	de
 	jp	.l00105
 .l00103:
-;src/editor/editor.c:1498: return dot && (dot[1] | 0x20) == 'g' && (dot[2] | 0x20) == 'b' && (!dot[3] || ((dot[3] | 0x20) == 'c' && !dot[4]));
+;src/editor/editor.c:1473: return dot && (dot[1] | 0x20) == 'g' && (dot[2] | 0x20) == 'b' && (!dot[3] || ((dot[3] | 0x20) == 'c' && !dot[4]));
 	ld	a, b
 	or	a, c
 	jp	Z, .l00109
@@ -12012,9 +12012,9 @@ _IsGame:
 	ld	a, $01
 .l00111:
 .l00107:
-;src/editor/editor.c:1499: }
+;src/editor/editor.c:1474: }
 	ret
-;src/editor/editor.c:1503: static void LaunchGame(const char* path) {
+;src/editor/editor.c:1478: static void LaunchGame(const char* path) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -12026,57 +12026,57 @@ _LaunchGame:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:1507: if (doc_large) {
+;src/editor/editor.c:1482: if (doc_large) {
 	ld	hl, _doc_large
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00104
-;src/editor/editor.c:1508: if (!CanDiscard()) return;
+;src/editor/editor.c:1483: if (!CanDiscard()) return;
 	call	_CanDiscard__far
 	or	a, a
 	jp	NZ, .l00102
 	jp	.l00121
 .l00102:
-;src/editor/editor.c:1509: FileCloseLarge();
+;src/editor/editor.c:1484: FileCloseLarge();
 	call	_FileCloseLarge
-;src/editor/editor.c:1510: tb_Clear();
+;src/editor/editor.c:1485: tb_Clear();
 	call	_tb_Clear
-;src/editor/editor.c:1511: file_name[0] = 0;
+;src/editor/editor.c:1486: file_name[0] = 0;
 	ld	hl, _file_name
 	ld	[hl], $00
-;src/editor/editor.c:1512: modified = 0;
+;src/editor/editor.c:1487: modified = 0;
 	ld	hl, _modified
 	ld	[hl], $00
-;src/editor/editor.c:1513: SettingsSave();
+;src/editor/editor.c:1488: SettingsSave();
 	call	_SettingsSave
 .l00104:
-;src/editor/editor.c:1515: ShowBusy("Loading...");
+;src/editor/editor.c:1490: ShowBusy("Loading...");
 	ld	de, ___str_72
 	call	_ShowBusy__far
-;src/editor/editor.c:1516: if ((result = FileSaveSwap())) {
+;src/editor/editor.c:1491: if ((result = FileSaveSwap())) {
 	call	_FileSaveSwap
 	ld	c, a
 	or	a, a
 	jp	Z, .l00106
-;src/editor/editor.c:1517: HideBox();
+;src/editor/editor.c:1492: HideBox();
 	push	bc
 	call	_HideBox
 	pop	bc
-;src/editor/editor.c:1518: ShowError(result, "DISK FULL");
+;src/editor/editor.c:1493: ShowError(result, "DISK FULL");
 	ld	de, ___str_73
 	ld	a, c
 	call	_ShowError__far
-;src/editor/editor.c:1519: return;
+;src/editor/editor.c:1494: return;
 	jp	.l00121
 .l00106:
-;src/editor/editor.c:1521: result = FileGameOpen(path);
+;src/editor/editor.c:1496: result = FileGameOpen(path);
 	ld	hl, sp+40
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	call	_FileGameOpen
 	ld	c, a
-;src/editor/editor.c:1522: while (!result && game_block != game_blocks) { // "Loading 512/2048 KB"
+;src/editor/editor.c:1497: while (!result && game_block != game_blocks) { // "Loading 512/2048 KB"
 .l00108:
 	ld	a, c
 	or	a, a
@@ -12093,14 +12093,14 @@ _LaunchGame:
 	jp	NZ,.l00179
 	jp	.l00110
 .l00179:
-;src/editor/editor.c:1523: end = PutText(text, "Loading ");
+;src/editor/editor.c:1498: end = PutText(text, "Loading ");
 	ld	bc, ___str_74
 	ld	hl, 0
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_PutText__far
-;src/editor/editor.c:1524: end = PutNumber(end, game_block >> 1);
+;src/editor/editor.c:1499: end = PutNumber(end, game_block >> 1);
 	ld	hl, _game_block + 1
 	dec	hl
 	ld	e, [hl]
@@ -12114,11 +12114,11 @@ _LaunchGame:
 	ld	e, c
 	ld	d, b
 	call	_PutNumber__far
-;src/editor/editor.c:1525: *end++ = '/';
+;src/editor/editor.c:1500: *end++ = '/';
 	ld	a, $2F
 	ld	[bc], a
 	inc	bc
-;src/editor/editor.c:1526: end = PutText(PutNumber(end, game_blocks >> 1), " KB");
+;src/editor/editor.c:1501: end = PutText(PutNumber(end, game_blocks >> 1), " KB");
 	ld	hl, _game_blocks + 1
 	dec	hl
 	ld	e, [hl]
@@ -12136,21 +12136,21 @@ _LaunchGame:
 	ld	d, b
 	ld	bc, ___str_75
 	call	_PutText__far
-;src/editor/editor.c:1527: *end = 0;
+;src/editor/editor.c:1502: *end = 0;
 	xor	a, a
 	ld	[bc], a
-;src/editor/editor.c:1528: ShowBusy(text);
+;src/editor/editor.c:1503: ShowBusy(text);
 	ld	hl, 0
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_ShowBusy__far
-;src/editor/editor.c:1529: result = FileGameCopy();
+;src/editor/editor.c:1504: result = FileGameCopy();
 	call	_FileGameCopy
 	ld	c, a
 	jp	.l00108
 .l00110:
-;src/editor/editor.c:1531: if (!result) result = FileGameFinish(path);
+;src/editor/editor.c:1506: if (!result) result = FileGameFinish(path);
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00112
@@ -12161,27 +12161,27 @@ _LaunchGame:
 	call	_FileGameFinish
 	ld	c, a
 .l00112:
-;src/editor/editor.c:1532: if (result) {
+;src/editor/editor.c:1507: if (result) {
 	ld	a, c
 	or	a, a
 	jp	Z, .l00114
-;src/editor/editor.c:1533: HideBox();
+;src/editor/editor.c:1508: HideBox();
 	push	bc
 	call	_HideBox
 	pop	bc
-;src/editor/editor.c:1534: ShowError(result, "TOO BIG");
+;src/editor/editor.c:1509: ShowError(result, "TOO BIG");
 	ld	de, ___str_76
 	ld	a, c
 	call	_ShowError__far
-;src/editor/editor.c:1535: Reboot(); // PSRAM's text may be overwritten, booting restores it from the swap file
+;src/editor/editor.c:1510: Reboot(); // PSRAM's text may be overwritten, booting restores it from the swap file
 	call	_Reboot
 .l00114:
-;src/editor/editor.c:1538: basename = path;
+;src/editor/editor.c:1513: basename = path;
 	ld	hl, sp+40
 	ld	c, [hl]
 	inc	hl
 	ld	b, [hl]
-;src/editor/editor.c:1539: for (scan = path; *scan; ++scan) if (*scan == '/') basename = scan + 1;
+;src/editor/editor.c:1514: for (scan = path; *scan; ++scan) if (*scan == '/') basename = scan + 1;
 	dec	hl
 	ld	e, [hl]
 	inc	hl
@@ -12202,7 +12202,7 @@ _LaunchGame:
 .l00120:
 	jp	.l00119
 .l00117:
-;src/editor/editor.c:1540: *ToLatin1(text, basename, sizeof(text) - 1) = 0;
+;src/editor/editor.c:1515: *ToLatin1(text, basename, sizeof(text) - 1) = 0;
 	ld	a, $27
 	push	af
 	inc	sp
@@ -12213,16 +12213,16 @@ _LaunchGame:
 	call	_ToLatin1__far
 	xor	a, a
 	ld	[bc], a
-;src/editor/editor.c:1541: InGameHeader(text);
+;src/editor/editor.c:1516: InGameHeader(text);
 	ld	hl, 0
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_InGameHeader
-;src/editor/editor.c:1542: GameLaunch();
+;src/editor/editor.c:1517: GameLaunch();
 	call	_GameLaunch
 .l00121:
-;src/editor/editor.c:1543: }
+;src/editor/editor.c:1518: }
 	add	sp, 42
 	ret
 	SECTION FRAGMENT "src/editor/editor.c FIXED",ROMX,BANK[1]
@@ -12245,31 +12245,31 @@ ___str_75:
 ___str_76:
 	DB "TOO BIG"
 	DB $00
-;src/editor/editor.c:1546: static void OpenFile(void) {
+;src/editor/editor.c:1520: static void OpenFile(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
 ; Function OpenFile
 ; ---------------------------------
 _OpenFile:
-;src/editor/editor.c:1547: if (!CanDiscard()) return;
+;src/editor/editor.c:1521: if (!CanDiscard()) return;
 	call	_CanDiscard
 	or	a, a
 	jp	NZ, .l00102
 	jp	.l00105
 .l00102:
-;src/editor/editor.c:1548: if (Browse()) {
+;src/editor/editor.c:1522: if (Browse()) {
 	call	_Browse
 	or	a, a
 	jp	Z, .l00105
-;src/editor/editor.c:1549: ResetCursor();
+;src/editor/editor.c:1523: ResetCursor();
 	call	_ResetCursor__far
-;src/editor/editor.c:1550: SettingsSave();
+;src/editor/editor.c:1524: SettingsSave();
 	jp	_SettingsSave
 .l00105:
-;src/editor/editor.c:1552: }
+;src/editor/editor.c:1526: }
 	ret
-;src/editor/editor.c:1555: static unsigned char NameChar(unsigned char c) {
+;src/editor/editor.c:1529: static unsigned char NameChar(unsigned char c) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -12277,7 +12277,7 @@ _OpenFile:
 ; ---------------------------------
 _NameChar:
 	ld	c, a
-;src/editor/editor.c:1556: if (c < ' ' || (c >= 0x7F && c < 0xA0)) return 0;
+;src/editor/editor.c:1530: if (c < ' ' || (c >= 0x7F && c < 0xA0)) return 0;
 	ld	a, c
 	sub	a, $20
 	jp	C, .l00101
@@ -12291,7 +12291,7 @@ _NameChar:
 	xor	a, a
 	jp	.l00105
 .l00102:
-;src/editor/editor.c:1557: return c != '/' && c != 0x5C && c != ':' && c != '*' && c != '?' && c != '"' && c != '<' && c != '>' && c != '|';
+;src/editor/editor.c:1531: return c != '/' && c != 0x5C && c != ':' && c != '*' && c != '?' && c != '"' && c != '<' && c != '>' && c != '|';
 	ld	a, c
 	sub	a, $2F
 	jp	NZ,.l00174
@@ -12346,9 +12346,9 @@ _NameChar:
 	ld	a, $01
 .l00109:
 .l00105:
-;src/editor/editor.c:1558: }
+;src/editor/editor.c:1532: }
 	ret
-;src/editor/editor.c:1561: static unsigned char AskFileName(void) {
+;src/editor/editor.c:1535: static unsigned char AskFileName(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -12356,7 +12356,7 @@ _NameChar:
 ; ---------------------------------
 _AskFileName:
 	add	sp, -78
-;src/editor/editor.c:1566: length = (unsigned char)(ToLatin1(name, file_name, NAME_CHARS) - name);
+;src/editor/editor.c:1540: length = (unsigned char)(ToLatin1(name, file_name, NAME_CHARS) - name);
 	ld	a, $20
 	push	af
 	inc	sp
@@ -12372,23 +12372,23 @@ _AskFileName:
 	sub	a, l
 	ld	hl, sp+77
 	ld	[hl], a
-;src/editor/editor.c:1567: Render();
+;src/editor/editor.c:1541: Render();
 	call	_Render__far
-;src/editor/editor.c:1568: EditorShowCursor(0);
+;src/editor/editor.c:1542: EditorShowCursor(0);
 	xor	a, a
 	call	_EditorShowCursor
-;src/editor/editor.c:1569: NoHighlight();
+;src/editor/editor.c:1543: NoHighlight();
 	call	_NoHighlight__far
-;src/editor/editor.c:1570: while (1) {
+;src/editor/editor.c:1544: while (1) {
 .l00125:
-;src/editor/editor.c:1571: end = PutText(text, "Save as ");
+;src/editor/editor.c:1545: end = PutText(text, "Save as ");
 	ld	bc, ___str_77
 	ld	hl, 35
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_PutText__far
-;src/editor/editor.c:1572: for (i = 0; i < length; ++i) *end++ = name[i];
+;src/editor/editor.c:1546: for (i = 0; i < length; ++i) *end++ = name[i];
 	ld	e, $00
 .l00128:
 	ld	hl, $0001
@@ -12413,27 +12413,27 @@ _AskFileName:
 	inc	e
 	jp	.l00128
 .l00101:
-;src/editor/editor.c:1573: *end++ = '_';
+;src/editor/editor.c:1547: *end++ = '_';
 	ld	a, $5F
 	ld	[bc], a
 	pop	bc
 	push	bc
-;src/editor/editor.c:1574: *end = 0;
+;src/editor/editor.c:1548: *end = 0;
 	xor	a, a
 	ld	[bc], a
-;src/editor/editor.c:1575: if (bars) {
+;src/editor/editor.c:1549: if (bars) {
 	ld	hl, _bars
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00103
-;src/editor/editor.c:1576: DrawRow(HEADER_LINE, 1, text);
+;src/editor/editor.c:1550: DrawRow(HEADER_LINE, 1, text);
 	ld	hl, 35
 	add	hl, sp
 	push	hl
 	ld	e, $01
 	ld	a, $12
 	call	_DrawRow__far
-;src/editor/editor.c:1577: end = PutText(text, "in ");
+;src/editor/editor.c:1551: end = PutText(text, "in ");
 	ld	bc, ___str_78
 	ld	hl, 35
 	add	hl, sp
@@ -12442,13 +12442,13 @@ _AskFileName:
 	call	_PutText__far
 	ld	e, c
 	ld	d, b
-;src/editor/editor.c:1578: PutPath(end, file_dir, 28);
+;src/editor/editor.c:1552: PutPath(end, file_dir, 28);
 	ld	a, $1C
 	push	af
 	inc	sp
 	ld	bc, _file_dir
 	call	_PutPath
-;src/editor/editor.c:1579: DrawRow(STATUS_LINE, 1, text);
+;src/editor/editor.c:1553: DrawRow(STATUS_LINE, 1, text);
 	ld	hl, 35
 	add	hl, sp
 	push	hl
@@ -12457,7 +12457,7 @@ _AskFileName:
 	call	_DrawRow__far
 	jp	.l00104
 .l00103:
-;src/editor/editor.c:1581: else DrawRow(0, 0, text);
+;src/editor/editor.c:1555: else DrawRow(0, 0, text);
 	ld	hl, 35
 	add	hl, sp
 	push	hl
@@ -12465,17 +12465,17 @@ _AskFileName:
 	xor	a, a
 	call	_DrawRow__far
 .l00104:
-;src/editor/editor.c:1582: EditorDraw();
+;src/editor/editor.c:1556: EditorDraw();
 	call	_EditorDraw
-;src/editor/editor.c:1583: do {
+;src/editor/editor.c:1557: do {
 .l00107:
-;src/editor/editor.c:1584: WaitFrame();
+;src/editor/editor.c:1558: WaitFrame();
 	call	_WaitFrame
-;src/editor/editor.c:1585: key = (unsigned char)KBPopEvent();
+;src/editor/editor.c:1559: key = (unsigned char)KBPopEvent();
 	call	_KBPopEvent
 	ld	hl, sp+76
 	ld	[hl], c
-;src/editor/editor.c:1586: if (!key) key = PadKey();
+;src/editor/editor.c:1560: if (!key) key = PadKey();
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00108
@@ -12483,12 +12483,12 @@ _AskFileName:
 	ld	hl, sp+76
 	ld	[hl], a
 .l00108:
-;src/editor/editor.c:1587: } while (!key);
+;src/editor/editor.c:1561: } while (!key);
 	ld	hl, sp+76
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00107
-;src/editor/editor.c:1588: if (key == KEY_ENTER && length) break;
+;src/editor/editor.c:1562: if (key == KEY_ENTER && length) break;
 	ld	a, [hl]
 	sub	a, $0A
 	jp	NZ,.l00203
@@ -12501,7 +12501,7 @@ _AskFileName:
 	or	a, a
 	jp	NZ, .l00126
 .l00111:
-;src/editor/editor.c:1589: if (key == KEY_ESCAPE || key == KEY_MENU || (key == KEY_BACKSPACE && !length)) {
+;src/editor/editor.c:1563: if (key == KEY_ESCAPE || key == KEY_MENU || (key == KEY_BACKSPACE && !length)) {
 	ld	hl, sp+76
 	ld	a, [hl]
 	sub	a, $1B
@@ -12532,14 +12532,14 @@ _AskFileName:
 	or	a, a
 	jp	NZ, .l00114
 .l00113:
-;src/editor/editor.c:1590: dirty = 1;
+;src/editor/editor.c:1564: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
-;src/editor/editor.c:1591: return 0;
+;src/editor/editor.c:1565: return 0;
 	xor	a, a
 	jp	.l00130
 .l00114:
-;src/editor/editor.c:1593: if (key == KEY_BACKSPACE) --length;
+;src/editor/editor.c:1567: if (key == KEY_BACKSPACE) --length;
 	ld	a, c
 	or	a, a
 	jp	Z, .l00122
@@ -12547,7 +12547,7 @@ _AskFileName:
 	dec	[hl]
 	jp	.l00125
 .l00122:
-;src/editor/editor.c:1594: else if (length < NAME_CHARS && NameChar(key)) name[length++] = key;
+;src/editor/editor.c:1568: else if (length < NAME_CHARS && NameChar(key)) name[length++] = key;
 	ld	hl, sp+77
 	ld	a, [hl]
 	sub	a, $20
@@ -12571,7 +12571,7 @@ _AskFileName:
 	ld	[bc], a
 	jp	.l00125
 .l00126:
-;src/editor/editor.c:1596: name[length] = 0;
+;src/editor/editor.c:1570: name[length] = 0;
 	push	hl
 	ld	hl, 4
 	add	hl, sp
@@ -12586,22 +12586,22 @@ _AskFileName:
 	ld	b, h
 	xor	a, a
 	ld	[bc], a
-;src/editor/editor.c:1597: ToUtf8(file_name, name);
+;src/editor/editor.c:1571: ToUtf8(file_name, name);
 	ld	hl, 2
 	add	hl, sp
 	ld	c, l
 	ld	b, h
 	ld	de, _file_name
 	call	_ToUtf8
-;src/editor/editor.c:1598: SetLang();
+;src/editor/editor.c:1572: SetLang();
 	call	_SetLang__far
-;src/editor/editor.c:1599: dirty = 1;
+;src/editor/editor.c:1573: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
-;src/editor/editor.c:1600: return 1;
+;src/editor/editor.c:1574: return 1;
 	ld	a, $01
 .l00130:
-;src/editor/editor.c:1601: }
+;src/editor/editor.c:1575: }
 	add	sp, 78
 	ret
 	SECTION FRAGMENT "src/editor/editor.c FIXED",ROMX,BANK[1]
@@ -12612,7 +12612,7 @@ ___str_77:
 ___str_78:
 	DB "in "
 	DB $00
-;src/editor/editor.c:1603: static void SaveFile(unsigned char ask) {
+;src/editor/editor.c:1577: static void SaveFile(unsigned char ask) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -12622,7 +12622,7 @@ _SaveFile:
 	add	sp, -128
 	add	sp, -65
 	ld	c, a
-;src/editor/editor.c:1606: if ((ask || !file_name[0]) && !AskFileName()) return;
+;src/editor/editor.c:1580: if ((ask || !file_name[0]) && !AskFileName()) return;
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00104
@@ -12635,7 +12635,7 @@ _SaveFile:
 	jp	NZ, .l00102
 	jp	.l00109
 .l00102:
-;src/editor/editor.c:1607: JoinPath(path, file_dir, file_name, (unsigned char)(PATH_SIZE + FS_NAME_SIZE));
+;src/editor/editor.c:1581: JoinPath(path, file_dir, file_name, (unsigned char)(PATH_SIZE + FS_NAME_SIZE));
 	ld	a, $C1
 	push	af
 	inc	sp
@@ -12647,13 +12647,13 @@ _SaveFile:
 	ld	e, l
 	ld	d, h
 	call	_JoinPath
-;src/editor/editor.c:1608: ShowBusy("Saving...");
+;src/editor/editor.c:1582: ShowBusy("Saving...");
 	ld	de, ___str_79
 	call	_ShowBusy
-;src/editor/editor.c:1609: result = FileMount();
+;src/editor/editor.c:1583: result = FileMount();
 	call	_FileMount
 	ld	c, a
-;src/editor/editor.c:1611: if (!result) result = doc_large ? FileSaveLarge(path) : FileSave(path);
+;src/editor/editor.c:1584: if (!result) result = doc_large ? FileSaveLarge(path) : FileSave(path);
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00106
@@ -12676,35 +12676,35 @@ _SaveFile:
 .l00112:
 	ld	c, a
 .l00106:
-;src/editor/editor.c:1615: HideBox();
+;src/editor/editor.c:1585: HideBox();
 	push	bc
 	call	_HideBox__far
 	pop	bc
-;src/editor/editor.c:1616: SettingsSave(); // save as may have changed the name
+;src/editor/editor.c:1586: SettingsSave(); // save as may have changed the name
 	push	bc
 	call	_SettingsSave
 	pop	bc
-;src/editor/editor.c:1617: if (result) {
+;src/editor/editor.c:1587: if (result) {
 	ld	a, c
 	or	a, a
 	jp	Z, .l00108
-;src/editor/editor.c:1618: ShowError(result, "DISK FULL");
+;src/editor/editor.c:1588: ShowError(result, "DISK FULL");
 	ld	de, ___str_80
 	ld	a, c
 	call	_ShowError
-;src/editor/editor.c:1619: return;
+;src/editor/editor.c:1589: return;
 	jp	.l00109
 .l00108:
-;src/editor/editor.c:1621: modified = 0;
+;src/editor/editor.c:1591: modified = 0;
 	ld	hl, _modified
 	ld	[hl], $00
-;src/editor/editor.c:1622: UndoSaved();
+;src/editor/editor.c:1592: UndoSaved();
 	call	_UndoSaved
-;src/editor/editor.c:1623: ShowMessage("SAVED");
+;src/editor/editor.c:1593: ShowMessage("SAVED");
 	ld	de, ___str_81
 	call	_ShowMessage__far
 .l00109:
-;src/editor/editor.c:1624: }
+;src/editor/editor.c:1594: }
 	add	sp, 127
 	add	sp, 66
 	ret
@@ -12720,35 +12720,35 @@ ___str_80:
 ___str_81:
 	DB "SAVED"
 	DB $00
-;src/editor/editor.c:1627: static void ToggleWrap(void) {
+;src/editor/editor.c:1597: static void ToggleWrap(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function ToggleWrap
 ; ---------------------------------
 _ToggleWrap:
-;src/editor/editor.c:1628: tb_nowrap = !tb_nowrap;
+;src/editor/editor.c:1598: tb_nowrap = !tb_nowrap;
 	ld	hl, _tb_nowrap
 	ld	a, [hl]
 	sub	a,$01
 	ld	a, $00
 	rla
 	ld	[hl], a
-;src/editor/editor.c:1629: tb_left = 0;
+;src/editor/editor.c:1599: tb_left = 0;
 	xor	a, a
 	ld	hl, _tb_left
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:1630: dirty = 1;
+;src/editor/editor.c:1600: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
-;src/editor/editor.c:1631: SettingsSave();
+;src/editor/editor.c:1601: SettingsSave();
 	jp	_SettingsSave
 .l00101:
-;src/editor/editor.c:1632: }
+;src/editor/editor.c:1602: }
 	ret
-;src/editor/editor.c:1635: static void ShowHelp(void) {
+;src/editor/editor.c:1605: static void ShowHelp(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -12756,23 +12756,23 @@ _ToggleWrap:
 ; ---------------------------------
 _ShowHelp:
 	dec	sp
-;src/editor/editor.c:1636: unsigned char row, editor_font = font;
+;src/editor/editor.c:1606: unsigned char row, editor_font = font;
 	ld	hl, _font
 	ld	a, [hl]
 	ld	hl, sp+0
 	ld	[hl], a
-;src/editor/editor.c:1637: font = FONT_VWF;
+;src/editor/editor.c:1607: font = FONT_VWF;
 	ld	hl, _font
 	ld	[hl], $01
-;src/editor/editor.c:1638: SetFont(font);
+;src/editor/editor.c:1608: SetFont(font);
 	ld	a, $01
 	call	_SetFont
-;src/editor/editor.c:1639: render_text = 0;
+;src/editor/editor.c:1609: render_text = 0;
 	ld	hl, _render_text
 	ld	[hl], $00
-;src/editor/editor.c:1640: BeginFullScreen();
+;src/editor/editor.c:1610: BeginFullScreen();
 	call	_BeginFullScreen
-;src/editor/editor.c:1641: for (row = 0; row < HELP_ROWS; ++row) DrawRow(row, 0, help_lines[row]);
+;src/editor/editor.c:1611: for (row = 0; row < HELP_ROWS; ++row) DrawRow(row, 0, help_lines[row]);
 	ld	c, $00
 .l00105:
 	ld	b, $00
@@ -12796,32 +12796,32 @@ _ShowHelp:
 	ld	a, c
 	sub	a, $12
 	jp	C, .l00105
-;src/editor/editor.c:1642: EditorDraw();
+;src/editor/editor.c:1612: EditorDraw();
 	call	_EditorDraw
-;src/editor/editor.c:1643: while (!MenuKey());
+;src/editor/editor.c:1613: while (!MenuKey());
 .l00102:
 	call	_MenuKey
 	or	a, a
 	jp	Z, .l00102
-;src/editor/editor.c:1644: font = editor_font;
+;src/editor/editor.c:1614: font = editor_font;
 	ld	hl, sp+0
 	ld	a, [hl]
 	ld	hl, _font
 	ld	[hl], a
-;src/editor/editor.c:1645: SetFont(font);
+;src/editor/editor.c:1615: SetFont(font);
 	ld	a, [hl]
 	call	_SetFont
-;src/editor/editor.c:1646: render_text = 1;
+;src/editor/editor.c:1616: render_text = 1;
 	ld	hl, _render_text
 	ld	[hl], $01
-;src/editor/editor.c:1647: EndFullScreen();
+;src/editor/editor.c:1617: EndFullScreen();
 	inc	sp
 	jp	_EndFullScreen
 .l00107:
-;src/editor/editor.c:1648: }
+;src/editor/editor.c:1618: }
 	inc	sp
 	ret
-;src/editor/editor.c:1652: static char* PutHex(char* dest, unsigned char n) {
+;src/editor/editor.c:1622: static char* PutHex(char* dest, unsigned char n) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 13",ROMX,BANK[6]
 	LOAD FRAGMENT "Page 13 RAM",SRAM,BANK[13]
@@ -12833,11 +12833,11 @@ _PutHex:
 	ld	b, d
 	ld	hl, sp+0
 	ld	[hl], a
-;src/editor/editor.c:1653: unsigned char digit = n >> 4;
+;src/editor/editor.c:1623: unsigned char digit = n >> 4;
 	ld	a, [hl]
 	swap	a
 	and	a, $0F
-;src/editor/editor.c:1654: *dest++ = digit < 10 ? '0' + digit : 'A' - 10 + digit;
+;src/editor/editor.c:1624: *dest++ = digit < 10 ? '0' + digit : 'A' - 10 + digit;
 	ld	e, c
 	ld	d, b
 	inc	bc
@@ -12854,19 +12854,19 @@ _PutHex:
 	add	a, $37
 .l00104:
 	ld	[de], a
-;src/editor/editor.c:1655: digit = n & 15;
+;src/editor/editor.c:1625: digit = n & 15;
 	ld	hl, sp+0
 	ld	a, [hl]
 	and	a, $0F
-;src/editor/editor.c:1656: *dest++ = digit < 10 ? '0' + digit : 'A' - 10 + digit;
+;src/editor/editor.c:1626: *dest++ = digit < 10 ? '0' + digit : 'A' - 10 + digit;
 	ld	e, c
 	ld	d, b
 	inc	bc
-;src/editor/editor.c:1654: *dest++ = digit < 10 ? '0' + digit : 'A' - 10 + digit;
+;src/editor/editor.c:1624: *dest++ = digit < 10 ? '0' + digit : 'A' - 10 + digit;
 	ld	l, a
 ;	spillPairReg hl
 ;	spillPairReg hl
-;src/editor/editor.c:1656: *dest++ = digit < 10 ? '0' + digit : 'A' - 10 + digit;
+;src/editor/editor.c:1626: *dest++ = digit < 10 ? '0' + digit : 'A' - 10 + digit;
 	sub	a, $0A
 	jp	NC, .l00105
 	ld	a, l
@@ -12877,12 +12877,12 @@ _PutHex:
 	add	a, $37
 .l00106:
 	ld	[de], a
-;src/editor/editor.c:1657: return dest;
+;src/editor/editor.c:1627: return dest;
 .l00101:
-;src/editor/editor.c:1658: }
+;src/editor/editor.c:1628: }
 	inc	sp
 	ret
-;src/editor/editor.c:1667: static void KeyboardTest(void) {
+;src/editor/editor.c:1637: static void KeyboardTest(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 13",ROMX,BANK[6]
 	LOAD FRAGMENT "Page 13 RAM",SRAM,BANK[13]
@@ -12890,7 +12890,7 @@ _PutHex:
 ; ---------------------------------
 _KeyboardTest:
 	add	sp, -79
-;src/editor/editor.c:1668: unsigned char codes[TEST_CODES], errors[TEST_CODES], read = kb_buffer_write, count = 0, boot = kb_type;
+;src/editor/editor.c:1638: unsigned char codes[TEST_CODES], errors[TEST_CODES], read = kb_buffer_write, count = 0, boot = kb_type;
 	ld	hl, _kb_buffer_write
 	ld	a, [hl]
 	ld	hl, sp+62
@@ -12901,7 +12901,7 @@ _KeyboardTest:
 	ld	a, [hl]
 	ld	hl, sp+78
 	ld	[hl], a
-;src/editor/editor.c:1669: unsigned char row, i, bit, editor_font = font, bytes = kb_interrupt_count, errors_seen = kb_error_count;
+;src/editor/editor.c:1639: unsigned char row, i, bit, editor_font = font, bytes = kb_interrupt_count, errors_seen = kb_error_count;
 	ld	hl, _font
 	ld	a, [hl]
 	ld	hl, sp+64
@@ -12914,28 +12914,28 @@ _KeyboardTest:
 	ld	a, [hl]
 	ld	hl, sp+66
 	ld	[hl], a
-;src/editor/editor.c:1672: font = FONT_VWF;
+;src/editor/editor.c:1642: font = FONT_VWF;
 	ld	hl, _font
 	ld	[hl], $01
-;src/editor/editor.c:1673: SetFont(font);
+;src/editor/editor.c:1643: SetFont(font);
 	ld	a, $01
 	call	_SetFont
-;src/editor/editor.c:1674: render_text = 0;
+;src/editor/editor.c:1644: render_text = 0;
 	ld	hl, _render_text
 	ld	[hl], $00
-;src/editor/editor.c:1675: BeginFullScreen();
+;src/editor/editor.c:1645: BeginFullScreen();
 	call	_BeginFullScreen__far
-;src/editor/editor.c:1676: ClearScreen();
+;src/editor/editor.c:1646: ClearScreen();
 	call	_ClearScreen__far
-;src/editor/editor.c:1677: KBListen();
+;src/editor/editor.c:1647: KBListen();
 	call	_KBListen
-;src/editor/editor.c:1678: DrawRow(0, 0, "KEYBOARD TEST");
+;src/editor/editor.c:1648: DrawRow(0, 0, "KEYBOARD TEST");
 	ld	de, ___str_82
 	push	de
 	ld	e, $00
 	xor	a, a
 	call	_DrawRow__far
-;src/editor/editor.c:1679: DrawRow(1, 0, boot == 1 ? "Found at boot: PS/2" : boot ? "Found at boot: iGKB" : "Found at boot: none, listening anyway");
+;src/editor/editor.c:1649: DrawRow(1, 0, boot == 1 ? "Found at boot: PS/2" : boot ? "Found at boot: iGKB" : "Found at boot: none, listening anyway");
 	ld	hl, sp+78
 	ld	a, [hl]
 	dec	a
@@ -12973,28 +12973,28 @@ _KeyboardTest:
 	ld	e, $00
 	ld	a, $01
 	call	_DrawRow__far
-;src/editor/editor.c:1680: DrawRow(4, 0, "Scan codes (newest last):");
+;src/editor/editor.c:1650: DrawRow(4, 0, "Scan codes (newest last):");
 	ld	de, ___str_86
 	push	de
 	ld	e, $00
 	ld	a, $04
 	call	_DrawRow__far
-;src/editor/editor.c:1681: DrawRow(TB_ROWS - 1, 0, "B or Start  back");
+;src/editor/editor.c:1651: DrawRow(TB_ROWS - 1, 0, "B or Start  back");
 	ld	de, ___str_87
 	push	de
 	ld	e, $00
 	ld	a, $11
 	call	_DrawRow__far
-;src/editor/editor.c:1682: while (1) {
+;src/editor/editor.c:1652: while (1) {
 .l00124:
-;src/editor/editor.c:1683: end = PutText(text, "Bytes ");
+;src/editor/editor.c:1653: end = PutText(text, "Bytes ");
 	ld	bc, ___str_88
 	ld	hl, 22
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_PutText__far
-;src/editor/editor.c:1684: end = PutNumber(end, (unsigned char)(kb_interrupt_count - bytes));
+;src/editor/editor.c:1654: end = PutNumber(end, (unsigned char)(kb_interrupt_count - bytes));
 	ld	hl, _kb_interrupt_count
 	ld	a, [hl]
 	ld	hl, sp+65
@@ -13009,10 +13009,10 @@ _KeyboardTest:
 	call	_PutNumber__far
 	ld	e, c
 	ld	d, b
-;src/editor/editor.c:1685: end = PutText(end, "   with errors ");
+;src/editor/editor.c:1655: end = PutText(end, "   with errors ");
 	ld	bc, ___str_89
 	call	_PutText__far
-;src/editor/editor.c:1686: end = PutNumber(end, (unsigned char)(kb_error_count - errors_seen));
+;src/editor/editor.c:1656: end = PutNumber(end, (unsigned char)(kb_error_count - errors_seen));
 	ld	hl, _kb_error_count
 	ld	a, [hl]
 	ld	hl, sp+66
@@ -13025,17 +13025,17 @@ _KeyboardTest:
 	ld	e, c
 	ld	d, b
 	call	_PutNumber__far
-;src/editor/editor.c:1687: *end = 0;
+;src/editor/editor.c:1657: *end = 0;
 	xor	a, a
 	ld	[bc], a
-;src/editor/editor.c:1688: DrawRow(2, 0, text);
+;src/editor/editor.c:1658: DrawRow(2, 0, text);
 	ld	hl, 22
 	add	hl, sp
 	push	hl
 	ld	e, $00
 	ld	a, $02
 	call	_DrawRow__far
-;src/editor/editor.c:1689: if (read != kb_buffer_write) {
+;src/editor/editor.c:1659: if (read != kb_buffer_write) {
 	ld	hl, sp+62
 	ld	a, [hl]
 	ld	hl, _kb_buffer_write
@@ -13043,7 +13043,7 @@ _KeyboardTest:
 	jp	NZ,.l00264
 	jp	.l00162
 .l00264:
-;src/editor/editor.c:1690: while (read != kb_buffer_write) {
+;src/editor/editor.c:1660: while (read != kb_buffer_write) {
 	ld	hl, sp+63
 	ld	a, [hl]
 	ld	hl, sp+78
@@ -13056,7 +13056,7 @@ _KeyboardTest:
 	jp	NZ,.l00265
 	jp	.l00168
 .l00265:
-;src/editor/editor.c:1691: for (i = 1; i < TEST_CODES; ++i) codes[i - 1] = codes[i], errors[i - 1] = errors[i];
+;src/editor/editor.c:1661: for (i = 1; i < TEST_CODES; ++i) codes[i - 1] = codes[i], errors[i - 1] = errors[i];
 	ld	c, $01
 .l00126:
 	ld	a, c
@@ -13115,7 +13115,7 @@ _KeyboardTest:
 	ld	a, c
 	sub	a, $0B
 	jp	C, .l00126
-;src/editor/editor.c:1692: codes[TEST_CODES - 1] = kb_scan_code_buffer[read];
+;src/editor/editor.c:1662: codes[TEST_CODES - 1] = kb_scan_code_buffer[read];
 	ld	de, _kb_scan_code_buffer
 	ld	hl, sp+62
 	ld	l, [hl]
@@ -13126,7 +13126,7 @@ _KeyboardTest:
 	ld	a, [bc]
 	ld	hl, sp+10
 	ld	[hl], a
-;src/editor/editor.c:1693: errors[TEST_CODES - 1] = kb_error_buffer[read];
+;src/editor/editor.c:1663: errors[TEST_CODES - 1] = kb_error_buffer[read];
 	ld	de, _kb_error_buffer
 	ld	hl, sp+62
 	ld	l, [hl]
@@ -13137,13 +13137,13 @@ _KeyboardTest:
 	ld	a, [bc]
 	ld	hl, sp+21
 	ld	[hl], a
-;src/editor/editor.c:1694: read = (read + 1) & 63;
+;src/editor/editor.c:1664: read = (read + 1) & 63;
 	ld	hl, sp+62
 	ld	a, [hl]
 	inc	a
 	and	a, $3F
 	ld	[hl], a
-;src/editor/editor.c:1695: if (count < TEST_CODES) ++count;
+;src/editor/editor.c:1665: if (count < TEST_CODES) ++count;
 	ld	hl, sp+78
 	ld	a, [hl]
 	sub	a, $0B
@@ -13155,7 +13155,7 @@ _KeyboardTest:
 	ld	a, [hl]
 	ld	hl, sp+63
 	ld	[hl], a
-;src/editor/editor.c:1697: for (i = 0; i < count; ++i) {
+;src/editor/editor.c:1667: for (i = 0; i < count; ++i) {
 	ld	hl, sp+77
 	ld	[hl], $00
 .l00133:
@@ -13164,7 +13164,7 @@ _KeyboardTest:
 	ld	hl, sp+63
 	sub	a, [hl]
 	jp	NC, .l00162
-;src/editor/editor.c:1698: row = TEST_CODES - count + i;
+;src/editor/editor.c:1668: row = TEST_CODES - count + i;
 	ld	a, [hl]
 	ld	hl, sp+67
 	ld	[hl], a
@@ -13179,7 +13179,7 @@ _KeyboardTest:
 	add	a, [hl]
 	ld	hl, sp+78
 	ld	[hl], a
-;src/editor/editor.c:1699: end = PutHex(text, codes[row]);
+;src/editor/editor.c:1669: end = PutHex(text, codes[row]);
 	push	hl
 	ld	hl, 2
 	add	hl, sp
@@ -13202,11 +13202,11 @@ _KeyboardTest:
 	ld	d, h
 	call	_PutHex
 	pop	de
-;src/editor/editor.c:1700: *end++ = ' ';
+;src/editor/editor.c:1670: *end++ = ' ';
 	ld	a, $20
 	ld	[bc], a
 	inc	bc
-;src/editor/editor.c:1701: for (bit = 0x80; bit; bit >>= 1) *end++ = codes[row] & bit ? '1' : '0';
+;src/editor/editor.c:1671: for (bit = 0x80; bit; bit >>= 1) *end++ = codes[row] & bit ? '1' : '0';
 	ld	hl, sp+76
 	ld	[hl], $80
 	ld	hl, sp+72
@@ -13250,7 +13250,7 @@ _KeyboardTest:
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00128
-;src/editor/editor.c:1702: for (bit = 0; bit < 6; ++bit) if (errors[row] & (1 << bit) && test_errors[bit][0]) *end++ = ' ', end = PutText(end, test_errors[bit]);
+;src/editor/editor.c:1672: for (bit = 0; bit < 6; ++bit) if (errors[row] & (1 << bit) && test_errors[bit][0]) *end++ = ' ', end = PutText(end, test_errors[bit]);
 	ld	hl, sp+69
 	ld	[hl], c
 	inc	hl
@@ -13362,13 +13362,13 @@ _KeyboardTest:
 	ld	a, [hl]
 	sub	a, $06
 	jp	C, .l00130
-;src/editor/editor.c:1703: *end = 0;
+;src/editor/editor.c:1673: *end = 0;
 	ld	hl, sp+69
 	ld	a, [hl+]
 	ld	h, [hl]
 	ld	l, a
 	ld	[hl], $00
-;src/editor/editor.c:1704: DrawRow(TEST_FIRST + TEST_CODES - count + i, 0, text);
+;src/editor/editor.c:1674: DrawRow(TEST_FIRST + TEST_CODES - count + i, 0, text);
 	ld	hl, 22
 	add	hl, sp
 	ld	c, l
@@ -13385,11 +13385,11 @@ _KeyboardTest:
 	ld	e, $00
 	ld	a, l
 	call	_DrawRow__far
-;src/editor/editor.c:1697: for (i = 0; i < count; ++i) {
+;src/editor/editor.c:1667: for (i = 0; i < count; ++i) {
 	ld	hl, sp+77
 	inc	[hl]
 	jp	.l00133
-;src/editor/editor.c:1707: while ((event = KBPopEvent())) {
+;src/editor/editor.c:1677: while ((event = KBPopEvent())) {
 .l00162:
 .l00118:
 	call	_KBPopEvent
@@ -13400,14 +13400,14 @@ _KeyboardTest:
 	ld	a, b
 	or	a, c
 	jp	Z, .l00120
-;src/editor/editor.c:1708: end = PutText(text, "Key ");
+;src/editor/editor.c:1678: end = PutText(text, "Key ");
 	ld	bc, ___str_90
 	ld	hl, 22
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_PutText__far
-;src/editor/editor.c:1709: end = PutHex(end, (unsigned char)event);
+;src/editor/editor.c:1679: end = PutHex(end, (unsigned char)event);
 	ld	hl, sp+74
 	ld	a, [hl]
 	inc	hl
@@ -13421,7 +13421,7 @@ _KeyboardTest:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:1710: if ((unsigned char)event >= ' ' && (unsigned char)event < KEY_LEFT) *end++ = ' ', *end++ = (unsigned char)event;
+;src/editor/editor.c:1680: if ((unsigned char)event >= ' ' && (unsigned char)event < KEY_LEFT) *end++ = ' ', *end++ = (unsigned char)event;
 	dec	hl
 	dec	hl
 	ld	a, [hl]
@@ -13450,24 +13450,24 @@ _KeyboardTest:
 	inc	hl
 	ld	[hl], b
 .l00116:
-;src/editor/editor.c:1711: end = PutText(end, "   modifiers ");
+;src/editor/editor.c:1681: end = PutText(end, "   modifiers ");
 	ld	bc, ___str_91
 	ld	hl, sp+77
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	call	_PutText__far
-;src/editor/editor.c:1712: end = PutHex(end, event >> 8);
+;src/editor/editor.c:1682: end = PutHex(end, event >> 8);
 	ld	hl, sp+75
 	ld	e, [hl]
 	ld	a, e
 	ld	e, c
 	ld	d, b
 	call	_PutHex
-;src/editor/editor.c:1713: *end = 0;
+;src/editor/editor.c:1683: *end = 0;
 	xor	a, a
 	ld	[bc], a
-;src/editor/editor.c:1714: DrawRow(3, 0, text);
+;src/editor/editor.c:1684: DrawRow(3, 0, text);
 	ld	hl, 22
 	add	hl, sp
 	push	hl
@@ -13476,31 +13476,31 @@ _KeyboardTest:
 	call	_DrawRow__far
 	jp	.l00118
 .l00120:
-;src/editor/editor.c:1716: EditorDraw();
+;src/editor/editor.c:1686: EditorDraw();
 	call	_EditorDraw
-;src/editor/editor.c:1717: WaitFrame();
+;src/editor/editor.c:1687: WaitFrame();
 	call	_WaitFrame
-;src/editor/editor.c:1718: if (PadPressed() & (PADF_B | PADF_START)) break;
+;src/editor/editor.c:1688: if (PadPressed() & (PADF_B | PADF_START)) break;
 	call	_PadPressed
 	and	a, $0A
 	jp	NZ,.l00268
 	jp	.l00124
 .l00268:
-;src/editor/editor.c:1720: font = editor_font;
+;src/editor/editor.c:1690: font = editor_font;
 	ld	hl, sp+64
 	ld	a, [hl]
 	ld	hl, _font
 	ld	[hl], a
-;src/editor/editor.c:1721: SetFont(font);
+;src/editor/editor.c:1691: SetFont(font);
 	ld	a, [hl]
 	call	_SetFont
-;src/editor/editor.c:1722: render_text = 1;
+;src/editor/editor.c:1692: render_text = 1;
 	ld	hl, _render_text
 	ld	[hl], $01
-;src/editor/editor.c:1723: EndFullScreen();
+;src/editor/editor.c:1693: EndFullScreen();
 	call	_EndFullScreen__far
 .l00135:
-;src/editor/editor.c:1724: }
+;src/editor/editor.c:1694: }
 	add	sp, 79
 	ret
 	SECTION FRAGMENT "Page 13",ROMX,BANK[6]
@@ -13580,18 +13580,18 @@ ___str_90:
 ___str_91:
 	DB "   modifiers "
 	DB $00
-;src/editor/editor.c:1726: static void FileMenu(void) {
+;src/editor/editor.c:1696: static void FileMenu(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
 ; Function FileMenu
 ; ---------------------------------
 _FileMenu:
-;src/editor/editor.c:1727: unsigned char menu = 0, item;
+;src/editor/editor.c:1697: unsigned char menu = 0, item;
 	ld	c, $00
-;src/editor/editor.c:1728: while (1) {
+;src/editor/editor.c:1698: while (1) {
 .l00110:
-;src/editor/editor.c:1729: if ((menu = Choose(0, menu_items[0], 5, menu)) >= BACK) return;
+;src/editor/editor.c:1699: if ((menu = Choose(0, menu_items[0], 5, menu)) >= BACK) return;
 	ld	a, c
 	push	af
 	inc	sp
@@ -13606,7 +13606,7 @@ _FileMenu:
 	jp	C, .l00102
 	jp	.l00127
 .l00102:
-;src/editor/editor.c:1730: if (menu == 4) {
+;src/editor/editor.c:1700: if (menu == 4) {
 	ld	a, c
 	sub	a, $04
 	jp	NZ,.l00224
@@ -13614,18 +13614,18 @@ _FileMenu:
 .l00224:
 	jp	.l00104
 .l00225:
-;src/editor/editor.c:1731: OpenFile();
+;src/editor/editor.c:1701: OpenFile();
 	jp	_OpenFile
-;src/editor/editor.c:1732: return;
+;src/editor/editor.c:1702: return;
 	jp	.l00127
 .l00104:
-;src/editor/editor.c:1734: item = submenu_starts[menu];
+;src/editor/editor.c:1704: item = submenu_starts[menu];
 	ld	hl, _submenu_starts
 	ld	b, $00
 	add	hl, bc
 	ld	l, [hl]
 ;	spillPairReg hl
-;src/editor/editor.c:1735: if ((item = Choose(0, submenu_items[item], submenu_starts[menu + 1] - item, 0)) == CANCEL) return;
+;src/editor/editor.c:1705: if ((item = Choose(0, submenu_items[item], submenu_starts[menu + 1] - item, 0)) == CANCEL) return;
 	ld	a, c
 	inc	a
 	push	af
@@ -13672,13 +13672,13 @@ _FileMenu:
 .l00227:
 	jp	.l00127
 .l00106:
-;src/editor/editor.c:1736: if (item != BACK) break;
+;src/editor/editor.c:1706: if (item != BACK) break;
 	ld	a, e
 	sub	a, $FE
 	jp	NZ,.l00228
 	jp	.l00110
 .l00228:
-;src/editor/editor.c:1738: switch ((menu << 3) | item) {
+;src/editor/editor.c:1708: switch ((menu << 3) | item) {
 	ld	l, c
 ;	spillPairReg hl
 ;	spillPairReg hl
@@ -13780,70 +13780,70 @@ _FileMenu:
 	jp	.l00125
 .l00242:
 	jp	.l00127
-;src/editor/editor.c:1739: case 0: OpenFile(); break;
+;src/editor/editor.c:1709: case 0: OpenFile(); break;
 .l00112:
 	jp	_OpenFile
 	jp	.l00127
-;src/editor/editor.c:1740: case 1: SaveFile(0); break;
+;src/editor/editor.c:1710: case 1: SaveFile(0); break;
 .l00113:
 	xor	a, a
 	jp	_SaveFile
 	jp	.l00127
-;src/editor/editor.c:1741: case 2: SaveFile(1); break;
+;src/editor/editor.c:1711: case 2: SaveFile(1); break;
 .l00114:
 	ld	a, $01
 	jp	_SaveFile
 	jp	.l00127
-;src/editor/editor.c:1742: case 3: NewFile(); break;
+;src/editor/editor.c:1712: case 3: NewFile(); break;
 .l00115:
 	jp	_NewFile
 	jp	.l00127
-;src/editor/editor.c:1743: case 8: UndoRedo(0); break;
+;src/editor/editor.c:1713: case 8: UndoRedo(0); break;
 .l00116:
 	xor	a, a
 	jp	_UndoRedo__far
 	jp	.l00127
-;src/editor/editor.c:1744: case 9: UndoRedo(1); break;
+;src/editor/editor.c:1714: case 9: UndoRedo(1); break;
 .l00117:
 	ld	a, $01
 	jp	_UndoRedo__far
 	jp	.l00127
-;src/editor/editor.c:1745: case 10: Cut(); break;
+;src/editor/editor.c:1715: case 10: Cut(); break;
 .l00118:
 	jp	_Cut__far
 	jp	.l00127
-;src/editor/editor.c:1746: case 11: Copy(); break;
+;src/editor/editor.c:1716: case 11: Copy(); break;
 .l00119:
 	jp	_Copy__far
 	jp	.l00127
-;src/editor/editor.c:1747: case 12: Paste(); break;
+;src/editor/editor.c:1717: case 12: Paste(); break;
 .l00120:
 	jp	_Paste__far
 	jp	.l00127
-;src/editor/editor.c:1748: case 13: SelectAll(); break;
+;src/editor/editor.c:1718: case 13: SelectAll(); break;
 .l00121:
 	jp	_SelectAll__far
 	jp	.l00127
-;src/editor/editor.c:1749: case 16: ToggleWrap(); break;
+;src/editor/editor.c:1719: case 16: ToggleWrap(); break;
 .l00122:
 	jp	_ToggleWrap__far
 	jp	.l00127
-;src/editor/editor.c:1750: case 17: ToggleBars(); break;
+;src/editor/editor.c:1720: case 17: ToggleBars(); break;
 .l00123:
 	jp	_ToggleBars__far
 	jp	.l00127
-;src/editor/editor.c:1751: case 24: ShowHelp(); break;
+;src/editor/editor.c:1721: case 24: ShowHelp(); break;
 .l00124:
 	jp	_ShowHelp__far
 	jp	.l00127
-;src/editor/editor.c:1752: case 25: KeyboardTest(); break;
+;src/editor/editor.c:1722: case 25: KeyboardTest(); break;
 .l00125:
 	jp	_KeyboardTest__far
-;src/editor/editor.c:1753: }
+;src/editor/editor.c:1723: }
 .l00127:
-;src/editor/editor.c:1754: }
+;src/editor/editor.c:1724: }
 	ret
-;src/editor/editor.c:1757: static unsigned char HandleFileKey(unsigned char key, unsigned char mods) {
+;src/editor/editor.c:1727: static unsigned char HandleFileKey(unsigned char key, unsigned char mods) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -13851,7 +13851,7 @@ _FileMenu:
 ; ---------------------------------
 _HandleFileKey:
 	ld	c, a
-;src/editor/editor.c:1758: if (key == KEY_MENU || key == KEY_ESCAPE) FileMenu();
+;src/editor/editor.c:1728: if (key == KEY_MENU || key == KEY_ESCAPE) FileMenu();
 	ld	a, c
 	sub	a, $89
 	jp	NZ,.l00178
@@ -13868,7 +13868,7 @@ _HandleFileKey:
 	call	_FileMenu
 	jp	.l00129
 .l00128:
-;src/editor/editor.c:1759: else if (key == KEY_F1) ShowHelp();
+;src/editor/editor.c:1729: else if (key == KEY_F1) ShowHelp();
 	ld	a, c
 	sub	a, $90
 	jp	NZ,.l00181
@@ -13879,7 +13879,7 @@ _HandleFileKey:
 	call	_ShowHelp__far
 	jp	.l00129
 .l00125:
-;src/editor/editor.c:1760: else if (key == KEY_F11) ToggleBars();
+;src/editor/editor.c:1730: else if (key == KEY_F11) ToggleBars();
 	ld	a, c
 	sub	a, $9A
 	jp	NZ,.l00183
@@ -13890,7 +13890,7 @@ _HandleFileKey:
 	call	_ToggleBars__far
 	jp	.l00129
 .l00122:
-;src/editor/editor.c:1761: else if ((mods & KB_MOD_ALT) && (key == 'z' || key == 'Z')) ToggleWrap();
+;src/editor/editor.c:1731: else if ((mods & KB_MOD_ALT) && (key == 'z' || key == 'Z')) ToggleWrap();
 	bit	4, e
 	jp	NZ,.l00185
 	jp	.l00117
@@ -13911,7 +13911,7 @@ _HandleFileKey:
 	call	_ToggleWrap__far
 	jp	.l00129
 .l00117:
-;src/editor/editor.c:1762: else if (!(mods & KB_MOD_CTRL)) return 0;
+;src/editor/editor.c:1732: else if (!(mods & KB_MOD_CTRL)) return 0;
 	bit	5, e
 	jp	NZ,.l00189
 	jp	.l00190
@@ -13921,7 +13921,7 @@ _HandleFileKey:
 	xor	a, a
 	jp	.l00131
 .l00114:
-;src/editor/editor.c:1763: else if (key == 'o' || key == 'O') OpenFile();
+;src/editor/editor.c:1733: else if (key == 'o' || key == 'O') OpenFile();
 	ld	a, c
 	sub	a, $6F
 	jp	NZ,.l00191
@@ -13938,7 +13938,7 @@ _HandleFileKey:
 	call	_OpenFile
 	jp	.l00129
 .l00110:
-;src/editor/editor.c:1764: else if (key == 's' || key == 'S') SaveFile(0);
+;src/editor/editor.c:1734: else if (key == 's' || key == 'S') SaveFile(0);
 	ld	a, c
 	sub	a, $73
 	jp	NZ,.l00194
@@ -13956,7 +13956,7 @@ _HandleFileKey:
 	call	_SaveFile
 	jp	.l00129
 .l00106:
-;src/editor/editor.c:1765: else if (key == 'n' || key == 'N') NewFile();
+;src/editor/editor.c:1735: else if (key == 'n' || key == 'N') NewFile();
 	ld	a, c
 	sub	a, $6E
 	jp	NZ,.l00197
@@ -13973,26 +13973,26 @@ _HandleFileKey:
 	call	_NewFile
 	jp	.l00129
 .l00102:
-;src/editor/editor.c:1766: else return 0;
+;src/editor/editor.c:1736: else return 0;
 	xor	a, a
 	jp	.l00131
 .l00129:
-;src/editor/editor.c:1767: dirty = 1;
+;src/editor/editor.c:1737: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
-;src/editor/editor.c:1768: return 1;
+;src/editor/editor.c:1738: return 1;
 	ld	a, $01
 .l00131:
-;src/editor/editor.c:1769: }
+;src/editor/editor.c:1739: }
 	ret
-;src/editor/editor.c:1771: static void Render(void) {
+;src/editor/editor.c:1741: static void Render(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function Render
 ; ---------------------------------
 _Render:
-;src/editor/editor.c:1772: tb_find = cursor;
+;src/editor/editor.c:1742: tb_find = cursor;
 	ld	hl, _cursor
 	ld	a, [hl]
 	ld	hl, _tb_find
@@ -14001,16 +14001,16 @@ _Render:
 	ld	a, [hl]
 	ld	hl, _tb_find + 1
 	ld	[hl], a
-;src/editor/editor.c:1773: tb_Render(top);
+;src/editor/editor.c:1743: tb_Render(top);
 	ld	hl, _top
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	jp	_tb_Render
 .l00101:
-;src/editor/editor.c:1774: }
+;src/editor/editor.c:1744: }
 	ret
-;src/editor/editor.c:1785: static unsigned char CharWidth(unsigned char c) {
+;src/editor/editor.c:1755: static unsigned char CharWidth(unsigned char c) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -14018,13 +14018,13 @@ _Render:
 ; ---------------------------------
 _CharWidth:
 	ld	e, a
-;src/editor/editor.c:1786: if (c < ' ') c = ' '; // control characters are drawn as spaces
+;src/editor/editor.c:1756: if (c < ' ') c = ' '; // control characters are drawn as spaces
 	ld	a, e
 	sub	a, $20
 	jp	NC, .l00102
 	ld	e, $20
 .l00102:
-;src/editor/editor.c:1787: if (code_line) return CODE_WIDTH;
+;src/editor/editor.c:1757: if (code_line) return CODE_WIDTH;
 	ld	hl, _code_line
 	ld	a, [hl]
 	or	a, a
@@ -14032,7 +14032,7 @@ _CharWidth:
 	ld	a, $04
 	jp	.l00105
 .l00104:
-;src/editor/editor.c:1788: return head_level ? HeadingCharWidth(head_level, c) : font_widths[c];
+;src/editor/editor.c:1758: return head_level ? HeadingCharWidth(head_level, c) : font_widths[c];
 	ld	hl, _head_level
 	ld	a, [hl]
 	or	a, a
@@ -14047,9 +14047,9 @@ _CharWidth:
 	ld	a, [hl]
 .l00108:
 .l00105:
-;src/editor/editor.c:1789: }
+;src/editor/editor.c:1759: }
 	ret
-;src/editor/editor.c:1793: static void LineHeading(unsigned int start, unsigned char row) {
+;src/editor/editor.c:1763: static void LineHeading(unsigned int start, unsigned char row) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -14064,17 +14064,17 @@ _LineHeading:
 	dec	hl
 	dec	hl
 	ld	[hl], a
-;src/editor/editor.c:1794: unsigned int pos = start, length = tb_Length();
+;src/editor/editor.c:1764: unsigned int pos = start, length = tb_Length();
 	call	_tb_Length
 	pop	hl
 	push	bc
-;src/editor/editor.c:1795: head_level = 0;
+;src/editor/editor.c:1765: head_level = 0;
 	ld	hl, _head_level
 	ld	[hl], $00
-;src/editor/editor.c:1796: code_line = 0;
+;src/editor/editor.c:1766: code_line = 0;
 	ld	hl, _code_line
 	ld	[hl], $00
-;src/editor/editor.c:1797: if (tb_lang != LANG_MD) return;
+;src/editor/editor.c:1767: if (tb_lang != LANG_MD) return;
 	ld	hl, _tb_lang
 	ld	a, [hl]
 	dec	a
@@ -14082,7 +14082,7 @@ _LineHeading:
 	jp	.l00128
 .l00196:
 	jp	.l00122
-;src/editor/editor.c:1798: while (pos < length && pos - start < 3 && tb_GetChar(pos) == '`') ++pos;
+;src/editor/editor.c:1768: while (pos < length && pos - start < 3 && tb_GetChar(pos) == '`') ++pos;
 .l00128:
 	ld	hl, sp+5
 	ld	c, [hl]
@@ -14132,7 +14132,7 @@ _LineHeading:
 	inc	bc
 	jp	.l00105
 .l00107:
-;src/editor/editor.c:1799: if (pos - start == 3 || (row != 0xFF && (tb_row_states[row] & MD_FENCE_STATE))) { code_line = 1; return; }
+;src/editor/editor.c:1769: if (pos - start == 3 || (row != 0xFF && (tb_row_states[row] & MD_FENCE_STATE))) { code_line = 1; return; }
 	ld	hl, sp+2
 	ld	a, [hl]
 	sub	a, $03
@@ -14166,7 +14166,7 @@ _LineHeading:
 	ld	hl, _code_line
 	ld	[hl], $01
 	jp	.l00122
-;src/editor/editor.c:1801: while (pos < length && pos - start < 7 && tb_GetChar(pos) == '#') ++pos;
+;src/editor/editor.c:1771: while (pos < length && pos - start < 7 && tb_GetChar(pos) == '#') ++pos;
 .l00134:
 	ld	hl, sp+5
 	ld	c, [hl]
@@ -14216,7 +14216,7 @@ _LineHeading:
 	inc	bc
 	jp	.l00114
 .l00116:
-;src/editor/editor.c:1802: if (pos == start || pos - start > 4 || pos == length || tb_GetChar(pos) != ' ') return;
+;src/editor/editor.c:1772: if (pos == start || pos - start > 4 || pos == length || tb_GetChar(pos) != ' ') return;
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, c
@@ -14256,7 +14256,7 @@ _LineHeading:
 .l00117:
 	jp	.l00122
 .l00118:
-;src/editor/editor.c:1803: head_level = (unsigned char)(pos - start);
+;src/editor/editor.c:1773: head_level = (unsigned char)(pos - start);
 	ld	a, c
 	ld	hl, sp+5
 	ld	c, [hl]
@@ -14264,10 +14264,10 @@ _LineHeading:
 	ld	hl, _head_level
 	ld	[hl], a
 .l00122:
-;src/editor/editor.c:1804: }
+;src/editor/editor.c:1774: }
 	add	sp, 7
 	ret
-;src/editor/editor.c:1808: static unsigned char ScrollX(void) {
+;src/editor/editor.c:1778: static unsigned char ScrollX(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -14275,12 +14275,12 @@ _LineHeading:
 ; ---------------------------------
 _ScrollX:
 	add	sp, -9
-;src/editor/editor.c:1809: unsigned char row = tb_found_row, count;
+;src/editor/editor.c:1779: unsigned char row = tb_found_row, count;
 	ld	hl, _tb_found_row
 	ld	a, [hl]
 	ld	hl, sp+0
 	ld	[hl], a
-;src/editor/editor.c:1810: unsigned int start = row == 0xFF ? tb_LineStart(cursor) : tb_row_starts[row];
+;src/editor/editor.c:1780: unsigned int start = row == 0xFF ? tb_LineStart(cursor) : tb_row_starts[row];
 	ld	a, [hl]
 	inc	a
 	jp	NZ,.l00221
@@ -14317,7 +14317,7 @@ _ScrollX:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:1811: unsigned int col = cursor - start, length = tb_Length(), pos, x = 0, left;
+;src/editor/editor.c:1781: unsigned int col = cursor - start, length = tb_Length(), pos, x = 0, left;
 	ld	hl, _cursor + 1
 	dec	hl
 	ld	e, [hl]
@@ -14343,10 +14343,10 @@ _ScrollX:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:1812: unsigned char c, keep = KEEP_LEFT;
+;src/editor/editor.c:1782: unsigned char c, keep = KEEP_LEFT;
 	inc	hl
 	ld	[hl], $28
-;src/editor/editor.c:1813: if (col < tb_left) keep = KEEP_RIGHT;
+;src/editor/editor.c:1783: if (col < tb_left) keep = KEEP_RIGHT;
 	ld	hl, _tb_left
 	ld	a, c
 	sub	a, [hl]
@@ -14358,12 +14358,12 @@ _ScrollX:
 	ld	[hl], $78
 	jp	.l00111
 .l00110:
-;src/editor/editor.c:1814: else if (row != 0xFF) { // its char is drawn, or it's the line's end right of its last one
+;src/editor/editor.c:1784: else if (row != 0xFF) { // its char is drawn, or it's the line's end right of its last one
 	ld	hl, sp+8
 	ld	e, [hl]
 	bit	0, e
 	jp	NZ, .l00111
-;src/editor/editor.c:1815: count = tb_row_counts[row];
+;src/editor/editor.c:1785: count = tb_row_counts[row];
 	ld	de, _tb_row_counts+0
 	ld	hl, sp+0
 	ld	l, [hl]
@@ -14374,7 +14374,7 @@ _ScrollX:
 	ld	a, [de]
 	ld	hl, sp+6
 	ld	[hl], a
-;src/editor/editor.c:1816: if (col - tb_left < count) return 0;
+;src/editor/editor.c:1786: if (col - tb_left < count) return 0;
 	ld	a, c
 	ld	hl, _tb_left
 	sub	a, [hl]
@@ -14399,7 +14399,7 @@ _ScrollX:
 	xor	a, a
 	jp	.l00130
 .l00102:
-;src/editor/editor.c:1817: if (col - tb_left == count && cursor == LineEnd(row) && RenderCursorX(count) < TB_WIDTH - 1) return 0;
+;src/editor/editor.c:1787: if (col - tb_left == count && cursor == LineEnd(row) && RenderCursorX(count) < TB_WIDTH - 1) return 0;
 	ld	hl, sp+7
 	ld	a, [hl]
 	sub	a, e
@@ -14441,7 +14441,7 @@ _ScrollX:
 	xor	a, a
 	jp	.l00130
 .l00111:
-;src/editor/editor.c:1819: LineHeading(start, row);
+;src/editor/editor.c:1789: LineHeading(start, row);
 	push	bc
 	ld	hl, sp+2
 	ld	a, [hl]
@@ -14451,7 +14451,7 @@ _ScrollX:
 	ld	d, [hl]
 	call	_LineHeading
 	pop	bc
-;src/editor/editor.c:1820: if (keep == KEEP_LEFT) { // more if the line ends sooner, so the screen isn't left empty
+;src/editor/editor.c:1790: if (keep == KEEP_LEFT) { // more if the line ends sooner, so the screen isn't left empty
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $28
@@ -14460,7 +14460,7 @@ _ScrollX:
 .l00227:
 	jp	.l00116
 .l00228:
-;src/editor/editor.c:1821: for (pos = cursor, x = 0; pos < length && (c = tb_GetChar(pos)) != ASCII_LF && x <= TB_WIDTH; ++pos) x += CharWidth(c);
+;src/editor/editor.c:1791: for (pos = cursor, x = 0; pos < length && (c = tb_GetChar(pos)) != ASCII_LF && x <= TB_WIDTH; ++pos) x += CharWidth(c);
 	ld	hl, _cursor
 	ld	a, [hl]
 	ld	hl, sp+7
@@ -14528,7 +14528,7 @@ _ScrollX:
 .l00230:
 	jp	.l00125
 .l00112:
-;src/editor/editor.c:1822: if (x < TB_WIDTH - 1 - KEEP_LEFT) keep = TB_WIDTH - 1 - x;
+;src/editor/editor.c:1792: if (x < TB_WIDTH - 1 - KEEP_LEFT) keep = TB_WIDTH - 1 - x;
 	ld	a, e
 	sub	a, $77
 	ld	a, d
@@ -14539,7 +14539,7 @@ _ScrollX:
 	ld	hl, sp+5
 	ld	[hl], a
 .l00116:
-;src/editor/editor.c:1824: for (left = col, x = 0; left; --left) {
+;src/editor/editor.c:1794: for (left = col, x = 0; left; --left) {
 	xor	a, a
 	ld	hl, sp+3
 	ld	[hl], a
@@ -14549,7 +14549,7 @@ _ScrollX:
 	ld	a, b
 	or	a, c
 	jp	Z, .l00119
-;src/editor/editor.c:1825: if ((x += CharWidth(tb_GetChar(start + left - 1))) > keep) break;
+;src/editor/editor.c:1795: if ((x += CharWidth(tb_GetChar(start + left - 1))) > keep) break;
 	ld	hl, sp+1
 	ld	a, [hl+]
 	ld	h, [hl]
@@ -14593,11 +14593,11 @@ _ScrollX:
 	ld	a, [hl]
 	sbc	a, d
 	jp	C, .l00119
-;src/editor/editor.c:1824: for (left = col, x = 0; left; --left) {
+;src/editor/editor.c:1794: for (left = col, x = 0; left; --left) {
 	dec	bc
 	jp	.l00128
 .l00119:
-;src/editor/editor.c:1827: if (left == tb_left) return 0;
+;src/editor/editor.c:1797: if (left == tb_left) return 0;
 	ld	hl, _tb_left
 	ld	a, [hl]
 	sub	a, c
@@ -14613,18 +14613,18 @@ _ScrollX:
 	xor	a, a
 	jp	.l00130
 .l00121:
-;src/editor/editor.c:1828: tb_left = left;
+;src/editor/editor.c:1798: tb_left = left;
 	ld	hl, _tb_left
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:1829: return 1;
+;src/editor/editor.c:1799: return 1;
 	ld	a, $01
 .l00130:
-;src/editor/editor.c:1830: }
+;src/editor/editor.c:1800: }
 	add	sp, 9
 	ret
-;src/editor/editor.c:1833: static void Refresh(void) {
+;src/editor/editor.c:1803: static void Refresh(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -14632,7 +14632,7 @@ _ScrollX:
 ; ---------------------------------
 _Refresh:
 	add	sp, -3
-;src/editor/editor.c:1836: if (top > tb_Length()) top = tb_Length();
+;src/editor/editor.c:1806: if (top > tb_Length()) top = tb_Length();
 	call	_tb_Length
 	ld	hl, _top
 	ld	a, c
@@ -14647,7 +14647,7 @@ _Refresh:
 	inc	hl
 	ld	[hl], b
 .l00102:
-;src/editor/editor.c:1837: top = tb_RowStart(top); // wrapping may have changed
+;src/editor/editor.c:1807: top = tb_RowStart(top); // wrapping may have changed
 	ld	hl, _top
 	ld	e, [hl]
 	inc	hl
@@ -14657,9 +14657,9 @@ _Refresh:
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:1838: Render();
+;src/editor/editor.c:1808: Render();
 	call	_Render
-;src/editor/editor.c:1839: if (tb_found_row == 0xFF) {
+;src/editor/editor.c:1809: if (tb_found_row == 0xFF) {
 	ld	hl, _tb_found_row
 	ld	a, [hl]
 	inc	a
@@ -14668,13 +14668,13 @@ _Refresh:
 .l00209:
 	jp	.l00119
 .l00210:
-;src/editor/editor.c:1840: row = tb_RowStart(cursor);
+;src/editor/editor.c:1810: row = tb_RowStart(cursor);
 	ld	hl, _cursor
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	call	_tb_RowStart
-;src/editor/editor.c:1841: if (cursor < top) {
+;src/editor/editor.c:1811: if (cursor < top) {
 	ld	de, _cursor
 	ld	hl, _top
 	ld	a, [de]
@@ -14684,7 +14684,7 @@ _Refresh:
 	ld	a, [de]
 	sbc	a, [hl]
 	jp	NC, .l00116
-;src/editor/editor.c:1842: if (top && row == tb_RowStart(top - 1)) ScrollRing(0); // one row up
+;src/editor/editor.c:1812: if (top && row == tb_RowStart(top - 1)) ScrollRing(0); // one row up
 	ld	hl, _top + 1
 	ld	a, [hl]
 	dec	hl
@@ -14716,14 +14716,14 @@ _Refresh:
 	call	_ScrollRing
 	pop	bc
 .l00104:
-;src/editor/editor.c:1843: top = row;
+;src/editor/editor.c:1813: top = row;
 	ld	hl, _top
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
 	jp	.l00117
 .l00116:
-;src/editor/editor.c:1846: bottom = tb_row_starts[tb_rows];
+;src/editor/editor.c:1816: bottom = tb_row_starts[tb_rows];
 	ld	de, _tb_row_starts+0
 	ld	hl, _tb_rows
 	ld	l, [hl]
@@ -14743,7 +14743,7 @@ _Refresh:
 	ld	a, [de]
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:1847: for (i = tb_rows; i; --i) {
+;src/editor/editor.c:1817: for (i = tb_rows; i; --i) {
 	ld	hl, _tb_rows
 	ld	a, [hl]
 	ld	hl, sp+2
@@ -14753,7 +14753,7 @@ _Refresh:
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00108
-;src/editor/editor.c:1848: top = tb_NextRow(top);
+;src/editor/editor.c:1818: top = tb_NextRow(top);
 	push	bc
 	ld	hl, _top
 	ld	e, [hl]
@@ -14767,7 +14767,7 @@ _Refresh:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:1849: if (bottom == row) break;
+;src/editor/editor.c:1819: if (bottom == row) break;
 	ld	hl, sp+0
 	ld	a, [hl]
 	sub	a, c
@@ -14778,7 +14778,7 @@ _Refresh:
 	jp	NZ,.l00213
 	jp	.l00108
 .l00213:
-;src/editor/editor.c:1850: bottom = tb_NextRow(bottom);
+;src/editor/editor.c:1820: bottom = tb_NextRow(bottom);
 	push	bc
 	pop	hl
 	pop	de
@@ -14791,22 +14791,22 @@ _Refresh:
 	inc	sp
 	inc	sp
 	push	de
-;src/editor/editor.c:1847: for (i = tb_rows; i; --i) {
+;src/editor/editor.c:1817: for (i = tb_rows; i; --i) {
 	ld	hl, sp+2
 	dec	[hl]
 	jp	.l00124
 .l00108:
-;src/editor/editor.c:1852: if (!i) { // the cursor's row goes at the bottom
+;src/editor/editor.c:1822: if (!i) { // the cursor's row goes at the bottom
 	ld	hl, sp+2
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00113
-;src/editor/editor.c:1853: top = row;
+;src/editor/editor.c:1823: top = row;
 	ld	hl, _top
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/editor.c:1854: for (i = tb_rows - 1; i && top; --i) top = tb_RowStart(top - 1);
+;src/editor/editor.c:1824: for (i = tb_rows - 1; i && top; --i) top = tb_RowStart(top - 1);
 	ld	hl, _tb_rows
 	ld	c, [hl]
 	dec	c
@@ -14837,7 +14837,7 @@ _Refresh:
 	dec	c
 	jp	.l00128
 .l00113:
-;src/editor/editor.c:1856: else if (i == tb_rows) ScrollRing(1); // one row down
+;src/editor/editor.c:1826: else if (i == tb_rows) ScrollRing(1); // one row down
 	ld	hl, _tb_rows
 	ld	a, [hl]
 	ld	hl, sp+2
@@ -14850,10 +14850,10 @@ _Refresh:
 	ld	a, $01
 	call	_ScrollRing
 .l00117:
-;src/editor/editor.c:1858: Render();
+;src/editor/editor.c:1828: Render();
 	call	_Render
 .l00119:
-;src/editor/editor.c:1860: if (tb_nowrap && ScrollX()) Render();
+;src/editor/editor.c:1830: if (tb_nowrap && ScrollX()) Render();
 	ld	hl, _tb_nowrap
 	ld	a, [hl]
 	or	a, a
@@ -14863,21 +14863,21 @@ _Refresh:
 	jp	Z, .l00121
 	call	_Render
 .l00121:
-;src/editor/editor.c:1861: Draw();
+;src/editor/editor.c:1831: Draw();
 	call	_Draw
-;src/editor/editor.c:1862: redraw = 0;
+;src/editor/editor.c:1832: redraw = 0;
 	ld	hl, _redraw
 	ld	[hl], $00
-;src/editor/editor.c:1863: moved = 0;
+;src/editor/editor.c:1833: moved = 0;
 	ld	hl, _moved
 	ld	[hl], $00
-;src/editor/editor.c:1864: PlaceCursor();
+;src/editor/editor.c:1834: PlaceCursor();
 	call	_PlaceCursor
 .l00130:
-;src/editor/editor.c:1865: }
+;src/editor/editor.c:1835: }
 	add	sp, 3
 	ret
-;src/editor/editor.c:1867: void Editor(void) {
+;src/editor/editor.c:1837: void Editor(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -14885,24 +14885,24 @@ _Refresh:
 ; ---------------------------------
 _Editor::
 	add	sp, -4
-;src/editor/editor.c:1872: FileBackupSave(); // the last game's save RAM, before anything else
+;src/editor/editor.c:1841: FileBackupSave(); // the last game's save RAM, before anything else
 	call	_FileBackupSave
-;src/editor/editor.c:1873: if (!FileLoadData("/GBCSYS/EDITOR.DAT")) {
+;src/editor/editor.c:1842: if (!FileLoadData("/GBCSYS/EDITOR.DAT")) {
 	ld	de, ___str_97
 	call	_FileLoadData
 	or	a, a
 	jp	NZ, .l00102
-;src/editor/editor.c:1874: data_loaded = 1;
+;src/editor/editor.c:1843: data_loaded = 1;
 	ld	hl, _data_loaded
 	ld	[hl], $01
-;src/editor/editor.c:1875: SGBSetDefaultBorder();
+;src/editor/editor.c:1844: SGBSetDefaultBorder();
 	call	_SGBSetDefaultBorder
 .l00102:
-;src/editor/editor.c:1877: FileLoadSwap(); // before EditorSetup's tb_Load
+;src/editor/editor.c:1846: FileLoadSwap(); // before EditorSetup's tb_Load
 	call	_FileLoadSwap
-;src/editor/editor.c:1879: EditorSetup();
+;src/editor/editor.c:1847: EditorSetup();
 	call	_EditorSetup
-;src/editor/editor.c:1880: for (key = 0; key < BG_MAP_ROWS + WIN_MAP_ROWS; ++key) map_blocks[key] = key < TB_ROWS ? key : 0xFF; // set by RenderSetup
+;src/editor/editor.c:1848: for (key = 0; key < BG_MAP_ROWS + WIN_MAP_ROWS; ++key) map_blocks[key] = key < TB_ROWS ? key : 0xFF; // set by RenderSetup
 	ld	c, $00
 .l00185:
 	ld	hl, _map_blocks
@@ -14922,141 +14922,141 @@ _Editor::
 	ld	a, c
 	sub	a, $27
 	jp	C, .l00185
-;src/editor/editor.c:1881: everdrive = sd_Detect();
+;src/editor/editor.c:1849: everdrive = sd_Detect();
 	call	_sd_Detect
 	ld	hl, _everdrive
 	ld	[hl], a
-;src/editor/editor.c:1882: idle_frames = 0;
+;src/editor/editor.c:1850: idle_frames = 0;
 	ld	hl, _idle_frames
 	ld	[hl], $00
-;src/editor/editor.c:1883: normalized = 0;
+;src/editor/editor.c:1851: normalized = 0;
 	ld	hl, _normalized
 	ld	[hl], $00
-;src/editor/editor.c:1884: cursor = 0;
+;src/editor/editor.c:1852: cursor = 0;
 	xor	a, a
 	ld	hl, _cursor
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:1885: top = 0;
+;src/editor/editor.c:1853: top = 0;
 	xor	a, a
 	ld	hl, _top
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:1886: selecting = 0;
+;src/editor/editor.c:1854: selecting = 0;
 	ld	hl, _selecting
 	ld	[hl], $00
-;src/editor/editor.c:1887: want_x = 0;
+;src/editor/editor.c:1855: want_x = 0;
 	ld	hl, _want_x
 	ld	[hl], $00
-;src/editor/editor.c:1888: keep_x = 0;
+;src/editor/editor.c:1856: keep_x = 0;
 	ld	hl, _keep_x
 	ld	[hl], $00
-;src/editor/editor.c:1889: moved = 0;
+;src/editor/editor.c:1857: moved = 0;
 	ld	hl, _moved
 	ld	[hl], $00
-;src/editor/editor.c:1890: redraw = 0;
+;src/editor/editor.c:1858: redraw = 0;
 	ld	hl, _redraw
 	ld	[hl], $00
-;src/editor/editor.c:1891: ring_top = 0;
+;src/editor/editor.c:1859: ring_top = 0;
 	ld	hl, _ring_top
 	ld	[hl], $00
-;src/editor/editor.c:1892: ring_pos = 0;
+;src/editor/editor.c:1860: ring_pos = 0;
 	ld	hl, _ring_pos
 	ld	[hl], $00
-;src/editor/editor.c:1893: counted_pos = 0;
+;src/editor/editor.c:1861: counted_pos = 0;
 	xor	a, a
 	ld	hl, _counted_pos
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:1894: counted_lines = 0;
+;src/editor/editor.c:1862: counted_lines = 0;
 	xor	a, a
 	ld	hl, _counted_lines
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:1895: bars_changed = 0;
+;src/editor/editor.c:1863: bars_changed = 0;
 	ld	hl, _bars_changed
 	ld	[hl], $00
-;src/editor/editor.c:1896: edited = 0;
+;src/editor/editor.c:1864: edited = 0;
 	ld	hl, _edited
 	ld	[hl], $00
-;src/editor/editor.c:1897: pad_timer = 0;
+;src/editor/editor.c:1865: pad_timer = 0;
 	ld	hl, _pad_timer
 	ld	[hl], $00
-;src/editor/editor.c:1898: modified = 0;
+;src/editor/editor.c:1866: modified = 0;
 	ld	hl, _modified
 	ld	[hl], $00
-;src/editor/editor.c:1899: font = FONT_VWF; // SetLang
+;src/editor/editor.c:1867: font = FONT_VWF; // SetLang
 	ld	hl, _font
 	ld	[hl], $01
-;src/editor/editor.c:1900: file_name[0] = 0;
+;src/editor/editor.c:1868: file_name[0] = 0;
 	ld	hl, _file_name
 	ld	[hl], $00
-;src/editor/editor.c:1901: file_dir[0] = 0;
+;src/editor/editor.c:1869: file_dir[0] = 0;
 	ld	hl, _file_dir
 	ld	[hl], $00
-;src/editor/editor.c:1902: fs_crlf = 0;
+;src/editor/editor.c:1870: fs_crlf = 0;
 	ld	hl, _fs_crlf
 	ld	[hl], $00
-;src/editor/editor.c:1903: osk_shown = 0;
+;src/editor/editor.c:1871: osk_shown = 0;
 	ld	hl, _osk_shown
 	ld	[hl], $00
-;src/editor/editor.c:1904: osk_layer = OSK_LOWER;
+;src/editor/editor.c:1872: osk_layer = OSK_LOWER;
 	ld	hl, _osk_layer
 	ld	[hl], $00
-;src/editor/editor.c:1905: osk_x = 0;
+;src/editor/editor.c:1873: osk_x = 0;
 	ld	hl, _osk_x
 	ld	[hl], $00
-;src/editor/editor.c:1906: osk_y = 0;
+;src/editor/editor.c:1874: osk_y = 0;
 	ld	hl, _osk_y
 	ld	[hl], $00
-;src/editor/editor.c:1907: bars_on = 1;
+;src/editor/editor.c:1875: bars_on = 1;
 	ld	hl, _bars_on
 	ld	[hl], $01
-;src/editor/editor.c:1908: tb_nowrap = 0;
+;src/editor/editor.c:1876: tb_nowrap = 0;
 	ld	hl, _tb_nowrap
 	ld	[hl], $00
-;src/editor/editor.c:1909: tb_left = 0;
+;src/editor/editor.c:1877: tb_left = 0;
 	xor	a, a
 	ld	hl, _tb_left
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:1910: tb_lang = LANG_PLAIN;
+;src/editor/editor.c:1878: tb_lang = LANG_PLAIN;
 	ld	hl, _tb_lang
 	ld	[hl], $00
-;src/editor/editor.c:1911: render_text = 1;
+;src/editor/editor.c:1879: render_text = 1;
 	ld	hl, _render_text
 	ld	[hl], $01
-;src/editor/editor.c:1912: SettingsLoad();
+;src/editor/editor.c:1880: SettingsLoad();
 	call	_SettingsLoad
-;src/editor/editor.c:1913: SetLang();
+;src/editor/editor.c:1881: SetLang();
 	call	_SetLang__far
-;src/editor/editor.c:1914: UndoClear(modified);
+;src/editor/editor.c:1882: UndoClear(modified);
 	ld	hl, _modified
 	ld	a, [hl]
 	call	_UndoClear
-;src/editor/editor.c:1915: saved_modified = modified;
+;src/editor/editor.c:1883: saved_modified = modified;
 	ld	hl, _modified
 	ld	a, [hl]
 	ld	hl, _saved_modified
 	ld	[hl], a
-;src/editor/editor.c:1916: SetFont(font);
+;src/editor/editor.c:1884: SetFont(font);
 	ld	hl, _font
 	ld	a, [hl]
 	call	_SetFont
-;src/editor/editor.c:1917: SetRows();
+;src/editor/editor.c:1885: SetRows();
 	call	_SetRows
-;src/editor/editor.c:1919: swap_dirty = 0; // the swap file has what booting restored
+;src/editor/editor.c:1886: swap_dirty = 0; // the swap file has what booting restored
 	ld	hl, _swap_dirty
 	ld	[hl], $00
-;src/editor/editor.c:1920: doc_large = 0;
+;src/editor/editor.c:1887: doc_large = 0;
 	ld	hl, _doc_large
 	ld	[hl], $00
-;src/editor/editor.c:1921: if (backup_skipped) ShowMessage("SAVE NOT BACKED UP");
+;src/editor/editor.c:1888: if (backup_skipped) ShowMessage("SAVE NOT BACKED UP");
 	ld	hl, _backup_skipped
 	ld	a, [hl]
 	or	a, a
@@ -15064,7 +15064,7 @@ _Editor::
 	ld	de, ___str_98
 	call	_ShowMessage__far
 .l00105:
-;src/editor/editor.c:1922: if (modified) Refresh();
+;src/editor/editor.c:1889: if (modified) Refresh();
 	ld	hl, _modified
 	ld	a, [hl]
 	or	a, a
@@ -15072,18 +15072,18 @@ _Editor::
 	call	_Refresh
 	jp	.l00183
 .l00107:
-;src/editor/editor.c:1924: ClearScreen();
+;src/editor/editor.c:1891: ClearScreen();
 	call	_ClearScreen__far
-;src/editor/editor.c:1925: EditorDraw();
+;src/editor/editor.c:1892: EditorDraw();
 	call	_EditorDraw
-;src/editor/editor.c:1926: dirty = 1;
+;src/editor/editor.c:1893: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
-;src/editor/editor.c:1927: OpenFile();
+;src/editor/editor.c:1894: OpenFile();
 	call	_OpenFile__far
-;src/editor/editor.c:1933: while (1) {
+;src/editor/editor.c:1897: while (1) {
 .l00183:
-;src/editor/editor.c:1934: if (modified != saved_modified) {
+;src/editor/editor.c:1898: if (modified != saved_modified) {
 	ld	hl, _modified
 	ld	a, [hl]
 	ld	hl, _saved_modified
@@ -15091,31 +15091,31 @@ _Editor::
 	jp	NZ,.l00432
 	jp	.l00110
 .l00432:
-;src/editor/editor.c:1935: saved_modified = modified;
+;src/editor/editor.c:1899: saved_modified = modified;
 	ld	hl, _modified
 	ld	a, [hl]
 	ld	hl, _saved_modified
 	ld	[hl], a
-;src/editor/editor.c:1936: SettingsSave();
+;src/editor/editor.c:1900: SettingsSave();
 	call	_SettingsSave
 .l00110:
-;src/editor/editor.c:1938: if (bars_changed) { // status bar follows the cursor
+;src/editor/editor.c:1902: if (bars_changed) { // status bar follows the cursor
 	ld	hl, _bars_changed
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00114
-;src/editor/editor.c:1939: bars_changed = 0;
+;src/editor/editor.c:1903: bars_changed = 0;
 	ld	[hl], $00
-;src/editor/editor.c:1940: if (bars) Draw();
+;src/editor/editor.c:1904: if (bars) Draw();
 	ld	hl, _bars
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00114
 	call	_Draw
 .l00114:
-;src/editor/editor.c:1942: WaitFrame();
+;src/editor/editor.c:1906: WaitFrame();
 	call	_WaitFrame
-;src/editor/editor.c:1943: while ((key = (unsigned char)(event = KBPopEvent()))) {
+;src/editor/editor.c:1907: while ((key = (unsigned char)(event = KBPopEvent()))) {
 .l00126:
 	call	_KBPopEvent
 	ld	e, c
@@ -15124,7 +15124,7 @@ _Editor::
 	ld	c, a
 	or	a, a
 	jp	Z, .l00128
-;src/editor/editor.c:1944: if (!HandleFileKey(key, (unsigned char)(event >> 8))) HandleKey(key, (unsigned char)(event >> 8));
+;src/editor/editor.c:1908: if (!HandleFileKey(key, (unsigned char)(event >> 8))) HandleKey(key, (unsigned char)(event >> 8));
 	ld	l, d
 ;	spillPairReg hl
 ;	spillPairReg hl
@@ -15141,14 +15141,14 @@ _Editor::
 	ld	a, c
 	call	_HandleKey
 .l00116:
-;src/editor/editor.c:1946: if (doc_large) Slide(); // before the next key, which could reach the window's end
+;src/editor/editor.c:1909: if (doc_large) Slide(); // before the next key, which could reach the window's end
 	ld	hl, _doc_large
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00118
 	call	_Slide__far
 .l00118:
-;src/editor/editor.c:1948: if (dirty || edited) break; // text changed, rows need rendering before more keys
+;src/editor/editor.c:1910: if (dirty || edited) break; // text changed, rows need rendering before more keys
 	ld	hl, _dirty
 	ld	a, [hl]
 	or	a, a
@@ -15157,29 +15157,29 @@ _Editor::
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00128
-;src/editor/editor.c:1949: if (moved) { // keeps tb_found_row current for the next key
+;src/editor/editor.c:1911: if (moved) { // keeps tb_found_row current for the next key
 	ld	hl, _moved
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00126
-;src/editor/editor.c:1950: if (!PlaceCursor()) dirty = 1;
+;src/editor/editor.c:1912: if (!PlaceCursor()) dirty = 1;
 	call	_PlaceCursor
 	or	a, a
 	jp	NZ, .l00123
 	ld	hl, _dirty
 	ld	[hl], $01
 .l00123:
-;src/editor/editor.c:1951: moved = 0;
+;src/editor/editor.c:1913: moved = 0;
 	ld	hl, _moved
 	ld	[hl], $00
 	jp	.l00126
 .l00128:
-;src/editor/editor.c:1954: if ((key = PadKey())) {
+;src/editor/editor.c:1916: if ((key = PadKey())) {
 	call	_PadKey__far
 	ld	c, a
 	or	a, a
 	jp	Z, .l00132
-;src/editor/editor.c:1955: if (!HandleFileKey(key, pad_mods)) HandleKey(key, pad_mods);
+;src/editor/editor.c:1917: if (!HandleFileKey(key, pad_mods)) HandleKey(key, pad_mods);
 	push	bc
 	ld	hl, _pad_mods
 	ld	e, [hl]
@@ -15193,14 +15193,14 @@ _Editor::
 	ld	a, c
 	call	_HandleKey
 .l00132:
-;src/editor/editor.c:1958: if (doc_large) Slide(); // near the window's edge (sets dirty)
+;src/editor/editor.c:1919: if (doc_large) Slide(); // near the window's edge (sets dirty)
 	ld	hl, _doc_large
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00134
 	call	_Slide__far
 .l00134:
-;src/editor/editor.c:1960: if (dirty || edited || redraw || moved) idle_frames = 0;
+;src/editor/editor.c:1920: if (dirty || edited || redraw || moved) idle_frames = 0;
 	ld	hl, _dirty
 	ld	a, [hl]
 	or	a, a
@@ -15221,42 +15221,42 @@ _Editor::
 	ld	hl, _idle_frames
 	ld	[hl], $00
 .l00136:
-;src/editor/editor.c:1961: if (dirty) {
+;src/editor/editor.c:1921: if (dirty) {
 	ld	hl, _dirty
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00141
-;src/editor/editor.c:1962: Refresh();
+;src/editor/editor.c:1922: Refresh();
 	call	_Refresh
-;src/editor/editor.c:1963: dirty = 0;
+;src/editor/editor.c:1923: dirty = 0;
 	ld	hl, _dirty
 	ld	[hl], $00
-;src/editor/editor.c:1964: edited = 0;
+;src/editor/editor.c:1924: edited = 0;
 	ld	hl, _edited
 	ld	[hl], $00
-;src/editor/editor.c:1965: normalized = 0;
+;src/editor/editor.c:1925: normalized = 0;
 	ld	hl, _normalized
 	ld	[hl], $00
-;src/editor/editor.c:1966: continue;
+;src/editor/editor.c:1926: continue;
 	jp	.l00183
 .l00141:
-;src/editor/editor.c:1968: if (edited) {
+;src/editor/editor.c:1928: if (edited) {
 	ld	hl, _edited
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00156
-;src/editor/editor.c:1969: edited = 0;
+;src/editor/editor.c:1929: edited = 0;
 	ld	[hl], $00
-;src/editor/editor.c:1970: normalized = 0;
+;src/editor/editor.c:1930: normalized = 0;
 	ld	hl, _normalized
 	ld	[hl], $00
-;src/editor/editor.c:1971: RenderAfterEdit();
+;src/editor/editor.c:1931: RenderAfterEdit();
 	call	_RenderAfterEdit
-;src/editor/editor.c:1972: if (!PlaceCursor()) {
+;src/editor/editor.c:1932: if (!PlaceCursor()) {
 	call	_PlaceCursor
 	or	a, a
 	jp	NZ, .l00156
-;src/editor/editor.c:1973: if (cursor >= tb_row_starts[tb_rows] && tb_RowStart(cursor) == tb_row_starts[tb_rows]) ScrollDown();
+;src/editor/editor.c:1933: if (cursor >= tb_row_starts[tb_rows] && tb_RowStart(cursor) == tb_row_starts[tb_rows]) ScrollDown();
 	ld	hl, _tb_rows
 	ld	a, [hl]
 	ld	hl, sp+2
@@ -15343,7 +15343,7 @@ _Editor::
 	call	_ScrollDown
 	jp	.l00149
 .l00148:
-;src/editor/editor.c:1974: else if (top && cursor < top && tb_RowStart(cursor) == tb_RowStart(top - 1)) ScrollUp(tb_RowStart(cursor));
+;src/editor/editor.c:1934: else if (top && cursor < top && tb_RowStart(cursor) == tb_RowStart(top - 1)) ScrollUp(tb_RowStart(cursor));
 	ld	hl, _top + 1
 	ld	a, [hl]
 	dec	hl
@@ -15393,54 +15393,54 @@ _Editor::
 	call	_ScrollUp
 	jp	.l00149
 .l00143:
-;src/editor/editor.c:1976: Refresh();
+;src/editor/editor.c:1936: Refresh();
 	call	_Refresh
-;src/editor/editor.c:1977: continue;
+;src/editor/editor.c:1937: continue;
 	jp	.l00183
 .l00149:
-;src/editor/editor.c:1979: if (!PlaceCursor()) { // off the side
+;src/editor/editor.c:1939: if (!PlaceCursor()) { // off the side
 	call	_PlaceCursor
 	or	a, a
 	jp	NZ, .l00156
-;src/editor/editor.c:1980: Refresh();
+;src/editor/editor.c:1940: Refresh();
 	call	_Refresh
-;src/editor/editor.c:1981: continue;
+;src/editor/editor.c:1941: continue;
 	jp	.l00183
 .l00156:
-;src/editor/editor.c:1985: if (redraw) {
+;src/editor/editor.c:1945: if (redraw) {
 	ld	hl, _redraw
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00158
-;src/editor/editor.c:1986: Draw();
+;src/editor/editor.c:1946: Draw();
 	call	_Draw
-;src/editor/editor.c:1987: redraw = 0;
+;src/editor/editor.c:1947: redraw = 0;
 	ld	hl, _redraw
 	ld	[hl], $00
 .l00158:
-;src/editor/editor.c:1989: if (moved) {
+;src/editor/editor.c:1949: if (moved) {
 	ld	hl, _moved
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00162
-;src/editor/editor.c:1990: moved = 0;
+;src/editor/editor.c:1950: moved = 0;
 	ld	[hl], $00
-;src/editor/editor.c:1991: if (!PlaceCursor()) Refresh();
+;src/editor/editor.c:1951: if (!PlaceCursor()) Refresh();
 	call	_PlaceCursor
 	or	a, a
 	jp	NZ, .l00183
 	call	_Refresh
-;src/editor/editor.c:1992: continue;
+;src/editor/editor.c:1952: continue;
 	jp	.l00183
 .l00162:
-;src/editor/editor.c:1994: if (idle_frames < SWAP_DELAY) ++idle_frames;
+;src/editor/editor.c:1954: if (idle_frames < SWAP_DELAY) ++idle_frames;
 	ld	hl, _idle_frames
 	ld	a, [hl]
 	sub	a, $78
 	jp	NC, .l00164
 	inc	[hl]
 .l00164:
-;src/editor/editor.c:1996: if (doc_large && !lines_known && FileScanStep()) { // a sector a frame while idle
+;src/editor/editor.c:1955: if (doc_large && !lines_known && FileScanStep()) { // a sector a frame while idle
 	ld	hl, _doc_large
 	ld	a, [hl]
 	or	a, a
@@ -15452,7 +15452,7 @@ _Editor::
 	call	_FileScanStep
 	or	a, a
 	jp	Z, .l00166
-;src/editor/editor.c:1997: win_lines += scan_lines;
+;src/editor/editor.c:1956: win_lines += scan_lines;
 	ld	hl, _win_lines + 1
 	dec	hl
 	ld	e, [hl]
@@ -15487,14 +15487,14 @@ _Editor::
 	ld	[hl], a
 	dec	hl
 	ld	[hl], e
-;src/editor/editor.c:1998: lines_known = 1;
+;src/editor/editor.c:1957: lines_known = 1;
 	ld	hl, _lines_known
 	ld	[hl], $01
-;src/editor/editor.c:1999: bars_changed = 1;
+;src/editor/editor.c:1958: bars_changed = 1;
 	ld	hl, _bars_changed
 	ld	[hl], $01
 .l00166:
-;src/editor/editor.c:2002: if (idle_frames >= NORMALIZE_DELAY && !everdrive && !normalized) normalized = tb_NormalizeStep(); // keeps the .sav readable as text
+;src/editor/editor.c:1960: if (idle_frames >= NORMALIZE_DELAY && !everdrive && !normalized) normalized = tb_NormalizeStep(); // keeps the .sav readable as text
 	ld	hl, _idle_frames
 	ld	a, [hl]
 	sub	a, $1E
@@ -15511,7 +15511,7 @@ _Editor::
 	ld	hl, _normalized
 	ld	[hl], a
 .l00170:
-;src/editor/editor.c:2004: if (idle_frames >= SWAP_DELAY && swap_dirty && !doc_large) {
+;src/editor/editor.c:1961: if (idle_frames >= SWAP_DELAY && swap_dirty && !doc_large) {
 	ld	hl, _idle_frames
 	ld	a, [hl]
 	sub	a, $78
@@ -15524,13 +15524,13 @@ _Editor::
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00174
-;src/editor/editor.c:2005: swap_dirty = 0;
+;src/editor/editor.c:1962: swap_dirty = 0;
 	ld	hl, _swap_dirty
 	ld	[hl], $00
-;src/editor/editor.c:2006: FileSaveSwap();
+;src/editor/editor.c:1963: FileSaveSwap();
 	call	_FileSaveSwap
 .l00174:
-;src/editor/editor.c:2009: if (++blink_timer == CURSOR_BLINK) EditorShowCursor(0);
+;src/editor/editor.c:1965: if (++blink_timer == CURSOR_BLINK) EditorShowCursor(0);
 	ld	hl, _blink_timer
 	inc	[hl]
 	ld	a, [hl]
@@ -15544,7 +15544,7 @@ _Editor::
 	call	_EditorShowCursor
 	jp	.l00183
 .l00180:
-;src/editor/editor.c:2010: else if (blink_timer == CURSOR_BLINK + CURSOR_BLINK) {
+;src/editor/editor.c:1966: else if (blink_timer == CURSOR_BLINK + CURSOR_BLINK) {
 	ld	hl, _blink_timer
 	ld	a, [hl]
 	sub	a, $3C
@@ -15553,15 +15553,15 @@ _Editor::
 .l00440:
 	jp	.l00183
 .l00441:
-;src/editor/editor.c:2011: EditorShowCursor(1);
+;src/editor/editor.c:1967: EditorShowCursor(1);
 	ld	a, $01
 	call	_EditorShowCursor
-;src/editor/editor.c:2012: blink_timer = 0;
+;src/editor/editor.c:1968: blink_timer = 0;
 	ld	hl, _blink_timer
 	ld	[hl], $00
 	jp	.l00183
 .l00187:
-;src/editor/editor.c:2015: }
+;src/editor/editor.c:1971: }
 	add	sp, 4
 	ret
 	SECTION FRAGMENT "src/editor/editor.c FIXED",ROMX,BANK[1]

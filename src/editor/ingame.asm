@@ -536,7 +536,6 @@ MenuPalette:
   EDITOR_INK
 END_PAGE
 
-IF DEF(EVERDRIVE_OS)
 PAGE LAUNCH_PAGE
 ;DE = Latin-1 basename. Called by LaunchGame before the game owns WRAM/HRAM.
 _InGameHeader::
@@ -589,4 +588,3 @@ _InGameHeader::
   jr nz, .copy
   ret
 END_PAGE
-ENDC

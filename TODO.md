@@ -88,7 +88,6 @@ Emulator
 
 Code
 
-- MBC5 build (OS=0): editor.c's code is 0x154 bytes over its 16KB bank (0x84 since the edit mode changes), split editor.c like the OS build (bank_split.py) or move code out
 - ROM0 is nearly full (~750 bytes free): move helper routines that don't take any args out of ROM0 behind TRAMPOLINE
 - utilize remaining HRAM space (~100 bytes free) and RST vectors
 
@@ -113,7 +112,6 @@ OS Utilities (ideas, not committed to)
 Platforms
 
 The EverDrive GB X7 is the target cart. Other carts should still run the editor, list what they can't do so the README can tell people:
-- no SD card outside OS mode: games (the MBC5 build, OS=0) never see the EverDrive X registers, so only bin/GBCOS.BIN on an EverDrive X can open and save files. The MBC5 build keeps the text in SRAM
 - OS mode without /GBCSYS/EDITOR.DAT: no bold, italic or heading fonts and no SGB border
 - no RTC (everything but the X7): files are saved with a fixed date
 - on device programs (see IDE) can't swap SRAM to SD without a card, they'd get WRAM and whatever SRAM the editor isn't using

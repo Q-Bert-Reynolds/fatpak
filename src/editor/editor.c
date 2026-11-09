@@ -119,10 +119,8 @@ static const char help_lines[HELP_ROWS][HELP_COLS] = {
 };
 
 static void Render(void);
-#ifdef EVERDRIVE_OS
 static unsigned char IsGame(const char* name);
 static void LaunchGame(const char* path);
-#endif
 
 static char* RowAddress(unsigned char row);
 static void DrawRow(unsigned char row, unsigned char col, const char* text);
@@ -522,13 +520,9 @@ static void UpdateBars(void) {
   }
   else {
     end = PutText(text, "Line ");
-#ifdef EVERDRIVE_OS
     if (!doc_large) end = PutNumber(end, CursorLine());
     else if (lines_known) end = PutNumber(end, CursorLine() + win_lines);
     else *end++ = '?';
-#else
-    end = PutNumber(end, CursorLine());
-#endif
     end = PutText(end, ", Col ");
     end = PutNumber(end, CursorColumn());
   }
@@ -706,7 +700,6 @@ static void Cut(void) {
   if (Copy()) DeleteSelection();
 }
 
-#ifdef EVERDRIVE_OS
 #define WIN_MARGIN 0x2000 // the window moves when the cursor is this close to an edge that isn't the file's
 #define NO_MARK 0xFFFFFFFF
 
@@ -788,11 +781,9 @@ static void Slide(void) {
     ShiftPositions(shift, 0);
   }
 }
-#endif
 
 // Ctrl+Home, the file's start
 static void GoStart(void) {
-#ifdef EVERDRIVE_OS
   if (doc_large && win_start && Commit()) {
     selecting = 0;
     win_start = win_lines = 0;
@@ -800,13 +791,11 @@ static void GoStart(void) {
     lines_known = 1;
     LoadWindow();
   }
-#endif
   cursor = 0;
 }
 
 // Ctrl+End, the file's end
 static void GoEnd(void) {
-#ifdef EVERDRIVE_OS
   if (doc_large && win_end != doc_len && Commit()) {
     selecting = 0;
     doc_pos = doc_len - WIN_SIZE / 2; // the window isn't the whole file, so it's longer than this
@@ -816,7 +805,6 @@ static void GoEnd(void) {
     LoadWindow();
     LinesUnknown();
   }
-#endif
   cursor = tb_Length();
 }
 
@@ -1234,9 +1222,7 @@ static void ResetCursor(void) {
 
 static void NewFile(void) {
   if (!CanDiscard()) return;
-#ifdef EVERDRIVE_OS
   FileCloseLarge();
-#endif
   tb_Clear();
   file_name[0] = 0;
   fs_crlf = 0;
@@ -1325,9 +1311,6 @@ static void ListBars(const char* path, unsigned char row, unsigned int count) {
     end = PutNumber2(end, time >> 11);
     *end++ = ':';
     end = PutNumber2(end, (time >> 5) & 63);
-#ifndef EVERDRIVE_OS
-    if (size > TB_SIZE) end = PutText(end, "  too big");
-#endif
   }
   *end = 0;
   DrawRow(STATUS_LINE, 1, text);
@@ -1437,12 +1420,8 @@ static unsigned char Browse(void) {
           ListMessage("Path is too long");
         }
       }
-#ifndef EVERDRIVE_OS
-      else if (entry.size > TB_SIZE) ListMessage("Too big to open");
-#endif
       else {
         JoinPath(path + length, "", entry.name, FS_NAME_SIZE + 1);
-#ifdef EVERDRIVE_OS
         if (IsGame(entry.name)) {
           LaunchGame(path); // returns if it doesn't launch
           path[length] = 0;
@@ -1454,9 +1433,6 @@ static unsigned char Browse(void) {
           FileCloseLarge();
           result = FileLoad(path);
         }
-#else
-        result = FileLoad(path);
-#endif
         HideBox();
         path[length] = 0;
         if (result) {
@@ -1490,7 +1466,6 @@ static unsigned char Browse(void) {
   return opened;
 }
 
-#ifdef EVERDRIVE_OS
 // a .gb or .gbc file
 static unsigned char IsGame(const char* name) {
   const char* dot = 0;
@@ -1541,7 +1516,6 @@ static void LaunchGame(const char* path) {
   InGameHeader(text);
   GameLaunch();
 }
-#endif
 
 static void OpenFile(void) {
   if (!CanDiscard()) return;
@@ -1607,11 +1581,7 @@ static void SaveFile(unsigned char ask) {
   JoinPath(path, file_dir, file_name, (unsigned char)(PATH_SIZE + FS_NAME_SIZE));
   ShowBusy("Saving...");
   result = FileMount();
-#ifdef EVERDRIVE_OS
   if (!result) result = doc_large ? FileSaveLarge(path) : FileSave(path);
-#else
-  if (!result) result = FileSave(path);
-#endif
   HideBox();
   SettingsSave(); // save as may have changed the name
   if (result) {
@@ -1868,14 +1838,12 @@ void Editor(void) {
   unsigned int event;
   unsigned char key;
 
-#ifdef EVERDRIVE_OS // the SGB border's VRAM transfer overwrites tiles and the map, so it goes first
   FileBackupSave(); // the last game's save RAM, before anything else
   if (!FileLoadData("/GBCSYS/EDITOR.DAT")) {
     data_loaded = 1;
     SGBSetDefaultBorder();
   }
   FileLoadSwap(); // before EditorSetup's tb_Load
-#endif
   EditorSetup();
   for (key = 0; key < BG_MAP_ROWS + WIN_MAP_ROWS; ++key) map_blocks[key] = key < TB_ROWS ? key : 0xFF; // set by RenderSetup
   everdrive = sd_Detect();
@@ -1915,7 +1883,6 @@ void Editor(void) {
   saved_modified = modified;
   SetFont(font);
   SetRows();
-#ifdef EVERDRIVE_OS
   swap_dirty = 0; // the swap file has what booting restored
   doc_large = 0;
   if (backup_skipped) ShowMessage("SAVE NOT BACKED UP");
@@ -1926,9 +1893,6 @@ void Editor(void) {
     dirty = 1;
     OpenFile();
   }
-#else
-  Refresh();
-#endif
 
   while (1) {
     if (modified != saved_modified) {
@@ -1942,9 +1906,7 @@ void Editor(void) {
     WaitFrame();
     while ((key = (unsigned char)(event = KBPopEvent()))) {
       if (!HandleFileKey(key, (unsigned char)(event >> 8))) HandleKey(key, (unsigned char)(event >> 8));
-#ifdef EVERDRIVE_OS
       if (doc_large) Slide(); // before the next key, which could reach the window's end
-#endif
       if (dirty || edited) break; // text changed, rows need rendering before more keys
       if (moved) { // keeps tb_found_row current for the next key
         if (!PlaceCursor()) dirty = 1;
@@ -1954,9 +1916,7 @@ void Editor(void) {
     if ((key = PadKey())) {
       if (!HandleFileKey(key, pad_mods)) HandleKey(key, pad_mods);
     }
-#ifdef EVERDRIVE_OS
     if (doc_large) Slide(); // near the window's edge (sets dirty)
-#endif
     if (dirty || edited || redraw || moved) idle_frames = 0;
     if (dirty) {
       Refresh();
@@ -1992,20 +1952,16 @@ void Editor(void) {
       continue;
     }
     if (idle_frames < SWAP_DELAY) ++idle_frames;
-#ifdef EVERDRIVE_OS
     if (doc_large && !lines_known && FileScanStep()) { // a sector a frame while idle
       win_lines += scan_lines;
       lines_known = 1;
       bars_changed = 1;
     }
-#endif
     if (idle_frames >= NORMALIZE_DELAY && !everdrive && !normalized) normalized = tb_NormalizeStep(); // keeps the .sav readable as text
-#ifdef EVERDRIVE_OS
     if (idle_frames >= SWAP_DELAY && swap_dirty && !doc_large) {
       swap_dirty = 0;
       FileSaveSwap();
     }
-#endif
     if (++blink_timer == CURSOR_BLINK) EditorShowCursor(0);
     else if (blink_timer == CURSOR_BLINK + CURSOR_BLINK) {
       EditorShowCursor(1);

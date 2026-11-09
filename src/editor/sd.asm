@@ -33,22 +33,12 @@ DEF SD_TYPE_SD1   EQU %0010
 DEF SD_TYPE_SD2   EQU %0100
 DEF SD_TYPE_BLOCK EQU %1000;block addressing
 
-IF DEF(EVERDRIVE_OS);unlocked at boot and kept that way, the window and pages need them
+;unlocked at boot and kept that way, the window and pages need them
 MACRO SD_REGS_ON
 ENDM
 
 MACRO SD_REGS_OFF
 ENDM
-ELSE
-MACRO SD_REGS_ON
-  call SDRegsOn
-ENDM
-
-MACRO SD_REGS_OFF
-  xor a
-  ld [EDX_KEY], a
-ENDM
-ENDC
 
 MACRO SD_RECEIVE
   ld a, $FF
@@ -365,21 +355,6 @@ _sd_ReadSector::;de = 512 byte buffer, [_sd_sector] = LBA, returns a = 0 if succ
   cp a, $FE
   jp nz, .error
   ld h, d
-IF DEF(SD_AUTO_READ)
-  ld l, e
-  call SDAutoRead
-  ld de, EDX_SPI_DATA
-  ld a, [de];the token, clocks the first byte
-  ld b, 512/16
-.read16;4 M-cycles a byte
-REPT 16
-    ld a, [de]
-    ld [hli], a
-ENDR
-    dec b
-    jr nz, .read16
-  call SDAutoReadOff;the first CRC byte is clocked, SD_RECEIVE clocks the second and one more $FF
-ELSE
   ld l, e
   ld bc, EDX_SPI_CTRL
   ld de, EDX_SPI_DATA
@@ -400,7 +375,6 @@ ENDR
     dec a
     ld [sd_count], a
     jr nz, .read8
-ENDC
   SD_RECEIVE;CRC
   SD_RECEIVE
   xor a
@@ -409,8 +383,7 @@ ENDC
   ld a, 1
   jp SDFinish
 
-IF DEF(EVERDRIVE_OS)
-;turns auto read on or off, only affects a. _sd_ReadSector's SD_AUTO_READ loop (off) broke the X7's reads:
+;turns auto read on or off, only affects a. A removed experimental single-sector loop broke X7 reads:
 ;saves failed with FR_INT_ERR (02), a folder once read as FR_NO_FILE (04). It took the token by hand and
 ;assumed a read returns the byte before it, if a read returns the byte it clocks every sector was one byte off.
 ;_sd_ReadBlocks reads like the EverDrive's OS instead, which works either way
@@ -431,7 +404,6 @@ SDAutoReadOff:
   and a, ~1
   ld [EDX_CONFIG], a
   ret
-ENDC
 
 _sd_WriteSector::;de = 512 byte buffer, [_sd_sector] = LBA, returns a = 0 if successful
   push de
@@ -489,7 +461,6 @@ ENDR
   ld a, 1
   jp SDFinish
 
-IF DEF(EVERDRIVE_OS)
 DEF SD_CMD12 EQU $40+12;STOP_TRANSMISSION
 DEF SD_CMD18 EQU $40+18;READ_MULTIPLE_BLOCK
 
@@ -657,4 +628,3 @@ SDStop:
   ld a, 1
   ret
 END_PAGE
-ENDC

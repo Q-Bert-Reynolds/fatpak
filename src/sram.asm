@@ -1,6 +1,6 @@
 ;text buffer, see src/editor/text_buffer.asm
 DEF SETTINGS_SIZE EQU 4+PATH_SIZE+FS_NAME_SIZE;SettingsTable
-IF DEF(EVERDRIVE_OS);PSRAM through the window: the text buffer and undo log are blocks (see constants.asm),
+;PSRAM through the window: the text buffer and undo log are blocks (see constants.asm),
 ;this is PSRAM block MAIN_SRAM_BANK and the clipboard's text starts at offset $100 of it (TB_CLIP_SIZE)
 DEF sram_tb_signature EQU TB_BASE
 DEF sram_main_save    EQU TB_BASE+4
@@ -14,40 +14,6 @@ DEF sram_settings_signature EQU TB_BASE+$20
 DEF sram_settings     EQU TB_BASE+$24
 DEF sram_clip         EQU TB_CLIP_OFFSET;offset from block MAIN_SRAM_BANK's start (TBClipAddr)
 ASSERT sram_settings+SETTINGS_SIZE <= TB_BASE+$100, "settings must end before the clipboard"
-ELSE
-FOR N, TB_BANKS
-SECTION "Text Buffer {d:N}", SRAM[_SRAM], BANK[N]
-  DS $2000
-ENDR
-ASSERT TB_SIZE <= $FFFF, "text buffer positions are 16 bit"
-
-;undo log, see src/editor/undo.c
-FOR N, UNDO_BANK, UNDO_BANK+UNDO_BANKS
-SECTION "Undo Log {d:N}", SRAM[_SRAM], BANK[N]
-  DS $2000
-ENDR
-
-SECTION "Main Save", SRAM[_SRAM], BANK[MAIN_SRAM_BANK]
-sram_tb_signature:: DS 4
-
-sram_main_save:
-sram_hours: DW
-sram_minutes: DB
-sram_seconds: DB
-sram_main_save_end:
-
-;editor settings and the open file, kept with the text when the power is off (see SettingsLoad)
-SECTION "Settings", SRAM[_SRAM+TB_HOLE+TB_HOLE_SIZE], BANK[MAIN_SRAM_BANK]
-sram_settings_signature: DS 4
-sram_settings: DS SETTINGS_SIZE;in SettingsTable's order
-
-SECTION "Clipboard", SRAM[TB_CLIP_ADDR], BANK[MAIN_SRAM_BANK];see tb_Copy
-sram_clip_length:: DW
-sram_clip_check:: DW;~length, the clipboard is empty if they don't match
-sram_clip:: DS TB_CLIP_SIZE
-ASSERT sram_main_save_end <= sram_clip_length
-ASSERT sram_clip+TB_CLIP_SIZE == _SRAM+TB_HOLE, "the clipboard must end before the EverDrive registers"
-ENDC
 
 SECTION "Settings Vars", WRAM0
 settings_load: DB;SettingsCopy's direction
@@ -123,10 +89,8 @@ SettingsCopy:
   ret
 
 _SettingsSave::
-IF DEF(EVERDRIVE_OS)
   ld a, 1;the swap file needs writing (src/editor/editor.c)
   ld [_swap_dirty], a
-ENDC
   ENABLE_RAM_MBC5
   SWITCH_RAM_MBC5 MAIN_SRAM_BANK
   ld hl, SettingsSignature

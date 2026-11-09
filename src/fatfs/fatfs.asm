@@ -18,7 +18,6 @@ _FileList::      BANKED_C _fs_List
 _FileListEntry:: BANKED_C _fs_ListEntry
 _FileLoad::      BANKED_C _fs_Load
 _FileSave::      BANKED_C _fs_Save
-IF DEF(EVERDRIVE_OS)
 _FileLoadData::  BANKED_C _fs_LoadData
 _FileSaveSwap::  BANKED_C _fs_SaveSwap
 _FileLoadSwap::  BANKED_C _fs_LoadSwap
@@ -64,7 +63,6 @@ _SetWindowBlock::;de = PSRAM block the window at $BE00 shows
   ld [EDX_BLOCK+1], a
   ret
 
-ENDC
 
 ;C library functions FatFs uses (SDCC's string.h calls memcpy __memcpy), callers in any bank
 ;SDCC passes the first two args in de and bc and the third on the stack, which the callee pops
@@ -155,7 +153,6 @@ _strchr::;de = string, c = char, returns the first c in it (its 0 if c is 0) or 
 
 INCLUDE "src/fatfs/_fatfs.asm";generated from fatfs.c
 
-IF DEF(EVERDRIVE_OS)
 ;A large file (src/fatfs/fatfs.c), positions are 32 bit file offsets
 SECTION "Large File Vars", ROM0, ALIGN[8, $E0];the OS image is RAM, the alignment keeps it out of the RST vectors
 _doc_large:: DS 1;a large file is open, the text buffer is a window into it
@@ -232,9 +229,7 @@ _CountLF::;de = data, bc = count, returns the line feeds in it in bc (two bytes 
   inc de
   jr .start
 END_PAGE
-ENDC
 
-IF DEF(EVERDRIVE_OS)
 PAGE LAUNCH_PAGE
 ;resets the Game Boy into the game fs_LoadGame copied to PSRAM, like the EverDrive's OS: $BD06 bit 3 makes the
 ;cart reset it through the boot ROM after the mapper is written (bit 2 switches without it). The MBC writes
@@ -244,7 +239,6 @@ PAGE LAUNCH_PAGE
 DEF LAUNCH_HRAM EQU $FF80
 _GameLaunch::
   di
-IF !DEF(BISECT_LAUNCH)
   call gbdk_CPUSlow;normal speed like the EverDrive OS's launch (the cart doesn't reset the CPU's speed)
   ld a, 1;the EverDrive OS's launch: $01F0 = 1, $01F3 = 1 if the game has save RAM (the cart may read them
   ld [$01F0], a;for its in-game menu)
@@ -265,7 +259,6 @@ IF !DEF(BISECT_LAUNCH)
   ld a, SD_CMD0
   call SDCommand
   call SDDeselect
-ENDC
   ld a, [_game_rom_mask]
   ld [$BD04], a
   ld a, [_game_ram_mask]
@@ -338,4 +331,3 @@ _Reboot::;starts the OS again (after a failed game load, the text comes back fro
   ld a, FIRST_PAGE
   ld [EDX_PAGE], a
   jp $0100
-ENDC

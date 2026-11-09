@@ -1,4 +1,4 @@
-# bank_split.py --os: FatFs in EverDrive X OS mode pages, data and far call thunks go in FIXED.
+# bank_split.py: FatFs in EverDrive X OS mode pages, data and far call thunks go in FIXED.
 # The byte helpers called for every character stay in ROM0 so they don't need far calls.
 ROM0: ld_16 ld_32 st_16 st_32 dbc_1st dbc_2nd sum_sfn
 # file API (fatfs.c) and directory listing

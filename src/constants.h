@@ -1,12 +1,6 @@
 #ifndef CONSTANTS
 #define CONSTANTS
 
-// tests
-#define TESTS_ENABLED         0
-#define SOUND_TEST_ENABLED    0
-#define KEYBOARD_TEST_ENABLED 0
-#define SD_TEST_ENABLED       0
-
 // game_state masks
 #define GAME_STATE_CLOCK_STARTED   0b00000001
 #define GAME_STATE_PAUSED          0b00001000
@@ -24,11 +18,7 @@
 
 // ram banks 
 #define MAX_RAM_BANKS  16//128KB
-#ifdef EVERDRIVE_OS
 #define MAIN_SRAM_BANK 240//PSRAM blocks 240-255 hold settings and the clipboard
-#else
-#define MAIN_SRAM_BANK 8//banks 0-7 hold the text buffer
-#endif
 
 // sprite props
 #define FLIP_X_PAL  (OAMF_XFLIP | OAMF_PAL1 )
@@ -47,7 +37,7 @@
 #define DRAW_FLAGS_NO_SPACE 0b00000100
 
 //text buffer
-#ifdef EVERDRIVE_OS//PSRAM through the 512 byte window at 0xBE00, 0xBD03 = 1 (128KB-256KB), blocks are banks
+//PSRAM through the 512 byte window at 0xBE00, 0xBD03 = 1 (128KB-256KB), blocks are banks
 #define TB_BANKS     127//blocks 0-126, positions are 16 bit
 #define TB_BANK_SIZE 0x0200u
 #define TB_BASE      0xBE00u
@@ -68,23 +58,9 @@
 #define MAX_PIECES         96//a large file's piece table (src/fatfs/fatfs.c)
 #define ADD_BLOCK          0x0400u//text added to a large file, PSRAM 512KB up to the save states at 0x3E40
 #define ADD_MAX            0x7A0000
-#else
-#define TB_BANKS     8//SRAM banks 0-7, positions are 16 bit
-#define TB_HOLE      0x1D00u//0xBD00-0xBD0F are EverDrive registers, never stored to
-#define TB_HOLE_SIZE 0x10
-#define TB_BANK_SIZE (0x2000u-TB_HOLE_SIZE)
-#define TB_BASE      0xA000u
-#define UNDO_BANK    9//undo log in SRAM banks 9-15, laid out like the text buffer (see src/editor/undo.c)
-#define UNDO_BANKS   7
-#define TB_CLIP_ADDR 0xA040u//clipboard in SRAM bank 8, up to the EverDrive registers at 0xBD00
-#endif
 #define TB_SIZE      (TB_BANK_SIZE*TB_BANKS)
-#ifdef EVERDRIVE_OS
 #define TB_CLIP_OFFSET 0x0100u//the clipboard's text in PSRAM blocks 240-255 (src/sram.asm)
 #define TB_CLIP_SIZE (0x2000u-TB_CLIP_OFFSET)
-#else
-#define TB_CLIP_SIZE (0xBD00u-TB_CLIP_ADDR-4)
-#endif
 #define UNDO_SIZE    (TB_BANK_SIZE*UNDO_BANKS)
 #define TB_COLS   20//tiles per row
 #define TB_ROWS   18

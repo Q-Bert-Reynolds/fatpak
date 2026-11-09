@@ -314,7 +314,6 @@ unsigned char fs_Load(const char* path) {
   return result;
 }
 
-#ifdef EVERDRIVE_OS
 #define WINDOW ((BYTE*)0xBE00) // EDX_WINDOW
 extern void SetWindowBlock(unsigned int block); // src/fatfs/fatfs.asm
 
@@ -1007,7 +1006,6 @@ unsigned char fs_LoadSwap(void) {
   SetWindowBlock(TB_PSRAM_HIGH << 8);
   return result;
 }
-#endif
 
 // writes the text buffer to the file, with CR LF line endings if fs_crlf is set, returns an FRESULT
 unsigned char fs_Save(const char* path) {

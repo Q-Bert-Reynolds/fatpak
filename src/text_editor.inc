@@ -23,7 +23,6 @@ INCLUDE "src/ui.asm"
 
 INCLUDE "src/core.asm"
 
-INCLUDE "src/tests/test.asm"
 
 INCLUDE "src/fade.asm"
 INCLUDE "src/editor/editor.asm"

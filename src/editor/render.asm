@@ -134,7 +134,6 @@ ENDR
   ld bc, render_glyph
   ret
 
-IF DEF(EVERDRIVE_OS)
 RenderWindowGlyph:;a = data block, hl = glyph in the window, copies it to render_glyph, returns render_glyph in bc
   ld e, a
   ld a, [EDX_BLOCK];the text buffer's block
@@ -157,7 +156,6 @@ ENDR
   ld [EDX_BLOCK+1], a
   ld bc, render_glyph
   ret
-ENDC
 
 StyledWidth::;a = page of a styled font's widths (styled_widths.asm), c = char, returns its width in a, preserves bc, de, hl
   push hl
@@ -870,11 +868,7 @@ ELSE
 ENDC
 ENDR
 
-IF DEF(EVERDRIVE_OS)
 SECTION "Render", ROMX, BANK[1], ALIGN[12]
-ELSE
-SECTION "Render", ROMX, ALIGN[12]
-ENDC;shift tables must be 4KB aligned and in this bank
 ASSERT LOW(render_bitmap) == 0, "render_bitmap must be page aligned"
 
 ;RenderShiftRight + s * 256 + byte = byte >> s, 8 pages later is the bits shifted out (byte << (8 - s))
@@ -896,28 +890,14 @@ MACRO FONT_STYLE;\1 = glyphs
   DB BANK(\1)
   DW \1
 ENDM
-IF !DEF(EVERDRIVE_OS);OS mode reads them from the data file (DATA_FONTS)
-FontStyles:
-  FONT_STYLE FontH1Glyphs
-  FONT_STYLE FontH2Glyphs
-  FONT_STYLE FontH3Glyphs
-  FONT_STYLE FontH4Glyphs
-  FONT_STYLE FontFixedBoldGlyphs
-  FONT_STYLE FontFixedItalicGlyphs
-  FONT_STYLE FontFixedBoldItalicGlyphs
-  FONT_STYLE FontVWFBoldGlyphs
-  FONT_STYLE FontVWFItalicGlyphs
-  FONT_STYLE FontVWFBoldItalicGlyphs
-ENDC
 
 ;bc = glyph, returns the glyph styled by [render_look] and [render_head] in bc (render_glyph if it
 ;changed, copied from its styled font)
 RenderStyleGlyph:
-IF DEF(EVERDRIVE_OS);the styled fonts come from the data file
+;the styled fonts come from the data file
   ld a, [_data_loaded]
   and a
   ret z
-ENDC
   ld a, [render_head]
   and a
   jr nz, .font
@@ -933,7 +913,6 @@ ENDC
   add a, 3;VWF
 .font;a = styled font + 1
   dec a
-IF DEF(EVERDRIVE_OS)
   add a, a
   add a, a
   add a, LOW(DATA_BLOCK + DATA_FONTS)
@@ -957,34 +936,6 @@ IF DEF(EVERDRIVE_OS)
   ld h, a
   ld a, e
   jp RenderWindowGlyph
-ELSE
-  ld e, a
-  add a, a
-  add a, e
-  add a, LOW(FontStyles)
-  ld l, a
-  adc a, HIGH(FontStyles)
-  sub a, l
-  ld h, a
-  ld a, [hli];bank
-  push af
-  ld a, [hli]
-  ld e, a
-  ld d, [hl]
-  ld a, [render_glyphs];the glyph's offset in its font
-  ld l, a
-  ld a, c
-  sub a, l
-  ld l, a
-  ld a, [render_glyphs+1]
-  ld h, a
-  ld a, b
-  sbc a, h
-  ld h, a
-  add hl, de
-  pop af
-  jp RenderFarGlyph
-ENDC
 
 INCLUDE "img/fonts/font_mono.asm"
 INCLUDE "img/fonts/font_vwf.asm"
@@ -2110,23 +2061,7 @@ MACRO STYLED_FONT;\1 = file
 SECTION "Styled Font \1", ROMX
 INCLUDE "img/fonts/\1.asm"
 ENDM
-IF !DEF(EVERDRIVE_OS);OS mode loads them from the data file
-  STYLED_FONT font_h1
-  STYLED_FONT font_h2
-  STYLED_FONT font_h3
-  STYLED_FONT font_h4
-  STYLED_FONT font_fixed_bold
-  STYLED_FONT font_fixed_italic
-  STYLED_FONT font_fixed_bold_italic
-  STYLED_FONT font_vwf_bold
-  STYLED_FONT font_vwf_italic
-  STYLED_FONT font_vwf_bold_italic
-ENDC
 
-IF DEF(EVERDRIVE_OS)
 SECTION "Styled Widths", ROMX, BANK[1], ALIGN[8]
-ELSE
-SECTION "Styled Widths", ROMX, ALIGN[8]
-ENDC;a page each, HeadingWidths is heading 1's (TBLex, StyledWidth)
 INCLUDE "img/fonts/styled_widths.asm"
 ASSERT HIGH(FixedBoldWidths) == HIGH(HeadingWidths) + 4 && HIGH(VWFBoldWidths) == HIGH(HeadingWidths) + 5

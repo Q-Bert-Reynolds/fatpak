@@ -1,9 +1,3 @@
-; tests
-DEF TESTS_ENABLED         EQU 0
-DEF SOUND_TEST_ENABLED    EQU 0
-DEF KEYBOARD_TEST_ENABLED EQU 0
-DEF SD_TEST_ENABLED       EQU 0
-
 ; game_state masks
 DEF GAME_STATE_CLOCK_STARTED   EQU %00000001
 DEF GAME_STATE_PAUSED          EQU %00001000
@@ -21,11 +15,7 @@ DEF BUSY_PALETTE EQU 4;GBC object palette (PaletteSlate), color 2 is dark
 
 ; ram banks 
 DEF MAX_RAM_BANKS  EQU 16;128KB
-IF DEF(EVERDRIVE_OS)
 DEF MAIN_SRAM_BANK EQU 240;PSRAM blocks 240-255 hold settings and the clipboard
-ELSE
-DEF MAIN_SRAM_BANK EQU 8;banks 0-7 hold the text buffer
-ENDC
 
 ; sprite props
 DEF FLIP_X_PAL  EQU (OAMF_XFLIP | OAMF_PAL1 )
@@ -44,7 +34,7 @@ DEF DRAW_FLAGS_PAD_TOP  EQU %00000010
 DEF DRAW_FLAGS_NO_SPACE EQU %00000100
 
 ;text buffer
-IF DEF(EVERDRIVE_OS);PSRAM through the 512 byte window at $BE00, $BD03 = 1 (128KB-256KB), blocks are banks
+;PSRAM through the 512 byte window at $BE00, $BD03 = 1 (128KB-256KB), blocks are banks
 DEF TB_BANKS     EQU 127;blocks 0-126, positions are 16 bit
 DEF TB_BANK_SIZE EQU $0200
 DEF TB_BASE      EQU $BE00
@@ -65,23 +55,9 @@ DEF WIN_CHUNKS         EQU WIN_SIZE/512+1;sector boundaries in it
 DEF MAX_PIECES         EQU 96;a large file's piece table (src/fatfs/fatfs.c)
 DEF ADD_BLOCK          EQU $0400;text added to a large file, PSRAM 512KB up to the save states at $3E40
 DEF ADD_MAX            EQU $7A0000
-ELSE
-DEF TB_BANKS     EQU 8;SRAM banks 0-7, positions are 16 bit
-DEF TB_HOLE      EQU $1D00;$BD00-$BD0F are EverDrive registers, never stored to
-DEF TB_HOLE_SIZE EQU $10
-DEF TB_BANK_SIZE EQU ($2000-TB_HOLE_SIZE)
-DEF TB_BASE      EQU $A000
-DEF UNDO_BANK    EQU 9;undo log in SRAM banks 9-15, laid out like the text buffer (see src/editor/undo.c)
-DEF UNDO_BANKS   EQU 7
-DEF TB_CLIP_ADDR EQU $A040;clipboard in SRAM bank 8, up to the EverDrive registers at $BD00
-ENDC
 DEF TB_SIZE      EQU (TB_BANK_SIZE*TB_BANKS)
-IF DEF(EVERDRIVE_OS)
 DEF TB_CLIP_OFFSET EQU $0100;the clipboard's text in PSRAM blocks 240-255 (src/sram.asm)
 DEF TB_CLIP_SIZE EQU ($2000-TB_CLIP_OFFSET)
-ELSE
-DEF TB_CLIP_SIZE EQU ($BD00-TB_CLIP_ADDR-4)
-ENDC
 DEF UNDO_SIZE    EQU (TB_BANK_SIZE*UNDO_BANKS)
 DEF TB_COLS   EQU 20;tiles per row
 DEF TB_ROWS   EQU 18

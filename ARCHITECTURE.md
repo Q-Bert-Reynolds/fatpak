@@ -30,15 +30,15 @@ flowchart LR
   end
   subgraph c["C (per file)"]
     cfile[src/*/name.c] -->|sdcc| casm[src/*/_name.asm]
-    casm -->|bank_split.py, if banks.txt exists| casm
+    casm -->|bank_split.py, per-file .banks config| casm
   end
   main[src/main.asm] -->|rgbasm| obj[build/main.o]
   imgasm & fontasm & borderasm & sfxasm & strasm & casm --> main
   obj -->|rgblink, rgbfix| rom[bin/TEXT_EDITOR.gbc + .sym]
 ```
 
-- **One assembly unit.** `src/main.asm` includes `src/text_editor.inc`, which includes every module (and each module includes its generated assets and the `_*.asm` output of its C file). `rgbasm` runs once and `rgblink` links a single object. The linker places `SECTION`s into ROM banks, except for a few with fixed banks.
-- **Generated files are committed** (`img/**/*.asm`, `*.tiles`, `data/strings/*.asm`, `src/*/_*.asm`, `src/constants.h`, the ROM), so `make assemble` works without Python. The asset scripts skip files that are already up to date.
+- **One assembly unit.** `src/main.asm` includes `src/text_editor.inc`, which includes every module (and each module includes its generated assets and the `_*.asm` output of its C file). `rgbasm` runs once and `rgblink` links a single object. The only application build is the EverDrive OS image. `pages.link` places its resident code and page fragments; `check_pages.py` verifies the layout.
+- **Generated files are committed** (`img/**/*.asm`, `*.tiles`, `data/strings/*.asm`, `src/*/_*.asm`, `src/constants.h`, the ROM), so `make assemble` needs no asset regeneration; it still uses Python for page splitting, the menu, layout checks and the data file. The asset scripts skip files that are already up to date.
 - **Targets:** `make all` (clean, assets, assemble, run), `make assemble` (just the ROM), `make code` (assemble and run in Gearboy), `make sdcard` (64MB MBR + FAT32 image from `sd/`), `make clean`.
 - **Languages:** `LANGUAGE=EN|ES|FR|IT|PT|DE|JA` picks which translated strings `data/strings/*.asm` includes.
 - **Constants shared with C:** `build.py` turns `src/constants.asm` (`DEF X EQU ...`) into `src/constants.h` (`#define X ...`). Put anything C needs there, and parenthesize expressions.
@@ -79,8 +79,8 @@ flowchart LR
 
 ### ROM
 
-- **ROM0** (`$0000-$3FFF`, always mapped) holds the interrupt handlers, the boot code, and anything called from more than one ROM bank: memory/math/string helpers, the text buffer, the SD driver, the on screen keyboard, the far call thunks, and the editor's C-callable asm. About 6KB is free. Put new code in ROMX unless it has to be called from several banks.
-- **ROMX** (`$4000-$7FFF`, banked) holds everything else. `rgblink` picks the banks. A section is never split across banks, so a section must be under 16KB.
+- **Resident image** (`$0000-$7FFF`, always mapped) holds startup, interrupt handlers and common routines. It is writable cartridge memory; mapper writes can overwrite bytes here, so game launch saves those bytes for warm return.
+- **OS pages** (`$A000-$BCFF`) select an 8KB image fragment with `$BD08`. Each has `$1D00` usable bytes; `$BD00-$BFFF` holds cartridge registers and the PSRAM/save window. Image pages 4-15 are laid out by `pages.link`.
 
 ### WRAM
 
@@ -91,23 +91,22 @@ flowchart LR
 
 `loaded_bank`, input state, `pad_latch`, interrupt vars, the OAM DMA routine, `vbl_done`, `sys_info`. HRAM is cleared at boot.
 
-### SRAM (MBC5, 16 x 8KB banks, battery backed)
+### PSRAM through the cartridge window
 
-| Bank | Contents |
-| --- | --- |
-| 0-7 | The text buffer (65,408 bytes, as much as 16 bit positions allow). `$BD00-$BD0F` is never used in any bank (see EverDrive registers) |
-| 8 | `sram_tb_signature` ("TXT3") and the engine's save data at `$A000`, the clipboard at `$A040-$BCFF` (length, its complement, then up to 7356 characters) |
-| 9-15 | The undo log (57,232 bytes, laid out like the text buffer), see Undo |
-
-SRAM is only enabled (`SRAM_ON`) while it's being read or written, so a power loss is less likely to corrupt it.
+`$BE00-$BFFF` exposes a 512-byte block selected by `$BD03:$BD02`. Within
+PSRAM bank 1, blocks 0-126 hold the text buffer, 128-239 the undo log, and
+240-255 settings and clipboard. `EDITOR.DAT` is loaded at block `$0200`.
+PSRAM loses its contents when powered off; the OS swap file preserves editor
+state on the SD card. Game cartridge save RAM is accessed separately by
+setting `$BD06` bit 1. See `src/constants.asm` and `src/sram.asm`.
 
 ## Banking and calling conventions
 
-- **`loaded_bank`** (HRAM) always holds the ROM bank that's mapped. `SET_BANK` writes it and the MBC5 register together. Never write `rROMB0` directly.
+- **`loaded_bank`** (HRAM) holds the OS page currently mapped. `SET_BANK` updates it and `$BD08` together. The in-game menu uses its own resident page switcher to preserve game HRAM.
 - **`TRAMPOLINE Label`** calls `Label` in another bank from asm and switches back. Arguments can only go in `a`, `de`, and RAM.
 - **C calling convention** (SDCC 4.2, `sdcccall(1)`): the first argument goes in `a` (8 bit) or `de` (16 bit). The second goes in `e` if the first was in `a`, otherwise `a` (8 bit) or `bc` (16 bit). The rest go on the stack, and the callee removes them. Return values: 8 bit in `a`, 16 bit in `bc`, 32 bit in `debc`. C sees asm labels that start with `_` (`_tb_Insert::` is `tb_Insert()` in C).
 - **C code is banked.** Each C file's code lands in a ROMX section. C can call ROM0 asm, and C in its own bank, but not code in other banks. To call C in another bank from C, add a ROM0 stub with `BANKED_C` (`src/macros.asm`). It keeps `a`, `de`, `bc` arguments and return values, so it only works for functions with no stack arguments. The FatFs file API (`FileLoad` etc. in `src/fatfs/fatfs.asm`) is called this way.
-- **C files too big for one bank** (FatFs, ~21KB) are split by `bank_split.py`, which runs after SDCC when a `banks.txt` sits next to the `.c` file. It moves listed functions into `ROM0` or other banks (`B`, `C`, ..., unlisted functions stay in `A`, data goes to ROM0), and rewrites every call or jump between banks to go through a generated ROM0 thunk. The thunk saves the caller's bank and return address on a WRAM stack and jumps to `FarCall`, so stack arguments stay where the callee expects them.
+- **C page assignments** live in `src/*/*.banks`, alongside each `.c` file. `bank_split.py` places functions into ROM0, FIXED (resident ROMX bank 1), or pages 4-15. Data and thunks default to FIXED. Cross-page calls use `FarCallInline`, whose WRAM return stack preserves the SDCC stack-argument layout.
 - **C restrictions** (SDCC's libraries aren't linked, only RGBDS objects are):
   - Static initializers don't run (`_GSINIT` is never called). Initialize globals in code. WRAM is zeroed at boot.
   - 32 bit multiply and divide use our own `_mullong`/`_divulong` in `src/fatfs/lib/runtime.c`. `memcpy`, `memset`, `memcmp`, `strchr` are in `src/fatfs/fatfs.c`. Avoid 16 bit `*` and `/` in other C.
@@ -205,7 +204,7 @@ Five rows of ten keys drawn into the bottom rows of `tile_buffer` (the text area
 ```mermaid
 flowchart LR
   editorc[editor.c] -->|File* stubs, BANKED_C| api[fs_Load / fs_Save / fs_List / fs_ListEntry in fatfs.c]
-  api --> ff[FatFs, banks A, B and C + ROM0 thunks]
+  api --> ff[FatFs, resident code and OS pages]
   ff --> glue[disk_read / disk_write]
   glue --> sd[sd.asm: SD over SPI]
   sd --> regs[EverDrive registers $BD00 $BD01 $BD0A]
@@ -214,7 +213,7 @@ flowchart LR
 
 - **EverDrive registers** live in cartridge RAM space and respond after `$A5` is written to `$BD0A`: `$BD00` SPI data, `$BD01` SPI control (busy, auto read, slow clock, chip select). `sd.asm` disables SRAM before using them and locks them again afterwards. In case writing `$A5` to `$BD0A` unlocks them even while SRAM is enabled, the text buffer never stores anything at `$BD00-$BD0F`. `~/Projects/everdrive-gb` (a disassembly of the EverDrive OS) documents the rest of the registers.
 - **`sd.asm`** detects the EverDrive (`sd_Detect` reads back the SPI control register), initializes SD v1/v2/SDHC cards, and reads and writes 512 byte sectors. It's based on TXTReaderGB's diskio. The sector loops exchange 8 bytes per iteration and still check the busy bit for each byte: the EverDrive OS doesn't (it reads with auto read on, `$BD01` bit 2 and `$BD06` bit 0), but it runs at normal speed and the editor runs at double speed.
-- **FatFs** R0.16 (`src/fatfs/lib`, configured in `ffconf.h`: FAT only, long file names up to 64 characters as UTF-8 with code page 437 short names, minimized, tiny buffers) is compiled as part of `fatfs.c`, a single C file that also holds `ffunicode.c`, the disk glue, the SDCC runtime helpers (`_mullong`, `_divulong`, `_divuint`), and the file API. `banks.txt` splits it across three ROM banks: the read side in A, the write side and mount in B, long names in C, and the small helpers called for every character (`ld_16`, `sum_sfn`, ...) in ROM0. `memcpy` and `memset` are wrappers around `mem_Copy` and `mem_Set`, `memcmp` and `strchr` are asm (`fatfs.asm`). One local change to ChaN's code: `clst2sect` shifts by the cluster size (a power of 2) instead of calling `_mullong` for every sector.
+- **FatFs** R0.16 (`src/fatfs/lib`, configured in `ffconf.h`: FAT only, long file names up to 64 characters as UTF-8 with code page 437 short names, minimized, tiny buffers) is compiled as part of `fatfs.c`, a single C file that also holds `ffunicode.c`, the disk glue, the SDCC runtime helpers (`_mullong`, `_divulong`, `_divuint`), and the file API. `src/fatfs/fatfs.banks` assigns its functions to resident code and OS pages. `memcpy` and `memset` are wrappers around `mem_Copy` and `mem_Set`, `memcmp` and `strchr` are asm (`fatfs.asm`). One local change to ChaN's code: `clst2sect` shifts by the cluster size (a power of 2) instead of calling `_mullong` for every sector.
 - **Mounting:** `fs_Mount` mounts the card the first time. A failed sector read or write clears `disk_ready`, so FatFs mounts it again on its next call, and listing, loading and saving retry once after `FR_DISK_ERR`. A swapped card fails its first command (it hasn't been initialized), so it's mounted again before anything is written to it.
 - **File API:** `fs_Load` replaces the text buffer with a file 512 bytes at a time: `tb_Append` copies a run of SRAM at a time, dropping 0s and CRs and setting `tb_cr` when it drops a CR, so `fs_crlf` remembers that the file used CR LF. `fs_Save` writes the buffer (around the gap) with `tb_Read`, or with `tb_ReadLines`, which adds the CRs back, both a run at a time. `fs_List` reads a folder once: `NextEntry` walks the directory's 32 byte slots in the sector buffer the way FatFs's `dir_read` does, without decoding names, skipping hidden, system and dot names. It counts the folders and files and marks the slot where every 16th of each kind starts (in the 512 byte load buffer, which nothing else uses while browsing; when a kind passes 128 marks, every other one is dropped and the spacing doubles). `fs_ListEntry` reads one entry (`FileEntry` in `src/fatfs/file_api.h`: UTF-8 name, size, date) by seeking to the mark before it, or carrying on from the last one read. `GetName` turns its long name into UTF-8 itself, `get_fileinfo` is only used for names it can't handle (characters outside the BMP, short names with bytes above `$7F`).
 - **File browser** (`Browse` in `editor.c`): lists folders, then files, with `..` below the root. Names aren't kept in memory: the folder is listed once when it's opened, and the visible rows are read with `FileListEntry` (all of them after a jump, just the new one when the list scrolls a row, which rotates the screen ring like the text does), and the chosen entry again for its full name. Going up a folder looks the folder it came from up by name (`dir_find`) and selects it. Each visible row keeps its kind, size and date for the status bar. The editor keeps the open file's folder (`file_dir`) and name (`file_name`), both UTF-8, and shows them in Latin-1.
@@ -231,7 +230,7 @@ These aren't used by the editor yet, but they work and are kept for future proje
 
 ## Testing and debugging
 
-- Enable `TESTS_ENABLED` and one of `SOUND_TEST_ENABLED`, `KEYBOARD_TEST_ENABLED`, or `SD_TEST_ENABLED` in `src/constants.asm`. Tests run before the editor starts. The keyboard test shows the last scan code (ASCII, hex, decimal, binary), the scan code and error ring buffers, and the interrupt and error counts; A switches between PS/2 and iGKB, B continues to the editor. It's a `SECTION FRAGMENT` of the keyboard's ROMX section because the key handlers jump into it.
+- Use HELP > KEYBOARD TEST for live PS/2/iGKB diagnostics. The application has one OS build; the old startup-test build switches have been removed. See `IN_GAME_MENU.md` for cart-menu checks.
 - `bin/TEXT_EDITOR.sym` has every label, so emulators show symbols. `build/main.map` shows where every section landed and how much space each bank has left.
 - Gearboy can be driven by an AI assistant or script over MCP (`--mcp-stdio` or `--mcp-http`, add `--headless` to run without a window). Its profiler shows cycles per function, which is how the editor's performance work was measured.
 - When changing the text buffer or renderer, compare the screen after an incremental update with a full redraw (open and cancel the menu forces one), and compare saved files byte for byte. Check SD images with `fsck.fat -n` after writing to them.

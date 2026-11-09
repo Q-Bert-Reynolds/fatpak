@@ -34,7 +34,6 @@ ENDC
 
 ENDM
 
-IF DEF(EVERDRIVE_OS)
 ;EverDrive X OS mode (the image is /GBCSYS/GBCOS.BIN): the 128KB image is RAM, $0000-$7FFF is
 ;always pages 0-3 (ROM0 and ROMX bank 1, writing $2000 would overwrite code there) and $A000-$BFFF
 ;shows the page in $BD08. $BD00-$BFFF are the EverDrive's registers and its 512 byte window onto
@@ -67,35 +66,17 @@ ENDM
 MACRO FIXED;\1 = section name
   SECTION FRAGMENT "\1", ROMX, BANK[1]
 ENDM
-ELSE
-MACRO SET_BANK
-  ldh [loaded_bank], a
-  ld [rROMB0], a
-ENDM
 
-MACRO PAGE
-  SECTION FRAGMENT "Page \1", ROMX
-ENDM
-
-MACRO END_PAGE
-ENDM
-
-MACRO FIXED
-  SECTION FRAGMENT "\1", ROMX
-ENDM
-ENDC
-
-;where code and data live in each build: always mapped (FIXED) or a page (OS mode) / a ROMX bank
-IF DEF(EVERDRIVE_OS)
+;Code and data are always mapped (FIXED) or live in an OS page.
 DEF UI_PAGE       EQU 12
 DEF KEYWORDS_PAGE EQU 13
 DEF SGB_PAGE      EQU 13
 DEF COLOR_PAGE    EQU 15
 DEF KEYBOARD_PAGE EQU 15
-DEF UNDO_PAGE     EQU 15;with undo.c (undo.os.banks)
-DEF DOC_PAGE      EQU 14;with the large file functions in fatfs.c (fatfs.os.banks)
-DEF GAME_PAGE     EQU 12;sd_ReadBlocks, with fs_GameCopy in fatfs.c (fatfs.os.banks)
-DEF LAUNCH_PAGE   EQU 6;GameLaunch, with LaunchGame in editor.c (editor.os.banks)
+DEF UNDO_PAGE     EQU 15;with undo.c (undo.banks)
+DEF DOC_PAGE      EQU 14;with the large file functions in fatfs.c (fatfs.banks)
+DEF GAME_PAGE     EQU 12;sd_ReadBlocks, with fs_GameCopy in fatfs.c (fatfs.banks)
+DEF LAUNCH_PAGE   EQU 6;GameLaunch, with LaunchGame in editor.c (editor.banks)
 MACRO KEYWORDS_SECTION
   PAGE KEYWORDS_PAGE
 ENDM
@@ -105,17 +86,6 @@ ENDM
 MACRO KEYBOARD_SECTION
   PAGE KEYBOARD_PAGE
 ENDM
-ELSE
-MACRO KEYWORDS_SECTION
-  SECTION FRAGMENT "Keywords", ROMX
-ENDM
-MACRO COLOR_SECTION
-  SECTION FRAGMENT "Color", ROMX
-ENDM
-MACRO KEYBOARD_SECTION
-  SECTION FRAGMENT "Keyboard Code Bank X", ROMX
-ENDM
-ENDC
 
 MACRO TRAMPOLINE ;\1 = jump address
   ld b, BANK(\1)

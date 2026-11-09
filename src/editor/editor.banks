@@ -1,4 +1,4 @@
-# bank_split.py --os: editor.c in EverDrive X OS mode pages, data and far call thunks go in FIXED
+# bank_split.py: editor.c in EverDrive X OS mode pages, data and far call thunks go in FIXED
 *: 5
 # files, the file browser and menus
 4: Browse ListBars AskFileName ScrollList ListRows ListLoading HandleFileKey ToLatin1 ShowError JoinPath PutNumber PutNumber2 FileMenu PutPath SaveFile ListFolder NameChar ListEntry ListMessage ToUtf8 OpenFile NewFile CanDiscard CopyName Choose ShowBusy

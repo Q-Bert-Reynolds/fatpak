@@ -66,10 +66,6 @@ KBHandleCharacter::;a = character in ASCII
   cp a, KB_MODE_TYPING
   jr z, .findCharXY
   
-IF KEYBOARD_TEST_ENABLED
-  ld a, b
-  jp nz, KBDemoDrawCharacter
-ENDC
 
 .updateButtonState
   ld a, b;ASCII
@@ -186,16 +182,6 @@ KBUpdateButtons::;b = button flags
 
 KBHandleBackspace::
   EDITOR_KEY KEY_BACKSPACE
-IF KEYBOARD_TEST_ENABLED
-  ld a, [kb_mode]
-  cp a, KB_MODE_DEMO
-  jr nz, .buttons
-  ld a, [kb_flags]
-  and a, KB_FLAG_RELEASE
-  jp z, KBDemoRemoveCharacter
-  ret
-.buttons
-ENDC
   ld b, PADF_B
   jr KBUpdateButtons
 

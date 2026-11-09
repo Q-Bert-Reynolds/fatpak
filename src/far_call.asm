@@ -1,4 +1,4 @@
-;Far calls for C split across ROM banks or OS mode pages (see bank_split.py).
+;Far calls for C split across OS pages and resident code (see bank_split.py).
 ;A thunk is call FarCallInline, DB bank, DW target.
 ;The return address and caller's bank go on a WRAM stack instead of the CPU stack, so the
 ;callee sees its stack args where it expects them. a, bc, de args and returns are kept.

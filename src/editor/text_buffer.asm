@@ -31,24 +31,12 @@
 ;   tb_ScrollRows               a = 1 moves rows up (scroll down), 0 down, shifts tile_buffer and the row tables
 ;   tb_nowrap, tb_left          rows are whole lines scrolled sideways by tb_left characters (see TBScanRow)
 
-IF DEF(EVERDRIVE_OS);PSRAM is always there through the window
+;PSRAM is always there through the window
 DEF TB_BANK_REG EQU EDX_BLOCK
 MACRO SRAM_ON
 ENDM
 MACRO SRAM_OFF
 ENDM
-ELSE
-DEF TB_BANK_REG EQU rRAMB
-MACRO SRAM_ON
-  ld a, CART_SRAM_ENABLE
-  ld [rRAMG], a
-ENDM
-
-MACRO SRAM_OFF
-  xor a
-  ld [rRAMG], a
-ENDM
-ENDC
 
 MACRO LD_HL_VAR ;\1 = address of little endian word
   ld a, [\1]
@@ -163,10 +151,8 @@ _tb_Load::
   ;fall through
 
 _tb_Clear::
-IF DEF(EVERDRIVE_OS)
   ld a, 1;the swap file needs writing (src/editor/editor.c)
   ld [_swap_dirty], a
-ENDC
   SRAM_ON
   xor a
 .clearBankLoop;everything but the register hole
@@ -188,13 +174,11 @@ ENDC
     jr nz, .clearBankLoop
   jr TBEmpty
 
-IF DEF(EVERDRIVE_OS)
 _tb_Empty::;empties the text buffer without clearing it (tb_Load can't find the gap after this, a large
 ;file's window clears the signature, see src/fatfs/fatfs.c)
   ld a, 1
   ld [_swap_dirty], a
   SRAM_ON
-ENDC
 TBEmpty:
   ld hl, 0
   ST_HL_VAR tb_gap_start
@@ -214,7 +198,7 @@ TBCheckSize:
 
 ;hl = physical offset, selects SRAM bank, returns SRAM address in hl, only affects a
 TBPhysAddr:
-IF DEF(EVERDRIVE_OS);512 byte blocks
+;512 byte blocks
   ld a, h
   srl a
   ld [TB_BANK_REG], a
@@ -223,35 +207,6 @@ IF DEF(EVERDRIVE_OS);512 byte blocks
   or a, HIGH(TB_BASE)
   ld h, a
   ret
-ELSE
-  push bc
-  ld bc, -TB_BANK_SIZE
-  xor a;bank
-.findBank
-    add hl, bc
-    jr nc, .foundBank
-    inc a
-    jr .findBank
-.foundBank
-  ld bc, TB_BANK_SIZE
-  add hl, bc;offset in bank
-  pop bc
-  ld [TB_BANK_REG], a
-  ld a, h
-  cp a, HIGH(TB_HOLE)
-  jr c, .setAddress
-  ld a, l;skip the register hole
-  add a, TB_HOLE_SIZE
-  ld l, a
-  ld a, h
-  adc a, 0
-  ld h, a
-.setAddress
-  ld a, h
-  or a, HIGH(_SRAM)
-  ld h, a
-  ret
-ENDC
 
 ;de = physical offset, a = 0 finds the first 0 at or after it, 1 the first non 0, a run at a time,
 ;returns its offset in de (TB_SIZE if there isn't one), affects a, bc, hl
@@ -406,7 +361,6 @@ TBChunkLimit:
   ld de, TB_CHUNK
   jr TBMin
 
-IF DEF(EVERDRIVE_OS)
 ;hl = physical offset, returns block in b, window address in hl, bytes until the block end in de, affects a
 TBPhysRun:
   ld b, 0
@@ -439,73 +393,6 @@ TBRunBack:
   inc de
   ret
 
-ELSE
-;hl = physical offset, returns bank in b, SRAM address in hl, bytes until the register hole
-;or bank end in de, affects a
-TBPhysRun:
-  ld b, 0
-TBPhysRunFrom:;b = first bank (the undo log starts at UNDO_BANK)
-  ld de, -TB_BANK_SIZE
-.findBank
-    add hl, de
-    jr nc, .foundBank
-    inc b
-    jr .findBank
-.foundBank
-  ld de, TB_BANK_SIZE
-  add hl, de;offset in bank
-  ld a, h
-  cp a, HIGH(TB_HOLE)
-  jr nc, .afterHole
-  ld a, LOW(TB_HOLE)
-  sub a, l
-  ld e, a
-  ld a, HIGH(TB_HOLE)
-  sbc a, h
-  ld d, a
-  jr .address
-.afterHole
-  ld a, LOW(TB_BANK_SIZE)
-  sub a, l
-  ld e, a
-  ld a, HIGH(TB_BANK_SIZE)
-  sbc a, h
-  ld d, a
-  ld a, l
-  add a, TB_HOLE_SIZE
-  ld l, a
-  ld a, h
-  adc a, 0
-  ld h, a
-.address
-  ld a, h
-  or a, HIGH(_SRAM)
-  ld h, a
-  ret
-
-;hl = physical offset, returns bytes before it in the same run (bank and side of the hole) in de, affects a, hl
-TBRunBack:
-  dec hl
-  ld de, -TB_BANK_SIZE
-.findBank
-    add hl, de
-    jr c, .findBank
-  ld de, TB_BANK_SIZE
-  add hl, de;offset in bank
-  ld a, h
-  cp a, HIGH(TB_HOLE)
-  jr c, .beforeHole
-  ld de, 1-TB_HOLE
-  add hl, de
-  ld d, h
-  ld e, l
-  ret
-.beforeHole
-  inc hl
-  ld d, h
-  ld e, l
-  ret
-ENDC
 
 ;copies [tb_k] bytes from physical [tb_src] to [tb_dst] and zeroes the source, runs don't overlap
 TBCopyChunk:
@@ -1026,7 +913,6 @@ _tb_DeleteRange::;de = pos, bc = count, deletes count chars at pos (they must ex
 
 DEF TB_CLIP_CHUNK EQU 256;bytes copied at a time through win_buffer
 
-IF DEF(EVERDRIVE_OS)
 ;selects the block for [tb_clip_ptr] (an offset from block MAIN_SRAM_BANK), returns its address in hl, affects a, b, de
 TBClipAddr:
   LD_HL_VAR tb_clip_ptr
@@ -1035,14 +921,6 @@ TBClipAddr:
   ld a, b
   ld [TB_BANK_REG], a
   ret
-ELSE
-;selects the clipboard's bank, returns [tb_clip_ptr] in hl, affects a
-TBClipAddr:
-  ld a, MAIN_SRAM_BANK
-  ld [TB_BANK_REG], a
-  LD_HL_VAR tb_clip_ptr
-  ret
-ENDC
 
 _tb_ClipLength::;returns clipboard length in bc, 0 if it's empty or was never set
   SRAM_ON
@@ -1092,10 +970,8 @@ TBClipAdvance:
   ret
 
 _tb_Copy::;de = pos, bc = count, copies text to the clipboard, returns a = 0 if it's too big
-IF DEF(EVERDRIVE_OS)
   ld a, 1;the swap file needs writing (src/editor/editor.c)
   ld [_swap_dirty], a
-ENDC
   ld a, LOW(TB_CLIP_SIZE)
   sub a, c
   ld a, HIGH(TB_CLIP_SIZE)
@@ -2334,11 +2210,9 @@ TBCheckRunMD:
 
 ;de = position of an edit, forgets the checkpoints after it, only affects a
 TBEdited:
-IF DEF(EVERDRIVE_OS)
   ld a, 1;the swap file needs writing (src/editor/editor.c)
   ld [_swap_dirty], a
   ld [_win_edited], a;a large file's window needs committing (src/fatfs/fatfs.c)
-ENDC
   push bc
   ld a, [tb_checks_last]
   ld b, a

@@ -1,9 +1,5 @@
 LANGUAGE  = EN#EN ES FR IT PT DE JA
-OS        = 1#1 = EverDrive X OS (/GBCSYS/GBCOS.BIN), 0 = MBC5 cartridge ROM
 DEFINES   = -D LANG_$(LANGUAGE)
-ifeq ($(OS), 1)
-DEFINES  += -D EVERDRIVE_OS
-endif
 
 GAME_NAME = TEXT_EDITOR
 ROM_NAME  = $(GAME_NAME).gbc
@@ -37,23 +33,17 @@ _%.asm: %.c $(C_HEADERS) $(C_LIBS) $(wildcard $(SRC_DIR)/*/*.banks)
 	@mkdir -p $(BUILD_DIR)
 	sdcc $< -msm83 --asm=rgbds --opt-code-size --dataseg WRAM0 --no-peep --peep-file peephole.def $(DEFINES) --disable-warning 218 -S -o $@
 	@sed -i 's/^\t\.byte /\tDB /' $@ # SDCC writes long constants as .byte
-ifeq ($(OS), 1)
-	@if [ -f $(basename $<).os.banks ]; then $(PYTHON) bank_split.py $@ $(basename $<).os.banks --os; fi
-else
-	@if [ -f $(dir $<)banks.txt ]; then $(PYTHON) bank_split.py $@ $(dir $<)banks.txt; fi
-endif
+	@if [ -f $(basename $<).banks ]; then $(PYTHON) bank_split.py $@ $(basename $<).banks; fi
+
+$(SRC_DIR)/constants.h: $(SRC_DIR)/constants.asm build.py
+	$(PYTHON) build.py
 
 assemble: $(C_ASM)
 	@mkdir -p $(BUILD_DIR) $(BIN_DIR)
 	$(PYTHON) ingame_menu.py
 	rgbasm $(DEFINES) -o $(BUILD_DIR)/main.o $(SRC_DIR)/main.asm
-ifeq ($(OS), 1)
 	rgblink -l pages.link -m $(BUILD_DIR)/main.map -n $(SYM_FILE) -o $(ROM_FILE) $(BUILD_DIR)/main.o
 	$(PYTHON) check_pages.py $(BUILD_DIR)/main.map
-else
-	rgblink -m $(BUILD_DIR)/main.map -n $(SYM_FILE) -o $(ROM_FILE) $(BUILD_DIR)/main.o
-endif
-ifeq ($(OS), 1)
 	rgbfix -v -c -s -j -t GBXOS -i KRKZ -l 0x33 -m 0 -r 0 -p 255 $(ROM_FILE)
 	cp $(ROM_FILE) $(BIN_DIR)/GBCOS.BIN
 	$(PYTHON) data_file.py $(BIN_DIR)/EDITOR.DAT
@@ -62,9 +52,6 @@ ifeq ($(OS), 1)
 		sync -f /media/qbertreynolds/GAMEBOY/GBCSYS/GBCOS.BIN && \
 		echo "Copied GBCOS.BIN to mounted GAMEBOY card"; \
 	fi
-else
-	rgbfix -jvcs -k 01 -l 0x33 -m 0x1B -p 255 $(ROM_FILE)
-endif
 
 run:
 ifeq ($(OS), Windows_NT)

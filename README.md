@@ -35,11 +35,11 @@ the menu. Ctrl+O opens, Ctrl+S saves, Ctrl+N starts a new file.
 OPEN (Ctrl+O) browses the SD card: the top bar shows the folder, the bottom bar the selected file's size and date.
 Folders come first, enter or A opens, backspace, left or B goes up a folder, escape goes back to the text
 (so do backspace and B in the root).
-Any file up to 63KB (65,408 bytes) opens as text, and in OS mode bigger files open too (the editor reads a
+Any file up to 63KB (65,408 bytes) opens as text, and bigger files open too (the editor reads a
 48KB window of the file from the card that moves with the cursor, Ctrl+End shows "Line ?" until the lines
 before it are counted; saving one writes ~EDITOR.TMP in its folder and renames it over the file, and unsaved
 edits to one don't survive a reset), long file names (up to 64 characters) are shown. SAVE AS saves in the open
-file's folder. In OS mode .gb and .gbc files launch: the game is copied to the cart, its save comes from
+file's folder. .gb and .gbc files launch: the game is copied to the cart, its save comes from
 /GBCSYS/SAVE/<name>.srm (where the EverDrive's OS keeps them) and goes back there at the next boot. The cart's system
 button combo (Select+Start unless changed in the EverDrive's OS) opens a menu over the game: RESUME, or EXIT TO
 OS (which backs up the save). CR LF line endings are kept.
@@ -69,7 +69,7 @@ Ctrl+Z undoes, Ctrl+Y (or Ctrl+Shift+Z) redoes, a word or a run of deletes at a 
 Text is kept in SRAM, so it's still there after turning the Game Boy off.
 
 # Engine
-- FatFs (ChaN) with long file names for the SD card, split across ROM0 and three banks by bank_split.py
+- FatFs (ChaN) with long file names for the SD card, split across resident code and OS pages by bank_split.py
 - asm for core routines (drawing, input, math, memory, audio), C (SDCC) for higher level logic
 - PS/2 and iGKB keyboard drivers (src/keyboard)
 - FX Hammer sfx (for error and confirmation sounds)
@@ -106,11 +106,8 @@ img/ui_font.png is 256 tiles. Tile index matches the character code:
 - "\n" in engine strings is 128
 
 # Tests
-Set in src/constants.asm, run before the editor starts:
-- TESTS_ENABLED
-- SOUND_TEST_ENABLED
-- KEYBOARD_TEST_ENABLED
-- SD_TEST_ENABLED (inits the card, checks the MBR and FAT32 boot sector, writes and reads back sector 1)
+The HELP menu's keyboard test checks PS/2 and iGKB input. See
+[IN_GAME_MENU.md](IN_GAME_MENU.md) for cart-menu validation.
 
 # SD card
 Gearboy (the ps2keyboard branch of the fork) emulates the EverDrive X SD card with a folder on your computer, the
@@ -124,8 +121,12 @@ can read everything in it, saving writes the file straight to that folder. Nothi
 
 `make assemble` builds without regenerating assets or running the emulator. Pick a language with `make assemble LANGUAGE=ES`.
 
-# Cart:
-MBC5, 1M ROM (64 banks), 128K SRAM (16 banks)
+# Cart
+The only application build is the 128KB EverDrive X OS image, `bin/GBCOS.BIN`.
+Install it as `/GBCSYS/GBCOS.BIN`, with `bin/EDITOR.DAT` alongside it. Builds
+copy the OS image automatically when `/media/qbertreynolds/GAMEBOY` is mounted.
+The first 32KB is resident; the rest runs through the OS page window. C page
+assignments are in `src/*/*.banks` and the layout is checked after linking.
 
 # Credits
 
