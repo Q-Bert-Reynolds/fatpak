@@ -395,8 +395,43 @@ SnapshotZero:
 ;Stock restore list: preserve write-only sound frequency state on the chip.
 ;LCD and bank selectors go last, after VRAM, OAM and HRAM are restored.
 SnapshotIORegisters:
-  DB $26,$25,$04,$05,$06,$07,$10,$11,$12,$16,$17,$1A,$1B,$1C,$20,$21,$22,$23,$24
-  DB $41,$42,$43,$45,$47,$48,$49,$4A,$4B
-  DB $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$3A,$3B,$3C,$3D,$3E,$3F
-  DB $68,$6A,$4F,$70,$40,$FF,$0F,0
+  DB LOW(rAUDENA)
+  DB LOW(rAUDTERM)
+  DB LOW(rDIV)
+  DB LOW(rTIMA)
+  DB LOW(rTMA)
+  DB LOW(rTAC)
+  DB LOW(rAUD1SWEEP)
+  DB LOW(rAUD1LEN)
+  DB LOW(rAUD1ENV)
+  DB LOW(rAUD2LEN)
+  DB LOW(rAUD2ENV)
+  DB LOW(rAUD3ENA)
+  DB LOW(rAUD3LEN)
+  DB LOW(rAUD3LEVEL)
+  DB LOW(rAUD4LEN)
+  DB LOW(rAUD4ENV)
+  DB LOW(rAUD4POLY)
+  DB LOW(rAUD4GO)
+  DB LOW(rAUDVOL)
+  DB LOW(rSTAT)
+  DB LOW(rSCY)
+  DB LOW(rSCX)
+  DB LOW(rLYC)
+  DB LOW(rBGP)
+  DB LOW(rOBP0)
+  DB LOW(rOBP1)
+  DB LOW(rWY)
+  DB LOW(rWX)
+FOR N, 16
+  DB LOW(_AUD3WAVERAM+N)
+ENDR
+  DB LOW(rBCPS)
+  DB LOW(rOCPS)
+  DB LOW(rVBK)
+  DB LOW(rSVBK)
+  DB LOW(rLCDC)
+  DB LOW(rIE)
+  DB LOW(rIF)
+  DB 0
 END_PAGE

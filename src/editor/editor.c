@@ -1474,11 +1474,23 @@ static unsigned char IsGame(const char* name) {
   return dot && (dot[1] | 0x20) == 'g' && (dot[2] | 0x20) == 'b' && (!dot[3] || ((dot[3] | 0x20) == 'c' && !dot[4]));
 }
 
+// Updates only the loading box: its size stays fixed while the numbers change.
+static void ShowGameProgress(char* text) {
+  char* end = PutText(text, "Loading ");
+  end = PutNumber(end, game_block >> 1);
+  *end++ = '/';
+  end = PutText(PutNumber(end, game_blocks >> 1), " KB");
+  *end = 0;
+  CopyName(render_box_text, text);
+  ++render_box_gen;
+  EditorDraw();
+}
+
 // copies the game to PSRAM and resets the Game Boy into it (see fs_LoadGame), the text and settings go in
 // the swap file first, returns if it can't. A large file's unsaved edits can't be kept
 static void LaunchGame(const char* path) {
   unsigned char result;
-  char text[TB_STRIDE], *end;
+  char text[TB_STRIDE];
   const char *basename, *scan;
   if (doc_large) {
     if (!CanDiscard()) return;
@@ -1497,16 +1509,19 @@ static void LaunchGame(const char* path) {
     return;
   }
   result = FileGameOpen(path);
-  while (!result && game_block != game_blocks) { // "Loading 512/2048 KB"
-    end = PutText(text, "Loading ");
-    end = PutNumber(end, game_block >> 1);
-    *end++ = '/';
-    end = PutText(PutNumber(end, game_blocks >> 1), " KB");
-    *end = 0;
-    ShowBusy(text);
-    result = FileGameCopy();
+  if (!result) {
+    GameLoadingBegin();
+    // Four-digit KB counts cover every supported ROM; 8 is a widest digit.
+    render_box_w = RenderTextWidth("Loading 8888/8888 KB") + BOX_PADDING;
+    render_box_x = (TB_WIDTH - render_box_w) >> 1;
+    ShowGameProgress(text);
+    while (!result && game_block != game_blocks) {
+      result = FileGameCopy();
+      if (!result) ShowGameProgress(text);
+    }
+    if (!result) result = FileGameFinish(path);
+    if (result) GameLoadingEnd();
   }
-  if (!result) result = FileGameFinish(path);
   if (result) {
     render_cpu_copy = 0;
     HideBox();

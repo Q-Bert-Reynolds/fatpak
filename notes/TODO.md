@@ -4,8 +4,8 @@
 
 ## Priority
 
-- Retest the browser loading overlay on hardware. **Crystal boots with both the polled loader and the much faster plain-screen streaming loader.** The revised UI keeps the browser/bars and "Loading..." box, draws loading tiles through the DMG CPU-copy path on CGB, finishes pending HDMA and permits only the resident LCD interrupt during transfers. Normal CPU speed is selected once for the whole load; the working eight-write ROM0 cadence is retained. **Launch speed is the priority.** See [loading overlay](EVERDRIVE_FEATURES.md#loading-box-over-the-browser). Remove temporary probe ROMs once no longer needed.
-- Add a loading bar over the browser after the CPU-copy loading overlay is hardware-confirmed. Update it between transfer chunks without starting HDMA or OAM DMA.
+- Retest progress text on hardware for flicker/slash rows. **Crystal and the browser/loading-box overlay work on hardware.** The progress loop now retains `GameLoadingBegin/End`, fixed box geometry, and normal CPU speed across chunks. CPU tile copies protect each STAT poll and two-byte write from interrupts; the old eight-byte copy had a reproduced poll/store race. Native tests cover forced interrupt timing, progress labels, DMA exclusion and complete ROM contents. See [loading overlay](EVERDRIVE_FEATURES.md#loading-box-over-the-browser). Launch speed remains the priority; remove temporary probe ROMs once no longer needed.
+- Add a loading bar over the browser after progress redraws are hardware-confirmed. Update it between transfer chunks without HDMA or OAM DMA.
 - Clock setting is hardware-confirmed. Verify RTC time across power-off separately from Crystal's ROM-loading failure.
 - Save states have been tested successfully on hardware. Remaining compatibility checks: switching between Girlboss and stock OS, interrupted file operations, and 128 KiB battery saves. Cheat testing is deferred. See [cart-menu validation](IN_GAME_MENU.md#validation).
 - Exercise full/read-only SD cards and interrupted state replacement on hardware. Failed state loads must still allow Resume, and backups must keep the correct game's ownership.

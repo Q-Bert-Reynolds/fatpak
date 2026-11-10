@@ -17,3 +17,5 @@
 6: ClockSetup
 # PutText runs on page 5, so its source strings must remain mapped.
 FIXED: clock_fields
+
+12: ShowGameProgress

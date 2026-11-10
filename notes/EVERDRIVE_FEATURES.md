@@ -120,8 +120,11 @@ to normal CPU speed once with LCD off. It restarts the existing raster layout
 and leaves only the resident LCD/STAT interrupt enabled. That handler maintains
 the window and tile-addressing changes needed to display the browser; it never
 starts DMA or accesses the SD interface. VBlank/OAM DMA, cursor/spinner sprites
-and input updates remain disabled throughout loading. No progress redraw runs
-between transfer chunks yet; a loading bar is future work.
+and input updates remain disabled throughout loading. The browser/box overlay
+with CPU copies is hardware-confirmed. Progress text is redrawn between completed
+transfer chunks, including 0 KB and the completed total; a loading bar is future
+work. The box reserves space for four-digit KB counters, so its border stays
+fixed as digit counts and character widths change.
 
 `sd_ReadBlocks` retains normal-speed streaming and the eight-write ROM0 loop.
 It allows only the caller's LCD interrupt, excluding every other handler, and
@@ -145,11 +148,26 @@ missing/invalid tokens, a changed header, initial HDMA, both CGB speeds and DMG;
 they verify normal-speed ROM0 writes and exclude DMA-capable interrupts. Full
 browser tests compare every loaded Crystal ROM byte and reach its title screen.
 
-**The browser-overlay/CPU-copy version still needs a hardware retest.** The
-plain-screen fast build is preserved locally at
-`/tmp/girlboss-before-browser-loading` before installing this change.
-Gearboy does not reproduce cartridge electrical timing, so emulator tests alone
-cannot prove the revised interrupt allowance is safe on hardware.
+The initial progress-text restoration bypassed `GameLoadingBegin/End`, causing
+CPU speed switches between chunks with the LCD still running. It also reopened
+and resized the loading box on every update. The progress loop now restores the
+loading setup/error cleanup, keeps one box size, and updates its text in place.
+
+The CPU-copy loop also had a separate race: interrupts remained enabled between
+its STAT wait and the following eight-byte burst. A handler could return during
+mode 3, when real hardware drops VRAM writes. A forced-interrupt regression
+reproduced four such stores in the old routine. Each new poll and two-byte copy
+is atomic; interrupts can run between attempts/copies so the raster handler is
+still responsive. The stores fit within mode 2 even if a poll sees the very end
+of HBlank/VBlank. Gearboy currently permits VRAM access in all modes, so the
+regression checks the PPU mode at each CPU store as well as the resulting bytes.
+
+**The progress redraw/timing fixes still need a hardware retest.** Native tests
+also check the progress labels, fixed box geometry, DMA exclusion and complete
+loaded ROM bytes on DMG and CGB. The previous user build is preserved at
+`/tmp/girlboss-before-progress-redraw-fix`. No individual test has yet proved
+HDMA was the only hardware cause; normal-speed streaming and the resident write
+loop remain part of the working configuration.
 
 ### Temporary hardware probes
 

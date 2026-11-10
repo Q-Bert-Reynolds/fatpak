@@ -114,7 +114,6 @@ DEF render_box_mask EQUS "(cmd_buffer+TB_WIDTH+TB_COLS)";the box's pixels of eac
 DEF render_pals EQUS "(cmd_buffer+TB_WIDTH+TB_COLS*2)";GBC: accent palette of each tile, in the same page
 DEF render_dim EQUS "(cmd_buffer+$100)";pixels of dim ink, the page after render_bitmap
 DEF render_accent EQUS "win_buffer";GBC: pixels of accent ink (win_buffer is only used between renders)
-DEF RENDER_BURST EQU 8;bytes written to VRAM per HBlank
 
 SECTION "Render ROM0", ROM0
 
@@ -1213,37 +1212,28 @@ RenderRow:
   ld d, [hl]
 RenderCopyTiles:;DE = destination in the selected VRAM bank; DMG or CGB without HDMA
   ld hl, render_dma_buffer
-  ld c, TB_WIDTH*2/RENDER_BURST
-.burst
-    ldh a, [rLY]
-    cp a, SCRN_Y
-    jr c, .waitForHBlank
-    cp a, SCRN_Y+8
-    jr c, .write;VBlank with time left
-  .waitForHBlank;start of mode 0, then mode 0 and 2 last at least ~260 dots with one sprite on the line
-      ldh a, [rSTAT]
-      and a, STATF_BUSY
-      jr z, .waitForHBlank
-  .waitForNotBusy
-      ldh a, [rSTAT]
-      and a, STATF_BUSY
-      jr nz, .waitForNotBusy
-  .write
-    di
-REPT RENDER_BURST;40 cycles, tiles are 16 byte aligned so a burst never crosses a page
-    ld a, [hli]
-    ld [de], a
-    inc e
+  ld c, TB_WIDTH;two bytes per iteration, all rows are a whole number of tiles
+.next
+  ; The STAT check and stores must be atomic. An LCD interrupt after a poll
+  ; could otherwise return in mode 3 and the PPU would discard the writes.
+  ; Keep the critical section short so raster interrupts still meet deadlines.
+  di
+  ldh a, [rSTAT]
+  and a, STATF_BUSY
+  jr nz, .busy
+.write
+REPT 2;fits in mode 2 even if the poll caught the end of HBlank/VBlank
+  ld a, [hli]
+  ld [de], a
+  inc de
 ENDR
-    ei
-    ld a, e
-    and a
-    jr nz, .nextBurst
-    inc d
-.nextBurst
-    dec c
-    jr nz, .burst
+  ei
+  dec c
+  jr nz, .next
   ret
+.busy
+  ei
+  jr .next
 
 ;GBC: writes the row's palettes, then uses CPU copies during launch or starts an HBlank DMA, which runs
 ;while the CPU carries on (VBK stays on the block's bank until it's done, see RenderWaitDMA)
