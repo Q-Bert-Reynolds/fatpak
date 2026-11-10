@@ -80,7 +80,7 @@ _render_pending_scy:: DB
 render_pending_wy: DB
 render_pending_anim: DB;GBC: scroll to the staged SCY a few pixels a frame
 render_target_scy: DB;SCY the screen is scrolling to
-_render_cpu_copy:: DB;1 while launching: CGB tiles use the DMG CPU-copy path instead of HDMA
+_render_cpu_copy:: DB;1 during launch or after warm return: CPU tile copies instead of HDMA
 _render_gbc:: DB;1 on GBC: no tile data mode switches, smooth scrolling, rows sent with HDMA
 render_pending_lcdc: DB;staged render_top_lcdc, render_event_count and render_events, in that order
 render_pending_count: DB
@@ -406,8 +406,8 @@ RenderLCDInterrupt::
   cp a, 1
   jr nz, .animate
   ldh a, [rHDMA5]
-  inc a
-  jr nz, .animate;a row is still being transferred ($FF on DMG)
+  bit 7, a
+  jr z, .animate;a row is still being transferred; cancelled HDMA is idle too
   ld a, [_render_pending_scy]
   ld [render_target_scy], a
   ld a, [render_pending_anim]
@@ -756,11 +756,12 @@ _RenderSetMapRow::;a = BG map row, e = block
   ldh [rVBK], a
   ret
 
-;waits for a row's HDMA transfer to finish (HDMA5 reads $FF when it's idle, and on DMG)
+;Wait for HDMA to become idle. A cancelled transfer retains its remaining
+;count, so bit 7 can be set without the register reading $FF. DMG reads $FF.
 RenderWaitDMA:
   ldh a, [rHDMA5]
-  inc a
-  jr nz, RenderWaitDMA
+  bit 7, a
+  jr z, RenderWaitDMA
   ret
 
 ;display should be off, clears tiles, sets the background map, starts the LCD interrupt
@@ -1235,7 +1236,7 @@ ENDR
   ei
   jr .next
 
-;GBC: writes the row's palettes, then uses CPU copies during launch or starts an HBlank DMA, which runs
+;GBC: writes the row's palettes, then uses CPU copies when requested or starts an HBlank DMA, which runs
 ;while the CPU carries on (VBK stays on the block's bank until it's done, see RenderWaitDMA)
 RenderRowDMA:
   call RenderWritePalettes

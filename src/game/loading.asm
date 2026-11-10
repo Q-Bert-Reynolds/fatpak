@@ -7,7 +7,7 @@ game_loading_ie: DB
 game_loading_lcdc: DB
 game_loading_speed: DB
 
-SECTION "Game Loading Stubs", ROM0
+FIXED "Game Loading Stubs";always mapped; leave ROM0 space for warm startup
 _GameLoadingBegin:: BANKED_C GameLoadingBegin
 _GameLoadingEnd:: BANKED_C GameLoadingEnd
 

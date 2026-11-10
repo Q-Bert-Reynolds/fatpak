@@ -29,7 +29,7 @@ extern unsigned char render_pending; // a staged scroll, applied at line 144
 extern unsigned char render_pending_scy;
 extern void RenderStage(void); // stages LCDC changes (tile data mode, window) for the layout, sets render_pending
 extern unsigned char render_sel[TB_ROWS * 2]; // selected columns of each row (first, end), end 0xFF = right edge
-extern unsigned char render_cpu_copy; // loading UI uses CPU tile copies instead of CGB HDMA
+extern unsigned char render_cpu_copy; // launch and warm return use CPU tile copies instead of CGB HDMA
 extern unsigned char tile_buffer[];
 extern unsigned char tile_attrs[]; // style of each char in tile_buffer's text rows: STYLE_* bits and its width
 

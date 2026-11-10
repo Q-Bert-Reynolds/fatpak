@@ -20,7 +20,9 @@ os_return_to_menu_requested:: DB 0;stock OS's return request (unused here)
 os_snapshot_use_32k_ram:: DB 0;stock snapshot RAM-size flag, derived from the RAM mask
 ; Original resident bytes at the six addresses written as mapper registers.
 ingame_os_bytes:: DS 6, 0
-os_info_reserved:: DS 6, 0
+os_info_reserved::
+main_warm: DB 0;startup mode must survive the WRAM/HRAM clears
+  DS 5, 0
 ASSERT os_game_launched == $01F0
 ASSERT os_initialization_pending == $01F1
 ASSERT os_return_to_menu_requested == $01F2
@@ -30,7 +32,18 @@ ASSERT @ == $0200
 SECTION "Main", ROM0
 Main::
   di
+  xor a
+  jr MainStart
+
+;The live cartridge was configured at cold boot. Preserve its feature/RTC
+;controls on a splash-free return instead of programming them again mid-game.
+WarmMain::
+  di
+  ld a, 1
+MainStart:
   ld sp, $FFFE;where the boot ROM leaves it, the loader's may be in WRAM (cleared below)
+  ld [main_warm], a;survives the WRAM/HRAM clears below
+  ld b, a;0 = cold startup, 1 = warm return; mapping setup below preserves B
   ld a, 1
   ldh [rSVBK], a
   xor a;sgb_Init enables interrupts before Main sets them up
@@ -44,7 +57,8 @@ Main::
   ld [EDX_SWITCH], a;needed when launching another game after a warm return
   ld a, $04;the window shows PSRAM
   ld [EDX_CONFIG], a
-  call CartConfigureFeatures;model-specific RTC/snapshot gates, like stock startup
+  bit 0, b
+  call z, CartConfigureFeatures;configure FPGA/RTC features only at cold startup
   ; Restore the editor's vector after the mapper and cart switch are in OS mode.
   ld hl, $0041;$0040 jumps to our VBlank, not the in-game menu (src/game/ingame.asm)
   ld [hl], LOW(VBLInterrupt)
@@ -108,6 +122,8 @@ Main::
   ld hl, _RAM
   ld bc, (_RAMBANK-_RAM)*2
   call mem_Set;clear WRAM
+  ld a, [main_warm]
+  ld [_render_cpu_copy], a;warm return uses the launcher's CPU-copy fallback
   ld a, KB_MODE_BUTTONS
   TRAMPOLINE SetKeyboardMode
   ld sp, stack_bottom

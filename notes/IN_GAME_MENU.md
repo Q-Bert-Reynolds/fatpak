@@ -73,15 +73,32 @@ the filename bitmap, and the snapshot workspace are outside the loaded ROM.
 
 Return to OS stops interrupts, timer, serial, sound and HBlank DMA, repairs the
 six resident bytes changed by mapper writes, selects OS mapping, and jumps to
-`Main`. Main resets cart-switch state, reinstalls the normal VBlank vector,
-backs up saves, and opens the browser. It doesn't request a boot-ROM reset.
+`WarmMain`. This uses the normal startup path to reset cart-switch state,
+reinstate the VBlank vector, back up saves, and open the browser, but skips
+`CartConfigureFeatures`: the live FPGA feature mask and mapper RTC controls were
+already configured at cold boot. It doesn't request a boot-ROM reset.
 A DMG game leaves the OS in DMG mode even on CGB/GBA hardware.
+
+The in-game menu draws with CPU copies. After warm return, the editor also
+keeps `render_cpu_copy` enabled, using the launcher's CPU-copy fallback while
+retaining CGB palettes and layout. Renderer readiness checks use HDMA5 bit 7:
+a cancelled transfer is idle even when its remaining count makes the register
+read `$80-$FE` instead of `$FF`. Waiting for exactly `$FF` could otherwise hang
+startup after cancelling a game's HBlank DMA.
 
 Gearboy shares cartridge save RAM across its OS/game mappings and applies the
 restored mapper bytes when resuming. Its calendar RTC uses host local time and
 supports setting an offset through the same I2C interface as the cartridge.
 
 ## Validation
+
+`bash tests/run_ingame_return.sh` uses an already-built sibling Gearboy desktop
+core to exercise Resume, Save state, repeated warm returns, browser startup,
+input and battery-save backup for DMG and CGB games. It checks that Return to
+OS reaches `WarmMain` directly, skips factory feature configuration, and never
+requests the cartridge reboot. All SD files live in temporary folders.
+The test injects cancelled HDMA counts, checks that active DMA still blocks
+VRAM access, and verifies that warm OS rendering never starts HDMA again.
 
 [`Gearboy/tests/fatpak_features_tests.cpp`](../../Gearboy/tests/fatpak_features_tests.cpp) runs the assembled routines against
 an isolated temporary SD folder. It covers DMG/CGB capture, stock state layout,

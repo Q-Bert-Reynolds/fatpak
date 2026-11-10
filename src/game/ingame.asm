@@ -382,7 +382,7 @@ MenuWarmExit:
   ld [$4000], a
   ld a, [ingame_os_bytes+5]
   ld [$6000], a
-  jp Main ; no $BD06=$10: keep the current DMG/CGB hardware mode
+  jp WarmMain ; no $BD06=$10: preserve hardware mode and cartridge feature controls
 
 
 ;Detect actual CGB mode without depending on game WRAM or boot registers.

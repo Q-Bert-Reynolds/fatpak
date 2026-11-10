@@ -83,13 +83,13 @@ flowchart LR
 
 ## Boot
 
-`Main` in `src/main.asm`:
+`Main` (cold startup) and `WarmMain` (return from a game) in `src/main.asm`:
 
-1. Establish the OS mapper/configuration, reset the cart-switch state, and restore the editor VBlank vector.
+1. Establish the OS mapper/configuration, reset the cart-switch state, and restore the editor VBlank vector. Cold startup also configures the cartridge's factory feature mask and mapper RTC controls; warm startup preserves them.
 2. Clear HRAM, then initialize `sys_info` from the VBK write/read probe. Retaining bit 0 as both 1 and 0 identifies CGB mode; otherwise it starts as DMG-compatible mode. Startup does not rely on boot-ROM register values, so it also works after the loader or a warm return. Pocket versus DMG and GBA versus CGB are not identified.
 3. Run the SGB multiplayer probe (`MLT_REQ`) outside CGB mode. A successful check adds `SYS_INFO_SGB`. Set up SGB palettes, turn the display off, and copy the OAM DMA routine to HRAM.
 4. In CGB mode, enable double speed and load `DefaultPalettes`.
-5. Clear WRAM, establish the editor stack, disable sound, initialize drawing and interrupts, and detect the keyboard.
+5. Clear WRAM, select CPU tile copies on warm startup (normal HDMA on cold CGB startup), establish the editor stack, disable sound, initialize drawing and interrupts, and detect the keyboard. The startup mode survives the RAM clears in a private OS Info byte.
 6. `TRAMPOLINE _AppMain` (`src/app/main.c`) backs up the previous game, loads `/GBCSYS/EDITOR.DAT`, restores `/GBCSYS/EDITOR.SWP` when needed, runs `EditorSetup` and `EditorInit`, and opens the browser. It then enters `Editor()` for the text-editing loop; neither returns.
 
 `OS Info` at `$01F0-$01FF` contains stock-compatible launch, initialization,
@@ -341,18 +341,19 @@ capture, OS services may clear and reuse WRAM/HRAM and the normal 1 KiB stack.
 image before replacing the suspended game. Successful Save/Load resumes;
 errors leave the menu open. The stock save-RAM state slot is kept in sync.
 Resume restores the game and delivers its VBlank at `$0040`. Return to OS repairs
-the resident bytes changed by mapper writes and jumps to `Main` without the boot
+the resident bytes changed by mapper writes and jumps to `WarmMain` without the boot
 ROM; a DMG game leaves the OS in DMG mode even on CGB hardware. See
 [In-game menu](IN_GAME_MENU.md) for the memory layout and restore policy.
 
 ### Calendar and game RTC
 
-Startup reads the model byte from the factory EEPROM at `$A0:$3f18` (high byte
+Cold startup reads the model byte from the factory EEPROM at `$A0:$3f18` (high byte
 of its big-endian model word), then sets `$BD0F` like stock GBCOS: `$01` for X3,
 `$00` for X5, `$06` for X7. The X7 mask includes RTC and snapshot capabilities;
 its mapper RTC control is initially cleared at index 6. Unknown models and bus
 errors leave the bootloader's feature mask intact. The factory read uses no
-WRAM and runs before the startup RAM clear, including on warm return.
+WRAM and runs before the startup RAM clear. Warm return skips this configuration
+to preserve the live FPGA and mapper RTC controls.
 
 `src/rtc/rtc.asm` implements bounded I2C transactions at `$BD0c/$BD0d` for the
 calendar device `$d0/$d1`; `rtc.c` validates BCD dates, sets the clock, builds FAT
