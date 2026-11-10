@@ -11,6 +11,9 @@
 #include "../ui/render.h"
 #include "../ui/text.h"
 
+const char loading_text[] = "Loading...";
+static const char preparing_text[] = "Preparing game...";
+
 // a .gb or .gbc file
 unsigned char IsGame(const char* name) {
   const char* dot = 0;
@@ -45,7 +48,7 @@ void LaunchGame(const char* path) {
     SettingsSave();
   }
   render_cpu_copy = 1; // keep CGB layout/palettes, draw loading tiles without HDMA
-  ShowBusy("Loading...");
+  ShowBusy(loading_text);
   if ((result = FileSaveSwap())) {
     render_cpu_copy = 0;
     HideBox();
@@ -63,7 +66,12 @@ void LaunchGame(const char* path) {
       result = FileGameCopy();
       if (!result) ShowGameProgress(text);
     }
-    if (!result) result = FileGameFinish(path);
+    if (!result) {
+      CopyName(render_box_text, preparing_text);
+      ++render_box_gen;
+      EditorDraw();
+      result = FileGameFinish(path);
+    }
     if (result) GameLoadingEnd();
   }
   if (result) {

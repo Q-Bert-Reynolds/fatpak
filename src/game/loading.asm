@@ -5,7 +5,6 @@
 SECTION "Game Loading State", WRAM0
 game_loading_ie: DB
 game_loading_lcdc: DB
-game_loading_speed: DB
 
 FIXED "Game Loading Stubs";always mapped; leave ROM0 space for warm startup
 _GameLoadingBegin:: BANKED_C GameLoadingBegin
@@ -29,15 +28,6 @@ GameLoadingBegin:
   ldh a, [rLCDC]
   ld [game_loading_lcdc], a
   call GameLoadingOff
-  ldh a, [sys_info]
-  and a, SYS_INFO_GBC
-  jr z, .speed
-  ldh a, [rKEY1]
-  and a, KEY1F_DBLSPEED
-.speed
-  ld [game_loading_speed], a
-  and a
-  call nz, gbdk_CPUSlow;switch once, with LCD off; no speed-switch gaps between chunks
   ldh a, [rLCDC]
   and a, ~LCDCF_OBJON;hide the spinner/cursor while their VBlank updates are stopped
   ldh [rLCDC], a
@@ -48,14 +38,11 @@ GameLoadingBegin:
   ret
 
 ;Only failures return to the UI. Tiles, palettes and maps were never replaced.
-;Normal launch stays at normal CPU speed until the cartridge reset.
+;CPU speed is unchanged throughout loading; GameLaunch selects normal speed for reset.
 GameLoadingEnd:
   xor a
   ldh [rIE], a
   call GameLoadingOff
-  ld a, [game_loading_speed]
-  and a
-  call nz, gbdk_CPUFast
   ld a, [game_loading_lcdc]
   and a, ~LCDCF_ON
   ldh [rLCDC], a

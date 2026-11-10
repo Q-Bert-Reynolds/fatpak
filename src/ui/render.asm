@@ -172,11 +172,10 @@ RenderFarGlyph:;a = bank, hl = glyph, copies it to render_glyph, returns render_
   ld a, b
   SET_BANK
   ld de, render_glyph
-REPT 8
-  ld a, [hli]
-  ld [de], a
-  inc de
-ENDR
+  push bc
+  ld bc, 8
+  call mem_Copy
+  pop bc
   ld a, c
   SET_BANK
   ld bc, render_glyph
@@ -193,11 +192,10 @@ RenderWindowGlyph:;a = data block, hl = glyph in the window, copies it to render
   ld a, e
   ld [EDX_BLOCK], a
   ld de, render_glyph
-REPT 8
-  ld a, [hli]
-  ld [de], a
-  inc de
-ENDR
+  push bc
+  ld bc, 8
+  call mem_Copy
+  pop bc
   ld a, c
   ld [EDX_BLOCK], a
   ld a, b

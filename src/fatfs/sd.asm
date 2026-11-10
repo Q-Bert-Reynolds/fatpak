@@ -444,7 +444,7 @@ DEF SD_CMD18 EQU $40+18;READ_MULTIPLE_BLOCK
 
 SECTION "SD Stream Writes", ROM0
 ;Execute the eight-write inner loop from resident memory, as stock does. The
-;caller has stopped DMA and selected normal CPU speed (about 2us/store).
+;caller has stopped DMA. Retain the caller's CPU speed, including CGB double speed.
 ;Only the resident LCD handler may interrupt; it never starts DMA or touches SPI.
 SDStreamSector:
   ld hl, EDX_WINDOW
@@ -460,8 +460,8 @@ ENDR
 PAGE GAME_PAGE
 ;de = first PSRAM sector, bc = sector count (> 0), [_sd_sector] = LBA.
 ;CMD18 auto-read streams bytes directly into the window. Keep every transfer
-;at stock's normal-speed cadence, without VBlank/OAM DMA or pending HBlank DMA.
-;Restore CPU speed, IE and IF on all exits; IME is unchanged. Ordinary file IO
+;without VBlank/OAM DMA or pending HBlank DMA. CPU speed is unchanged.
+;Restore IE and IF on all exits; IME is unchanged. Ordinary file IO
 ;still uses the busy-polled single-sector reader.
 _sd_ReadBlocks::
   ldh a, [rIE]
@@ -471,15 +471,6 @@ _sd_ReadBlocks::
   call RenderWaitDMA
   ldh a, [rIF]
   push af
-  ldh a, [sys_info]
-  and a, SYS_INFO_GBC
-  jr z, .saveSpeed;never execute a CGB speed-switch STOP on DMG
-  ldh a, [rKEY1]
-  and a, KEY1F_DBLSPEED
-.saveSpeed
-  push af
-  and a
-  call nz, gbdk_CPUSlow
   push bc
   push de
   call SDSetSectorArg
@@ -530,11 +521,6 @@ _sd_ReadBlocks::
 ReadBlocksFinish:
   call SDFinish
   ld b, a
-  pop af;original speed: restore only if the caller was in CGB double speed
-  push bc
-  and a
-  call nz, gbdk_CPUFast
-  pop bc
   pop af
   ldh [rIF], a
   pop af

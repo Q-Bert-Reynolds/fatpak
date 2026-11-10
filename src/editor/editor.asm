@@ -38,7 +38,6 @@ _EditorSetup::
 
   ld a, KB_MODE_EDITOR
   TRAMPOLINE SetKeyboardMode
-  call _tb_Load
   call PadPressed;clear presses latched before the editor started
 
   DISPLAY_ON

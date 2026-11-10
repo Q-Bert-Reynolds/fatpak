@@ -90,7 +90,7 @@ flowchart LR
 3. Run the SGB multiplayer probe (`MLT_REQ`) outside CGB mode. A successful check adds `SYS_INFO_SGB`. Set up SGB palettes, turn the display off, and copy the OAM DMA routine to HRAM.
 4. In CGB mode, enable double speed and load `DefaultPalettes`.
 5. Clear WRAM, select CPU tile copies on warm startup (normal HDMA on cold CGB startup), establish the editor stack, disable sound, initialize drawing and interrupts, and detect the keyboard. The startup mode survives the RAM clears in a private OS Info byte.
-6. `TRAMPOLINE _AppMain` (`src/app/main.c`) backs up the previous game, loads `/GBCSYS/EDITOR.DAT`, restores `/GBCSYS/EDITOR.SWP` when needed, runs `EditorSetup` and `EditorInit`, then reads `/GBCSYS/SESSION.DAT` to resume the open document or the last browser folder. A missing folder falls back to root. It then enters `Editor()` for the text-editing loop; neither returns.
+6. `TRAMPOLINE _AppMain` (`src/app/main.c`) draws a resident-font startup header and loading footer before the SD reads, backs up the previous game, loads `/GBCSYS/EDITOR.DAT`, restores `/GBCSYS/EDITOR.SWP` when needed, recovers the text gap layout with `tb_Load`, initializes the editor state, then reads `/GBCSYS/SESSION.DAT` to resume the open document or the last browser folder. A missing folder falls back to root. It then enters `Editor()` for the text-editing loop; neither returns.
 
 `OS Info` at `$01F0-$01FF` contains stock-compatible launch, initialization,
 return-request and snapshot-RAM flags, followed by the mapper-write byte backup
@@ -315,7 +315,7 @@ flowchart LR
 ```
 
 - **EverDrive registers** respond after `$A5` is written to `$BD0A`: `$BD00` is SPI data and `$BD01` is SPI control. The OS page ends at `$BCFF`; registers and the independent PSRAM/save window occupy `$BD00-$BFFF`. Editor text uses only the window. The sibling EverDrive disassembly is the reference for the stock interface.
-- **`sd.asm`** detects the register interface, initializes SD v1/v2/SDHC cards and transfers 512-byte sectors. Ordinary FatFs IO uses sector reads/writes with busy polling; ROM loading uses streaming `sd_ReadBlocks` for runs of consecutive clusters, with DMA finished, only LCD interrupts allowed and normal CPU speed. The resident inner loop matches stock's eight-write cadence. See the game-launch section for the browser loading overlay and validation status.
+- **`sd.asm`** detects the register interface, initializes SD v1/v2/SDHC cards and transfers 512-byte sectors. Ordinary FatFs IO uses sector reads/writes with busy polling; ROM loading uses streaming `sd_ReadBlocks` for runs of consecutive clusters, with DMA finished, only LCD interrupts allowed and CPU speed preserved (double speed on CGB). The resident inner loop retains stock's eight writes. See the game-launch section for the browser loading overlay and validation status.
 - **FatFs** R0.16 (`src/fatfs/lib`) is compiled into `fatfs.c` with its Unicode and runtime helpers. Configuration enables FAT, UTF-8 long names up to the configured 64-character limit, code page 437 short names, `FF_FS_TINY=1`, and `FF_FS_MINIMIZE=0` so rename, unlink and mkdir are available. The browser doesn't yet expose those directory-management operations. `FF_FS_NORTC=0` calls the calendar timestamp service. `.banks` files distribute this code across the OS pages. `clst2sect` uses a shift for power-of-two cluster sizes rather than a multiply.
 - **Mounting:** `fs_Mount` mounts the card the first time. A failed sector read or write clears `disk_ready`, so FatFs mounts it again on its next call, and listing, loading and saving retry once after `FR_DISK_ERR`. A swapped card fails its first command (it hasn't been initialized), so it's mounted again before anything is written to it.
 - **File API:** `fs_Load` replaces the text buffer with a file 512 bytes at a time: `tb_Append` copies a PSRAM sector run at a time, dropping 0s and CRs and setting `tb_cr` when it drops a CR, so `fs_crlf` remembers that the file used CR LF. `fs_Save` writes the buffer (around the gap) with `tb_Read`, or with `tb_ReadLines`, which adds the CRs back, both a run at a time. `fs_List` reads a folder once: `NextEntry` walks the directory's 32 byte slots in the sector buffer the way FatFs's `dir_read` does, without decoding names, skipping hidden, system and dot names. It counts the folders and files and marks the slot where every 16th of each kind starts (in the 512 byte load buffer, which nothing else uses while browsing; when a kind passes 128 marks, every other one is dropped and the spacing doubles). `fs_ListEntry` reads one entry (`FileEntry` in `src/fatfs/file_api.h`: UTF-8 name, size, creation/access/modification dates) by seeking to the mark before it, or carrying on from the last one read. `GetName` turns its long name into UTF-8 itself, `get_fileinfo` is only used for names it can't handle (characters outside the BMP, short names with bytes above `$7F`).
@@ -349,12 +349,16 @@ With no valid session record, legacy unsaved edits remain recoverable.
 
 ## Game launch and stock compatibility
 
+`AppMain` initializes the display before card IO, using the resident VWF font
+for a FatPak header and a loading footer with the clock. Loading the external
+fonts, save backup and editor recovery happen with that screen visible.
+
 `LaunchGame` saves the editor swap, then calls `FileGameOpen`, `FileGameCopy` in
 steps, and `FileGameFinish`. Open backs up the previous game's save before any
 RAM is reassigned. Before showing the existing "Loading..." box, LaunchGame
 sets `render_cpu_copy`: CGB keeps its layout and attributes but uses the DMG
 HBlank CPU-copy loop for VRAM uploads. `GameLoadingBegin` finishes older HDMA and
-scrolling, switches to normal CPU speed once with LCD off, then retains the
+scrolling, keeps double CPU speed on CGB, then retains the
 browser/box in VRAM with only LCD/STAT interrupts enabled and sprites disabled.
 The resident LCD handler maintains window/tile addressing; VBlank/OAM DMA and
 input/spinner updates remain stopped. `ShowGameProgress` updates the loaded/total
@@ -363,15 +367,15 @@ box and CPU tile copies. Polling STAT and copying each pair of tile bytes is
 atomic, preventing a delayed interrupt from moving a previously safe write into
 mode 3. Interrupts are enabled between pairs/attempts for the raster handler.
 `sd_ReadBlocks` finishes any pending HDMA and allows only LCD interrupts while
-streaming, using stock's normal-speed eight-write loop from ROM0. Cleanup
-restores the caller's CPU speed, pending IF and IE; the real launch path stays
-at normal speed throughout, so it does not switch speeds between chunks. A
+streaming, using the eight-write loop from ROM0. Cleanup restores pending IF
+and IE without changing CPU speed. CGB remains at double speed throughout
+transfer and save preparation; there are no speed switches between chunks. A
 final comparison checks the loaded header against the retained source bytes.
 Both busy-polled loading and the fast plain-screen loader booted Crystal on
 hardware. The browser overlay with CPU copies is also hardware-confirmed; the progress
-redraw/timing fixes are also hardware-confirmed: the artifacts are gone and Crystal still launches.
-On failure, `GameLoadingEnd` restores CPU speed, sprites, interrupts and normal
-renderer uploads; the browser tiles and layout were preserved. Finish loads SRAM/RTC/state files, applies enabled cheats,
+redraw/timing fixes are also hardware-confirmed: the artifacts are gone and Crystal still launches. Double-speed streaming is covered by emulator byte checks; a new Crystal/GBA SP hardware check remains.
+On failure, `GameLoadingEnd` preserves CPU speed and restores sprites, interrupts and normal
+renderer uploads; the browser tiles and layout were preserved. The box changes to "Preparing game..." after ROM transfer. Finish loads SRAM/RTC/state files, applies enabled cheats,
 and updates stock registry metadata/checksum plus FatPak's GAM3 ownership
 record. It publishes the stock SRAM marker only after preparation succeeds.
 The filename header is rendered before `_GameLaunch` configures the mapper,
@@ -447,7 +451,7 @@ Character mapping lives in `src/charmap.asm`; CSV strings are generated by
 
 - Use the browser's SETTINGS > KEYBOARD TEST for live PS/2/iGKB diagnostics. The application has one OS build; the old startup-test build switches have been removed. See [In-game menu](IN_GAME_MENU.md) for cart-menu checks.
 - `python3 -m unittest discover -s tests -v` checks cross-module calls, same-page/resident calls, private-name isolation and repeatable bank splitting.
-- `bash tests/run_browser_menu.sh` uses the prebuilt sibling Gearboy core to check file/folder operations, collisions, document path updates, and Start-menu navigation on DMG/CGB. `bash tests/run_footer_clock.sh` checks footer pixels and idle clock updates. `bash tests/run_session.sh` checks cold boot with clean, modified, closed and large documents, remembered folders, and missing-folder fallback on DMG/CGB.
+- `bash tests/run_browser_menu.sh` uses the prebuilt sibling Gearboy core to check file/folder operations, collisions, document path updates, and Start-menu navigation on DMG/CGB. `bash tests/run_footer_clock.sh` checks footer pixels and idle clock updates. `bash tests/run_loading.sh` checks early startup feedback, copy boundaries, CPU speed preservation, complete ROM transfers and failure cleanup. `bash tests/run_session.sh` checks cold boot with clean, modified, closed and large documents, remembered folders, and missing-folder fallback on DMG/CGB.
 - From the FatPak root, `make -C ../Gearboy/tests fatpak` builds the sibling Gearboy core and runs its assembled-OS integration tests using `bin/GBCOS.BIN` and `bin/GBCOS.sym`. Temporary SD folders cover DMG/CGB typing, selection replacement, undo/redo, clipboard, exact saved text, OSK, menus, large-file navigation, and snapshots and menu Save, malformed files, legacy GAM2 migration, stock ownership, 128 KiB SRAM, RTC/date handling and mapper latches. `make -C ../Gearboy/tests everdrive` runs component tests. Hardware verification remains listed in [TODO](TODO.md).
 - `bin/GBCOS.sym` has every label, so emulators show symbols. `build/main.map` shows where every section landed and how much space each bank has left.
 - Gearboy can be driven by an AI assistant or script over MCP (`--mcp-stdio` or `--mcp-http`, add `--headless` to run without a window). Its profiler shows cycles per function, which is how the editor's performance work was measured.

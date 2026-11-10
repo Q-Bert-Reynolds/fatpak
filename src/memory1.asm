@@ -110,14 +110,19 @@ MACRO MEM_UNROLL; \1 = set/copy macro
   and a, MEM_UNROLL_MASK
   jr nz, .remainder\@
 .chunks\@
+  ;Count whole chunks, rather than decrementing BC for every copied byte.
+  REPT MEM_UNROLL_STEPS
+    srl b
+    rr c
+  ENDR
   ld a, b
   or a, c
   ret z
 .loop\@
   REPT MEM_UNROLL_POW
     \1;set/copy macro
-    dec bc
   ENDR
+    dec bc
     ld a, b
     or a, c
   IF MEM_UNROLL_STEPS > 3

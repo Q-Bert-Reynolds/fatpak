@@ -115,8 +115,8 @@ existing "Loading..." box instead of clearing VRAM. During launch,
 retaining CGB tile addresses, VRAM banks, palettes and attributes. It does not
 change `render_gbc`, which would invalidate the existing screen layout.
 
-`GameLoadingBegin` finishes any older HDMA row and pending scroll, then switches
-to normal CPU speed once with LCD off. It restarts the existing raster layout
+`GameLoadingBegin` finishes any older HDMA row and pending scroll, retaining
+the caller's CPU speed (double speed on CGB). It restarts the existing raster layout
 and leaves only the resident LCD/STAT interrupt enabled. That handler maintains
 the window and tile-addressing changes needed to display the browser; it never
 starts DMA or accesses the SD interface. VBlank/OAM DMA, cursor/spinner sprites
@@ -124,18 +124,25 @@ and input updates remain disabled throughout loading. The browser/box overlay
 with CPU copies is hardware-confirmed. Progress text is redrawn between completed
 transfer chunks, including 0 KB and the completed total; a loading bar is future
 work. The box reserves space for four-digit KB counters, so its border stays
-fixed as digit counts and character widths change.
+fixed as digit counts and character widths change. After the last ROM chunk,
+the label changes to "Preparing game..." while saves, snapshots and registry
+metadata are prepared.
 
-`sd_ReadBlocks` retains normal-speed streaming and the eight-write ROM0 loop.
+`sd_ReadBlocks` retains the eight-write ROM0 loop and the caller's CPU speed.
 It allows only the caller's LCD interrupt, excluding every other handler, and
 finishes any pending HBlank DMA before starting. Cleanup disables streaming and
-restores the caller's CPU speed, IE and IF on every exit without issuing EI.
-In the real launch path the CPU is already at normal speed for the entire load,
-so no speed switches occur between chunks. Ordinary file/save reads continue
+restores IE and IF on every exit without issuing EI. The CPU stays at double
+speed on CGB through ROM transfer and save/snapshot/registry preparation; only
+the final reset handoff selects normal speed. Ordinary file/save reads continue
 to use the busy-polled single-sector path. Command/token failures report a disk
 error rather than silently retrying the whole ROM slowly.
 
-The error path restores CPU speed, sprite/display settings, interrupts and the
+The earlier successful hardware build combined DMA exclusion with normal CPU
+speed; double-speed streaming was not isolated as a cause of the old corruption.
+The current double-speed path needs a fresh Crystal/GBA SP hardware check. Its
+emulator checks cover complete ROM bytes, DMA exclusion and failure cleanup.
+
+The error path preserves CPU speed and restores sprite/display settings, interrupts and the
 normal renderer transfer mode before showing the existing error message. Since
 the browser's tiles/maps were preserved, no renderer rebuild is needed.
 The retained 32-byte source header is still compared against loaded PSRAM before
@@ -242,3 +249,18 @@ The offset within each bank ignores address bit 14. Changing cheats takes effect
 This implements stock ROM patching. Continuous GameShark RAM writes aren't part
 of this cheat format. Save states have been tested successfully on hardware;
 cheat testing is deferred.
+
+### Loading-speed measurement
+
+A Gearboy instruction trace of a synthetic 1 MiB CGB game with 32 KiB battery
+RAM and an existing 82 KiB snapshot measured 9.51 s from selecting the game to
+`GameLaunch` before these changes, versus 4.80 s afterward. Preparation after
+the last ROM chunk fell from 5.12 s to 2.37 s. These are emulated times, excluding
+the Nintendo boot animation; SD-card latency on hardware may differ. Startup
+now draws its header and loading footer before card IO (about 0.55 s in this
+fixture), rather than leaving the screen blank until the browser is ready.
+
+The shared memory-copy routine now counts eight-byte chunks instead of
+subtracting from its byte count after every byte. This reduces CPU work during
+snapshot/save copying on DMG as well as CGB; zero-length, partial-chunk and page
+boundaries are covered by `tests/run_loading.sh`.

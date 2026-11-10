@@ -12,14 +12,26 @@
 #include "../ui/render.h"
 #include "../ui/screen.h"
 
+extern const char loading_text[]; // shared with the game loader
+static const char startup_name[] = "FatPak";
+
 void AppMain(void) {
-  FileBackupSave(); // the last game's save RAM, before anything else
+  // The VWF font is resident: show the normal bars before any card IO.
+  EditorSetup();
+  EditorInit();
+  render_text = 0;
+  BeginView(1);
+  ClearScreen();
+  DrawRow(HEADER_LINE, 1, startup_name);
+  DrawRow(STATUS_LINE, 1, loading_text);
+  EditorDraw();
+  FileBackupSave(); // back up game RAM before loading recovery or font data
   if (!FileLoadData("/GBCSYS/EDITOR.DAT")) {
     data_loaded = 1;
     SGBSetDefaultBorder();
   }
-  FileLoadSwap(); // before EditorSetup's tb_Load
-  EditorSetup();
+  FileLoadSwap(); // before recovering the gap layout
+  tb_Load();
   EditorInit();
   if (backup_skipped) ShowMessage("SAVE NOT BACKED UP");
   session_open = modified; // legacy swap without a session: keep recoverable edits
@@ -32,7 +44,7 @@ void AppMain(void) {
   SetLang();
   UndoClear(modified);
   if (session_open) Refresh();
-  else { // the EverDrive's OS starts in the file browser (on a blank screen), the text is drawn if it's closed
+  else { // replace the loading view with the browser
     ClearScreen();
     EditorDraw();
     dirty = 1;
