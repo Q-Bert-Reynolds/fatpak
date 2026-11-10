@@ -19,7 +19,7 @@ FatPak resumes the document that was open when you powered off. After closing a
 document, it starts in the last browsed folder (or root if that folder is gone).
 Folders come first; A or Enter opens a file or
 folder, and B, Backspace, or Left goes up a folder. Escape returns to the text
-editor; B or Backspace does the same at the root.
+editor; B, Backspace, and Left stay in the browser at the root.
 
 SELECT opens file info directly. START opens the browser menu: FILE (info, rename), EDIT (cut, copy, paste),
 SETTINGS (clock, keyboard test), HELP, and RESTART. Rename uses the on-screen

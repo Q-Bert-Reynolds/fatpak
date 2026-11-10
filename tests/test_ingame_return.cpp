@@ -258,10 +258,11 @@ static void Run(const char* image, const char* symbols, const char* data, bool c
         Check(word("_src_browser_browser_c_list_count") == 2, "browser shows game and GBCSYS");
         auto save = Read(sys + "/SAVE/StateTest.srm");
         Check(save.size() == 32768 && save[0] == 0x5A + launch, "OS backs up the game's save");
-        // Closing the browser must still respond after the restart.
+        // B at root must stay in the browser after the restart too.
         key(B_Key, 180);
+        Check(memory->Read(syms.at("_render_text")) == 0, "B at root keeps the browser open");
         Check(memory->Read(syms.at("_render_cpu_copy")) == 1,
-              "CPU tile copies stay enabled after closing the browser");
+              "CPU tile copies stay enabled in the browser");
         if (color) Check(memory->GetHDMARegister(5) == 0x80,
                          "warm OS rendering never starts another HDMA transfer");
         Check(memory->Read(syms.at("busy_frames")) <= 2, "OS continues processing frames and input");

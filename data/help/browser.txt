@@ -3,7 +3,7 @@ FILE BROWSER
 <BTN_DPAD>  select a file/folder
 <BTN_A> / <BTN_RIGHT>  open selection
 <BTN_B> / <BTN_LEFT>  parent folder
-<BTN_B> at root  return to editor
+Esc  return to editor
 <BTN_START>  browser menu
 <BTN_SELECT>  file info
 

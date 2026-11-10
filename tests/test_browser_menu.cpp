@@ -264,7 +264,11 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     HelpScroll(core,syms,color);
     pad(A_Key);Check(byte("_tb_rows")==16,"A does not dismiss help");pad(B_Key);
     Check(byte("_render_text")==0 && byte("_tb_rows")==16,"help returns to browser");
-    pad(B_Key);pad(B_Key); // root, then editor
+    pad(B_Key); // root
+    Check(row(18)==" /","B goes up to root");
+    pad(B_Key);key(0x66);pad(Left_Key);
+    Check(byte("_render_text")==0 && row(18)==" /","B, Backspace and Left stay in browser at root");
+    key(0x76); // Escape still returns to the editor
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
     Check(byte("_render_box_rows")==4,"editor has exactly two settings");
     Check(Text(memory,syms.at("tile_buffer")+20*40)==" LINE WRAP","line wrap is an editor setting");
