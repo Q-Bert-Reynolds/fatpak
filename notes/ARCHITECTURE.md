@@ -51,7 +51,7 @@ flowchart LR
 - **Generated files are committed** (`img/**/*.asm`, `*.tiles`, `data/strings/*.asm`, `src/*/_*.asm`, `src/constants.h`, the ROM), so `make assemble` needs no asset regeneration; it still uses Python for page splitting, the menu, layout checks and the data file. The asset scripts skip files that are already up to date.
 - **Targets:** `make all` (clean, assets, assemble, run), `make assemble` (OS image, symbols and data file), `make code` (assemble and run in Gearboy), `make assets`, `make run`, and `make clean`. There is no `make sdcard` target.
 - **Languages:** `LANGUAGE=EN|ES|FR|IT|PT|DE|JA` picks which generated strings `data/strings/*.asm` includes. Editor, clock and cart-menu labels still contain hard-coded English text.
-- **Installation:** every successful `make assemble` checks whether `/media/qbertreynolds/GAMEBOY` is mounted. If it is, the build copies `bin/GBCOS.BIN` into its `GBCSYS` folder and flushes the write. Install `bin/EDITOR.DAT` alongside the OS for styled fonts and the SGB border.
+- **Installation:** every successful `make assemble` checks whether `/media/qbertreynolds/GAMEBOY` is mounted. If it is, the build copies `bin/GBCOS.BIN` and `bin/EDITOR.DAT` into its `GBCSYS` folder and flushes both writes. Keep the two files together: data version 2 includes the base fixed font, styled fonts and the SGB border.
 - **Constants shared with C:** `build.py` turns `src/constants.asm` (`DEF X EQU ...`) into `src/constants.h` (`#define X ...`). Put anything C needs there, and parenthesize expressions.
 
 ## Source layout
@@ -125,7 +125,7 @@ accesses battery-backed game save RAM when `$BD06` bit 1 is set.
 | `$0100-$017e` | Text gap buffer: 127 sectors, 65,024 bytes |
 | `$0180-$01ef` | Undo ring: 112 sectors, 56 KiB |
 | `$01f0-$01ff` | Settings/signatures and 7,936-byte clipboard |
-| `$0200-$0240` | `EDITOR.DAT`: header, styled glyphs, SGB border |
+| `$0200-$0244` | `EDITOR.DAT`: header, styled glyphs, SGB border, base fixed glyphs |
 | `$0400` onward | Large-file add buffer; `ADD_MAX` is `$7a0000` bytes |
 | `$0000-$3bff` | Launched ROM, up to 7.5 MiB |
 | `$3c00-$3ca3` | Staging a complete state file before replacing the live snapshot |
@@ -242,6 +242,24 @@ Text is drawn as pixels so fonts can be any width. Every screen cell has its own
 - **Selection:** before drawing, the editor sets `render_sel` (first and end column of each row, end `$FF` for the right edge) from the selection and the row tables. A row whose selection changed is redrawn. The palettes set in `EditorSetup` show colors 1 and 2 as inverted on DMG (BGP) and as a blue highlight on GBC and SGB (palette 0). The cursor turns white at the start of a selection (OBP1) so it shows on DMG.
 - **Fonts:** `fonts.py` converts `img/ui_font.png` (fixed width, 8 pixels), `img/fonts/fixed_font.png` (fixed width, 4 pixels) and `img/fonts/vwf_font.png` (variable width) into 8 bytes of 1bpp glyph rows and a width per character code. Plain text and markdown use the VWF; C and assembly use the 4-pixel fixed font, selected by `SetLang`. There is no font-selection menu yet. Rows below `tb_rows` (the on screen keyboard) always use the 8 pixel font, and the bars and help screen the variable width font.
 - **Styled glyphs** (`RenderStyleGlyph`): text rows take their style and measured width from `tile_attrs`. `fonts.py` derives or converts the heading, bold, italic and bold-italic PNGs and generates their widths in `styled_widths.asm`. `data_file.py` packs the glyphs into `EDITOR.DAT`; startup loads that file into PSRAM, and rendering reads the glyphs through the cartridge window. If it wasn't loaded, the renderer falls back to base glyphs. Width tables remain in the OS image for the lexer and layout.
+
+The base fixed glyphs also live in `EDITOR.DAT`, starting at relative block 65.
+`RenderFixedGlyph` reads them through the same window and restores its previous
+block. Their width is always four pixels. Without valid data, fixed text uses
+the resident mono glyphs as a fallback.
+
+The browser's Start menu uses the same untitled `Choose` boxes as the editor:
+FILE offers INFO and RENAME, EDIT offers CUT/COPY/PASTE, and SETTINGS and HELP
+share the editor's submenus. RESTART saves the swap and requests a full cartridge
+reset (`$BD06=$10`) through the boot ROM, for recovery when warm return has issues.
+The in-game Return to OS keeps its splash-free warm path.
+Its file clipboard lasts for the browser session and is separate
+from copied text. Moves use FatFs rename; copies walk complete folder trees,
+including empty folders and hidden entries, with bounded paths and no overwrite.
+Transfers borrow the directory-mark buffer for paths and I/O, then reload the
+listing. Failed copies can leave completed files in the destination; incomplete
+files are removed when possible. Successful moves update the document's save
+path when it or an ancestor moved.
 - **Inks** (`RenderGlyph`, `RenderEncode`): glyphs are ORed into `render_bitmap`, and also into `render_dim` (the next page of `cmd_buffer`) for dim styles or, on GBC, `render_accent` (`win_buffer`, which is only used between renders) for accent styles. `RenderEncode` turns them and `render_mask` (selected pixels) into the row's 2bpp tiles in `render_dma_buffer`: ink is color 3 on color 0, dim ink 2, accent ink 1. DMG inverts selected pixels (both bitplanes, so dim ink turns light grey), SGB and GBC highlight them (color 1 under them, accent ink turns to color 3). Rows without dim or accent ink skip the planes. DMG copies two tile bytes per atomic STAT check; GBC uses the same CPU-copy loop during launch and HDMA otherwise. On GBC each tile with accent ink uses its accent's palette (1-4, `RenderSetPalettes`), tiles with selected pixels palette 0, written to the block's map row attributes (`RenderWritePalettes`, only when the row or the block's last row had accents). `RenderSetMapRow` remembers each block's map row (`block_map_rows`) and redraws a block with accents when it moves. `Layout` calls it when a map row's block changes or the block was last set to another map row (a block can still be listed in a map row it scrolled out of). Palettes (`EditorSetPalettes`): paper, highlight, dim, ink, and the accent palettes' color 1 is blue (headings), dark red (code), purple, brown-orange.
 - **Cursor:** sprite 0, a 1 pixel line. `RenderCursorX` adds up the styled widths in the cursor's row. Glyphs end with their 1 pixel gap, so rows (except the 8 pixel font's, the on screen keyboard) are drawn 1 pixel to the right: the left edge gets a gap and the cursor sits in the gap before its character.
 
@@ -385,6 +403,7 @@ Character mapping lives in `src/charmap.asm`; CSV strings are generated by
 
 - Use HELP > KEYBOARD TEST for live PS/2/iGKB diagnostics. The application has one OS build; the old startup-test build switches have been removed. See [In-game menu](IN_GAME_MENU.md) for cart-menu checks.
 - `python3 -m unittest discover -s tests -v` checks cross-module calls, same-page/resident calls, private-name isolation and repeatable bank splitting.
+- `bash tests/run_browser_menu.sh` uses the prebuilt sibling Gearboy core to check file/folder operations, collisions, document path updates, and Start-menu navigation on DMG/CGB. `bash tests/run_footer_clock.sh` checks footer pixels and idle clock updates.
 - From the FatPak root, `make -C ../Gearboy/tests fatpak` builds the sibling Gearboy core and runs its assembled-OS integration tests using `bin/GBCOS.BIN` and `bin/GBCOS.sym`. Temporary SD folders cover DMG/CGB typing, selection replacement, undo/redo, clipboard, exact saved text, OSK, menus, large-file navigation, and snapshots and menu Save, malformed files, legacy GAM2 migration, stock ownership, 128 KiB SRAM, RTC/date handling and mapper latches. `make -C ../Gearboy/tests everdrive` runs component tests. Hardware verification remains listed in [TODO](TODO.md).
 - `bin/GBCOS.sym` has every label, so emulators show symbols. `build/main.map` shows where every section landed and how much space each bank has left.
 - Gearboy can be driven by an AI assistant or script over MCP (`--mcp-stdio` or `--mcp-http`, add `--headless` to run without a window). Its profiler shows cycles per function, which is how the editor's performance work was measured.

@@ -43,8 +43,9 @@
 #define DATA_FONTS         1//the styled fonts (FontStyles order), 2KB each
 #define DATA_BORDER_TILES  41//the SGB border's 8KB of tiles
 #define DATA_BORDER_MAP    57//its map and palettes, 4KB
-#define DATA_BLOCKS        65
-#define DATA_VERSION       1//block 0 starts with "EDITOR.DAT" and this
+#define DATA_FIXED         65//the base fixed font, four blocks
+#define DATA_BLOCKS        69
+#define DATA_VERSION       2//block 0 starts with "EDITOR.DAT" and this
 #define WIN_SIZE           0xC000u//the part of a large file in the text buffer (src/fatfs/fatfs.c)
 #define WIN_CHUNKS         WIN_SIZE/512+1//sector boundaries in it
 #define MAX_PIECES         96//a large file's piece table (src/fatfs/fatfs.c)

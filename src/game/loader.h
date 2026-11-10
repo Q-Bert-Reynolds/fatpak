@@ -11,5 +11,6 @@ extern void GameLoadingBegin(void); // holds browser/box with only LCD interrupt
 extern void GameLoadingEnd(void); // restores CPU speed, sprites, interrupts and HDMA after an error
 extern void GameLaunch(void); // resets the Game Boy into it
 extern void Reboot(void); // starts the OS again
+extern void RestartDevice(void); // cartridge reset through the boot ROM
 
 #endif

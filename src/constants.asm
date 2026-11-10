@@ -40,8 +40,9 @@ DEF DATA_BLOCK         EQU $0200;$BD03:$BD02
 DEF DATA_FONTS         EQU 1;the styled fonts (FontStyles order), 2KB each
 DEF DATA_BORDER_TILES  EQU 41;the SGB border's 8KB of tiles
 DEF DATA_BORDER_MAP    EQU 57;its map and palettes, 4KB
-DEF DATA_BLOCKS        EQU 65
-DEF DATA_VERSION       EQU 1;block 0 starts with "EDITOR.DAT" and this
+DEF DATA_FIXED         EQU 65;the base fixed font, four blocks
+DEF DATA_BLOCKS        EQU 69
+DEF DATA_VERSION       EQU 2;block 0 starts with "EDITOR.DAT" and this
 DEF WIN_SIZE           EQU $C000;the part of a large file in the text buffer (src/fatfs/fatfs.c)
 DEF WIN_CHUNKS         EQU WIN_SIZE/512+1;sector boundaries in it
 DEF MAX_PIECES         EQU 96;a large file's piece table (src/fatfs/fatfs.c)

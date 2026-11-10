@@ -20,7 +20,7 @@
 char file_name[FS_NAME_SIZE]; // current file (UTF-8), empty for new text
 char file_dir[PATH_SIZE]; // its folder, "" = root, new text is saved here too
 
-#define NAME_CHARS     32 // save as, Latin-1 chars are 2 bytes in UTF-8 so they fit in FS_NAME_SIZE
+#define NAME_CHARS     (FS_NAME_SIZE - 1)
 
 static const char discard_items[][ITEM_SIZE] = {"NO", "YES"};
 static const char * const lang_exts[] = { "md", "c", "h", "asm", "inc", "s" };
@@ -108,26 +108,27 @@ static unsigned char NameChar(unsigned char c) {
   return c != '/' && c != 0x5C && c != ':' && c != '*' && c != '?' && c != '"' && c != '<' && c != '>' && c != '|';
 }
 
-// asks for a name, sets file_name, returns 0 if cancelled
-static unsigned char AskFileName(void) {
+// Returns 0 on cancel, 1 after editing, or 2 if the original name was accepted.
+unsigned char AskName(char* value, const char* prompt) {
   char name[NAME_CHARS + 1];
   char text[TB_STRIDE + 1];
-  unsigned char length, key, i;
+  unsigned char length, key, i, bytes = 0, changed = 0;
   char* end;
-  length = (unsigned char)(ToLatin1(name, file_name, NAME_CHARS) - name);
-  Render();
+  length = (unsigned char)(ToLatin1(name, value, NAME_CHARS) - name);
+  for (i = 0; i < length; ++i) bytes += (unsigned char)name[i] >= 0x80 ? 2 : 1;
   EditorShowCursor(0);
   NoHighlight();
   while (1) {
-    end = PutText(text, "Save as ");
-    for (i = 0; i < length; ++i) *end++ = name[i];
+    end = PutText(text, prompt);
+    for (i = length > 31 ? length - 31 : 0; i < length; ++i) *end++ = name[i];
     *end++ = '_';
     *end = 0;
     if (bars) {
       DrawRow(HEADER_LINE, 1, text);
-      end = PutText(text, "in ");
-      PutPath(end, file_dir, 28);
-      DrawRow(STATUS_LINE, 1, text);
+      if (render_text) {
+        PutPath(PutText(text, "in "), file_dir, 28);
+        DrawRow(STATUS_LINE, 1, text);
+      }
     }
     else DrawRow(0, 0, text);
     EditorDraw();
@@ -141,12 +142,20 @@ static unsigned char AskFileName(void) {
       dirty = 1;
       return 0;
     }
-    if (key == KEY_BACKSPACE) --length;
-    else if (length < NAME_CHARS && NameChar(key)) name[length++] = key;
+    if (key == KEY_BACKSPACE) {
+      --length;
+      bytes -= (unsigned char)name[length] >= 0x80 ? 2 : 1;
+      changed = 1;
+    }
+    else if (bytes + (key >= 0x80 ? 2 : 1) <= NAME_CHARS && NameChar(key)) {
+      name[length++] = key;
+      bytes += key >= 0x80 ? 2 : 1;
+      changed = 1;
+    }
   }
+  if (!changed) return 2;
   name[length] = 0;
-  ToUtf8(file_name, name);
-  SetLang();
+  ToUtf8(value, name);
   dirty = 1;
   return 1;
 }
@@ -154,7 +163,11 @@ static unsigned char AskFileName(void) {
 void SaveFile(unsigned char ask) {
   char path[PATH_SIZE + FS_NAME_SIZE];
   unsigned char result;
-  if ((ask || !file_name[0]) && !AskFileName()) return;
+  if (ask || !file_name[0]) {
+    Render();
+    if (!AskName(file_name, "Save as ")) return;
+    SetLang();
+  }
   JoinPath(path, file_dir, file_name, (unsigned char)(PATH_SIZE + FS_NAME_SIZE));
   ShowBusy("Saving...");
   result = FileMount();

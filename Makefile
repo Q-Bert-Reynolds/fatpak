@@ -51,8 +51,10 @@ endif
 	$(PYTHON) data_file.py $(BIN_DIR)/EDITOR.DAT
 	@if mountpoint -q "$(SD_MOUNT)"; then \
 		cp $(BIN_DIR)/GBCOS.BIN "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
+		cp $(BIN_DIR)/EDITOR.DAT "$(SD_MOUNT)/GBCSYS/EDITOR.DAT" && \
 		sync -f "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
-		echo "Copied GBCOS.BIN to mounted GAMEBOY card"; \
+		sync -f "$(SD_MOUNT)/GBCSYS/EDITOR.DAT" && \
+		echo "Copied GBCOS.BIN and EDITOR.DAT to mounted GAMEBOY card"; \
 	fi
 
 run:

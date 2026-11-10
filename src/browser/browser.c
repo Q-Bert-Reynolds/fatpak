@@ -1,11 +1,13 @@
 // SD file browser. Opening text and games uses their feature APIs.
 #include "browser.h"
 #include "../app/dialogs.h"
+#include "../app/menu.h"
 #include "paths.h"
 #include "../editor/editor.h"
 #include "../editor/document.h"
 #include "../editor/osk.h"
 #include "../editor/state.h"
+#include "../editor/settings.h"
 #include "../editor/text_buffer.h"
 #include "../editor/view.h"
 #include "../fatfs/file_api.h"
@@ -26,6 +28,11 @@ static FileEntry entry;
 static unsigned int list_count; // file browser entries, with .. below the root
 static unsigned char list_result; // FRESULT of listing the folder or reading an entry
 static unsigned char list_kinds[LIST_ROWS]; // file browser rows
+static unsigned char clipboard_cut;
+
+static const char browser_items[][ITEM_SIZE] = {"FILE", "EDIT", "SETTINGS", "HELP", "RESTART"};
+static const char file_items[][ITEM_SIZE] = {"INFO", "RENAME"};
+static const char edit_items[][ITEM_SIZE] = {"CUT", "COPY", "PASTE"};
 
 // lists the folder at path (".." below the root, folders, then files), returns the index of the folder
 // named find in it (find can be 0) or 0, list_result is set if the folder can't be read
@@ -117,20 +124,129 @@ static void ListMessage(const char* text) {
   WaitDismiss();
 }
 
+static void BrowserError(unsigned char result) {
+  if (!result) return;
+  if (result == 8) ListMessage("Name already exists");
+  else if (result == 7) ListMessage("Can't copy/move here");
+  else if (result == 6) ListMessage("Invalid name/path");
+  else ListMessage("SD operation failed");
+}
+
+static void FileInfo(void) {
+  char* line = RowAddress(BOX_LINE);
+  char* end;
+  char name[FS_NAME_SIZE];
+  unsigned char i = 0, n = 0, rows = 0;
+  *ToLatin1(name, entry.name, FS_NAME_SIZE - 1) = 0;
+  do {
+    for (n = 0; n < BOX_STRIDE - 1 && name[i]; ++n) line[n] = name[i++];
+    line[n] = 0;
+    line += BOX_STRIDE;
+    ++rows;
+  } while (name[i]);
+  if (entry.dir) CopyName(line, "Folder");
+  else {
+    end = PutNumber(line, entry.size < 1000000 ? entry.size : entry.size >> 10);
+    CopyName(end, entry.size < 1000000 ? " bytes" : " KiB");
+  }
+  line += BOX_STRIDE;
+  end = PutNumber(line, 1980 + (entry.date >> 9));
+  *end++ = '-';
+  end = PutNumber2(end, (entry.date >> 5) & 15);
+  *end++ = '-';
+  *PutNumber2(end, entry.date & 31) = 0;
+  line += BOX_STRIDE;
+  end = PutNumber2(line, entry.time >> 11);
+  *end++ = ':';
+  *PutNumber2(end, (entry.time >> 5) & 63) = 0;
+  OpenBox(rows + 3);
+  EditorDraw();
+  WaitDismiss();
+  HideBox();
+}
+
+// Paths in the file clipboard are independent of the editor's text clipboard.
+// The caller reloads the directory after this, because transfers borrow its marks.
+static void BrowserMenu(char* path, char* clipboard) {
+  unsigned char menu = 0, item, length = 0, result, old_bars;
+  const char* name;
+  while (path[length]) ++length;
+  while (1) {
+    menu = Choose(0, browser_items[0], 5, menu);
+    if (menu >= BACK) return;
+    if (menu == 4) {
+      if (doc_large) {
+        FileCloseLarge();
+        tb_Clear();
+        file_name[0] = 0;
+        modified = 0;
+      }
+      SettingsSave();
+      ShowBusy("Restarting...");
+      result = FileSaveSwap();
+      if (!result) RestartDevice();
+      BrowserError(result);
+      return;
+    }
+    if (menu >= 2) {
+      if (PreferencesMenu(menu == 3) == BACK) continue;
+      return;
+    }
+    item = Choose(0, menu ? edit_items[0] : file_items[0], menu ? 3 : 2, 0);
+    if (item == BACK) continue;
+    if (item == CANCEL) return;
+    break;
+  }
+  if (menu && item == 2) {
+    if (!clipboard[0]) { ListMessage("File clipboard empty"); return; }
+    name = clipboard;
+    for (item = 0; clipboard[item]; ++item) if (clipboard[item] == '/') name = clipboard + item + 1;
+    if (!JoinPath(path + length, "", name, FS_NAME_SIZE + 1)) return;
+    ShowBusy(clipboard_cut ? "Moving..." : "Copying...");
+    result = clipboard_cut ? FileRename(clipboard, path) : FileCopy(clipboard, path);
+    if (!result && clipboard_cut) clipboard[0] = 0;
+  }
+  else {
+    if (!entry.name[0]) { ListMessage("Select a file/folder"); return; }
+    if (!menu && !item) { FileInfo(); return; }
+    JoinPath(path + length, "", entry.name, FS_NAME_SIZE + 1);
+    if (menu) {
+      CopyName(clipboard, path);
+      clipboard_cut = !item;
+      path[length] = 0;
+      return;
+    }
+    old_bars = bars_on;
+    bars_on = 1;
+    result = AskName(entry.name, "Rename ");
+    bars_on = old_bars;
+    if (result == 1) {
+      ShowBusy("Renaming...");
+      result = FileRenameName(path, entry.name);
+    }
+    else result = 0;
+  }
+  path[length] = 0;
+  BrowserError(result);
+}
+
 // file browser, opens the chosen file into the text buffer, returns 1 if it did
 // up, down, page up/down, home, end move, enter/right/A opens, left/backspace/B goes up a folder,
 // escape (or backspace/B in the root) goes back to the text
 unsigned char Browse(void) {
   char path[PATH_SIZE + FS_NAME_SIZE]; // folder, and the file's path when opening it
   char name[FS_NAME_SIZE];
+  char clipboard[PATH_SIZE + FS_NAME_SIZE];
   unsigned int selected = 0, first = 0, drawn = LIST_ALL;
-  unsigned char key, result, row, opened = 0, editor_font = font, length;
+  unsigned char key, result, row, opened = 0, editor_font = font, length, editor_osk = osk_shown;
+  clipboard[0] = 0;
   CopyName(path, file_dir);
   font = FONT_VWF;
   SetFont(font);
   render_text = 0;
   EditorShowCursor(0);
   if (osk_shown) OSKShow(0);
+  osk_shown = 0;
   bars = 1;
   tb_rows = LIST_ROWS;
   Layout();
@@ -212,11 +328,30 @@ unsigned char Browse(void) {
       selected = ListFolder(path, name); // back on the folder it came from
       drawn = LIST_ALL;
     }
-    else if (key == KEY_ESCAPE || key == KEY_BACKSPACE || key == KEY_MENU) break;
+    else if (key == KEY_MENU) {
+      entry.name[0] = 0;
+      if (list_count && list_kinds[row] != KIND_UP && ListEntry(path, selected) == 0xFF) continue;
+      BrowserMenu(path, clipboard);
+      if (osk_shown) OSKShow(0);
+      osk_shown = 0;
+      font = FONT_VWF;
+      SetFont(font);
+      render_text = 0;
+      bars = 1;
+      tb_rows = LIST_ROWS;
+      Layout();
+      ListLoading(path, 0xFF);
+      ListFolder(path, 0);
+      if (selected >= list_count) selected = list_count ? list_count - 1 : 0;
+      drawn = LIST_ALL;
+    }
+    else if (key == KEY_ESCAPE || key == KEY_BACKSPACE) break;
   }
   font = editor_font;
   SetFont(font);
+  if (!opened) SetLang();
   render_text = 1;
+  osk_shown = editor_osk;
   SetRows();
   return opened;
 }

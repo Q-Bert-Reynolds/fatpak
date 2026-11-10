@@ -14,6 +14,9 @@ typedef struct {
 } FileEntry;
 
 extern unsigned char FileMount(void); // FRESULT, mounts the card if it isn't
+extern unsigned char FileRename(const char* source, const char* destination);
+extern unsigned char FileRenameName(const char* source, const char* name);
+extern unsigned char FileCopy(const char* source, const char* destination); // includes folder contents; never overwrites
 extern unsigned char FileList(const char* path, const char* find); // FRESULT, UTF-8 path, "" = root
 extern unsigned char FileListEntry(unsigned int index, FileEntry* entry); // FRESULT, folders first
 extern unsigned int fs_count; // entries FileList found

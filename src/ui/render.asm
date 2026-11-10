@@ -197,11 +197,16 @@ _SetFont::;a = font
   ld hl, FontVWFWidths
   dec a
   jr z, .copy
-  ld hl, FontFixedWidths
+  ld a, 4
+  ld hl, _font_widths
+  ld bc, 256
+  call mem_Set
+  jr .done
 .copy
   ld de, _font_widths
   ld bc, 256
   call mem_Copy
+.done
   pop af
   SET_BANK
   ret
@@ -941,7 +946,32 @@ RenderStyleGlyph:
 
 INCLUDE "img/fonts/font_mono.asm"
 INCLUDE "img/fonts/font_vwf.asm"
-INCLUDE "img/fonts/font_fixed.asm"
+;The base fixed font shares the styled fonts' PSRAM glyph path. Its virtual
+;address is an offset, so RenderStyleGlyph can still select styled variants.
+DEF FontFixedGlyphs EQU 0
+
+RenderFixedGlyph:;bc = byte offset in the fixed font
+  ld h, b
+  ld l, c
+  ld a, [_data_loaded]
+  and a
+  jr nz, .window
+  ld bc, FontMonoGlyphs;readable fallback when EDITOR.DAT is missing
+  add hl, bc
+  ld b, h
+  ld c, l
+  ret
+.window
+  ld a, h
+  srl a
+  add a, LOW(DATA_BLOCK + DATA_FIXED)
+  ld e, a
+  ld a, h
+  and a, 1
+  or a, HIGH(EDX_WINDOW)
+  ld h, a
+  ld a, e
+  jp RenderWindowGlyph
 
 ;VRAM address of the first tile of each block
 BlockTileAddress:
@@ -1191,7 +1221,7 @@ RenderRow:
   dec a
   jr z, .setFont
   ld hl, FontFixedGlyphs
-  ld de, FontFixedWidths
+  ld de, FontMonoWidths;fixed width is handled directly by RenderGlyph
   dec a
   jr z, .setFont
   ld [render_head], a;headings: the fixed font's glyphs, their own fonts are styled fonts
@@ -1733,6 +1763,10 @@ RenderGlyph:
   and a, STYLE_WIDTH
   jr .setWidth
 .fontWidth
+  ld a, [render_row_font]
+  cp a, FONT_FIXED
+  ld a, 4
+  jr nc, .setWidth
   LD_HL_VAR render_widths
   add hl, bc
   ld a, [hl]
@@ -1767,6 +1801,9 @@ RenderGlyph:
   ld a, [render_styled]
   and a
   call nz, RenderStyleGlyph
+  ld a, b
+  cp a, 8
+  call c, RenderFixedGlyph
   push bc
   ld d, HIGH(render_bitmap)
   call RenderGlyphPlane

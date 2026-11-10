@@ -1,7 +1,7 @@
 """Builds the OS mode data file (/GBCSYS/EDITOR.DAT): what doesn't fit in the 128KB image, loaded
 into PSRAM at boot and read through the $BE00 window. Layout (DATA_* in src/constants.asm), in 512
 byte blocks: 0 = "EDITOR.DAT" and DATA_VERSION, then the styled fonts (FontStyles order in
-src/ui/render.asm), the SGB border's tiles and its map.
+src/ui/render.asm), the SGB border's tiles and its map, then the base fixed font.
 
 usage: python3 data_file.py out_file
 """
@@ -67,7 +67,8 @@ def main(out_path):
   put(data, c["DATA_BORDER_TILES"], db_bytes(border, "DefaultSgbBorderTiles", "DefaultSgbBorderTileMap"),
       (c["DATA_BORDER_MAP"] - c["DATA_BORDER_TILES"]) * BLOCK)
   put(data, c["DATA_BORDER_MAP"], db_bytes(border, "DefaultSgbBorderTileMap"),
-      (c["DATA_BLOCKS"] - c["DATA_BORDER_MAP"]) * BLOCK)
+      (c["DATA_FIXED"] - c["DATA_BORDER_MAP"]) * BLOCK)
+  put(data, c["DATA_FIXED"], db_bytes("img/fonts/font_fixed.asm", "FontFixedGlyphs", "FontFixedWidths"), 4 * BLOCK)
   with open(out_path, "wb") as file:
     file.write(data)
   print(f"data_file.py: {out_path} {len(data)} bytes")

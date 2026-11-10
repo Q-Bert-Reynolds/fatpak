@@ -248,8 +248,8 @@ _PutNumber::
 	jp hl
 ;src/ui/text.c:29: char* PutNumber2(char* dest, unsigned int n) {
 ;	---------------------------------
-	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
-	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
+	SECTION FRAGMENT "Page 14",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 14 RAM",SRAM,BANK[14]
 ; Function PutNumber2
 ; ---------------------------------
 _PutNumber2::
@@ -267,7 +267,7 @@ _PutNumber2::
 	ld	hl, $0000
 	push	hl
 	push	bc
-	call	_PutNumber
+	call	_PutNumber__far
 .l00103:
 ;src/ui/text.c:32: }
 	ret

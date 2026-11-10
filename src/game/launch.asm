@@ -89,3 +89,12 @@ _Reboot::;starts the OS again (after a failed game load, the text comes back fro
   ld a, FIRST_PAGE
   ld [EDX_PAGE], a
   jp $0100
+
+SECTION "Device Restart", ROM0
+
+_RestartDevice::;the browser's full reset; SD services have unlocked the cart registers
+  di
+  ld a, $10
+  ld [EDX_CONFIG], a
+.wait
+  jr .wait;wait for the cartridge to reset the hardware through the boot ROM

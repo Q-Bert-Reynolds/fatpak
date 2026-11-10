@@ -60,8 +60,8 @@ static unsigned char PressOSKKey(void) {
     if (osk_x == 0) SetOSKLayer(OSK_SHIFT);
     else if (osk_x == 1) SetOSKLayer(OSK_SYMBOLS);
     else if (osk_x == 2) return KEY_MENU;
-    else if (osk_x == OSK_COLS - 3) UndoRedo(0);
-    else if (osk_x == OSK_COLS - 2) UndoRedo(1);
+    else if (osk_x == OSK_COLS - 3) { if (render_text) UndoRedo(0); }
+    else if (osk_x == OSK_COLS - 2) { if (render_text) UndoRedo(1); }
     else if (osk_x == OSK_COLS - 1) return KEY_ENTER;
     else return ' ';
     return KEY_NONE;

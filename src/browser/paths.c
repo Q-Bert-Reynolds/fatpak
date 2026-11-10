@@ -1,6 +1,8 @@
 // UTF-8 filenames, display conversion and path assembly.
 #include "paths.h"
 #include "../ui/text.h"
+#include "../editor/state.h"
+#include "../editor/settings.h"
 
 // UTF-8 to Latin-1 (? for chars it doesn't have), at most count chars, returns the end (no 0)
 char* ToLatin1(char* dest, const char* text, unsigned char count) {
@@ -62,4 +64,28 @@ unsigned char JoinPath(char* dest, const char* dir, const char* name, unsigned c
   }
   *dest = 0;
   return 1;
+}
+
+// Keep Save pointed at the same document after moving it or an ancestor.
+void FileMoved(const char* source, const char* destination) {
+  char old[PATH_SIZE + FS_NAME_SIZE], target[PATH_SIZE + FS_NAME_SIZE];
+  unsigned char prefix = 0, size = 0, length = 0, slash = 0;
+  JoinPath(old, file_dir, file_name, sizeof(old));
+  while (source[prefix] && source[prefix] == old[prefix]) ++prefix;
+  if (source[prefix] || (old[prefix] && old[prefix] != '/')) return;
+  while (destination[size]) ++size;
+  while (old[prefix + length]) ++length;
+  if ((unsigned int)size + length >= sizeof(target)) goto unnamed;
+  CopyName(PutText(target, destination), old + prefix);
+  for (length = 0; target[length]; ++length) if (target[length] == '/') slash = length;
+  if (slash >= PATH_SIZE) goto unnamed;
+  CopyName(file_name, target + slash + 1);
+  target[slash] = 0;
+  CopyName(file_dir, target);
+  SettingsSave();
+  return;
+unnamed:
+  file_name[0] = 0; // Save As remains available if the new directory is too long
+  file_dir[0] = 0;
+  SettingsSave();
 }

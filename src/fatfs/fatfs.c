@@ -7,6 +7,7 @@
 #include "lib/ff.c"
 #include "lib/ffunicode.c"
 #include "../constants.h"
+#include "../browser/paths.h"
 
 typedef char check_name_size[FS_NAME_SIZE == FF_LFN_BUF + 1 ? 1 : -1];
 
@@ -83,6 +84,107 @@ DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void* buff) {
 unsigned char fs_Mount(void) {
   if (fs.fs_type && disk_ready) return FR_OK;
   return f_mount(&fs, "", 1);
+}
+
+// The browser's directory marks are disposable during a transfer. Use their
+// buffer for two bounded paths and a small I/O buffer, leaving the document's
+// open FIL and text/clipboard PSRAM untouched.
+#define COPY_PATH (PATH_SIZE + FS_NAME_SIZE)
+static BYTE Inside(const char* source, const char* destination) {
+  while (*source && ((*source | 32) == (*destination | 32))) ++source, ++destination;
+  return !*source && *destination == '/';
+}
+
+unsigned char fs_Rename(const char* source, const char* destination) {
+  FRESULT result;
+  if (Inside(source, destination)) return FR_DENIED;
+  result = f_rename(source, destination);
+  if (!result) FileMoved(source, destination);
+  return result;
+}
+
+unsigned char fs_RenameName(const char* source, const char* name) {
+  BYTE end = 0, i;
+  char* dest = (char*)buffer;
+  if (!name[0] || (name[0] == '.' && (!name[1] || (name[1] == '.' && !name[2])))) return FR_INVALID_NAME;
+  for (i = 0; source[i]; ++i) if ((dest[i] = source[i]) == '/') end = i + 1;
+  for (i = 0; name[i]; ++i) {
+    if (end == COPY_PATH - 1) return FR_INVALID_NAME;
+    dest[end++] = name[i];
+  }
+  dest[end] = 0;
+  return fs_Rename(source, dest);
+}
+
+unsigned char fs_Copy(const char* source, const char* destination) {
+  char* src = (char*)buffer;
+  char* dst = (char*)buffer + COPY_PATH;
+  WORD next[PATH_SIZE / 2];
+  BYTE depth = 0, end, to, i;
+  FIL input, output;
+  UINT read, written;
+  FRESULT result, closed;
+  for (i = 0; (src[i] = source[i]); ++i) if (i == COPY_PATH - 1) return FR_INVALID_NAME;
+  for (i = 0; (dst[i] = destination[i]); ++i) if (i == COPY_PATH - 1) return FR_INVALID_NAME;
+  // FAT names are case insensitive. Reject a destination inside the source.
+  if (Inside(src, dst)) return FR_DENIED;
+  if (!(result = f_stat(dst, &info))) return FR_EXIST;
+  if (result != FR_NO_FILE) return result;
+  if ((result = f_stat(src, &info))) return result;
+  while (1) {
+    if (info.fattrib & AM_DIR) {
+      if ((result = f_mkdir(dst))) return result;
+      next[depth] = 0;
+    }
+    else {
+      if ((result = f_open(&input, src, FA_READ))) return result;
+      result = f_open(&output, dst, FA_WRITE | FA_CREATE_NEW);
+      if (!result) {
+        do {
+          result = f_read(&input, buffer + 2 * COPY_PATH, FS_BUFFER_SIZE - 2 * COPY_PATH, &read);
+          if (!result && read) {
+            result = f_write(&output, buffer + 2 * COPY_PATH, read, &written);
+            if (!result && written != read) result = FR_DENIED;
+          }
+        } while (!result && read);
+        closed = f_close(&output);
+        if (!result) result = closed;
+        if (result) f_unlink(dst); // discard an incomplete file; completed siblings remain
+      }
+      closed = f_close(&input);
+      if (!result) result = closed;
+      if (result) return result;
+      goto parent;
+    }
+    while (1) {
+      if ((result = f_opendir(&dir, src))) return result;
+      for (read = 0; read <= next[depth]; ++read) {
+        if ((result = f_readdir(&dir, &info))) return result;
+        if (!info.fname[0]) break;
+      }
+      f_closedir(&dir);
+      if (info.fname[0]) {
+        ++next[depth];
+        for (end = 0; src[end]; ++end);
+        for (to = 0; dst[to]; ++to);
+        for (i = 0; info.fname[i]; ++i);
+        if (end + (WORD)i + 2 > COPY_PATH || to + (WORD)i + 2 > COPY_PATH || depth + 1 == PATH_SIZE / 2) return FR_INVALID_NAME;
+        src[end++] = dst[to++] = '/';
+        for (i = 0; (src[end + i] = dst[to + i] = info.fname[i]); ++i);
+        ++depth;
+        break;
+      }
+parent:
+      if (!depth) return FR_OK;
+      for (end = 0; src[end]; ++end);
+      while (src[--end] != '/');
+      src[end] = 0;
+      for (to = 0; dst[to]; ++to);
+      while (dst[--to] != '/');
+      dst[to] = 0;
+      --depth;
+    }
+  }
 }
 
 // File browser lists. fs_List reads a folder once, counting its visible folders and files and marking

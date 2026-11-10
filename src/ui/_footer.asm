@@ -202,7 +202,7 @@ _footer_Poll::
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_PutNumber2
+	call	_PutNumber2__far
 	ld	hl, sp+17
 	ld	[hl], c
 	inc	hl

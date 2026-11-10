@@ -48,6 +48,7 @@
 	EXPORT _NewFile
 	EXPORT _OpenFile
 	EXPORT _LoadDocument
+	EXPORT _AskName
 	EXPORT _SaveFile
 ;--------------------------------------------------------
 ; special function registers
@@ -86,8 +87,8 @@ _file_dir:
 	SECTION FRAGMENT "src/editor/document.c_CODE",ROMX
 ;src/editor/document.c:30: unsigned char CanDiscard(void) {
 ;	---------------------------------
-	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
-	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function CanDiscard
 ; ---------------------------------
 _CanDiscard::
@@ -104,7 +105,7 @@ _CanDiscard::
 	inc	sp
 	ld	bc, _src_editor_document_c_discard_items
 	ld	de, _src_editor_document_c___str_0
-	call	_Choose
+	call	_Choose__far
 	dec	a
 	jp	NZ,.l00116
 	jp	.l00104
@@ -613,7 +614,7 @@ _src_editor_document_c_ResetCursor:
 ; ---------------------------------
 _NewFile::
 ;src/editor/document.c:68: if (!CanDiscard()) return;
-	call	_CanDiscard
+	call	_CanDiscard__far
 	or	a, a
 	jp	NZ, .l00102
 	jp	.l00103
@@ -643,7 +644,7 @@ _NewFile::
 ; ---------------------------------
 _OpenFile::
 ;src/editor/document.c:78: if (!CanDiscard()) return;
-	call	_CanDiscard
+	call	_CanDiscard__far
 	or	a, a
 	jp	NZ, .l00102
 	jp	.l00105
@@ -802,8 +803,8 @@ _src_editor_document_c___str_9:
 	DB $00
 ;src/editor/document.c:106: static unsigned char NameChar(unsigned char c) {
 ;	---------------------------------
-	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
-	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
+	SECTION FRAGMENT "Page 12",ROMX,BANK[6]
+	LOAD FRAGMENT "Page 12 RAM",SRAM,BANK[12]
 ; Function NameChar
 ; ---------------------------------
 _src_editor_document_c_NameChar:
@@ -879,19 +880,35 @@ _src_editor_document_c_NameChar:
 .l00105:
 ;src/editor/document.c:109: }
 	ret
-;src/editor/document.c:112: static unsigned char AskFileName(void) {
+;src/editor/document.c:112: unsigned char AskName(char* value, const char* prompt) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
-; Function AskFileName
+; Function AskName
 ; ---------------------------------
-_src_editor_document_c_AskFileName:
-	add	sp, -78
-;src/editor/document.c:117: length = (unsigned char)(ToLatin1(name, file_name, NAME_CHARS) - name);
-	ld	a, $20
+_AskName::
+	add	sp, -118
+	ld	hl, sp+115
+	ld	[hl], e
+	inc	hl
+	ld	[hl], d
+	ld	hl, sp+113
+	ld	[hl], c
+	inc	hl
+	ld	[hl], b
+;src/editor/document.c:115: unsigned char length, key, i, bytes = 0, changed = 0;
+	ld	hl, sp+108
+	ld	[hl], $00
+	inc	hl
+	ld	[hl], $00
+;src/editor/document.c:117: length = (unsigned char)(ToLatin1(name, value, NAME_CHARS) - name);
+	ld	a, $40
 	push	af
 	inc	sp
-	ld	bc, _file_name
+	ld	hl, sp+116
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
 	ld	hl, 3
 	add	hl, sp
 	ld	e, l
@@ -901,36 +918,94 @@ _src_editor_document_c_AskFileName:
 	ld	hl, 2
 	add	hl, sp
 	sub	a, l
-	ld	hl, sp+77
+	ld	hl, sp+117
 	ld	[hl], a
-;src/editor/document.c:118: Render();
-	call	_Render__far
+;src/editor/document.c:118: for (i = 0; i < length; ++i) bytes += (unsigned char)name[i] >= 0x80 ? 2 : 1;
+	ld	c, $00
+.l00133:
+	ld	a, c
+	ld	hl, sp+117
+	sub	a, [hl]
+	jp	NC, .l00101
+	ld	e, c
+	ld	d, $00
+	ld	hl, 2
+	add	hl, sp
+	add	hl, de
+	ld	a, [hl]
+	sub	a, $80
+	jp	C, .l00140
+	ld	de, $0002
+	jp	.l00141
+.l00140:
+	ld	de, $0001
+.l00141:
+	ld	hl, sp+108
+	ld	a, [hl]
+	add	a, e
+	ld	[hl], a
+	inc	c
+	jp	.l00133
+.l00101:
 ;src/editor/document.c:119: EditorShowCursor(0);
 	xor	a, a
 	call	_EditorShowCursor
 ;src/editor/document.c:120: NoHighlight();
 	call	_NoHighlight__far
 ;src/editor/document.c:121: while (1) {
-.l00125:
-;src/editor/document.c:122: end = PutText(text, "Save as ");
-	ld	bc, _src_editor_document_c___str_10
-	ld	hl, 35
+.l00128:
+;src/editor/document.c:122: end = PutText(text, prompt);
+	ld	hl, sp+113
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
+	ld	hl, 67
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_PutText__far
-;src/editor/document.c:123: for (i = 0; i < length; ++i) *end++ = name[i];
-	ld	e, $00
-.l00128:
+	pop	hl
+	push	bc
+;src/editor/document.c:123: for (i = length > 31 ? length - 31 : 0; i < length; ++i) *end++ = name[i];
+	ld	a, $1F
+	ld	hl, sp+117
+	sub	a, [hl]
+	jp	NC, .l00142
+	ld	a, [hl]
+	add	a, $E1
+	ld	hl, sp+111
+	ld	[hl], a
+	rlca
+	sbc	a, a
+	inc	hl
+	ld	[hl], a
+	jp	.l00143
+.l00142:
+	xor	a, a
+	ld	hl, sp+111
+	ld	[hl], a
+	inc	hl
+	ld	[hl], a
+.l00143:
+	ld	hl, sp+111
+	ld	e, [hl]
+	pop	bc
+	push	bc
+.l00136:
 	ld	hl, $0001
 	add	hl, bc
-	inc	sp
-	inc	sp
 	push	hl
+	ld	a, l
+	ld	hl, sp+113
+	ld	[hl], a
+	pop	hl
+	ld	a, h
+	ld	hl, sp+112
+	ld	[hl], a
 	ld	a, e
-	ld	hl, sp+77
+	ld	hl, sp+117
 	sub	a, [hl]
-	jp	NC, .l00101
+	jp	NC, .l00102
 	push	de
 	ld	d, $00
 	ld	hl, 4
@@ -939,16 +1014,20 @@ _src_editor_document_c_AskFileName:
 	pop	de
 	ld	a, [hl]
 	ld	[bc], a
-	pop	bc
-	push	bc
+	ld	hl, sp+111
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
 	inc	e
-	jp	.l00128
-.l00101:
+	jp	.l00136
+.l00102:
 ;src/editor/document.c:124: *end++ = '_';
 	ld	a, $5F
 	ld	[bc], a
-	pop	bc
-	push	bc
+	ld	hl, sp+111
+	ld	c, [hl]
+	inc	hl
+	ld	b, [hl]
 ;src/editor/document.c:125: *end = 0;
 	xor	a, a
 	ld	[bc], a
@@ -956,139 +1035,217 @@ _src_editor_document_c_AskFileName:
 	ld	hl, _bars
 	ld	a, [hl]
 	or	a, a
-	jp	Z, .l00103
+	jp	Z, .l00106
 ;src/editor/document.c:127: DrawRow(HEADER_LINE, 1, text);
-	ld	hl, 35
+	ld	hl, 67
 	add	hl, sp
 	push	hl
 	ld	e, $01
 	ld	a, $12
 	call	_DrawRow__far
-;src/editor/document.c:128: end = PutText(text, "in ");
-	ld	bc, _src_editor_document_c___str_11
-	ld	hl, 35
+;src/editor/document.c:128: if (render_text) {
+	ld	hl, _render_text
+	ld	a, [hl]
+	or	a, a
+	jp	Z, .l00107
+;src/editor/document.c:129: PutPath(PutText(text, "in "), file_dir, 28);
+	ld	bc, _src_editor_document_c___str_10
+	ld	hl, 67
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_PutText__far
 	ld	e, c
 	ld	d, b
-;src/editor/document.c:129: PutPath(end, file_dir, 28);
 	ld	a, $1C
 	push	af
 	inc	sp
 	ld	bc, _file_dir
 	call	_PutPath
 ;src/editor/document.c:130: DrawRow(STATUS_LINE, 1, text);
-	ld	hl, 35
+	ld	hl, 67
 	add	hl, sp
 	push	hl
 	ld	e, $01
 	ld	a, $13
 	call	_DrawRow__far
-	jp	.l00104
-.l00103:
-;src/editor/document.c:132: else DrawRow(0, 0, text);
-	ld	hl, 35
+	jp	.l00107
+.l00106:
+;src/editor/document.c:133: else DrawRow(0, 0, text);
+	ld	hl, 67
 	add	hl, sp
 	push	hl
 	ld	e, $00
 	xor	a, a
 	call	_DrawRow__far
-.l00104:
-;src/editor/document.c:133: EditorDraw();
-	call	_EditorDraw
-;src/editor/document.c:134: do {
 .l00107:
-;src/editor/document.c:135: WaitFrame();
+;src/editor/document.c:134: EditorDraw();
+	call	_EditorDraw
+;src/editor/document.c:135: do {
+.l00110:
+;src/editor/document.c:136: WaitFrame();
 	call	_WaitFrame
-;src/editor/document.c:136: key = (unsigned char)KBPopEvent();
+;src/editor/document.c:137: key = (unsigned char)KBPopEvent();
 	call	_KBPopEvent
-	ld	hl, sp+76
+	ld	hl, sp+110
 	ld	[hl], c
-;src/editor/document.c:137: if (!key) key = PadKey();
+;src/editor/document.c:138: if (!key) key = PadKey();
 	ld	a, [hl]
 	or	a, a
-	jp	NZ, .l00108
+	jp	NZ, .l00111
 	call	_PadKey__far
-	ld	hl, sp+76
+	ld	hl, sp+110
 	ld	[hl], a
-.l00108:
-;src/editor/document.c:138: } while (!key);
-	ld	hl, sp+76
+.l00111:
+;src/editor/document.c:139: } while (!key);
+	ld	hl, sp+110
 	ld	a, [hl]
 	or	a, a
-	jp	Z, .l00107
-;src/editor/document.c:139: if (key == KEY_ENTER && length) break;
+	jp	Z, .l00110
+;src/editor/document.c:140: if (key == KEY_ENTER && length) break;
 	ld	a, [hl]
 	sub	a, $0A
-	jp	NZ,.l00203
-	jp	.l00204
-.l00203:
-	jp	.l00111
-.l00204:
-	ld	hl, sp+77
+	jp	NZ,.l00267
+	jp	.l00268
+.l00267:
+	jp	.l00114
+.l00268:
+	ld	hl, sp+117
 	ld	a, [hl]
 	or	a, a
-	jp	NZ, .l00126
-.l00111:
-;src/editor/document.c:140: if (key == KEY_ESCAPE || key == KEY_MENU || (key == KEY_BACKSPACE && !length)) {
-	ld	hl, sp+76
+	jp	NZ, .l00129
+.l00114:
+;src/editor/document.c:141: if (key == KEY_ESCAPE || key == KEY_MENU || (key == KEY_BACKSPACE && !length)) {
+	ld	hl, sp+110
 	ld	a, [hl]
 	sub	a, $1B
-	jp	NZ,.l00205
-	jp	.l00113
-.l00205:
-	ld	hl, sp+76
+	jp	NZ,.l00269
+	jp	.l00116
+.l00269:
+	ld	hl, sp+110
 	ld	a, [hl]
 	sub	a, $89
-	jp	NZ,.l00206
-	jp	.l00113
-.l00206:
-	ld	hl, sp+76
+	jp	NZ,.l00270
+	jp	.l00116
+.l00270:
+	ld	hl, sp+110
 	ld	a, [hl]
 	sub	a, $08
-	jp	NZ,.l00207
+	jp	NZ,.l00271
 	ld	a,$01
-	jp	.l00208
-.l00207:
+	jp	.l00272
+.l00271:
 	xor	a,a
-.l00208:
+.l00272:
 	ld	c, a
 	ld	a, c
 	or	a, a
-	jp	Z, .l00114
-	ld	hl, sp+77
+	jp	Z, .l00117
+	ld	hl, sp+117
 	ld	a, [hl]
 	or	a, a
-	jp	NZ, .l00114
-.l00113:
-;src/editor/document.c:141: dirty = 1;
+	jp	NZ, .l00117
+.l00116:
+;src/editor/document.c:142: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
-;src/editor/document.c:142: return 0;
+;src/editor/document.c:143: return 0;
 	xor	a, a
-	jp	.l00130
-.l00114:
-;src/editor/document.c:144: if (key == KEY_BACKSPACE) --length;
+	jp	.l00138
+.l00117:
+;src/editor/document.c:118: for (i = 0; i < length; ++i) bytes += (unsigned char)name[i] >= 0x80 ? 2 : 1;
+	ld	hl, sp+108
+	ld	a, [hl]
+	ld	hl, sp+111
+	ld	[hl], a
+;src/editor/document.c:145: if (key == KEY_BACKSPACE) {
 	ld	a, c
 	or	a, a
-	jp	Z, .l00122
-	ld	hl, sp+77
-	dec	[hl]
-	jp	.l00125
-.l00122:
-;src/editor/document.c:145: else if (length < NAME_CHARS && NameChar(key)) name[length++] = key;
-	ld	hl, sp+77
-	ld	a, [hl]
-	sub	a, $20
-	jp	NC, .l00125
-	dec	hl
-	ld	a, [hl]
-	call	_src_editor_document_c_NameChar
-	or	a, a
 	jp	Z, .l00125
-	ld	hl, sp+77
+;src/editor/document.c:146: --length;
+	ld	hl, sp+117
+	dec	[hl]
+;src/editor/document.c:147: bytes -= (unsigned char)name[length] >= 0x80 ? 2 : 1;
+	push	hl
+	ld	hl, 4
+	add	hl, sp
+	ld	e, l
+	ld	d, h
+	pop	hl
+	ld	hl, sp+117
+	ld	l, [hl]
+	ld	h, $00
+	add	hl, de
+	ld	c, l
+	ld	b, h
+	ld	a, [bc]
+	sub	a, $80
+	jp	C, .l00144
+	ld	bc, $0002
+	jp	.l00145
+.l00144:
+	ld	bc, $0001
+.l00145:
+	ld	hl, sp+111
+	ld	a, [hl]
+	sub	a, c
+	ld	hl, sp+108
+	ld	[hl], a
+;src/editor/document.c:148: changed = 1;
+	inc	hl
+	ld	[hl], $01
+	jp	.l00128
+.l00125:
+;src/editor/document.c:150: else if (bytes + (key >= 0x80 ? 2 : 1) <= NAME_CHARS && NameChar(key)) {
+	ld	hl, sp+108
+	ld	c, [hl]
+	ld	b, $00
+	inc	hl
+	inc	hl
+	ld	a, [hl]
+	sub	a, $80
+	ld	a, $00
+	rla
+	inc	hl
+	inc	hl
+	ld	[hl], a
+	bit	0, [hl]
+	jp	NZ, .l00146
+	ld	de, $0002
+	jp	.l00147
+.l00146:
+	ld	de, $0001
+.l00147:
+	ld	l, c
+	ld	h, b
+	add	hl, de
+	ld	a, h
+	ld	e, a
+	ld	a, $00
+	ld	d, a
+	ld	a, $40
+	cp	a, l
+	ld	a, $00
+	sbc	a, h
+	bit	7, e
+	jp	Z, .l00273
+	bit	7, d
+	jp	NZ, .l00274
+	cp	a, a
+	jp	.l00274
+.l00273:
+	bit	7, d
+	jp	Z, .l00274
+	scf
+.l00274:
+	jp	C, .l00128
+	ld	hl, sp+110
+	ld	a, [hl]
+	call	_src_editor_document_c_NameChar__far
+	or	a, a
+	jp	Z, .l00128
+;src/editor/document.c:151: name[length++] = key;
+	ld	hl, sp+117
 	ld	e, [hl]
 	inc	[hl]
 	ld	d, $00
@@ -1097,19 +1254,45 @@ _src_editor_document_c_AskFileName:
 	add	hl, de
 	ld	c, l
 	ld	b, h
-	ld	hl, sp+76
+	ld	hl, sp+110
 	ld	a, [hl]
 	ld	[bc], a
-	jp	.l00125
-.l00126:
-;src/editor/document.c:147: name[length] = 0;
+;src/editor/document.c:152: bytes += key >= 0x80 ? 2 : 1;
+	inc	hl
+	inc	hl
+	bit	0, [hl]
+	jp	NZ, .l00148
+	ld	bc, $0002
+	jp	.l00149
+.l00148:
+	ld	bc, $0001
+.l00149:
+	ld	a, c
+	ld	hl, sp+111
+	add	a, [hl]
+	ld	hl, sp+108
+	ld	[hl], a
+;src/editor/document.c:153: changed = 1;
+	inc	hl
+	ld	[hl], $01
+	jp	.l00128
+.l00129:
+;src/editor/document.c:156: if (!changed) return 2;
+	ld	hl, sp+109
+	ld	a, [hl]
+	or	a, a
+	jp	NZ, .l00131
+	ld	a, $02
+	jp	.l00138
+.l00131:
+;src/editor/document.c:157: name[length] = 0;
 	push	hl
 	ld	hl, 4
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	pop	hl
-	ld	hl, sp+77
+	ld	hl, sp+117
 	ld	l, [hl]
 	ld	h, $00
 	add	hl, de
@@ -1117,33 +1300,30 @@ _src_editor_document_c_AskFileName:
 	ld	b, h
 	xor	a, a
 	ld	[bc], a
-;src/editor/document.c:148: ToUtf8(file_name, name);
+;src/editor/document.c:158: ToUtf8(value, name);
 	ld	hl, 2
 	add	hl, sp
 	ld	c, l
 	ld	b, h
-	ld	de, _file_name
+	ld	hl, sp+115
+	ld	e, [hl]
+	inc	hl
+	ld	d, [hl]
 	call	_ToUtf8
-;src/editor/document.c:149: SetLang();
-	call	_SetLang__far
-;src/editor/document.c:150: dirty = 1;
+;src/editor/document.c:159: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
-;src/editor/document.c:151: return 1;
+;src/editor/document.c:160: return 1;
 	ld	a, $01
-.l00130:
-;src/editor/document.c:152: }
-	add	sp, 78
+.l00138:
+;src/editor/document.c:161: }
+	add	sp, 118
 	ret
 	SECTION FRAGMENT "src/editor/document.c FIXED",ROMX,BANK[1]
 _src_editor_document_c___str_10:
-	DB "Save as "
-	DB $00
-	SECTION FRAGMENT "src/editor/document.c FIXED",ROMX,BANK[1]
-_src_editor_document_c___str_11:
 	DB "in "
 	DB $00
-;src/editor/document.c:154: void SaveFile(unsigned char ask) {
+;src/editor/document.c:163: void SaveFile(unsigned char ask) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -1153,20 +1333,28 @@ _SaveFile::
 	add	sp, -128
 	add	sp, -65
 	ld	c, a
-;src/editor/document.c:157: if ((ask || !file_name[0]) && !AskFileName()) return;
+;src/editor/document.c:166: if (ask || !file_name[0]) {
 	ld	a, c
 	or	a, a
-	jp	NZ, .l00104
+	jp	NZ, .l00103
 	ld	a, [_file_name + 0]
 	or	a, a
-	jp	NZ, .l00102
-.l00104:
-	call	_src_editor_document_c_AskFileName
+	jp	NZ, .l00104
+.l00103:
+;src/editor/document.c:167: Render();
+	call	_Render__far
+;src/editor/document.c:168: if (!AskName(file_name, "Save as ")) return;
+	ld	bc, _src_editor_document_c___str_11
+	ld	de, _file_name
+	call	_AskName
 	or	a, a
 	jp	NZ, .l00102
-	jp	.l00109
+	jp	.l00110
 .l00102:
-;src/editor/document.c:158: JoinPath(path, file_dir, file_name, (unsigned char)(PATH_SIZE + FS_NAME_SIZE));
+;src/editor/document.c:169: SetLang();
+	call	_SetLang__far
+.l00104:
+;src/editor/document.c:171: JoinPath(path, file_dir, file_name, (unsigned char)(PATH_SIZE + FS_NAME_SIZE));
 	ld	a, $C1
 	push	af
 	inc	sp
@@ -1178,67 +1366,71 @@ _SaveFile::
 	ld	e, l
 	ld	d, h
 	call	_JoinPath
-;src/editor/document.c:159: ShowBusy("Saving...");
+;src/editor/document.c:172: ShowBusy("Saving...");
 	ld	de, _src_editor_document_c___str_12
 	call	_ShowBusy
-;src/editor/document.c:160: result = FileMount();
+;src/editor/document.c:173: result = FileMount();
 	call	_FileMount
 	ld	c, a
-;src/editor/document.c:161: if (!result) result = doc_large ? FileSaveLarge(path) : FileSave(path);
+;src/editor/document.c:174: if (!result) result = doc_large ? FileSaveLarge(path) : FileSave(path);
 	ld	a, c
 	or	a, a
-	jp	NZ, .l00106
+	jp	NZ, .l00107
 	ld	hl, _doc_large
 	ld	a, [hl]
 	or	a, a
-	jp	Z, .l00111
+	jp	Z, .l00112
 	ld	hl, 0
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_FileSaveLarge
-	jp	.l00112
-.l00111:
+	jp	.l00113
+.l00112:
 	ld	hl, 0
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_FileSave
-.l00112:
+.l00113:
 	ld	c, a
-.l00106:
-;src/editor/document.c:162: HideBox();
+.l00107:
+;src/editor/document.c:175: HideBox();
 	push	bc
 	call	_HideBox__far
 	pop	bc
-;src/editor/document.c:163: SettingsSave(); // save as may have changed the name
+;src/editor/document.c:176: SettingsSave(); // save as may have changed the name
 	push	bc
 	call	_SettingsSave
 	pop	bc
-;src/editor/document.c:164: if (result) {
+;src/editor/document.c:177: if (result) {
 	ld	a, c
 	or	a, a
-	jp	Z, .l00108
-;src/editor/document.c:165: ShowError(result, "DISK FULL");
+	jp	Z, .l00109
+;src/editor/document.c:178: ShowError(result, "DISK FULL");
 	ld	de, _src_editor_document_c___str_13
 	ld	a, c
 	call	_ShowError
-;src/editor/document.c:166: return;
-	jp	.l00109
-.l00108:
-;src/editor/document.c:168: modified = 0;
+;src/editor/document.c:179: return;
+	jp	.l00110
+.l00109:
+;src/editor/document.c:181: modified = 0;
 	ld	hl, _modified
 	ld	[hl], $00
-;src/editor/document.c:169: UndoSaved();
+;src/editor/document.c:182: UndoSaved();
 	call	_UndoSaved
-;src/editor/document.c:170: ShowMessage("SAVED");
+;src/editor/document.c:183: ShowMessage("SAVED");
 	ld	de, _src_editor_document_c___str_14
 	call	_ShowMessage__far
-.l00109:
-;src/editor/document.c:171: }
+.l00110:
+;src/editor/document.c:184: }
 	add	sp, 127
 	add	sp, 66
 	ret
+	SECTION FRAGMENT "src/editor/document.c FIXED",ROMX,BANK[1]
+_src_editor_document_c___str_11:
+	DB "Save as "
+	DB $00
 	SECTION FRAGMENT "src/editor/document.c FIXED",ROMX,BANK[1]
 _src_editor_document_c___str_12:
 	DB "Saving..."

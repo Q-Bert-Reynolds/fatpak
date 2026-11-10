@@ -18,12 +18,29 @@ static const char submenu_items[][ITEM_SIZE] = { // FILE, EDIT, SETTINGS
   "CONTROLS", "KEYBOARD TEST"};
 static const unsigned char submenu_starts[] = {0, 4, 10, 13, 15};
 
+// Shared by the editor and browser; B returns to their enclosing menu.
+unsigned char PreferencesMenu(unsigned char help) {
+  unsigned char item = Choose(0, submenu_items[help ? 13 : 10], help ? 2 : 3, 0);
+  if (item >= BACK) return item;
+  if (help) {
+    if (item) KeyboardTest(); else ShowHelp();
+  }
+  else if (!item) ToggleWrap();
+  else if (item == 1) ToggleBars();
+  else ClockSetup();
+  return item;
+}
+
 static void FileMenu(void) {
   unsigned char menu = 0, item;
   while (1) {
     if ((menu = Choose(0, menu_items[0], 5, menu)) >= BACK) return;
     if (menu == 4) {
       OpenFile();
+      return;
+    }
+    if (menu >= 2) {
+      if (PreferencesMenu(menu == 3) == BACK) continue;
       return;
     }
     item = submenu_starts[menu];
@@ -41,11 +58,6 @@ static void FileMenu(void) {
     case 11: Copy(); break;
     case 12: Paste(); break;
     case 13: SelectAll(); break;
-    case 16: ToggleWrap(); break;
-    case 17: ToggleBars(); break;
-    case 18: ClockSetup(); break;
-    case 24: ShowHelp(); break;
-    case 25: KeyboardTest(); break;
   }
 }
 

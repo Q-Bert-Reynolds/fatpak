@@ -115,6 +115,26 @@ _Public::
         self.assertEqual(before, {path: self.output(path) for path in paths})
         self.assertEqual(self.output('build/c_modules.inc').count('INCLUDE "src/_first.asm"'), 1)
 
+    def test_omitted_library_entries_leave_no_export_or_body(self):
+        self.module('src/library.c', '*: 8\nOMIT: Unused\n', '''
+\tEXPORT _Unused
+\tEXPORT _Kept
+\tSECTION FRAGMENT "src/library.c_CODE",ROMX
+; Function Unused
+_Unused::
+\tld a, 99
+\tret
+; Function Kept
+_Kept::
+\tret
+''')
+        self.run_split()
+        output = self.output('src/_library.asm')
+        self.assertNotIn('_Unused', output)
+        self.assertNotIn('ld a, 99', output)
+        self.assertIn('EXPORT _Kept', output)
+        self.assertIn('_Kept::', output)
+
 
 if __name__ == '__main__':
     unittest.main()

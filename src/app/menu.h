@@ -4,5 +4,6 @@
 #include "../constants.h"
 
 unsigned char HandleFileKey(unsigned char key, unsigned char mods);
+unsigned char PreferencesMenu(unsigned char help);
 
 #endif

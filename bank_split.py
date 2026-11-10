@@ -8,6 +8,7 @@ are src/.../_name.asm, build/c_calls.asm and build/c_modules.inc.
 .banks entries assign function names to ROM0, FIXED (resident bank 1), or pages
 4-15. * sets the default code page; DATA defaults to FIXED. Constants passed to
 code on another page must live in resident memory. THUNKS defaults to FIXED.
+OMIT excludes named unused library entry points and their exports.
 """
 import argparse
 import re
@@ -57,6 +58,20 @@ class Module:
         self.output = source.with_name('_' + source.stem + '.asm')
         self.lines = [line.rstrip() for line in (build / 'c' / source.with_suffix('.asm')).read_text().splitlines()]
         self.config, self.defaults = read_config(source.with_suffix('.banks'))
+        # Explicitly excluded library entry points save space without changing
+        # vendored sources. References to them still fail at assembly/link time.
+        omitted = {name for name, dest in self.config.items() if dest == 'OMIT'}
+        kept, skip = [], False
+        for line in self.lines:
+            if match := FUNCTION_RE.match(line):
+                skip = '_' + match[1] in omitted
+            elif SECTION_RE.match(line):
+                skip = False
+            if (match := EXPORT_RE.match(line)) and match[1] in omitted:
+                continue
+            if not skip:
+                kept.append(line)
+        self.lines = kept
         self.base = next(m[1][:-5] for line in self.lines
                          if (m := SECTION_RE.match(line)) and m[1].endswith('_CODE'))
         self.prefix = re.sub(r'\W', '_', self.base)

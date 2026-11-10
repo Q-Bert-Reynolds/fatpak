@@ -12,8 +12,13 @@ INCLUDE "src/fatpak.inc"
 ;   FileSaveSwap                OS mode: writes the text, clipboard and settings to the swap file, returns FRESULT in a
 ;   FileLoadSwap                OS mode: restores them at boot if PSRAM lost them, returns FRESULT in a
 
-SECTION "FatFs Stubs", ROM0
+SECTION FRAGMENT "FatFs Stubs", ROM0
 _FileMount::     BANKED_C _fs_Mount
+FIXED "Browser File Stubs"
+_FileRename::    BANKED_C _fs_Rename
+_FileRenameName:: BANKED_C _fs_RenameName
+_FileCopy::      BANKED_C _fs_Copy
+SECTION FRAGMENT "FatFs Stubs", ROM0
 _FileList::      BANKED_C _fs_List
 _FileListEntry:: BANKED_C _fs_ListEntry
 _FileLoad::      BANKED_C _fs_Load

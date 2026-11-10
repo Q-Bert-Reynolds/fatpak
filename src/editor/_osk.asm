@@ -359,91 +359,99 @@ _src_editor_osk_c_PressOSKKey:
 	ld	hl, _osk_y
 	ld	a, [hl]
 	sub	a, $04
-	jp	NZ,.l00165
-	jp	.l00166
-.l00165:
-	jp	.l00120
-.l00166:
+	jp	NZ,.l00179
+	jp	.l00180
+.l00179:
+	jp	.l00124
+.l00180:
 ;src/editor/osk.c:60: if (osk_x == 0) SetOSKLayer(OSK_SHIFT);
 	ld	hl, _osk_x
 	ld	a, [hl]
 	or	a, a
-	jp	NZ, .l00117
+	jp	NZ, .l00121
 	ld	a, $01
 	call	_src_editor_osk_c_SetOSKLayer
-	jp	.l00118
-.l00117:
+	jp	.l00122
+.l00121:
 ;src/editor/osk.c:61: else if (osk_x == 1) SetOSKLayer(OSK_SYMBOLS);
 	ld	hl, _osk_x
 	ld	a, [hl]
 	dec	a
-	jp	NZ,.l00167
-	jp	.l00168
-.l00167:
-	jp	.l00114
-.l00168:
+	jp	NZ,.l00181
+	jp	.l00182
+.l00181:
+	jp	.l00118
+.l00182:
 	ld	a, $02
 	call	_src_editor_osk_c_SetOSKLayer
-	jp	.l00118
-.l00114:
+	jp	.l00122
+.l00118:
 ;src/editor/osk.c:62: else if (osk_x == 2) return KEY_MENU;
 	ld	hl, _osk_x
 	ld	a, [hl]
 	sub	a, $02
-	jp	NZ,.l00169
-	jp	.l00170
-.l00169:
-	jp	.l00111
-.l00170:
+	jp	NZ,.l00183
+	jp	.l00184
+.l00183:
+	jp	.l00115
+.l00184:
 	ld	a, $89
-	jp	.l00123
-.l00111:
-;src/editor/osk.c:63: else if (osk_x == OSK_COLS - 3) UndoRedo(0);
+	jp	.l00127
+.l00115:
+;src/editor/osk.c:63: else if (osk_x == OSK_COLS - 3) { if (render_text) UndoRedo(0); }
 	ld	hl, _osk_x
 	ld	a, [hl]
 	sub	a, $07
-	jp	NZ,.l00171
-	jp	.l00172
-.l00171:
-	jp	.l00108
-.l00172:
+	jp	NZ,.l00185
+	jp	.l00186
+.l00185:
+	jp	.l00112
+.l00186:
+	ld	hl, _render_text
+	ld	a, [hl]
+	or	a, a
+	jp	Z, .l00122
 	xor	a, a
 	call	_UndoRedo
-	jp	.l00118
-.l00108:
-;src/editor/osk.c:64: else if (osk_x == OSK_COLS - 2) UndoRedo(1);
+	jp	.l00122
+.l00112:
+;src/editor/osk.c:64: else if (osk_x == OSK_COLS - 2) { if (render_text) UndoRedo(1); }
 	ld	hl, _osk_x
 	ld	a, [hl]
 	sub	a, $08
-	jp	NZ,.l00173
-	jp	.l00174
-.l00173:
-	jp	.l00105
-.l00174:
+	jp	NZ,.l00187
+	jp	.l00188
+.l00187:
+	jp	.l00109
+.l00188:
+	ld	hl, _render_text
+	ld	a, [hl]
+	or	a, a
+	jp	Z, .l00122
 	ld	a, $01
 	call	_UndoRedo
-	jp	.l00118
-.l00105:
+	jp	.l00122
+.l00109:
 ;src/editor/osk.c:65: else if (osk_x == OSK_COLS - 1) return KEY_ENTER;
 	ld	hl, _osk_x
 	ld	a, [hl]
 	sub	a, $09
-	jp	NZ,.l00175
-	jp	.l00176
-.l00175:
-	jp	.l00102
-.l00176:
+	jp	NZ,.l00189
+	jp	.l00190
+.l00189:
+	jp	.l00106
+.l00190:
 	ld	a, $0A
-	jp	.l00123
-.l00102:
+	jp	.l00127
+.l00106:
 ;src/editor/osk.c:66: else return ' ';
 	ld	a, $20
-	jp	.l00123
-.l00118:
+	jp	.l00127
+.l00122:
 ;src/editor/osk.c:67: return KEY_NONE;
 	xor	a, a
-	jp	.l00123
-.l00120:
+	jp	.l00127
+.l00124:
 ;src/editor/osk.c:69: key = OSKGetKey(osk_layer, (osk_y << 3) + (osk_y << 1) + osk_x);
 	ld	hl, _osk_y
 	ld	c, [hl]
@@ -465,19 +473,19 @@ _src_editor_osk_c_PressOSKKey:
 	ld	hl, _osk_layer
 	ld	a, [hl]
 	dec	a
-	jp	NZ,.l00177
-	jp	.l00178
-.l00177:
-	jp	.l00122
-.l00178:
+	jp	NZ,.l00191
+	jp	.l00192
+.l00191:
+	jp	.l00126
+.l00192:
 	push	bc
 	ld	a, $01
 	call	_src_editor_osk_c_SetOSKLayer
 	pop	bc
-.l00122:
+.l00126:
 ;src/editor/osk.c:71: return key;
 	ld	a, c
-.l00123:
+.l00127:
 ;src/editor/osk.c:72: }
 	ret
 ;src/editor/osk.c:74: static void MoveOSKSelection(unsigned char held) {

@@ -10,5 +10,6 @@ void NewFile(void);
 void OpenFile(void);
 void LoadDocument(char* path, unsigned char folder_length, const FileEntry* entry);
 void SaveFile(unsigned char ask);
+unsigned char AskName(char* value, const char* prompt);
 
 #endif

@@ -1,3 +1,6 @@
 # Code placement; feature ownership follows the source files.
 *: 5
 4: ListFolder ListEntry ListRows ScrollList ListBars ListLoading ListMessage Browse
+11: ListRows
+15: ListEntry
+FIXED: BrowserMenu BrowserError FileInfo

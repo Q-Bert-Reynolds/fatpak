@@ -49,7 +49,7 @@ D-pad selection (A + D-pad), menu cut/copy/paste, and on-screen undo/redo are im
 
 Calendar-based file timestamps and SETTINGS > CLOCK are implemented, with a fixed-date fallback when no valid clock is available.
 
-- file browser: sort by name (needs the names in memory), make folders, delete and rename files (FatFs already has `FF_FS_MINIMIZE=0`; the browser UI is missing)
+- file browser: sort by name (needs the names in memory), make folders and delete files. Start now offers info, rename, cut/copy/paste for files and folders, settings, help and restart; verify transfers and interrupted copies on hardware.
 - save as into another folder
 - bank_split.py keeps FatFs helpers in ROM0, some could go in a bank behind far calls
 
