@@ -11,6 +11,7 @@
 	EXPORT _FooterCompose
 	EXPORT _RenderStage
 	EXPORT _RenderSetMapRow
+	EXPORT _tb_ScrollRows
 	EXPORT _font
 	EXPORT _bars
 	EXPORT _map_blocks
@@ -19,6 +20,7 @@
 	EXPORT _ring_top
 	EXPORT _Layout
 	EXPORT _ScrollRing
+	EXPORT _ScrollRows
 	EXPORT _NoHighlight
 	EXPORT _RowAddress
 	EXPORT _DrawRow
@@ -529,8 +531,7 @@ _Layout::
 	ret
 ;src/ui/screen.c:73: void ScrollRing(unsigned char down) {
 ;	---------------------------------
-	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
-	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
+	SECTION FRAGMENT "src/ui/screen.c FIXED",ROMX,BANK[1]
 ; Function ScrollRing
 ; ---------------------------------
 _ScrollRing::
@@ -649,19 +650,38 @@ _ScrollRing::
 	ld	[hl], a
 .l00103:
 ;src/ui/screen.c:83: Layout();
-	call	_Layout
+	call	_Layout__far
 .l00104:
 ;src/ui/screen.c:84: }
 	add	sp, 7
 	ret
-;src/ui/screen.c:87: void NoHighlight(void) {
+;src/ui/screen.c:86: void ScrollRows(unsigned char down) {
+;	---------------------------------
+	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
+	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
+; Function ScrollRows
+; ---------------------------------
+_ScrollRows::
+	ld	c, a
+;src/ui/screen.c:87: ScrollRing(down);
+	push	bc
+	ld	a, c
+	call	_ScrollRing
+	pop	bc
+;src/ui/screen.c:88: tb_ScrollRows(down);
+	ld	a, c
+	jp	_tb_ScrollRows
+.l00101:
+;src/ui/screen.c:89: }
+	ret
+;src/ui/screen.c:92: void NoHighlight(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function NoHighlight
 ; ---------------------------------
 _NoHighlight::
-;src/ui/screen.c:89: for (i = 0; i < TB_ROWS * 2; ++i) render_sel[i] = 0;
+;src/ui/screen.c:94: for (i = 0; i < TB_ROWS * 2; ++i) render_sel[i] = 0;
 	ld	c, $00
 .l00104:
 	ld	hl, _render_sel
@@ -672,7 +692,7 @@ _NoHighlight::
 	ld	a, c
 	sub	a, $24
 	jp	C, .l00104
-;src/ui/screen.c:90: if (bars) render_sel[1] = render_sel[(TB_ROWS << 1) - 1] = 0xFF;
+;src/ui/screen.c:95: if (bars) render_sel[1] = render_sel[(TB_ROWS << 1) - 1] = 0xFF;
 	ld	hl, _bars
 	ld	a, [hl]
 	or	a, a
@@ -682,9 +702,9 @@ _NoHighlight::
 	ld	hl, (_render_sel + 1)
 	ld	[hl], $FF
 .l00106:
-;src/ui/screen.c:91: }
+;src/ui/screen.c:96: }
 	ret
-;src/ui/screen.c:93: char* RowAddress(unsigned char row) {
+;src/ui/screen.c:98: char* RowAddress(unsigned char row) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -692,9 +712,9 @@ _NoHighlight::
 ; ---------------------------------
 _RowAddress::
 	ld	e, a
-;src/ui/screen.c:94: unsigned int offset = row;
+;src/ui/screen.c:99: unsigned int offset = row;
 	ld	d, $00
-;src/ui/screen.c:95: return (char*)tile_buffer + (offset << 5) + (offset << 3); // row * TB_STRIDE
+;src/ui/screen.c:100: return (char*)tile_buffer + (offset << 5) + (offset << 3); // row * TB_STRIDE
 	ld	bc, _tile_buffer+0
 	ld	l, e
 	ld	h, d
@@ -715,9 +735,9 @@ _RowAddress::
 	ld	c, l
 	ld	b, h
 .l00101:
-;src/ui/screen.c:96: }
+;src/ui/screen.c:101: }
 	ret
-;src/ui/screen.c:99: void DrawRow(unsigned char row, unsigned char col, const char* text) {
+;src/ui/screen.c:104: void DrawRow(unsigned char row, unsigned char col, const char* text) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -729,11 +749,11 @@ _DrawRow::
 	ld	[hl], a
 	dec	hl
 	ld	[hl], e
-;src/ui/screen.c:100: char* dest = RowAddress(row);
+;src/ui/screen.c:105: char* dest = RowAddress(row);
 	inc	hl
 	ld	a, [hl]
 	call	_RowAddress
-;src/ui/screen.c:102: for (i = 0; i < TB_STRIDE; ++i) dest[i] = ' ';
+;src/ui/screen.c:107: for (i = 0; i < TB_STRIDE; ++i) dest[i] = ' ';
 	ld	e, $00
 .l00105:
 	ld	l, e
@@ -744,7 +764,7 @@ _DrawRow::
 	ld	a, e
 	sub	a, $28
 	jp	C, .l00105
-;src/ui/screen.c:103: for (dest += col; *text && col < TB_STRIDE; ++col) *dest++ = *text++;
+;src/ui/screen.c:108: for (dest += col; *text && col < TB_STRIDE; ++col) *dest++ = *text++;
 	ld	hl, sp+1
 	ld	l, [hl]
 	ld	h, $00
@@ -783,7 +803,7 @@ _DrawRow::
 	inc	a
 	jp	.l00109
 .l00102:
-;src/ui/screen.c:104: if (row == STATUS_LINE) FooterCompose(RowAddress(row));
+;src/ui/screen.c:109: if (row == STATUS_LINE) FooterCompose(RowAddress(row));
 	ld	hl, sp+2
 	ld	a, [hl]
 	sub	a, $13
@@ -799,20 +819,20 @@ _DrawRow::
 	ld	d, b
 	call	_FooterCompose__far
 .l00111:
-;src/ui/screen.c:105: }
+;src/ui/screen.c:110: }
 	add	sp, 3
 	pop	hl
 	inc	sp
 	inc	sp
 	jp hl
-;src/ui/screen.c:107: void ClearScreen(void) {
+;src/ui/screen.c:112: void ClearScreen(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function ClearScreen
 ; ---------------------------------
 _ClearScreen::
-;src/ui/screen.c:109: for (row = 0; row < TB_ROWS; ++row) DrawRow(row, 0, "");
+;src/ui/screen.c:114: for (row = 0; row < TB_ROWS; ++row) DrawRow(row, 0, "");
 	ld	c, $00
 .l00102:
 	push	bc
@@ -827,7 +847,7 @@ _ClearScreen::
 	sub	a, $12
 	jp	C, .l00102
 .l00104:
-;src/ui/screen.c:110: }
+;src/ui/screen.c:115: }
 	ret
 	SECTION FRAGMENT "src/ui/screen.c FIXED",ROMX,BANK[1]
 _src_ui_screen_c___str_0:

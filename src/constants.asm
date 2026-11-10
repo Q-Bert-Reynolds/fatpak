@@ -42,8 +42,9 @@ DEF DATA_BORDER_TILES  EQU 41;the SGB border's 8KB of tiles
 DEF DATA_BORDER_MAP    EQU 57;its map and palettes, 4KB
 DEF DATA_FIXED         EQU 65;the base fixed font, four blocks
 DEF DATA_HELP          EQU 69;two 32-line help screens, 32 bytes per line
-DEF DATA_BLOCKS        EQU 73
-DEF DATA_VERSION       EQU 3;block 0 starts with "EDITOR.DAT" and this
+DEF DATA_MONO          EQU 73;base monospaced glyphs, four blocks
+DEF DATA_BLOCKS        EQU 77
+DEF DATA_VERSION       EQU 4;block 0 starts with "EDITOR.DAT" and this
 DEF NAME_HISTORY_BLOCK EQU DATA_BLOCK+DATA_BLOCKS;16 scratch blocks, separate from document undo
 DEF WIN_SIZE           EQU $C000;the part of a large file in the text buffer (src/fatfs/fatfs.c)
 DEF WIN_CHUNKS         EQU WIN_SIZE/512+1;sector boundaries in it

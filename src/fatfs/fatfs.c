@@ -386,6 +386,9 @@ unsigned char fs_ListEntry(unsigned int index, FileEntry* entry) {
   entry->size = ld_32(dir.dir + DIR_FileSize);
   entry->time = ld_16(dir.dir + DIR_ModTime);
   entry->date = ld_16(dir.dir + DIR_ModTime + 2);
+  entry->cdate = ld_16(dir.dir + DIR_CrtTime + 2);
+  entry->ctime = ld_16(dir.dir + DIR_CrtTime);
+  entry->adate = ld_16(dir.dir + DIR_LstAccDate);
   entry->dir = kind == 0;
   NextSlot();
   return FR_OK;
@@ -1432,3 +1435,42 @@ unsigned char fs_Save(const char* path) {
 }
 
 DWORD get_fattime(void) { return ClockFatTime(); }
+
+// Bounded text scan, independent of the large document's persistent FIL.
+unsigned char fs_Inspect(const char* path, FileDetails* details) {
+  FIL input;
+  UINT count, i;
+  FRESULT result, closed;
+  BYTE c, last = 0, word = 0, checksum = 0;
+  details->status = 0;
+  details->words = details->lines = 0;
+  result = f_open(&input, path, FA_READ);
+  if (result) return result;
+  if (details->game) {
+    result = f_lseek(&input, 0x134);
+    if (!result) result = f_read(&input, details->header, 28, &count);
+    if (!result && count == 28) {
+      for (i = 0; i < 25; ++i) checksum -= details->header[i] + 1;
+      details->status = checksum == details->header[25] ? 1 : 2;
+    }
+  }
+  else if (f_size(&input) <= 32768UL) {
+    details->status = 1;
+    do {
+      result = f_read(&input, buffer, sizeof(buffer), &count);
+      if (result) break;
+      for (i = 0; i < count; ++i) {
+        c = buffer[i];
+        if (!c) { details->status = 2; break; }
+        if (c == '\r' || (c == '\n' && last != '\r')) ++details->lines;
+        if (c > ' ' && !word) ++details->words;
+        word = c > ' ';
+        last = c;
+      }
+    } while (count && details->status == 1);
+    if (last && last != '\n' && last != '\r') ++details->lines;
+  }
+  closed = f_close(&input);
+  if (result) details->status = 0;
+  return result ? result : closed;
+}

@@ -158,13 +158,19 @@ ENDR
   ld bc, render_glyph
   ret
 
-StyledWidth::;a = page of a styled font's widths (styled_widths.asm), c = char, returns its width in a, preserves bc, de, hl
+StyledWidth::;a = virtual fixed-width ID or VWF table page, c = char; preserves bc, de, hl
+  cp a, 5
+  jr nc, .variable
+  cpl
+  add a, 9;IDs 0..4 have widths 8..4, avoiding five identical 256-byte tables
+  ret
+.variable
   push hl
   ld h, a
   ld l, c
   ldh a, [loaded_bank]
   push af
-  ld a, BANK(HeadingWidths)
+  ld a, BANK(VWFBoldWidths)
   SET_BANK
   ld l, [hl]
   pop af
@@ -188,16 +194,18 @@ _SetFont::;a = font
   ld [font_bold_widths], a
   ldh a, [loaded_bank]
   push af
-  ld a, BANK(FontMonoWidths)
+  ld a, BANK(FontVWFWidths)
   SET_BANK
-  ld hl, FontMonoWidths
+  ld hl, FontVWFWidths
+  ld a, b
+  cp a, FONT_VWF
+  jr z, .copy
   ld a, b
   and a
-  jr z, .copy
-  ld hl, FontVWFWidths
-  dec a
-  jr z, .copy
+  ld a, 8
+  jr z, .fill
   ld a, 4
+.fill
   ld hl, _font_widths
   ld bc, 256
   call mem_Set
@@ -944,19 +952,25 @@ RenderStyleGlyph:
   ld a, e
   jp RenderWindowGlyph
 
-INCLUDE "img/fonts/font_mono.asm"
+DEF FontMonoGlyphs EQU $0800
 INCLUDE "img/fonts/font_vwf.asm"
 ;The base fixed font shares the styled fonts' PSRAM glyph path. Its virtual
 ;address is an offset, so RenderStyleGlyph can still select styled variants.
 DEF FontFixedGlyphs EQU 0
 
-RenderFixedGlyph:;bc = byte offset in the fixed font
+RenderFixedGlyph:;bc = virtual byte offset: fixed $0000-$07FF, mono $0800-$0FFF
   ld h, b
   ld l, c
+  ld e, LOW(DATA_BLOCK + DATA_FIXED)
+  bit 3, h
+  jr z, .base
+  res 3, h
+  ld e, LOW(DATA_BLOCK + DATA_MONO)
+.base
   ld a, [_data_loaded]
   and a
   jr nz, .window
-  ld bc, FontMonoGlyphs;readable fallback when EDITOR.DAT is missing
+  ld bc, FontVWFGlyphs;readable fallback when EDITOR.DAT is missing
   add hl, bc
   ld b, h
   ld c, l
@@ -964,7 +978,7 @@ RenderFixedGlyph:;bc = byte offset in the fixed font
 .window
   ld a, h
   srl a
-  add a, LOW(DATA_BLOCK + DATA_FIXED)
+  add a, e
   ld e, a
   ld a, h
   and a, 1
@@ -1010,7 +1024,7 @@ RenderKeyboardLine:
   ld a, 2
   ld d, HIGH(render_accent)
   call RenderUsePlane
-  ld a, [FontMonoGlyphs+'_'*8+7]
+  ld a, $FF;last row of the monospaced underscore glyph
   ld c, a
   ld b, TB_COLS
   ld hl, render_bitmap+7
@@ -1209,7 +1223,7 @@ RenderRow:
   call mem_Set
 
   ld hl, FontMonoGlyphs
-  ld de, FontMonoWidths
+  ld de, FontVWFWidths
   ld a, [render_row_font]
   and a
   jr z, .setFont
@@ -1218,7 +1232,7 @@ RenderRow:
   dec a
   jr z, .setFont
   ld hl, FontFixedGlyphs
-  ld de, FontMonoWidths;fixed width is handled directly by RenderGlyph
+  ld de, FontVWFWidths;fixed width is handled directly by RenderGlyph
   dec a
   jr z, .setFont
   ld [render_head], a;headings: the fixed font's glyphs, their own fonts are styled fonts
@@ -1761,6 +1775,10 @@ RenderGlyph:
   jr .setWidth
 .fontWidth
   ld a, [render_row_font]
+  and a
+  ld a, 8
+  jr z, .setWidth
+  ld a, [render_row_font]
   cp a, FONT_FIXED
   ld a, 4
   jr nc, .setWidth
@@ -1799,7 +1817,7 @@ RenderGlyph:
   and a
   call nz, RenderStyleGlyph
   ld a, b
-  cp a, 8
+  cp a, 16
   call c, RenderFixedGlyph
   push bc
   ld d, HIGH(render_bitmap)
@@ -2171,4 +2189,4 @@ ENDM
 
 SECTION "Styled Widths", ROMX, BANK[1], ALIGN[8]
 INCLUDE "img/fonts/styled_widths.asm"
-ASSERT HIGH(FixedBoldWidths) == HIGH(HeadingWidths) + 4 && HIGH(VWFBoldWidths) == HIGH(HeadingWidths) + 5
+ASSERT HIGH(FixedBoldWidths) == HIGH(HeadingWidths) + 4

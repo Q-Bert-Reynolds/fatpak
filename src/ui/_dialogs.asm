@@ -201,8 +201,7 @@ _OpenBox::
 	ret
 ;src/ui/dialogs.c:41: void ShowBusy(const char* text) {
 ;	---------------------------------
-	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
-	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
+	SECTION FRAGMENT "src/ui/dialogs.c FIXED",ROMX,BANK[1]
 ; Function ShowBusy
 ; ---------------------------------
 _ShowBusy::

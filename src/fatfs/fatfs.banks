@@ -3,7 +3,7 @@
 ROM0: ld_16 ld_32 st_16 st_32 dbc_1st dbc_2nd sum_sfn
 *: 8
 DATA: ROM0
-THUNKS: ROM0
+THUNKS: FIXED
 OMIT: f_getfree f_truncate
 13: fs_Copy fs_Rename
 10: fs_RenameName
@@ -20,3 +20,6 @@ OMIT: f_getfree f_truncate
 4: SnapshotCopy SnapshotStore fs_Snapshot
 6: SnapshotFile GamePath
 5: CheatApply
+
+FIXED: fs_ListEntry
+8: fs_Inspect

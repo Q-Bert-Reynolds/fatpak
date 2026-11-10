@@ -1,5 +1,6 @@
 // SD file browser. Opening text and games uses their feature APIs.
 #include "browser.h"
+#include "info.h"
 #include "../app/dialogs.h"
 #include "../app/menu.h"
 #include "paths.h"
@@ -74,8 +75,7 @@ static void ListRows(const char* path, unsigned int first, unsigned char row, un
 // scrolls the file browser one row (down = 1 when first went up by one), only the new row is read and drawn
 static void ScrollList(const char* path, unsigned int first, unsigned char down) {
   unsigned char i, from, to;
-  ScrollRing(down);
-  tb_ScrollRows(down);
+  ScrollRows(down);
   for (i = 1; i < LIST_ROWS; ++i) {
     to = down ? i - 1 : LIST_ROWS - i;
     from = down ? i : to - 1;
@@ -133,39 +133,6 @@ static void BrowserError(unsigned char result) {
   else ListMessage("SD operation failed");
 }
 
-static void FileInfo(void) {
-  char* line = RowAddress(BOX_LINE);
-  char* end;
-  char name[FS_NAME_SIZE];
-  unsigned char i = 0, n = 0, rows = 0;
-  *ToLatin1(name, entry.name, FS_NAME_SIZE - 1) = 0;
-  do {
-    for (n = 0; n < BOX_STRIDE - 1 && name[i]; ++n) line[n] = name[i++];
-    line[n] = 0;
-    line += BOX_STRIDE;
-    ++rows;
-  } while (name[i]);
-  if (entry.dir) CopyName(line, "Folder");
-  else {
-    end = PutNumber(line, entry.size < 1000000 ? entry.size : entry.size >> 10);
-    CopyName(end, entry.size < 1000000 ? " bytes" : " KiB");
-  }
-  line += BOX_STRIDE;
-  end = PutNumber(line, 1980 + (entry.date >> 9));
-  *end++ = '-';
-  end = PutNumber2(end, (entry.date >> 5) & 15);
-  *end++ = '-';
-  *PutNumber2(end, entry.date & 31) = 0;
-  line += BOX_STRIDE;
-  end = PutNumber2(line, entry.time >> 11);
-  *end++ = ':';
-  *PutNumber2(end, (entry.time >> 5) & 63) = 0;
-  OpenBox(rows + 3);
-  EditorDraw();
-  WaitDismiss();
-  HideBox();
-}
-
 // Paths in the file clipboard are independent of the editor's text clipboard.
 // The caller reloads the directory after this, because transfers borrow its marks.
 static unsigned char BrowserMenu(char* path, char* clipboard) {
@@ -211,7 +178,11 @@ static unsigned char BrowserMenu(char* path, char* clipboard) {
   else {
     if (!entry.name[0]) { ListMessage("Select file/folder"); return 0; }
     if (!menu) {
-      if (!item) { FileInfo(); return 0; }
+      if (!item) {
+        if (JoinPath(path + length, "", entry.name, FS_NAME_SIZE + 1)) ShowFileInfo(path, &entry);
+        path[length] = 0;
+        return 0;
+      }
       return 1;
     }
     JoinPath(path + length, "", entry.name, FS_NAME_SIZE + 1);

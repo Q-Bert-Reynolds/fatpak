@@ -34,6 +34,7 @@
 	EXPORT _file_dir
 	EXPORT _file_name
 	EXPORT _CanDiscard
+	EXPORT _FileLanguage
 	EXPORT _SetLang
 	EXPORT _NewFile
 	EXPORT _OpenFile
@@ -178,88 +179,50 @@ _src_editor_document_c__str_7:
 _src_editor_document_c__str_8:
 	DB "s"
 	DB $00
-;src/editor/document.c:34: void SetLang(void) {
+;src/editor/document.c:34: unsigned char FileLanguage(const char* name) {
 ;	---------------------------------
-	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
-	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
-; Function SetLang
+	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
+	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
+; Function FileLanguage
 ; ---------------------------------
-_SetLang::
+_FileLanguage::
 	add	sp, -10
+	ld	c, e
+	ld	b, d
 ;src/editor/document.c:35: const char *c, *dot = 0, *e;
-	xor	a, a
-	ld	hl, sp+6
-	ld	[hl], a
-	inc	hl
-	ld	[hl], a
+	ld	de, $0000
 ;src/editor/document.c:36: unsigned char lang = LANG_PLAIN, i;
 	ld	hl, sp+0
 	ld	[hl], $00
-;src/editor/document.c:37: for (c = file_name; *c; ++c) if (*c == '.') dot = c;
-	ld	hl, sp+8
-	ld	a, LOW(_file_name)
-	ld	[hl], a
-	inc	hl
-	ld	a, HIGH(_file_name)
-	ld	[hl], a
-.l00116:
-	ld	hl, sp+9
-	dec	hl
-	ld	e, [hl]
-	inc	hl
-	ld	d, [hl]
-	ld	a, [de]
+;src/editor/document.c:37: for (c = name; *c; ++c) if (*c == '.') dot = c;
+.l00112:
+	ld	a, [bc]
 	or	a, a
 	jp	Z, .l00103
 	sub	a, $2E
-	jp	NZ,.l00222
-	jp	.l00223
-.l00222:
-	jp	.l00117
-.l00223:
-	dec	hl
-	ld	a, [hl]
-	dec	hl
-	dec	hl
-	ld	[hl], a
-	ld	hl, sp+9
-	ld	a, [hl]
-	dec	hl
-	dec	hl
-	ld	[hl], a
-.l00117:
-	ld	hl, sp+8
-	inc	[hl]
-	jp	NZ, .l00224
-	inc	hl
-	inc	[hl]
-.l00224:
-	jp	.l00116
+	jp	NZ,.l00175
+	jp	.l00176
+.l00175:
+	jp	.l00113
+.l00176:
+	ld	e, c
+	ld	d, b
+.l00113:
+	inc	bc
+	jp	.l00112
 .l00103:
 ;src/editor/document.c:38: if (dot) for (i = 0; i < sizeof(lang_ids); ++i) {
-	ld	hl, sp+7
-	ld	a, [hl]
-	dec	hl
-	or	a, [hl]
+	ld	a, d
+	or	a, e
 	jp	Z, .l00110
+	inc	de
+	ld	hl, sp+1
+	ld	[hl], e
 	inc	hl
-	dec	hl
-	ld	e, [hl]
-	inc	hl
-	ld	d, [hl]
-	ld	hl, $0001
-	add	hl, de
-	push	hl
-	ld	a, l
-	ld	hl, sp+3
-	ld	[hl], a
-	pop	hl
-	ld	a, h
-	ld	hl, sp+2
-	ld	[hl], a
+	ld	[hl], d
 	ld	hl, sp+5
 	ld	[hl], $00
-.l00122:
+.l00118:
 ;src/editor/document.c:39: for (c = dot + 1, e = lang_exts[i]; *e && (*c | 0x20) == *e; ++c, ++e);
 	ld	hl, sp+1
 	ld	a, [hl]
@@ -313,7 +276,7 @@ _SetLang::
 	ld	a, [de]
 	inc	hl
 	ld	[hl], a
-.l00120:
+.l00116:
 	ld	hl, sp+9
 	dec	hl
 	ld	e, [hl]
@@ -340,34 +303,34 @@ _SetLang::
 	dec	hl
 	ld	a, [hl]
 	sub	a, b
-	jp	NZ,.l00226
-	jp	.l00227
-.l00226:
+	jp	NZ,.l00178
+	jp	.l00179
+.l00178:
 	jp	.l00104
-.l00227:
+.l00179:
 	ld	hl, sp+6
 	inc	[hl]
-	jp	NZ, .l00228
+	jp	NZ, .l00180
 	inc	hl
 	inc	[hl]
-.l00228:
+.l00180:
 	ld	hl, sp+8
 	inc	[hl]
-	jp	NZ, .l00229
+	jp	NZ, .l00181
 	inc	hl
 	inc	[hl]
-.l00229:
-	jp	.l00120
+.l00181:
+	jp	.l00116
 .l00104:
 ;src/editor/document.c:40: if (!*c && !*e) lang = lang_ids[i];
 	ld	hl, sp+4
 	ld	a, [hl]
 	or	a, a
-	jp	NZ, .l00123
+	jp	NZ, .l00119
 	dec	hl
 	ld	a, [hl]
 	or	a, a
-	jp	NZ, .l00123
+	jp	NZ, .l00119
 	ld	de, _src_editor_document_c_lang_ids
 	inc	hl
 	inc	hl
@@ -389,60 +352,74 @@ _SetLang::
 	ld	a, [de]
 	ld	hl, sp+0
 	ld	[hl], a
-.l00123:
+.l00119:
 ;src/editor/document.c:38: if (dot) for (i = 0; i < sizeof(lang_ids); ++i) {
 	ld	hl, sp+5
 	inc	[hl]
 	ld	a, [hl]
 	sub	a, $06
-	jp	C, .l00122
+	jp	C, .l00118
 .l00110:
-;src/editor/document.c:42: font = lang == LANG_C || lang == LANG_ASM ? FONT_FIXED : FONT_VWF;
+;src/editor/document.c:42: return lang;
 	ld	hl, sp+0
 	ld	a, [hl]
+.l00120:
+;src/editor/document.c:43: }
+	add	sp, 10
+	ret
+;src/editor/document.c:45: void SetLang(void) {
+;	---------------------------------
+	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
+	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
+; Function SetLang
+; ---------------------------------
+_SetLang::
+	add	sp, -3
+;src/editor/document.c:46: unsigned char i, lang = FileLanguage(file_name);
+	ld	de, _file_name
+	call	_FileLanguage__far
+	ld	c, a
+;src/editor/document.c:47: font = lang == LANG_C || lang == LANG_ASM ? FONT_FIXED : FONT_VWF;
+	ld	a, c
 	sub	a, $02
-	jp	NZ,.l00230
-	jp	.l00134
-.l00230:
-	ld	hl, sp+0
-	ld	a, [hl]
+	jp	NZ,.l00150
+	jp	.l00115
+.l00150:
+	ld	a, c
 	sub	a, $03
-	jp	NZ,.l00231
-	jp	.l00232
-.l00231:
-	jp	.l00131
-.l00232:
-.l00134:
-	ld	bc, $0002
-	jp	.l00132
-.l00131:
-	ld	bc, $0001
-.l00132:
-	ld	hl, _font
-	ld	[hl], c
-;src/editor/document.c:43: if (lang == tb_lang) return;
-	ld	hl, _tb_lang
-	ld	a, [hl]
-	ld	hl, sp+0
-	sub	a, [hl]
-	jp	NZ,.l00233
-	jp	.l00234
-.l00233:
+	jp	NZ,.l00151
+	jp	.l00152
+.l00151:
 	jp	.l00112
-.l00234:
-	jp	.l00129
+.l00152:
+.l00115:
+	ld	de, $0002
+	jp	.l00113
 .l00112:
-;src/editor/document.c:44: tb_lang = lang;
-	ld	hl, sp+0
-	ld	a, [hl]
+	ld	de, $0001
+.l00113:
+	ld	hl, _font
+	ld	[hl], e
+;src/editor/document.c:48: if (lang == tb_lang) return;
 	ld	hl, _tb_lang
-	ld	[hl], a
-;src/editor/document.c:45: tb_ResetChecks();
+	ld	a, [hl]
+	sub	a, c
+	jp	NZ,.l00153
+	jp	.l00154
+.l00153:
+	jp	.l00102
+.l00154:
+	jp	.l00110
+.l00102:
+;src/editor/document.c:49: tb_lang = lang;
+	ld	hl, _tb_lang
+	ld	[hl], c
+;src/editor/document.c:50: tb_ResetChecks();
 	call	_tb_ResetChecks
-;src/editor/document.c:46: for (i = 0; i <= TB_ROWS; ++i) tb_row_states[i] = 0; // no markdown headings left in them
+;src/editor/document.c:51: for (i = 0; i <= TB_ROWS; ++i) tb_row_states[i] = 0; // no markdown headings left in them
 	ld	bc, _tb_row_states+0
 	ld	e, $00
-.l00124:
+.l00105:
 	ld	l, e
 ;	spillPairReg hl
 ;	spillPairReg hl
@@ -458,198 +435,193 @@ _SetLang::
 	inc	e
 	ld	a, $12
 	sub	a, e
-	jp	NC, .l00124
-;src/editor/document.c:47: SetFont(font);
+	jp	NC, .l00105
+;src/editor/document.c:52: SetFont(font);
 	ld	hl, _font
 	ld	a, [hl]
 	call	_SetFont
-;src/editor/document.c:48: for (i = bars; i < bars + tb_rows; ++i) render_row_fonts[i] = font;
+;src/editor/document.c:53: for (i = bars; i < bars + tb_rows; ++i) render_row_fonts[i] = font;
+	ld	hl, _bars
+	ld	a, [hl]
+	ld	hl, sp+2
+	ld	[hl], a
+.l00108:
 	ld	hl, _bars
 	ld	c, [hl]
-.l00127:
-	ld	hl, _bars
-	ld	a, [hl]
 	ld	b, $00
 	ld	hl, _tb_rows
-	ld	e, [hl]
-	ld	d, $00
-	ld	l, a
+	ld	l, [hl]
 ;	spillPairReg hl
 ;	spillPairReg hl
-	ld	h, b
+	ld	h, $00
 ;	spillPairReg hl
 ;	spillPairReg hl
-	add	hl, de
-	push	hl
-	ld	a, l
-	ld	hl, sp+8
+	add	hl, bc
+	ld	c, l
+	ld	b, h
+	ld	hl, sp+2
+	ld	a, [hl]
+	dec	hl
+	dec	hl
 	ld	[hl], a
-	pop	hl
-	ld	a, h
-	ld	hl, sp+7
-	ld	[hl], a
-	inc	hl
-	ld	[hl], c
 	inc	hl
 	ld	[hl], $00
-	ld	hl, sp+8
-	ld	e, l
-	ld	d, h
-	ld	hl, sp+6
-	ld	a, [de]
-	inc	de
-	sub	a, [hl]
+	dec	hl
+	ld	a, [hl]
+	sub	a, c
 	inc	hl
-	ld	a, [de]
-	sbc	a, [hl]
-	ld	a, [de]
-	ld	d, a
-	ld	e, [hl]
-	bit	7, e
-	jp	Z, .l00235
-	bit	7, d
-	jp	NZ, .l00236
-	cp	a, a
-	jp	.l00236
-.l00235:
-	bit	7, d
-	jp	Z, .l00236
-	scf
-.l00236:
-	jp	NC, .l00114
-	ld	a, LOW(_render_row_fonts)
-	add	a, c
+	ld	a, [hl]
+	sbc	a, b
+	ld	d, [hl]
+	ld	a, b
 	ld	e, a
-	ld	a, HIGH(_render_row_fonts)
-	adc	a, $00
-	ld	d, a
+	bit	7, e
+	jp	Z, .l00155
+	bit	7, d
+	jp	NZ, .l00156
+	cp	a, a
+	jp	.l00156
+.l00155:
+	bit	7, d
+	jp	Z, .l00156
+	scf
+.l00156:
+	jp	NC, .l00104
+	ld	de, _render_row_fonts
+	ld	hl, sp+2
+	ld	l, [hl]
+	ld	h, $00
+	add	hl, de
+	ld	c, l
+	ld	b, h
 	ld	hl, _font
 	ld	a, [hl]
-	ld	[de], a
-	inc	c
-	jp	.l00127
-.l00114:
-;src/editor/document.c:49: EditorRedraw();
+	ld	[bc], a
+	ld	hl, sp+2
+	inc	[hl]
+	jp	.l00108
+.l00104:
+;src/editor/document.c:54: EditorRedraw();
 	call	_EditorRedraw
-;src/editor/document.c:50: dirty = 1;
+;src/editor/document.c:55: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
-.l00129:
-;src/editor/document.c:51: }
-	add	sp, 10
+.l00110:
+;src/editor/document.c:56: }
+	add	sp, 3
 	ret
-;src/editor/document.c:53: static void ResetCursor(void) {
+;src/editor/document.c:58: static void ResetCursor(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function ResetCursor
 ; ---------------------------------
 _src_editor_document_c_ResetCursor:
-;src/editor/document.c:54: SetLang();
+;src/editor/document.c:59: SetLang();
 	call	_SetLang__far
-;src/editor/document.c:55: cursor = 0;
+;src/editor/document.c:60: cursor = 0;
 	xor	a, a
 	ld	hl, _cursor
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/document.c:56: counted_pos = 0;
+;src/editor/document.c:61: counted_pos = 0;
 	xor	a, a
 	ld	hl, _counted_pos
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/document.c:57: counted_lines = 0;
+;src/editor/document.c:62: counted_lines = 0;
 	xor	a, a
 	ld	hl, _counted_lines
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/document.c:58: selecting = 0;
+;src/editor/document.c:63: selecting = 0;
 	ld	hl, _selecting
 	ld	[hl], $00
-;src/editor/document.c:59: top = 0;
+;src/editor/document.c:64: top = 0;
 	xor	a, a
 	ld	hl, _top
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/document.c:60: tb_left = 0;
+;src/editor/document.c:65: tb_left = 0;
 	xor	a, a
 	ld	hl, _tb_left
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/document.c:61: want_x = 0;
+;src/editor/document.c:66: want_x = 0;
 	ld	hl, _want_x
 	ld	[hl], $00
-;src/editor/document.c:62: modified = 0;
+;src/editor/document.c:67: modified = 0;
 	ld	hl, _modified
 	ld	[hl], $00
-;src/editor/document.c:63: dirty = 1;
+;src/editor/document.c:68: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
-;src/editor/document.c:64: UndoClear(0);
+;src/editor/document.c:69: UndoClear(0);
 	xor	a, a
 	jp	_UndoClear
 .l00101:
-;src/editor/document.c:65: }
+;src/editor/document.c:70: }
 	ret
-;src/editor/document.c:67: void NewFile(void) {
+;src/editor/document.c:72: void NewFile(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 10",ROMX,BANK[5]
 	LOAD FRAGMENT "Page 10 RAM",SRAM,BANK[10]
 ; Function NewFile
 ; ---------------------------------
 _NewFile::
-;src/editor/document.c:68: if (!CanDiscard()) return;
+;src/editor/document.c:73: if (!CanDiscard()) return;
 	call	_CanDiscard__far
 	or	a, a
 	jp	NZ, .l00102
 	jp	.l00103
 .l00102:
-;src/editor/document.c:69: FileCloseLarge();
+;src/editor/document.c:74: FileCloseLarge();
 	call	_FileCloseLarge
-;src/editor/document.c:70: tb_Clear();
+;src/editor/document.c:75: tb_Clear();
 	call	_tb_Clear
-;src/editor/document.c:71: file_name[0] = 0;
+;src/editor/document.c:76: file_name[0] = 0;
 	ld	hl, _file_name
 	ld	[hl], $00
-;src/editor/document.c:72: fs_crlf = 0;
+;src/editor/document.c:77: fs_crlf = 0;
 	ld	hl, _fs_crlf
 	ld	[hl], $00
-;src/editor/document.c:73: ResetCursor();
+;src/editor/document.c:78: ResetCursor();
 	call	_src_editor_document_c_ResetCursor__far
-;src/editor/document.c:74: SettingsSave();
+;src/editor/document.c:79: SettingsSave();
 	jp	_SettingsSave
 .l00103:
-;src/editor/document.c:75: }
+;src/editor/document.c:80: }
 	ret
-;src/editor/document.c:77: void OpenFile(void) {
+;src/editor/document.c:82: void OpenFile(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 9",ROMX,BANK[4]
 	LOAD FRAGMENT "Page 9 RAM",SRAM,BANK[9]
 ; Function OpenFile
 ; ---------------------------------
 _OpenFile::
-;src/editor/document.c:78: if (!CanDiscard()) return;
+;src/editor/document.c:83: if (!CanDiscard()) return;
 	call	_CanDiscard__far
 	or	a, a
 	jp	NZ, .l00102
 	jp	.l00105
 .l00102:
-;src/editor/document.c:79: if (Browse()) {
+;src/editor/document.c:84: if (Browse()) {
 	call	_Browse__far
 	or	a, a
 	jp	Z, .l00105
-;src/editor/document.c:80: ResetCursor();
+;src/editor/document.c:85: ResetCursor();
 	call	_src_editor_document_c_ResetCursor__far
-;src/editor/document.c:81: SettingsSave();
+;src/editor/document.c:86: SettingsSave();
 	jp	_SettingsSave
 .l00105:
-;src/editor/document.c:83: }
+;src/editor/document.c:88: }
 	ret
-;src/editor/document.c:86: void LoadDocument(char* path, unsigned char folder_length, const FileEntry* entry) {
+;src/editor/document.c:91: void LoadDocument(char* path, unsigned char folder_length, const FileEntry* entry) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
 	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
@@ -664,7 +636,7 @@ _LoadDocument::
 	dec	hl
 	dec	hl
 	ld	[hl], a
-;src/editor/document.c:88: if (entry->size > TB_SIZE) result = FileLoadLarge(path);
+;src/editor/document.c:93: if (entry->size > TB_SIZE) result = FileLoadLarge(path);
 	ld	hl, sp+11
 	ld	a, [hl]
 	ld	hl, sp+0
@@ -725,9 +697,9 @@ _LoadDocument::
 	ld	c, a
 	jp	.l00103
 .l00102:
-;src/editor/document.c:90: FileCloseLarge();
+;src/editor/document.c:95: FileCloseLarge();
 	call	_FileCloseLarge
-;src/editor/document.c:91: result = FileLoad(path);
+;src/editor/document.c:96: result = FileLoad(path);
 	ld	hl, sp+7
 	ld	e, [hl]
 	inc	hl
@@ -735,11 +707,11 @@ _LoadDocument::
 	call	_FileLoad
 	ld	c, a
 .l00103:
-;src/editor/document.c:93: HideBox();
+;src/editor/document.c:98: HideBox();
 	push	bc
 	call	_HideBox__far
 	pop	bc
-;src/editor/document.c:94: path[folder_length] = 0;
+;src/editor/document.c:99: path[folder_length] = 0;
 	ld	hl, sp+8
 	dec	hl
 	ld	e, [hl]
@@ -754,33 +726,33 @@ _LoadDocument::
 	ld	d, h
 	xor	a, a
 	ld	[de], a
-;src/editor/document.c:95: if (result) {
+;src/editor/document.c:100: if (result) {
 	ld	a, c
 	or	a, a
 	jp	Z, .l00105
-;src/editor/document.c:96: file_name[0] = 0; // the text buffer only has part of it, don't save over the file
+;src/editor/document.c:101: file_name[0] = 0; // the text buffer only has part of it, don't save over the file
 	ld	hl, _file_name
 	ld	[hl], $00
-;src/editor/document.c:97: ShowError(result, "TOO BIG");
+;src/editor/document.c:102: ShowError(result, "TOO BIG");
 	ld	de, _src_editor_document_c___str_9
 	ld	a, c
 	call	_ShowError__far
 	jp	.l00107
 .l00105:
-;src/editor/document.c:100: CopyName(file_dir, path);
+;src/editor/document.c:105: CopyName(file_dir, path);
 	ld	hl, sp+7
 	ld	c, [hl]
 	inc	hl
 	ld	b, [hl]
 	ld	de, _file_dir
 	call	_CopyName
-;src/editor/document.c:101: CopyName(file_name, entry->name);
+;src/editor/document.c:106: CopyName(file_name, entry->name);
 	pop	bc
 	push	bc
 	ld	de, _file_name
 	call	_CopyName
 .l00107:
-;src/editor/document.c:103: }
+;src/editor/document.c:108: }
 	add	sp, 9
 	pop	hl
 	inc	sp
@@ -790,7 +762,7 @@ _LoadDocument::
 _src_editor_document_c___str_9:
 	DB "TOO BIG"
 	DB $00
-;src/editor/document.c:105: void SaveFile(unsigned char ask) {
+;src/editor/document.c:110: void SaveFile(unsigned char ask) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
@@ -800,7 +772,7 @@ _SaveFile::
 	add	sp, -128
 	add	sp, -65
 	ld	c, a
-;src/editor/document.c:108: if (ask || !file_name[0]) {
+;src/editor/document.c:113: if (ask || !file_name[0]) {
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00103
@@ -808,9 +780,9 @@ _SaveFile::
 	or	a, a
 	jp	NZ, .l00104
 .l00103:
-;src/editor/document.c:109: Render();
+;src/editor/document.c:114: Render();
 	call	_Render__far
-;src/editor/document.c:110: if (!AskName(file_name, "Save as ")) return;
+;src/editor/document.c:115: if (!AskName(file_name, "Save as ")) return;
 	ld	bc, _src_editor_document_c___str_10
 	ld	de, _file_name
 	call	_AskName
@@ -818,10 +790,10 @@ _SaveFile::
 	jp	NZ, .l00102
 	jp	.l00110
 .l00102:
-;src/editor/document.c:111: SetLang();
+;src/editor/document.c:116: SetLang();
 	call	_SetLang__far
 .l00104:
-;src/editor/document.c:113: JoinPath(path, file_dir, file_name, (unsigned char)(PATH_SIZE + FS_NAME_SIZE));
+;src/editor/document.c:118: JoinPath(path, file_dir, file_name, (unsigned char)(PATH_SIZE + FS_NAME_SIZE));
 	ld	a, $C1
 	push	af
 	inc	sp
@@ -833,13 +805,13 @@ _SaveFile::
 	ld	e, l
 	ld	d, h
 	call	_JoinPath
-;src/editor/document.c:114: ShowBusy("Saving...");
+;src/editor/document.c:119: ShowBusy("Saving...");
 	ld	de, _src_editor_document_c___str_11
 	call	_ShowBusy
-;src/editor/document.c:115: result = FileMount();
+;src/editor/document.c:120: result = FileMount();
 	call	_FileMount
 	ld	c, a
-;src/editor/document.c:116: if (!result) result = doc_large ? FileSaveLarge(path) : FileSave(path);
+;src/editor/document.c:121: if (!result) result = doc_large ? FileSaveLarge(path) : FileSave(path);
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00107
@@ -862,35 +834,35 @@ _SaveFile::
 .l00113:
 	ld	c, a
 .l00107:
-;src/editor/document.c:117: HideBox();
+;src/editor/document.c:122: HideBox();
 	push	bc
 	call	_HideBox__far
 	pop	bc
-;src/editor/document.c:118: SettingsSave(); // save as may have changed the name
+;src/editor/document.c:123: SettingsSave(); // save as may have changed the name
 	push	bc
 	call	_SettingsSave
 	pop	bc
-;src/editor/document.c:119: if (result) {
+;src/editor/document.c:124: if (result) {
 	ld	a, c
 	or	a, a
 	jp	Z, .l00109
-;src/editor/document.c:120: ShowError(result, "DISK FULL");
+;src/editor/document.c:125: ShowError(result, "DISK FULL");
 	ld	de, _src_editor_document_c___str_12
 	ld	a, c
 	call	_ShowError
-;src/editor/document.c:121: return;
+;src/editor/document.c:126: return;
 	jp	.l00110
 .l00109:
-;src/editor/document.c:123: modified = 0;
+;src/editor/document.c:128: modified = 0;
 	ld	hl, _modified
 	ld	[hl], $00
-;src/editor/document.c:124: UndoSaved();
+;src/editor/document.c:129: UndoSaved();
 	call	_UndoSaved
-;src/editor/document.c:125: ShowMessage("SAVED");
+;src/editor/document.c:130: ShowMessage("SAVED");
 	ld	de, _src_editor_document_c___str_13
 	call	_ShowMessage__far
 .l00110:
-;src/editor/document.c:126: }
+;src/editor/document.c:131: }
 	add	sp, 127
 	add	sp, 66
 	ret

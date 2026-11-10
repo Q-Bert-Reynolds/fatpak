@@ -1,7 +1,7 @@
 """Builds the OS mode data file (/GBCSYS/EDITOR.DAT): what doesn't fit in the 128KB image, loaded
 into PSRAM at boot and read through the $BE00 window. Layout (DATA_* in src/constants.asm), in 512
 byte blocks: 0 = "EDITOR.DAT" and DATA_VERSION, then the styled fonts (FontStyles order in
-src/ui/render.asm), the SGB border's tiles and its map, then the base fixed font.
+src/ui/render.asm), the SGB border's tiles and its map, then the base fixed font, help texts and base monospaced font.
 
 usage: python3 data_file.py out_file
 """
@@ -69,6 +69,7 @@ def main(out_path):
   put(data, c["DATA_BORDER_MAP"], db_bytes(border, "DefaultSgbBorderTileMap"),
       (c["DATA_FIXED"] - c["DATA_BORDER_MAP"]) * BLOCK)
   put(data, c["DATA_FIXED"], db_bytes("img/fonts/font_fixed.asm", "FontFixedGlyphs", "FontFixedWidths"), 4 * BLOCK)
+  put(data, c["DATA_MONO"], db_bytes("img/fonts/font_mono.asm", "FontMonoGlyphs", "FontMonoWidths"), 4 * BLOCK)
   for context, name in enumerate(("editor", "browser")):
     lines = open(f"data/help/{name}.txt", encoding="utf8").read().splitlines()
     assert len(lines) == 32, f"{name} help must have 32 lines"

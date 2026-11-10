@@ -49,8 +49,7 @@
 	SECTION FRAGMENT "src/browser/paths.c_CODE",ROMX
 ;src/browser/paths.c:8: char* ToLatin1(char* dest, const char* text, unsigned char count) {
 ;	---------------------------------
-	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
-	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
+	SECTION FRAGMENT "src/browser/paths.c FIXED",ROMX,BANK[1]
 ; Function ToLatin1
 ; ---------------------------------
 _ToLatin1::

@@ -12,6 +12,7 @@
 
 void Layout(void);
 void ScrollRing(unsigned char down);
+void ScrollRows(unsigned char down); // rotate the display and retain the rows already drawn
 void NoHighlight(void);
 char* RowAddress(unsigned char row);
 void DrawRow(unsigned char row, unsigned char col, const char* text);

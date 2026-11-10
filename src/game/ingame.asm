@@ -572,6 +572,8 @@ RenderMenuText:;a = left inset, de = Latin-1 text, returns its 1bpp row in rende
   xor a
   ld [render_styled], a
   ld [render_head], a
+  ld a, FONT_VWF
+  ld [render_row_font], a
   ld hl, FontVWFGlyphs
   ST_HL_VAR render_glyphs
   ld hl, FontVWFWidths

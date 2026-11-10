@@ -89,8 +89,7 @@ static unsigned char TextRows(void) {
 
 // scrolls one row down, only the new bottom row is scanned and drawn
 void ScrollDown(void) {
-  ScrollRing(1);
-  tb_ScrollRows(1);
+  ScrollRows(1);
   tb_RenderRows(tb_rows - 1, tb_rows);
   top = tb_row_starts[0];
   redraw = 1;
@@ -98,8 +97,7 @@ void ScrollDown(void) {
 
 // scrolls one row up to the row starting at new_top
 void ScrollUp(unsigned int new_top) {
-  ScrollRing(0);
-  tb_ScrollRows(0);
+  ScrollRows(0);
   tb_row_starts[0] = new_top;
   tb_RenderRows(0, 1);
   top = new_top;
@@ -250,16 +248,18 @@ void ToggleBars(void) {
   SettingsSave();
 }
 
-// hides the bars, on screen keyboard and cursor for full screen UI, redraws the text afterwards
-void BeginFullScreen(void) {
+// Shared modal view layout: hide cursor/keyboard and optionally keep the bars.
+void BeginView(unsigned char show_bars) {
   EditorShowCursor(0);
   if (osk_shown) OSKShow(0);
-  bars = 0;
-  tb_rows = TB_ROWS;
+  bars = show_bars;
+  tb_rows = TB_ROWS - (bars << 1);
   Layout();
   NoHighlight();
   dirty = 1;
 }
+
+void BeginFullScreen(void) { BeginView(0); }
 
 void EndFullScreen(void) {
   SetRows();

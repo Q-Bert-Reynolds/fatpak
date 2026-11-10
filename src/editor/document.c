@@ -31,14 +31,19 @@ unsigned char CanDiscard(void) {
   return !modified || Choose("DISCARD CHANGES?", discard_items[0], 2, 0) == 1;
 }
 
-void SetLang(void) {
+unsigned char FileLanguage(const char* name) {
   const char *c, *dot = 0, *e;
   unsigned char lang = LANG_PLAIN, i;
-  for (c = file_name; *c; ++c) if (*c == '.') dot = c;
+  for (c = name; *c; ++c) if (*c == '.') dot = c;
   if (dot) for (i = 0; i < sizeof(lang_ids); ++i) {
     for (c = dot + 1, e = lang_exts[i]; *e && (*c | 0x20) == *e; ++c, ++e);
     if (!*c && !*e) lang = lang_ids[i];
   }
+  return lang;
+}
+
+void SetLang(void) {
+  unsigned char i, lang = FileLanguage(file_name);
   font = lang == LANG_C || lang == LANG_ASM ? FONT_FIXED : FONT_VWF;
   if (lang == tb_lang) return;
   tb_lang = lang;

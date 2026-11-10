@@ -5,4 +5,4 @@
 6: ListEntry RenameSelected
 FIXED: ListFolder ScrollList
 8: ListMessage
-FIXED: BrowserMenu BrowserError FileInfo
+FIXED: BrowserMenu BrowserError

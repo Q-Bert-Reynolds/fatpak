@@ -13,12 +13,12 @@
 	EXPORT _DrawRow
 	EXPORT _RowAddress
 	EXPORT _NoHighlight
+	EXPORT _ScrollRows
 	EXPORT _ScrollRing
 	EXPORT _Layout
 	EXPORT _RenderCursorX
 	EXPORT _EditorDraw
 	EXPORT _HeadingCharWidth
-	EXPORT _tb_ScrollRows
 	EXPORT _tb_RenderRows
 	EXPORT _tb_Render
 	EXPORT _tb_NextRow
@@ -49,6 +49,7 @@
 	EXPORT _Draw
 	EXPORT _SetRows
 	EXPORT _ToggleBars
+	EXPORT _BeginView
 	EXPORT _BeginFullScreen
 	EXPORT _EndFullScreen
 	EXPORT _Render
@@ -834,20 +835,17 @@ _src_editor_view_c_TextRows:
 ; Function ScrollDown
 ; ---------------------------------
 _ScrollDown::
-;src/editor/view.c:92: ScrollRing(1);
+;src/editor/view.c:92: ScrollRows(1);
 	ld	a, $01
-	call	_ScrollRing
-;src/editor/view.c:93: tb_ScrollRows(1);
-	ld	a, $01
-	call	_tb_ScrollRows
-;src/editor/view.c:94: tb_RenderRows(tb_rows - 1, tb_rows);
+	call	_ScrollRows
+;src/editor/view.c:93: tb_RenderRows(tb_rows - 1, tb_rows);
 	ld	hl, _tb_rows
 	ld	c, [hl]
 	dec	c
 	ld	e, [hl]
 	ld	a, c
 	call	_tb_RenderRows
-;src/editor/view.c:95: top = tb_row_starts[0];
+;src/editor/view.c:94: top = tb_row_starts[0];
 	ld	de, _tb_row_starts + 0
 	ld	a, [de]
 	ld	hl, _top
@@ -856,13 +854,13 @@ _ScrollDown::
 	ld	a, [de]
 	inc	hl
 	ld	[hl], a
-;src/editor/view.c:96: redraw = 1;
+;src/editor/view.c:95: redraw = 1;
 	ld	hl, _redraw
 	ld	[hl], $01
 .l00101:
-;src/editor/view.c:97: }
+;src/editor/view.c:96: }
 	ret
-;src/editor/view.c:100: void ScrollUp(unsigned int new_top) {
+;src/editor/view.c:99: void ScrollUp(unsigned int new_top) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -871,39 +869,34 @@ _ScrollDown::
 _ScrollUp::
 	ld	c, e
 	ld	b, d
-;src/editor/view.c:101: ScrollRing(0);
+;src/editor/view.c:100: ScrollRows(0);
 	push	bc
 	xor	a, a
-	call	_ScrollRing
+	call	_ScrollRows
 	pop	bc
-;src/editor/view.c:102: tb_ScrollRows(0);
-	push	bc
-	xor	a, a
-	call	_tb_ScrollRows
-	pop	bc
-;src/editor/view.c:103: tb_row_starts[0] = new_top;
+;src/editor/view.c:101: tb_row_starts[0] = new_top;
 	ld	hl, _tb_row_starts
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/view.c:104: tb_RenderRows(0, 1);
+;src/editor/view.c:102: tb_RenderRows(0, 1);
 	push	bc
 	ld	e, $01
 	xor	a, a
 	call	_tb_RenderRows
 	pop	bc
-;src/editor/view.c:105: top = new_top;
+;src/editor/view.c:103: top = new_top;
 	ld	hl, _top
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/view.c:106: redraw = 1;
+;src/editor/view.c:104: redraw = 1;
 	ld	hl, _redraw
 	ld	[hl], $01
 .l00101:
-;src/editor/view.c:107: }
+;src/editor/view.c:105: }
 	ret
-;src/editor/view.c:111: void RenderAfterEdit(void) {
+;src/editor/view.c:109: void RenderAfterEdit(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -911,7 +904,7 @@ _ScrollUp::
 ; ---------------------------------
 _RenderAfterEdit::
 	add	sp, -16
-;src/editor/view.c:112: unsigned char row = edit_row, end_row = tb_end_row, i;
+;src/editor/view.c:110: unsigned char row = edit_row, end_row = tb_end_row, i;
 	ld	hl, _edit_row
 	ld	a, [hl]
 	ld	hl, sp+14
@@ -920,7 +913,7 @@ _RenderAfterEdit::
 	ld	a, [hl]
 	ld	hl, sp+0
 	ld	[hl], a
-;src/editor/view.c:113: unsigned int old_next, old_state, expected, delta = (unsigned int)(int)edit_delta;
+;src/editor/view.c:111: unsigned int old_next, old_state, expected, delta = (unsigned int)(int)edit_delta;
 	ld	hl, _edit_delta
 	ld	a, [hl]
 	ld	c, a
@@ -931,14 +924,14 @@ _RenderAfterEdit::
 	ld	[hl], c
 	inc	hl
 	ld	[hl], b
-;src/editor/view.c:114: if (row) --row; // the previous row's wrapping can change too
+;src/editor/view.c:112: if (row) --row; // the previous row's wrapping can change too
 	ld	hl, sp+14
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00102
 	dec	[hl]
 .l00102:
-;src/editor/view.c:115: if (end_row != 0xFF && end_row >= row) tb_end_row = 0xFF; // found again while scanning
+;src/editor/view.c:113: if (end_row != 0xFF && end_row >= row) tb_end_row = 0xFF; // found again while scanning
 	ld	hl, sp+0
 	ld	a, [hl]
 	inc	a
@@ -965,13 +958,13 @@ _RenderAfterEdit::
 	inc	hl
 	ld	[hl], a
 .l00119:
-;src/editor/view.c:116: for (; row < tb_rows; ++row) {
+;src/editor/view.c:114: for (; row < tb_rows; ++row) {
 	ld	hl, sp+15
 	ld	a, [hl]
 	ld	hl, _tb_rows
 	sub	a, [hl]
 	jp	NC, .l00114
-;src/editor/view.c:117: old_next = tb_row_starts[row + 1];
+;src/editor/view.c:115: old_next = tb_row_starts[row + 1];
 	ld	hl, sp+15
 	ld	a, [hl]
 	ld	hl, sp+4
@@ -1014,7 +1007,7 @@ _RenderAfterEdit::
 	inc	de
 	ld	a, [de]
 	ld	b, a
-;src/editor/view.c:118: old_state = tb_row_states[row + 1];
+;src/editor/view.c:116: old_state = tb_row_states[row + 1];
 	ld	de, _tb_row_states
 	ld	hl, sp+12
 	ld	a, [hl+]
@@ -1040,7 +1033,7 @@ _RenderAfterEdit::
 	ld	a, [de]
 	inc	hl
 	ld	[hl], a
-;src/editor/view.c:119: expected = old_next + delta;
+;src/editor/view.c:117: expected = old_next + delta;
 	ld	hl, sp+1
 	ld	a, [hl+]
 	ld	h, [hl]
@@ -1052,7 +1045,7 @@ _RenderAfterEdit::
 	ld	[hl], e
 	inc	hl
 	ld	[hl], a
-;src/editor/view.c:120: tb_RenderRows(row, row + 1);
+;src/editor/view.c:118: tb_RenderRows(row, row + 1);
 	push	bc
 	ld	hl, sp+7
 	ld	e, [hl]
@@ -1060,7 +1053,7 @@ _RenderAfterEdit::
 	ld	a, [hl]
 	call	_tb_RenderRows
 	pop	bc
-;src/editor/view.c:121: if (old_next > edit_pos && tb_row_starts[row + 1] == expected && tb_row_states[row + 1] == old_state) {
+;src/editor/view.c:119: if (old_next > edit_pos && tb_row_starts[row + 1] == expected && tb_row_states[row + 1] == old_state) {
 	ld	hl, _edit_pos
 	ld	a, [hl]
 	sub	a, c
@@ -1112,7 +1105,7 @@ _RenderAfterEdit::
 .l00189:
 	jp	.l00120
 .l00190:
-;src/editor/view.c:122: for (i = row + 2; i <= tb_rows; ++i) tb_row_starts[i] += delta; // rows below just moved
+;src/editor/view.c:120: for (i = row + 2; i <= tb_rows; ++i) tb_row_starts[i] += delta; // rows below just moved
 	ld	hl, sp+4
 	ld	a, [hl]
 	add	a, $02
@@ -1162,7 +1155,7 @@ _RenderAfterEdit::
 	inc	[hl]
 	jp	.l00116
 .l00106:
-;src/editor/view.c:123: if (end_row != 0xFF && end_row > row) tb_end_row = end_row;
+;src/editor/view.c:121: if (end_row != 0xFF && end_row > row) tb_end_row = end_row;
 	ld	hl, sp+3
 	bit	0, [hl]
 	jp	NZ, .l00114
@@ -1174,10 +1167,10 @@ _RenderAfterEdit::
 	ld	a, [hl]
 	ld	hl, _tb_end_row
 	ld	[hl], a
-;src/editor/view.c:124: break;
+;src/editor/view.c:122: break;
 	jp	.l00114
 .l00120:
-;src/editor/view.c:116: for (; row < tb_rows; ++row) {
+;src/editor/view.c:114: for (; row < tb_rows; ++row) {
 	ld	hl, sp+15
 	inc	[hl]
 	ld	a, [hl]
@@ -1185,14 +1178,14 @@ _RenderAfterEdit::
 	ld	[hl], a
 	jp	.l00119
 .l00114:
-;src/editor/view.c:127: redraw = 1;
+;src/editor/view.c:125: redraw = 1;
 	ld	hl, _redraw
 	ld	[hl], $01
 .l00121:
-;src/editor/view.c:128: }
+;src/editor/view.c:126: }
 	add	sp, 16
 	ret
-;src/editor/view.c:131: static void SetHighlight(void) {
+;src/editor/view.c:129: static void SetHighlight(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -1200,16 +1193,16 @@ _RenderAfterEdit::
 ; ---------------------------------
 _src_editor_view_c_SetHighlight:
 	add	sp, -12
-;src/editor/view.c:134: NoHighlight();
+;src/editor/view.c:132: NoHighlight();
 	call	_NoHighlight
-;src/editor/view.c:135: if (!GetSelection()) return;
+;src/editor/view.c:133: if (!GetSelection()) return;
 	call	_GetSelection__far
 	ld	c, a
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00140
 	jp	.l00119
-;src/editor/view.c:136: for (row = 0; row < tb_rows; ++row) {
+;src/editor/view.c:134: for (row = 0; row < tb_rows; ++row) {
 .l00140:
 	ld	bc, _tb_row_starts+0
 	ld	hl, sp+11
@@ -1220,7 +1213,7 @@ _src_editor_view_c_SetHighlight:
 	ld	hl, _tb_rows
 	sub	a, [hl]
 	jp	NC, .l00119
-;src/editor/view.c:137: row_start = tb_row_starts[row];
+;src/editor/view.c:135: row_start = tb_row_starts[row];
 	ld	hl, sp+11
 	ld	a, [hl]
 	ld	e, $00
@@ -1237,7 +1230,7 @@ _src_editor_view_c_SetHighlight:
 	ld	a, [de]
 	inc	hl
 	ld	[hl], a
-;src/editor/view.c:138: next = tb_row_starts[row + 1];
+;src/editor/view.c:136: next = tb_row_starts[row + 1];
 	ld	hl, sp+11
 	ld	a, [hl]
 	inc	a
@@ -1258,7 +1251,7 @@ _src_editor_view_c_SetHighlight:
 	ld	a, [de]
 	inc	hl
 	ld	[hl], a
-;src/editor/view.c:139: if (sel_end <= row_start) break;
+;src/editor/view.c:137: if (sel_end <= row_start) break;
 	ld	hl, sp+7
 	ld	e, l
 	ld	d, h
@@ -1270,7 +1263,7 @@ _src_editor_view_c_SetHighlight:
 	ld	a, [de]
 	sbc	a, [hl]
 	jp	NC, .l00119
-;src/editor/view.c:140: if (sel_start >= next) continue;
+;src/editor/view.c:138: if (sel_start >= next) continue;
 	ld	de, _sel_start
 	ld	hl, sp+9
 	ld	a, [de]
@@ -1280,7 +1273,7 @@ _src_editor_view_c_SetHighlight:
 	ld	a, [de]
 	sbc	a, [hl]
 	jp	NC, .l00115
-;src/editor/view.c:141: count = tb_row_counts[row];
+;src/editor/view.c:139: count = tb_row_counts[row];
 	ld	de, _tb_row_counts
 	ld	hl, sp+11
 	ld	l, [hl]
@@ -1291,7 +1284,7 @@ _src_editor_view_c_SetHighlight:
 	ld	a, [de]
 	ld	hl, sp+2
 	ld	[hl], a
-;src/editor/view.c:142: base = row_start + (tb_nowrap ? tb_left : 0); // first drawn character
+;src/editor/view.c:140: base = row_start + (tb_nowrap ? tb_left : 0); // first drawn character
 	ld	hl, _tb_nowrap
 	ld	a, [hl]
 	or	a, a
@@ -1315,10 +1308,10 @@ _src_editor_view_c_SetHighlight:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], a
-;src/editor/view.c:143: first = 0;
+;src/editor/view.c:141: first = 0;
 	inc	hl
 	ld	[hl], $00
-;src/editor/view.c:144: if (sel_start > base) first = sel_start - base > count ? count : (unsigned char)(sel_start - base);
+;src/editor/view.c:142: if (sel_start > base) first = sel_start - base > count ? count : (unsigned char)(sel_start - base);
 	ld	hl, sp+2
 	ld	a, [hl]
 	ld	hl, sp+6
@@ -1381,7 +1374,7 @@ _src_editor_view_c_SetHighlight:
 	ld	hl, sp+5
 	ld	[hl], a
 .l00108:
-;src/editor/view.c:145: if (sel_end < next || row == tb_end_row) { // ends in this row
+;src/editor/view.c:143: if (sel_end < next || row == tb_end_row) { // ends in this row
 	ld	de, _sel_end
 	ld	hl, sp+9
 	ld	a, [de]
@@ -1401,7 +1394,7 @@ _src_editor_view_c_SetHighlight:
 	jp	.l00112
 .l00191:
 .l00111:
-;src/editor/view.c:146: end = sel_end <= base ? 0 : sel_end - base > count ? count : (unsigned char)(sel_end - base);
+;src/editor/view.c:144: end = sel_end <= base ? 0 : sel_end - base > count ? count : (unsigned char)(sel_end - base);
 	ld	hl, sp+3
 	ld	e, l
 	ld	d, h
@@ -1459,7 +1452,7 @@ _src_editor_view_c_SetHighlight:
 .l00126:
 	ld	hl, sp+10
 	ld	[hl], a
-;src/editor/view.c:147: if (end <= first) continue;
+;src/editor/view.c:145: if (end <= first) continue;
 	ld	hl, sp+5
 	ld	a, [hl]
 	ld	hl, sp+10
@@ -1467,11 +1460,11 @@ _src_editor_view_c_SetHighlight:
 	jp	C, .l00113
 	jp	.l00115
 .l00112:
-;src/editor/view.c:149: else end = 0xFF; // continues, so the line feed or wrap is selected too
+;src/editor/view.c:147: else end = 0xFF; // continues, so the line feed or wrap is selected too
 	ld	hl, sp+10
 	ld	[hl], $FF
 .l00113:
-;src/editor/view.c:150: render_sel[(row + bars) << 1] = first;
+;src/editor/view.c:148: render_sel[(row + bars) << 1] = first;
 	ld	hl, sp+11
 	ld	a, [hl]
 	ld	hl, _bars
@@ -1488,7 +1481,7 @@ _src_editor_view_c_SetHighlight:
 	ld	hl, sp+5
 	ld	a, [hl]
 	ld	[de], a
-;src/editor/view.c:151: render_sel[((row + bars) << 1) + 1] = end;
+;src/editor/view.c:149: render_sel[((row + bars) << 1) + 1] = end;
 	ld	hl, sp+11
 	ld	a, [hl]
 	ld	hl, _bars
@@ -1507,22 +1500,22 @@ _src_editor_view_c_SetHighlight:
 	ld	a, [hl]
 	ld	[de], a
 .l00115:
-;src/editor/view.c:136: for (row = 0; row < tb_rows; ++row) {
+;src/editor/view.c:134: for (row = 0; row < tb_rows; ++row) {
 	ld	hl, sp+11
 	inc	[hl]
 	jp	.l00118
 .l00119:
-;src/editor/view.c:153: }
+;src/editor/view.c:151: }
 	add	sp, 12
 	ret
-;src/editor/view.c:156: static unsigned int LinesBefore(unsigned int pos) {
+;src/editor/view.c:154: static unsigned int LinesBefore(unsigned int pos) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function LinesBefore
 ; ---------------------------------
 _src_editor_view_c_LinesBefore:
-;src/editor/view.c:157: if (pos >= counted_pos) counted_lines += tb_CountLines(counted_pos, pos);
+;src/editor/view.c:155: if (pos >= counted_pos) counted_lines += tb_CountLines(counted_pos, pos);
 	ld	hl, _counted_pos
 	ld	a, e
 	sub	a, [hl]
@@ -1549,7 +1542,7 @@ _src_editor_view_c_LinesBefore:
 	ld	[hl], a
 	jp	.l00106
 .l00105:
-;src/editor/view.c:158: else if (pos < counted_pos - pos) counted_lines = tb_CountLines(0, pos);
+;src/editor/view.c:156: else if (pos < counted_pos - pos) counted_lines = tb_CountLines(0, pos);
 	ld	hl, _counted_pos
 	ld	a, [hl]
 	sub	a, e
@@ -1575,7 +1568,7 @@ _src_editor_view_c_LinesBefore:
 	ld	[hl], b
 	jp	.l00106
 .l00102:
-;src/editor/view.c:159: else counted_lines -= tb_CountLines(pos, counted_pos);
+;src/editor/view.c:157: else counted_lines -= tb_CountLines(pos, counted_pos);
 	push	de
 	ld	hl, _counted_pos
 	ld	c, [hl]
@@ -1592,20 +1585,20 @@ _src_editor_view_c_LinesBefore:
 	sbc	a, b
 	ld	[hl], a
 .l00106:
-;src/editor/view.c:160: counted_pos = pos;
+;src/editor/view.c:158: counted_pos = pos;
 	ld	hl, _counted_pos
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/view.c:161: return counted_lines;
+;src/editor/view.c:159: return counted_lines;
 	ld	hl, _counted_lines
 	ld	c, [hl]
 	inc	hl
 	ld	b, [hl]
 .l00107:
-;src/editor/view.c:162: }
+;src/editor/view.c:160: }
 	ret
-;src/editor/view.c:165: void CountEdit(unsigned int pos, unsigned char c, unsigned char inserted) {
+;src/editor/view.c:163: void CountEdit(unsigned int pos, unsigned char c, unsigned char inserted) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -1613,7 +1606,7 @@ _src_editor_view_c_LinesBefore:
 ; ---------------------------------
 _CountEdit::
 	ld	c, a
-;src/editor/view.c:166: if (pos >= counted_pos) return;
+;src/editor/view.c:164: if (pos >= counted_pos) return;
 	ld	hl, _counted_pos
 	ld	a, e
 	sub	a, [hl]
@@ -1623,7 +1616,7 @@ _CountEdit::
 	jp	C, .l00102
 	jp	.l00110
 .l00102:
-;src/editor/view.c:169: if (c == ASCII_LF) ++counted_lines;
+;src/editor/view.c:167: if (c == ASCII_LF) ++counted_lines;
 	ld	a, c
 	sub	a, $0A
 	jp	NZ,.l00132
@@ -1633,19 +1626,19 @@ _CountEdit::
 	xor	a,a
 .l00133:
 	ld	c, a
-;src/editor/view.c:167: if (inserted) {
+;src/editor/view.c:165: if (inserted) {
 	ld	hl, sp+2
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00108
-;src/editor/view.c:168: ++counted_pos;
+;src/editor/view.c:166: ++counted_pos;
 	ld	hl, _counted_pos
 	inc	[hl]
 	jp	NZ, .l00134
 	inc	hl
 	inc	[hl]
 .l00134:
-;src/editor/view.c:169: if (c == ASCII_LF) ++counted_lines;
+;src/editor/view.c:167: if (c == ASCII_LF) ++counted_lines;
 	ld	a, c
 	or	a, a
 	jp	Z, .l00110
@@ -1657,7 +1650,7 @@ _CountEdit::
 .l00135:
 	jp	.l00110
 .l00108:
-;src/editor/view.c:172: --counted_pos;
+;src/editor/view.c:170: --counted_pos;
 	ld	hl, _counted_pos + 1
 	dec	hl
 	ld	e, [hl]
@@ -1668,7 +1661,7 @@ _CountEdit::
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/view.c:173: if (c == ASCII_LF) --counted_lines;
+;src/editor/view.c:171: if (c == ASCII_LF) --counted_lines;
 	ld	a, c
 	or	a, a
 	jp	Z, .l00110
@@ -1683,18 +1676,18 @@ _CountEdit::
 	inc	hl
 	ld	[hl], d
 .l00110:
-;src/editor/view.c:175: }
+;src/editor/view.c:173: }
 	pop	hl
 	inc	sp
 	jp hl
-;src/editor/view.c:178: void Uncount(unsigned int pos) {
+;src/editor/view.c:176: void Uncount(unsigned int pos) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function Uncount
 ; ---------------------------------
 _Uncount::
-;src/editor/view.c:179: if (pos < counted_pos) counted_pos = counted_lines = 0;
+;src/editor/view.c:177: if (pos < counted_pos) counted_pos = counted_lines = 0;
 	ld	hl, _counted_pos
 	ld	a, e
 	sub	a, [hl]
@@ -1713,9 +1706,9 @@ _Uncount::
 	inc	hl
 	ld	[hl], a
 .l00103:
-;src/editor/view.c:180: }
+;src/editor/view.c:178: }
 	ret
-;src/editor/view.c:183: static unsigned char RowEndsLine(unsigned char row) {
+;src/editor/view.c:181: static unsigned char RowEndsLine(unsigned char row) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -1723,7 +1716,7 @@ _Uncount::
 ; ---------------------------------
 _src_editor_view_c_RowEndsLine:
 	ld	e, a
-;src/editor/view.c:184: return tb_GetChar(tb_row_starts[row + 1] - 1) == ASCII_LF;
+;src/editor/view.c:182: return tb_GetChar(tb_row_starts[row + 1] - 1) == ASCII_LF;
 	ld	bc, _tb_row_starts+0
 	inc	e
 	ld	a, e
@@ -1748,23 +1741,23 @@ _src_editor_view_c_RowEndsLine:
 	xor	a,a
 .l00104:
 .l00101:
-;src/editor/view.c:185: }
+;src/editor/view.c:183: }
 	ret
-;src/editor/view.c:187: static unsigned int CursorLine(void) {
+;src/editor/view.c:185: static unsigned int CursorLine(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function CursorLine
 ; ---------------------------------
 _src_editor_view_c_CursorLine:
-;src/editor/view.c:188: unsigned int line = LinesBefore(top) + 1;
+;src/editor/view.c:186: unsigned int line = LinesBefore(top) + 1;
 	ld	hl, _top
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	call	_src_editor_view_c_LinesBefore
 	inc	bc
-;src/editor/view.c:190: for (row = 0; row < tb_found_row; ++row) if (RowEndsLine(row)) ++line;
+;src/editor/view.c:188: for (row = 0; row < tb_found_row; ++row) if (RowEndsLine(row)) ++line;
 	ld	e, $00
 .l00105:
 	ld	a, e
@@ -1784,11 +1777,11 @@ _src_editor_view_c_CursorLine:
 	inc	e
 	jp	.l00105
 .l00103:
-;src/editor/view.c:191: return line;
+;src/editor/view.c:189: return line;
 .l00107:
-;src/editor/view.c:192: }
+;src/editor/view.c:190: }
 	ret
-;src/editor/view.c:194: static unsigned int CursorColumn(void) {
+;src/editor/view.c:192: static unsigned int CursorColumn(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -1797,10 +1790,10 @@ _src_editor_view_c_CursorLine:
 _src_editor_view_c_CursorColumn:
 	dec	sp
 	dec	sp
-;src/editor/view.c:195: unsigned char row = tb_found_row;
+;src/editor/view.c:193: unsigned char row = tb_found_row;
 	ld	hl, _tb_found_row
 	ld	c, [hl]
-;src/editor/view.c:197: while (row && !RowEndsLine(row - 1)) --row;
+;src/editor/view.c:195: while (row && !RowEndsLine(row - 1)) --row;
 .l00102:
 	ld	a, c
 	or	a, a
@@ -1816,7 +1809,7 @@ _src_editor_view_c_CursorColumn:
 	dec	c
 	jp	.l00102
 .l00104:
-;src/editor/view.c:198: start = tb_row_starts[row];
+;src/editor/view.c:196: start = tb_row_starts[row];
 	ld	l, c
 ;	spillPairReg hl
 ;	spillPairReg hl
@@ -1835,7 +1828,7 @@ _src_editor_view_c_CursorColumn:
 	ld	a, [de]
 	inc	hl
 	ld	[hl], a
-;src/editor/view.c:199: if (!row && start && tb_GetChar(start - 1) != ASCII_LF) start = tb_LineStart(start);
+;src/editor/view.c:197: if (!row && start && tb_GetChar(start - 1) != ASCII_LF) start = tb_LineStart(start);
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00106
@@ -1860,7 +1853,7 @@ _src_editor_view_c_CursorColumn:
 	pop	hl
 	push	bc
 .l00106:
-;src/editor/view.c:200: return cursor - start + 1;
+;src/editor/view.c:198: return cursor - start + 1;
 	ld	hl, _cursor + 1
 	dec	hl
 	ld	e, [hl]
@@ -1877,11 +1870,11 @@ _src_editor_view_c_CursorColumn:
 	ld	c, e
 	inc	bc
 .l00109:
-;src/editor/view.c:201: }
+;src/editor/view.c:199: }
 	inc	sp
 	inc	sp
 	ret
-;src/editor/view.c:204: void UpdateBars(void) {
+;src/editor/view.c:202: void UpdateBars(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
@@ -1889,7 +1882,7 @@ _src_editor_view_c_CursorColumn:
 ; ---------------------------------
 _UpdateBars::
 	add	sp, -48
-;src/editor/view.c:206: char* end = file_name[0] ? ToLatin1(text, file_name, TB_STRIDE - 3) : PutText(text, "Untitled");
+;src/editor/view.c:204: char* end = file_name[0] ? ToLatin1(text, file_name, TB_STRIDE - 3) : PutText(text, "Untitled");
 	ld	bc, _file_name+0
 	ld	a, [bc]
 	ld	e, a
@@ -1902,7 +1895,7 @@ _UpdateBars::
 	ld	a, $25
 	push	af
 	inc	sp
-	call	_ToLatin1__far
+	call	_ToLatin1
 	jp	.l00117
 .l00116:
 	ld	bc, _src_editor_view_c___str_0
@@ -1912,7 +1905,7 @@ _UpdateBars::
 	ld	d, h
 	call	_PutText
 .l00117:
-;src/editor/view.c:207: if (modified) *end++ = '*';
+;src/editor/view.c:205: if (modified) *end++ = '*';
 	ld	hl, _modified
 	ld	a, [hl]
 	or	a, a
@@ -1921,17 +1914,17 @@ _UpdateBars::
 	ld	[bc], a
 	inc	bc
 .l00102:
-;src/editor/view.c:208: *end = 0;
+;src/editor/view.c:206: *end = 0;
 	xor	a, a
 	ld	[bc], a
-;src/editor/view.c:209: DrawRow(HEADER_LINE, 1, text);
+;src/editor/view.c:207: DrawRow(HEADER_LINE, 1, text);
 	ld	hl, 0
 	add	hl, sp
 	push	hl
 	ld	e, $01
 	ld	a, $12
 	call	_DrawRow__far
-;src/editor/view.c:210: if (tb_found_row == 0xFF) return; // cursor isn't on screen
+;src/editor/view.c:208: if (tb_found_row == 0xFF) return; // cursor isn't on screen
 	ld	hl, _tb_found_row
 	ld	a, [hl]
 	inc	a
@@ -1942,13 +1935,13 @@ _UpdateBars::
 .l00149:
 	jp	.l00114
 .l00104:
-;src/editor/view.c:211: if (GetSelection()) {
+;src/editor/view.c:209: if (GetSelection()) {
 	call	_GetSelection__far
 	ld	c, a
 	ld	a, c
 	or	a, a
 	jp	Z, .l00112
-;src/editor/view.c:212: end = PutNumber(text, sel_end - sel_start);
+;src/editor/view.c:210: end = PutNumber(text, sel_end - sel_start);
 	ld	hl, _sel_end
 	ld	a, [hl]
 	ld	hl, _sel_start
@@ -1969,21 +1962,21 @@ _UpdateBars::
 	call	_PutNumber__far
 	ld	e, c
 	ld	d, b
-;src/editor/view.c:213: end = PutText(end, " selected");
+;src/editor/view.c:211: end = PutText(end, " selected");
 	ld	bc, _src_editor_view_c___str_1
 	call	_PutText
 	ld	e, c
 	ld	d, b
 	jp	.l00113
 .l00112:
-;src/editor/view.c:216: end = PutText(text, "Line ");
+;src/editor/view.c:214: end = PutText(text, "Line ");
 	ld	bc, _src_editor_view_c___str_2
 	ld	hl, 0
 	add	hl, sp
 	ld	e, l
 	ld	d, h
 	call	_PutText
-;src/editor/view.c:217: if (!doc_large) end = PutNumber(end, CursorLine());
+;src/editor/view.c:215: if (!doc_large) end = PutNumber(end, CursorLine());
 	ld	hl, _doc_large
 	ld	a, [hl]
 	or	a, a
@@ -2003,7 +1996,7 @@ _UpdateBars::
 	ld	d, b
 	jp	.l00110
 .l00109:
-;src/editor/view.c:218: else if (lines_known) end = PutNumber(end, CursorLine() + win_lines);
+;src/editor/view.c:216: else if (lines_known) end = PutNumber(end, CursorLine() + win_lines);
 	ld	hl, _lines_known
 	ld	a, [hl]
 	or	a, a
@@ -2073,19 +2066,19 @@ _UpdateBars::
 	ld	d, b
 	jp	.l00110
 .l00106:
-;src/editor/view.c:219: else *end++ = '?';
+;src/editor/view.c:217: else *end++ = '?';
 	ld	a, $3F
 	ld	[bc], a
 	ld	e, c
 	ld	d, b
 	inc	de
 .l00110:
-;src/editor/view.c:220: end = PutText(end, ", Col ");
+;src/editor/view.c:218: end = PutText(end, ", Col ");
 	ld	bc, _src_editor_view_c___str_3
 	call	_PutText
 	ld	e, c
 	ld	d, b
-;src/editor/view.c:221: end = PutNumber(end, CursorColumn());
+;src/editor/view.c:219: end = PutNumber(end, CursorColumn());
 	push	de
 	call	_src_editor_view_c_CursorColumn
 	pop	de
@@ -2096,10 +2089,10 @@ _UpdateBars::
 	ld	e, c
 	ld	d, b
 .l00113:
-;src/editor/view.c:223: *end = 0;
+;src/editor/view.c:221: *end = 0;
 	xor	a, a
 	ld	[de], a
-;src/editor/view.c:224: DrawRow(STATUS_LINE, 1, text);
+;src/editor/view.c:222: DrawRow(STATUS_LINE, 1, text);
 	ld	hl, 0
 	add	hl, sp
 	push	hl
@@ -2107,7 +2100,7 @@ _UpdateBars::
 	ld	a, $13
 	call	_DrawRow__far
 .l00114:
-;src/editor/view.c:225: }
+;src/editor/view.c:223: }
 	add	sp, 48
 	ret
 	SECTION FRAGMENT "src/editor/view.c FIXED",ROMX,BANK[1]
@@ -2126,127 +2119,148 @@ _src_editor_view_c___str_2:
 _src_editor_view_c___str_3:
 	DB ", Col "
 	DB $00
-;src/editor/view.c:227: void Draw(void) {
+;src/editor/view.c:225: void Draw(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function Draw
 ; ---------------------------------
 _Draw::
-;src/editor/view.c:228: SetHighlight();
+;src/editor/view.c:226: SetHighlight();
 	call	_src_editor_view_c_SetHighlight
-;src/editor/view.c:229: if (bars) UpdateBars();
+;src/editor/view.c:227: if (bars) UpdateBars();
 	ld	hl, _bars
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00102
 	call	_UpdateBars
 .l00102:
-;src/editor/view.c:230: EditorDraw();
+;src/editor/view.c:228: EditorDraw();
 	jp	_EditorDraw
 .l00103:
-;src/editor/view.c:231: }
+;src/editor/view.c:229: }
 	ret
-;src/editor/view.c:234: void SetRows(void) {
+;src/editor/view.c:232: void SetRows(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function SetRows
 ; ---------------------------------
 _SetRows::
-;src/editor/view.c:235: bars = bars_on;
+;src/editor/view.c:233: bars = bars_on;
 	ld	hl, _bars_on
 	ld	a, [hl]
 	ld	hl, _bars
 	ld	[hl], a
-;src/editor/view.c:236: tb_rows = TextRows();
+;src/editor/view.c:234: tb_rows = TextRows();
 	call	_src_editor_view_c_TextRows
 	ld	hl, _tb_rows
 	ld	[hl], a
-;src/editor/view.c:237: Layout();
+;src/editor/view.c:235: Layout();
 	call	_Layout
-;src/editor/view.c:238: if (osk_shown) {
+;src/editor/view.c:236: if (osk_shown) {
 	ld	hl, _osk_shown
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00102
-;src/editor/view.c:239: OSKDraw(osk_layer, tb_rows);
+;src/editor/view.c:237: OSKDraw(osk_layer, tb_rows);
 	ld	hl, _tb_rows
 	ld	e, [hl]
 	ld	hl, _osk_layer
 	ld	a, [hl]
 	call	_OSKDraw
-;src/editor/view.c:240: OSKSelect(osk_x, osk_y);
+;src/editor/view.c:238: OSKSelect(osk_x, osk_y);
 	ld	hl, _osk_y
 	ld	e, [hl]
 	ld	hl, _osk_x
 	ld	a, [hl]
 	call	_OSKSelect
 .l00102:
-;src/editor/view.c:242: OSKShow(osk_shown);
+;src/editor/view.c:240: OSKShow(osk_shown);
 	ld	hl, _osk_shown
 	ld	a, [hl]
 	call	_OSKShow
-;src/editor/view.c:243: dirty = 1;
+;src/editor/view.c:241: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
 .l00103:
-;src/editor/view.c:244: }
+;src/editor/view.c:242: }
 	ret
-;src/editor/view.c:247: void ToggleBars(void) {
+;src/editor/view.c:245: void ToggleBars(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function ToggleBars
 ; ---------------------------------
 _ToggleBars::
-;src/editor/view.c:248: bars_on = !bars_on;
+;src/editor/view.c:246: bars_on = !bars_on;
 	ld	hl, _bars_on
 	ld	a, [hl]
 	sub	a,$01
 	ld	a, $00
 	rla
 	ld	[hl], a
-;src/editor/view.c:249: SetRows();
+;src/editor/view.c:247: SetRows();
 	call	_SetRows__far
-;src/editor/view.c:250: SettingsSave();
+;src/editor/view.c:248: SettingsSave();
 	jp	_SettingsSave
 .l00101:
-;src/editor/view.c:251: }
+;src/editor/view.c:249: }
 	ret
-;src/editor/view.c:254: void BeginFullScreen(void) {
+;src/editor/view.c:252: void BeginView(unsigned char show_bars) {
+;	---------------------------------
+	SECTION FRAGMENT "Page 12",ROMX,BANK[6]
+	LOAD FRAGMENT "Page 12 RAM",SRAM,BANK[12]
+; Function BeginView
+; ---------------------------------
+_BeginView::
+	ld	c, a
+;src/editor/view.c:253: EditorShowCursor(0);
+	push	bc
+	xor	a, a
+	call	_EditorShowCursor
+	pop	bc
+;src/editor/view.c:254: if (osk_shown) OSKShow(0);
+	ld	hl, _osk_shown
+	ld	a, [hl]
+	or	a, a
+	jp	Z, .l00102
+	push	bc
+	xor	a, a
+	call	_OSKShow
+	pop	bc
+.l00102:
+;src/editor/view.c:255: bars = show_bars;
+	ld	hl, _bars
+	ld	[hl], c
+;src/editor/view.c:256: tb_rows = TB_ROWS - (bars << 1);
+	ld	a, [hl]
+	add	a, a
+	ld	c, a
+	ld	a, $12
+	sub	a, c
+	ld	hl, _tb_rows
+	ld	[hl], a
+;src/editor/view.c:257: Layout();
+	call	_Layout__far
+;src/editor/view.c:258: NoHighlight();
+	call	_NoHighlight__far
+;src/editor/view.c:259: dirty = 1;
+	ld	hl, _dirty
+	ld	[hl], $01
+.l00103:
+;src/editor/view.c:260: }
+	ret
+;src/editor/view.c:262: void BeginFullScreen(void) { BeginView(0); }
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function BeginFullScreen
 ; ---------------------------------
 _BeginFullScreen::
-;src/editor/view.c:255: EditorShowCursor(0);
 	xor	a, a
-	call	_EditorShowCursor
-;src/editor/view.c:256: if (osk_shown) OSKShow(0);
-	ld	hl, _osk_shown
-	ld	a, [hl]
-	or	a, a
-	jp	Z, .l00102
-	xor	a, a
-	call	_OSKShow
-.l00102:
-;src/editor/view.c:257: bars = 0;
-	ld	hl, _bars
-	ld	[hl], $00
-;src/editor/view.c:258: tb_rows = TB_ROWS;
-	ld	hl, _tb_rows
-	ld	[hl], $12
-;src/editor/view.c:259: Layout();
-	call	_Layout__far
-;src/editor/view.c:260: NoHighlight();
-	call	_NoHighlight__far
-;src/editor/view.c:261: dirty = 1;
-	ld	hl, _dirty
-	ld	[hl], $01
-.l00103:
-;src/editor/view.c:262: }
+	jp	_BeginView__far
+.l00101:
 	ret
 ;src/editor/view.c:264: void EndFullScreen(void) {
 ;	---------------------------------

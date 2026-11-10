@@ -103,7 +103,7 @@ _src_editor_name_c_NameHistory:
 	ld	h, $00
 ;	spillPairReg hl
 ;	spillPairReg hl
-	add	a, $49
+	add	a, $4D
 	ld	l, a
 ;	spillPairReg hl
 ;	spillPairReg hl

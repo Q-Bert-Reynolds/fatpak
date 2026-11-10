@@ -45,8 +45,9 @@
 #define DATA_BORDER_MAP    57//its map and palettes, 4KB
 #define DATA_FIXED         65//the base fixed font, four blocks
 #define DATA_HELP          69//two 32-line help screens, 32 bytes per line
-#define DATA_BLOCKS        73
-#define DATA_VERSION       3//block 0 starts with "EDITOR.DAT" and this
+#define DATA_MONO          73//base monospaced glyphs, four blocks
+#define DATA_BLOCKS        77
+#define DATA_VERSION       4//block 0 starts with "EDITOR.DAT" and this
 #define NAME_HISTORY_BLOCK DATA_BLOCK+DATA_BLOCKS//16 scratch blocks, separate from document undo
 #define WIN_SIZE           0xC000u//the part of a large file in the text buffer (src/fatfs/fatfs.c)
 #define WIN_CHUNKS         WIN_SIZE/512+1//sector boundaries in it

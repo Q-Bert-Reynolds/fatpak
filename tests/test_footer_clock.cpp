@@ -78,6 +78,10 @@ static void Format(const char* image,const char* symbols) {
     auto memory=core.GetMemory();auto syms=Symbols(symbols);
     memory->Write(0xBD0A,0xA5);memory->Write(0xBD06,4);memory->Write(0xBD08,4);
     memory->Write(syms.at("loaded_bank"),4);memory->Write(0xFFFF,0);memory->Write(0xFF40,0);
+    // These direct API calls bypass Main's WRAM initialization.
+    memory->Write(syms.at("_src_ui_footer_c_ready"),0);
+    memory->Write(syms.at("_src_ui_footer_c_frames"),0);
+    for(unsigned i=0;i<8;++i)memory->Write(syms.at("_footer_time")+i,0);
     const unsigned hours[]={0,1,11,12,13,22,23};
     const char* expected[]={"12:09am","1:09am","11:09am","12:09pm","1:09pm","10:09pm","11:09pm"};
     for(unsigned n=0;n<7;++n) {
@@ -103,6 +107,10 @@ static void Unavailable(const char* image,const char* symbols) {
     auto memory=core.GetMemory();auto syms=Symbols(symbols);
     memory->Write(0xBD0A,0xA5);memory->Write(0xBD06,4);memory->Write(0xBD08,4);
     memory->Write(syms.at("loaded_bank"),4);memory->Write(0xFFFF,0);memory->Write(0xFF40,0);
+    // These direct API calls bypass Main's WRAM initialization.
+    memory->Write(syms.at("_src_ui_footer_c_ready"),0);
+    memory->Write(syms.at("_src_ui_footer_c_frames"),0);
+    for(unsigned i=0;i<8;++i)memory->Write(syms.at("_footer_time")+i,0);
     Check(Call(core,syms.at("_ClockRead"),0xC200)==1,"fixture RTC is unavailable");
     for(unsigned i=0;i<60;++i) Call(core,syms.at("_FooterPoll"));
     Check(Time(memory,syms.at("_footer_time"))=="--:--","unavailable RTC has a placeholder");

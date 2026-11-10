@@ -6,3 +6,5 @@
 15: LoadDocument
 10: NewFile
 9: OpenFile
+
+4: FileLanguage

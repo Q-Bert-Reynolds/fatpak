@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iterator>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 #include <sys/stat.h>
@@ -75,6 +76,16 @@ static void Operations(const char* image, const char* symbols) {
     std::vector<u8> bytes(1703); for(unsigned i=0;i<bytes.size();++i) bytes[i]=u8(i*37);
     Write(root+"/Tree/Nested/Long file name.txt",bytes);
     Write(root+"/Tree/Zero.txt",{}); Write(root+"/Original.txt",bytes);
+    Write(root+"/Mixed.txt",{'a',' ','b','\r','\n','c','\r','d','\n'});
+    Write(root+"/Tail.txt",{'a','\t','b'}); Write(root+"/Blank.txt",{'\n','\n'});
+    Write(root+"/Binary.txt",{'a',0,'b'});Write(root+"/Large.txt",std::vector<u8>(32769,'a'));
+    std::vector<u8> game(512);std::string title="TEST GAME";
+    for(unsigned i=0;i<title.size();++i)game[0x134+i]=title[i];
+    game[0x143]=0xC0;game[0x146]=3;game[0x147]=0x10;game[0x148]=6;game[0x149]=3;
+    game[0x14A]=1;game[0x14C]=2;
+    for(unsigned i=0x134;i<=0x14C;++i)game[0x14D]-=game[i]+1;
+    Write(root+"/Game.gbc",game);game[0x14D]^=1;Write(root+"/Bad.gb",game);
+    Write(root+"/Short.gb",std::vector<u8>(0x140));
     GearboyCore core; core.Init();core.SetEverdriveFolder(folder);Check(core.LoadROM(image,false),"file API OS");
     auto memory=core.GetMemory();auto syms=Symbols(symbols);
     memory->Write(0xBD0A,0xA5);memory->Write(0xBD06,4);memory->Write(0xBD08,4);
@@ -85,6 +96,41 @@ static void Operations(const char* image, const char* symbols) {
         core.GetProcessor()->GetState()->BC->SetValue(0xDD00);
         return Call(core,syms.at(routine),0xDC00);
     };
+    auto number=[&](unsigned address){unsigned long n=0;for(unsigned i=0;i<4;++i)n|=(unsigned long)memory->Read(address+i)<<(8*i);return n;};
+    auto inspect=[&](const char* path,bool game,unsigned status,unsigned words,unsigned lines){
+        Text(memory,0xDC00,path);memory->Write(0xDD00+36,game);
+        core.GetProcessor()->GetState()->BC->SetValue(0xDD00);
+        Check(Call(core,syms.at("_FileInspect"),0xDC00)==0,"inspect succeeds");
+        Check(memory->Read(0xDD00+37)==status,"inspect completion/binary/header status");
+        if(!game && status==1)Check(number(0xDD00)==words && number(0xDD04)==lines,"word and CR/LF/CRLF line counts");
+    };
+    inspect("/Mixed.txt",false,1,4,3);inspect("/Tail.txt",false,1,2,1);
+    inspect("/Blank.txt",false,1,0,2);inspect("/Tree/Zero.txt",false,1,0,0);
+    inspect("/Binary.txt",false,2,0,0);inspect("/Large.txt",false,0,0,0);
+    inspect("/Game.gbc",true,1,0,0);
+    Check(memory->Read(0xDD08+15)==0xC0 && memory->Read(0xDD08+19)==0x10,"inspect retains cartridge header fields");
+    inspect("/Bad.gb",true,2,0,0);inspect("/Short.gb",true,0,0,0);
+    memory->Write(syms.at("_doc_large"),0);
+    Text(memory,0xDC00,"/Large.txt");
+    Check(Call(core,syms.at("_FileLoadLarge"),0xDC00)==0,"open persistent large document before inspection");
+    inspect("/Mixed.txt",false,1,4,3);inspect("/Game.gbc",true,1,0,0);
+    Check(number(syms.at("_doc_len"))==32769 && memory->Read(syms.at("_doc_large")),"inspection preserves document state");
+    for(unsigned i=0;i<4;++i)memory->Write(syms.at("_win_start")+i,8192UL>>(i*8));
+    Check(Call(core,syms.at("_FileLoadWindow"))==0,"inspection preserves persistent file handle for subsequent window reads");
+    Check(Call(core,syms.at("_tb_GetChar"),0)=='a',"document data survives inspection");
+    Call(core,syms.at("_FileCloseLarge"));
+    const char* filenames[]={"test.C","test.H","test.INC","test.s","test.asm","test.MD","test.txt"};
+    const unsigned languages[]={2,2,3,3,3,1,0};
+    for(unsigned i=0;i<7;++i){Text(memory,0xDC00,filenames[i]);
+        Check(Call(core,syms.at("_FileLanguage__far"),0xDC00)==languages[i],"file types share case-insensitive editor language detection");}
+    const unsigned long sizes[]={0,512,1024,1536,1048576,3145728,0xFFFFFFFFUL};
+    const char* formatted[]={"0B","512B","1KB","1.5KB","1MB","3MB","4095.9MB"};
+    for(unsigned i=0;i<7;++i){
+        for(unsigned b=0;b<4;++b)memory->Write(0xE000+b,sizes[i]>>(8*b));
+        Call(core,syms.at("_PutSize__far"),0xDC00);
+        memory->Write(core.GetProcessor()->GetState()->BC->GetValue(),0);
+        Check(Text(memory,0xDC00)==formatted[i],"compact size formatting including 32-bit maximum");
+    }
     Check(operation("_FileCopy","/Original.txt","/Duplicate.txt")==0,"copy file across sectors");
     Check(Read(root+"/Duplicate.txt")==bytes,"file copy preserves all bytes");
     Check(operation("_FileCopy","/Original.txt","/Duplicate.txt")==8,"copy refuses overwrite");
@@ -113,6 +159,41 @@ static void Operations(const char* image, const char* symbols) {
     puts("File/folder copy, cut/move, rename, collisions and document paths passed");
 }
 
+static void HelpScroll(GearboyCore& core,const std::map<std::string,unsigned>& syms,bool color) {
+    auto memory=core.GetMemory();auto cpu=core.GetProcessor()->GetState();
+    Check(memory->Read(syms.at("_bars"))==1 && memory->Read(syms.at("_tb_rows"))==16,"help keeps standard bars and sixteen text rows");
+    Check(memory->Read(syms.at("_render_row_lines"))==18 && memory->Read(syms.at("_render_row_lines")+17)==19,"help maps fixed header/footer rows");
+    Check(memory->Read(syms.at("tile_buffer")+19*40+32)==1,"help footer includes the clock");
+    for(unsigned i=0;i<16*40;++i)
+        Check(memory->Read(syms.at("tile_buffer")+i)!=0,"help text is space padded without terminator glyphs");
+    unsigned ring=memory->Read(syms.at("_ring_top"));
+    std::set<unsigned> blocks;
+    std::vector<unsigned> positions(1,memory->Read(0xFF42));bool scrolled=false;
+    core.KeyPressed(Down_Key);
+    for(unsigned i=0;i<400000;++i) {
+        unsigned pc=cpu->PC->GetValue();
+        if(pc==syms.at("_ScrollRows") && memory->Read(syms.at("loaded_bank"))==5) {
+            scrolled=true;core.KeyReleased(Down_Key);
+        }
+        if(pc==syms.at("RenderEncode")) {
+            unsigned block=memory->Read(syms.at("render_block"));
+            if(block!=8 && block!=17) blocks.insert(block);
+        }
+        unsigned ticks=0;core.RunCycle(frame.data(),ticks);
+        unsigned y=memory->Read(0xFF42);if(y!=positions.back())positions.push_back(y);
+        if(i%3000==2999) { s16 audio[AUDIO_BUFFER_SIZE];int n=0;core.EndFrame(audio,&n); }
+    }
+    core.KeyReleased(Down_Key);
+    Check(scrolled && memory->Read(syms.at("_ring_top"))==((ring+1)&31),"help uses shared one-row scrolling ring");
+    // RunCycle can expose one instruction's PC over several timing steps.
+    // Count the physical row blocks written, rather than those repeated PCs.
+    Check(blocks.size()==1,"scroll redraws only the incoming help row");
+    Check(positions.back()==((positions.front()+8)&255),"help scroll advances exactly one row");
+    Check(positions.size()==(color?5u:2u),"CGB animates in two-pixel steps; DMG uses one row step");
+    for(unsigned i=1;i<positions.size();++i)
+        Check(((positions[i]-positions[i-1])&255)==(color?2u:8u),"help reuses editor scroll animation");
+}
+
 static void UI(const char* image,const char* symbols,const char* data,bool color) {
     char folder[]="/tmp/fatpak-browser-XXXXXX";Check(mkdtemp(folder),"temporary browser SD");
     std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);
@@ -135,7 +216,14 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     pad(Down_Key); // select Document.txt
     menu();pad(A_Key);Check(byte("_render_box_rows")==4,"file submenu");
     pad(B_Key);Check(byte("_render_box_rows")==7,"B returns to main menu");
-    pad(A_Key);pad(A_Key);Check(byte("_render_box_rows")>=6,"file info popup");
+    pad(A_Key);pad(A_Key);
+    Check(byte("_render_box_top")==255 && byte("_bars")==1 && byte("_tb_rows")==16,"file info is a full page with bars");
+    Check(row(18).find("Document.txt")!=std::string::npos,"info header displays filename");
+    Check(row(0)==" Type: Plain Text" && row(1)==" Size: 3B","info type and byte size");
+    Check(row(7)==" Words: 1" && row(8)==" Lines: 1","info counts text without trailing empty line");
+    Check(row(3).find(" Created: ")==0 && row(4).find(" Accessed: ")==0 && row(5).find(" Modified: ")==0,"info displays all FAT timestamps");
+    Check(row(19).find("B/Esc: exit")!=std::string::npos && memory->Read(syms.at("tile_buffer")+19*40+32)==1,"info footer includes exit hint and clock");
+    pad(A_Key);Check(row(18).find("Document.txt")!=std::string::npos,"only B or Esc dismisses file info");
     pad(B_Key);Check(byte("_render_text")==0 && byte("_render_box_top")==255,"info returns to browser");
     menu();pad(A_Key);pad(Down_Key);pad(A_Key); // rename prompt
     Check(byte("_osk_shown")==1,"rename automatically opens on-screen keyboard");
@@ -163,9 +251,9 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     pad(Down_Key);pad(A_Key);Check(row(0)=="KEYBOARD TEST","browser settings launches keyboard test");pad(B_Key);
     Check(byte("_render_text")==0 && byte("_tb_rows")==16 && byte("_bars")==1,"settings restore browser layout");
     menu();pad(Down_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);
-    Check(row(0)=="FILE BROWSER","help directly opens browser help");
-    pad(Down_Key);Check(row(0)!="FILE BROWSER","browser help scrolls down");
-    pad(A_Key);Check(byte("_tb_rows")==18,"A does not dismiss help");pad(B_Key);
+    Check(row(18).find("FILE BROWSER")!=std::string::npos,"help directly opens browser help with header");
+    HelpScroll(core,syms,color);
+    pad(A_Key);Check(byte("_tb_rows")==16,"A does not dismiss help");pad(B_Key);
     Check(byte("_render_text")==0 && byte("_tb_rows")==16,"help returns to browser");
     pad(B_Key);pad(B_Key); // root, then editor
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
@@ -173,8 +261,8 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     Check(Text(memory,syms.at("tile_buffer")+20*40)==" LINE WRAP","line wrap is an editor setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" FULL SCREEN","full screen is an editor setting");
     pad(B_Key);pad(Down_Key);pad(A_Key);
-    Check(row(0)=="TEXT EDITOR","editor help opens directly with editor controls");
-    pad(Down_Key);Check(row(0)!="TEXT EDITOR","editor help scrolls");
+    Check(row(18).find("TEXT EDITOR")!=std::string::npos,"editor help opens directly with editor header");
+    HelpScroll(core,syms,color);
     pad(B_Key);Check(byte("_render_text")==1,"B returns from help to editor");
     key(0x1C);pad(Select_Key);
     memory->Write(syms.at("_osk_y"),4);memory->Write(syms.at("_osk_x"),7);pad(A_Key);
@@ -201,17 +289,63 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     // Verify the hardware request here, then clear it for the font API checks.
     static_cast<EverdriveOSMemoryRule*>(memory->GetCurrentRule())->TakeSwitch();
     auto asset=Read(data);
-    for(unsigned glyph : {0u,97u,233u,255u}) {
+    for(unsigned base : {0u,0x800u}) for(unsigned glyph : {0u,95u,97u,233u,255u}) {
         memory->Write(0xBD02,0x79);memory->Write(0xBD03,1);
-        core.GetProcessor()->GetState()->BC->SetValue(glyph*8);
+        core.GetProcessor()->GetState()->BC->SetValue(base+glyph*8);
         Call(core,syms.at("RenderFixedGlyph"));
         for(unsigned row=0;row<8;++row)
-            Check(memory->Read(syms.at("render_glyph")+row)==asset[65*512+glyph*8+row],"fixed glyph matches EDITOR.DAT");
+            Check(memory->Read(syms.at("render_glyph")+row)==asset[(base?73:65)*512+glyph*8+row],"fixed/monospaced glyph matches EDITOR.DAT");
         Check(memory->Read(0xBD02)==0x79 && memory->Read(0xBD03)==1,"glyph fetch restores text window");
     }
     Call(core,syms.at("_SetFont"),0,2);
     for(unsigned i=0;i<256;++i) Check(memory->Read(syms.at("_font_widths")+i)==4,"fixed font widths");
-    printf("%s browser menus, info, rename, copy/paste, settings, help, restart and fixed font passed\n",color?"CGB":"DMG");
+    Call(core,syms.at("_SetFont"),0,0);
+    for(unsigned i=0;i<256;++i) Check(memory->Read(syms.at("_font_widths")+i)==8,"monospaced font widths");
+    for(unsigned level=1;level<=4;++level) for(unsigned glyph : {32u,65u,233u})
+        Check(Call(core,syms.at("_HeadingCharWidth"),glyph,level)==9-level,"constant heading widths preserve glyph layout");
+    printf("%s browser menus, info, rename, copy/paste, settings, help, restart and fonts passed\n",color?"CGB":"DMG");
+}
+
+static void GameProperties(const char* image,const char* symbols,const char* data,bool color) {
+    char folder[]="/tmp/fatpak-info-XXXXXX";Check(mkdtemp(folder),"properties SD");
+    std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);
+    Write(root+"/GBCSYS/EDITOR.DAT",Read(data));
+    std::vector<u8> game(1536);std::string title="CRYSTAL";
+    for(unsigned i=0;i<title.size();++i)game[0x134+i]=title[i];
+    game[0x143]=0xC0;game[0x146]=3;game[0x147]=0x10;game[0x148]=6;game[0x149]=3;
+    game[0x14A]=1;game[0x14C]=2;
+    for(unsigned i=0x134;i<=0x14C;++i)game[0x14D]-=game[i]+1;
+    Write(root+"/Crystal.gbc",game);
+    GearboyCore core;core.Init();core.SetEverdriveFolder(folder);core.SetPS2KeyboardEnabled(true);
+    Check(core.LoadROM(image,!color),"properties OS");auto memory=core.GetMemory();auto syms=Symbols(symbols);
+    auto pad=[&](Gameboy_Keys key){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,70);};
+    auto row=[&](unsigned n){std::string s;for(unsigned i=0;i<40;++i)s+=char(memory->Read(syms.at("tile_buffer")+n*40+i));
+        while(!s.empty() && s.back()==' ')s.pop_back();return s;};
+    auto info=[&](){pad(Start_Key);pad(A_Key);pad(A_Key);};
+    Frames(core,600);info();
+    Check(row(0)==" Type: Folder" && row(1)==" Size: --","folder properties avoid misleading total size");
+    pad(B_Key);pad(Down_Key);info();
+    Check(row(18)==" Crystal.gbc" && row(0)==" Type: Game Boy ROM" && row(1)==" Size: 1.5KB","game properties filename, type and scaled size");
+    Check(row(7)==" Title: CRYSTAL" && row(8)==" Platform: Color only" && row(9)==" Super GB: Yes","cartridge title and platform fields");
+    Check(row(10)==" Mapper: MBC3" && row(11)==" ROM: 2MB" && row(12)==" RAM: 32KB","mapper and declared cartridge sizes");
+    Check(row(13)==" Region: Overseas" && row(14)==" Revision: 2" && row(15)==" Header checksum: OK","cartridge region, version and checksum");
+    Check(memory->Read(syms.at("_render_row_lines"))==18 && memory->Read(syms.at("_render_row_lines")+17)==19,"game info keeps header and footer");
+    // Esc exits through the same input path as B.
+    core.QueuePS2KeyboardScanCode(0x76);Frames(core,4);
+    core.QueuePS2KeyboardScanCode(0xF0);core.QueuePS2KeyboardScanCode(0x76);Frames(core,70);
+    Check(row(18).find("Crystal.gbc")==std::string::npos,"Esc returns to file browser");
+    info();
+    const unsigned header=syms.at("_src_browser_info_c_details")+8;
+    for(unsigned flag : {0u,0x80u}) {
+        memory->Write(header+15,flag);
+        Call(core,syms.at("_src_browser_info_c_GameInfo"));
+        Check(row(8)==(flag?" Platform: GB / Color":" Platform: Game Boy"),"DMG and dual-platform cartridge flags");
+    }
+    memory->Write(syms.at("_src_browser_info_c_details")+37,2);
+    memory->Write(header+19,5);memory->Write(header+21,0);
+    Call(core,syms.at("_src_browser_info_c_GameInfo"));
+    Check(row(12)==" RAM: 512 x 4 bits" && row(15)==" Header checksum: Bad","MBC2 RAM and invalid header checksum");
+    printf("%s full-screen folder and cartridge properties passed\n",color?"CGB":"DMG");
 }
 
 static void RenameEdges(const char* image,const char* symbols,const char* data,bool color) {
@@ -244,5 +378,6 @@ static void RenameEdges(const char* image,const char* symbols,const char* data,b
 int main(int argc,char** argv) {
     Check(argc==4,"usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT");
     Operations(argv[1],argv[2]);UI(argv[1],argv[2],argv[3],false);UI(argv[1],argv[2],argv[3],true);
+    GameProperties(argv[1],argv[2],argv[3],false);GameProperties(argv[1],argv[2],argv[3],true);
     RenameEdges(argv[1],argv[2],argv[3],false);RenameEdges(argv[1],argv[2],argv[3],true);
 }

@@ -6,6 +6,7 @@
 
 unsigned char CanDiscard(void);
 void SetLang(void);
+unsigned char FileLanguage(const char* name);
 void NewFile(void);
 void OpenFile(void);
 void LoadDocument(char* path, unsigned char folder_length, const FileEntry* entry);

@@ -271,7 +271,7 @@ _LaunchGame::
 	ld	[hl], $01
 ;src/game/loader.c:48: ShowBusy("Loading...");
 	ld	de, _src_game_loader_c___str_2
-	call	_ShowBusy__far
+	call	_ShowBusy
 ;src/game/loader.c:49: if ((result = FileSaveSwap())) {
 	call	_FileSaveSwap
 	ld	c, a
@@ -447,7 +447,7 @@ _LaunchGame::
 	inc	sp
 	ld	e, l
 	ld	d, h
-	call	_ToLatin1__far
+	call	_ToLatin1
 	pop	de
 	xor	a, a
 	ld	[bc], a

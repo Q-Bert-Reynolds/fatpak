@@ -10,8 +10,18 @@ typedef struct {
   unsigned long size;
   unsigned int date; // FAT date and time
   unsigned int time;
+  unsigned int cdate, ctime, adate; // created date/time; FAT access date has no time
   unsigned char dir;
 } FileEntry;
+
+// Inspection uses its own file handle; it preserves an open editor document.
+typedef struct {
+  unsigned long words, lines;
+  unsigned char header[28]; // cartridge bytes $134..$14F
+  unsigned char game; // input: read cartridge header instead of counting text
+  unsigned char status; // 0: unavailable/skipped, 1: complete/valid, 2: binary/bad checksum
+} FileDetails;
+extern unsigned char FileInspect(const char* path, FileDetails* details);
 
 extern unsigned char FileMount(void); // FRESULT, mounts the card if it isn't
 extern unsigned char FileRename(const char* source, const char* destination);

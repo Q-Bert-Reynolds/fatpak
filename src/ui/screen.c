@@ -83,6 +83,11 @@ void ScrollRing(unsigned char down) {
   Layout();
 }
 
+void ScrollRows(unsigned char down) {
+  ScrollRing(down);
+  tb_ScrollRows(down);
+}
+
 // no selection, the bars are drawn selected
 void NoHighlight(void) {
   unsigned char i;

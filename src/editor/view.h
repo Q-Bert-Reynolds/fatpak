@@ -16,6 +16,7 @@ void Draw(void);
 void SetRows(void);
 void ToggleBars(void);
 void BeginFullScreen(void);
+void BeginView(unsigned char show_bars);
 void EndFullScreen(void);
 void Render(void);
 void Refresh(void);
