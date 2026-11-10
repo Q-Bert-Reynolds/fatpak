@@ -1,7 +1,8 @@
 """Compose the cart menu with the editor's VWF font and box geometry.
 
 Static pixels are 1bpp; the menu applies DMG inversion or CGB highlighting at
-runtime. The filename header is rendered before launching the game.
+runtime. The icon footer uses the shared 2bpp renderer at runtime; the filename
+header is rendered before launching the game.
 """
 from pathlib import Path
 from data_file import db_bytes
@@ -38,7 +39,7 @@ def main():
     pixels[top][x] = pixels[bottom][x] = 1
   for row, label in enumerate(labels):
     text(left + 4 + widths[32], 56 + row * 8, label)
-  text(5, 136, '\x01 Select  \x02 Resume')
+  # The footer uses the shared runtime 2bpp renderer, including icon shading.
 
   tiles = bytearray(8)  # tile 0 remains blank; tinted tiles are never shared
   first_col, last_col = left // 8, right // 8

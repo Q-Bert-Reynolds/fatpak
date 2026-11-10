@@ -147,15 +147,26 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     Check(memory->Read(line+32)==127,"browser has a footer clock");
     const std::string hints=" \001Open \003Info \004Menu";
     for(unsigned i=0;i<hints.size();++i)Check(memory->Read(line+i)==u8(hints[i]),"browser footer shows gamepad action icons");
-    bool action_pixels[8][112]={};unsigned x=1;
+    u8 action_pixels[8][112]={};unsigned x=1;
     for(unsigned char c : hints) {
-        for(unsigned y=0;y<8;++y)for(unsigned bit=0;bit<8 && x+bit<112;++bit)
-            if(memory->Read(syms.at("FontVWFGlyphs")+c*8+y)&(128>>bit))action_pixels[y][x+bit]=true;
+        int icon=c>=1 && c<=8 ? c-1 : c>=129 && c<=131 ? c-121 : -1;
+        for(unsigned y=0;y<8;++y)for(unsigned bit=0;bit<8 && x+bit<112;++bit) {
+            bool ink=memory->Read(syms.at("FontVWFGlyphs")+c*8+y)&(128>>bit);
+            unsigned pixel=ink?3:0;
+            if(icon>=0) {
+                if(memory->Read(syms.at("FontVWFGlyphs")+(132+icon)*8+y)&(128>>bit))pixel=2;
+                if(memory->Read(syms.at("FontVWFGlyphs")+(143+icon)*8+y)&(128>>bit))pixel=1;
+            }
+            action_pixels[y][x+bit]=pixel;
+        }
         x+=memory->Read(syms.at("FontVWFWidths")+c);
     }
     for(unsigned y=0;y<8;++y)for(unsigned column=0;column<112;++column) {
-        u8 pixels=memory->ReadCGBLCDRAM(0x8E40+(column/8)*16+y*2+1,color);
-        Check(bool(pixels&(128>>(column&7)))==(color?action_pixels[y][column]:!action_pixels[y][column]),"footer action icons render beside clock without marker collisions");
+        unsigned address=0x8E40+(column/8)*16+y*2, bit=128>>(column&7);
+        unsigned pixel=bool(memory->ReadCGBLCDRAM(address,color)&bit) |
+                       bool(memory->ReadCGBLCDRAM(address+1,color)&bit)<<1;
+        unsigned source=action_pixels[y][column];
+        Check(pixel==(color?(source?source:1):(source^3)),"2bpp footer icons preserve all shades with existing selection palettes");
     }
     Pixels(core,syms,color);
     Date(core,syms,22,42);

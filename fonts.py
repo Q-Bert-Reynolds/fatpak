@@ -1,6 +1,7 @@
 """Converts 128x128 font PNGs (16x16 glyphs of 8x8, indexed by character code) for the editor's
 row renderer: 8 bytes of 1bpp glyph rows per character and a width table.
 Dark pixels (palette index 0 or 1) are drawn, everything else is background.
+Button icons retain all four indexed shades as occupancy and shading masks.
 
 img/ui_font.png            -> img/fonts/font_mono.asm, every glyph 8 pixels wide
 img/fonts/fixed_font.png   -> img/fonts/font_fixed.asm, every glyph 4 pixels wide (left 4 pixels of the cell)
@@ -66,6 +67,23 @@ def glyph_rows(img, code):
   return rows
 
 
+def button_pixels():
+  """2bpp palette indices, in the same dark-to-light order as img2rgbds.py."""
+  with Image.open("img/ui_font.png") as image:
+    icons = {code: [[3 - image.getpixel(((code % 16) * 8 + x, (code // 16) * 8 + y)) % 4
+                     for x in range(8)] for y in range(8)] for code in range(1, 9)}
+  for code, parts in {129: (5, 6), 130: (7, 8), 131: (5, 6, 7, 8)}.items():
+    icons[code] = [[0] * 8 for _ in range(8)]
+    for part in parts:
+      icons[code] = [[a | b for a, b in zip(row, source)]
+                     for row, source in zip(icons[code], icons[part])]
+  return icons
+
+
+def icon_mask(pixels, include):
+  return [sum(128 >> x for x, color in enumerate(row) if include(color)) for row in pixels]
+
+
 def font_glyphs(png, fixed_width):
   """returns the glyphs (8 rows each) and widths of a base font, as the engine draws them"""
   img = Image.open(png)
@@ -92,18 +110,17 @@ def font_glyphs(png, fixed_width):
       width = min(right + 2, 8)
     glyphs.append(rows)
     widths.append(width)
-  # Keep the 8-pixel artwork intact; proportional UI text adds a one-pixel gap.
-  # The monospaced keyboard retains its 8-pixel grid.
+  # Icons preserve all four source shades. Ordinary characters remain 1bpp.
   if png in ("img/ui_font.png", "img/fonts/vwf_font.png"):
-    buttons = Image.open("img/ui_font.png")
-    for code in range(1, 9):
-      glyphs[code] = glyph_rows(buttons, code)
+    icons = button_pixels()
+    for index, (code, pixels) in enumerate(icons.items()):
+      glyphs[code] = icon_mask(pixels, lambda color: color != 0)
       widths[code] = 8 if fixed_width else 9
-    for code, parts in {129: (5, 6), 130: (7, 8), 131: (5, 6, 7, 8)}.items():
-      glyphs[code] = [0] * 8
-      for part in parts:
-        glyphs[code] = [a | b for a, b in zip(glyphs[code], glyphs[part])]
-      widths[code] = 8 if fixed_width else 9
+      if not fixed_width:
+        # Unused C1 control slots hold the two shading masks. Together with
+        # the occupancy glyph these retain each original 2bpp color index.
+        glyphs[132 + index] = icon_mask(pixels, lambda color: color == 2)
+        glyphs[143 + index] = icon_mask(pixels, lambda color: color == 1)
   return glyphs, widths
 
 

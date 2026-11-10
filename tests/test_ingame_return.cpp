@@ -76,9 +76,31 @@ static std::vector<u8> Game(bool color)
     for (unsigned i = 0x134; i < 0x14D; ++i) rom[0x14D] = rom[0x14D] - rom[i] - 1;
     return rom;
 }
-static void MenuClock(GearboyCore& core, const std::map<std::string,unsigned>& syms, bool color)
+static void MenuClock(GearboyCore& core, const std::map<std::string,unsigned>& syms, bool color, bool icons = true)
 {
     auto memory=core.GetMemory();
+    if (icons) {
+        u8 hint_pixels[8][112]={};unsigned hint_x=5;
+        for(unsigned char c : std::string("\001 Select  \002 Resume")) {
+            for(unsigned y=0;y<8;++y)for(unsigned bit=0;bit<8 && hint_x+bit<112;++bit) {
+                bool ink=memory->Read(syms.at("FontVWFGlyphs")+c*8+y)&(128>>bit);
+                unsigned pixel=ink?3:0;
+                if(c==1 || c==2) {
+                    if(memory->Read(syms.at("FontVWFGlyphs")+(132+c-1)*8+y)&(128>>bit))pixel=2;
+                    if(memory->Read(syms.at("FontVWFGlyphs")+(143+c-1)*8+y)&(128>>bit))pixel=1;
+                }
+                hint_pixels[y][hint_x+bit]=pixel;
+            }
+            hint_x+=memory->Read(syms.at("FontVWFWidths")+c);
+        }
+        for(unsigned column=0;column<112;++column)for(unsigned y=0;y<8;++y) {
+            unsigned tile=memory->Read(0x9800+17*32+column/8), address=0x8000+tile*16+y*2, bit=128>>(column&7);
+            unsigned actual=bool(memory->ReadCGBLCDRAM(address,false)&bit) |
+                            bool(memory->ReadCGBLCDRAM(address+1,false)&bit)<<1;
+            unsigned source=hint_pixels[y][column];
+            Check(actual==(color?(source?source:1):(source^3)),"in-game 2bpp icon shades");
+        }
+    }
     unsigned x=memory->Read(syms.at("_footer_x")), width=0;
     bool pixels[8][160]={};
     Check(memory->Read(syms.at("_footer_time"))!=0,"in-game footer has a clock");
@@ -176,13 +198,16 @@ static void Run(const char* image, const char* symbols, const char* data, bool c
         Frames(core, 180);
         Check(core.CanPressEverdriveButton(), "launch game, including after returning to OS");
         memory->Write(0, 0x0A); memory->Write(0xA000, 0x5A + launch);
-        core.PressEverdriveButton(); Frames(core, 300);
+        core.PressEverdriveButton(); Frames(core,300);
         Check(!core.CanPressEverdriveButton(), "open menu");
+        auto os=Read(image);
+        for(unsigned address : {0u,0x2000u,0x2100u,0x3000u,0x4000u,0x6000u})
+            Check(memory->Read(address)==os[address],"menu restores resident bytes changed by mapper writes");
         MenuClock(core,syms,color);
         if (!launch) {
             key(Down_Key); key(Down_Key); key(A_Key,180);
             Check(!core.CanPressEverdriveButton(),"unavailable Load state leaves menu open");
-            MenuClock(core,syms,color);
+            MenuClock(core,syms,color,false);
             key(B_Key, 180);
             Check(core.CanPressEverdriveButton(), "resume game");
             core.PressEverdriveButton(); Frames(core, 300);

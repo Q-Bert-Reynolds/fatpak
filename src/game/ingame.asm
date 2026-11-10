@@ -140,6 +140,7 @@ InGameMenu:
   call MenuOff
 
   call SnapshotCaptureGame
+  call MenuRestoreOSCode;mapper writes may have changed resident drawing instructions
   ld sp, stack_bottom;the game RAM/stack is now in the full snapshot
   ld a, [menu_cgb]
   and a
@@ -169,12 +170,8 @@ InGameMenu:
   call MenuClear
   call MenuLoadGraphics
   call MenuDrawHeader
-  ld hl, MENU_FOOTER_VRAM
-  ld de, MenuBarMasks
-  ld b, 20
-  call MenuTint
   call _FooterPoll
-  call MenuLoadClock
+  call MenuLoadFooter
   xor a
   ldh [rSCX], a
   ldh [rSCY], a
@@ -373,19 +370,27 @@ MenuWarmExit:
   ldh [rTIMA], a
   ldh [rTMA], a
   ldh [rDIV], a
-  ld a, [ingame_os_bytes+0]
-  ld [$0000], a
-  ld a, [ingame_os_bytes+1]
-  ld [$2000], a
-  ld a, [ingame_os_bytes+2]
-  ld [$2100], a
-  ld a, [ingame_os_bytes+3]
-  ld [$3000], a
-  ld a, [ingame_os_bytes+4]
-  ld [$4000], a
-  ld a, [ingame_os_bytes+5]
-  ld [$6000], a
+  call MenuRestoreOSCode
   jp WarmMain ; no $BD06=$10: preserve hardware mode and cartridge feature controls
+
+;The mapper registers alias writable resident OS bytes during launch/resume.
+;Restore before any shared renderer/SD code runs, as well as before warm startup.
+MenuRestoreOSCode:
+  ld hl, ingame_os_bytes
+  ld a, [hli]
+  ld [$0000], a
+  ld a, [hli]
+  ld [$2000], a
+  ld a, [hli]
+  ld [$2100], a
+  ld a, [hli]
+  ld [$3000], a
+  ld a, [hli]
+  ld [$4000], a
+  ld a, [hl]
+  ld [$6000], a
+  ret
+
 
 
 ;Detect actual CGB mode without depending on game WRAM or boot registers.
@@ -478,6 +483,15 @@ ENDR
 ;The menu is already CPU-drawn. Only replace its six rightmost footer tiles.
 ;Calls that can switch pages run through always-mapped code.
 END_PAGE
+SECTION "Menu footer dispatch", ROM0
+MenuLoadFooter:
+  ld a, LAUNCH_PAGE
+  SET_BANK
+  call MenuFooterGraphics
+  ld a, INGAME_PAGE
+  SET_BANK
+  ret
+
 FIXED "Menu clock dispatch"
 MenuLoadClock:
   ld a, LAUNCH_PAGE
@@ -499,6 +513,27 @@ MenuPalette:
 END_PAGE
 
 PAGE LAUNCH_PAGE
+;Initial menu drawing runs with the LCD off, after snapshotting the game's RAM.
+;Use the shared 2bpp encoder for icons, then add the cached clock on the right.
+MenuFooterGraphics:
+  ld a, 5
+  ld de, MenuFooterText
+  call RenderMenuText
+  ld a, [menu_cgb]
+  ld [render_highlight], a
+  ld hl, render_mask
+  ld bc, TB_COLS
+  ld a, $FF
+  call mem_Set
+  call RenderEncode
+  ld hl, render_dma_buffer
+  ld de, MENU_FOOTER_VRAM
+  ld bc, TB_WIDTH*2
+  call mem_Copy
+  jr MenuClockGraphics
+MenuFooterText:
+  DB "<BTN_A> Select  <BTN_B> Resume", 0
+
 MenuClockGraphics:
   ld a, [_footer_x]
   ld de, _footer_time
@@ -572,6 +607,7 @@ RenderMenuText:;a = left inset, de = Latin-1 text, returns its 1bpp row in rende
   xor a
   ld [render_styled], a
   ld [render_head], a
+  ld [render_inked], a
   ld a, FONT_VWF
   ld [render_row_font], a
   ld hl, FontVWFGlyphs

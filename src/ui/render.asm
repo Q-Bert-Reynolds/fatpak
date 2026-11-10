@@ -21,7 +21,8 @@
 ;whose style (StyleLooks) has dim or accent ink. RenderEncode makes the 2bpp tiles: ink is color 3 on
 ;color 0, dim ink color 2, accent ink color 1. DMG inverts selected pixels (both bitplanes, dim ink
 ;turns light grey), SGB and GBC highlight them: unselected pixels get color 1 and accent ink becomes
-;color 3. On GBC a tile with accent ink uses the accent's palette (written to the map attributes with
+;color 3. Raw button icons retain colors 1 and 2 through these masks on all models.
+;On GBC a tile with accent ink uses the accent's palette (written to the map attributes with
 ;the row, RenderWritePalettes), selected tiles palette 0. See EditorSetPalettes.
 ;
 ;C functions (src/ui/render.h)
@@ -56,7 +57,7 @@ render_attr: DB;style of the char RenderGlyph draws
 render_head: DB;heading font: 1-4, 0 = none
 font_bold_widths:: DB;page of the current font's bold widths (styled_widths.asm)
 render_look: DB;StyleLooks of the char RenderGlyph draws
-render_inked: DB;bit 0: render_dim is used in this row, bit 1: render_accent
+render_inked: DB;bit 0: dim plane, bit 1: accent plane, bit 2: unstyled 2bpp icons
 render_highlight: DB;1 on SGB and GBC: selected pixels are highlighted, not inverted
 _block_map_rows::
 block_map_rows: DS RENDER_BLOCKS;map row each block is shown in, $FF = none (used for GBC attributes)
@@ -115,6 +116,52 @@ DEF render_box_mask EQUS "(cmd_buffer+TB_WIDTH+TB_COLS)";the box's pixels of eac
 DEF render_pals EQUS "(cmd_buffer+TB_WIDTH+TB_COLS*2)";GBC: accent palette of each tile, in the same page
 DEF render_dim EQUS "(cmd_buffer+$100)";pixels of dim ink, the page after render_bitmap
 DEF render_accent EQUS "win_buffer";GBC: pixels of accent ink (win_buffer is only used between renders)
+
+SECTION "Icon Renderer", ROM0
+
+;A = icon index 0..10, C = character. Use the normal compositing planes:
+;ink = occupied pixels, dim = color 2, accent = color 1. No palette changes.
+RenderIcon:
+  push af
+  ld l, c
+  ld h, 0
+  add hl, hl
+  add hl, hl
+  add hl, hl
+  ld de, FontVWFGlyphs
+  add hl, de
+  ld b, h
+  ld c, l
+  ld d, HIGH(render_bitmap)
+  call RenderGlyphPlane
+  pop af
+  add a, 132
+  ld l, a
+  ld h, 0
+  add hl, hl
+  add hl, hl
+  add hl, hl
+  ld de, FontVWFGlyphs
+  add hl, de
+  ld b, h
+  ld c, l
+  push bc
+  ld a, 1
+  ld d, HIGH(render_dim)
+  call RenderUsePlane
+  call RenderGlyphPlane
+  pop hl
+  ld de, 11*8
+  add hl, de
+  ld b, h
+  ld c, l
+  ld a, 2
+  ld d, HIGH(render_accent)
+  call RenderUsePlane
+  call RenderGlyphPlane
+  ld hl, render_inked
+  set 2, [hl]
+  ret
 
 SECTION "Render ROM0", ROM0
 
@@ -1787,6 +1834,22 @@ RenderGlyph:
   ld a, [hl]
 .setWidth
   ld [render_w], a
+  ld a, [render_styled]
+  and a
+  jr nz, .oneBit
+  ld a, c
+  dec a
+  cp a, 8
+  jr c, .icon
+  ld a, c
+  sub a, 129
+  cp a, 3
+  jr nc, .oneBit
+  add a, 8
+.icon
+  call RenderIcon
+  jp .advance
+.oneBit
   ld l, c
   ld h, b
   add hl, hl
@@ -1979,7 +2042,7 @@ RenderEncode:
     ld a, [render_highlight]
     and a
     jr nz, .selected
-  .inverted;DMG: bitplane 0 = (ink & ~dim) ^ mask, bitplane 1 = ink ^ mask
+  .inverted;DMG: invert both bitplanes, including raw icon shading
       ld h, HIGH(render_bitmap)
       ld a, [hl]
       ld c, a
@@ -1990,7 +2053,10 @@ RenderEncode:
       xor a, b
       ld [de], a
       inc de
-      ld a, c
+      ld h, HIGH(render_accent)
+      ld a, [hl]
+      cpl
+      and a, c
       xor a, b
       ld [de], a
       inc de
@@ -1999,7 +2065,7 @@ RenderEncode:
       and a, 7
       jr nz, .inverted
     jr .next
-  .selected;bitplane 0 = (ink & ~dim) | (mask & ~ink), bitplane 1 = ink (accent ink is ink)
+  .selected;highlight paper; raw icons keep their high plane, styled accents use ink
       ld h, HIGH(render_bitmap)
       ld a, [hl]
       ld c, a
@@ -2014,7 +2080,15 @@ RenderEncode:
       or a, h
       ld [de], a
       inc de
+      ld a, [render_inked]
+      bit 2, a
       ld a, c
+      jr z, .selectedHigh
+      ld h, HIGH(render_accent)
+      ld a, [hl]
+      cpl
+      and a, c
+.selectedHigh
       ld [de], a
       inc de
       inc l

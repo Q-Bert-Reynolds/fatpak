@@ -459,3 +459,14 @@ and full D-pad glyphs. `ui/icons.h` provides C string escapes matching the
 `<BTN_*>` entries in `charmap.asm`; `data_file.py` expands those tokens in help
 records. Footer hints show gamepad controls; keyboard shortcuts remain supported.
 The private clock-alignment marker is `$7F`, keeping button A (code 1) printable.
+
+Button icons retain the four indexed shades from `ui_font.png` (using the same
+palette-index inversion as `img2rgbds.py`). Ordinary fonts remain 1bpp. Each icon's
+occupancy glyph and two shading masks reconstruct its original 2bpp pixel values;
+the resident VWF font's unused C1 control slots 132-153 hold those masks without
+increasing the ROM font allocation. `RenderIcon` composites into the existing ink,
+dim and accent planes. DMG selection inverts both original bitplanes; highlighted
+UI rows keep icon shades while changing paper to the existing highlight color.
+No palette colors change. The in-game footer uses the same encoder after the
+game's RAM is captured, before enabling the LCD; subsequent clock updates still
+replace only the rightmost six tiles.
