@@ -35,7 +35,7 @@ flowchart LR
   end
   subgraph c["C (per file)"]
     cfile[src/*/name.c] -->|sdcc| raw[build/c/src/*/name.asm]
-    raw -->|bank_split.py, all modules and their .banks files| casm[src/*/_name.asm]
+    raw -->|bank_split.py, all modules and their .banks files| casm[build/asm/src/*/name.asm]
     raw -->|bank_split.py| calls[build/c_calls.asm + c_modules.inc]
   end
   main[src/main.asm] -->|rgbasm| obj[build/main.o]
@@ -48,7 +48,7 @@ flowchart LR
 ```
 
 - **One assembly unit.** `src/main.asm` includes `src/fatpak.inc`, which lists the assembly subsystems and includes `build/c_modules.inc`, generated from the Makefile's C source list. C files compile independently; no C file includes another application C file. FatFs remains an intentional library amalgamation. `rgbasm` runs once and `rgblink` links a single object. The only application build is the EverDrive OS image. `pages.link` places its resident code and page fragments; `check_pages.py` verifies the layout.
-- **Generated files are committed** (`img/**/*.asm`, `*.tiles`, `data/strings/*.asm`, `src/*/_*.asm`, `src/constants.h`, the ROM), so `make assemble` needs no asset regeneration; it still uses Python for page splitting, the menu, layout checks and the data file. The asset scripts skip files that are already up to date.
+- **Generated files are committed** (`img/**/*.asm`, `*.tiles`, `data/strings/*.asm`, `src/constants.h`, the ROM), so `make assemble` needs no asset regeneration; it still uses Python for page splitting, the menu, layout checks and the data file. The asset scripts skip files that are already up to date. C assembly is generated only under `build/`: raw SDCC output in `build/c/` and page-placed modules in `build/asm/`; neither is committed.
 - **Targets:** `make all` (clean, assets, assemble, run), `make assemble` (OS image, symbols and data file), `make code` (assemble and run in Gearboy), `make assets`, `make run`, and `make clean`. There is no `make sdcard` target.
 - **Languages:** `LANGUAGE=EN|ES|FR|IT|PT|DE|JA` picks which generated strings `data/strings/*.asm` includes. Editor, clock and cart-menu labels still contain hard-coded English text.
 - **Installation:** every successful `make assemble` checks whether `/media/qbertreynolds/GAMEBOY` is mounted. If it is, the build copies `bin/GBCOS.BIN` and `bin/EDITOR.DAT` into its `GBCSYS` folder and flushes both writes. Keep the two files together: data version 4 includes the base fixed and monospaced fonts, styled fonts, SGB border and both help texts.

@@ -80,9 +80,17 @@ _Public::
     def output(self, path):
         return (self.root / path).read_text()
 
+    def test_generated_modules_stay_in_build(self):
+        for source in self.sources:
+            source = Path(source)
+            self.assertTrue((self.root / 'build/asm' / source.with_suffix('.asm')).is_file())
+            self.assertFalse((self.root / source.with_name('_' + source.stem + '.asm')).exists())
+        self.assertNotIn('__far', self.output('build/c/src/first.asm'))
+        self.assertNotIn('INCLUDE "src/', self.output('build/c_modules.inc'))
+
     def test_external_calls_use_one_shared_thunk(self):
-        first = self.output('src/_first.asm')
-        second = self.output('src/_second.asm')
+        first = self.output('build/asm/src/first.asm')
+        second = self.output('build/asm/src/second.asm')
         calls = self.output('build/c_calls.asm')
         self.assertIn('call _Public__far', first)
         self.assertIn('jp Z, _Public__far', first)
@@ -91,15 +99,15 @@ _Public::
         self.assertIn('DB BANK(_Public)\n\tDW _Public', calls)
 
     def test_home_and_assembly_calls_stay_direct(self):
-        first = self.output('src/_first.asm')
+        first = self.output('build/asm/src/first.asm')
         self.assertIn('call _Resident\n', first)
         self.assertIn('call _AssemblyAPI\n', first)
         self.assertNotIn('_Resident__far', self.output('build/c_calls.asm'))
-        self.assertIn('"src/api.c_HOME",ROM0', self.output('src/_api.asm'))
+        self.assertIn('"src/api.c_HOME",ROM0', self.output('build/asm/src/api.asm'))
 
     def test_private_functions_and_data_are_module_local(self):
-        first = self.output('src/_first.asm')
-        second = self.output('src/_second.asm')
+        first = self.output('build/asm/src/first.asm')
+        second = self.output('build/asm/src/second.asm')
         self.assertIn('call _src_first_c_helper__far', first)
         self.assertIn('call _src_second_c_helper\n', second)
         self.assertIn('_src_first_c_message:', first)
@@ -108,12 +116,12 @@ _Public::
         self.assertIn('DB "_helper; literal text"', first)
 
     def test_repeated_passes_use_raw_compiler_output(self):
-        paths = ['src/_first.asm', 'src/_second.asm', 'src/_api.asm',
+        paths = ['build/asm/src/first.asm', 'build/asm/src/second.asm', 'build/asm/src/api.asm',
                  'build/c_calls.asm', 'build/c_modules.inc']
         before = {path: self.output(path) for path in paths}
         self.run_split()
         self.assertEqual(before, {path: self.output(path) for path in paths})
-        self.assertEqual(self.output('build/c_modules.inc').count('INCLUDE "src/_first.asm"'), 1)
+        self.assertEqual(self.output('build/c_modules.inc').count('INCLUDE "build/asm/src/first.asm"'), 1)
 
     def test_omitted_library_entries_leave_no_export_or_body(self):
         self.module('src/library.c', '*: 8\nOMIT: Unused\n', '''
@@ -129,7 +137,7 @@ _Kept::
 \tret
 ''')
         self.run_split()
-        output = self.output('src/_library.asm')
+        output = self.output('build/asm/src/library.asm')
         self.assertNotIn('_Unused', output)
         self.assertNotIn('ld a, 99', output)
         self.assertIn('EXPORT _Kept', output)

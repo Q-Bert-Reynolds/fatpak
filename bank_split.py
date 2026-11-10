@@ -3,7 +3,7 @@
 The Makefile compiles each source to build/c/<source>.asm. This pass reads all
 modules and their adjacent .banks files before rewriting any calls, so calls to
 another C module obey the same page rules as calls within one module. Outputs
-are src/.../_name.asm, build/c_calls.asm and build/c_modules.inc.
+are build/asm/<source>.asm, build/c_calls.asm and build/c_modules.inc.
 
 .banks entries assign function names to ROM0, FIXED (resident bank 1), or pages
 4-15. * sets the default code page; DATA defaults to FIXED. Constants passed to
@@ -55,7 +55,7 @@ def section(dest, base):
 class Module:
     def __init__(self, source, build):
         self.source = source
-        self.output = source.with_name('_' + source.stem + '.asm')
+        self.output = build / 'asm' / source.with_suffix('.asm')
         self.lines = [line.rstrip() for line in (build / 'c' / source.with_suffix('.asm')).read_text().splitlines()]
         self.config, self.defaults = read_config(source.with_suffix('.banks'))
         # Explicitly excluded library entry points save space without changing
@@ -123,6 +123,7 @@ class Module:
                     thunks[target] = thunk_locations[target]
                     line = branch[1] + target + '__far' + branch[3]
             out.append(line)
+        self.output.parent.mkdir(parents=True, exist_ok=True)
         self.output.write_text('\n'.join(out) + '\n')
 
 
