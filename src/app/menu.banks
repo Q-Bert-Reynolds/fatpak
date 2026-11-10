@@ -1,4 +1,4 @@
 # Code placement; feature ownership follows the source files.
 *: 5
 4: FileMenu HandleFileKey
-FIXED: PreferencesMenu
+15: PreferencesMenu

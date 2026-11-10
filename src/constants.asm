@@ -41,8 +41,10 @@ DEF DATA_FONTS         EQU 1;the styled fonts (FontStyles order), 2KB each
 DEF DATA_BORDER_TILES  EQU 41;the SGB border's 8KB of tiles
 DEF DATA_BORDER_MAP    EQU 57;its map and palettes, 4KB
 DEF DATA_FIXED         EQU 65;the base fixed font, four blocks
-DEF DATA_BLOCKS        EQU 69
-DEF DATA_VERSION       EQU 2;block 0 starts with "EDITOR.DAT" and this
+DEF DATA_HELP          EQU 69;two 32-line help screens, 32 bytes per line
+DEF DATA_BLOCKS        EQU 73
+DEF DATA_VERSION       EQU 3;block 0 starts with "EDITOR.DAT" and this
+DEF NAME_HISTORY_BLOCK EQU DATA_BLOCK+DATA_BLOCKS;16 scratch blocks, separate from document undo
 DEF WIN_SIZE           EQU $C000;the part of a large file in the text buffer (src/fatfs/fatfs.c)
 DEF WIN_CHUNKS         EQU WIN_SIZE/512+1;sector boundaries in it
 DEF MAX_PIECES         EQU 96;a large file's piece table (src/fatfs/fatfs.c)
@@ -125,6 +127,8 @@ DEF KEY_PAGE_UP   EQU $86
 DEF KEY_PAGE_DOWN EQU $87
 DEF KEY_INSERT    EQU $88
 DEF KEY_MENU      EQU $89;file menu (Escape, on screen keyboard)
+DEF KEY_UNDO      EQU $8A
+DEF KEY_REDO      EQU $8B
 DEF KEY_F1        EQU $90;function keys are KEY_F1 + n - 1
 DEF KEY_F2        EQU $91
 DEF KEY_F3        EQU $92

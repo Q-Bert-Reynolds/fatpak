@@ -11,7 +11,6 @@
 	EXPORT _PadPressed
 	EXPORT _DpadRepeat
 	EXPORT _SetRows
-	EXPORT _UndoRedo
 	EXPORT _OSKGetKey
 	EXPORT _OSKSelect
 	EXPORT _OSKDraw
@@ -21,6 +20,7 @@
 	EXPORT _osk_layer
 	EXPORT _osk_shown
 	EXPORT _osk_blocks
+	EXPORT _OpenKeyboard
 	EXPORT _PadKey
 ;--------------------------------------------------------
 ; special function registers
@@ -86,13 +86,17 @@ _src_editor_osk_c_PickOSKBlocks:
 	ld	c, a
 	ld	hl, sp+1
 	ld	[hl], $00
-;src/editor/osk.c:25: if (tb_found_row != 0xFF && tb_found_row >= rows) shift = tb_found_row - rows + 1;
+;src/editor/osk.c:25: if (render_text && tb_found_row != 0xFF && tb_found_row >= rows) shift = tb_found_row - rows + 1;
+	ld	hl, _render_text
+	ld	a, [hl]
+	or	a, a
+	jp	Z, .l00102
 	ld	hl, _tb_found_row
 	ld	a, [hl]
 	inc	a
-	jp	NZ,.l00179
+	jp	NZ,.l00185
 	jp	.l00102
-.l00179:
+.l00185:
 	ld	hl, _tb_found_row
 	ld	a, [hl]
 	sub	a, c
@@ -112,20 +116,20 @@ _src_editor_osk_c_PickOSKBlocks:
 ;src/editor/osk.c:27: for (j = 0; j < OSK_ROWS; ++j) {
 	inc	hl
 	ld	[hl], $00
-.l00119:
+.l00120:
 ;src/editor/osk.c:28: if (row == tb_rows) row = 0;
 	ld	hl, _tb_rows
 	ld	a, [hl]
 	ld	hl, sp+4
 	sub	a, [hl]
-	jp	NZ,.l00180
-	jp	.l00181
-.l00180:
-	jp	.l00105
-.l00181:
+	jp	NZ,.l00186
+	jp	.l00187
+.l00186:
+	jp	.l00106
+.l00187:
 	ld	hl, sp+4
 	ld	[hl], $00
-.l00105:
+.l00106:
 ;src/editor/osk.c:29: i = ring_pos + row;
 	ld	hl, _ring_pos
 	ld	a, [hl]
@@ -136,11 +140,11 @@ _src_editor_osk_c_PickOSKBlocks:
 	ld	a, c
 	ld	hl, sp+0
 	sub	a, [hl]
-	jp	C, .l00107
+	jp	C, .l00108
 	ld	a, c
 	sub	a, [hl]
 	ld	c, a
-.l00107:
+.l00108:
 ;src/editor/osk.c:31: osk_blocks[j] = ring_blocks[i];
 	ld	de, _osk_blocks
 	ld	hl, sp+5
@@ -167,9 +171,9 @@ _src_editor_osk_c_PickOSKBlocks:
 ;src/editor/osk.c:32: if (osk_blocks[j] == HEADER_BLOCK || osk_blocks[j] == STATUS_BLOCK) {
 	ld	a, c
 	sub	a, $08
-	jp	NZ,.l00182
-	jp	.l00128
-.l00182:
+	jp	NZ,.l00188
+	jp	.l00130
+.l00188:
 	ld	hl, sp+3
 	dec	hl
 	ld	e, [hl]
@@ -177,15 +181,15 @@ _src_editor_osk_c_PickOSKBlocks:
 	ld	d, [hl]
 	ld	a, [de]
 	sub	a, $11
-	jp	NZ,.l00183
-	jp	.l00184
-.l00183:
-	jp	.l00110
-.l00184:
+	jp	NZ,.l00189
+	jp	.l00190
+.l00189:
+	jp	.l00111
+.l00190:
 ;src/editor/osk.c:33: for (j = 0; j < OSK_ROWS; ++j) osk_blocks[j] = OSK_BLOCK + j;
-.l00128:
+.l00130:
 	ld	c, $00
-.l00117:
+.l00118:
 	ld	hl, _osk_blocks
 	ld	b, $00
 	add	hl, bc
@@ -195,10 +199,10 @@ _src_editor_osk_c_PickOSKBlocks:
 	inc	c
 	ld	a, c
 	sub	a, $05
-	jp	C, .l00117
+	jp	C, .l00118
 ;src/editor/osk.c:34: return;
-	jp	.l00121
-.l00110:
+	jp	.l00122
+.l00111:
 ;src/editor/osk.c:36: ++row;
 	ld	hl, sp+4
 	inc	[hl]
@@ -207,14 +211,14 @@ _src_editor_osk_c_PickOSKBlocks:
 	inc	[hl]
 	ld	a, [hl]
 	sub	a, $05
-	jp	C, .l00119
+	jp	C, .l00120
 ;src/editor/osk.c:38: if (!shift) return;
 	ld	hl, sp+1
 	ld	a, [hl]
 	or	a, a
-	jp	NZ, .l00114
-	jp	.l00121
-.l00114:
+	jp	NZ, .l00115
+	jp	.l00122
+.l00115:
 ;src/editor/osk.c:39: ring_pos += shift;
 	ld	hl, _ring_pos
 	ld	a, [hl]
@@ -226,14 +230,14 @@ _src_editor_osk_c_PickOSKBlocks:
 	ld	a, [hl]
 	ld	hl, sp+0
 	sub	a, [hl]
-	jp	C, .l00116
+	jp	C, .l00117
 	ld	hl, _ring_pos
 	ld	a, [hl]
 	ld	hl, sp+0
 	sub	a, [hl]
 	ld	hl, _ring_pos
 	ld	[hl], a
-.l00116:
+.l00117:
 ;src/editor/osk.c:41: ring_top = (ring_top + shift) & (BG_MAP_ROWS - 1);
 	ld	hl, _ring_top
 	ld	a, [hl]
@@ -278,7 +282,7 @@ _src_editor_osk_c_PickOSKBlocks:
 	ld	a, [de]
 	inc	hl
 	ld	[hl], a
-.l00121:
+.l00122:
 ;src/editor/osk.c:43: }
 	add	sp, 6
 	ret
@@ -307,7 +311,23 @@ _src_editor_osk_c_ToggleOSK:
 .l00103:
 ;src/editor/osk.c:49: }
 	ret
-;src/editor/osk.c:51: static void SetOSKLayer(unsigned char layer) {
+;src/editor/osk.c:51: void OpenKeyboard(void) {
+;	---------------------------------
+	SECTION FRAGMENT "Page 7",ROMX,BANK[3]
+	LOAD FRAGMENT "Page 7 RAM",SRAM,BANK[7]
+; Function OpenKeyboard
+; ---------------------------------
+_OpenKeyboard::
+;src/editor/osk.c:52: if (!osk_shown) ToggleOSK();
+	ld	hl, _osk_shown
+	ld	a, [hl]
+	or	a, a
+	jp	NZ, .l00103
+	jp	_src_editor_osk_c_ToggleOSK__far
+.l00103:
+;src/editor/osk.c:53: }
+	ret
+;src/editor/osk.c:55: static void SetOSKLayer(unsigned char layer) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -315,7 +335,7 @@ _src_editor_osk_c_ToggleOSK:
 ; ---------------------------------
 _src_editor_osk_c_SetOSKLayer:
 	ld	c, a
-;src/editor/osk.c:52: osk_layer = osk_layer == layer ? OSK_LOWER : layer;
+;src/editor/osk.c:56: osk_layer = osk_layer == layer ? OSK_LOWER : layer;
 	ld	hl, _osk_layer
 	ld	a, [hl]
 	sub	a, c
@@ -336,123 +356,113 @@ _src_editor_osk_c_SetOSKLayer:
 ;	spillPairReg hl
 .l00104:
 	ld	[_osk_layer], a
-;src/editor/osk.c:53: OSKDraw(osk_layer, tb_rows);
+;src/editor/osk.c:57: OSKDraw(osk_layer, tb_rows);
 	ld	hl, _tb_rows
 	ld	e, [hl]
 	ld	hl, _osk_layer
 	ld	a, [hl]
 	call	_OSKDraw
-;src/editor/osk.c:54: dirty = 1;
+;src/editor/osk.c:58: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
 .l00101:
-;src/editor/osk.c:55: }
+;src/editor/osk.c:59: }
 	ret
-;src/editor/osk.c:57: static unsigned char PressOSKKey(void) {
+;src/editor/osk.c:61: static unsigned char PressOSKKey(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function PressOSKKey
 ; ---------------------------------
 _src_editor_osk_c_PressOSKKey:
-;src/editor/osk.c:59: if (osk_y == OSK_ROWS - 1) {
+;src/editor/osk.c:63: if (osk_y == OSK_ROWS - 1) {
 	ld	hl, _osk_y
 	ld	a, [hl]
 	sub	a, $04
-	jp	NZ,.l00179
-	jp	.l00180
-.l00179:
-	jp	.l00124
-.l00180:
-;src/editor/osk.c:60: if (osk_x == 0) SetOSKLayer(OSK_SHIFT);
+	jp	NZ,.l00165
+	jp	.l00166
+.l00165:
+	jp	.l00120
+.l00166:
+;src/editor/osk.c:64: if (osk_x == 0) SetOSKLayer(OSK_SHIFT);
 	ld	hl, _osk_x
 	ld	a, [hl]
 	or	a, a
-	jp	NZ, .l00121
+	jp	NZ, .l00117
 	ld	a, $01
 	call	_src_editor_osk_c_SetOSKLayer
-	jp	.l00122
-.l00121:
-;src/editor/osk.c:61: else if (osk_x == 1) SetOSKLayer(OSK_SYMBOLS);
+	jp	.l00118
+.l00117:
+;src/editor/osk.c:65: else if (osk_x == 1) SetOSKLayer(OSK_SYMBOLS);
 	ld	hl, _osk_x
 	ld	a, [hl]
 	dec	a
-	jp	NZ,.l00181
-	jp	.l00182
-.l00181:
-	jp	.l00118
-.l00182:
+	jp	NZ,.l00167
+	jp	.l00168
+.l00167:
+	jp	.l00114
+.l00168:
 	ld	a, $02
 	call	_src_editor_osk_c_SetOSKLayer
-	jp	.l00122
-.l00118:
-;src/editor/osk.c:62: else if (osk_x == 2) return KEY_MENU;
+	jp	.l00118
+.l00114:
+;src/editor/osk.c:66: else if (osk_x == 2) return KEY_MENU;
 	ld	hl, _osk_x
 	ld	a, [hl]
 	sub	a, $02
-	jp	NZ,.l00183
-	jp	.l00184
-.l00183:
-	jp	.l00115
-.l00184:
+	jp	NZ,.l00169
+	jp	.l00170
+.l00169:
+	jp	.l00111
+.l00170:
 	ld	a, $89
-	jp	.l00127
-.l00115:
-;src/editor/osk.c:63: else if (osk_x == OSK_COLS - 3) { if (render_text) UndoRedo(0); }
+	jp	.l00123
+.l00111:
+;src/editor/osk.c:67: else if (osk_x == OSK_COLS - 3) return KEY_UNDO;
 	ld	hl, _osk_x
 	ld	a, [hl]
 	sub	a, $07
-	jp	NZ,.l00185
-	jp	.l00186
-.l00185:
-	jp	.l00112
-.l00186:
-	ld	hl, _render_text
-	ld	a, [hl]
-	or	a, a
-	jp	Z, .l00122
-	xor	a, a
-	call	_UndoRedo
-	jp	.l00122
-.l00112:
-;src/editor/osk.c:64: else if (osk_x == OSK_COLS - 2) { if (render_text) UndoRedo(1); }
+	jp	NZ,.l00171
+	jp	.l00172
+.l00171:
+	jp	.l00108
+.l00172:
+	ld	a, $8A
+	jp	.l00123
+.l00108:
+;src/editor/osk.c:68: else if (osk_x == OSK_COLS - 2) return KEY_REDO;
 	ld	hl, _osk_x
 	ld	a, [hl]
 	sub	a, $08
-	jp	NZ,.l00187
-	jp	.l00188
-.l00187:
-	jp	.l00109
-.l00188:
-	ld	hl, _render_text
-	ld	a, [hl]
-	or	a, a
-	jp	Z, .l00122
-	ld	a, $01
-	call	_UndoRedo
-	jp	.l00122
-.l00109:
-;src/editor/osk.c:65: else if (osk_x == OSK_COLS - 1) return KEY_ENTER;
+	jp	NZ,.l00173
+	jp	.l00174
+.l00173:
+	jp	.l00105
+.l00174:
+	ld	a, $8B
+	jp	.l00123
+.l00105:
+;src/editor/osk.c:69: else if (osk_x == OSK_COLS - 1) return KEY_ENTER;
 	ld	hl, _osk_x
 	ld	a, [hl]
 	sub	a, $09
-	jp	NZ,.l00189
-	jp	.l00190
-.l00189:
-	jp	.l00106
-.l00190:
+	jp	NZ,.l00175
+	jp	.l00176
+.l00175:
+	jp	.l00102
+.l00176:
 	ld	a, $0A
-	jp	.l00127
-.l00106:
-;src/editor/osk.c:66: else return ' ';
+	jp	.l00123
+.l00102:
+;src/editor/osk.c:70: else return ' ';
 	ld	a, $20
-	jp	.l00127
-.l00122:
-;src/editor/osk.c:67: return KEY_NONE;
+	jp	.l00123
+.l00118:
+;src/editor/osk.c:71: return KEY_NONE;
 	xor	a, a
-	jp	.l00127
-.l00124:
-;src/editor/osk.c:69: key = OSKGetKey(osk_layer, (osk_y << 3) + (osk_y << 1) + osk_x);
+	jp	.l00123
+.l00120:
+;src/editor/osk.c:73: key = OSKGetKey(osk_layer, (osk_y << 3) + (osk_y << 1) + osk_x);
 	ld	hl, _osk_y
 	ld	c, [hl]
 	ld	a, c
@@ -469,26 +479,26 @@ _src_editor_osk_c_PressOSKKey:
 	ld	a, [hl]
 	call	_OSKGetKey
 	ld	c, a
-;src/editor/osk.c:70: if (osk_layer == OSK_SHIFT) SetOSKLayer(OSK_SHIFT); // shift is one shot
+;src/editor/osk.c:74: if (osk_layer == OSK_SHIFT) SetOSKLayer(OSK_SHIFT); // shift is one shot
 	ld	hl, _osk_layer
 	ld	a, [hl]
 	dec	a
-	jp	NZ,.l00191
-	jp	.l00192
-.l00191:
-	jp	.l00126
-.l00192:
+	jp	NZ,.l00177
+	jp	.l00178
+.l00177:
+	jp	.l00122
+.l00178:
 	push	bc
 	ld	a, $01
 	call	_src_editor_osk_c_SetOSKLayer
 	pop	bc
-.l00126:
-;src/editor/osk.c:71: return key;
+.l00122:
+;src/editor/osk.c:75: return key;
 	ld	a, c
-.l00127:
-;src/editor/osk.c:72: }
+.l00123:
+;src/editor/osk.c:76: }
 	ret
-;src/editor/osk.c:74: static void MoveOSKSelection(unsigned char held) {
+;src/editor/osk.c:78: static void MoveOSKSelection(unsigned char held) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
@@ -496,7 +506,7 @@ _src_editor_osk_c_PressOSKKey:
 ; ---------------------------------
 _src_editor_osk_c_MoveOSKSelection:
 	ld	c, a
-;src/editor/osk.c:75: if (held & PADF_UP) osk_y = osk_y ? osk_y - 1 : OSK_ROWS - 1;
+;src/editor/osk.c:79: if (held & PADF_UP) osk_y = osk_y ? osk_y - 1 : OSK_ROWS - 1;
 	ld	hl, _osk_y
 	ld	b, [hl]
 	bit	6, c
@@ -516,7 +526,7 @@ _src_editor_osk_c_MoveOSKSelection:
 	ld	[hl], b
 	jp	.l00105
 .l00104:
-;src/editor/osk.c:76: else if (held & PADF_DOWN) osk_y = osk_y == OSK_ROWS - 1 ? 0 : osk_y + 1;
+;src/editor/osk.c:80: else if (held & PADF_DOWN) osk_y = osk_y == OSK_ROWS - 1 ? 0 : osk_y + 1;
 	bit	7, c
 	jp	NZ,.l00162
 	jp	.l00105
@@ -541,7 +551,7 @@ _src_editor_osk_c_MoveOSKSelection:
 	ld	hl, _osk_y
 	ld	[hl], b
 .l00105:
-;src/editor/osk.c:77: if (held & PADF_LEFT) osk_x = osk_x ? osk_x - 1 : OSK_COLS - 1;
+;src/editor/osk.c:81: if (held & PADF_LEFT) osk_x = osk_x ? osk_x - 1 : OSK_COLS - 1;
 	ld	hl, _osk_x
 	ld	e, [hl]
 	bit	5, c
@@ -561,7 +571,7 @@ _src_editor_osk_c_MoveOSKSelection:
 	ld	[hl], e
 	jp	.l00110
 .l00109:
-;src/editor/osk.c:78: else if (held & PADF_RIGHT) osk_x = osk_x == OSK_COLS - 1 ? 0 : osk_x + 1;
+;src/editor/osk.c:82: else if (held & PADF_RIGHT) osk_x = osk_x == OSK_COLS - 1 ? 0 : osk_x + 1;
 	bit	4, c
 	jp	NZ,.l00166
 	jp	.l00110
@@ -586,29 +596,29 @@ _src_editor_osk_c_MoveOSKSelection:
 	ld	hl, _osk_x
 	ld	[hl], e
 .l00110:
-;src/editor/osk.c:79: OSKSelect(osk_x, osk_y);
+;src/editor/osk.c:83: OSKSelect(osk_x, osk_y);
 	ld	hl, _osk_y
 	ld	e, [hl]
 	ld	hl, _osk_x
 	ld	a, [hl]
 	jp	_OSKSelect
 .l00111:
-;src/editor/osk.c:80: }
+;src/editor/osk.c:84: }
 	ret
-;src/editor/osk.c:82: unsigned char PadKey(void) {
+;src/editor/osk.c:86: unsigned char PadKey(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function PadKey
 ; ---------------------------------
 _PadKey::
-;src/editor/osk.c:83: unsigned char pressed = PadPressed();
+;src/editor/osk.c:87: unsigned char pressed = PadPressed();
 	call	_PadPressed
 	ld	c, a
-;src/editor/osk.c:85: pad_mods = 0;
+;src/editor/osk.c:89: pad_mods = 0;
 	ld	hl, _pad_mods
 	ld	[hl], $00
-;src/editor/osk.c:86: if (pressed & PADF_SELECT) ToggleOSK();
+;src/editor/osk.c:90: if (pressed & PADF_SELECT) ToggleOSK();
 	bit	2, c
 	jp	NZ,.l00185
 	jp	.l00102
@@ -617,7 +627,7 @@ _PadKey::
 	call	_src_editor_osk_c_ToggleOSK
 	pop	bc
 .l00102:
-;src/editor/osk.c:87: if (pressed & PADF_B) return KEY_BACKSPACE;
+;src/editor/osk.c:91: if (pressed & PADF_B) return KEY_BACKSPACE;
 	bit	1, c
 	jp	NZ,.l00186
 	jp	.l00104
@@ -625,7 +635,7 @@ _PadKey::
 	ld	a, $08
 	jp	.l00123
 .l00104:
-;src/editor/osk.c:88: if (pressed & PADF_START) return KEY_MENU;
+;src/editor/osk.c:92: if (pressed & PADF_START) return KEY_MENU;
 	bit	3, c
 	jp	NZ,.l00187
 	jp	.l00106
@@ -633,7 +643,7 @@ _PadKey::
 	ld	a, $89
 	jp	.l00123
 .l00106:
-;src/editor/osk.c:89: if (osk_shown && (pressed & PADF_A)) return PressOSKKey();
+;src/editor/osk.c:93: if (osk_shown && (pressed & PADF_A)) return PressOSKKey();
 	ld	hl, _osk_shown
 	ld	a, [hl]
 	or	a, a
@@ -645,18 +655,18 @@ _PadKey::
 	jp	_src_editor_osk_c_PressOSKKey
 	jp	.l00123
 .l00108:
-;src/editor/osk.c:90: held = DpadRepeat(pressed);
+;src/editor/osk.c:94: held = DpadRepeat(pressed);
 	ld	a, c
 	call	_DpadRepeat
 	ld	c, a
-;src/editor/osk.c:91: if (!held) return KEY_NONE;
+;src/editor/osk.c:95: if (!held) return KEY_NONE;
 	ld	a, c
 	or	a, a
 	jp	NZ, .l00111
 	xor	a, a
 	jp	.l00123
 .l00111:
-;src/editor/osk.c:92: if (!osk_shown && (button_state & PADF_A)) pad_mods = KB_MOD_SHIFT;
+;src/editor/osk.c:96: if (!osk_shown && (button_state & PADF_A)) pad_mods = KB_MOD_SHIFT;
 	ld	hl, _osk_shown
 	ld	a, [hl]
 	or	a, a
@@ -670,19 +680,19 @@ _PadKey::
 	ld	hl, _pad_mods
 	ld	[hl], $40
 .l00113:
-;src/editor/osk.c:93: if (osk_shown) {
+;src/editor/osk.c:97: if (osk_shown) {
 	ld	hl, _osk_shown
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00116
-;src/editor/osk.c:94: MoveOSKSelection(held);
+;src/editor/osk.c:98: MoveOSKSelection(held);
 	ld	a, c
 	call	_src_editor_osk_c_MoveOSKSelection
-;src/editor/osk.c:95: return KEY_NONE;
+;src/editor/osk.c:99: return KEY_NONE;
 	xor	a, a
 	jp	.l00123
 .l00116:
-;src/editor/osk.c:97: if (held & PADF_UP) return KEY_UP;
+;src/editor/osk.c:101: if (held & PADF_UP) return KEY_UP;
 	bit	6, c
 	jp	NZ,.l00190
 	jp	.l00118
@@ -690,7 +700,7 @@ _PadKey::
 	ld	a, $82
 	jp	.l00123
 .l00118:
-;src/editor/osk.c:98: if (held & PADF_DOWN) return KEY_DOWN;
+;src/editor/osk.c:102: if (held & PADF_DOWN) return KEY_DOWN;
 	bit	7, c
 	jp	NZ,.l00191
 	jp	.l00120
@@ -698,7 +708,7 @@ _PadKey::
 	ld	a, $83
 	jp	.l00123
 .l00120:
-;src/editor/osk.c:99: if (held & PADF_LEFT) return KEY_LEFT;
+;src/editor/osk.c:103: if (held & PADF_LEFT) return KEY_LEFT;
 	bit	5, c
 	jp	NZ,.l00192
 	jp	.l00122
@@ -706,10 +716,10 @@ _PadKey::
 	ld	a, $80
 	jp	.l00123
 .l00122:
-;src/editor/osk.c:100: return KEY_RIGHT;
+;src/editor/osk.c:104: return KEY_RIGHT;
 	ld	a, $81
 .l00123:
-;src/editor/osk.c:101: }
+;src/editor/osk.c:105: }
 	ret
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]

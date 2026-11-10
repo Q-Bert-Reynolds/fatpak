@@ -22,7 +22,7 @@ unsigned char pad_mods; // modifiers synthesized by PadKey
 // bars' blocks can't be taken, they'd clash when shown (then the keyboard uses 9-13 and Refresh scrolls)
 static void PickOSKBlocks(void) {
   unsigned char i, j, row, length = tb_rows + render_gbc, rows = tb_rows - OSK_ROWS, shift = 0;
-  if (tb_found_row != 0xFF && tb_found_row >= rows) shift = tb_found_row - rows + 1;
+  if (render_text && tb_found_row != 0xFF && tb_found_row >= rows) shift = tb_found_row - rows + 1;
   row = rows + shift; // hidden: the rows below the ones that stay, then the ones scrolled off the top
   for (j = 0; j < OSK_ROWS; ++j) {
     if (row == tb_rows) row = 0;
@@ -48,6 +48,10 @@ static void ToggleOSK(void) {
   SetRows();
 }
 
+void OpenKeyboard(void) {
+  if (!osk_shown) ToggleOSK();
+}
+
 static void SetOSKLayer(unsigned char layer) {
   osk_layer = osk_layer == layer ? OSK_LOWER : layer;
   OSKDraw(osk_layer, tb_rows);
@@ -60,8 +64,8 @@ static unsigned char PressOSKKey(void) {
     if (osk_x == 0) SetOSKLayer(OSK_SHIFT);
     else if (osk_x == 1) SetOSKLayer(OSK_SYMBOLS);
     else if (osk_x == 2) return KEY_MENU;
-    else if (osk_x == OSK_COLS - 3) { if (render_text) UndoRedo(0); }
-    else if (osk_x == OSK_COLS - 2) { if (render_text) UndoRedo(1); }
+    else if (osk_x == OSK_COLS - 3) return KEY_UNDO;
+    else if (osk_x == OSK_COLS - 2) return KEY_REDO;
     else if (osk_x == OSK_COLS - 1) return KEY_ENTER;
     else return ' ';
     return KEY_NONE;

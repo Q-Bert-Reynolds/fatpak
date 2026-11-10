@@ -44,8 +44,10 @@
 #define DATA_BORDER_TILES  41//the SGB border's 8KB of tiles
 #define DATA_BORDER_MAP    57//its map and palettes, 4KB
 #define DATA_FIXED         65//the base fixed font, four blocks
-#define DATA_BLOCKS        69
-#define DATA_VERSION       2//block 0 starts with "EDITOR.DAT" and this
+#define DATA_HELP          69//two 32-line help screens, 32 bytes per line
+#define DATA_BLOCKS        73
+#define DATA_VERSION       3//block 0 starts with "EDITOR.DAT" and this
+#define NAME_HISTORY_BLOCK DATA_BLOCK+DATA_BLOCKS//16 scratch blocks, separate from document undo
 #define WIN_SIZE           0xC000u//the part of a large file in the text buffer (src/fatfs/fatfs.c)
 #define WIN_CHUNKS         WIN_SIZE/512+1//sector boundaries in it
 #define MAX_PIECES         96//a large file's piece table (src/fatfs/fatfs.c)
@@ -128,6 +130,8 @@
 #define KEY_PAGE_DOWN 0x87
 #define KEY_INSERT    0x88
 #define KEY_MENU      0x89//file menu (Escape, on screen keyboard)
+#define KEY_UNDO      0x8A
+#define KEY_REDO      0x8B
 #define KEY_F1        0x90//function keys are KEY_F1 + n - 1
 #define KEY_F2        0x91
 #define KEY_F3        0x92

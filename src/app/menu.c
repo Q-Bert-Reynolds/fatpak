@@ -14,20 +14,18 @@ static const char menu_items[][ITEM_SIZE] = {"FILE", "EDIT", "SETTINGS", "HELP",
 static const char submenu_items[][ITEM_SIZE] = { // FILE, EDIT, SETTINGS
   "OPEN", "SAVE", "SAVE AS", "NEW",
   "UNDO", "REDO", "CUT", "COPY", "PASTE", "SELECT ALL",
-  "LINE WRAP", "FULL SCREEN", "CLOCK",
-  "CONTROLS", "KEYBOARD TEST"};
-static const unsigned char submenu_starts[] = {0, 4, 10, 13, 15};
+  "LINE WRAP", "FULL SCREEN", "CLOCK", "KEYBOARD TEST"};
+static const unsigned char submenu_starts[] = {0, 4, 10};
 
 // Shared by the editor and browser; B returns to their enclosing menu.
-unsigned char PreferencesMenu(unsigned char help) {
-  unsigned char item = Choose(0, submenu_items[help ? 13 : 10], help ? 2 : 3, 0);
+unsigned char PreferencesMenu(unsigned char browser) {
+  unsigned char item = Choose(0, submenu_items[browser ? 12 : 10], 2, 0);
   if (item >= BACK) return item;
-  if (help) {
-    if (item) KeyboardTest(); else ShowHelp();
+  if (browser) {
+    if (item) KeyboardTest(); else ClockSetup();
   }
   else if (!item) ToggleWrap();
-  else if (item == 1) ToggleBars();
-  else ClockSetup();
+  else ToggleBars();
   return item;
 }
 
@@ -39,8 +37,9 @@ static void FileMenu(void) {
       OpenFile();
       return;
     }
-    if (menu >= 2) {
-      if (PreferencesMenu(menu == 3) == BACK) continue;
+    if (menu == 3) { ShowHelp(); return; }
+    if (menu == 2) {
+      if (PreferencesMenu(0) == BACK) continue;
       return;
     }
     item = submenu_starts[menu];

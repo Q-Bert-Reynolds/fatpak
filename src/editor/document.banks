@@ -1,7 +1,8 @@
 # Code placement; feature ownership follows the source files.
 *: 5
-4: CanDiscard NewFile OpenFile NameChar AskName SaveFile
-12: NameChar
+4: CanDiscard NewFile OpenFile SaveFile
 15: CanDiscard
 6: SetLang
 15: LoadDocument
+10: NewFile
+9: OpenFile

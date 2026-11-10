@@ -31293,7 +31293,7 @@ _fs_LoadData::
 	jp	NZ,.l00158
 	inc	hl
 	ld	a, [hl]
-	sub	a, $8A
+	sub	a, $92
 	inc	hl
 	or	a, [hl]
 	inc	hl
@@ -31310,7 +31310,7 @@ _fs_LoadData::
 	or	a, a
 	jp	NZ, .l00110
 	ld	a, e
-	sub	a, $45
+	sub	a, $49
 	jp	NZ,.l00159
 	ld	a, d
 	sub	a, $02
@@ -31368,7 +31368,7 @@ _fs_LoadData::
 	or	a, e
 	jp	NZ, .l00111
 	ld	a, [$BE0A]
-	sub	a, $02
+	sub	a, $03
 	jp	NZ,.l00160
 	jp	.l00112
 .l00160:

@@ -2,5 +2,7 @@
 *: 5
 4: ListFolder ListEntry ListRows ScrollList ListBars ListLoading ListMessage Browse
 11: ListRows
-15: ListEntry
+6: ListEntry RenameSelected
+FIXED: ListFolder ScrollList
+8: ListMessage
 FIXED: BrowserMenu BrowserError FileInfo

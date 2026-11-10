@@ -109,7 +109,7 @@ _footer_Poll::
 	ld	hl, sp+6
 	ld	e, l
 	ld	d, h
-	call	_CopyName
+	call	_CopyName__far
 	jp	.l00130
 .l00109:
 ;src/ui/footer.c:21: hour = date.hour;
@@ -301,7 +301,7 @@ _footer_Poll::
 	ld	c, l
 	ld	b, h
 	ld	de, _footer_time
-	call	_CopyName
+	call	_CopyName__far
 ;src/ui/footer.c:35: footer_x = TB_WIDTH - 4 - RenderTextWidth(text);
 	ld	hl, 6
 	add	hl, sp
@@ -518,8 +518,8 @@ _FooterCompose::
 	ret
 ;src/ui/footer.c:60: void FooterDraw(unsigned char row, unsigned char col, const char* text) {
 ;	---------------------------------
-	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
-	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
+	SECTION FRAGMENT "Page 14",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 14 RAM",SRAM,BANK[14]
 ; Function FooterDraw
 ; ---------------------------------
 _FooterDraw::
@@ -539,7 +539,7 @@ _FooterDraw::
 	call	_RowAddress__far
 	ld	e, c
 	ld	d, b
-	call	_FooterCompose
+	call	_FooterCompose__far
 .l00101:
 ;src/ui/footer.c:63: }
 	pop	hl

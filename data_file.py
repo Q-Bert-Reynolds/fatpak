@@ -69,6 +69,14 @@ def main(out_path):
   put(data, c["DATA_BORDER_MAP"], db_bytes(border, "DefaultSgbBorderTileMap"),
       (c["DATA_FIXED"] - c["DATA_BORDER_MAP"]) * BLOCK)
   put(data, c["DATA_FIXED"], db_bytes("img/fonts/font_fixed.asm", "FontFixedGlyphs", "FontFixedWidths"), 4 * BLOCK)
+  for context, name in enumerate(("editor", "browser")):
+    lines = open(f"data/help/{name}.txt", encoding="utf8").read().splitlines()
+    assert len(lines) == 32, f"{name} help must have 32 lines"
+    for i, line in enumerate(lines):
+      encoded = line.encode("latin1")
+      assert len(encoded) < 32, f"help line too long: {line}"
+      offset = (c["DATA_HELP"] + context * 2) * BLOCK + i * 32
+      data[offset:offset + len(encoded)] = encoded
   with open(out_path, "wb") as file:
     file.write(data)
   print(f"data_file.py: {out_path} {len(data)} bytes")

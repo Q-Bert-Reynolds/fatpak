@@ -4,6 +4,7 @@
 #include "../constants.h"
 
 unsigned char PadKey(void);
+void OpenKeyboard(void);
 
 extern unsigned char osk_blocks[OSK_ROWS]; // blocks the on screen keyboard's rows use
 extern unsigned char osk_shown;

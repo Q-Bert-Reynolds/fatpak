@@ -2262,8 +2262,8 @@ _EndFullScreen::
 	ret
 ;src/editor/view.c:268: void Render(void) {
 ;	---------------------------------
-	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
-	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
+	SECTION FRAGMENT "Page 7",ROMX,BANK[3]
+	LOAD FRAGMENT "Page 7 RAM",SRAM,BANK[7]
 ; Function Render
 ; ---------------------------------
 _Render::
@@ -2933,7 +2933,7 @@ _Refresh::
 	inc	hl
 	ld	[hl], b
 ;src/editor/view.c:326: Render();
-	call	_Render
+	call	_Render__far
 ;src/editor/view.c:327: if (tb_found_row == 0xFF) {
 	ld	hl, _tb_found_row
 	ld	a, [hl]
@@ -3126,7 +3126,7 @@ _Refresh::
 	call	_ScrollRing
 .l00117:
 ;src/editor/view.c:346: Render();
-	call	_Render
+	call	_Render__far
 .l00119:
 ;src/editor/view.c:348: if (tb_nowrap && ScrollX()) Render();
 	ld	hl, _tb_nowrap
@@ -3136,7 +3136,7 @@ _Refresh::
 	call	_src_editor_view_c_ScrollX
 	or	a, a
 	jp	Z, .l00121
-	call	_Render
+	call	_Render__far
 .l00121:
 ;src/editor/view.c:349: Draw();
 	call	_Draw

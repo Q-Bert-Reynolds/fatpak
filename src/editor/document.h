@@ -11,5 +11,6 @@ void OpenFile(void);
 void LoadDocument(char* path, unsigned char folder_length, const FileEntry* entry);
 void SaveFile(unsigned char ask);
 unsigned char AskName(char* value, const char* prompt);
+extern unsigned char name_row; // browser row edited by AskName(value, 0)
 
 #endif

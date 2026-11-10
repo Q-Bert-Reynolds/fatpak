@@ -51,7 +51,7 @@ flowchart LR
 - **Generated files are committed** (`img/**/*.asm`, `*.tiles`, `data/strings/*.asm`, `src/*/_*.asm`, `src/constants.h`, the ROM), so `make assemble` needs no asset regeneration; it still uses Python for page splitting, the menu, layout checks and the data file. The asset scripts skip files that are already up to date.
 - **Targets:** `make all` (clean, assets, assemble, run), `make assemble` (OS image, symbols and data file), `make code` (assemble and run in Gearboy), `make assets`, `make run`, and `make clean`. There is no `make sdcard` target.
 - **Languages:** `LANGUAGE=EN|ES|FR|IT|PT|DE|JA` picks which generated strings `data/strings/*.asm` includes. Editor, clock and cart-menu labels still contain hard-coded English text.
-- **Installation:** every successful `make assemble` checks whether `/media/qbertreynolds/GAMEBOY` is mounted. If it is, the build copies `bin/GBCOS.BIN` and `bin/EDITOR.DAT` into its `GBCSYS` folder and flushes both writes. Keep the two files together: data version 2 includes the base fixed font, styled fonts and the SGB border.
+- **Installation:** every successful `make assemble` checks whether `/media/qbertreynolds/GAMEBOY` is mounted. If it is, the build copies `bin/GBCOS.BIN` and `bin/EDITOR.DAT` into its `GBCSYS` folder and flushes both writes. Keep the two files together: data version 3 includes the base fixed font, styled fonts, SGB border and both help texts.
 - **Constants shared with C:** `build.py` turns `src/constants.asm` (`DEF X EQU ...`) into `src/constants.h` (`#define X ...`). Put anything C needs there, and parenthesize expressions.
 
 ## Source layout
@@ -125,7 +125,8 @@ accesses battery-backed game save RAM when `$BD06` bit 1 is set.
 | `$0100-$017e` | Text gap buffer: 127 sectors, 65,024 bytes |
 | `$0180-$01ef` | Undo ring: 112 sectors, 56 KiB |
 | `$01f0-$01ff` | Settings/signatures and 7,936-byte clipboard |
-| `$0200-$0244` | `EDITOR.DAT`: header, styled glyphs, SGB border, base fixed glyphs |
+| `$0200-$0248` | `EDITOR.DAT`: header, styled glyphs, SGB border, base fixed glyphs, help text |
+| `$0249-$0258` | Filename prompt undo/redo scratch ring: 64 states |
 | `$0400` onward | Large-file add buffer; `ADD_MAX` is `$7a0000` bytes |
 | `$0000-$3bff` | Launched ROM, up to 7.5 MiB |
 | `$3c00-$3ca3` | Staging a complete state file before replacing the live snapshot |
@@ -175,7 +176,7 @@ restored. See [`src/constants.asm`](../src/constants.asm) and
   - `KB_MODE_BUTTONS`: keys act as joypad buttons (Z = A, X = B, arrows, enter = START).
   - `KB_MODE_TYPING`: a legacy keyboard mode retained in the driver; the removed engine UI is no longer part of the application.
   - `KB_MODE_EDITOR`: key presses are queued as events (key + modifiers) for `KBPopEvent`. Printable keys use their character code, special keys use `KEY_*` codes from `src/constants.asm`.
-- The link port can't send data to the keyboard, so caps lock and the keyboard's LEDs aren't supported. In Gearboy, Caps Lock enables the emulated PS/2 keyboard. Normal detection runs at boot; HELP > KEYBOARD TEST also calls `KBListen` to listen after startup.
+- The link port can't send data to the keyboard, so caps lock and the keyboard's LEDs aren't supported. In Gearboy, Caps Lock enables the emulated PS/2 keyboard. Normal detection runs at boot; the browser's SETTINGS > KEYBOARD TEST also calls `KBListen` to listen after startup.
 - **iGKB** (USB keyboard adapter) handlers exist but detection is disabled.
 
 ## The editor
@@ -249,11 +250,25 @@ block. Their width is always four pixels. Without valid data, fixed text uses
 the resident mono glyphs as a fallback.
 
 The browser's Start menu uses the same untitled `Choose` boxes as the editor:
-FILE offers INFO and RENAME, EDIT offers CUT/COPY/PASTE, and SETTINGS and HELP
-share the editor's submenus. RESTART saves the swap and requests a full cartridge
+FILE offers INFO and RENAME, EDIT offers CUT/COPY/PASTE, and its SETTINGS offers
+CLOCK and KEYBOARD TEST. Editor SETTINGS offers only
+LINE WRAP and FULL SCREEN. HELP opens context-specific controls directly; both
+contexts use the same scrollable viewer (Up/Down or Page Up/Down, B/Esc to exit).
+RESTART saves the swap and requests a full cartridge
 reset (`$BD06=$10`) through the boot ROM, for recovery when warm return has issues.
 The in-game Return to OS keeps its splash-free warm path.
-Its file clipboard lasts for the browser session and is separate
+Help text lives in `data/help/editor.txt` and `data/help/browser.txt`, packed into
+`EDITOR.DAT` at relative blocks 69-72 as 32-byte rows. The viewer restores the
+PSRAM window after reading each screen.
+
+Rename opens the on-screen keyboard and edits the selected list row, scrolling
+it above the keyboard if necessary. `editor/name.c` handles both filename prompts
+and browser rename. Its private 64-state undo/redo ring uses 16 scratch PSRAM
+blocks immediately after `EDITOR.DAT` (`$0249-$0258`); it preserves document text
+and document undo history. Ctrl+Z, Ctrl+Y/Ctrl+Shift+Z and the keyboard's undo/redo
+keys target the active filename prompt. Save As still uses the header.
+
+The browser's file clipboard lasts for the session and is separate
 from copied text. Moves use FatFs rename; copies walk complete folder trees,
 including empty folders and hidden entries, with bounded paths and no overwrite.
 Transfers borrow the directory-mark buffer for paths and I/O, then reload the
@@ -401,7 +416,7 @@ Character mapping lives in `src/charmap.asm`; CSV strings are generated by
 
 ## Testing and debugging
 
-- Use HELP > KEYBOARD TEST for live PS/2/iGKB diagnostics. The application has one OS build; the old startup-test build switches have been removed. See [In-game menu](IN_GAME_MENU.md) for cart-menu checks.
+- Use the browser's SETTINGS > KEYBOARD TEST for live PS/2/iGKB diagnostics. The application has one OS build; the old startup-test build switches have been removed. See [In-game menu](IN_GAME_MENU.md) for cart-menu checks.
 - `python3 -m unittest discover -s tests -v` checks cross-module calls, same-page/resident calls, private-name isolation and repeatable bank splitting.
 - `bash tests/run_browser_menu.sh` uses the prebuilt sibling Gearboy core to check file/folder operations, collisions, document path updates, and Start-menu navigation on DMG/CGB. `bash tests/run_footer_clock.sh` checks footer pixels and idle clock updates.
 - From the FatPak root, `make -C ../Gearboy/tests fatpak` builds the sibling Gearboy core and runs its assembled-OS integration tests using `bin/GBCOS.BIN` and `bin/GBCOS.sym`. Temporary SD folders cover DMG/CGB typing, selection replacement, undo/redo, clipboard, exact saved text, OSK, menus, large-file navigation, and snapshots and menu Save, malformed files, legacy GAM2 migration, stock ownership, 128 KiB SRAM, RTC/date handling and mapper latches. `make -C ../Gearboy/tests everdrive` runs component tests. Hardware verification remains listed in [TODO](TODO.md).

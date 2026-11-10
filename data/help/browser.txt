@@ -1,0 +1,32 @@
+FILE BROWSER
+
+D-pad  select a file/folder
+A / Right  open selection
+B / Left  parent folder
+B at root  return to editor
+Start  browser menu
+F1  browser help
+
+FILE > INFO  size and date
+FILE > RENAME  edit name
+Rename opens the keyboard
+A  type the selected key
+B  erase (empty: cancel)
+Return key  accept name
+Start / Esc  cancel rename
+Undo/redo keys  name history
+Ctrl+Z / Ctrl+Y  undo/redo
+
+EDIT > CUT  prepare a move
+EDIT > COPY  prepare a copy
+Browse to the destination
+EDIT > PASTE  move/copy here
+Folders include their contents
+Existing names are protected
+
+SETTINGS > CLOCK  set time
+SETTINGS > KEYBOARD TEST
+HELP  show browser controls
+RESTART  full hardware reset
+
+B / Esc  return to browser

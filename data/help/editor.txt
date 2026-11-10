@@ -1,0 +1,32 @@
+TEXT EDITOR
+
+Start / Esc  menu
+F1  editor help
+
+D-pad  move the cursor
+A + D-pad  select text
+B  backspace
+Select  show/hide keyboard
+A  type the selected key
+Start  close keyboard/menu
+
+Ctrl+O  open file browser
+Ctrl+S  save
+Ctrl+N  new document
+Ctrl+A  select all
+Ctrl+X  cut text
+Ctrl+C  copy text
+Ctrl+V  paste text
+Ctrl+Z  undo
+Ctrl+Y / Ctrl+Shift+Z  redo
+Shift + arrows  select
+Ctrl+Left/Right  word
+Ctrl+Up/Down  scroll
+Ctrl+Home/End  start/end
+
+Settings: wrap and full screen
+Alt+Z  line wrap
+F11  full screen
+
+Up/Down  scroll this help
+B / Esc  return to editor

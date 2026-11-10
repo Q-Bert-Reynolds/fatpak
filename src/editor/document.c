@@ -102,64 +102,6 @@ void LoadDocument(char* path, unsigned char folder_length, const FileEntry* entr
   }
 }
 
-// file name chars, not / \ : * ? " < > |
-static unsigned char NameChar(unsigned char c) {
-  if (c < ' ' || (c >= 0x7F && c < 0xA0)) return 0;
-  return c != '/' && c != 0x5C && c != ':' && c != '*' && c != '?' && c != '"' && c != '<' && c != '>' && c != '|';
-}
-
-// Returns 0 on cancel, 1 after editing, or 2 if the original name was accepted.
-unsigned char AskName(char* value, const char* prompt) {
-  char name[NAME_CHARS + 1];
-  char text[TB_STRIDE + 1];
-  unsigned char length, key, i, bytes = 0, changed = 0;
-  char* end;
-  length = (unsigned char)(ToLatin1(name, value, NAME_CHARS) - name);
-  for (i = 0; i < length; ++i) bytes += (unsigned char)name[i] >= 0x80 ? 2 : 1;
-  EditorShowCursor(0);
-  NoHighlight();
-  while (1) {
-    end = PutText(text, prompt);
-    for (i = length > 31 ? length - 31 : 0; i < length; ++i) *end++ = name[i];
-    *end++ = '_';
-    *end = 0;
-    if (bars) {
-      DrawRow(HEADER_LINE, 1, text);
-      if (render_text) {
-        PutPath(PutText(text, "in "), file_dir, 28);
-        DrawRow(STATUS_LINE, 1, text);
-      }
-    }
-    else DrawRow(0, 0, text);
-    EditorDraw();
-    do {
-      WaitFrame();
-      key = (unsigned char)KBPopEvent();
-      if (!key) key = PadKey();
-    } while (!key);
-    if (key == KEY_ENTER && length) break;
-    if (key == KEY_ESCAPE || key == KEY_MENU || (key == KEY_BACKSPACE && !length)) {
-      dirty = 1;
-      return 0;
-    }
-    if (key == KEY_BACKSPACE) {
-      --length;
-      bytes -= (unsigned char)name[length] >= 0x80 ? 2 : 1;
-      changed = 1;
-    }
-    else if (bytes + (key >= 0x80 ? 2 : 1) <= NAME_CHARS && NameChar(key)) {
-      name[length++] = key;
-      bytes += key >= 0x80 ? 2 : 1;
-      changed = 1;
-    }
-  }
-  if (!changed) return 2;
-  name[length] = 0;
-  ToUtf8(value, name);
-  dirty = 1;
-  return 1;
-}
-
 void SaveFile(unsigned char ask) {
   char path[PATH_SIZE + FS_NAME_SIZE];
   unsigned char result;

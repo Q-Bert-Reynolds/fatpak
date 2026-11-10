@@ -97,7 +97,7 @@ _Choose::
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_CopyName
+	call	_CopyName__far
 	ld	hl, sp+5
 	dec	hl
 	ld	e, [hl]
@@ -158,7 +158,7 @@ _Choose::
 	pop	hl
 	ld	e, l
 	ld	d, h
-	call	_CopyName
+	call	_CopyName__far
 	pop	de
 ;src/app/dialogs.c:26: for (i = 0; i < count; ++i, line += BOX_STRIDE, items += ITEM_SIZE) {
 	ld	hl, sp+3

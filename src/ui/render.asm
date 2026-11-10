@@ -992,9 +992,6 @@ RenderKeyboardEdge:
   ld a, [_osk_shown]
   and a
   ret z
-  ld a, [render_styled]
-  and a
-  ret z
   ld a, [render_line]
   inc a
   ld hl, _tb_rows

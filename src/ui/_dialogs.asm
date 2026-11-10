@@ -215,7 +215,7 @@ _ShowBusy::
 	ld	e, c
 	ld	d, b
 	pop	bc
-	call	_CopyName
+	call	_CopyName__far
 ;src/ui/dialogs.c:43: OpenBox(1);
 	ld	a, $01
 	call	_OpenBox__far

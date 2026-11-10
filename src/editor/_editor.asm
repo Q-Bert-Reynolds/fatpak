@@ -944,27 +944,57 @@ _src_editor_editor_c_HandleKey:
 	ld	[hl], a
 	inc	hl
 	ld	[hl], $00
-;src/editor/editor.c:195: if (mods & (KB_MOD_ALT | KB_MOD_SUPER)) return;
+;src/editor/editor.c:195: if (key == KEY_UNDO || key == KEY_REDO) { UndoRedo(key == KEY_REDO); return; }
+	ld	hl, sp+5
+	ld	a, [hl]
+	sub	a, $8A
+	jp	NZ,.l00357
+	jp	.l00101
+.l00357:
+	ld	hl, sp+5
+	ld	a, [hl]
+	sub	a, $8B
+	jp	NZ,.l00358
+	jp	.l00359
+.l00358:
+	jp	.l00102
+.l00359:
+.l00101:
+	ld	hl, sp+5
+	ld	a, [hl]
+	sub	a, $8B
+	jp	NZ,.l00360
+	ld	a,$01
+	jp	.l00361
+.l00360:
+	xor	a,a
+.l00361:
+	ld	c, a
+	ld	a, c
+	call	_UndoRedo__far
+	jp	.l00173
+.l00102:
+;src/editor/editor.c:196: if (mods & (KB_MOD_ALT | KB_MOD_SUPER)) return;
 	ld	hl, sp+4
 	ld	a, [hl]
 	and	a, $18
-	jp	NZ,.l00349
-	jp	.l00102
-.l00349:
-	jp	.l00170
-.l00102:
-;src/editor/editor.c:196: if (key >= KEY_LEFT && key <= KEY_PAGE_DOWN) undo_merge = 0; // moving starts a new undo step
+	jp	NZ,.l00362
+	jp	.l00105
+.l00362:
+	jp	.l00173
+.l00105:
+;src/editor/editor.c:197: if (key >= KEY_LEFT && key <= KEY_PAGE_DOWN) undo_merge = 0; // moving starts a new undo step
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $80
-	jp	C, .l00104
+	jp	C, .l00107
 	ld	a, $87
 	sub	a, [hl]
-	jp	C, .l00104
+	jp	C, .l00107
 	ld	hl, _undo_merge
 	ld	[hl], $00
-.l00104:
-;src/editor/editor.c:197: if (key < KEY_LEFT || key > KEY_PAGE_DOWN) {
+.l00107:
+;src/editor/editor.c:198: if (key < KEY_LEFT || key > KEY_PAGE_DOWN) {
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $80
@@ -974,39 +1004,39 @@ _src_editor_editor_c_HandleKey:
 	ld	[hl], a
 	ld	a, [hl]
 	or	a, a
-	jp	NZ, .l00119
+	jp	NZ, .l00122
 	ld	a, $87
 	ld	hl, sp+5
 	sub	a, [hl]
-	jp	NC, .l00120
-.l00119:
-;src/editor/editor.c:198: if (ctrl) {
+	jp	NC, .l00123
+.l00122:
+;src/editor/editor.c:199: if (ctrl) {
 	ld	hl, sp+0
 	ld	a, [hl]
 	or	a, a
-	jp	Z, .l00121
-;src/editor/editor.c:199: HandleCtrlKey(key, mods);
+	jp	Z, .l00124
+;src/editor/editor.c:200: HandleCtrlKey(key, mods);
 	ld	hl, sp+4
 	ld	e, [hl]
 	inc	hl
 	ld	a, [hl]
 	call	_src_editor_editor_c_HandleCtrlKey__far
-;src/editor/editor.c:200: return;
-	jp	.l00170
-.l00120:
-;src/editor/editor.c:203: else if (mods & KB_MOD_SHIFT) { // shift + movement selects
+;src/editor/editor.c:201: return;
+	jp	.l00173
+.l00123:
+;src/editor/editor.c:204: else if (mods & KB_MOD_SHIFT) { // shift + movement selects
 	push	hl
 	ld	hl, sp+6
 	bit	6, [hl]
 	pop	hl
-	jp	NZ,.l00350
-	jp	.l00117
-.l00350:
-;src/editor/editor.c:204: if (!selecting) anchor = cursor;
+	jp	NZ,.l00363
+	jp	.l00120
+.l00363:
+;src/editor/editor.c:205: if (!selecting) anchor = cursor;
 	ld	hl, _selecting
 	ld	a, [hl]
 	or	a, a
-	jp	NZ, .l00109
+	jp	NZ, .l00112
 	ld	hl, _cursor
 	ld	a, [hl]
 	ld	hl, _anchor
@@ -1015,52 +1045,52 @@ _src_editor_editor_c_HandleKey:
 	ld	a, [hl]
 	ld	hl, _anchor + 1
 	ld	[hl], a
-.l00109:
-;src/editor/editor.c:205: selecting = 1;
+.l00112:
+;src/editor/editor.c:206: selecting = 1;
 	ld	hl, _selecting
 	ld	[hl], $01
-;src/editor/editor.c:206: redraw = 1;
+;src/editor/editor.c:207: redraw = 1;
 	ld	hl, _redraw
 	ld	[hl], $01
-	jp	.l00121
-.l00117:
-;src/editor/editor.c:208: else if (!ctrl && GetSelection() && (key == KEY_LEFT || key == KEY_RIGHT)) { // to that end of the selection
+	jp	.l00124
+.l00120:
+;src/editor/editor.c:209: else if (!ctrl && GetSelection() && (key == KEY_LEFT || key == KEY_RIGHT)) { // to that end of the selection
 	ld	hl, sp+0
 	ld	a, [hl]
 	or	a, a
-	jp	NZ, .l00111
+	jp	NZ, .l00114
 	call	_GetSelection__far
 	or	a, a
-	jp	Z, .l00111
+	jp	Z, .l00114
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $80
-	jp	NZ,.l00351
+	jp	NZ,.l00364
 	ld	a,$01
-	jp	.l00352
-.l00351:
+	jp	.l00365
+.l00364:
 	xor	a,a
-.l00352:
+.l00365:
 	ld	hl, sp+3
 	ld	[hl], a
 	ld	a, [hl]
 	or	a, a
-	jp	NZ, .l00110
+	jp	NZ, .l00113
 	inc	hl
 	inc	hl
 	ld	a, [hl]
 	sub	a, $81
-	jp	NZ,.l00353
-	jp	.l00354
-.l00353:
-	jp	.l00111
-.l00354:
-.l00110:
-;src/editor/editor.c:209: cursor = key == KEY_LEFT ? sel_start : sel_end;
+	jp	NZ,.l00366
+	jp	.l00367
+.l00366:
+	jp	.l00114
+.l00367:
+.l00113:
+;src/editor/editor.c:210: cursor = key == KEY_LEFT ? sel_start : sel_end;
 	ld	hl, sp+3
 	ld	a, [hl]
 	or	a, a
-	jp	Z, .l00172
+	jp	Z, .l00175
 	ld	hl, _sel_start
 	ld	a, [hl]
 	ld	hl, sp+2
@@ -1069,8 +1099,8 @@ _src_editor_editor_c_HandleKey:
 	ld	a, [hl]
 	ld	hl, sp+3
 	ld	[hl], a
-	jp	.l00173
-.l00172:
+	jp	.l00176
+.l00175:
 	ld	hl, _sel_end
 	ld	a, [hl]
 	ld	hl, sp+2
@@ -1079,7 +1109,7 @@ _src_editor_editor_c_HandleKey:
 	ld	a, [hl]
 	ld	hl, sp+3
 	ld	[hl], a
-.l00173:
+.l00176:
 	ld	hl, sp+2
 	ld	a, [hl]
 	ld	hl, _cursor
@@ -1088,141 +1118,141 @@ _src_editor_editor_c_HandleKey:
 	ld	a, [hl]
 	ld	hl, _cursor + 1
 	ld	[hl], a
-;src/editor/editor.c:210: ClearSelection();
+;src/editor/editor.c:211: ClearSelection();
 	call	_src_editor_editor_c_ClearSelection
-;src/editor/editor.c:211: moved = 1;
+;src/editor/editor.c:212: moved = 1;
 	ld	hl, _moved
 	ld	[hl], $01
-;src/editor/editor.c:212: return;
-	jp	.l00170
-.l00111:
-;src/editor/editor.c:214: else ClearSelection();
+;src/editor/editor.c:213: return;
+	jp	.l00173
+.l00114:
+;src/editor/editor.c:215: else ClearSelection();
 	call	_src_editor_editor_c_ClearSelection
-.l00121:
-;src/editor/editor.c:215: moved = 1;
+.l00124:
+;src/editor/editor.c:216: moved = 1;
 	ld	hl, _moved
 	ld	[hl], $01
-;src/editor/editor.c:216: if (ctrl) {
+;src/editor/editor.c:217: if (ctrl) {
 	ld	hl, sp+0
 	ld	a, [hl]
 	or	a, a
-	jp	Z, .l00131
-;src/editor/editor.c:217: switch (key) {
+	jp	Z, .l00134
+;src/editor/editor.c:218: switch (key) {
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $80
-	jp	NZ,.l00355
-	jp	.l00123
-.l00355:
+	jp	NZ,.l00368
+	jp	.l00126
+.l00368:
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $81
-	jp	NZ,.l00356
-	jp	.l00124
-.l00356:
+	jp	NZ,.l00369
+	jp	.l00127
+.l00369:
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $82
-	jp	NZ,.l00357
-	jp	.l00125
-.l00357:
+	jp	NZ,.l00370
+	jp	.l00128
+.l00370:
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $83
-	jp	NZ,.l00358
-	jp	.l00126
-.l00358:
+	jp	NZ,.l00371
+	jp	.l00129
+.l00371:
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $84
-	jp	NZ,.l00359
-	jp	.l00127
-.l00359:
+	jp	NZ,.l00372
+	jp	.l00130
+.l00372:
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $85
-	jp	NZ,.l00360
-	jp	.l00128
-.l00360:
+	jp	NZ,.l00373
 	jp	.l00131
-;src/editor/editor.c:218: case KEY_LEFT: WordLeft(); return;
-.l00123:
+.l00373:
+	jp	.l00134
+;src/editor/editor.c:219: case KEY_LEFT: WordLeft(); return;
+.l00126:
 	call	_WordLeft__far
-	jp	.l00170
-;src/editor/editor.c:219: case KEY_RIGHT: WordRight(); return;
-.l00124:
+	jp	.l00173
+;src/editor/editor.c:220: case KEY_RIGHT: WordRight(); return;
+.l00127:
 	call	_WordRight__far
-	jp	.l00170
-;src/editor/editor.c:220: case KEY_UP: ScrollLine(0); return;
-.l00125:
+	jp	.l00173
+;src/editor/editor.c:221: case KEY_UP: ScrollLine(0); return;
+.l00128:
 	xor	a, a
 	call	_ScrollLine
-	jp	.l00170
-;src/editor/editor.c:221: case KEY_DOWN: ScrollLine(1); return;
-.l00126:
+	jp	.l00173
+;src/editor/editor.c:222: case KEY_DOWN: ScrollLine(1); return;
+.l00129:
 	ld	a, $01
 	call	_ScrollLine
-	jp	.l00170
-;src/editor/editor.c:222: case KEY_HOME: GoStart(); return;
-.l00127:
+	jp	.l00173
+;src/editor/editor.c:223: case KEY_HOME: GoStart(); return;
+.l00130:
 	call	_GoStart__far
-	jp	.l00170
-;src/editor/editor.c:223: case KEY_END: GoEnd(); return;
-.l00128:
-	call	_GoEnd__far
-	jp	.l00170
-;src/editor/editor.c:224: }
+	jp	.l00173
+;src/editor/editor.c:224: case KEY_END: GoEnd(); return;
 .l00131:
-;src/editor/editor.c:226: switch (key) {
+	call	_GoEnd__far
+	jp	.l00173
+;src/editor/editor.c:225: }
+.l00134:
+;src/editor/editor.c:227: switch (key) {
 	ld	hl, sp+2
 	ld	a, [hl]
 	or	a, a
-	jp	NZ, .l00144
+	jp	NZ, .l00147
 	ld	a, $87
 	ld	hl, sp+5
 	sub	a, [hl]
-	jp	C, .l00144
+	jp	C, .l00147
 	ld	a, [hl]
 	add	a, $80
 	ld	c, a
 	ld	b, $00
-	ld	hl, .l00361
+	ld	hl, .l00374
 	add	hl, bc
 	add	hl, bc
 	add	hl, bc
 	jp	hl
-.l00361:
-	jp	.l00136
+.l00374:
 	jp	.l00139
-	jp	.l00132
-	jp	.l00133
 	jp	.l00142
-	jp	.l00143
-	jp	.l00134
 	jp	.l00135
-;src/editor/editor.c:227: case KEY_UP: MoveUp(); return;
-.l00132:
-	call	_MoveUp__far
-	jp	.l00170
-;src/editor/editor.c:228: case KEY_DOWN: MoveDown(); return;
-.l00133:
-	call	_MoveDown__far
-	jp	.l00170
-;src/editor/editor.c:229: case KEY_PAGE_UP: PageUp(); return;
-.l00134:
-	call	_PageUp__far
-	jp	.l00170
-;src/editor/editor.c:230: case KEY_PAGE_DOWN: PageDown(); return;
+	jp	.l00136
+	jp	.l00145
+	jp	.l00146
+	jp	.l00137
+	jp	.l00138
+;src/editor/editor.c:228: case KEY_UP: MoveUp(); return;
 .l00135:
-	call	_PageDown__far
-	jp	.l00170
-;src/editor/editor.c:231: case KEY_LEFT: if (cursor) --cursor; return;
+	call	_MoveUp__far
+	jp	.l00173
+;src/editor/editor.c:229: case KEY_DOWN: MoveDown(); return;
 .l00136:
+	call	_MoveDown__far
+	jp	.l00173
+;src/editor/editor.c:230: case KEY_PAGE_UP: PageUp(); return;
+.l00137:
+	call	_PageUp__far
+	jp	.l00173
+;src/editor/editor.c:231: case KEY_PAGE_DOWN: PageDown(); return;
+.l00138:
+	call	_PageDown__far
+	jp	.l00173
+;src/editor/editor.c:232: case KEY_LEFT: if (cursor) --cursor; return;
+.l00139:
 	ld	hl, _cursor + 1
 	ld	a, [hl]
 	dec	hl
 	or	a, [hl]
-	jp	Z, .l00138
+	jp	Z, .l00141
 	inc	hl
 	dec	hl
 	ld	e, [hl]
@@ -1233,31 +1263,31 @@ _src_editor_editor_c_HandleKey:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-.l00138:
-	jp	.l00170
-;src/editor/editor.c:232: case KEY_RIGHT: if (cursor != tb_Length()) ++cursor; return;
-.l00139:
+.l00141:
+	jp	.l00173
+;src/editor/editor.c:233: case KEY_RIGHT: if (cursor != tb_Length()) ++cursor; return;
+.l00142:
 	call	_tb_Length
 	ld	hl, _cursor
 	ld	a, [hl]
 	sub	a, c
-	jp	NZ,.l00362
+	jp	NZ,.l00375
 	inc	hl
 	ld	a, [hl]
 	sub	a, b
-	jp	NZ,.l00362
-	jp	.l00141
-.l00362:
+	jp	NZ,.l00375
+	jp	.l00144
+.l00375:
 	ld	hl, _cursor
 	inc	[hl]
-	jp	NZ, .l00363
+	jp	NZ, .l00376
 	inc	hl
 	inc	[hl]
-.l00363:
-.l00141:
-	jp	.l00170
-;src/editor/editor.c:233: case KEY_HOME: cursor = tb_row_starts[tb_found_row]; return;
-.l00142:
+.l00376:
+.l00144:
+	jp	.l00173
+;src/editor/editor.c:234: case KEY_HOME: cursor = tb_row_starts[tb_found_row]; return;
+.l00145:
 	ld	hl, _tb_found_row
 	ld	a, [hl]
 	ld	hl, sp+2
@@ -1301,88 +1331,88 @@ _src_editor_editor_c_HandleKey:
 	ld	a, [de]
 	inc	hl
 	ld	[hl], a
-	jp	.l00170
-;src/editor/editor.c:234: case KEY_END: MoveEnd(); return;
-.l00143:
+	jp	.l00173
+;src/editor/editor.c:235: case KEY_END: MoveEnd(); return;
+.l00146:
 	call	_MoveEnd__far
-	jp	.l00170
-;src/editor/editor.c:235: }
-.l00144:
-;src/editor/editor.c:236: moved = 0;
+	jp	.l00173
+;src/editor/editor.c:236: }
+.l00147:
+;src/editor/editor.c:237: moved = 0;
 	ld	hl, _moved
 	ld	[hl], $00
-;src/editor/editor.c:237: if (key == KEY_ESCAPE || key == KEY_INSERT) return;
+;src/editor/editor.c:238: if (key == KEY_ESCAPE || key == KEY_INSERT) return;
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $1B
-	jp	NZ,.l00365
-	jp	.l00145
-.l00365:
+	jp	NZ,.l00378
+	jp	.l00148
+.l00378:
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $88
-	jp	NZ,.l00366
-	jp	.l00367
-.l00366:
-	jp	.l00146
-.l00367:
-.l00145:
-	jp	.l00170
-.l00146:
-;src/editor/editor.c:238: if (GetSelection()) { // typing replaces the selection
+	jp	NZ,.l00379
+	jp	.l00380
+.l00379:
+	jp	.l00149
+.l00380:
+.l00148:
+	jp	.l00173
+.l00149:
+;src/editor/editor.c:239: if (GetSelection()) { // typing replaces the selection
 	call	_GetSelection__far
 	or	a, a
-	jp	Z, .l00152
-;src/editor/editor.c:239: DeleteSelection();
+	jp	Z, .l00155
+;src/editor/editor.c:240: DeleteSelection();
 	call	_src_editor_editor_c_DeleteSelection__far
-;src/editor/editor.c:240: if (key == KEY_BACKSPACE || key == KEY_DELETE) return;
+;src/editor/editor.c:241: if (key == KEY_BACKSPACE || key == KEY_DELETE) return;
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $08
-	jp	NZ,.l00368
-	jp	.l00148
-.l00368:
+	jp	NZ,.l00381
+	jp	.l00151
+.l00381:
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $7F
-	jp	NZ,.l00369
-	jp	.l00370
-.l00369:
-	jp	.l00149
-.l00370:
-.l00148:
-	jp	.l00170
-.l00149:
-;src/editor/editor.c:241: join = 1;
+	jp	NZ,.l00382
+	jp	.l00383
+.l00382:
+	jp	.l00152
+.l00383:
+.l00151:
+	jp	.l00173
+.l00152:
+;src/editor/editor.c:242: join = 1;
 	ld	hl, sp+1
 	ld	[hl], $01
-.l00152:
-;src/editor/editor.c:243: selecting = 0;
+.l00155:
+;src/editor/editor.c:244: selecting = 0;
 	ld	hl, _selecting
 	ld	[hl], $00
-;src/editor/editor.c:244: switch (key) {
+;src/editor/editor.c:245: switch (key) {
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $08
-	jp	NZ,.l00371
-	jp	.l00153
-.l00371:
+	jp	NZ,.l00384
+	jp	.l00156
+.l00384:
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $7F
-	jp	NZ,.l00372
-	jp	.l00156
-.l00372:
+	jp	NZ,.l00385
 	jp	.l00159
-;src/editor/editor.c:245: case KEY_BACKSPACE:
-.l00153:
-;src/editor/editor.c:246: if (!cursor) break;
+.l00385:
+	jp	.l00162
+;src/editor/editor.c:246: case KEY_BACKSPACE:
+.l00156:
+;src/editor/editor.c:247: if (!cursor) break;
 	ld	hl, _cursor + 1
 	ld	a, [hl]
 	dec	hl
 	or	a, [hl]
-	jp	Z, .l00170
-;src/editor/editor.c:247: --cursor;
+	jp	Z, .l00173
+;src/editor/editor.c:248: --cursor;
 	inc	hl
 	dec	hl
 	ld	e, [hl]
@@ -1393,9 +1423,9 @@ _src_editor_editor_c_HandleKey:
 	ld	[hl], e
 	inc	hl
 	ld	[hl], d
-;src/editor/editor.c:249: case KEY_DELETE:
-.l00156:
-;src/editor/editor.c:250: if (cursor < tb_Length()) {
+;src/editor/editor.c:250: case KEY_DELETE:
+.l00159:
+;src/editor/editor.c:251: if (cursor < tb_Length()) {
 	call	_tb_Length
 	ld	hl, _cursor
 	ld	a, [hl]
@@ -1403,15 +1433,15 @@ _src_editor_editor_c_HandleKey:
 	inc	hl
 	ld	a, [hl]
 	sbc	a, b
-	jp	NC, .l00170
-;src/editor/editor.c:251: UndoDeleting(cursor, 1);
+	jp	NC, .l00173
+;src/editor/editor.c:252: UndoDeleting(cursor, 1);
 	ld	bc, $0001
 	dec	hl
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	call	_UndoDeleting
-;src/editor/editor.c:252: CountEdit(cursor, tb_Delete(cursor), 0);
+;src/editor/editor.c:253: CountEdit(cursor, tb_Delete(cursor), 0);
 	ld	hl, _cursor
 	ld	e, [hl]
 	inc	hl
@@ -1427,46 +1457,46 @@ _src_editor_editor_c_HandleKey:
 	inc	hl
 	ld	d, [hl]
 	call	_CountEdit
-;src/editor/editor.c:253: Edited(cursor, -1);
+;src/editor/editor.c:254: Edited(cursor, -1);
 	ld	a, $FF
 	ld	hl, _cursor
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	call	_src_editor_editor_c_Edited
-;src/editor/editor.c:255: break;
-	jp	.l00170
-;src/editor/editor.c:256: default:
-.l00159:
-;src/editor/editor.c:257: if (key < ' ' && key != ASCII_TAB && key != ASCII_LF) return;
+;src/editor/editor.c:256: break;
+	jp	.l00173
+;src/editor/editor.c:257: default:
+.l00162:
+;src/editor/editor.c:258: if (key < ' ' && key != ASCII_TAB && key != ASCII_LF) return;
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $20
-	jp	NC, .l00161
+	jp	NC, .l00164
 	ld	a, [hl]
 	sub	a, $09
-	jp	NZ,.l00373
-	jp	.l00161
-.l00373:
+	jp	NZ,.l00386
+	jp	.l00164
+.l00386:
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $0A
-	jp	NZ,.l00374
-	jp	.l00161
-.l00374:
-	jp	.l00170
-.l00161:
-;src/editor/editor.c:258: if (key >= KEY_LEFT && key < 0xA0) return; // unprintable in Latin-1
+	jp	NZ,.l00387
+	jp	.l00164
+.l00387:
+	jp	.l00173
+.l00164:
+;src/editor/editor.c:259: if (key >= KEY_LEFT && key < 0xA0) return; // unprintable in Latin-1
 	ld	hl, sp+5
 	ld	a, [hl]
 	sub	a, $80
-	jp	C, .l00165
+	jp	C, .l00168
 	ld	a, [hl]
 	sub	a, $A0
-	jp	NC, .l00165
-	jp	.l00170
-.l00165:
-;src/editor/editor.c:259: if (tb_Insert(cursor, key)) {
+	jp	NC, .l00168
+	jp	.l00173
+.l00168:
+;src/editor/editor.c:260: if (tb_Insert(cursor, key)) {
 	ld	hl, sp+5
 	ld	a, [hl]
 	ld	hl, _cursor
@@ -1475,20 +1505,20 @@ _src_editor_editor_c_HandleKey:
 	ld	d, [hl]
 	call	_tb_Insert
 	or	a, a
-	jp	Z, .l00170
-;src/editor/editor.c:260: undo_join = join;
+	jp	Z, .l00173
+;src/editor/editor.c:261: undo_join = join;
 	ld	hl, sp+1
 	ld	a, [hl]
 	ld	hl, _undo_join
 	ld	[hl], a
-;src/editor/editor.c:261: UndoInserted(cursor, 1);
+;src/editor/editor.c:262: UndoInserted(cursor, 1);
 	ld	bc, $0001
 	ld	hl, _cursor
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	call	_UndoInserted
-;src/editor/editor.c:262: CountEdit(cursor, key, 1);
+;src/editor/editor.c:263: CountEdit(cursor, key, 1);
 	ld	a, $01
 	push	af
 	inc	sp
@@ -1499,62 +1529,62 @@ _src_editor_editor_c_HandleKey:
 	inc	hl
 	ld	d, [hl]
 	call	_CountEdit
-;src/editor/editor.c:263: Edited(cursor++, 1);
+;src/editor/editor.c:264: Edited(cursor++, 1);
 	ld	hl, _cursor
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
 	dec	hl
 	inc	[hl]
-	jp	NZ, .l00375
+	jp	NZ, .l00388
 	inc	hl
 	inc	[hl]
-.l00375:
+.l00388:
 	ld	a, $01
 	call	_src_editor_editor_c_Edited
-;src/editor/editor.c:265: }
-.l00170:
 ;src/editor/editor.c:266: }
+.l00173:
+;src/editor/editor.c:267: }
 	add	sp, 6
 	ret
-;src/editor/editor.c:269: void ToggleWrap(void) {
+;src/editor/editor.c:270: void ToggleWrap(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 6",ROMX,BANK[3]
 	LOAD FRAGMENT "Page 6 RAM",SRAM,BANK[6]
 ; Function ToggleWrap
 ; ---------------------------------
 _ToggleWrap::
-;src/editor/editor.c:270: tb_nowrap = !tb_nowrap;
+;src/editor/editor.c:271: tb_nowrap = !tb_nowrap;
 	ld	hl, _tb_nowrap
 	ld	a, [hl]
 	sub	a,$01
 	ld	a, $00
 	rla
 	ld	[hl], a
-;src/editor/editor.c:271: tb_left = 0;
+;src/editor/editor.c:272: tb_left = 0;
 	xor	a, a
 	ld	hl, _tb_left
 	ld	[hl], a
 	inc	hl
 	ld	[hl], a
-;src/editor/editor.c:272: dirty = 1;
+;src/editor/editor.c:273: dirty = 1;
 	ld	hl, _dirty
 	ld	[hl], $01
-;src/editor/editor.c:273: SettingsSave();
+;src/editor/editor.c:274: SettingsSave();
 	jp	_SettingsSave
 .l00101:
-;src/editor/editor.c:274: }
+;src/editor/editor.c:275: }
 	ret
-;src/editor/editor.c:276: void Editor(void) {
+;src/editor/editor.c:277: void Editor(void) {
 ;	---------------------------------
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]
 ; Function Editor
 ; ---------------------------------
 _Editor::
-;src/editor/editor.c:280: while (1) {
+;src/editor/editor.c:281: while (1) {
 .l00175:
-;src/editor/editor.c:281: if (modified != saved_modified) {
+;src/editor/editor.c:282: if (modified != saved_modified) {
 	ld	hl, _modified
 	ld	a, [hl]
 	ld	hl, _saved_modified
@@ -1562,31 +1592,31 @@ _Editor::
 	jp	NZ,.l00389
 	jp	.l00102
 .l00389:
-;src/editor/editor.c:282: saved_modified = modified;
+;src/editor/editor.c:283: saved_modified = modified;
 	ld	hl, _modified
 	ld	a, [hl]
 	ld	hl, _saved_modified
 	ld	[hl], a
-;src/editor/editor.c:283: SettingsSave();
+;src/editor/editor.c:284: SettingsSave();
 	call	_SettingsSave
 .l00102:
-;src/editor/editor.c:285: if (bars_changed) { // status bar follows the cursor
+;src/editor/editor.c:286: if (bars_changed) { // status bar follows the cursor
 	ld	hl, _bars_changed
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00106
-;src/editor/editor.c:286: bars_changed = 0;
+;src/editor/editor.c:287: bars_changed = 0;
 	ld	[hl], $00
-;src/editor/editor.c:287: if (bars) Draw();
+;src/editor/editor.c:288: if (bars) Draw();
 	ld	hl, _bars
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00106
 	call	_Draw
 .l00106:
-;src/editor/editor.c:289: WaitFrame();
+;src/editor/editor.c:290: WaitFrame();
 	call	_WaitFrame
-;src/editor/editor.c:290: while ((key = (unsigned char)(event = KBPopEvent()))) {
+;src/editor/editor.c:291: while ((key = (unsigned char)(event = KBPopEvent()))) {
 .l00118:
 	call	_KBPopEvent
 	ld	e, c
@@ -1595,7 +1625,7 @@ _Editor::
 	ld	c, a
 	or	a, a
 	jp	Z, .l00120
-;src/editor/editor.c:291: if (!HandleFileKey(key, (unsigned char)(event >> 8))) HandleKey(key, (unsigned char)(event >> 8));
+;src/editor/editor.c:292: if (!HandleFileKey(key, (unsigned char)(event >> 8))) HandleKey(key, (unsigned char)(event >> 8));
 	ld	l, d
 ;	spillPairReg hl
 ;	spillPairReg hl
@@ -1612,14 +1642,14 @@ _Editor::
 	ld	a, c
 	call	_src_editor_editor_c_HandleKey
 .l00108:
-;src/editor/editor.c:292: if (doc_large) Slide(); // before the next key, which could reach the window's end
+;src/editor/editor.c:293: if (doc_large) Slide(); // before the next key, which could reach the window's end
 	ld	hl, _doc_large
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00110
 	call	_Slide__far
 .l00110:
-;src/editor/editor.c:293: if (dirty || edited) break; // text changed, rows need rendering before more keys
+;src/editor/editor.c:294: if (dirty || edited) break; // text changed, rows need rendering before more keys
 	ld	hl, _dirty
 	ld	a, [hl]
 	or	a, a
@@ -1628,29 +1658,29 @@ _Editor::
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00120
-;src/editor/editor.c:294: if (moved) { // keeps tb_found_row current for the next key
+;src/editor/editor.c:295: if (moved) { // keeps tb_found_row current for the next key
 	ld	hl, _moved
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00118
-;src/editor/editor.c:295: if (!PlaceCursor()) dirty = 1;
+;src/editor/editor.c:296: if (!PlaceCursor()) dirty = 1;
 	call	_PlaceCursor
 	or	a, a
 	jp	NZ, .l00115
 	ld	hl, _dirty
 	ld	[hl], $01
 .l00115:
-;src/editor/editor.c:296: moved = 0;
+;src/editor/editor.c:297: moved = 0;
 	ld	hl, _moved
 	ld	[hl], $00
 	jp	.l00118
 .l00120:
-;src/editor/editor.c:299: if ((key = PadKey())) {
+;src/editor/editor.c:300: if ((key = PadKey())) {
 	call	_PadKey__far
 	ld	c, a
 	or	a, a
 	jp	Z, .l00124
-;src/editor/editor.c:300: if (!HandleFileKey(key, pad_mods)) HandleKey(key, pad_mods);
+;src/editor/editor.c:301: if (!HandleFileKey(key, pad_mods)) HandleKey(key, pad_mods);
 	push	bc
 	ld	hl, _pad_mods
 	ld	e, [hl]
@@ -1664,14 +1694,14 @@ _Editor::
 	ld	a, c
 	call	_src_editor_editor_c_HandleKey
 .l00124:
-;src/editor/editor.c:302: if (doc_large) Slide(); // near the window's edge (sets dirty)
+;src/editor/editor.c:303: if (doc_large) Slide(); // near the window's edge (sets dirty)
 	ld	hl, _doc_large
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00126
 	call	_Slide__far
 .l00126:
-;src/editor/editor.c:303: if (dirty || edited || redraw || moved) idle_frames = 0;
+;src/editor/editor.c:304: if (dirty || edited || redraw || moved) idle_frames = 0;
 	ld	hl, _dirty
 	ld	a, [hl]
 	or	a, a
@@ -1692,42 +1722,42 @@ _Editor::
 	ld	hl, _idle_frames
 	ld	[hl], $00
 .l00128:
-;src/editor/editor.c:304: if (dirty) {
+;src/editor/editor.c:305: if (dirty) {
 	ld	hl, _dirty
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00133
-;src/editor/editor.c:305: Refresh();
+;src/editor/editor.c:306: Refresh();
 	call	_Refresh
-;src/editor/editor.c:306: dirty = 0;
+;src/editor/editor.c:307: dirty = 0;
 	ld	hl, _dirty
 	ld	[hl], $00
-;src/editor/editor.c:307: edited = 0;
+;src/editor/editor.c:308: edited = 0;
 	ld	hl, _edited
 	ld	[hl], $00
-;src/editor/editor.c:308: normalized = 0;
+;src/editor/editor.c:309: normalized = 0;
 	ld	hl, _normalized
 	ld	[hl], $00
-;src/editor/editor.c:309: continue;
+;src/editor/editor.c:310: continue;
 	jp	.l00175
 .l00133:
-;src/editor/editor.c:311: if (edited) {
+;src/editor/editor.c:312: if (edited) {
 	ld	hl, _edited
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00148
-;src/editor/editor.c:312: edited = 0;
+;src/editor/editor.c:313: edited = 0;
 	ld	[hl], $00
-;src/editor/editor.c:313: normalized = 0;
+;src/editor/editor.c:314: normalized = 0;
 	ld	hl, _normalized
 	ld	[hl], $00
-;src/editor/editor.c:314: RenderAfterEdit();
+;src/editor/editor.c:315: RenderAfterEdit();
 	call	_RenderAfterEdit
-;src/editor/editor.c:315: if (!PlaceCursor()) {
+;src/editor/editor.c:316: if (!PlaceCursor()) {
 	call	_PlaceCursor
 	or	a, a
 	jp	NZ, .l00148
-;src/editor/editor.c:316: if (cursor >= tb_row_starts[tb_rows] && tb_RowStart(cursor) == tb_row_starts[tb_rows]) ScrollDown();
+;src/editor/editor.c:317: if (cursor >= tb_row_starts[tb_rows] && tb_RowStart(cursor) == tb_row_starts[tb_rows]) ScrollDown();
 	ld	hl, _tb_rows
 	ld	l, [hl]
 ;	spillPairReg hl
@@ -1782,7 +1812,7 @@ _Editor::
 	call	_ScrollDown
 	jp	.l00141
 .l00140:
-;src/editor/editor.c:317: else if (top && cursor < top && tb_RowStart(cursor) == tb_RowStart(top - 1)) ScrollUp(tb_RowStart(cursor));
+;src/editor/editor.c:318: else if (top && cursor < top && tb_RowStart(cursor) == tb_RowStart(top - 1)) ScrollUp(tb_RowStart(cursor));
 	ld	hl, _top + 1
 	ld	a, [hl]
 	dec	hl
@@ -1832,54 +1862,54 @@ _Editor::
 	call	_ScrollUp
 	jp	.l00141
 .l00135:
-;src/editor/editor.c:319: Refresh();
+;src/editor/editor.c:320: Refresh();
 	call	_Refresh
-;src/editor/editor.c:320: continue;
+;src/editor/editor.c:321: continue;
 	jp	.l00175
 .l00141:
-;src/editor/editor.c:322: if (!PlaceCursor()) { // off the side
+;src/editor/editor.c:323: if (!PlaceCursor()) { // off the side
 	call	_PlaceCursor
 	or	a, a
 	jp	NZ, .l00148
-;src/editor/editor.c:323: Refresh();
+;src/editor/editor.c:324: Refresh();
 	call	_Refresh
-;src/editor/editor.c:324: continue;
+;src/editor/editor.c:325: continue;
 	jp	.l00175
 .l00148:
-;src/editor/editor.c:328: if (redraw) {
+;src/editor/editor.c:329: if (redraw) {
 	ld	hl, _redraw
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00150
-;src/editor/editor.c:329: Draw();
+;src/editor/editor.c:330: Draw();
 	call	_Draw
-;src/editor/editor.c:330: redraw = 0;
+;src/editor/editor.c:331: redraw = 0;
 	ld	hl, _redraw
 	ld	[hl], $00
 .l00150:
-;src/editor/editor.c:332: if (moved) {
+;src/editor/editor.c:333: if (moved) {
 	ld	hl, _moved
 	ld	a, [hl]
 	or	a, a
 	jp	Z, .l00154
-;src/editor/editor.c:333: moved = 0;
+;src/editor/editor.c:334: moved = 0;
 	ld	[hl], $00
-;src/editor/editor.c:334: if (!PlaceCursor()) Refresh();
+;src/editor/editor.c:335: if (!PlaceCursor()) Refresh();
 	call	_PlaceCursor
 	or	a, a
 	jp	NZ, .l00175
 	call	_Refresh
-;src/editor/editor.c:335: continue;
+;src/editor/editor.c:336: continue;
 	jp	.l00175
 .l00154:
-;src/editor/editor.c:337: if (idle_frames < SWAP_DELAY) ++idle_frames;
+;src/editor/editor.c:338: if (idle_frames < SWAP_DELAY) ++idle_frames;
 	ld	hl, _idle_frames
 	ld	a, [hl]
 	sub	a, $78
 	jp	NC, .l00156
 	inc	[hl]
 .l00156:
-;src/editor/editor.c:338: if (doc_large && !lines_known && FileScanStep()) { // a sector a frame while idle
+;src/editor/editor.c:339: if (doc_large && !lines_known && FileScanStep()) { // a sector a frame while idle
 	ld	hl, _doc_large
 	ld	a, [hl]
 	or	a, a
@@ -1891,7 +1921,7 @@ _Editor::
 	call	_FileScanStep
 	or	a, a
 	jp	Z, .l00158
-;src/editor/editor.c:339: win_lines += scan_lines;
+;src/editor/editor.c:340: win_lines += scan_lines;
 	ld	hl, _win_lines + 1
 	dec	hl
 	ld	e, [hl]
@@ -1926,14 +1956,14 @@ _Editor::
 	ld	[hl], a
 	dec	hl
 	ld	[hl], e
-;src/editor/editor.c:340: lines_known = 1;
+;src/editor/editor.c:341: lines_known = 1;
 	ld	hl, _lines_known
 	ld	[hl], $01
-;src/editor/editor.c:341: bars_changed = 1;
+;src/editor/editor.c:342: bars_changed = 1;
 	ld	hl, _bars_changed
 	ld	[hl], $01
 .l00158:
-;src/editor/editor.c:343: if (idle_frames >= NORMALIZE_DELAY && !everdrive && !normalized) normalized = tb_NormalizeStep(); // keeps the .sav readable as text
+;src/editor/editor.c:344: if (idle_frames >= NORMALIZE_DELAY && !everdrive && !normalized) normalized = tb_NormalizeStep(); // keeps the .sav readable as text
 	ld	hl, _idle_frames
 	ld	a, [hl]
 	sub	a, $1E
@@ -1950,7 +1980,7 @@ _Editor::
 	ld	hl, _normalized
 	ld	[hl], a
 .l00162:
-;src/editor/editor.c:344: if (idle_frames >= SWAP_DELAY && swap_dirty && !doc_large) {
+;src/editor/editor.c:345: if (idle_frames >= SWAP_DELAY && swap_dirty && !doc_large) {
 	ld	hl, _idle_frames
 	ld	a, [hl]
 	sub	a, $78
@@ -1963,13 +1993,13 @@ _Editor::
 	ld	a, [hl]
 	or	a, a
 	jp	NZ, .l00166
-;src/editor/editor.c:345: swap_dirty = 0;
+;src/editor/editor.c:346: swap_dirty = 0;
 	ld	hl, _swap_dirty
 	ld	[hl], $00
-;src/editor/editor.c:346: FileSaveSwap();
+;src/editor/editor.c:347: FileSaveSwap();
 	call	_FileSaveSwap
 .l00166:
-;src/editor/editor.c:348: if (++blink_timer == CURSOR_BLINK) EditorShowCursor(0);
+;src/editor/editor.c:349: if (++blink_timer == CURSOR_BLINK) EditorShowCursor(0);
 	ld	hl, _blink_timer
 	inc	[hl]
 	ld	a, [hl]
@@ -1983,7 +2013,7 @@ _Editor::
 	call	_EditorShowCursor
 	jp	.l00175
 .l00172:
-;src/editor/editor.c:349: else if (blink_timer == CURSOR_BLINK + CURSOR_BLINK) {
+;src/editor/editor.c:350: else if (blink_timer == CURSOR_BLINK + CURSOR_BLINK) {
 	ld	hl, _blink_timer
 	ld	a, [hl]
 	sub	a, $3C
@@ -1992,15 +2022,15 @@ _Editor::
 .l00396:
 	jp	.l00175
 .l00397:
-;src/editor/editor.c:350: EditorShowCursor(1);
+;src/editor/editor.c:351: EditorShowCursor(1);
 	ld	a, $01
 	call	_EditorShowCursor
-;src/editor/editor.c:351: blink_timer = 0;
+;src/editor/editor.c:352: blink_timer = 0;
 	ld	hl, _blink_timer
 	ld	[hl], $00
 	jp	.l00175
 .l00177:
-;src/editor/editor.c:354: }
+;src/editor/editor.c:355: }
 	ret
 	SECTION FRAGMENT "Page 5",ROMX,BANK[2]
 	LOAD FRAGMENT "Page 5 RAM",SRAM,BANK[5]

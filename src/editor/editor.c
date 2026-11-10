@@ -192,6 +192,7 @@ static void HandleCtrlKey(unsigned char key, unsigned char mods) {
 // ctrl + left/right move by token, ctrl + up/down scroll, ctrl + home/end go to the start/end
 static void HandleKey(unsigned char key, unsigned char mods) {
   unsigned char ctrl = mods & KB_MOD_CTRL, join = 0;
+  if (key == KEY_UNDO || key == KEY_REDO) { UndoRedo(key == KEY_REDO); return; }
   if (mods & (KB_MOD_ALT | KB_MOD_SUPER)) return;
   if (key >= KEY_LEFT && key <= KEY_PAGE_DOWN) undo_merge = 0; // moving starts a new undo step
   if (key < KEY_LEFT || key > KEY_PAGE_DOWN) {

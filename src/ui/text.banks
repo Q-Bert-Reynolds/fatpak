@@ -2,3 +2,4 @@
 *: 5
 4: PutNumber PutNumber2 CopyName
 14: PutNumber2
+15: CopyName

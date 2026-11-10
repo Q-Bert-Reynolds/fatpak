@@ -68,7 +68,7 @@ _src_editor_navigation_c_ScrollTo:
 	inc	hl
 	ld	[hl], d
 ;src/editor/navigation.c:11: Render();
-	call	_Render
+	call	_Render__far
 ;src/editor/navigation.c:12: redraw = 1;
 	ld	hl, _redraw
 	ld	[hl], $01

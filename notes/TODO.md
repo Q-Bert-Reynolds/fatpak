@@ -47,7 +47,7 @@ D-pad selection (A + D-pad), menu cut/copy/paste, and on-screen undo/redo are im
 
 # File I/O
 
-Calendar-based file timestamps and SETTINGS > CLOCK are implemented, with a fixed-date fallback when no valid clock is available.
+Calendar-based file timestamps and browser SETTINGS > CLOCK are implemented, with a fixed-date fallback when no valid clock is available.
 
 - file browser: sort by name (needs the names in memory), make folders and delete files. Start now offers info, rename, cut/copy/paste for files and folders, settings, help and restart; verify transfers and interrupted copies on hardware.
 - save as into another folder
@@ -83,7 +83,7 @@ Next:
 
 # Peripherals
 
-- PS/2 keyboard is only detected at boot, re-detect when plugged in later (HELP > KEYBOARD TEST starts listening for one)
+- PS/2 keyboard is only detected at boot, re-detect when plugged in later (browser SETTINGS > KEYBOARD TEST starts listening for one)
 - iGKB (also supports mouse and gamepad), needs Gearboy emulation first. Its home/end/page/delete handlers are written but untested
 - WorkBoy keyboard
 - use GB Printer to print text files

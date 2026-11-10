@@ -273,8 +273,8 @@ _PutNumber2::
 	ret
 ;src/ui/text.c:34: void CopyName(char* dest, const char* src) {
 ;	---------------------------------
-	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
-	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function CopyName
 ; ---------------------------------
 _CopyName::
@@ -289,7 +289,7 @@ _CopyName::
 .l00104:
 ;src/ui/text.c:36: }
 	ret
-	SECTION FRAGMENT "Page 4",ROMX,BANK[2]
-	LOAD FRAGMENT "Page 4 RAM",SRAM,BANK[4]
+	SECTION FRAGMENT "Page 15",ROMX,BANK[7]
+	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 	SECTION FRAGMENT "_INITIALIZER",ROM0
 	SECTION FRAGMENT "_CABS (ABS)",ROM0

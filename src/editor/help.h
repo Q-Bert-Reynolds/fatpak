@@ -4,5 +4,6 @@
 #include "../constants.h"
 
 void ShowHelp(void);
+void ShowBrowserHelp(void);
 
 #endif

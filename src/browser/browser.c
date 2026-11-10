@@ -5,6 +5,7 @@
 #include "paths.h"
 #include "../editor/editor.h"
 #include "../editor/document.h"
+#include "../editor/help.h"
 #include "../editor/osk.h"
 #include "../editor/state.h"
 #include "../editor/settings.h"
@@ -127,7 +128,7 @@ static void ListMessage(const char* text) {
 static void BrowserError(unsigned char result) {
   if (!result) return;
   if (result == 8) ListMessage("Name already exists");
-  else if (result == 7) ListMessage("Can't copy/move here");
+  else if (result == 7) ListMessage("Can't paste here");
   else if (result == 6) ListMessage("Invalid name/path");
   else ListMessage("SD operation failed");
 }
@@ -167,13 +168,13 @@ static void FileInfo(void) {
 
 // Paths in the file clipboard are independent of the editor's text clipboard.
 // The caller reloads the directory after this, because transfers borrow its marks.
-static void BrowserMenu(char* path, char* clipboard) {
-  unsigned char menu = 0, item, length = 0, result, old_bars;
+static unsigned char BrowserMenu(char* path, char* clipboard) {
+  unsigned char menu = 0, item, length = 0, result;
   const char* name;
   while (path[length]) ++length;
   while (1) {
     menu = Choose(0, browser_items[0], 5, menu);
-    if (menu >= BACK) return;
+    if (menu >= BACK) return 0;
     if (menu == 4) {
       if (doc_large) {
         FileCloseLarge();
@@ -186,48 +187,66 @@ static void BrowserMenu(char* path, char* clipboard) {
       result = FileSaveSwap();
       if (!result) RestartDevice();
       BrowserError(result);
-      return;
+      return 0;
     }
-    if (menu >= 2) {
-      if (PreferencesMenu(menu == 3) == BACK) continue;
-      return;
+    if (menu == 3) { ShowBrowserHelp(); return 0; }
+    if (menu == 2) {
+      if (PreferencesMenu(1) == BACK) continue;
+      return 0;
     }
     item = Choose(0, menu ? edit_items[0] : file_items[0], menu ? 3 : 2, 0);
     if (item == BACK) continue;
-    if (item == CANCEL) return;
+    if (item == CANCEL) return 0;
     break;
   }
   if (menu && item == 2) {
-    if (!clipboard[0]) { ListMessage("File clipboard empty"); return; }
+    if (!clipboard[0]) { ListMessage("Clipboard empty"); return 0; }
     name = clipboard;
     for (item = 0; clipboard[item]; ++item) if (clipboard[item] == '/') name = clipboard + item + 1;
-    if (!JoinPath(path + length, "", name, FS_NAME_SIZE + 1)) return;
+    if (!JoinPath(path + length, "", name, FS_NAME_SIZE + 1)) return 0;
     ShowBusy(clipboard_cut ? "Moving..." : "Copying...");
     result = clipboard_cut ? FileRename(clipboard, path) : FileCopy(clipboard, path);
     if (!result && clipboard_cut) clipboard[0] = 0;
   }
   else {
-    if (!entry.name[0]) { ListMessage("Select a file/folder"); return; }
-    if (!menu && !item) { FileInfo(); return; }
+    if (!entry.name[0]) { ListMessage("Select file/folder"); return 0; }
+    if (!menu) {
+      if (!item) { FileInfo(); return 0; }
+      return 1;
+    }
     JoinPath(path + length, "", entry.name, FS_NAME_SIZE + 1);
-    if (menu) {
-      CopyName(clipboard, path);
-      clipboard_cut = !item;
-      path[length] = 0;
-      return;
-    }
-    old_bars = bars_on;
-    bars_on = 1;
-    result = AskName(entry.name, "Rename ");
-    bars_on = old_bars;
-    if (result == 1) {
-      ShowBusy("Renaming...");
-      result = FileRenameName(path, entry.name);
-    }
-    else result = 0;
+    CopyName(clipboard, path);
+    clipboard_cut = !item;
+    path[length] = 0;
+    return 0;
   }
   path[length] = 0;
   BrowserError(result);
+  return 0;
+}
+
+static void RenameSelected(char* path, unsigned int selected) {
+  unsigned int first = selected - name_row;
+  unsigned char length = 0, result, old_bars = bars_on;
+  if (name_row >= LIST_ROWS - OSK_ROWS) {
+    first = selected - (LIST_ROWS - OSK_ROWS - 1);
+    name_row = LIST_ROWS - OSK_ROWS - 1;
+  }
+  bars_on = 1;
+  OpenKeyboard();
+  ListRows(path, first, 0, tb_rows);
+  ListBars(path);
+  if (ListEntry(path, selected) != 0xFF) {
+    while (path[length]) ++length;
+    JoinPath(path + length, "", entry.name, FS_NAME_SIZE + 1);
+    result = AskName(entry.name, 0);
+    if (result == 1) {
+      ShowBusy("Renaming...");
+      BrowserError(FileRenameName(path, entry.name));
+    }
+    path[length] = 0;
+  }
+  bars_on = old_bars;
 }
 
 // file browser, opens the chosen file into the text buffer, returns 1 if it did
@@ -328,10 +347,12 @@ unsigned char Browse(void) {
       selected = ListFolder(path, name); // back on the folder it came from
       drawn = LIST_ALL;
     }
-    else if (key == KEY_MENU) {
+    else if (key == KEY_MENU || key == KEY_F1) {
       entry.name[0] = 0;
       if (list_count && list_kinds[row] != KIND_UP && ListEntry(path, selected) == 0xFF) continue;
-      BrowserMenu(path, clipboard);
+      name_row = row;
+      if (key == KEY_F1) ShowBrowserHelp();
+      else if (BrowserMenu(path, clipboard)) RenameSelected(path, selected);
       if (osk_shown) OSKShow(0);
       osk_shown = 0;
       font = FONT_VWF;
