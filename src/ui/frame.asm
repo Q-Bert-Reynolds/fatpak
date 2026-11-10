@@ -10,5 +10,6 @@ _WaitFrame::;the busy spinner shows if the next one is a while coming
   call gbdk_WaitVBL
   ld a, 1
   ldh [busy_frames], a
-  jp UpdateInput
+  call UpdateInput
+  jp _FooterTick
 

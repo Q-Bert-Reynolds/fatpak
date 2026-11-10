@@ -13,7 +13,8 @@ RAM size, invalid image, or SD error leaves the menu open with an error footer;
 B still resumes the suspended game. File operations can take several seconds.
 
 The menu uses the editor's VWF, one-pixel border, highlighted selection, filename
-header, and controls footer. `ingame_menu.py` composes its static pixels. The
+header, and controls footer with a live right-aligned 12-hour clock.
+`ingame_menu.py` composes its static pixels. The
 filename is rendered before launch into PSRAM block `$3e3f`, offset `$20`.
 The full-screen menu hides the game picture, sprites, and window.
 
@@ -86,6 +87,12 @@ a cancelled transfer is idle even when its remaining count makes the register
 read `$80-$FE` instead of `$FF`. Waiting for exactly `$FF` could otherwise hang
 startup after cancelling a game's HBlank DMA.
 
+`src/ui/footer.c` caches the calendar time, polling approximately once per
+second from frame waits. Normal UI footers share that cache and right-align it
+in the VWF renderer. The cart menu polls the same cache from `MenuPad` and
+updates only the six rightmost footer tiles with safe CPU copies. If the RTC
+is unavailable or invalid, the clock shows `--:--`.
+
 Gearboy shares cartridge save RAM across its OS/game mappings and applies the
 restored mapper bytes when resuming. Its calendar RTC uses host local time and
 supports setting an offset through the same I2C interface as the cartridge.
@@ -99,6 +106,8 @@ OS reaches `WarmMain` directly, skips factory feature configuration, and never
 requests the cartridge reboot. All SD files live in temporary folders.
 The test injects cancelled HDMA counts, checks that active DMA still blocks
 VRAM access, and verifies that warm OS rendering never starts HDMA again.
+`bash tests/run_footer_clock.sh` covers midnight/noon formatting, clockless
+fallback, footer spacing, idle refresh, and the clock's rendered DMG/CGB pixels.
 
 [`Gearboy/tests/fatpak_features_tests.cpp`](../../Gearboy/tests/fatpak_features_tests.cpp) runs the assembled routines against
 an isolated temporary SD folder. It covers DMG/CGB capture, stock state layout,

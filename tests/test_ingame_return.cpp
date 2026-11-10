@@ -76,6 +76,29 @@ static std::vector<u8> Game(bool color)
     for (unsigned i = 0x134; i < 0x14D; ++i) rom[0x14D] = rom[0x14D] - rom[i] - 1;
     return rom;
 }
+static void MenuClock(GearboyCore& core, const std::map<std::string,unsigned>& syms, bool color)
+{
+    auto memory=core.GetMemory();
+    unsigned x=memory->Read(syms.at("_footer_x")), width=0;
+    bool pixels[8][160]={};
+    Check(memory->Read(syms.at("_footer_time"))!=0,"in-game footer has a clock");
+    for(unsigned i=0;i<8 && memory->Read(syms.at("_footer_time")+i);++i) {
+        unsigned c=memory->Read(syms.at("_footer_time")+i);
+        for(unsigned y=0;y<8;++y) {
+            u8 bits=memory->Read(syms.at("FontVWFGlyphs")+c*8+y);
+            for(unsigned bit=0;bit<8 && x+width+bit<160;++bit)
+                if(bits&(128>>bit)) pixels[y][x+width+bit]=true;
+        }
+        width+=memory->Read(syms.at("FontVWFWidths")+c);
+    }
+    Check(x+width==156,"in-game clock is right-aligned");
+    for(unsigned column=112;column<160;++column) for(unsigned y=0;y<8;++y) {
+        unsigned tile=memory->Read(0x9800+17*32+column/8);
+        u8 byte=memory->ReadCGBLCDRAM(0x8000+tile*16+y*2+1,false);
+        bool actual=(byte&(128>>(column&7)))!=0;
+        Check(actual==(color?pixels[y][column]:!pixels[y][column]),"in-game footer clock pixels");
+    }
+}
 static void CancelledHDMATest(const char* image, const char* symbols)
 {
     GearboyCore core; core.Init(); Check(core.LoadROM(image, false), "HDMA test OS");
@@ -155,7 +178,11 @@ static void Run(const char* image, const char* symbols, const char* data, bool c
         memory->Write(0, 0x0A); memory->Write(0xA000, 0x5A + launch);
         core.PressEverdriveButton(); Frames(core, 300);
         Check(!core.CanPressEverdriveButton(), "open menu");
+        MenuClock(core,syms,color);
         if (!launch) {
+            key(Down_Key); key(Down_Key); key(A_Key,180);
+            Check(!core.CanPressEverdriveButton(),"unavailable Load state leaves menu open");
+            MenuClock(core,syms,color);
             key(B_Key, 180);
             Check(core.CanPressEverdriveButton(), "resume game");
             core.PressEverdriveButton(); Frames(core, 300);

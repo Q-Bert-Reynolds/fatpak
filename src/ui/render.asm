@@ -1175,6 +1175,16 @@ RenderRow:
     ld a, [hli]
     ld c, a
     ST_HL_VAR render_src
+    ld a, c
+    cp a, 1;private footer marker: right-align the cached clock in pixels
+    jr nz, .ordinaryChar
+    ld a, [render_styled]
+    and a
+    jr nz, .ordinaryChar
+    ld a, [_footer_x]
+    ld [render_x], a
+    jr .nextChar
+.ordinaryChar
     ld de, tile_attrs - tile_buffer - 1
     add hl, de
     ld a, [hl]
@@ -1192,6 +1202,7 @@ RenderRow:
     push bc
     call RenderGlyph
     pop bc
+.nextChar
     dec b
     jr nz, .char
 

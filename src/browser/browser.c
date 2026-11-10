@@ -26,9 +26,6 @@ static FileEntry entry;
 static unsigned int list_count; // file browser entries, with .. below the root
 static unsigned char list_result; // FRESULT of listing the folder or reading an entry
 static unsigned char list_kinds[LIST_ROWS]; // file browser rows
-static unsigned long list_sizes[LIST_ROWS];
-static unsigned int list_dates[LIST_ROWS];
-static unsigned int list_times[LIST_ROWS];
 
 // lists the folder at path (".." below the root, folders, then files), returns the index of the folder
 // named find in it (find can be 0) or 0, list_result is set if the folder can't be read
@@ -61,9 +58,6 @@ static void ListRows(const char* path, unsigned int first, unsigned char row, un
     if (first + row >= list_count) continue;
     if ((kind = ListEntry(path, first + row)) == 0xFF) return;
     list_kinds[row] = kind;
-    list_sizes[row] = entry.size;
-    list_dates[row] = entry.date;
-    list_times[row] = entry.time;
     dest = ToLatin1(RowAddress(row) + 1, entry.name, TB_STRIDE - 3);
     if (kind == KIND_FOLDER) *dest = '/';
   }
@@ -78,42 +72,17 @@ static void ScrollList(const char* path, unsigned int first, unsigned char down)
     to = down ? i - 1 : LIST_ROWS - i;
     from = down ? i : to - 1;
     list_kinds[to] = list_kinds[from];
-    list_sizes[to] = list_sizes[from];
-    list_dates[to] = list_dates[from];
-    list_times[to] = list_times[from];
   }
   i = down ? LIST_ROWS - 1 : 0;
   ListRows(path, first, i, i + 1);
 }
 
-// path in the file name bar, what's on row in the status bar
-static void ListBars(const char* path, unsigned char row, unsigned int count) {
+// Keep the folder in the header; the footer is reserved for the clock.
+static void ListBars(const char* path) {
   char text[TB_STRIDE];
-  char* end = text;
-  unsigned long size = list_sizes[row];
-  unsigned char* bytes = (unsigned char*)&size;
-  unsigned int date = list_dates[row], time = list_times[row];
   PutPath(text, path, 30);
   DrawRow(HEADER_LINE, 1, text);
-  if (!count) end = PutText(end, "Empty folder");
-  else if (list_kinds[row] == KIND_UP) end = PutText(end, "Parent folder");
-  else if (list_kinds[row] == KIND_FOLDER) end = PutText(end, "Folder");
-  else {
-    if (size < 10000) end = PutText(PutNumber(end, (unsigned int)size), " bytes  ");
-    else if (size < 10485760) end = PutText(PutNumber(end, (bytes[1] >> 2) | (bytes[2] << 6)), " KB  ");
-    else end = PutText(PutNumber(end, (bytes[2] >> 4) | (bytes[3] << 4)), " MB  ");
-    end = PutNumber(end, (date >> 9) + 1980);
-    *end++ = '-';
-    end = PutNumber2(end, (date >> 5) & 15);
-    *end++ = '-';
-    end = PutNumber2(end, date & 31);
-    *end++ = ' ';
-    end = PutNumber2(end, time >> 11);
-    *end++ = ':';
-    end = PutNumber2(end, (time >> 5) & 63);
-  }
-  *end = 0;
-  DrawRow(STATUS_LINE, 1, text);
+  DrawRow(STATUS_LINE, 1, "");
 }
 
 // new path in the file name bar and a Loading... box over the list, with row's folder added to path
@@ -194,7 +163,7 @@ unsigned char Browse(void) {
       continue;
     }
     row = (unsigned char)(selected - first);
-    ListBars(path, row, list_count);
+    ListBars(path);
     NoHighlight();
     if (list_count) render_sel[(row + 1) << 1] = 0, render_sel[((row + 1) << 1) + 1] = 0xFF;
     EditorDraw();

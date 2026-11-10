@@ -45,7 +45,9 @@ assemble: $(C_RAW)
 	rgblink -l pages.link -m $(BUILD_DIR)/main.map -n $(SYM_FILE) -o $(ROM_FILE) $(BUILD_DIR)/main.o
 	$(PYTHON) check_pages.py $(BUILD_DIR)/main.map
 	rgbfix -v -c -s -j -t GBXOS -i KRKZ -l 0x33 -m 0 -r 0 -p 255 $(ROM_FILE)
+ifneq ($(ROM_FILE),$(BIN_DIR)/GBCOS.BIN)
 	cp $(ROM_FILE) $(BIN_DIR)/GBCOS.BIN
+endif
 	$(PYTHON) data_file.py $(BIN_DIR)/EDITOR.DAT
 	@if mountpoint -q "$(SD_MOUNT)"; then \
 		cp $(BIN_DIR)/GBCOS.BIN "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \

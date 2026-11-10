@@ -16,7 +16,7 @@ void ClockSetup(void) {
   unsigned char selected = 0, i, key, *value = (unsigned char*)&date;
   char *line, *end;
   if (ClockRead(&date)) { date.year = 26; date.month = date.day = 1; date.hour = date.minute = date.second = 0; }
-  DrawRow(STATUS_LINE, 1, "Left/right: adjust  A: set  B: cancel");
+  DrawRow(STATUS_LINE, 1, "L/R: edit A: set B: back");
   while (1) {
     line = RowAddress(BOX_LINE);
     for (i = 0; i < 6; ++i, line += BOX_STRIDE) {

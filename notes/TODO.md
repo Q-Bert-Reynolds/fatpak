@@ -1,10 +1,5 @@
-# TODO
+# Priority
 
-[README](../README.md) · [Architecture](ARCHITECTURE.md) · [EverDrive features](EVERDRIVE_FEATURES.md)
-
-## Priority
-
-- Hardware smoke-test the C/module reorganization: text editing/save, browser navigation, game launch and cart menu. Native tests cover these paths. **Progress text is hardware-confirmed: no garbage/flicker, and Crystal still launches.** Launch speed remains the priority; see [loading overlay](EVERDRIVE_FEATURES.md#loading-box-over-the-browser).
 - Add a loading bar over the browser using the hardware-confirmed CPU-copy progress path. Update it between transfer chunks without HDMA or OAM DMA.
 - Clock setting is hardware-confirmed. Verify RTC time across power-off separately from Crystal's ROM-loading failure.
 - Save states have been tested successfully on hardware. Remaining compatibility checks: switching between FatPak and stock OS, interrupted file operations, and 128 KiB battery saves. Cheat testing is deferred. See [cart-menu validation](IN_GAME_MENU.md#validation).
@@ -12,7 +7,7 @@
 - Plan code space before adding more services: most OS pages are close to their `$1d00` limit. Consider moving data, splitting helpers or the overlay approach below.
 - ROM launch currently reserves snapshot-load staging above `$3c00`, limiting ROMs to 7.5 MiB. Supporting a full 8 MiB ROM needs a different staging allocation. Stock state files remain limited to 32 KiB of cartridge RAM; normal battery saves support 128 KiB.
 
-## Text Rendering
+# Text Rendering
 
 - font selection: pick from a list of fonts (variable width, 4 pixel fixed, Tiny5 Mono in img/fonts/tiny5mono_font.png, ...) for text and for code (now code and markdown's code are fixed width, the rest variable width), saved with the settings
 - variable width font: accented and UI glyphs in vwf_font.png are copied from ui_font.png, redraw them
@@ -27,7 +22,7 @@
   - profile large gap moves in the current PSRAM layout; TBMoveGap already copies bounded chunks through win_buffer
   - tb_Load scans up to 65,024 bytes at boot when the gap is at the end (~0.9s on DMG, estimated), the scan loop could be tighter
 
-## Syntax Highlighting
+# Syntax Highlighting
 
 - hand edits to the styled fonts (img/fonts/*_font.png, fonts.py derive drew them)
 - ScrollX (no wrap) doesn't count bold widths
@@ -35,7 +30,7 @@
 - code: bold keywords widen the fixed font's cells (columns don't line up after them, until the fixed bold font is redrawn 4 pixels wide), registers share the keyword blue, the C preprocessor only colors the directive, RGBDS /* */ comments and string interpolation aren't lexed, a long first scan after an edit near the top of a big C file (~0.5 frame per KB on GBC)
 - later: SGB colors (ATTR_CHR, 4 palettes, 8px cells, resent on scroll), UI and syntax colors in the settings (with an inverted theme)
 
-## UI/UX
+# UI/UX
 
 D-pad selection (A + D-pad), menu cut/copy/paste, and on-screen undo/redo are implemented.
 
@@ -50,7 +45,7 @@ D-pad selection (A + D-pad), menu cut/copy/paste, and on-screen undo/redo are im
 - on SGB always use the full GB area for text, use SGB border for header/footer info (and on-screen keyboard?)
 - SGB's fullscreen mode should leverage the full power of the SNES for text rendering (like Space Invaders does)
 
-## File I/O
+# File I/O
 
 Calendar-based file timestamps and SETTINGS > CLOCK are implemented, with a fixed-date fallback when no valid clock is available.
 
@@ -58,7 +53,7 @@ Calendar-based file timestamps and SETTINGS > CLOCK are implemented, with a fixe
 - save as into another folder
 - bank_split.py keeps FatFs helpers in ROM0, some could go in a bank behind far calls
 
-## Large Files
+# Large Files
 
 The OS build already supports large files. Previous Gearboy measurements: files of any size open in ~0.9s (Gearboy) and can be
 edited and saved. The file stays open and the text buffer is a 48KB window (WIN_SIZE) of the document, a list
@@ -86,19 +81,19 @@ Next:
 - a markdown code block or C comment open at the window's start isn't seen (the lexer starts fresh there)
 - lines longer than the window's margin (8KB) with line wrap off
 
-## Peripherals
+# Peripherals
 
 - PS/2 keyboard is only detected at boot, re-detect when plugged in later (HELP > KEYBOARD TEST starts listening for one)
 - iGKB (also supports mouse and gamepad), needs Gearboy emulation first. Its home/end/page/delete handlers are written but untested
 - WorkBoy keyboard
 - use GB Printer to print text files
 
-## Emulator
+# Emulator
 
 - Test PS/2 input on the LSDJ rom
 - iGKB emulation (see Peripherals)
 
-## OS Utilities
+# OS Utilities
 
 The `$0670` entry, full game-memory capture, SD services while suspended, Resume,
 and warm return are implemented. Utilities can build on that snapshot; the
@@ -120,7 +115,7 @@ and `.gbc` launch already covers ROMs built by a future on-device assembler.
 - compile on device: SDCC can't host itself (C++, megabytes of heap). A Small-C style compiler (one pass, emits asm for the assembler, self hosting) built with SDCC on the PC first, passes as separate programs with temp files on SD like HI-TECH C on CP/M, matching SDCC's calling convention so it can call the engine. Forth is the cheaper interactive option
 - suggested order: in-memory assembler + API, measure SD speed, ROM builder using the existing launch path, compiler
 
-## Platforms
+# Platforms
 
 The EverDrive GB X7 OS image is the only application build. Current fallbacks:
 missing `/GBCSYS/EDITOR.DAT` disables styled glyphs and the SGB border; an absent

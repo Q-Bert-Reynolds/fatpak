@@ -79,7 +79,7 @@ def main():
   for i, (_, indices) in enumerate(maps):
     out += [f'MenuMapRow{i}:', '  DB ' + ','.join(map(str, indices))]
   pixels = [[0] * 160 for _ in range(144)]
-  text(5, 136, 'State unavailable / SD error')
+  text(5, 136, 'State / SD error')
   error = [sum(pixels[136+y][col*8+bit] << (7-bit) for bit in range(8)) for col in range(20) for y in range(8)]
   out += ['MenuError:', '  ld hl, MenuErrorTiles', '  ld de, MENU_FOOTER_VRAM', '  ld bc, 160', '.copy', '  ld a, [hli]', '  ld [de], a', '  inc de', '  ld [de], a', '  inc de', '  dec bc', '  ld a, b', '  or a, c', '  jr nz, .copy', '  ret', 'MenuErrorTiles:']
   for offset in range(0, len(error), 8):

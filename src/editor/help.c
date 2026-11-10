@@ -4,6 +4,7 @@
 #include "../input.h"
 #include "../ui/render.h"
 #include "../ui/screen.h"
+#include "../ui/footer.h"
 
 #define HELP_ROWS        18
 #define HELP_COLS        36
@@ -37,6 +38,7 @@ void ShowHelp(void) {
   render_text = 0;
   BeginFullScreen();
   for (row = 0; row < HELP_ROWS; ++row) DrawRow(row, 0, help_lines[row]);
+  FooterDraw(TB_ROWS - 1, 0, "Any key: close");
   EditorDraw();
   while (!MenuKey());
   font = editor_font;

@@ -173,6 +173,8 @@ InGameMenu:
   ld de, MenuBarMasks
   ld b, 20
   call MenuTint
+  call _FooterPoll
+  call MenuLoadClock
   xor a
   ldh [rSCX], a
   ldh [rSCY], a
@@ -242,6 +244,7 @@ InGameMenu:
   ld de, MenuBarMasks
   ld b, 20
   call MenuTint
+  call MenuLoadClock
   ld a, MENU_LCDC
   ldh [rLCDC], a
   jp .loop
@@ -444,6 +447,11 @@ MenuPad:
     cp a, SCRN_Y
     jr z, .leave
 .read
+  push bc;the input loop keeps the pressed buttons in C until release
+  call _FooterPoll
+  and a
+  call nz, MenuLoadClock
+  pop bc
   ld a, P1F_GET_DPAD
   ldh [rP1], a
 REPT 4
@@ -467,6 +475,19 @@ ENDR
   ld a, b
   ret
 
+;The menu is already CPU-drawn. Only replace its six rightmost footer tiles.
+;Calls that can switch pages run through always-mapped code.
+END_PAGE
+FIXED "Menu clock dispatch"
+MenuLoadClock:
+  ld a, LAUNCH_PAGE
+  SET_BANK
+  call MenuClockGraphics
+  ld a, INGAME_PAGE
+  SET_BANK
+  ret
+PAGE INGAME_PAGE
+
 ;Labels are composed at build time with the editor's FontVWFGlyphs/Widths.
 ;This avoids using the editor renderer's game-owned WRAM/HRAM scratch space.
 INCLUDE "build/ingame_menu.asm"
@@ -478,6 +499,43 @@ MenuPalette:
 END_PAGE
 
 PAGE LAUNCH_PAGE
+MenuClockGraphics:
+  ld a, [_footer_x]
+  ld de, _footer_time
+  call RenderMenuText
+  ld hl, render_bitmap+112
+  ld de, MENU_FOOTER_VRAM+14*16
+  ld b, 48
+  ld a, [menu_cgb]
+  and a
+  jr z, .dmg
+.cgb
+  ldh a, [rSTAT]
+  bit 1, a
+  jr nz, .cgb
+  ld a, $FF
+  ld [de], a
+  inc de
+  ld a, [hli]
+  ld [de], a
+  inc de
+  dec b
+  jr nz, .cgb
+  ret
+.dmg
+  ldh a, [rSTAT]
+  bit 1, a
+  jr nz, .dmg
+  ld a, [hli]
+  cpl
+  ld [de], a
+  inc de
+  ld [de], a
+  inc de
+  dec b
+  jr nz, .dmg
+  ret
+
 ;DE = Latin-1 basename. Called by LaunchGame before the game owns WRAM/HRAM.
 _InGameHeader::
   ld a, 5;the editor's bar inset: space (4px), plus the initial pixel

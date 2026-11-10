@@ -3,6 +3,7 @@
 #include "../editor/osk.h"
 #include "../editor/text_buffer.h"
 #include "render.h"
+#include "footer.h"
 
 unsigned char ring_top; // BG map row of text row 0
 unsigned char ring_pos; // index in ring_blocks of text row 0's block
@@ -100,6 +101,7 @@ void DrawRow(unsigned char row, unsigned char col, const char* text) {
   unsigned char i;
   for (i = 0; i < TB_STRIDE; ++i) dest[i] = ' ';
   for (dest += col; *text && col < TB_STRIDE; ++col) *dest++ = *text++;
+  if (row == STATUS_LINE) FooterCompose(RowAddress(row));
 }
 
 void ClearScreen(void) {
