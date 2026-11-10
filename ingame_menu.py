@@ -38,7 +38,7 @@ def main():
     pixels[top][x] = pixels[bottom][x] = 1
   for row, label in enumerate(labels):
     text(left + 4 + widths[32], 56 + row * 8, label)
-  text(5, 136, 'A: select  B: resume')
+  text(5, 136, '\x01 Select  \x02 Resume')
 
   tiles = bytearray(8)  # tile 0 remains blank; tinted tiles are never shared
   first_col, last_col = left // 8, right // 8

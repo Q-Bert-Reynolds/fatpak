@@ -16,7 +16,7 @@ unsigned char DpadRepeat(unsigned char pressed) {
 }
 
 // waits a frame, returns a key from the keyboard or d-pad (A = enter, B = backspace, START = menu,
-// which closes menus)
+// which closes menus; Select = file info)
 unsigned char MenuKey(void) {
   unsigned char key, pressed, held;
   WaitFrame();
@@ -25,6 +25,7 @@ unsigned char MenuKey(void) {
   if (pressed & PADF_A) return KEY_ENTER;
   if (pressed & PADF_B) return KEY_BACKSPACE;
   if (pressed & PADF_START) return KEY_MENU;
+  if (pressed & PADF_SELECT) return KEY_INFO;
   held = DpadRepeat(pressed);
   if (held & PADF_UP) return KEY_UP;
   if (held & PADF_DOWN) return KEY_DOWN;

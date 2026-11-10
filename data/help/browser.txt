@@ -1,19 +1,19 @@
 FILE BROWSER
 
-D-pad  select a file/folder
-A / Right  open selection
-B / Left  parent folder
-B at root  return to editor
-Start  browser menu
-F1  browser help
+<BTN_DPAD>  select a file/folder
+<BTN_A> / <BTN_RIGHT>  open selection
+<BTN_B> / <BTN_LEFT>  parent folder
+<BTN_B> at root  return to editor
+<BTN_START>  browser menu
+<BTN_SELECT>  file info
 
-FILE > INFO  size and date
+FILE > INFO  file details
 FILE > RENAME  edit name
 Rename opens the keyboard
-A  type the selected key
-B  erase (empty: cancel)
+<BTN_A>  type the selected key
+<BTN_B>  erase (empty: cancel)
 Return key  accept name
-Start / Esc  cancel rename
+<BTN_START> / Esc  cancel rename
 Undo/redo keys  name history
 Ctrl+Z / Ctrl+Y  undo/redo
 
@@ -29,4 +29,4 @@ SETTINGS > KEYBOARD TEST
 HELP  show browser controls
 RESTART  full hardware reset
 
-B / Esc  return to browser
+<BTN_B>  return to browser

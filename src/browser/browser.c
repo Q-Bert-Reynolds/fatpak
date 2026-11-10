@@ -19,6 +19,7 @@
 #include "../ui/render.h"
 #include "../ui/screen.h"
 #include "../ui/text.h"
+#include "../ui/icons.h"
 
 #define LIST_ROWS      (TB_ROWS - 2) // file browser rows between the bars
 #define LIST_ALL       0xFFFF
@@ -85,12 +86,12 @@ static void ScrollList(const char* path, unsigned int first, unsigned char down)
   ListRows(path, first, i, i + 1);
 }
 
-// Keep the folder in the header; the footer is reserved for the clock.
+// Keep the folder in the header and gamepad actions beside the footer clock.
 static void ListBars(const char* path) {
   char text[TB_STRIDE];
   PutPath(text, path, 30);
   DrawRow(HEADER_LINE, 1, text);
-  DrawRow(STATUS_LINE, 1, "");
+  DrawRow(STATUS_LINE, 1, ICON_A "Open " ICON_SELECT "Info " ICON_START "Menu");
 }
 
 // new path in the file name bar and a Loading... box over the list, with row's folder added to path
@@ -135,11 +136,12 @@ static void BrowserError(unsigned char result) {
 
 // Paths in the file clipboard are independent of the editor's text clipboard.
 // The caller reloads the directory after this, because transfers borrow its marks.
-static unsigned char BrowserMenu(char* path, char* clipboard) {
+static unsigned char BrowserMenu(char* path, char* clipboard, unsigned char info) {
   unsigned char menu = 0, item, length = 0, result;
   const char* name;
   while (path[length]) ++length;
-  while (1) {
+  if (info) item = 0;
+  else while (1) {
     menu = Choose(0, browser_items[0], 5, menu);
     if (menu >= BACK) return 0;
     if (menu == 4) {
@@ -318,12 +320,13 @@ unsigned char Browse(void) {
       selected = ListFolder(path, name); // back on the folder it came from
       drawn = LIST_ALL;
     }
-    else if (key == KEY_MENU || key == KEY_F1) {
+    else if (key == KEY_MENU || key == KEY_F1 || key == KEY_INFO) {
       entry.name[0] = 0;
       if (list_count && list_kinds[row] != KIND_UP && ListEntry(path, selected) == 0xFF) continue;
+      if (key == KEY_INFO && !entry.name[0]) continue;
       name_row = row;
       if (key == KEY_F1) ShowBrowserHelp();
-      else if (BrowserMenu(path, clipboard)) RenameSelected(path, selected);
+      else if (BrowserMenu(path, clipboard, key == KEY_INFO)) RenameSelected(path, selected);
       if (osk_shown) OSKShow(0);
       osk_shown = 0;
       font = FONT_VWF;

@@ -19,7 +19,7 @@ FatPak starts in the file browser. Folders come first; A or Enter opens a file o
 folder, and B, Backspace, or Left goes up a folder. Escape returns to the text
 editor; B or Backspace does the same at the root.
 
-START opens the browser menu: FILE (info, rename), EDIT (cut, copy, paste),
+SELECT opens file info directly. START opens the browser menu: FILE (info, rename), EDIT (cut, copy, paste),
 SETTINGS (clock, keyboard test), HELP, and RESTART. Rename uses the on-screen
 keyboard and supports undo/redo. File info shows timestamps, file type and size,
 word/line counts for text files up to 32KB, and cartridge header details for games.
@@ -27,7 +27,7 @@ RESTART performs a full device restart, including the Nintendo splash.
 
 The header shows the current folder, or the filename when viewing file info.
 Every visible footer shows the current time at the bottom right in 12-hour format,
-such as `10:42pm`. Help is scrollable; B or Escape exits help and file info.
+such as `10:42pm`. Footer hints use gamepad button icons. Help is scrollable; B or Escape exits help and file info.
 
 # Text editor controls
 

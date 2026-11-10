@@ -1279,7 +1279,7 @@ RenderRow:
     ld c, a
     ST_HL_VAR render_src
     ld a, c
-    cp a, 1;private footer marker: right-align the cached clock in pixels
+    cp a, FOOTER_MARKER;private footer marker: right-align the cached clock in pixels
     jr nz, .ordinaryChar
     ld a, [render_styled]
     and a

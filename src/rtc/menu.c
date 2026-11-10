@@ -8,6 +8,7 @@
 #include "../ui/render.h"
 #include "../ui/screen.h"
 #include "../ui/text.h"
+#include "../ui/icons.h"
 
 static const char clock_fields[][8] = {"Year", "Month", "Day", "Hour", "Minute", "Second"};
 
@@ -16,7 +17,7 @@ void ClockSetup(void) {
   unsigned char selected = 0, i, key, *value = (unsigned char*)&date;
   char *line, *end;
   if (ClockRead(&date)) { date.year = 26; date.month = date.day = 1; date.hour = date.minute = date.second = 0; }
-  DrawRow(STATUS_LINE, 1, "L/R: edit A: set B: back");
+  DrawRow(STATUS_LINE, 1, ICON_LR" Edit " ICON_A "Set " ICON_B "Back");
   while (1) {
     line = RowAddress(BOX_LINE);
     for (i = 0; i < 6; ++i, line += BOX_STRIDE) {
@@ -27,7 +28,7 @@ void ClockSetup(void) {
     }
     OpenBox(6); render_box_sel = selected + 1; EditorDraw();
     while (!(key = MenuKey()));
-    if (key == KEY_ESCAPE || key == KEY_MENU) break;
+    if (key == KEY_ESCAPE || key == KEY_MENU || key == KEY_BACKSPACE) break;
     if (key == KEY_UP) selected = selected ? selected - 1 : 5;
     else if (key == KEY_DOWN) selected = selected == 5 ? 0 : selected + 1;
     else if (key == KEY_LEFT || key == KEY_RIGHT) {

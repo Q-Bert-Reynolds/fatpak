@@ -6,6 +6,7 @@
 #include "../ui/render.h"
 #include "../ui/screen.h"
 #include "../ui/text.h"
+#include "../ui/icons.h"
 #include "../ui/footer.h"
 
 #define TEST_CODES 11 // scan code rows
@@ -37,7 +38,7 @@ void KeyboardTest(void) {
   DrawRow(0, 0, "KEYBOARD TEST");
   DrawRow(1, 0, boot == 1 ? "Found at boot: PS/2" : boot ? "Found at boot: iGKB" : "Found at boot: none, listening anyway");
   DrawRow(4, 0, "Scan codes (newest last):");
-  FooterDraw(TB_ROWS - 1, 0, "B or Start: back");
+  FooterDraw(TB_ROWS - 1, 0, ICON_B"/" ICON_START" Back");
   while (1) {
     end = PutText(text, "Bytes ");
     end = PutNumber(end, (unsigned char)(kb_interrupt_count - bytes));

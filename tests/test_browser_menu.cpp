@@ -163,7 +163,8 @@ static void HelpScroll(GearboyCore& core,const std::map<std::string,unsigned>& s
     auto memory=core.GetMemory();auto cpu=core.GetProcessor()->GetState();
     Check(memory->Read(syms.at("_bars"))==1 && memory->Read(syms.at("_tb_rows"))==16,"help keeps standard bars and sixteen text rows");
     Check(memory->Read(syms.at("_render_row_lines"))==18 && memory->Read(syms.at("_render_row_lines")+17)==19,"help maps fixed header/footer rows");
-    Check(memory->Read(syms.at("tile_buffer")+19*40+32)==1,"help footer includes the clock");
+    Check(memory->Read(syms.at("tile_buffer")+19*40+32)==127,"help footer includes the clock");
+    Check(memory->Read(syms.at("tile_buffer")+19*40+1)==130,"help footer uses combined vertical D-pad icon");
     for(unsigned i=0;i<16*40;++i)
         Check(memory->Read(syms.at("tile_buffer")+i)!=0,"help text is space padded without terminator glyphs");
     unsigned ring=memory->Read(syms.at("_ring_top"));
@@ -214,6 +215,10 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     Frames(core,600);
     for(unsigned i=0;i<32;++i) memory->Write(syms.at("stack_top")+i,0xA5);
     pad(Down_Key); // select Document.txt
+    Check(row(19).find(" \001Open \003Info \004Menu")==0,"browser footer shows button shortcuts");
+    pad(Select_Key);Check(row(18).find("Document.txt")!=std::string::npos,"Select directly opens file info");
+    Check(row(19).find("Esc")==std::string::npos,"info footer has no keyboard shortcut hints");
+    pad(B_Key);
     menu();pad(A_Key);Check(byte("_render_box_rows")==4,"file submenu");
     pad(B_Key);Check(byte("_render_box_rows")==7,"B returns to main menu");
     pad(A_Key);pad(A_Key);
@@ -222,7 +227,7 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     Check(row(0)==" Type: Plain Text" && row(1)==" Size: 3B","info type and byte size");
     Check(row(7)==" Words: 1" && row(8)==" Lines: 1","info counts text without trailing empty line");
     Check(row(3).find(" Created: ")==0 && row(4).find(" Accessed: ")==0 && row(5).find(" Modified: ")==0,"info displays all FAT timestamps");
-    Check(row(19).find("B/Esc: exit")!=std::string::npos && memory->Read(syms.at("tile_buffer")+19*40+32)==1,"info footer includes exit hint and clock");
+    Check(row(19).find("\002Exit")!=std::string::npos && memory->Read(syms.at("tile_buffer")+19*40+32)==127,"info footer includes exit hint and clock");
     pad(A_Key);Check(row(18).find("Document.txt")!=std::string::npos,"only B or Esc dismisses file info");
     pad(B_Key);Check(byte("_render_text")==0 && byte("_render_box_top")==255,"info returns to browser");
     menu();pad(A_Key);pad(Down_Key);pad(A_Key); // rename prompt
@@ -248,6 +253,10 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     Check(byte("_render_box_rows")==4,"browser has exactly two settings");
     Check(Text(memory,syms.at("tile_buffer")+20*40)==" CLOCK","clock is a browser setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" KEYBOARD TEST","keyboard test is a browser setting");
+    pad(A_Key); // clock settings
+    Check(row(19).find("\201 Edit \001Set \002Back")!=std::string::npos,"clock footer uses direction and action icons");
+    pad(B_Key);Check(byte("_render_box_top")==255,"B exits clock settings as advertised");
+    menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
     pad(Down_Key);pad(A_Key);Check(row(0)=="KEYBOARD TEST","browser settings launches keyboard test");pad(B_Key);
     Check(byte("_render_text")==0 && byte("_tb_rows")==16 && byte("_bars")==1,"settings restore browser layout");
     menu();pad(Down_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);
@@ -321,9 +330,11 @@ static void GameProperties(const char* image,const char* symbols,const char* dat
     auto pad=[&](Gameboy_Keys key){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,70);};
     auto row=[&](unsigned n){std::string s;for(unsigned i=0;i<40;++i)s+=char(memory->Read(syms.at("tile_buffer")+n*40+i));
         while(!s.empty() && s.back()==' ')s.pop_back();return s;};
-    auto info=[&](){pad(Start_Key);pad(A_Key);pad(A_Key);};
+    auto info=[&](){pad(Select_Key);};
     Frames(core,600);info();
     Check(row(0)==" Type: Folder" && row(1)==" Size: --","folder properties avoid misleading total size");
+    pad(B_Key);pad(A_Key); // enter GBCSYS, select its parent row
+    pad(Select_Key);Check(row(18).find("GBCSYS")!=std::string::npos && row(0).find(" ..")==0,"Select ignores parent navigation row");
     pad(B_Key);pad(Down_Key);info();
     Check(row(18)==" Crystal.gbc" && row(0)==" Type: Game Boy ROM" && row(1)==" Size: 1.5KB","game properties filename, type and scaled size");
     Check(row(7)==" Title: CRYSTAL" && row(8)==" Platform: Color only" && row(9)==" Super GB: Yes","cartridge title and platform fields");

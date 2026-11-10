@@ -152,7 +152,7 @@ SDDiagTitle:   DB "SD DIAGNOSTIC 2", 0
 SDDiagLegend1: DB "KEY USE 5A A1 06", 0
 SDDiagLegend2: DB "KEY USE D  I C0 C8 M", 0
 SDDiagNone:    DB "NO REGISTERS", 0
-SDDiagDone:    DB "A: CONTINUE", 0
+SDDiagDone:    DB "<BTN_A> CONTINUE", 0
 SDDiagVariants: DB 0, 0, $0A, $0A, $0A, 0, 0, $0A;sd_ramg_key, sd_ramg
 
 ;hl = text, copies it to str_buffer, returns hl after it

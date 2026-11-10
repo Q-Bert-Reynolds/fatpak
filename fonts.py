@@ -92,6 +92,18 @@ def font_glyphs(png, fixed_width):
       width = min(right + 2, 8)
     glyphs.append(rows)
     widths.append(width)
+  # Keep the 8-pixel artwork intact; proportional UI text adds a one-pixel gap.
+  # The monospaced keyboard retains its 8-pixel grid.
+  if png in ("img/ui_font.png", "img/fonts/vwf_font.png"):
+    buttons = Image.open("img/ui_font.png")
+    for code in range(1, 9):
+      glyphs[code] = glyph_rows(buttons, code)
+      widths[code] = 8 if fixed_width else 9
+    for code, parts in {129: (5, 6), 130: (7, 8), 131: (5, 6, 7, 8)}.items():
+      glyphs[code] = [0] * 8
+      for part in parts:
+        glyphs[code] = [a | b for a, b in zip(glyphs[code], glyphs[part])]
+      widths[code] = 8 if fixed_width else 9
   return glyphs, widths
 
 
@@ -193,6 +205,8 @@ def write_styled_widths():
 
 
 def up_to_date(png, asm):
+  if png == "img/fonts/vwf_font.png" and os.path.isfile(asm) and os.path.getmtime("img/ui_font.png") >= os.path.getmtime(asm):
+    return False
   return os.path.isfile(asm) and os.path.getmtime(asm) > max(os.path.getmtime(png), os.path.getmtime(__file__))
 
 

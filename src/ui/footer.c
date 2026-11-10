@@ -45,14 +45,14 @@ void FooterCompose(char* line) {
   if (!ready) footer_Poll();
   letter[1] = 0;
   for (i = 0; i < 32; ++i) {
-    if (line[i] == 1) break;
+    if (line[i] == FOOTER_MARKER) break;
     letter[0] = line[i];
     width = RenderTextWidth(letter);
     if (x + width > TB_WIDTH - 48) break;
     x += width;
   }
-  for (; i < 32; ++i) line[i] = 1;
-  line[32] = 1;
+  for (; i < 32; ++i) line[i] = FOOTER_MARKER;
+  line[32] = FOOTER_MARKER;
   for (i = 0; i < 7; ++i) line[33 + i] = ' ';
   for (i = 0; footer_time[i]; ++i) line[33 + i] = footer_time[i];
 }
@@ -66,12 +66,12 @@ void footer_Tick(void) {
   unsigned char row, line, visible = 0;
   for (row = 0; row < TB_ROWS; ++row) {
     line = render_row_lines[row];
-    if (line == STATUS_LINE || (!render_text && RowAddress(line)[32] == 1)) visible = 1;
+    if (line == STATUS_LINE || (!render_text && RowAddress(line)[32] == FOOTER_MARKER)) visible = 1;
   }
   if (!visible || !footer_Poll()) return;
   for (row = 0; row < TB_ROWS; ++row) {
     line = render_row_lines[row];
-    if (line == STATUS_LINE || (!render_text && RowAddress(line)[32] == 1))
+    if (line == STATUS_LINE || (!render_text && RowAddress(line)[32] == FOOTER_MARKER))
       FooterCompose(RowAddress(line));
   }
   EditorDraw();

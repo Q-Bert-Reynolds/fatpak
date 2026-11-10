@@ -1,14 +1,14 @@
 TEXT EDITOR
 
-Start / Esc  menu
+<BTN_START> / Esc  menu
 F1  editor help
 
-D-pad  move the cursor
-A + D-pad  select text
-B  backspace
-Select  show/hide keyboard
-A  type the selected key
-Start  close keyboard/menu
+<BTN_DPAD>  move the cursor
+<BTN_A> + <BTN_DPAD>  select text
+<BTN_B>  backspace
+<BTN_SELECT>  show/hide keyboard
+<BTN_A>  type the selected key
+<BTN_START>  close keyboard/menu
 
 Ctrl+O  open file browser
 Ctrl+S  save
@@ -28,5 +28,5 @@ Settings: wrap and full screen
 Alt+Z  line wrap
 F11  full screen
 
-Up/Down  scroll this help
-B / Esc  return to editor
+<BTN_UD>  scroll this help
+<BTN_B>  return to editor

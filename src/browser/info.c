@@ -9,6 +9,7 @@
 #include "../ui/render.h"
 #include "../ui/screen.h"
 #include "../ui/text.h"
+#include "../ui/icons.h"
 
 static const char* const types[] = {"Plain Text", "Markdown", "C source", "Assembly"};
 static char line[FS_NAME_SIZE];
@@ -118,7 +119,7 @@ void ShowFileInfo(const char* path, const FileEntry* entry) {
   BeginView(1);
   *ToLatin1(line, entry->name, FS_NAME_SIZE - 1) = 0;
   DrawRow(HEADER_LINE, 1, line);
-  DrawRow(STATUS_LINE, 1, "B/Esc: exit");
+  DrawRow(STATUS_LINE, 1, ICON_B "Exit");
   for (row = 0; row < TB_ROWS - 2; ++row) DrawRow(row, 0, "");
   Value(0, "Type: ", entry->dir ? "Folder" : details.game ? "Game Boy ROM" : details.status == 2 ? "Binary" : types[FileLanguage(entry->name)]);
   if (entry->dir) Value(1, "Size: ", "--");

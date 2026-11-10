@@ -6,6 +6,7 @@
 #include "../ui/render.h"
 #include "../ui/screen.h"
 #include "../ui/text.h"
+#include "../ui/icons.h"
 
 extern void SetWindowBlock(unsigned int block);
 #define WINDOW_BLOCK (*(volatile unsigned int*)0xBD02)
@@ -33,7 +34,7 @@ static void HelpView(unsigned char browser) {
   BeginView(1);
   osk_shown = 0;
   HelpRow(HEADER_LINE, base);
-  DrawRow(STATUS_LINE, 1, "Up/Down: scroll  B: exit");
+  DrawRow(STATUS_LINE, 1, ICON_UD "Scroll " ICON_B "Exit");
   for (row = 0; row < HELP_ROWS; ++row) HelpRow(row, base + row + 1);
   EditorDraw();
   while (1) {

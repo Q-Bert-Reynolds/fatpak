@@ -90,9 +90,9 @@ static void Format(const char* image,const char* symbols) {
         Check(Time(memory,syms.at("_footer_time"))==expected[n],"12-hour format, midnight, noon and lowercase suffix");
         for(unsigned i=0;i<40;++i) memory->Write(0xC300+i,'W');
         Call(core,syms.at("_FooterCompose"),0xC300);
-        Check(memory->Read(0xC320)==1,"right-alignment marker");
+        Check(memory->Read(0xC320)==127,"right-alignment marker");
         unsigned width=0;
-        for(unsigned i=0;i<32 && memory->Read(0xC300+i)!=1;++i)
+        for(unsigned i=0;i<32 && memory->Read(0xC300+i)!=127;++i)
             width+=memory->Read(syms.at("FontVWFWidths")+memory->Read(0xC300+i));
         Check(width<=111,"footer messages leave room for the clock");
         for(unsigned i=0;expected[n][i];++i)
@@ -144,8 +144,19 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     GearboyCore core;core.Init();core.SetEverdriveFolder(folder);Check(core.LoadROM(image,!color),"footer UI OS");
     auto memory=core.GetMemory();auto syms=Symbols(symbols);Frames(core,500);
     unsigned line=syms.at("tile_buffer")+19*40;
-    Check(memory->Read(line+32)==1,"browser has a footer clock");
-    for(unsigned i=0;i<32;++i) Check(memory->Read(line+i)==' '||memory->Read(line+i)==1,"browser footer hides file metadata");
+    Check(memory->Read(line+32)==127,"browser has a footer clock");
+    const std::string hints=" \001Open \003Info \004Menu";
+    for(unsigned i=0;i<hints.size();++i)Check(memory->Read(line+i)==u8(hints[i]),"browser footer shows gamepad action icons");
+    bool action_pixels[8][112]={};unsigned x=1;
+    for(unsigned char c : hints) {
+        for(unsigned y=0;y<8;++y)for(unsigned bit=0;bit<8 && x+bit<112;++bit)
+            if(memory->Read(syms.at("FontVWFGlyphs")+c*8+y)&(128>>bit))action_pixels[y][x+bit]=true;
+        x+=memory->Read(syms.at("FontVWFWidths")+c);
+    }
+    for(unsigned y=0;y<8;++y)for(unsigned column=0;column<112;++column) {
+        u8 pixels=memory->ReadCGBLCDRAM(0x8E40+(column/8)*16+y*2+1,color);
+        Check(bool(pixels&(128>>(column&7)))==(color?action_pixels[y][column]:!action_pixels[y][column]),"footer action icons render beside clock without marker collisions");
+    }
     Pixels(core,syms,color);
     Date(core,syms,22,42);
     // Continue waiting through the real shared frame handler without requiring

@@ -58,6 +58,7 @@
 #define TB_CLIP_OFFSET 0x0100u//the clipboard's text in PSRAM blocks 240-255 (src/sram.asm)
 #define TB_CLIP_SIZE (0x2000u-TB_CLIP_OFFSET)
 #define UNDO_SIZE    (TB_BANK_SIZE*UNDO_BANKS)
+#define FOOTER_MARKER 0x7F//private clock alignment marker, separate from button icons
 #define TB_COLS   20//tiles per row
 #define TB_ROWS   18
 #define TB_WIDTH  TB_COLS*8//pixels per row
@@ -133,6 +134,7 @@
 #define KEY_MENU      0x89//file menu (Escape, on screen keyboard)
 #define KEY_UNDO      0x8A
 #define KEY_REDO      0x8B
+#define KEY_INFO      0x8C//Select in the file browser
 #define KEY_F1        0x90//function keys are KEY_F1 + n - 1
 #define KEY_F2        0x91
 #define KEY_F3        0x92

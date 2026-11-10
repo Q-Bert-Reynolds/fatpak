@@ -55,6 +55,7 @@ DEF TB_SIZE      EQU (TB_BANK_SIZE*TB_BANKS)
 DEF TB_CLIP_OFFSET EQU $0100;the clipboard's text in PSRAM blocks 240-255 (src/sram.asm)
 DEF TB_CLIP_SIZE EQU ($2000-TB_CLIP_OFFSET)
 DEF UNDO_SIZE    EQU (TB_BANK_SIZE*UNDO_BANKS)
+DEF FOOTER_MARKER EQU $7F;private clock alignment marker, separate from button icons
 DEF TB_COLS   EQU 20;tiles per row
 DEF TB_ROWS   EQU 18
 DEF TB_WIDTH  EQU TB_COLS*8;pixels per row
@@ -130,6 +131,7 @@ DEF KEY_INSERT    EQU $88
 DEF KEY_MENU      EQU $89;file menu (Escape, on screen keyboard)
 DEF KEY_UNDO      EQU $8A
 DEF KEY_REDO      EQU $8B
+DEF KEY_INFO      EQU $8C;Select in the file browser
 DEF KEY_F1        EQU $90;function keys are KEY_F1 + n - 1
 DEF KEY_F2        EQU $91
 DEF KEY_F3        EQU $92

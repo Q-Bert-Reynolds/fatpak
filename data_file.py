@@ -70,10 +70,14 @@ def main(out_path):
       (c["DATA_FIXED"] - c["DATA_BORDER_MAP"]) * BLOCK)
   put(data, c["DATA_FIXED"], db_bytes("img/fonts/font_fixed.asm", "FontFixedGlyphs", "FontFixedWidths"), 4 * BLOCK)
   put(data, c["DATA_MONO"], db_bytes("img/fonts/font_mono.asm", "FontMonoGlyphs", "FontMonoWidths"), 4 * BLOCK)
+  buttons = {token: chr(int(code)) for token, code in
+             re.findall(r'charmap "(<BTN_[A-Z]+>)", (\d+)', open("src/charmap.asm", encoding="utf8").read())}
   for context, name in enumerate(("editor", "browser")):
     lines = open(f"data/help/{name}.txt", encoding="utf8").read().splitlines()
     assert len(lines) == 32, f"{name} help must have 32 lines"
     for i, line in enumerate(lines):
+      for token, char in buttons.items():
+        line = line.replace(token, char)
       encoded = line.encode("latin1")
       assert len(encoded) < 32, f"help line too long: {line}"
       offset = (c["DATA_HELP"] + context * 2) * BLOCK + i * 32

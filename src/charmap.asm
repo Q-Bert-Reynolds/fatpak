@@ -31,15 +31,17 @@ charmap "<n~>", 241
 charmap "<e`>", 233
 
 ;ui tiles not covered by ASCII tabe
-charmap "<P>", 1 ; pitcher
-charmap "<C>", 2 ; catcher
-charmap "<1B>", 3 ; first
-charmap "<2B>", 4 ; second
-charmap "<3B>", 5 ; third
-charmap "<SS>", 6 ; short
-charmap "<LF>", 7 ; left
-charmap "<CF>", 8 ; center
-charmap "<RF>", 9 ; right
+charmap "<BTN_A>", 1
+charmap "<BTN_B>", 2
+charmap "<BTN_SELECT>", 3
+charmap "<BTN_START>", 4
+charmap "<BTN_RIGHT>", 5
+charmap "<BTN_LEFT>", 6
+charmap "<BTN_UP>", 7
+charmap "<BTN_DOWN>", 8
+charmap "<BTN_LR>", 129 ; left OR right
+charmap "<BTN_UD>", 130 ; up OR down
+charmap "<BTN_DPAD>", 131 ; all four directions
 charmap "◌", 10 ; dotted circle
 charmap "○", 11 ; baseball
 charmap "◀", 12
