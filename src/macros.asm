@@ -76,7 +76,7 @@ DEF KEYBOARD_PAGE EQU 15
 DEF UNDO_PAGE     EQU 15;with undo.c (undo.banks)
 DEF DOC_PAGE      EQU 14;with the large file functions in fatfs.c (fatfs.banks)
 DEF GAME_PAGE     EQU 12;sd_ReadBlocks, with fs_GameCopy in fatfs.c (fatfs.banks)
-DEF LAUNCH_PAGE   EQU 6;GameLaunch, with LaunchGame in editor.c (editor.banks)
+DEF LAUNCH_PAGE   EQU 6;GameLaunch and game/loader.c (loader.banks)
 MACRO KEYWORDS_SECTION
   PAGE KEYWORDS_PAGE
 ENDM
@@ -275,4 +275,40 @@ ENDC
   ld a, 1
   and a
 .end\@
+ENDM
+
+;Little-endian words shared by text, drawing and file routines.
+MACRO LD_HL_VAR ;\1 = address of little endian word
+  ld a, [\1]
+  ld l, a
+  ld a, [\1+1]
+  ld h, a
+ENDM
+
+MACRO ST_HL_VAR ;\1 = address of little endian word
+  ld a, l
+  ld [\1], a
+  ld a, h
+  ld [\1+1], a
+ENDM
+
+MACRO LD_BC_VAR ;\1 = address of little endian word
+  ld a, [\1]
+  ld c, a
+  ld a, [\1+1]
+  ld b, a
+ENDM
+
+MACRO LD_DE_VAR ;\1 = address of little endian word
+  ld a, [\1]
+  ld e, a
+  ld a, [\1+1]
+  ld d, a
+ENDM
+
+MACRO ST_DE_VAR ;\1 = address of little endian word
+  ld a, e
+  ld [\1], a
+  ld a, d
+  ld [\1+1], a
 ENDM

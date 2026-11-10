@@ -12,7 +12,7 @@ typedef char check_name_size[FS_NAME_SIZE == FF_LFN_BUF + 1 ? 1 : -1];
 
 #define FS_BUFFER_SIZE 512
 
-// src/editor/sd.asm
+// src/fatfs/sd.asm
 extern unsigned long sd_sector;
 extern unsigned char sd_Init(void);
 extern unsigned char sd_ReadSector(unsigned char* buffer);
@@ -782,7 +782,7 @@ unsigned char fs_BackupSave(void) {
       result = SaveRamFile(sectors, 1); f_close(&save_file); if (result) return result;
     }
     if (rtc) { memcpy(saved + i - 3, "rtc", 3); if ((result = WriteGameRTC(saved))) return result; }
-    // Older Girlboss launches never initialized the stock snapshot slot.
+    // Older FatPak launches never initialized the stock snapshot slot.
     if (path == 10 && (result = BackupSnapshot(saved, sectors))) return result;
   }
   if (!(result = f_open(&save_file, GAME_RECORD, FA_WRITE))) {
@@ -802,7 +802,7 @@ unsigned char fs_BackupSave(void) {
 extern unsigned int game_block, game_blocks; // src/fatfs/fatfs.asm
 extern unsigned long game_clst;
 extern unsigned char game_banks;
-extern unsigned char sd_ReadBlocks(unsigned int block, unsigned int count); // src/editor/sd.asm, from LBA sd_sector
+extern unsigned char sd_ReadBlocks(unsigned int block, unsigned int count); // src/fatfs/sd.asm, from LBA sd_sector
 unsigned char fs_GameOpen(const char* path) {
   UINT done, i;
   BYTE type, size;
@@ -915,7 +915,7 @@ static FRESULT WriteGameRTC(const char* path) {
 }
 // Preserve options, replace the stock last-game metadata/entry, and recompute
 // its additive checksum. The stock backup path needs the same basename and RAM
-// sector count as Girlboss; otherwise changing OS can overwrite another save.
+// sector count as FatPak; otherwise changing OS can overwrite another save.
 static FRESULT RegistryGame(const char* path) {
   UINT done, i, base = 0, length = 0, sum;
   DWORD cluster = file.obj.sclust, size = f_size(&file), id = (file.dir_sect << 4) | ((file.dir_ptr - fs.win) >> 5);

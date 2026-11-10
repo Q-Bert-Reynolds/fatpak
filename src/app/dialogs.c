@@ -1,0 +1,86 @@
+// Dialog interaction and status messages over the active editor/browser view.
+#include "dialogs.h"
+#include "../editor/editor.h"
+#include "../editor/osk.h"
+#include "../editor/state.h"
+#include "../editor/view.h"
+#include "../editor/text_buffer.h"
+#include "../fatfs/file_api.h"
+#include "../input.h"
+#include "../ui/dialogs.h"
+#include "../ui/render.h"
+#include "../ui/screen.h"
+#include "../ui/text.h"
+
+// FRESULT codes used by the status-message formatter (fatfs/lib/ff.h).
+#define FR_NOT_READY     3
+#define FR_DENIED        7
+#define FR_NO_FILESYSTEM 13
+
+// shows a list of ITEM_SIZE strings in a box over the text (under title, 0 = none) with item
+// selected highlighted, returns the chosen index, BACK or CANCEL
+unsigned char Choose(const char* title, const char* items, unsigned char count, unsigned char selected) {
+  char* line = RowAddress(BOX_LINE);
+  unsigned char i, key, first = title ? 1 : 0;
+  if (title) CopyName(line, title), line += BOX_STRIDE;
+  for (i = 0; i < count; ++i, line += BOX_STRIDE, items += ITEM_SIZE) {
+    line[0] = ' ';
+    CopyName(line + 1, items);
+  }
+  EditorShowCursor(0);
+  if (osk_shown) OSKShow(0);
+  OpenBox(count + first);
+  while (1) {
+    render_box_sel = selected + first + 1;
+    EditorDraw();
+    while (!(key = MenuKey()));
+    if (key == KEY_UP) selected = selected ? selected - 1 : count - 1;
+    else if (key == KEY_DOWN) selected = selected == count - 1 ? 0 : selected + 1;
+    else if (key == KEY_ENTER) break;
+    else if (key == KEY_ESCAPE || key == KEY_MENU) {
+      selected = CANCEL;
+      break;
+    }
+    else if (key == KEY_BACKSPACE) {
+      selected = BACK;
+      break;
+    }
+  }
+  HideBox();
+  if (osk_shown) OSKShow(1);
+  dirty = 1;
+  return selected;
+}
+
+// shows text in the status bar or on the last text row until a key is pressed
+void ShowMessage(const char* text) {
+  HideBox();
+  Render();
+  EditorShowCursor(0);
+  NoHighlight();
+  if (bars) {
+    UpdateBars();
+    DrawRow(STATUS_LINE, 1, text);
+  }
+  else DrawRow(tb_rows - 1, 0, text);
+  EditorDraw();
+  WaitDismiss();
+  dirty = 1;
+}
+
+void ShowError(unsigned char result, const char* denied) {
+  char text[12] = "SD ERROR ";
+  if (result == FR_NOT_READY) ShowMessage("NO SD CARD");
+  else if (result == FR_NO_FILESYSTEM) ShowMessage("NO FAT VOLUME");
+  else if (result == FR_DENIED) ShowMessage(denied);
+  else {
+    text[9] = '0';
+    while (result >= 10) {
+      ++text[9];
+      result -= 10;
+    }
+    text[10] = '0' + result;
+    text[11] = 0;
+    ShowMessage(text);
+  }
+}

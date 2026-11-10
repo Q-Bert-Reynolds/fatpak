@@ -76,8 +76,15 @@ windows are the exception described above.
 - fades, GBC palettes, SGB borders/palettes
 - translated strings from CSV (en, es, fr, it, pt, de, ja)
 
+# Source layout
+
+Application startup and menus live in `src/app`, file browsing in `src/browser`, shared drawing in
+`src/ui`, and ROM loading/cart menus/save states in `src/game`. `src/editor` contains text editing,
+document handling, navigation, the on-screen keyboard, syntax and undo. See
+[Architecture](notes/ARCHITECTURE.md#source-layout) for module details and banked C calls.
+
 # Fonts
-The editor draws text as pixels, so fonts can be any width (src/editor/render.asm). fonts.py converts:
+The editor draws text as pixels, so fonts can be any width (src/ui/render.asm). fonts.py converts:
 - img/ui_font.png, the 8 pixel fixed width font (the on screen keyboard)
 - img/fonts/fixed_font.png, the 4 pixel fixed width font for text (40 characters per row), the
   left 4 pixels of each cell
@@ -106,9 +113,10 @@ img/ui_font.png is 256 tiles. Tile index matches the character code:
 - "\n" in engine strings is 128
 
 # Tests
+Run `python3 -m unittest discover -s tests -v` to check C module bank placement.
 The HELP menu's keyboard test checks PS/2 and iGKB input. See
 [IN_GAME_MENU.md](notes/IN_GAME_MENU.md) for cart-menu validation. With the sibling
-Gearboy checkout, `make -C ../Gearboy/tests girlboss` runs assembled-OS integration
+Gearboy checkout, `make -C ../Gearboy/tests fatpak` runs assembled-OS integration
 tests against temporary SD folders; `make -C ../Gearboy/tests everdrive` runs the
 standalone cartridge component tests.
 

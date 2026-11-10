@@ -4,7 +4,7 @@ busy_frames:: DB ;frames since the main loop waited for one, 0 = it's waiting
 rLCDInterrupt:: DW;location of LCD interrupt subroutine
   
 SECTION "VBlank", ROM0[$0040]
-  jp InGameEntry;our boot points it at VBLInterrupt, GameLaunch back here (src/editor/ingame.asm)
+  jp InGameEntry;our boot points it at VBLInterrupt, GameLaunch back here (src/game/ingame.asm)
 SECTION "LCDC", ROM0[$0048]
   jp LCDInterrupt
 SECTION "TimerOverflow", ROM0[$0050]

@@ -1,138 +1,144 @@
-"""Split SDCC RGBDS output across EverDrive OS pages and resident code.
+"""Place separately compiled C modules in EverDrive OS pages.
 
-usage: python3 bank_split.py generated.asm config.banks
+The Makefile compiles each source to build/c/<source>.asm. This pass reads all
+modules and their adjacent .banks files before rewriting any calls, so calls to
+another C module obey the same page rules as calls within one module. Outputs
+are src/.../_name.asm, build/c_calls.asm and build/c_modules.inc.
 
-Config lines map function names to ROM0, FIXED (always-mapped ROMX bank 1),
-or a page number (4-15, see PAGE in src/macros.asm). Special entries *:,
-DATA:, and THUNKS: set defaults; data and far-call thunks default to FIXED.
-Cross-page calls use FarCallInline (src/far_call.asm).
+.banks entries assign function names to ROM0, FIXED (resident bank 1), or pages
+4-15. * sets the default code page; DATA defaults to FIXED. Constants passed to
+code on another page must live in resident memory. THUNKS defaults to FIXED.
 """
+import argparse
 import re
-import sys
+from pathlib import Path
 
 SECTION_RE = re.compile(r'^\tSECTION FRAGMENT "([^"]+)",(\w+)')
 FUNCTION_RE = re.compile(r'^; Function (\w+)')
 LABEL_RE = re.compile(r'^(_\w+)::?$')
 BRANCH_RE = re.compile(r'^(\t(?:call|jp)\s+(?:N?[ZC],\s*)?)(_\w+)(.*)$')
-SPECIAL = ("*", "DATA", "THUNKS")
+EXPORT_RE = re.compile(r'^\tEXPORT (_\w+)$')
+NEAR = ('ROM0', 'FIXED')
+SYMBOL_RE = re.compile(r'"(?:\\.|[^"\\])*"|;.*|(?P<symbol>\b_\w+\b)')
 
 
 def read_config(path):
-  dests = {}
-  special = {}
-  with open(path, encoding="utf8") as file:
-    for line in file:
-      line = line.split("#")[0].strip()
-      if not line:
-        continue
-      dest, names = line.split(":", 1)
-      dest = dest.strip()
-      if dest in SPECIAL:
-        special[dest] = names.strip()
-        continue
-      for name in names.split():
-        dests["_" + name] = dest
-  return dests, special
+    destinations, defaults = {}, {}
+    if not path.exists():
+        return destinations, defaults
+    for line in path.read_text().splitlines():
+        line = line.split('#')[0].strip()
+        if not line:
+            continue
+        dest, names = (part.strip() for part in line.split(':', 1))
+        if dest in ('*', 'DATA', 'THUNKS'):
+            defaults[dest] = names
+        else:
+            for name in names.split():
+                destinations['_' + name] = dest
+    return destinations, defaults
 
 
-def main(asm_path, config_path):
-  with open(asm_path, encoding="utf8") as file:
-    lines = [line.rstrip() for line in file.read().split("\n")]
-  config, special = read_config(config_path)
-  fixed = "FIXED"
-  default = special.get("*", "4")
-  data_dest = special.get("DATA", fixed)
-  thunk_dest = special.get("THUNKS", fixed)
-  near = ("ROM0", "FIXED")  # always mapped
-
-  base = None
-  functions = {}
-  for line in lines:
-    match = SECTION_RE.match(line)
-    if match and match.group(1).endswith("_CODE"):
-      base = match.group(1)[:-len("_CODE")]
-    match = FUNCTION_RE.match(line)
-    if match:
-      functions["_" + match.group(1)] = None
-  if base is None:
-    return
-
-  in_code = False
-  for line in lines:
-    match = SECTION_RE.match(line)
-    if match:
-      in_code = match.group(1).endswith("_CODE")
-    match = FUNCTION_RE.match(line)
-    if match and in_code:
-      name = "_" + match.group(1)
-      functions[name] = config.get(name, default)
-
-  def section(dest):
-    if dest == "ROM0":
-      return f'\tSECTION FRAGMENT "{base} ROM0",ROM0'
-    if dest == "FIXED":
-      return f'\tSECTION FRAGMENT "{base} FIXED",ROMX,BANK[1]'
+def section(dest, base):
+    if dest == 'ROM0':
+        return f'\tSECTION FRAGMENT "{base} ROM0",ROM0'
+    if dest == 'FIXED':
+        return f'\tSECTION FRAGMENT "{base} FIXED",ROMX,BANK[1]'
     page = int(dest)
     if not 4 <= page <= 15:
-      raise ValueError(f"Invalid OS page: {page}")
+        raise ValueError(f'Invalid OS page: {page}')
     return (f'\tSECTION FRAGMENT "Page {page}",ROMX,BANK[{page >> 1}]\n'
             f'\tLOAD FRAGMENT "Page {page} RAM",SRAM,BANK[{page}]')
 
-  # SDCC numbers string literals independently in every C translation unit.
-  # All generated units are included by one RGBDS assembly, so qualify them.
-  lines = [re.sub(r'\b___str_(\d+)\b', lambda m: "___" + re.sub(r"\W", "_", base) + "_str_" + m[1], line) for line in lines]
-  out = []
-  thunks = set()
-  in_code = False
-  block = None
-  dest = None
-  for line in lines:
-    match = SECTION_RE.match(line)
-    if match:
-      in_code = match.group(1).endswith("_CODE")
-      if in_code and dest:
-        line = section(dest)
-      out.append(line)
-      continue
-    if in_code:
-      match = FUNCTION_RE.match(line)
-      label = LABEL_RE.match(line)
-      if match:
-        block = "_" + match.group(1)
-        dest = functions[block]
-        out.append(section(dest))
-      elif label and label.group(1) != block:
-        block = label.group(1)
-        dest = functions.get(block) or config.get(block) or data_dest
-        out.append(section(dest))
-      branch = BRANCH_RE.match(line)
-      if branch and dest:
-        target = branch.group(2)
-        target_dest = functions.get(target)
-        if target_dest and target_dest not in near and target_dest != dest:
-          thunks.add(target)
-          line = branch.group(1) + target + "__far" + branch.group(3)
-    out.append(line)
 
-  out.append(";far call thunks generated by bank_split.py")
-  out.append(section(thunk_dest))
-  for target in sorted(thunks):
-    out += [
-      f"{target}__far:",
-      "\tcall FarCallInline",
-      f"\tDB BANK({target})",
-      f"\tDW {target}",
-    ]
+class Module:
+    def __init__(self, source, build):
+        self.source = source
+        self.output = source.with_name('_' + source.stem + '.asm')
+        self.lines = [line.rstrip() for line in (build / 'c' / source.with_suffix('.asm')).read_text().splitlines()]
+        self.config, self.defaults = read_config(source.with_suffix('.banks'))
+        self.base = next(m[1][:-5] for line in self.lines
+                         if (m := SECTION_RE.match(line)) and m[1].endswith('_CODE'))
+        self.prefix = re.sub(r'\W', '_', self.base)
+        self.exports = {m[1] for line in self.lines if (m := EXPORT_RE.match(line))}
+        # All C output is included by one RGBDS unit. Qualify private functions,
+        # data and compiler string labels so independent modules can reuse names.
+        self.private = {m[1]: '_' + self.prefix + m[1] for line in self.lines
+                        if (m := LABEL_RE.match(line)) and m[1] not in self.exports}
+        self.functions = {}
+        in_code = False
+        for line in self.lines:
+            if match := SECTION_RE.match(line):
+                in_code = match[1].endswith('_CODE')
+            if match := FUNCTION_RE.match(line):
+                name = '_' + match[1]
+                # SDCC's HOME/runtime helpers already live in resident ROM0.
+                self.functions[self.name(name)] = (self.config.get(name, self.defaults.get('*', '4'))
+                                                    if in_code else 'ROM0')
 
-  with open(asm_path, "w", encoding="utf8") as file:
-    file.write("\n".join(out))
+    def name(self, symbol):
+        return self.private.get(symbol, symbol)
 
-  counts = {}
-  for name, where in functions.items():
-    if where:
-      counts[where] = counts.get(where, 0) + 1
-  print(f"bank_split.py: {asm_path} {counts}, {len(thunks)} thunks")
+    def rewrite(self, global_functions, thunk_locations, thunks):
+        functions = global_functions | self.functions
+        out, in_code, block, dest = [], False, None, None
+        for line in self.lines:
+            match = SECTION_RE.match(line)
+            if match:
+                in_code = match[1].endswith('_CODE')
+                out.append(section(dest, self.base) if in_code and dest else line)
+                continue
+            match = FUNCTION_RE.match(line)
+            label = LABEL_RE.match(line)
+            if in_code and match:
+                block = self.name('_' + match[1])
+                dest = self.functions[block]
+                out.append(section(dest, self.base))
+            elif in_code and label and self.name(label[1]) != block:
+                block = self.name(label[1])
+                dest = self.functions.get(block) or self.config.get(label[1]) or self.defaults.get('DATA', 'FIXED')
+                out.append(section(dest, self.base))
+            line = SYMBOL_RE.sub(lambda m: self.name(m[0]) if m['symbol'] else m[0], line)
+            branch = BRANCH_RE.match(line)
+            if in_code and branch and dest:
+                target = branch[2]
+                target_dest = functions.get(target)
+                if target_dest and target_dest not in NEAR and target_dest != dest:
+                    # One resident thunk per target, shared by every caller.
+                    thunks[target] = thunk_locations[target]
+                    line = branch[1] + target + '__far' + branch[3]
+            out.append(line)
+        self.output.write_text('\n'.join(out) + '\n')
 
 
-if __name__ == "__main__":
-  main(sys.argv[1], sys.argv[2])
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--build-dir', type=Path, default=Path('build'))
+    parser.add_argument('sources', type=Path, nargs='+')
+    args = parser.parse_args()
+    modules = [Module(source, args.build_dir) for source in args.sources]
+    exported, thunk_locations = {}, {}
+    for module in modules:
+        for name, dest in module.functions.items():
+            thunk_locations[name] = module.defaults.get('THUNKS', 'FIXED')
+            if name in module.exports:
+                if name in exported:
+                    raise ValueError(f'Duplicate C function: {name}')
+                exported[name] = dest
+    thunks = {}
+    for module in modules:
+        module.rewrite(exported, thunk_locations, thunks)
+    calls = ['; Generated resident C call thunks. Do not edit.']
+    for target, dest in sorted(thunks.items()):
+        calls += [section(dest, 'C calls'), target + '__far:',
+                  '\tcall FarCallInline', f'\tDB BANK({target})', f'\tDW {target}']
+    (args.build_dir / 'c_calls.asm').write_text('\n'.join(calls) + '\n')
+    includes = ['; Generated C modules. Do not edit.']
+    includes += [f'INCLUDE "{module.output.as_posix()}"' for module in modules]
+    includes += [f'INCLUDE "{args.build_dir.as_posix()}/c_calls.asm"']
+    (args.build_dir / 'c_modules.inc').write_text('\n'.join(includes) + '\n')
+    print(f'bank_split.py: {len(modules)} modules, {len(thunks)} resident call thunks')
+
+
+if __name__ == '__main__':
+    main()

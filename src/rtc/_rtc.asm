@@ -52,7 +52,7 @@
 	LOAD FRAGMENT "Page 12 RAM",SRAM,BANK[12]
 ; Function Binary
 ; ---------------------------------
-_Binary:
+_src_rtc_rtc_c_Binary:
 	ld	c, a
 	ld	a, c
 	ld	b, $00
@@ -114,7 +114,7 @@ _Binary:
 	LOAD FRAGMENT "Page 12 RAM",SRAM,BANK[12]
 ; Function BCD
 ; ---------------------------------
-_BCD:
+_src_rtc_rtc_c_BCD:
 	ld	c, a
 	ld	l, $00
 ;	spillPairReg hl
@@ -140,7 +140,7 @@ _BCD:
 	LOAD FRAGMENT "Page 12 RAM",SRAM,BANK[12]
 ; Function MonthDays
 ; ---------------------------------
-_MonthDays:
+_src_rtc_rtc_c_MonthDays:
 	ld	d, a
 ;src/rtc/rtc.c:7: return days[month - 1] + (month == 2 && !(year & 3));
 	ld	a, e
@@ -149,7 +149,7 @@ _MonthDays:
 	rlca
 	sbc	a, a
 	ld	b, a
-	ld	hl, _MonthDays_days_65536_14
+	ld	hl, _src_rtc_rtc_c_MonthDays_days_65536_14
 	add	hl, bc
 	ld	c, [hl]
 	ld	a, e
@@ -177,7 +177,7 @@ _MonthDays:
 	ret
 	SECTION FRAGMENT "Page 12",ROMX,BANK[6]
 	LOAD FRAGMENT "Page 12 RAM",SRAM,BANK[12]
-_MonthDays_days_65536_14:
+_src_rtc_rtc_c_MonthDays_days_65536_14:
 	DB $1F	; 31
 	DB $1C	; 28
 	DB $1F	; 31
@@ -196,7 +196,7 @@ _MonthDays_days_65536_14:
 	LOAD FRAGMENT "Page 12 RAM",SRAM,BANK[12]
 ; Function Valid
 ; ---------------------------------
-_Valid:
+_src_rtc_rtc_c_Valid:
 	ld	c, e
 	ld	b, d
 ;src/rtc/rtc.c:10: return date->year < 100 && date->month && date->month <= 12 && date->day &&
@@ -234,7 +234,7 @@ _Valid:
 	push	de
 	ld	e, h
 	ld	a, l
-	call	_MonthDays
+	call	_src_rtc_rtc_c_MonthDays
 	ld	l, a
 ;	spillPairReg hl
 ;	spillPairReg hl
@@ -319,7 +319,7 @@ _rtc_Read::
 	push	bc
 	push	de
 	ld	a, l
-	call	_Binary
+	call	_src_rtc_rtc_c_Binary
 	pop	de
 	pop	bc
 	ld	[bc], a
@@ -336,7 +336,7 @@ _rtc_Read::
 	push	hl
 	push	bc
 	ld	a, e
-	call	_Binary
+	call	_src_rtc_rtc_c_Binary
 	pop	bc
 	pop	hl
 	ld	[hl], a
@@ -354,7 +354,7 @@ _rtc_Read::
 	push	bc
 	push	de
 	ld	a, l
-	call	_Binary
+	call	_src_rtc_rtc_c_Binary
 	pop	de
 	pop	bc
 	ld	[de], a
@@ -384,7 +384,7 @@ _rtc_Read::
 	ld	e, a
 	push	bc
 	ld	a, e
-	call	_Binary
+	call	_src_rtc_rtc_c_Binary
 	pop	bc
 	ld	hl, sp+16
 	push	af
@@ -467,7 +467,7 @@ _rtc_Read::
 	push	bc
 	push	de
 	ld	a, l
-	call	_Binary
+	call	_src_rtc_rtc_c_Binary
 	pop	de
 	pop	bc
 	ld	[de], a
@@ -488,7 +488,7 @@ _rtc_Read::
 	res	7, l
 	push	bc
 	ld	a, l
-	call	_Binary
+	call	_src_rtc_rtc_c_Binary
 	pop	bc
 	ld	hl, sp+16
 	push	af
@@ -500,7 +500,7 @@ _rtc_Read::
 ;src/rtc/rtc.c:20: return !Valid(date);
 	ld	e, c
 	ld	d, b
-	call	_Valid
+	call	_src_rtc_rtc_c_Valid
 	sub	a,$01
 	ld	a, $00
 	rla
@@ -514,7 +514,7 @@ _rtc_Read::
 	LOAD FRAGMENT "Page 12 RAM",SRAM,BANK[12]
 ; Function Days
 ; ---------------------------------
-_Days:
+_src_rtc_rtc_c_Days:
 	add	sp, -6
 	ld	hl, sp+3
 	ld	[hl], e
@@ -604,7 +604,7 @@ _Days:
 	ld	e, [hl]
 	pop	hl
 	ld	a, l
-	call	_MonthDays
+	call	_src_rtc_rtc_c_MonthDays
 	pop	bc
 	ld	l, a
 ;	spillPairReg hl
@@ -653,7 +653,7 @@ _rtc_Write::
 	push	bc
 	ld	e, c
 	ld	d, b
-	call	_Valid
+	call	_src_rtc_rtc_c_Valid
 	ld	e, a
 	pop	bc
 	ld	a, e
@@ -678,7 +678,7 @@ _rtc_Write::
 	ld	e, [hl]
 	push	bc
 	ld	a, e
-	call	_BCD
+	call	_src_rtc_rtc_c_BCD
 	pop	bc
 	ld	hl, sp+0
 	ld	[hl], a
@@ -687,7 +687,7 @@ _rtc_Write::
 	ld	e, [hl]
 	push	bc
 	ld	a, e
-	call	_BCD
+	call	_src_rtc_rtc_c_BCD
 	pop	bc
 	ld	hl, sp+1
 	ld	[hl], a
@@ -703,7 +703,7 @@ _rtc_Write::
 	ld	e, [hl]
 	push	bc
 	ld	a, e
-	call	_BCD
+	call	_src_rtc_rtc_c_BCD
 	pop	bc
 	ld	hl, sp+2
 	ld	[hl], a
@@ -711,7 +711,7 @@ _rtc_Write::
 	push	bc
 	ld	e, c
 	ld	d, b
-	call	_Days
+	call	_src_rtc_rtc_c_Days
 	ld	e, c
 	ld	d, b
 	pop	bc
@@ -752,7 +752,7 @@ _rtc_Write::
 	ld	e, [hl]
 	push	bc
 	ld	a, e
-	call	_BCD
+	call	_src_rtc_rtc_c_BCD
 	pop	bc
 	ld	hl, sp+4
 	ld	[hl], a
@@ -766,14 +766,14 @@ _rtc_Write::
 	ld	e, [hl]
 	push	bc
 	ld	a, e
-	call	_BCD
+	call	_src_rtc_rtc_c_BCD
 	pop	bc
 	ld	hl, sp+5
 	ld	[hl], a
 	ld	a, [bc]
 	ld	c, a
 	ld	a, c
-	call	_BCD
+	call	_src_rtc_rtc_c_BCD
 	ld	hl, sp+6
 	ld	[hl], a
 ;src/rtc/rtc.c:36: raw[15] &= 0x7F; // clear OSF, preserve alarm/status bits
@@ -806,7 +806,7 @@ _rtc_Seconds::
 	push	bc
 	ld	e, c
 	ld	d, b
-	call	_Days
+	call	_src_rtc_rtc_c_Days
 	ld	e, c
 	ld	d, b
 	pop	bc
@@ -1678,7 +1678,7 @@ _rtc_FatTime::
 	LOAD FRAGMENT "Page 12 RAM",SRAM,BANK[12]
 ; Function GameSeconds
 ; ---------------------------------
-_GameSeconds:
+_src_rtc_rtc_c_GameSeconds:
 	add	sp, -20
 	ld	c, e
 	ld	b, d
@@ -2465,7 +2465,7 @@ _rtc_Advance::
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_GameSeconds
+	call	_src_rtc_rtc_c_GameSeconds
 	ld	hl, sp+4
 	ld	[hl], c
 	inc	hl
@@ -2630,7 +2630,7 @@ _rtc_Advance::
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_GameSeconds
+	call	_src_rtc_rtc_c_GameSeconds
 	ld	hl, sp+24
 	ld	[hl], c
 	inc	hl
@@ -2980,7 +2980,7 @@ _rtc_Advance::
 	add	hl, sp
 	ld	e, l
 	ld	d, h
-	call	_Days
+	call	_src_rtc_rtc_c_Days
 	ld	hl, sp+23
 	dec	hl
 	ld	e, [hl]
@@ -3046,6 +3046,3 @@ _rtc_Advance::
 	LOAD FRAGMENT "Page 12 RAM",SRAM,BANK[12]
 	SECTION FRAGMENT "_INITIALIZER",ROM0
 	SECTION FRAGMENT "_CABS (ABS)",ROM0
-
-;far call thunks generated by bank_split.py
-	SECTION FRAGMENT "src/rtc/rtc.c ROM0",ROM0

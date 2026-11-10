@@ -24,7 +24,7 @@ bin/sdcard.img
 *.tiled-session
 
 # generated python
-__pycache__/*
+__pycache__/
 
 # generated HTML (from markdown)
 *.html
@@ -83,3 +83,8 @@ node_modules
 
 # Composed from the VWF font by the normal build
 /build/ingame_menu.asm
+
+# Raw C output and generated assembly include/call lists
+/build/c/
+/build/c_calls.asm
+/build/c_modules.inc

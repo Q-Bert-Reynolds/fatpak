@@ -4,7 +4,7 @@
 ;contains 0, so the buffer can be recovered from SRAM without metadata:
 ;text before the gap, zeros, text after the gap up to TB_SIZE.
 ;
-;C functions (src/editor/editor.h)
+;C functions (src/editor/text_buffer.h)
 ;   tb_Load                     recovers buffer from SRAM, clears it if the signature is missing
 ;   tb_Clear
 ;   tb_Length                   returns length in bc
@@ -36,41 +36,6 @@ DEF TB_BANK_REG EQU EDX_BLOCK
 MACRO SRAM_ON
 ENDM
 MACRO SRAM_OFF
-ENDM
-
-MACRO LD_HL_VAR ;\1 = address of little endian word
-  ld a, [\1]
-  ld l, a
-  ld a, [\1+1]
-  ld h, a
-ENDM
-
-MACRO ST_HL_VAR ;\1 = address of little endian word
-  ld a, l
-  ld [\1], a
-  ld a, h
-  ld [\1+1], a
-ENDM
-
-MACRO LD_BC_VAR ;\1 = address of little endian word
-  ld a, [\1]
-  ld c, a
-  ld a, [\1+1]
-  ld b, a
-ENDM
-
-MACRO LD_DE_VAR ;\1 = address of little endian word
-  ld a, [\1]
-  ld e, a
-  ld a, [\1+1]
-  ld d, a
-ENDM
-
-MACRO ST_DE_VAR ;\1 = address of little endian word
-  ld a, e
-  ld [\1], a
-  ld a, d
-  ld [\1+1], a
 ENDM
 
 SECTION "Text Buffer Vars", WRAM0

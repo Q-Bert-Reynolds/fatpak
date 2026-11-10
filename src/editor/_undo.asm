@@ -88,7 +88,7 @@ _rec:
 	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function Forward
 ; ---------------------------------
-_Forward:
+_src_editor_undo_c_Forward:
 	ld	l, c
 ;	spillPairReg hl
 ;	spillPairReg hl
@@ -129,7 +129,7 @@ _Forward:
 	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function Back
 ; ---------------------------------
-_Back:
+_src_editor_undo_c_Back:
 ;src/editor/undo.c:47: return offset >= count ? offset - count : offset + (UNDO_SIZE - count);
 	ld	a, e
 	sub	a, c
@@ -167,13 +167,13 @@ _Back:
 	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function Used
 ; ---------------------------------
-_Used:
+_src_editor_undo_c_Used:
 ;src/editor/undo.c:52: return Back(offset, undo_tail);
 	ld	hl, _undo_tail
 	ld	c, [hl]
 	inc	hl
 	ld	b, [hl]
-	jp	_Back
+	jp	_src_editor_undo_c_Back
 .l00101:
 ;src/editor/undo.c:53: }
 	ret
@@ -183,7 +183,7 @@ _Used:
 	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function Reserve
 ; ---------------------------------
-_Reserve:
+_src_editor_undo_c_Reserve:
 	dec	sp
 	dec	sp
 ;src/editor/undo.c:58: if (count >= UNDO_SIZE) return 0;
@@ -199,7 +199,7 @@ _Reserve:
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_Used
+	call	_src_editor_undo_c_Used
 	pop	de
 	xor	a, a
 	sub	a, c
@@ -285,7 +285,7 @@ _Reserve:
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_Forward
+	call	_src_editor_undo_c_Forward
 	pop	de
 	ld	hl, _undo_tail
 	ld	[hl], c
@@ -306,7 +306,7 @@ _Reserve:
 	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function Push
 ; ---------------------------------
-_Push:
+_src_editor_undo_c_Push:
 	dec	sp
 	ld	hl, sp+0
 	ld	[hl], a
@@ -316,7 +316,7 @@ _Push:
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_Used
+	call	_src_editor_undo_c_Used
 	pop	de
 	push	bc
 	push	de
@@ -324,7 +324,7 @@ _Push:
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_Used
+	call	_src_editor_undo_c_Used
 	ld	l, c
 ;	spillPairReg hl
 ;	spillPairReg hl
@@ -367,7 +367,7 @@ _Push:
 	push	de
 	ld	e, c
 	ld	d, b
-	call	_Reserve
+	call	_src_editor_undo_c_Reserve
 	pop	de
 	or	a, a
 	jp	NZ, .l00104
@@ -503,7 +503,7 @@ _Push:
 	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function CanMerge
 ; ---------------------------------
-_CanMerge:
+_src_editor_undo_c_CanMerge:
 	ld	c, a
 ;src/editor/undo.c:93: return ok && undo_merge && Reserve(1) && undo_merge;
 	ld	a, c
@@ -514,7 +514,7 @@ _CanMerge:
 	or	a, a
 	jp	Z, .l00103
 	ld	de, $0001
-	call	_Reserve
+	call	_src_editor_undo_c_Reserve
 	or	a, a
 	jp	Z, .l00103
 	ld	hl, _undo_merge
@@ -536,7 +536,7 @@ _CanMerge:
 	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function Merge
 ; ---------------------------------
-_Merge:
+_src_editor_undo_c_Merge:
 ;src/editor/undo.c:98: log_ptr = Back(undo_head, 2);
 	push	de
 	ld	bc, $0002
@@ -544,7 +544,7 @@ _Merge:
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_Back
+	call	_src_editor_undo_c_Back
 	pop	de
 	ld	hl, _log_ptr
 	ld	[hl], c
@@ -602,7 +602,7 @@ _Merge:
 	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function IsSpace
 ; ---------------------------------
-_IsSpace:
+_src_editor_undo_c_IsSpace:
 	ld	c, a
 ;src/editor/undo.c:108: return c == ' ' || c == ASCII_LF || c == ASCII_TAB;
 	ld	a, c
@@ -753,7 +753,7 @@ _undo_Inserted::
 	call	_tb_GetChar
 	ld	c, a
 	ld	a, c
-	call	_IsSpace
+	call	_src_editor_undo_c_IsSpace
 	or	a, a
 	jp	Z, .l00107
 	pop	hl
@@ -763,7 +763,7 @@ _undo_Inserted::
 	call	_tb_GetChar
 	ld	c, a
 	ld	a, c
-	call	_IsSpace
+	call	_src_editor_undo_c_IsSpace
 	or	a, a
 	jp	NZ, .l00107
 .l00106:
@@ -773,14 +773,14 @@ _undo_Inserted::
 	ld	c, $01
 .l00108:
 	ld	a, c
-	call	_CanMerge
+	call	_src_editor_undo_c_CanMerge
 	or	a, a
 	jp	Z, .l00102
 	pop	hl
 	pop	de
 	push	de
 	push	hl
-	call	_Merge
+	call	_src_editor_undo_c_Merge
 	jp	.l00104
 .l00102:
 ;src/editor/undo.c:122: else Push(UNDO_INS, pos, count);
@@ -792,7 +792,7 @@ _undo_Inserted::
 	inc	hl
 	ld	d, [hl]
 	xor	a, a
-	call	_Push
+	call	_src_editor_undo_c_Push
 .l00104:
 ;src/editor/undo.c:123: }
 	add	sp, 4
@@ -912,7 +912,7 @@ _undo_Deleting::
 	ld	c, $01
 .l00111:
 	ld	a, c
-	call	_CanMerge
+	call	_src_editor_undo_c_CanMerge
 	ld	hl, sp+6
 	ld	[hl], a
 	ld	hl, sp+6
@@ -946,7 +946,7 @@ _undo_Deleting::
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_Merge
+	call	_src_editor_undo_c_Merge
 	jp	.l00107
 .l00105:
 ;src/editor/undo.c:133: else if (CanMerge(count == 1 && type == UNDO_DEL && rec.pos == pos)) Merge(pos);
@@ -980,14 +980,14 @@ _undo_Deleting::
 .l00123:
 	ld	hl, sp+6
 	ld	a, [hl]
-	call	_CanMerge
+	call	_src_editor_undo_c_CanMerge
 	or	a, a
 	jp	Z, .l00102
 	ld	hl, sp+9
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_Merge
+	call	_src_editor_undo_c_Merge
 	jp	.l00107
 .l00102:
 ;src/editor/undo.c:134: else Push(UNDO_DEL, pos, count);
@@ -1001,7 +1001,7 @@ _undo_Deleting::
 	inc	hl
 	ld	d, [hl]
 	ld	a, $01
-	call	_Push
+	call	_src_editor_undo_c_Push
 .l00107:
 ;src/editor/undo.c:135: }
 	add	sp, 11
@@ -1034,7 +1034,7 @@ _undo_Saved::
 	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function Restore
 ; ---------------------------------
-_Restore:
+_src_editor_undo_c_Restore:
 	add	sp, -3
 ;src/editor/undo.c:146: if (rec.type & UNDO_BACK) {
 	ld	hl, (_rec + 2) + 0
@@ -1115,7 +1115,7 @@ _Restore:
 	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 ; Function Done
 ; ---------------------------------
-_Done:
+_src_editor_undo_c_Done:
 ;src/editor/undo.c:156: undo_merge = 0;
 	ld	hl, _undo_merge
 	ld	[hl], $00
@@ -1173,7 +1173,7 @@ _undo_Undo::
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_Back
+	call	_src_editor_undo_c_Back
 	ld	hl, _log_ptr
 	ld	[hl], c
 	inc	hl
@@ -1195,7 +1195,7 @@ _undo_Undo::
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_Back
+	call	_src_editor_undo_c_Back
 	ld	hl, _undo_head
 	ld	[hl], c
 	inc	hl
@@ -1242,7 +1242,7 @@ _undo_Undo::
 	jp	.l00110
 .l00106:
 ;src/editor/undo.c:171: Restore();
-	call	_Restore
+	call	_src_editor_undo_c_Restore
 ;src/editor/undo.c:172: if (rec.type & UNDO_BACK) undo_cursor += rec.length;
 	ld	a, [(_rec + 2) + 0]
 	bit	1, a
@@ -1284,7 +1284,7 @@ _undo_Undo::
 .l00146:
 .l00111:
 ;src/editor/undo.c:175: Done();
-	call	_Done
+	call	_src_editor_undo_c_Done
 ;src/editor/undo.c:176: return 1;
 	ld	a, $01
 .l00112:
@@ -1410,7 +1410,7 @@ _undo_Redo::
 	ld	e, [hl]
 	inc	hl
 	ld	d, [hl]
-	call	_Forward
+	call	_src_editor_undo_c_Forward
 	ld	hl, _undo_head
 	ld	[hl], c
 	inc	hl
@@ -1451,7 +1451,7 @@ _undo_Redo::
 .l00138:
 .l00110:
 ;src/editor/undo.c:196: Done();
-	call	_Done
+	call	_src_editor_undo_c_Done
 ;src/editor/undo.c:197: return 1;
 	ld	a, $01
 .l00111:
@@ -1462,6 +1462,3 @@ _undo_Redo::
 	LOAD FRAGMENT "Page 15 RAM",SRAM,BANK[15]
 	SECTION FRAGMENT "_INITIALIZER",ROM0
 	SECTION FRAGMENT "_CABS (ABS)",ROM0
-
-;far call thunks generated by bank_split.py
-	SECTION FRAGMENT "src/editor/undo.c FIXED",ROMX,BANK[1]

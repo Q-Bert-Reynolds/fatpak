@@ -31,7 +31,7 @@ SettingsTable:
   SETTING _file_name, FS_NAME_SIZE
   DW 0
 
-;C functions (src/editor/editor.h)
+;C functions (src/editor/settings.h)
 ;   SettingsLoad                sets the variables in SettingsTable from SRAM, returns a = 0 if they were never saved
 ;   SettingsSave
 

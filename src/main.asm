@@ -1,4 +1,4 @@
-INCLUDE "src/text_editor.inc"
+INCLUDE "src/fatpak.inc"
 
 SECTION "Crash Handler RST", ROM0[$0038]
   jp Main
@@ -12,7 +12,7 @@ Entry:
   DS $150-@, 0
 
 SECTION "OS Info", ROM0[$01F0]
-; Stock GBCOS compatibility flags, not a version number. Girlboss tracks save
+; Stock GBCOS compatibility flags, not a version number. FatPak tracks save
 ; backups in EDITOR.GAM; the cartridge/stock OS may also inspect these bytes.
 os_game_launched:: DB 0;cleared at startup, set before launching a game
 os_initialization_pending:: DB 1;stock OS's first-initialization marker (unused here)
@@ -46,7 +46,7 @@ Main::
   ld [EDX_CONFIG], a
   call CartConfigureFeatures;model-specific RTC/snapshot gates, like stock startup
   ; Restore the editor's vector after the mapper and cart switch are in OS mode.
-  ld hl, $0041;$0040 jumps to our VBlank, not the in-game menu (src/editor/ingame.asm)
+  ld hl, $0041;$0040 jumps to our VBlank, not the in-game menu (src/game/ingame.asm)
   ld [hl], LOW(VBLInterrupt)
   inc l
   ld [hl], HIGH(VBLInterrupt)
@@ -135,4 +135,4 @@ Main::
   TRAMPOLINE DetectKeyboard
 
 .start
-  TRAMPOLINE _Editor;never returns
+  TRAMPOLINE _AppMain;never returns

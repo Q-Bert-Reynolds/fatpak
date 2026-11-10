@@ -2,7 +2,7 @@
 
 [README](../README.md) · [Architecture](ARCHITECTURE.md) · [TODO](TODO.md)
 
-Girlboss uses the stock GBCOS v1.06 file names and formats. Files are keyed by
+FatPak uses the stock GBCOS v1.06 file names and formats. Files are keyed by
 the ROM's basename, so identically named games in different folders share saves,
 just as they do in stock OS.
 
@@ -34,7 +34,7 @@ stock cartridge-feature mask to `$BD0F`: X3 = `$01`, X5 = `$00`, X7 = `$06`.
 Stock derives bit 1 from RTC capability and bit 2 from snapshot capability.
 On X7, the mapper RTC control at index 6 is cleared before normal calendar use,
 matching stock `CheckAndInitializeRTC`. Unknown models or failed EEPROM reads
-preserve the bootloader's feature configuration. Girlboss previously omitted
+preserve the bootloader's feature configuration. FatPak previously omitted
 this setup, and Gearboy silently ignored `$BD0F` writes. Gearboy now records the
 mask and supplies an X7 factory model for startup regression tests; the full
 hardware effects of all feature bits are not emulated.
@@ -44,7 +44,7 @@ The clock-menu garbage was caused by 40-byte row spacing where menu boxes use
 another page. Fields now use packed box rows and resident strings. Calendar
 reads poll completion without checking the slave ACK bit during reception,
 matching stock `I2C_ReadBytes`. Clock setting is hardware-confirmed. The same
-Crystal ROM boots with stock GBCOS on the GBA SP but remained white with Girlboss,
+Crystal ROM boots with stock GBCOS on the GBA SP but remained white with FatPak,
 including after factory-feature initialization and without save/RTC files.
 Red, Blue, Gold and Silver launch, so RTC alone does not explain the failure.
 Emulator checks cover the complete browser launch, all loaded ROM bytes, the
@@ -58,7 +58,7 @@ in resident cartridge code. It does not set the game's initial CPU registers;
 the reset/boot path is responsible for them. Before this handoff, stock selects
 normal CPU speed, leaves IE disabled and explicitly enables audio at `$FF26`.
 
-Girlboss now follows that sequence. The former HRAM wait timed out after about
+FatPak now follows that sequence. The former HRAM wait timed out after about
 half a second and jumped to `$0100` with a hard-coded `A=$11`, without establishing
 the rest of the boot state. The new resident wait has no timeout or direct game
 entry. Hardware retesting found no change: the new state has the same bad CGB
@@ -162,10 +162,10 @@ still responsive. The stores fit within mode 2 even if a poll sees the very end
 of HBlank/VBlank. Gearboy currently permits VRAM access in all modes, so the
 regression checks the PPU mode at each CPU store as well as the resulting bytes.
 
-**The progress redraw/timing fixes still need a hardware retest.** Native tests
+**The progress redraw/timing fixes are hardware-confirmed:** no garbage/flicker, and Crystal still launches. Native tests
 also check the progress labels, fixed box geometry, DMA exclusion and complete
 loaded ROM bytes on DMG and CGB. The previous user build is preserved at
-`/tmp/girlboss-before-progress-redraw-fix`. No individual test has yet proved
+`/tmp/fatpak-before-progress-redraw-fix`. No individual test has yet proved
 HDMA was the only hardware cause; normal-speed streaming and the resident write
 loop remain part of the working configuration.
 
@@ -209,15 +209,15 @@ Battery SRAM uses `/GBCSYS/SAVE/<basename>.srm`. MBC2 saves are 512 bytes;
 
 Launch updates the stock `REGISTRY.BIN` game metadata, expanded directory entry,
 valid flag, and additive checksum while preserving options. This makes the
-stock backup agree with Girlboss about which game owns cartridge RAM. Girlboss
+stock backup agree with FatPak about which game owns cartridge RAM. FatPak
 also imports a checked stock registry when its private ownership cookie is
 absent or superseded. It validates the stock SRAM marker before backing up
 SRAM, RTC and the state slot. Invalid ownership is skipped instead of assigning
-unknown RAM to the previous Girlboss game.
+unknown RAM to the previous FatPak game.
 
 `EDITOR.GAM` uses version GAM3 internally; older GAM1/GAM2 records are still read.
 Legacy records back up SRAM without claiming a snapshot slot those builds never
-initialized. The stock registry and save files remain the interchange formats. Girlboss
+initialized. The stock registry and save files remain the interchange formats. FatPak
 invalidates the SRAM marker before preparing a new game and publishes the valid
 marker only after its registry and ownership record have been written.
 
@@ -229,7 +229,7 @@ The format supports at most 32 KiB of cartridge RAM.
 
 ## Cheats
 
-Stock cheats are Game Genie ROM patches applied before launch. Girlboss reads
+Stock cheats are Game Genie ROM patches applied before launch. FatPak reads
 `/GBCSYS/CHEATS/<basename>.txt` when the stock registry's Cheats option is enabled
 (default: enabled). The text editor can edit these files directly. Use up to
 sixteen lines of `XXX-XXX-XXX`, replacing the Xs with hexadecimal code digits.

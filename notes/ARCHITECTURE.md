@@ -1,6 +1,6 @@
 # Architecture
 
-Girlboss is a Game Boy text editor and game launcher derived from the Béisbol
+FatPak is a Game Boy text editor and game launcher derived from the Béisbol
 engine. The application is a single 128 KiB EverDrive GB X7 OS image for DMG,
 CGB and SGB. It includes SD file editing, PS/2 input, styled text rendering,
 stock-compatible game saves, RTC support, save states and Game Genie patches.
@@ -34,11 +34,12 @@ flowchart LR
     consts[src/constants.asm] -->|build.py| consth[src/constants.h]
   end
   subgraph c["C (per file)"]
-    cfile[src/*/name.c] -->|sdcc| casm[src/*/_name.asm]
-    casm -->|bank_split.py, per-file .banks config| casm
+    cfile[src/*/name.c] -->|sdcc| raw[build/c/src/*/name.asm]
+    raw -->|bank_split.py, all modules and their .banks files| casm[src/*/_name.asm]
+    raw -->|bank_split.py| calls[build/c_calls.asm + c_modules.inc]
   end
   main[src/main.asm] -->|rgbasm| obj[build/main.o]
-  imgasm & fontasm & borderasm & strasm & casm --> main
+  imgasm & fontasm & borderasm & strasm & casm & calls --> main
   menu[ingame_menu.py + VWF font] --> menugfx[build/ingame_menu.asm]
   menugfx --> main
   obj -->|pages.link, rgblink, check_pages.py, rgbfix| rom[bin/GBCOS.gbc + .sym]
@@ -46,9 +47,9 @@ flowchart LR
   fontasm & borderasm -->|data_file.py| data[bin/EDITOR.DAT]
 ```
 
-- **One assembly unit.** `src/main.asm` includes `src/text_editor.inc`, which includes every module (and each module includes its generated assets and the `_*.asm` output of its C file). `rgbasm` runs once and `rgblink` links a single object. The only application build is the EverDrive OS image. `pages.link` places its resident code and page fragments; `check_pages.py` verifies the layout.
+- **One assembly unit.** `src/main.asm` includes `src/fatpak.inc`, which lists the assembly subsystems and includes `build/c_modules.inc`, generated from the Makefile's C source list. C files compile independently; no C file includes another application C file. FatFs remains an intentional library amalgamation. `rgbasm` runs once and `rgblink` links a single object. The only application build is the EverDrive OS image. `pages.link` places its resident code and page fragments; `check_pages.py` verifies the layout.
 - **Generated files are committed** (`img/**/*.asm`, `*.tiles`, `data/strings/*.asm`, `src/*/_*.asm`, `src/constants.h`, the ROM), so `make assemble` needs no asset regeneration; it still uses Python for page splitting, the menu, layout checks and the data file. The asset scripts skip files that are already up to date.
-- **Targets:** `make all` (clean, assets, assemble, run), `make assemble` (OS image, symbols and data file), `make code` (assemble and run in Gearboy), `make assets`, `make run`, and `make clean`. There is no `make sdcard` target. The legacy `fxhammer.py` invocation remains in `assets`, but no audio player is included in the application.
+- **Targets:** `make all` (clean, assets, assemble, run), `make assemble` (OS image, symbols and data file), `make code` (assemble and run in Gearboy), `make assets`, `make run`, and `make clean`. There is no `make sdcard` target.
 - **Languages:** `LANGUAGE=EN|ES|FR|IT|PT|DE|JA` picks which generated strings `data/strings/*.asm` includes. Editor, clock and cart-menu labels still contain hard-coded English text.
 - **Installation:** every successful `make assemble` checks whether `/media/qbertreynolds/GAMEBOY` is mounted. If it is, the build copies `bin/GBCOS.BIN` into its `GBCSYS` folder and flushes the write. Install `bin/EDITOR.DAT` alongside the OS for styled fonts and the SGB border.
 - **Constants shared with C:** `build.py` turns `src/constants.asm` (`DEF X EQU ...`) into `src/constants.h` (`#define X ...`). Put anything C needs there, and parenthesize expressions.
@@ -58,16 +59,21 @@ flowchart LR
 | Path | Contents |
 | --- | --- |
 | `src/main.asm` | Cartridge header, boot sequence, starts the editor |
-| `src/text_editor.inc` | Includes every module (the include order matters for macros and constants) |
-| [`src/editor/`](../src/editor/) | Main loop/menus, text buffer, renderer, keyboard, SD driver, loading overlay control (`game_loading.asm`), cart menu (`ingame.asm`) and capture/restore (`snapshot.asm`) |
-| `src/fatfs/` | FatFs, its disk glue, and the file API (`fatfs.c` includes everything in `lib/`) |
-| `src/keyboard/` | PS/2 and iGKB keyboard drivers |
-| [`src/rtc/`](../src/rtc/) | Calendar I2C interface, date validation, FAT timestamps, stock game-RTC advancement |
-| `src/tests/`, `src/osdiag/` | Legacy low-level test sources; not included in application startup |
-| `src/core.asm`, `color.asm`, `sgb.asm`, `fade.asm` | Drawing helpers, palettes, SGB and fades |
+| `src/fatpak.inc` | Includes every module (the include order matters for macros and constants) |
+| [`src/app/`](../src/app/) | Startup (`main.c`), application menus (`menu.c`) and dialogs which restore the active editor/browser view (`dialogs.c`) |
+| [`src/editor/`](../src/editor/) | Text editing/event loop, document open/save, cursor navigation, large-file windows, editor view/status bars, controls help, OSK, text buffer, syntax keywords and undo |
+| [`src/browser/`](../src/browser/) | Folder navigation and list/status rendering (`browser.c`), UTF-8 display conversion and path helpers (`paths.c`) |
+| [`src/ui/`](../src/ui/) | Shared row/layout helpers, boxes, string/number formatting, renderer, frame waits, theme, color, SGB and fades |
+| [`src/game/`](../src/game/) | Loading UI (`loader.c`), transfer-display control (`loading.asm`), hardware launch/reset (`launch.asm`), cart menu (`ingame.asm`) and state capture/restore (`snapshot.asm`) |
+| `src/fatfs/` | FatFs, SD/SPI driver (`sd.asm`), disk glue, file API and game-file formats (`fatfs.c` includes the library files in `lib/`) |
+| `src/keyboard/` | PS/2 and iGKB drivers and the live scan-code viewer (`test.c`) |
+| [`src/rtc/`](../src/rtc/) | Calendar I2C interface, clock-setting dialog (`menu.c`), date validation, FAT timestamps and stock game-RTC advancement |
+| `src/tests/` | Standalone low-level test sources; not included in application startup |
+| `tests/` | Python checks for cross-module banking and private symbol isolation |
+| `src/core.asm` | Resident trampoline and older tile/sprite helpers |
 | `src/gbdk.asm`, `memory1.asm`, `math.asm`, `strings.asm` | Low level helpers (VBlank waits, sprite/tile copies, memory, 8-32 bit math, strings) |
 | `src/far_call.asm` | `FarCall`, used by C split across banks |
-| `src/input.asm`, `interrupts.asm` | Joypad, interrupt vectors and handlers |
+| `src/input.c`, `input.asm`, `interrupts.asm` | Shared keyboard/joypad menu input and repeat, joypad state, interrupt vectors and handlers |
 | `src/charmap.asm`, `constants.asm`, `macros.asm`, `hardware.inc` | Character map, constants, macros, hardware registers |
 | `src/wram.asm`, `sram.asm` | Shared WRAM variables and buffers, SRAM layout |
 | `img/`, `data/` | Fonts, graphics, strings and generated assembly |
@@ -84,12 +90,12 @@ flowchart LR
 3. Run the SGB multiplayer probe (`MLT_REQ`) outside CGB mode. A successful check adds `SYS_INFO_SGB`. Set up SGB palettes, turn the display off, and copy the OAM DMA routine to HRAM.
 4. In CGB mode, enable double speed and load `DefaultPalettes`.
 5. Clear WRAM, establish the editor stack, disable sound, initialize drawing and interrupts, and detect the keyboard.
-6. `TRAMPOLINE _Editor`, which backs up the previous game, loads `/GBCSYS/EDITOR.DAT`, restores `/GBCSYS/EDITOR.SWP` when needed, initializes the editor and opens the file browser. Its main loop never returns.
+6. `TRAMPOLINE _AppMain` (`src/app/main.c`) backs up the previous game, loads `/GBCSYS/EDITOR.DAT`, restores `/GBCSYS/EDITOR.SWP` when needed, runs `EditorSetup` and `EditorInit`, and opens the browser. It then enters `Editor()` for the text-editing loop; neither returns.
 
 `OS Info` at `$01F0-$01FF` contains stock-compatible launch, initialization,
 return-request and snapshot-RAM flags, followed by the mapper-write byte backup
 and reserved space. The initial bytes `0, 1` are flags, not an OS version.
-Girlboss's save-backup bookkeeping uses `EDITOR.GAM` (GAM3) and the stock
+FatPak's save-backup bookkeeping uses `EDITOR.GAM` (GAM3) and the stock
 `REGISTRY.BIN`; the OS Info flags do not establish ownership of cartridge RAM. Startup and game launch refer to the fields by label.
 
 ## Memory map
@@ -143,9 +149,9 @@ restored. See [`src/constants.asm`](../src/constants.asm) and
 - **`loaded_bank`** (HRAM) holds the OS page currently mapped. `SET_BANK` updates it and `$BD08` together. Entry/capture and restore use resident page switchers while game HRAM is live. Once capture is complete, the menu initializes `loaded_bank` and can use normal OS far calls.
 - **`TRAMPOLINE Label`** calls `Label` in another bank from asm and switches back. Arguments can only go in `a`, `de`, and RAM.
 - **C calling convention** (SDCC 4.2, `sdcccall(1)`): the first argument goes in `a` (8 bit) or `de` (16 bit). The second goes in `e` if the first was in `a`, otherwise `a` (8 bit) or `bc` (16 bit). The rest go on the stack, and the callee removes them. Return values: 8 bit in `a`, 16 bit in `bc`, 32 bit in `debc`. C sees asm labels that start with `_` (`_tb_Insert::` is `tb_Insert()` in C).
-- **C code is banked.** Each C file's code lands in a ROMX section. C can call ROM0 asm, and C in its own bank, but not code in other banks. To call C in another bank from C, add a ROM0 stub with `BANKED_C` (`src/macros.asm`). It keeps `a`, `de`, `bc` arguments and return values, so it only works for functions with no stack arguments. The FatFs file API (`FileLoad` etc. in `src/fatfs/fatfs.asm`) is called this way.
-- **C page assignments** live in `src/*/*.banks`, alongside each `.c` file. `bank_split.py` places functions into ROM0, FIXED (resident ROMX bank 1), or pages 4-15. Data and thunks default to FIXED. Cross-page calls use `FarCallInline`, whose WRAM return stack preserves the SDCC stack-argument layout.
-- **Generated symbols:** `bank_split.py` qualifies SDCC string-literal labels per C translation unit so including several generated files cannot collide.
+- **C and assembly APIs:** `bank_split.py` handles C-to-C page changes automatically. Assembly entry points such as the FatFs `FileLoad` wrappers retain resident `BANKED_C` stubs (`src/macros.asm`), which preserve `a`, `de` and `bc` arguments/returns but require register-only arguments. Calls through the generated C thunks also support stack arguments.
+- **C page assignments** live in `.banks` files beside each `.c` file. `bank_split.py` reads all raw SDCC modules and their configurations together, resolves exported functions across translation units, and places functions into ROM0, FIXED (resident bank 1), or pages 4-15. Resident and same-page calls stay direct. Cross-page calls share one resident thunk per target in `build/c_calls.asm`; the callee's `THUNKS` setting chooses its location. `FarCallInline` preserves SDCC stack arguments. HOME/runtime functions remain resident. Editing a `.banks` file reruns placement without recompiling C.
+- **Generated output:** private C functions/data and string labels receive a module-qualified assembler name, so modules can reuse helper names. Public API names stay unchanged. `build/c_modules.inc` includes every generated `_*.asm` once. The unmodified compiler output stays in `build/c`, so repeated placement passes are deterministic.
 - **Space:** code must fit below `$BD00` in every page. Most pages are nearly full; consult `build/main.map` and the `.banks` assignments before adding code. Writable resident globals consume the same limited image space as code.
 - **C restrictions** (SDCC's libraries aren't linked, only RGBDS objects are):
   - Static initializers don't run (`_GSINIT` is never called). Initialize globals in code. WRAM is zeroed at boot.
@@ -185,6 +191,10 @@ flowchart TD
   edit & scroll & full --> draw[EditorDraw: RenderRow draws rows whose characters changed]
 ```
 
+### Editing and application modules
+
+`app/main.c` owns startup and the initial browser; `app/menu.c` dispatches menus and global shortcuts. `editor/editor.c` contains editor initialization, editing/selection commands and the frame loop. Cursor movement is in `navigation.c`, document operations in `document.c`, large-file window movement in `window.c`, and cursor/selection/status drawing in `view.c`. `osk.c` pairs the joypad/keyboard state machine with `osk.asm`. Each subsystem header declares its own C/assembly API; `editor/state.h` describes the editor state shared by those files. Browser row metadata and private helpers stay local to the browser.
+
 ### Main loop (`src/editor/editor.c`)
 
 Each frame `Editor()` waits for VBlank, pops keyboard events, and reads the joypad (`PadKey`, which also drives the on screen keyboard). `HandleKey` sets one of these flags:
@@ -210,19 +220,19 @@ A gap buffer in PSRAM blocks `$0100-$017e`, accessed through the 512-byte cartri
 - **Gap moves** (`TBMoveGap`) copy runs of up to 256 bytes that don't cross a bank or the register hole, through `win_buffer` when the sectors differ, and zero what they leave behind. The gap only moves when text is edited away from it. On an EverDrive, where files are saved to SD, the gap stays put. The idle normalization helpers remain for legacy use.
 - **Styles** (`TBLex`): as `TBScanRow` scans each character it calls the lexer, which returns the character's style byte (`tb_attr`: its width in pixels in the low 4 bits, its style in the high 4: `STYLE_TEXT`, `STYLE_BOLD`, `STYLE_MARK`, `STYLE_CODE`, `STYLE_HEAD`..., whose looks (bold, italic, dim or accent ink, the GBC accent palette) are in `StyleLooks`) and the state after it (`tb_next_state`, committed with `TBCommit` once the character is used). `TBDrawChar` writes the style to `tile_attrs`, and everything that measures a rendered row (`RenderCursorX`, `PosAtX`, the selection, drawing) reads widths from there. `tb_lang` picks the lexer from the file name (`SetLang`: `.md` is markdown, `.c`/`.h` C, `.asm`/`.inc`/`.s` asm, anything else is plain, which is just the font's widths). The state (2 bytes) is saved at each rendered row's start in `tb_row_states`. A word that wraps goes back to the state after the last space. Rendering from a row whose state isn't known (the top row) scans from its line's start first (`TBSyncState`). Markdown: a line starting with 1-6 `#` and a space is a heading (found by peeking ahead at the line's first char, `TBPeekHeading`), its level is kept in its rows' states, and `EditorDraw` draws heading 1-4 rows with `FONT_H1`-`FONT_H4`. `**` toggles bold, a lone `*` or `_` is decided by the next character (italic opens before a non space if the marker isn't in a word, closes after a non space if no word follows), `` ` `` toggles code (no markers inside). Markers (`#`s of a heading, `` ` ``, `**`, a `*` or `_` that can open or close italic) are `STYLE_MARK`, dim.
 - **Code** (`TBLexCode`, C and asm): the state holds a token mode (word, string, char, line comment, block comment) and the current word's style, so a token's style is decided at its first character. A word's first character peeks the whole word (`TBPeekWord`, up to `KEYWORD_MAX` chars, lowercased for asm) and looks it up in the keyword tables (`KeywordLookup`, in the ROMX "Keywords" section with the tables `keywords.py` generates into `src/editor/keywords.asm`: 32 buckets by first char & 31, entries are length, style, chars). A C `/` peeks the next char for `//` and `/*`, an asm `$` or `%` for a hex or binary number. A C `#` that starts a line starts a preprocessor word, an asm word at column 0 (or a `.local` word starting a line) that isn't in the tables is a label. C block comments and markdown fences carry state across lines: `TBLineState` gives a line's start state from checkpoints every 1KB (`tb_checks`, the last known in `tb_checks_last`, forgotten from an edit's position on by `TBEdited`), scanning on from the nearest one (or from where the last scan ended, `tb_check_pos`) with `TBCheckRun`, which dispatches C comment/string scanning or `TBCheckRunMD` for markdown fences. Those scans must agree with `TBLexCode` and `TBLexMD`.
-- **Rows** (`TBScanRow`) are up to 160 pixels (styled widths from `TBLex`) and 40 characters. A row ends after a line feed, wraps after the last space when a word doesn't fit, and lets spaces and a line feed after a full row hang off its end. Control characters are drawn as spaces. With line wrapping off (`tb_nowrap`, Alt+Z) a row is a whole line: its first `tb_left` characters and the ones that don't fit aren't drawn, so `tb_row_starts` are still line starts and a drawn column is `pos - row start - tb_left`. `ScrollX` in `editor.c` changes `tb_left` when the cursor's character isn't drawn, leaving 40 pixels of text left of the cursor when it scrolls right (more near the line's end) and 120 when it scrolls left, and `Refresh` renders again.
+- **Rows** (`TBScanRow`) are up to 160 pixels (styled widths from `TBLex`) and 40 characters. A row ends after a line feed, wraps after the last space when a word doesn't fit, and lets spaces and a line feed after a full row hang off its end. Control characters are drawn as spaces. With line wrapping off (`tb_nowrap`, Alt+Z) a row is a whole line: its first `tb_left` characters and the ones that don't fit aren't drawn, so `tb_row_starts` are still line starts and a drawn column is `pos - row start - tb_left`. `ScrollX` in `editor/view.c` changes `tb_left` when the cursor's character isn't drawn, leaving 40 pixels of text left of the cursor when it scrolls right (more near the line's end) and 120 when it scrolls left, and `Refresh` renders again.
 - **Row tables:** rendering records `tb_row_starts` (where each visible row starts, then the row after the last), `tb_row_counts` (characters drawn), and `tb_end_row` (the row the end of the text is on). Cursor movement, partial rendering, and scrolling all work from these instead of rescanning PSRAM.
 - **Settings** (`src/sram.asm`): `SettingsSave` copies the variables in `SettingsTable` (`tb_nowrap`, `bars_on`, and the open file's `fs_crlf`, `modified`, `file_dir` and `file_name`) to the settings area of PSRAM block `$01f0`, behind the `SET2` signature, and `SettingsLoad` copies them back when the editor starts. The editor saves them when one changes: the toggles, opening, saving and new files, and the main loop when `modified` changes.
 - **Selection and clipboard:** `tb_DeleteRange` grows the gap over a range, `tb_Copy` copies a range to the clipboard in PSRAM blocks `$01f0-$01ff` and `tb_Paste` inserts it, both 256 bytes at a time through `win_buffer`. The editor keeps the selection as `anchor` and `cursor`.
 - **Undo** (`src/editor/undo.c`, in its own bank behind `BANKED_C` stubs, with its copy loops in `undo.asm`): a ring of records in PSRAM blocks `$0180-$01ef`, each a header (length, type, position), the inserted or deleted text, then the length again so undo can walk back. `undo_head` is the current state, records after it up to `undo_top` can be redone, the oldest are dropped when it's full. Typing a word, or holding delete or backspace (stored last char first), merges into one record until the cursor moves. Typing or pasting over a selection is joined to the delete so they undo together. `undo_saved` remembers where the text was saved so undoing back to it clears the modified flag. The history isn't kept when the power is off.
 - `tb_Render` (all rows), `tb_RenderRows` (a range), and `tb_ScrollRows` (shift `tile_buffer` and the tables one row) fill `tile_buffer`, which holds 18 rows of `TB_STRIDE` (40) characters.
 
-### Rendering (`src/editor/render.asm`)
+### Rendering (`src/ui/render.asm`)
 
 Text is drawn as pixels so fonts can be any width. Every screen cell has its own tile, which takes 360 tiles, but the background can only address 256 at a time. So:
 
 - **Tile blocks:** each row draws into a block of 20 tiles. On DMG and SGB blocks 0-5 are only reachable with `$8000` tile data, 9-14 only with `$8800`, and 6-8 and 15-17 use tiles both modes can reach. Tiles 0 and 1 are the cursor and keyboard highlight sprites, 122 the busy spinner. On GBC every block is `$8800` tiles (blocks 0-11 tiles 128-367 of VRAM bank 0, 12-18 tiles 128-267 of bank 1, picked by the map attributes), so there are no mode switches and a 19th block.
-- **Layout:** `Layout` in `editor.c` fills `render_row_blocks`, `render_row_lines` (the `tile_buffer` row to show) and `render_row_fonts` for each screen row. Text rows are in the BG map, from map row `ring_top`, and use the blocks the other rows don't in a ring starting at `ring_pos`. The file name bar (screen row 0, `tile_buffer` row 18, block 8), the on screen keyboard (the 5 rows below the text, drawn into the `tile_buffer` rows after the text, blocks 9-13) and the status bar (row 17, `tile_buffer` row 19, block 17) are in the window, stacked in its map rows from 0 in screen order, so they never move when the text scrolls. Both bars are drawn fully selected. `render_text_top` is the screen row of text row 0, used by the cursor and the keyboard's highlight.
+- **Layout:** `Layout` in `ui/screen.c` fills `render_row_blocks`, `render_row_lines` (the `tile_buffer` row to show) and `render_row_fonts` for each screen row. Text rows are in the BG map, from map row `ring_top`, and use the blocks the other rows don't in a ring starting at `ring_pos`. The file name bar (screen row 0, `tile_buffer` row 18, block 8), the on screen keyboard (the 5 rows below the text, drawn into the `tile_buffer` rows after the text, blocks 9-13) and the status bar (row 17, `tile_buffer` row 19, block 17) are in the window, stacked in its map rows from 0 in screen order, so they never move when the text scrolls. Both bars are drawn fully selected. `render_text_top` is the screen row of text row 0, used by the cursor and the keyboard's highlight.
 - **LCDC changes:** `RenderStage` turns the layout into a list of LCDC changes per frame (`render_events`, LY and the tile data mode and window bits from there on). The tile data mode switches in the middle of a band of shared blocks when there is one, so a late interrupt doesn't show. The window is on for the file name bar, off after it, and back on for the rows below the text, where it carries on from its next line (window map row 1), since its line counter only counts lines it drew. Without the bars WY is the first bottom row instead, because the window only starts where LY reaches WY while it's on (Gearboy, and some hardware). `RenderLCDInterrupt` fires on the line before each change and writes LCDC in its HBlank.
 - **Scrolling** rotates the ring by one block: the block that leaves the screen draws the new row and SCY moves 8 pixels. `Layout` then re-points the BG map row whose block changed (the new row's, which is off screen or under the window until the scroll applies). The new SCY, WY and LCDC changes are staged and applied together at line 144, and `EditorDraw` waits for that before drawing into the block that left the screen. On DMG only whole rows scroll, because there aren't tiles for a 19th row.
 - **Smooth scrolling (GBC):** the text ring has one more block than there are text rows. The spare is the block the last scroll left, so the next scroll's new row is drawn into it while it's off screen, then the line 144 handler moves SCY 2 pixels a frame to the new position (`render_target_scy`) while the old row slides out. `RenderStage` stages a one row scroll as `render_pending` 2: `EditorDraw` waits for the last scroll to finish, draws the new row, and sets it to 1, so the scroll starts once the row's transfer is done. Anything else (jumps, layout changes) moves SCY at once.
@@ -243,7 +253,7 @@ Five rows of ten keys drawn into the bottom rows of `tile_buffer` (the available
 
 ```mermaid
 flowchart LR
-  editorc[editor.c] -->|File* stubs, BANKED_C| api[fs_Load / fs_Save / fs_List / fs_ListEntry in fatfs.c]
+  editorc[editor/document.c + browser/browser.c + game/loader.c] -->|File* stubs, BANKED_C| api[fs_Load / fs_Save / fs_List / fs_ListEntry in fatfs.c]
   api --> ff[FatFs, resident code and OS pages]
   ff --> glue[disk_read / disk_write]
   glue --> sd[sd.asm: SD over SPI]
@@ -256,7 +266,7 @@ flowchart LR
 - **FatFs** R0.16 (`src/fatfs/lib`) is compiled into `fatfs.c` with its Unicode and runtime helpers. Configuration enables FAT, UTF-8 long names up to the configured 64-character limit, code page 437 short names, `FF_FS_TINY=1`, and `FF_FS_MINIMIZE=0` so rename, unlink and mkdir are available. The browser doesn't yet expose those directory-management operations. `FF_FS_NORTC=0` calls the calendar timestamp service. `.banks` files distribute this code across the OS pages. `clst2sect` uses a shift for power-of-two cluster sizes rather than a multiply.
 - **Mounting:** `fs_Mount` mounts the card the first time. A failed sector read or write clears `disk_ready`, so FatFs mounts it again on its next call, and listing, loading and saving retry once after `FR_DISK_ERR`. A swapped card fails its first command (it hasn't been initialized), so it's mounted again before anything is written to it.
 - **File API:** `fs_Load` replaces the text buffer with a file 512 bytes at a time: `tb_Append` copies a PSRAM sector run at a time, dropping 0s and CRs and setting `tb_cr` when it drops a CR, so `fs_crlf` remembers that the file used CR LF. `fs_Save` writes the buffer (around the gap) with `tb_Read`, or with `tb_ReadLines`, which adds the CRs back, both a run at a time. `fs_List` reads a folder once: `NextEntry` walks the directory's 32 byte slots in the sector buffer the way FatFs's `dir_read` does, without decoding names, skipping hidden, system and dot names. It counts the folders and files and marks the slot where every 16th of each kind starts (in the 512 byte load buffer, which nothing else uses while browsing; when a kind passes 128 marks, every other one is dropped and the spacing doubles). `fs_ListEntry` reads one entry (`FileEntry` in `src/fatfs/file_api.h`: UTF-8 name, size, date) by seeking to the mark before it, or carrying on from the last one read. `GetName` turns its long name into UTF-8 itself, `get_fileinfo` is only used for names it can't handle (characters outside the BMP, short names with bytes above `$7F`).
-- **File browser** (`Browse` in `editor.c`): lists folders, then files, with `..` below the root. Names aren't kept in memory: the folder is listed once when it's opened, and the visible rows are read with `FileListEntry` (all of them after a jump, just the new one when the list scrolls a row, which rotates the screen ring like the text does), and the chosen entry again for its full name. Going up a folder looks the folder it came from up by name (`dir_find`) and selects it. Each visible row keeps its kind, size and date for the status bar. The editor keeps the open file's folder (`file_dir`) and name (`file_name`), both UTF-8, and shows them in Latin-1.
+- **File browser** (`Browse` in `browser/browser.c`): lists folders, then files, with `..` below the root. Names aren't kept in memory: the folder is listed once when it's opened, and the visible rows are read with `FileListEntry` (all of them after a jump, just the new one when the list scrolls a row, which rotates the screen ring like the text does), and the chosen entry again for its full name. Going up a folder looks the folder it came from up by name (`dir_find`) and selects it. Each visible row keeps its kind, size and date for the status bar. `Browse` delegates text reads to `LoadDocument` (`editor/document.c`) and ROM launch to `LaunchGame` (`game/loader.c`). The editor keeps the open file's folder (`file_dir`) and name (`file_name`), both UTF-8, and shows them in Latin-1.
 - **Gearboy** emulates the EverDrive OS mapping and SD interface (menu "EverDrive X SD Card", or `GEARBOY_EVERDRIVE=0` to turn it off). `VirtualFat` (in the Gearboy fork) makes a FAT32 card out of a host folder ("EverDrive X SD Folder...", `GEARBOY_SD_DIR`, or the home folder): folders are listed the first time they're read, files are read from the host, and when the Game Boy writes a folder's entries its new and changed files are written back. `GEARBOY_SD_IMAGE` uses a disk image instead.
 
 ### Large files and the editor swap
@@ -297,10 +307,10 @@ at normal speed throughout, so it does not switch speeds between chunks. A
 final comparison checks the loaded header against the retained source bytes.
 Both busy-polled loading and the fast plain-screen loader booted Crystal on
 hardware. The browser overlay with CPU copies is also hardware-confirmed; the progress
-redraw/timing fixes still need hardware confirmation.
+redraw/timing fixes are also hardware-confirmed: the artifacts are gone and Crystal still launches.
 On failure, `GameLoadingEnd` restores CPU speed, sprites, interrupts and normal
 renderer uploads; the browser tiles and layout were preserved. Finish loads SRAM/RTC/state files, applies enabled cheats,
-and updates stock registry metadata/checksum plus Girlboss's GAM3 ownership
+and updates stock registry metadata/checksum plus FatPak's GAM3 ownership
 record. It publishes the stock SRAM marker only after preparation succeeds.
 The filename header is rendered before `_GameLaunch` configures the mapper,
 installs the cart-menu vector and enters the resident launch stub. Like stock
@@ -313,7 +323,7 @@ model limitations are documented in [launch and ROM-transfer investigation](EVER
 Stock formats are `/GBCSYS/SAVE/<basename>.srm`, the 512-byte `.rtc` image,
 `/GBCSYS/SNAP/<basename>.sav` and `/GBCSYS/CHEATS/<basename>.txt`.
 `REGISTRY.BIN` identifies the current game for both OSes. Backup can import a
-validated stock registry if the Girlboss cookie is missing or superseded;
+validated stock registry if the FatPak cookie is missing or superseded;
 legacy GAM1/GAM2 records still back up SRAM but cannot claim the state slot that
 those builds never initialized. File operations and limits are detailed in
 [EverDrive compatibility](EVERDRIVE_FEATURES.md).
@@ -373,7 +383,8 @@ Character mapping lives in `src/charmap.asm`; CSV strings are generated by
 ## Testing and debugging
 
 - Use HELP > KEYBOARD TEST for live PS/2/iGKB diagnostics. The application has one OS build; the old startup-test build switches have been removed. See [In-game menu](IN_GAME_MENU.md) for cart-menu checks.
-- From the Girlboss root, `make -C ../Gearboy/tests girlboss` builds the sibling Gearboy core and runs its assembled-OS integration tests using `bin/GBCOS.BIN` and `bin/GBCOS.sym`. Temporary SD folders cover DMG/CGB snapshots and menu Save, malformed files, legacy GAM2 migration, stock ownership, 128 KiB SRAM, RTC/date handling and mapper latches. `make -C ../Gearboy/tests everdrive` runs component tests. Hardware verification remains listed in [TODO](TODO.md).
+- `python3 -m unittest discover -s tests -v` checks cross-module calls, same-page/resident calls, private-name isolation and repeatable bank splitting.
+- From the FatPak root, `make -C ../Gearboy/tests fatpak` builds the sibling Gearboy core and runs its assembled-OS integration tests using `bin/GBCOS.BIN` and `bin/GBCOS.sym`. Temporary SD folders cover DMG/CGB typing, selection replacement, undo/redo, clipboard, exact saved text, OSK, menus, large-file navigation, and snapshots and menu Save, malformed files, legacy GAM2 migration, stock ownership, 128 KiB SRAM, RTC/date handling and mapper latches. `make -C ../Gearboy/tests everdrive` runs component tests. Hardware verification remains listed in [TODO](TODO.md).
 - `bin/GBCOS.sym` has every label, so emulators show symbols. `build/main.map` shows where every section landed and how much space each bank has left.
 - Gearboy can be driven by an AI assistant or script over MCP (`--mcp-stdio` or `--mcp-http`, add `--headless` to run without a window). Its profiler shows cycles per function, which is how the editor's performance work was measured.
 - When changing the text buffer or renderer, compare the screen after an incremental update with a full redraw (open and cancel the menu forces one), and compare saved files byte for byte. Check SD images with `fsck.fat -n` after writing to them.
@@ -381,6 +392,6 @@ Character mapping lives in `src/charmap.asm`; CSV strings are generated by
 ## Conventions
 
 - Assembly is terse: short `;` comments, routine headers that list register arguments and results (`;de = pos, returns char in a`), local `.labels`, and a list of public routines at the top of each module.
-- Labels for C start with `_`, and asm routines called from C get a `_Name::` label. C prototypes for asm live in the C file's header (`src/editor/editor.h`).
-- Each module includes `src/text_editor.inc` first, so it can be read on its own.
+- Labels for C start with `_`, and asm routines called from C get a `_Name::` label. C prototypes for asm live in the C file's header (for example `src/editor/text_buffer.h`, `src/ui/render.h` or `src/game/loader.h`).
+- Each module includes `src/fatpak.inc` first, so it can be read on its own.
 - Generated files are committed alongside their sources.

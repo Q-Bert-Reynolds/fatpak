@@ -4,7 +4,7 @@
 // position), the text it inserted or deleted, then its length again so it can be found from its end.
 // Typing a word, holding delete or backspace, merges into one record until the cursor moves.
 // NOTE: no static initializers (_GSINIT doesn't run) and no int multiply/divide (no SDCC libs)
-#include "editor.h"
+#include "text_buffer.h"
 
 #define UNDO_INS    0
 #define UNDO_DEL    1

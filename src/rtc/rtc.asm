@@ -182,5 +182,3 @@ CartConfigureFeatures::
 .readError
   pop af
   jp RTCError
-
-INCLUDE "src/rtc/_rtc.asm"

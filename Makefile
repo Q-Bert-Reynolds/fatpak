@@ -10,6 +10,7 @@ SRC_DIR   = src
 DATA_DIR  = data
 BIN_DIR   = bin
 BUILD_DIR = build
+SD_MOUNT ?= /media/qbertreynolds/GAMEBOY
 
 ifeq ($(OS), Windows_NT)
 PYTHON	  = python
@@ -17,27 +18,28 @@ else
 PYTHON	  = python3
 endif
 
-C_SOURCES = $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/**/*.c) $(wildcard $(DATA_DIR)/**/*.c) 
+C_SOURCES = $(wildcard $(SRC_DIR)/*.c) $(wildcard $(SRC_DIR)/**/*.c) $(wildcard $(DATA_DIR)/**/*.c)
 C_HEADERS = $(wildcard $(SRC_DIR)/*.h) $(wildcard $(SRC_DIR)/**/*.h)
 # included by C sources, not compiled on their own
 C_LIBS    = $(wildcard $(SRC_DIR)/*/lib/*.c) $(wildcard $(SRC_DIR)/*/lib/*.h)
-C_ASM     = $(join $(dir $(C_SOURCES)), $(patsubst %.c, _%.asm, $(notdir $(C_SOURCES))))
+# Preserve raw output: page placement and cross-module call resolution run together.
+C_RAW     = $(patsubst %.c,$(BUILD_DIR)/c/%.asm,$(C_SOURCES))
 
 all: clean assets assemble run
 
 code: assemble run
 
-_%.asm: %.c $(C_HEADERS) $(C_LIBS) $(wildcard $(SRC_DIR)/*/*.banks)
-	@mkdir -p $(BUILD_DIR)
+$(BUILD_DIR)/c/%.asm: %.c $(C_HEADERS) $(C_LIBS)
+	@mkdir -p $(dir $@)
 	sdcc $< -msm83 --asm=rgbds --opt-code-size --dataseg WRAM0 --no-peep --peep-file peephole.def $(DEFINES) --disable-warning 218 -S -o $@
 	@sed -i 's/^\t\.byte /\tDB /' $@ # SDCC writes long constants as .byte
-	@if [ -f $(basename $<).banks ]; then $(PYTHON) bank_split.py $@ $(basename $<).banks; fi
 
 $(SRC_DIR)/constants.h: $(SRC_DIR)/constants.asm build.py
 	$(PYTHON) build.py
 
-assemble: $(C_ASM)
+assemble: $(C_RAW)
 	@mkdir -p $(BUILD_DIR) $(BIN_DIR)
+	$(PYTHON) bank_split.py --build-dir $(BUILD_DIR) $(C_SOURCES)
 	$(PYTHON) ingame_menu.py
 	rgbasm $(DEFINES) -o $(BUILD_DIR)/main.o $(SRC_DIR)/main.asm
 	rgblink -l pages.link -m $(BUILD_DIR)/main.map -n $(SYM_FILE) -o $(ROM_FILE) $(BUILD_DIR)/main.o
@@ -45,9 +47,9 @@ assemble: $(C_ASM)
 	rgbfix -v -c -s -j -t GBXOS -i KRKZ -l 0x33 -m 0 -r 0 -p 255 $(ROM_FILE)
 	cp $(ROM_FILE) $(BIN_DIR)/GBCOS.BIN
 	$(PYTHON) data_file.py $(BIN_DIR)/EDITOR.DAT
-	@if mountpoint -q /media/qbertreynolds/GAMEBOY; then \
-		cp $(BIN_DIR)/GBCOS.BIN /media/qbertreynolds/GAMEBOY/GBCSYS/GBCOS.BIN && \
-		sync -f /media/qbertreynolds/GAMEBOY/GBCSYS/GBCOS.BIN && \
+	@if mountpoint -q "$(SD_MOUNT)"; then \
+		cp $(BIN_DIR)/GBCOS.BIN "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
+		sync -f "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
 		echo "Copied GBCOS.BIN to mounted GAMEBOY card"; \
 	fi
 
@@ -66,11 +68,10 @@ assets:
 	@mkdir -p $(BIN_DIR)
 
 	$(PYTHON) build.py 
-	$(PYTHON) fxhammer.py
 	$(PYTHON) img2rgbds.py
 	$(PYTHON) fonts.py
 	$(PYTHON) keywords.py
-	$(PYTHON) sgb_border.py img/default_sgb_border.png img/default_sgb_border.asm
+	$(PYTHON) sgb_border.py
 	$(PYTHON) translate.py 
 
 clean:

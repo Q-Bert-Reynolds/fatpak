@@ -1,4 +1,4 @@
-INCLUDE "src/text_editor.inc"
+INCLUDE "src/fatpak.inc"
 
 SECTION "SD Test", ROMX
 

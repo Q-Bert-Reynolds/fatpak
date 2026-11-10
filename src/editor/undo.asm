@@ -5,7 +5,7 @@
 ;   log_Read                    de = buffer, bc = count, copies from the log at log_ptr, advances it
 ;   log_SaveText                de = text position, bc = count, copies text to the log at log_ptr
 ;   log_RestoreText             de = text position, bc = count, inserts text from the log at log_ptr (it must fit)
-;C functions (src/editor/editor.h), stubs into undo.c's bank
+;C functions (src/editor/undo.h), stubs into undo.c's bank
 ;   UndoClear, UndoInserted, UndoDeleting, UndoSaved, Undo, Redo
 
 SECTION "Undo Stubs", ROM0

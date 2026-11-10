@@ -24,7 +24,7 @@ immediately, write `$04` to `$BD06`, save SP, and switch to a resident stack bef
 reading the mapper registers at `$BD14-$BD17`. The normal VBlank vector is
 installed at startup; launch replaces it with the in-game entry vector.
 
-[`src/editor/snapshot.asm`](../src/editor/snapshot.asm) captures the stock 82 KiB layout:
+[`src/game/snapshot.asm`](../src/game/snapshot.asm) captures the stock 82 KiB layout:
 
 | PSRAM block | Contents |
 | --- | --- |
@@ -38,9 +38,9 @@ installed at startup; launch replaces it with the in-game entry vector.
 | `$3eb3-$3ee2` | CGB WRAM banks 2-7 |
 | `$3ee3` | Reserved |
 
-The optional bytes `GB,1,model` at header offsets 10-13 let Girlboss reject
+The optional bytes `GB,1,model` at header offsets 10-13 let FatPak reject
 its own states made in a different hardware mode. Stock ignores these bytes;
-Girlboss also accepts stock images without this extension.
+FatPak also accepts stock images without this extension.
 
 After capture, the menu clears WRAM/HRAM, initializes the OS service context,
 and uses the normal OS stack for SD access. Restore uses the resident stack,
@@ -63,7 +63,7 @@ immediately. Snapshot writes use `.tmp` and retain the previous file as `.bak`.
 
 Loading reads and validates the entire file in PSRAM `$3c00-$3ca3` before replacing
 the suspended image. This staging space limits ROM loading to 7.5 MiB. The stock
-state format holds at most 32 KiB of cartridge RAM; Girlboss rejects states for
+state format holds at most 32 KiB of cartridge RAM; FatPak rejects states for
 larger RAM configurations. Normal battery saves can still use 128 KiB.
 
 Per-game snapshot path and RAM-size metadata live in PSRAM `$3e2f`. These blocks,
@@ -83,13 +83,13 @@ supports setting an offset through the same I2C interface as the cartridge.
 
 ## Validation
 
-[`Gearboy/tests/girlboss_features_tests.cpp`](../../Gearboy/tests/girlboss_features_tests.cpp) runs the assembled routines against
+[`Gearboy/tests/fatpak_features_tests.cpp`](../../Gearboy/tests/fatpak_features_tests.cpp) runs the assembled routines against
 an isolated temporary SD folder. It covers DMG/CGB capture, stock state layout,
 save/load with changed game memory, all CGB WRAM banks, shared SRAM, mapper
 restore, malformed/missing states, Game Genie compare bytes, stock registry
 ownership, clock setup, FAT timestamps and clockless operation. Legacy GAM2 migration and 128 KiB SRAM backup are covered too. Previous
 menu regression checks also exercised repeated Resume and warm return to the browser.
-From the Girlboss root, run `make -C ../Gearboy/tests girlboss`; these checks
+From the FatPak root, run `make -C ../Gearboy/tests fatpak`; these checks
 use temporary SD folders. Save states have also been tested successfully on
 hardware. RTC corrections still need hardware verification; see
 [TODO](TODO.md#priority).

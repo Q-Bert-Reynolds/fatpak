@@ -3,7 +3,7 @@
 ;Keys are 1 tile wide with a 1 tile gap, OSK_COLS keys per row. The last row is
 ;shift, symbols, menu, space (4 keys), undo, redo, return for every layer.
 ;
-;C functions (src/editor/editor.h)
+;C functions (src/editor/osk.h)
 ;   OSKShow                     a = show, the highlight goes back on [_osk_x], [_osk_y]
 ;   OSKDraw                     a = layer, e = first tile_buffer row
 ;   OSKSelect                   a = x, e = y, moves the highlight sprite
