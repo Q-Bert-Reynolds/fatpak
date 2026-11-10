@@ -91,7 +91,7 @@ _OSKDraw::;a = layer, e = first tile_buffer row
 
 _OSKSelect::;a = x, e = y
   swap a;x*16
-  add a, OAM_X_OFS
+  add a, OAM_X_OFS+OSK_INSET
   ld d, a
   ld a, [osk_first_row]
   add a, e

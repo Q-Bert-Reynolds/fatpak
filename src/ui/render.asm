@@ -51,6 +51,7 @@ render_glyphs: DW
 render_widths: DW
 render_line: DB;tile_buffer row RenderRow draws
 render_styled: DB;1 = a text row, widths and styles come from tile_attrs
+render_keyboard_edge: DB;$80 on the last text row above the keyboard
 render_attr: DB;style of the char RenderGlyph draws
 render_head: DB;heading font: 1-4, 0 = none
 font_bold_widths:: DB;page of the current font's bold widths (styled_widths.asm)
@@ -956,6 +957,50 @@ ELSE
 ENDC
 ENDR
 
+;Return $80 only for the last text row above the visible keyboard.
+RenderKeyboardEdge:
+  ld a, [_osk_shown]
+  and a
+  ret z
+  ld a, [render_styled]
+  and a
+  ret z
+  ld a, [render_line]
+  inc a
+  ld hl, _tb_rows
+  cp a, [hl]
+  ld a, 0
+  ret nz
+  ld a, $80
+  ret
+
+;Reuse only the spacebar underscore's last scanline. Keep the text's other
+;seven scanlines and its styles; the keyboard window begins on the next row.
+RenderKeyboardLine:
+  ld a, 1
+  ld d, HIGH(render_dim)
+  call RenderUsePlane
+  ld a, 2
+  ld d, HIGH(render_accent)
+  call RenderUsePlane
+  ld a, [FontMonoGlyphs+'_'*8+7]
+  ld c, a
+  ld b, TB_COLS
+  ld hl, render_bitmap+7
+.tile
+  ld [hl], c
+  ld h, HIGH(render_dim)
+  ld [hl], 0
+  ld h, HIGH(render_accent)
+  ld [hl], 0
+  ld h, HIGH(render_bitmap)
+  ld a, l
+  add a, 8
+  ld l, a
+  dec b
+  jr nz, .tile
+  ret
+
 ;a = screen row, e = font, draws the row's characters into its block if they, the font or the
 ;selection changed
 RenderRow:
@@ -976,6 +1021,8 @@ RenderRow:
   ld a, 0
   adc a, 0
   ld [render_styled], a
+  call RenderKeyboardEdge
+  ld [render_keyboard_edge], a
   ld a, [render_line]
   call RenderRowAddress
   ld de, tile_buffer
@@ -1093,7 +1140,10 @@ RenderRow:
   ld b, 0
   ld hl, row_font
   add hl, bc
+  ld a, [render_keyboard_edge]
+  ld c, a;include the separator in the cache tag, so toggling OSK redraws this row
   ld a, [render_row_font]
+  or a, c
   cp a, [hl]
   ld [hl], a
   jr nz, .changed
@@ -1162,7 +1212,19 @@ RenderRow:
 
   ld a, [render_row_font]
   and a
-  jr z, .startX;the on screen keyboard's keys line up with its highlight
+  jr nz, .textInset
+  ld a, [render_styled]
+  and a
+  jr nz, .monoLeft
+  ld a, [_osk_shown]
+  and a
+  jr z, .startX
+  ld a, OSK_INSET
+  jr .startX
+.monoLeft
+  xor a
+  jr .startX
+.textInset
   ld a, 1;glyphs end with their gap, so the cursor (at x) sits in the gap before a character
 .startX
   ld [render_x], a
@@ -1207,6 +1269,9 @@ RenderRow:
     jr nz, .char
 
 .toVRAM
+  ld a, [render_keyboard_edge]
+  and a
+  call nz, RenderKeyboardLine
   call RenderBox
   call RenderWaitDMA;GBC: the last row's transfer reads render_dma_buffer
   call RenderEncode

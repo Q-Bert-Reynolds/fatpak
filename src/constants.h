@@ -99,6 +99,7 @@
 //on screen keyboard
 #define OSK_COLS    10
 #define OSK_ROWS    5
+#define OSK_INSET   4
 #define OSK_LOWER   0
 #define OSK_SHIFT   1
 #define OSK_SYMBOLS 2
