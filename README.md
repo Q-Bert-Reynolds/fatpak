@@ -1,16 +1,36 @@
-# TEXT EDITOR
-A text editor for the Game Boy, Game Boy Color, and Super Game Boy, built on the Béisbol engine.
+# FatPak
 
-The application is a 128 KiB EverDrive GB X7 OS image. It edits text on the SD card,
-uses variable-width and styled fonts, accepts PS/2 keyboard or joypad input, and
-launches Game Boy games with stock-compatible battery saves, RTC files, save states,
-and cheats.
+FatPak is an operating system for the EverDrive GB X7, with a file browser, a text
+editor, and a game launcher for the Game Boy, Game Boy Color, and Super Game Boy.
+It is built on the Béisbol engine.
+
+Browse and manage files and folders on the SD card, edit text with a PS/2 keyboard
+or the on-screen keyboard, and launch Game Boy games with stock-compatible battery
+saves, RTC files, save states, and cheats. The text editor supports variable-width
+and styled fonts, Markdown, and C and assembly syntax highlighting.
 
 See [Architecture](notes/ARCHITECTURE.md) for the implementation,
 [EverDrive compatibility](notes/EVERDRIVE_FEATURES.md) for game files and limits,
 and [TODO](notes/TODO.md) for remaining work. Other project notes live in `notes/`.
 
-# Controls
+# File browser
+
+FatPak starts in the file browser. Folders come first; A or Enter opens a file or
+folder, and B, Backspace, or Left goes up a folder. Escape returns to the text
+editor; B or Backspace does the same at the root.
+
+START opens the browser menu: FILE (info, rename), EDIT (cut, copy, paste),
+SETTINGS (clock, keyboard test), HELP, and RESTART. Rename uses the on-screen
+keyboard and supports undo/redo. File info shows timestamps, file type and size,
+word/line counts for text files up to 32KB, and cartridge header details for games.
+RESTART performs a full device restart, including the Nintendo splash.
+
+The header shows the current folder, or the filename when viewing file info.
+Every visible footer shows the current time at the bottom right in 12-hour format,
+such as `10:42pm`. Help is scrollable; B or Escape exits help and file info.
+
+# Text editor controls
+
 | Button | Action |
 | --- | --- |
 | D-pad | move cursor, or the on screen keyboard selection when it's open |
@@ -29,13 +49,12 @@ F11 (or FULL SCREEN in the menu) hides the editor's bars. F1 (or HELP) shows the
 
 PS/2 keyboards type directly: arrows, home, end, page up/down, backspace, delete, enter.
 Escape opens the menu: FILE (open, save, save as, new), EDIT (undo, redo, cut, copy, paste, select all),
-SETTINGS (line wrap, full screen, clock), HELP (controls, keyboard test) and CLOSE (the file browser). The keyboard test shows each byte the
+SETTINGS (line wrap, full screen), HELP (editor controls) and CLOSE (the file browser).
+The browser settings menu's keyboard test shows each byte the
 PS/2 keyboard sends (hex, bits and start/parity/finish/timeout errors) and the key it makes, and listens for a
 keyboard even if none was found at boot (it keeps listening afterwards). B or Backspace goes back from a submenu, START or Escape closes
 the menu. Ctrl+O opens, Ctrl+S saves, Ctrl+N starts a new file.
-OPEN (Ctrl+O) browses the SD card: the top bar shows the folder and the footer shows the clock.
-Folders come first, enter or A opens, backspace, left or B goes up a folder, escape goes back to the text
-(so do backspace and B in the root).
+OPEN (Ctrl+O) returns to the file browser.
 Files up to 63.5 KiB (65,024 bytes) open as text, and bigger files open too (the editor reads a
 48KB window of the file from the card that moves with the cursor, Ctrl+End shows "Line ?" until the lines
 before it are counted; saving one writes ~EDITOR.TMP in its folder and renames it over the file, and unsaved
@@ -116,7 +135,7 @@ img/ui_font.png is 256 tiles. Tile index matches the character code:
 
 # Tests
 Run `python3 -m unittest discover -s tests -v` to check C module bank placement.
-The HELP menu's keyboard test checks PS/2 and iGKB input. See
+The browser settings menu's keyboard test checks PS/2 and iGKB input. See
 [IN_GAME_MENU.md](notes/IN_GAME_MENU.md) for cart-menu validation. With the sibling
 Gearboy checkout, `make -C ../Gearboy/tests fatpak` runs assembled-OS integration
 tests against temporary SD folders; `make -C ../Gearboy/tests everdrive` runs the
@@ -136,9 +155,9 @@ an existing FAT disk image instead.
 `make assemble` builds without regenerating assets or running the emulator. Pick a language with `make assemble LANGUAGE=ES`.
 
 # Cart
-The only application build is the 128KB EverDrive X OS image, `bin/GBCOS.BIN`.
+FatPak builds as a 128KB EverDrive GB X7 OS image, `bin/GBCOS.BIN`.
 Install it as `/GBCSYS/GBCOS.BIN`, with `bin/EDITOR.DAT` alongside it. Builds
-copy the OS image automatically when `/media/qbertreynolds/GAMEBOY` is mounted.
+copy the OS image and data file automatically when `/media/qbertreynolds/GAMEBOY` is mounted.
 The first 32KB is resident; the rest runs through the OS page window. C page
 assignments are in `src/*/*.banks` and the layout is checked after linking.
 
