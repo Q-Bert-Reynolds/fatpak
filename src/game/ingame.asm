@@ -208,6 +208,10 @@ InGameMenu:
   jr nz, .resume
   jr .loop
 .move
+  push bc
+  call MenuWait
+  call MenuSelection;toggle off the old highlight without blanking the LCD
+  pop bc
   ld a, [menu_sel]
   bit PADB_UP, c
   jr z, .down
@@ -218,15 +222,7 @@ InGameMenu:
 .selection
   and a, 3
   ld [menu_sel], a
-  call MenuOff
-  call MenuLoadGraphics
-  ld hl, MENU_FOOTER_VRAM
-  ld de, MenuBarMasks
-  ld b, 20
-  call MenuTint
   call MenuSelection
-  ld a, MENU_LCDC
-  ldh [rLCDC], a
   jr .loop
 .choose
   ld a, [menu_sel]
@@ -269,8 +265,11 @@ MenuSelection:
 MenuChoiceTiles:
   DW MENU_CHOICE0_VRAM,MENU_CHOICE1_VRAM,MENU_CHOICE2_VRAM,MENU_CHOICE3_VRAM
 
-;HL = unique normal-ink tiles, DE = horizontal masks, B = tile count.
-;Match RenderEncode: DMG inverts selected pixels; CGB uses color 1 behind ink.
+;HL = unique tiles, DE = horizontal masks, B = tile count.
+;Toggle the highlight: DMG inverts both planes; CGB toggles the low plane's
+;background bits, preserving the high plane's ink. Calling twice restores it.
+;Interrupts stay disabled. Each VRAM read/write group fits within the 80 dots
+;of mode 2, even if mode 0/1 ends immediately after the STAT read.
 MenuTint:
 .tile
   ld a, [de]
@@ -278,22 +277,33 @@ MenuTint:
   ld c, a
   push bc
   ld b, 8
-.line
   ld a, [menu_cgb]
   and a
-  ld a, [hl]
   jr z, .dmg
-  or a, c
+.cgbLine
+  ldh a, [rSTAT]
+  bit 1, a
+  jr nz, .cgbLine
+  ld a, [hli]
+  xor a, c
+  or a, [hl];ink stays color 3; only the paper toggles between 0 and 1
+  dec hl
   ld [hli], a
   inc hl
+  dec b
+  jr nz, .cgbLine
   jr .next
 .dmg
+  ldh a, [rSTAT]
+  bit 1, a
+  jr nz, .dmg
+  ld a, [hl]
   xor a, c
   ld [hli], a
   ld [hli], a
-.next
   dec b
-  jr nz, .line
+  jr nz, .dmg
+.next
   pop bc
   dec b
   jr nz, .tile
@@ -404,8 +414,7 @@ MenuCopy:
   jr nz, MenuCopy
   ret
 
-;turns the screen off at the start of VBlank: VRAM, OAM and the palettes can be written at any time (it's
-;off for about a frame each time the menu changes, the hardware's timing can't get in the way)
+;Turn the screen off at VBlank for initial drawing, snapshot I/O and exit.
 MenuOff:
   call MenuWait
   ldh a, [rLCDC]
