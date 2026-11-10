@@ -1,14 +1,11 @@
 # Super Game Boy fullscreen mode (plan)
 
-Status: **plan, nothing implemented.** This document describes the architecture,
-the GB/SNES split, the wire protocol, the build order and the test strategy for
-running FatPak as a fullscreen SNES application on a Super Game Boy. Items marked
-**(verify)** are hardware facts taken from documentation (fullsnes, Pan Docs) that
-Phase 0 must confirm before anything depends on them.
+Status: **plan, nothing implemented.** Running FatPak as a fullscreen SNES
+application on a Super Game Boy. **(verify)** marks documented hardware facts
+(fullsnes, Pan Docs) that Phase 0 must confirm.
 
-Today's SGB support (see [Architecture](ARCHITECTURE.md)) is the DMG renderer plus
-`src/ui/sgb.asm`: `MLT_REQ` detection, palettes, the border from `EDITOR.DAT` and
-`sgb_CopyToWRAM` (`DATA_SND`/`DATA_TRN`). That mode stays as the **fallback**.
+Today's SGB mode (DMG renderer plus `src/ui/sgb.asm`: `MLT_REQ` detection,
+palettes, border from `EDITOR.DAT`, `sgb_CopyToWRAM`) stays as the **fallback**.
 
 ## Goals
 
@@ -107,7 +104,7 @@ flowchart LR
 | Fonts (glyph bitmaps + widths) | widths only (for layout) | glyphs + widths |
 | Glyph rasterizing, colors, palettes, VRAM, scrolling | | ✔ |
 | Menu box, bars, OSK **drawing** (overlay layer) | | ✔ |
-| Text cursor sprite, mouse pointer, busy spinner | position/state | ✔ drawing |
+| Text cursor sprite, mouse pointer | position/state | ✔ drawing |
 | Reading pads and mouse, key repeat, button → key translation | | ✔ |
 | Pointer movement, acceleration, clamping | | ✔ |
 | Return to the SGB BIOS before a game launch | asks | ✔ performs |
@@ -165,13 +162,13 @@ Commands (first draft; Phase 1 fixes the encodings):
 | `BAR` | top or bottom, text | Title and status bars on the overlay layer |
 | `OSK` | layer, selected key | The SNES draws the 5×10 keyboard from a key table it already has |
 | `PALETTE` | index, 15-bit colors | GBC colors are already BGR555, the SNES format |
-| `BUSY`, `PROGRESS` | on/off, loaded/total KB | Loading box and spinner |
+| `BUSY`, `PROGRESS` | on/off, loaded/total KB | Loading box |
 | `LAUNCH` | — | The SNES acknowledges, then returns to the BIOS (see Game launch) |
 | `HELLO` / `RESET` | protocol version | Handshake and full redraw |
 
 Big data never goes through a separate queue. The page writer serializes **dirty
 rows straight from `tile_buffer`/`tile_attrs`** into VRAM. Only small control
-commands use a short WRAM queue (64 bytes). That matters because WRAM0 has 127
+commands use a short WRAM queue (64 bytes). That matters because WRAM0 has 17
 bytes free and WRAMX has 104.
 
 ### SNES → GB: the mailbox
@@ -220,7 +217,7 @@ code and fonts go wherever the BIOS's working memory is not, likely bank `$7F`
 | BG1 map | 2 KB | 32×32, rows rotate on scroll |
 | BG3 2bpp tiles | 14 KB | Overlay: bars, menus, OSK. High priority (`BGMODE` bit 3) so it draws over BG1. Color 0 is transparent |
 | BG3 map | 2 KB | |
-| OBJ tiles | 2 KB | Text cursor, mouse pointer (two shapes), busy spinner |
+| OBJ tiles | 2 KB | Text cursor, mouse pointer (two shapes) |
 | Total | about 52 KB of 64 KB | |
 
 **Colors.** BG1 uses one 16-color palette, so ink color is **per pixel**:
@@ -250,7 +247,7 @@ the GB renderer uses) are the first optimization.
 | --- | --- |
 | `sgb/boot.asm` | After `sgb_Init` detects an SGB: check `/GBCSYS/SGB.DAT` (already loaded into PSRAM next to `EDITOR.DAT`), upload the SNES blob with `sgb_CopyToWRAM` (4 KB `DATA_TRN` chunks, about 12 chunks, about 1-2 s), send `JUMP`, wait for `HELLO` in the mailbox with a timeout. On success set `SYS_INFO_SGBFS`; on failure keep today's SGB mode |
 | `sgb/transport.asm` | Page writer (STAT-safe VRAM copies, the DMG loop pattern), status row in VBlank, mailbox reader |
-| `sgb/display.asm` | Backend that replaces `RenderRow`, `Layout`/`RenderStage`, `RenderBox`, `PlaceCursor`'s sprite write, `RenderSetPalettes`, the busy sprite and `ShowGameProgress` drawing. It turns them into protocol commands |
+| `sgb/display.asm` | Backend that replaces `RenderRow`, `Layout`/`RenderStage`, `RenderBox`, `PlaceCursor`'s sprite write, `RenderSetPalettes`, `ShowBusy` and `ShowGameProgress` drawing. It turns them into protocol commands |
 | `sgb/input.asm` | Mailbox events → `kb_event_buffer`; mouse events → `HandleMouse` |
 | `editor/mouse.c` | **New, used by every mode:** click → `PosAtX(row, x)` sets the cursor; drag → anchor/cursor selection; right-click → menu; `Choose` row hit test; browser row select (second click opens); OSK key hit test; top bar → menu |
 
@@ -263,9 +260,9 @@ the GB renderer uses) are the first optimization.
 ### Prerequisite refactor: screen geometry
 
 The editor hard-codes the GB screen: `TB_ROWS 18`, `TB_STRIDE 40`, `TB_WIDTH 160`,
-used in about 30 places (`text_buffer.asm` ×9, `render.asm` ×5, `screen.c`,
-`browser.c`, `view.c`, `osk.asm`, …). Fullscreen needs 28 rows of up to 64 characters
-and 248 px.
+about 100 uses across 17 files (`text_buffer.asm`, `render.asm`, `screen.c`,
+`browser.c`, `view.c`, `osk.asm`, `ingame.asm`, …). Fullscreen needs 28 rows of up
+to 64 characters and 248 px.
 
 - `tb_row_width` (px) and the row count become **runtime variables**. `TBScanRow`
   compares against a variable instead of an immediate, which costs a few cycles.
@@ -282,9 +279,9 @@ and 248 px.
 
 ### ROM space
 
-ROM0 has 62 bytes free and every OS page has about 0.8 KB spread over two gaps.
-The GB-side SGB code (estimated 2.5-4 KB) does not fit as resident code. Options,
-in order of preference:
+ROM0 has about 160 bytes free and every OS page is 98-100% full (0-85 bytes
+each). The GB-side SGB code (estimated 2.5-4 KB) can't be resident. Options, in
+order of preference:
 
 1. **Overlay.** The [TODO](TODO.md#os-utilities) overlay design is built first as
    general infrastructure. On SGB fullscreen, the DMG/GBC renderer's drawing code
@@ -381,7 +378,7 @@ features it tests. Each phase has an exit check.
 | 5 | **GB backend: text** | Bootstrap + fallback, transport, `ROW`/`SCROLL`/`LAYOUT`/`CURSOR`, mailbox → key events | In the Gearboy stub, opening, typing, scrolling and saving a file render correctly in the reference image |
 | 6 | **SNES core** | boot, icd2 capture, proto, model, raster (styles/colors), BG1 ring + smooth scroll, cursor sprite, debug overlay | The Mesen harness replaying recorded Phase 5 streams matches golden screenshots |
 | 7 | **Integration on hardware** | Real FatPak OS + `SGB.DAT` on SGB1/SGB2 | Edit and save a `.c` and a `.md` file with highlighting using the pad |
-| 8 | **Overlay UI** | Bars, menus (`BOX`), dialogs, browser, help, OSK, busy spinner, loading progress on BG3 | Every screen in the app reachable and correct; menu open/close redraws no text rows |
+| 8 | **Overlay UI** | Bars, menus (`BOX`), dialogs, browser, help, OSK, loading boxes and progress on BG3 | Every screen in the app reachable and correct; menu open/close redraws no text rows |
 | 9 | **Full controls + mouse** | Complete button map, repeat, pad 2; mouse detect/pointer/sensitivity; `editor/mouse.c` hit testing (also usable on GB later) | Scripted tests in both emulators; mouse checklist on hardware |
 | 10 | **Launch & return** | Implement what 0c proved; `LAUNCH` command; re-bootstrap on warm return | Launch → play → cart menu → return to OS, on hardware, 3 games (DMG-only, SGB-enhanced, CGB-dual) |
 | 11 | **Polish** | Raster speed, finer smooth scroll, SGB1 clock divider experiment (verify EverDrive SPI timing), theme command, docs (README controls, ARCHITECTURE, TODO) | — |
@@ -472,6 +469,6 @@ a second pad, and the EverDrive GB X7.
 | --- | --- |
 | 256 px (mode 1) or 512 px hi-res (mode 5)? | 256 px. Hi-res halves pixel width, so the 4 px fonts become unreadable on CRTs, and 4bpp at 512 px uses about 57 KB of the 64 KB VRAM |
 | Stride 64 vs 56 | Decided by the Phase 0d WRAM budget |
-| Separate `SGB.DAT` vs `EDITOR.DAT` v3 | Separate (versioned independently; only SGB loads it) |
+| Separate `SGB.DAT` vs extending `EDITOR.DAT` | Separate (versioned independently; only SGB loads it) |
 | Launch fallback if 0c fails | Decide after 0c; "press reset" is the safe last resort |
 | Bring mouse hit testing to GB modes (iGKB mouse)? | Yes, `editor/mouse.c` is mode-independent by design |

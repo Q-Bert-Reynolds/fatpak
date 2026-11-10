@@ -285,11 +285,16 @@ static void Loading(const char* image, const char* symbols, const char* data, bo
     Check(reached, "startup reaches card IO");
     unsigned tiles = syms.at("tile_buffer");
     Check(Text(memory, tiles + 18*40).find(" FatPak") == 0, "header is drawn before card IO");
-    Check(Text(memory, tiles + 19*40).find(" Loading...") == 0, "loading footer is drawn before card IO");
+    unsigned box = syms.at("_render_box_text");
+    box = memory->Read(box) | (memory->Read(box + 1) << 8);
+    Check(Text(memory, box) == "Loading...", "startup uses the standard loading box");
+    Check(memory->Read(syms.at("_render_box_rows")) == 3 && memory->Read(syms.at("_render_box_top")) == 7, "startup loading box is centered");
+    Check(memory->Read(tiles + 19*40 + 1) == ' ', "loading text stays out of the footer");
     Check(memory->Read(tiles + 19*40 + 32) == 127, "startup footer includes clock");
     Check(memory->Read(syms.at("_bars")) == 1 && memory->Read(syms.at("_render_text")) == 0, "startup uses browser layout");
     Check(memory->Read(0xFF40) & 0x80, "startup feedback has LCD enabled");
     Frames(core, 600);
+    Check(memory->Read(0xFE08) == 0 && memory->Read(0xFE09) == 0, "unused busy sprite stays hidden during VBlank");
     memory->Write(syms.at("_render_cpu_copy"), 1);
     u8 original_ie = memory->Read(0xFFFF);
     Call(core, syms.at("_GameLoadingBegin"));

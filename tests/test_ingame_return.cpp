@@ -265,7 +265,6 @@ static void Run(const char* image, const char* symbols, const char* data, bool c
               "CPU tile copies stay enabled in the browser");
         if (color) Check(memory->GetHDMARegister(5) == 0x80,
                          "warm OS rendering never starts another HDMA transfer");
-        Check(memory->Read(syms.at("busy_frames")) <= 2, "OS continues processing frames and input");
     }
     printf("%s menu Resume, Save state, repeated Return to OS and save backup passed (%s)\n",
            color ? "CGB" : "DMG", folder);

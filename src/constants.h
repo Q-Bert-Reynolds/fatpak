@@ -1,14 +1,6 @@
 #ifndef CONSTANTS
 #define CONSTANTS
 
-// busy spinner (src/interrupts.asm), shown when the main loop hasn't waited for a frame in a while
-#define BUSY_SPRITE 2
-#define BUSY_TILE   122//sprite tile, the editor's tile blocks don't use 122-127
-#define BUSY_DELAY  10//frames
-#define BUSY_X      160//OAM x and y, top right corner
-#define BUSY_Y      16
-#define BUSY_PALETTE 4//GBC object palette (PaletteSlate), color 2 is dark
-
 // ram banks 
 #define MAIN_SRAM_BANK 240//PSRAM blocks 240-255 hold settings and the clipboard
 

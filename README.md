@@ -10,7 +10,7 @@ saves, RTC files, save states, and cheats. The text editor supports variable-wid
 and styled fonts, Markdown, and C and assembly syntax highlighting.
 
 See [Architecture](notes/ARCHITECTURE.md) for the implementation,
-[EverDrive compatibility](notes/EVERDRIVE_FEATURES.md) for game files and limits,
+[EverDrive compatibility](notes/EVERDRIVE.md) for game files and limits,
 and [TODO](notes/TODO.md) for remaining work. Other project notes live in `notes/`.
 
 # File browser
@@ -65,7 +65,7 @@ file's folder. .gb and .gbc files launch: the game is copied to the cart, its sa
 /GBCSYS/SAVE/<name>.srm (where the EverDrive's OS keeps them) and goes back there at the next boot. The cart's system
 button combo (Select+Start unless changed in the EverDrive's OS) opens Resume game, Save state,
 Load state, and Return to OS (which backs up the save). RTC clocks, state files, cheats and save ownership
-use stock EverDrive formats; see [EVERDRIVE_FEATURES.md](notes/EVERDRIVE_FEATURES.md). CR LF line endings are kept.
+use stock EverDrive formats; see [EVERDRIVE.md](notes/EVERDRIVE.md). CR LF line endings are kept.
 Code is drawn with the 4 pixel fixed width font, everything else with the variable width font: C and asm
 files are fixed width, plain text and markdown variable width except markdown's code.
 Markdown files (.md) are styled: a line starting with # to #### and a space is a heading in a wider,
@@ -138,7 +138,7 @@ img/ui_font.png is 256 tiles. Tile index matches the character code:
 # Tests
 Run `python3 -m unittest discover -s tests -v` to check C module bank placement.
 The browser settings menu's keyboard test checks PS/2 and iGKB input. See
-[IN_GAME_MENU.md](notes/IN_GAME_MENU.md) for cart-menu validation. With the sibling
+[GAME_MENU.md](notes/GAME_MENU.md) for cart-menu validation. With the sibling
 Gearboy checkout, `make -C ../Gearboy/tests fatpak` runs assembled-OS integration
 tests against temporary SD folders; `make -C ../Gearboy/tests everdrive` runs the
 standalone cartridge component tests.

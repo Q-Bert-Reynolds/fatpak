@@ -490,7 +490,6 @@ PaletteSlate::
   COLOR_PURPLE_GREY
   COLOR_BLACK
 DEF PALETTE_SLATE EQU (PaletteSlate-DefaultPalettes)/8
-ASSERT PALETTE_SLATE-8 == BUSY_PALETTE, "the busy spinner uses PaletteSlate"
 
 PaletteYellow::
   COLOR_OFF_WHITE

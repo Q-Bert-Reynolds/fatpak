@@ -23,8 +23,8 @@ void AppMain(void) {
   BeginView(1);
   ClearScreen();
   DrawRow(HEADER_LINE, 1, startup_name);
-  DrawRow(STATUS_LINE, 1, loading_text);
-  EditorDraw();
+  DrawRow(STATUS_LINE, 1, "");
+  ShowBusy(loading_text);
   FileBackupSave(); // back up game RAM before loading recovery or font data
   if (!FileLoadData("/GBCSYS/EDITOR.DAT")) {
     data_loaded = 1;
@@ -43,6 +43,7 @@ void AppMain(void) {
   }
   SetLang();
   UndoClear(modified);
+  HideBox();
   if (session_open) Refresh();
   else { // replace the loading view with the browser
     ClearScreen();

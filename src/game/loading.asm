@@ -1,7 +1,7 @@
 ;Keep the browser and its Loading... box in VRAM. The loading box uses the
 ;renderer's CPU-copy path, with no HDMA. Only its resident LCD interrupt stays
 ;enabled: window/tile addressing still needs raster changes, while VBlank/OAM
-;DMA, the spinner and input updates stay stopped for the whole load.
+;DMA and input updates stay stopped for the whole load.
 SECTION "Game Loading State", WRAM0
 game_loading_ie: DB
 game_loading_lcdc: DB
@@ -29,7 +29,7 @@ GameLoadingBegin:
   ld [game_loading_lcdc], a
   call GameLoadingOff
   ldh a, [rLCDC]
-  and a, ~LCDCF_OBJON;hide the spinner/cursor while their VBlank updates are stopped
+  and a, ~LCDCF_OBJON;hide editor sprites while VBlank updates are stopped
   ldh [rLCDC], a
   call GameLoadingRaster
   ld a, [game_loading_ie]

@@ -28,14 +28,6 @@ _EditorSetup::
   ld d, OAMF_PAL1
   call gbdk_SetSpriteProp
   call OSKSetup
-  ld hl, BusyTile
-  ld de, _VRAM8000+BUSY_TILE*16
-  ld bc, 16
-  call mem_CopyVRAM
-  ld c, BUSY_SPRITE
-  ld d, BUSY_TILE
-  call gbdk_SetSpriteTile
-
   ld a, KB_MODE_EDITOR
   TRAMPOLINE SetKeyboardMode
   call PadPressed;clear presses latched before the editor started
