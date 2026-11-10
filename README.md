@@ -15,7 +15,9 @@ and [TODO](notes/TODO.md) for remaining work. Other project notes live in `notes
 
 # File browser
 
-FatPak starts in the file browser. Folders come first; A or Enter opens a file or
+FatPak resumes the document that was open when you powered off. After closing a
+document, it starts in the last browsed folder (or root if that folder is gone).
+Folders come first; A or Enter opens a file or
 folder, and B, Backspace, or Left goes up a folder. Escape returns to the text
 editor; B or Backspace does the same at the root.
 

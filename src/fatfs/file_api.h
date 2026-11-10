@@ -23,6 +23,11 @@ typedef struct {
 } FileDetails;
 extern unsigned char FileInspect(const char* path, FileDetails* details);
 
+// Save browser/editor location independently of the editor's delayed text swap.
+// mode 0: browser folder; 1: editor; 255: restore at startup.
+extern unsigned char FileSession(const char* folder, unsigned char mode);
+extern unsigned char session_open;
+
 extern unsigned char FileMount(void); // FRESULT, mounts the card if it isn't
 extern unsigned char FileRename(const char* source, const char* destination);
 extern unsigned char FileRenameName(const char* source, const char* name);

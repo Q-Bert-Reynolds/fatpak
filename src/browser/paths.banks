@@ -2,4 +2,5 @@
 *: 5
 4: PutPath JoinPath
 FIXED: FileMoved ToLatin1
-5: ToUtf8
+
+FIXED: ToUtf8

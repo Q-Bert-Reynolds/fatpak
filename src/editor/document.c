@@ -77,6 +77,8 @@ void NewFile(void) {
   fs_crlf = 0;
   ResetCursor();
   SettingsSave();
+  FileSaveSwap();
+  FileSession(file_dir, 1);
 }
 
 void OpenFile(void) {
@@ -85,6 +87,12 @@ void OpenFile(void) {
     ResetCursor();
     SettingsSave();
   }
+  FileSession(file_dir, 1);
+}
+
+void CloseFile(void) {
+  NewFile();
+  if (!modified) OpenFile();
 }
 
 // Called by the browser after choosing a text file. The path is restored to its folder.
@@ -120,6 +128,7 @@ void SaveFile(unsigned char ask) {
   result = FileMount();
   if (!result) result = doc_large ? FileSaveLarge(path) : FileSave(path);
   HideBox();
+  FileSession(file_dir, 1);
   SettingsSave(); // save as may have changed the name
   if (result) {
     ShowError(result, "DISK FULL");

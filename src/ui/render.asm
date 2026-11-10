@@ -933,15 +933,15 @@ ENDR
 SECTION "Render", ROMX, BANK[1], ALIGN[12]
 ASSERT LOW(render_bitmap) == 0, "render_bitmap must be page aligned"
 
-;RenderShiftRight + s * 256 + byte = byte >> s, 8 pages later is the bits shifted out (byte << (8 - s))
+;Shifts 1-7 use lookup pages; aligned glyphs copy directly, avoiding two redundant shift-zero pages.
 RenderShiftRight:
-FOR RS_SHIFT, 8
+FOR RS_SHIFT, 1, 8
 FOR RS_BYTE, 256
   DB RS_BYTE >> RS_SHIFT
 ENDR
 ENDR
 RenderShiftLeft:
-FOR RS_SHIFT, 8
+FOR RS_SHIFT, 1, 8
 FOR RS_BYTE, 256
   DB (RS_BYTE << (8 - RS_SHIFT)) & $FF
 ENDR
@@ -1923,33 +1923,38 @@ RenderGlyphPlane:
   ld e, a
   ld a, [render_x]
   and a, %00000111
-  add a, HIGH(RenderShiftRight)
-  ld h, a;shift table page, set 3 for the left shift table
+  jp z, .aligned
+  add a, HIGH(RenderShiftRight)-1
+  ld h, a;right table, seven pages before the matching left table
   ld a, [render_x]
   cp a, TB_WIDTH-8
   jp nc, .lastTile
-REPT 8;glyph line spans this tile and the next
+.span;glyph line spans this tile and the next
   ld a, [bc]
   inc bc
   ld l, a
   ld a, [de]
   or a, [hl]
   ld [de], a
-  set 3, h
+  ld a, h
+  add a, 7
+  ld h, a
   ld a, e
   add a, 8
   ld e, a
   ld a, [de]
   or a, [hl]
   ld [de], a
-  res 3, h
+  ld a, h
+  sub a, 7
+  ld h, a
   ld a, e
   sub a, 7
   ld e, a
-ENDR
+  and a, 7
+  jr nz, .span
   ret
 .lastTile
-REPT 8
   ld a, [bc]
   inc bc
   ld l, a
@@ -1957,7 +1962,21 @@ REPT 8
   or a, [hl]
   ld [de], a
   inc e
-ENDR
+  ld a, e
+  and a, 7
+  jr nz, .lastTile
+  ret
+.aligned
+  ld h, d
+  ld l, e
+.copy
+  ld a, [bc]
+  inc bc
+  or a, [hl]
+  ld [hli], a
+  ld a, l
+  and a, 7
+  jr nz, .copy
   ret
 
 ;a = render_inked bit, d = the plane's page, clears the plane the first time a row uses it,

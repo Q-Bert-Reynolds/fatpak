@@ -10,7 +10,7 @@
 #include "../rtc/menu.h"
 #include "../ui/dialogs.h"
 
-static const char menu_items[][ITEM_SIZE] = {"FILE", "EDIT", "SETTINGS", "HELP", "CLOSE"}; // CLOSE = OPEN
+static const char menu_items[][ITEM_SIZE] = {"FILE", "EDIT", "SETTINGS", "HELP", "CLOSE"};
 static const char submenu_items[][ITEM_SIZE] = { // FILE, EDIT, SETTINGS
   "OPEN", "SAVE", "SAVE AS", "NEW",
   "UNDO", "REDO", "CUT", "COPY", "PASTE", "SELECT ALL",
@@ -34,7 +34,7 @@ static void FileMenu(void) {
   while (1) {
     if ((menu = Choose(0, menu_items[0], 5, menu)) >= BACK) return;
     if (menu == 4) {
-      OpenFile();
+      CloseFile();
       return;
     }
     if (menu == 3) { ShowHelp(); return; }

@@ -13,6 +13,7 @@ INCLUDE "src/fatpak.inc"
 ;   FileLoadSwap                OS mode: restores them at boot if PSRAM lost them, returns FRESULT in a
 
 SECTION FRAGMENT "FatFs Stubs", ROM0
+_FileSession::   BANKED_C _fs_Session
 _FileMount::     BANKED_C _fs_Mount
 FIXED "Browser File Stubs"
 _FileRename::    BANKED_C _fs_Rename

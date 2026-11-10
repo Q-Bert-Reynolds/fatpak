@@ -41,6 +41,8 @@ static const char edit_items[][ITEM_SIZE] = {"CUT", "COPY", "PASTE"};
 // named find in it (find can be 0) or 0, list_result is set if the folder can't be read
 static unsigned int ListFolder(const char* path, const char* find) {
   unsigned char up = path[0] != 0;
+  if (!file_name[0]) CopyName(file_dir, path);
+  FileSession(path, 0);
   list_count = 0;
   if ((list_result = FileList(path, find))) return 0;
   list_count = fs_count + up;

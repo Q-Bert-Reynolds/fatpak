@@ -5,6 +5,8 @@
 #include "../editor/editor.h"
 #include "../editor/state.h"
 #include "../editor/view.h"
+#include "../editor/text_buffer.h"
+#include "../editor/undo.h"
 #include "../fatfs/file_api.h"
 #include "../ui/dialogs.h"
 #include "../ui/render.h"
@@ -20,7 +22,16 @@ void AppMain(void) {
   EditorSetup();
   EditorInit();
   if (backup_skipped) ShowMessage("SAVE NOT BACKED UP");
-  if (modified) Refresh();
+  session_open = modified; // legacy swap without a session: keep recoverable edits
+  FileSession(0, 255);
+  if (!session_open) {
+    tb_Clear();
+    file_name[0] = 0;
+    modified = 0;
+  }
+  SetLang();
+  UndoClear(modified);
+  if (session_open) Refresh();
   else { // the EverDrive's OS starts in the file browser (on a blank screen), the text is drawn if it's closed
     ClearScreen();
     EditorDraw();

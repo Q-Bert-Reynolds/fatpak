@@ -1474,3 +1474,54 @@ unsigned char fs_Inspect(const char* path, FileDetails* details) {
   if (result) details->status = 0;
   return result ? result : closed;
 }
+
+// A small session record tracks the visible view even while Browse blocks the
+// editor's autosave loop. A private FIL preserves a large document's open handle.
+extern char file_dir[PATH_SIZE], file_name[FS_NAME_SIZE];
+extern unsigned char modified;
+extern void CopyName(char* dest, const char* source);
+unsigned char session_open;
+static unsigned char SameName(const char* a, const char* b) {
+  while (*a && *a == *b) { ++a; ++b; }
+  return *a == *b;
+}
+#define SESSION_SIZE (1 + PATH_SIZE + FS_NAME_SIZE)
+static const char session_path[] = "/GBCSYS/SESSION.DAT";
+unsigned char fs_Session(const char* folder, unsigned char mode) {
+  FIL session;
+  UINT done;
+  FRESULT result, closed;
+  BYTE resume;
+  if (mode != 255) session_open = mode;
+  result = f_open(&session, session_path, mode == 255 ? FA_READ : FA_WRITE | FA_CREATE_ALWAYS);
+  if (result) return result;
+  if (mode == 255) {
+    result = f_read(&session, buffer, SESSION_SIZE, &done);
+    if (!result && (done != SESSION_SIZE || (buffer[0] ^ 0xA0) > 1 ||
+        buffer[PATH_SIZE] || buffer[SESSION_SIZE - 1])) result = FR_INVALID_OBJECT;
+  }
+  else {
+    memset(buffer, 0, SESSION_SIZE);
+    buffer[0] = 0xA0 | mode;
+    CopyName((char*)buffer + 1, folder);
+    if (mode) CopyName((char*)buffer + 1 + PATH_SIZE, file_name);
+    result = f_write(&session, buffer, SESSION_SIZE, &done);
+    if (!result && done != SESSION_SIZE) result = FR_DISK_ERR;
+  }
+  closed = f_close(&session);
+  if (result || closed || mode != 255) return result ? result : closed;
+  resume = buffer[0] & 1;
+  // Restore unsaved small-file text only when it belongs to this session.
+  if (!resume || !SameName(file_dir, (char*)buffer + 1) ||
+      !SameName(file_name, (char*)buffer + 1 + PATH_SIZE)) modified = 0;
+  CopyName(file_dir, (char*)buffer + 1);
+  CopyName(file_name, (char*)buffer + 1 + PATH_SIZE);
+  session_open = resume;
+  if (!resume || modified || !file_name[0]) return FR_OK;
+  JoinPath((char*)buffer, file_dir, file_name, (unsigned char)(PATH_SIZE + FS_NAME_SIZE));
+  result = f_stat((char*)buffer, &info);
+  if (!result)
+    result = info.fsize > TB_SIZE ? FileLoadLarge((char*)buffer) : FileLoad((char*)buffer);
+  if (result) session_open = 0;
+  return result;
+}

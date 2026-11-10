@@ -193,6 +193,9 @@ static void Run(const char* image, const char* symbols, const char* data, bool c
         while (word("_game_block") < word("_game_blocks"))
             Check(!Call(core, syms.at("_FileGameCopy")), "copy game");
         Check(!Call(core, syms.at("_FileGameFinish"), 0xC200), "prepare game");
+        // This direct launch bypasses Browse; record the view used by a real launch.
+        memory->Write(0xC200, 0);
+        Check(!Call(core, syms.at("_FileSession"), 0xC200), "remember browser before launch");
         memory->Write(0xBD08, 6);
         core.GetProcessor()->GetState()->PC->SetValue(syms.at("_GameLaunch"));
         Frames(core, 180);
@@ -240,13 +243,18 @@ static void Run(const char* image, const char* symbols, const char* data, bool c
         }
         Check(reached_clear, "warm startup establishes OS mapping before clearing RAM");
         if (color) memory->SetHDMARegister(5, 0x80);
-        Frames(core, 500);
+        for (unsigned wait = 0; wait < 2000; ++wait) {
+            Frames(core, 1);
+            if (word("_src_browser_browser_c_list_count") == 2) break;
+        }
         Check(!core.CanPressEverdriveButton(), "leave game mapping");
         Check(memory->Read(syms.at("_render_cpu_copy")) == 1,
               "warm return keeps the renderer on CPU tile copies");
         Check(memory->Read(syms.at("_data_loaded")) == 1, "OS startup loads editor data");
         Check(memory->Read(syms.at("_src_browser_browser_c_list_result")) == 0,
               "browser lists SD folder after reboot");
+        if (word("_src_browser_browser_c_list_count") != 2)
+            fprintf(stderr, "return PC=%04x session=%u render=%u\n", core.GetProcessor()->GetState()->PC->GetValue(), memory->Read(syms.at("_session_open")), memory->Read(syms.at("_render_text")));
         Check(word("_src_browser_browser_c_list_count") == 2, "browser shows game and GBCSYS");
         auto save = Read(sys + "/SAVE/StateTest.srm");
         Check(save.size() == 32768 && save[0] == 0x5A + launch, "OS backs up the game's save");

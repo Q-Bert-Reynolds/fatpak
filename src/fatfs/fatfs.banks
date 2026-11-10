@@ -23,3 +23,11 @@ OMIT: f_getfree f_truncate
 
 FIXED: fs_ListEntry
 8: fs_Inspect
+
+# Session tracking and swap persistence share the remaining resident/page space.
+8: fs_Session
+FIXED: session_path fs_SaveSwap
+6: Open
+11: SameName
+4: fs_List
+FIXED: fs_Mount
