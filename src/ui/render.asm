@@ -1706,6 +1706,10 @@ RenderBox:
   xor a
   ld [render_styled], a
   ld [render_head], a
+  ld a, [render_row_font]
+  push af;save current row font
+  ld a, DATA_FONTS;force VWF for the menu
+  ld [render_row_font], a
   ld a, [_render_box_x]
   add a, 4
   ld [render_x], a
@@ -1715,7 +1719,7 @@ RenderBox:
     LD_HL_VAR render_src
     ld a, [hli]
     and a
-    jr z, .border
+    jr z, .endText
     ld c, a
     ST_HL_VAR render_src
     ld a, c
@@ -1723,7 +1727,9 @@ RenderBox:
     ld hl, render_box_count
     dec [hl]
     jr nz, .char
-
+.endText
+  pop af;restore row font
+  ld [render_row_font], a
 .border;sides, the top on the first line, the bottom on the last
   ld a, [_render_box_x]
   call .column

@@ -1,11 +1,7 @@
 # Priority
 
-- module load fails (since ASM.MOD borrowed page 5): MODULE LOAD FAILED / RESTORE FAILED now show op:block; report them
-- both "Build" and "Run" from editor menu launch a broken game
-- build no longer works (can't make hello.gb)
-- hello.gb does not exit to OS when the cart button is pressed
-- editor menu has no spaces between characters when editing an assembly file
 - if osk hidden, B+dpad should scroll without moving the cursor 
+- hello.gb does not exit to OS when the cart button is pressed
 - directives (ie. SECTION, DEF, INCLUDE, EXPORT, etc) should be bold instead of labels and keywords
 - keywords and labels should use italics instead
 - Assembler ([ASSEMBLER.md](ASSEMBLER.md)): `INCLUDE`, `IF`, `REPT`, macros and rgblink placement done; FatPak's math/memory1/gbdk match RGBDS. Next: `EQUS`/string functions/`{}` (for `rev_Check_hardware_inc`), speed (module load, per-line `Keyword`/far calls), `INCBIN`/`FOR`/`LOAD`/`UNION`/`CHARMAP`, 32-bit values, listings, large sources from the card.
