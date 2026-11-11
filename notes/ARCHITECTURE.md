@@ -358,8 +358,12 @@ help. The footer clock marker is `$7F`.
 ### On-screen keyboard (`src/editor/osk.asm`)
 
 Five rows of ten keys in the bottom `tile_buffer` rows: lowercase, one-shot
-shift and symbols layers; the last row has shift, symbols, menu, space, undo,
-redo and return. Sprite 1, behind the BG, highlights the key.
+shift, caps lock and symbols layers; the last row has shift, symbols, menu,
+space, undo, redo and return. Sprite 1, behind the BG, highlights the key.
+Shift works like a phone keyboard (`PressShift` in `osk.c`): a tap shifts one
+key, a second tap within 30 frames locks caps (⇪, mono font code 25), another
+tap releases. Layer changes call `EditorDraw` directly, so modal prompts that
+only draw after typing (`AskName`) still show them.
 
 ### Menus, browser and dialogs
 

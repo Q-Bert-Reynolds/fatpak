@@ -5,7 +5,7 @@
 ;
 ;C functions (src/editor/osk.h)
 ;   OSKShow                     a = show, the highlight goes back on [_osk_x], [_osk_y]
-;   OSKDraw                     a = layer, e = first tile_buffer row
+;   OSKDraw                     a = layer (OSK_CAPS shows ⇪ on shift), e = first tile_buffer row
 ;   OSKSelect                   a = x, e = y, moves the highlight sprite
 ;   OSKGetKey                   a = layer, e = key index, returns char in a (0 = no key)
 
@@ -39,6 +39,10 @@ _OSKShow::;a = show, hides or shows the highlight
 
 ;a = layer, returns layout in hl, affects a, bc
 OSKGetLayout:
+  cp a, OSK_CAPS
+  jr nz, .layer
+  ld a, OSK_SHIFT;caps lock types the shift layout
+.layer
   ld hl, OSKLayouts
   ld bc, OSK_LAYOUT_SIZE
   and a
@@ -62,6 +66,7 @@ _OSKDraw::;a = layer, e = first tile_buffer row
   call mem_Set
   pop de;first row
   pop af
+  push af;layer, for the shift key's caps lock glyph
   call OSKGetLayout
   ld c, OSK_ROWS-1
 .row
@@ -87,7 +92,14 @@ _OSKDraw::;a = layer, e = first tile_buffer row
     jr nz, .row
   ld hl, OSKBottomRow
   ld bc, SCRN_X_B
-  jp mem_Copy
+  push de;the shift key
+  call mem_Copy
+  pop hl
+  pop af
+  cp a, OSK_CAPS
+  ret nz
+  ld [hl], "⇪"
+  ret
 
 _OSKSelect::;a = x, e = y
   swap a;x*16

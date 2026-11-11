@@ -126,6 +126,7 @@
 #define OSK_LOWER   0
 #define OSK_SHIFT   1
 #define OSK_SYMBOLS 2
+#define OSK_CAPS    3//caps lock: the shift layout, kept after typing
 #define ASCII_TAB 9
 #define ASCII_LF  10
 #define ASCII_CR  13

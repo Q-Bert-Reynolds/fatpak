@@ -420,9 +420,49 @@ static void RenameEdges(const char* image,const char* symbols,const char* data,b
     Check(memory->Read(syms.at("tb_len"))==0,"rename history preserves document text");
     printf("%s bottom-row and folder rename with joypad keyboard passed\n",color?"CGB":"DMG");
 }
+// The OSK's shift key in the editor and in the rename prompt, which only draws
+// when a key is typed: the screen (bkg_buffer) must follow every layer change.
+static void OSKShift(const char* image,const char* symbols,const char* data,bool color) {
+    for(bool rename : {false,true}) {
+        char folder[]="/tmp/fatpak-shift-XXXXXX";Check(mkdtemp(folder),"shift SD");
+        std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);
+        Write(root+"/GBCSYS/EDITOR.DAT",Read(data));InstallModules(root,data);Write(root+"/Document.txt",{'h','i','\n'});
+        GearboyCore core;core.Init();core.SetEverdriveFolder(folder);
+        Check(core.LoadROM(image,!color),"shift OS");auto memory=core.GetMemory();auto syms=Symbols(symbols);
+        auto byte=[&](const char* name){return memory->Read(syms.at(name));};
+        auto tap=[&](Gameboy_Keys key,unsigned wait){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,wait);};
+        auto pad=[&](Gameboy_Keys key){tap(key,70);};
+        auto shown=[&](unsigned osk_row){ // what the screen shows for a keyboard row
+            unsigned block=memory->Read(syms.at("_osk_blocks")+osk_row);
+            return Text(memory,syms.at("bkg_buffer")+block*40).substr(0,19);};
+        auto at=[&](unsigned x,unsigned y){memory->Write(syms.at("_osk_x"),x);memory->Write(syms.at("_osk_y"),y);};
+        Frames(core,600);pad(Down_Key); // Document.txt
+        if(rename){pad(Start_Key);pad(A_Key);pad(Down_Key);pad(A_Key);} else {pad(A_Key);pad(Select_Key);}
+        Check(byte("_osk_shown")==1,"keyboard open");
+        auto typed=[&](){return rename?Text(memory,syms.at("tile_buffer")+byte("_name_row")*40):Text(memory,syms.at("tile_buffer"));};
+        Check(shown(1)=="q w e r t y u i o p","lower case keys");
+        at(0,4);pad(A_Key);
+        Check(byte("_osk_layer")==1 && shown(1)=="Q W E R T Y U I O P","one shift tap shows capitals on screen");
+        at(0,1);pad(A_Key);
+        Check(typed().find("Q")!=std::string::npos,"shift types a capital");
+        Check(byte("_osk_layer")==0 && shown(1)=="q w e r t y u i o p","shift is one shot, screen follows");
+        at(0,4);tap(A_Key,8);tap(A_Key,70); // double tap
+        Check(byte("_osk_layer")==3 && shown(1)=="Q W E R T Y U I O P","double tap locks capitals");
+        Check((u8)Text(memory,syms.at("bkg_buffer")+memory->Read(syms.at("_osk_blocks")+4)*40)[0]==25,"caps lock shows its glyph on the shift key");
+        at(1,1);pad(A_Key);at(2,1);pad(A_Key);
+        Check(typed().find("QWE")!=std::string::npos && byte("_osk_layer")==3,"caps lock stays on while typing");
+        at(0,4);pad(A_Key);
+        Check(byte("_osk_layer")==0 && shown(1)=="q w e r t y u i o p","a tap releases caps lock");
+        pad(A_Key);Frames(core,40);pad(A_Key);
+        Check(byte("_osk_layer")==0,"a slow second tap only turns shift off");
+    }
+    printf("%s OSK shift, one-shot and caps lock in editor and rename passed\n",color?"CGB":"DMG");
+}
+
 int main(int argc,char** argv) {
     Check(argc==4,"usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT");
     Operations(argv[1],argv[2]);UI(argv[1],argv[2],argv[3],false);UI(argv[1],argv[2],argv[3],true);
     GameProperties(argv[1],argv[2],argv[3],false);GameProperties(argv[1],argv[2],argv[3],true);
     RenameEdges(argv[1],argv[2],argv[3],false);RenameEdges(argv[1],argv[2],argv[3],true);
+    OSKShift(argv[1],argv[2],argv[3],false);OSKShift(argv[1],argv[2],argv[3],true);
 }

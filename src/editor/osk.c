@@ -52,17 +52,33 @@ void OpenKeyboard(void) {
   if (!osk_shown) ToggleOSK();
 }
 
+#define SHIFT_DOUBLE_TAP 30 // frames: a second shift tap this soon locks capitals
+
+static unsigned char shift_timer; // frames left for a double tap, counted down by PadKey
+
+// Only the keyboard rows change, so draw them now: the editor doesn't need a
+// Refresh, and modal prompts (AskName) don't draw until a key is typed.
 static void SetOSKLayer(unsigned char layer) {
-  osk_layer = osk_layer == layer ? OSK_LOWER : layer;
+  osk_layer = layer;
   OSKDraw(osk_layer, tb_rows);
-  dirty = 1;
+  EditorDraw();
+}
+
+// Like phone keyboards: tap for one capital, double tap for caps lock, tap again to release.
+static void PressShift(void) {
+  if (osk_layer == OSK_SHIFT && shift_timer) SetOSKLayer(OSK_CAPS);
+  else if (osk_layer == OSK_SHIFT || osk_layer == OSK_CAPS) SetOSKLayer(OSK_LOWER);
+  else {
+    SetOSKLayer(OSK_SHIFT);
+    shift_timer = SHIFT_DOUBLE_TAP;
+  }
 }
 
 static unsigned char PressOSKKey(void) {
   unsigned char key;
   if (osk_y == OSK_ROWS - 1) {
-    if (osk_x == 0) SetOSKLayer(OSK_SHIFT);
-    else if (osk_x == 1) SetOSKLayer(OSK_SYMBOLS);
+    if (osk_x == 0) PressShift();
+    else if (osk_x == 1) SetOSKLayer(osk_layer == OSK_SYMBOLS ? OSK_LOWER : OSK_SYMBOLS);
     else if (osk_x == 2) return KEY_MENU;
     else if (osk_x == OSK_COLS - 3) return KEY_UNDO;
     else if (osk_x == OSK_COLS - 2) return KEY_REDO;
@@ -71,7 +87,7 @@ static unsigned char PressOSKKey(void) {
     return KEY_NONE;
   }
   key = OSKGetKey(osk_layer, (osk_y << 3) + (osk_y << 1) + osk_x);
-  if (osk_layer == OSK_SHIFT) SetOSKLayer(OSK_SHIFT); // shift is one shot
+  if (osk_layer == OSK_SHIFT) SetOSKLayer(OSK_LOWER); // shift is one shot, caps lock stays
   return key;
 }
 
@@ -87,6 +103,7 @@ unsigned char PadKey(void) {
   unsigned char pressed = PadPressed();
   unsigned char held;
   pad_mods = 0;
+  if (shift_timer) --shift_timer; // once per frame: the editor and AskName call this every frame
   if (pressed & PADF_SELECT) ToggleOSK();
   if (pressed & PADF_B) return KEY_BACKSPACE;
   if (pressed & PADF_START) return KEY_MENU;

@@ -57,7 +57,7 @@ charmap "─", 21
 charmap "│", 22
 charmap "◇", 23
 charmap "◆", 24
-charmap "<ERA>", 25
+charmap "⇪", 25 ;caps lock (on screen keyboard)
 charmap "<BA>", 26
 charmap "ꓘ", 27
 charmap "▼", 28 ;bottom of the inning

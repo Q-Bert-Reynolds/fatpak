@@ -1,10 +1,3 @@
-# Priority
-
-- Shift key on OSK doesn't update tiles (still shows lower case)
-- Double-tap shift key should shift lock (like mobile devices do)
-- Loading bar in the launch box, drawn with the existing CPU-copy progress path between chunks.
-- 8 MiB ROMs: snapshot staging at `$3c00` caps ROMs at 7.5 MiB; find another place to stage.
-
 # Rendering
 
 - Font selection (VWF, 4 px fixed, Tiny5 Mono in `img/fonts/tiny5mono_font.png`, ...) separately for text and code, saved in settings.
@@ -26,6 +19,7 @@
 
 # UI/UX
 
+- Loading bar in the launch box, drawn with the existing CPU-copy progress path between chunks.
 - Route hard-coded editor, clock and cart-menu labels through the string pipeline.
 - Cheat editing/toggles in the game UI (the text files already work).
 - Rebalance PSRAM between the 7,936-byte clipboard, 56 KiB undo log and piece table.
@@ -42,6 +36,7 @@
 
 # Large files
 
+- 8 MiB ROMs: snapshot staging at `$3c00` caps ROMs at 7.5 MiB; find another place to stage.
 - Unsaved edits are lost on reset: persist the piece table and add-buffer length in PSRAM; restore if size/date match.
 - Window limits: moving clears undo, selection and Ctrl+A stop at the window; markdown fences/C comments open at the window start aren't seen; lines longer than the 8 KB margin with wrap off.
 - 96 pieces max ("TOO MANY EDITS"); merge adjacent add-buffer pieces.
