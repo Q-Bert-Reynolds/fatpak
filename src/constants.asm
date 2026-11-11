@@ -61,19 +61,25 @@ DEF STATUS_LINE EQU (TB_ROWS + 1)
 DEF MODULE_PAGE    EQU 13;the OS page a module borrows
 DEF MODULE_STAGE   EQU $3D80;PSRAM: the validated module page, 15 blocks
 DEF MODULE_BACKUP  EQU $3D90;PSRAM: the borrowed OS page, 15 blocks
-;wide modules (MODULE_FORMAT_WIDE) borrow a second page and keep their BSS in the editor's WRAMX buffers
+;wide modules (MODULE_FORMAT_WIDE) borrow a second and maybe a third page and keep their BSS in the
+;editor's WRAMX buffers
 DEF MODULE_PAGE2   EQU 12
-DEF MODULE_STAGE2  EQU $3DA0;MODULE_STAGE + $20: ModuleSwap adds $20 for the second page
+DEF MODULE_PAGE3   EQU 5
+DEF MODULE_STAGE2  EQU $3DA0;MODULE_STAGE + $20 per page: ModuleSwap adds $20 for the second, $40 for the third
 DEF MODULE_BACKUP2 EQU $3DB0
+DEF MODULE_STAGE3  EQU $3DC0
+DEF MODULE_BACKUP3 EQU $3DD0
 DEF MODULE_BSS     EQU $D000;tile_buffer: the editor's buffers, saved to PSRAM meanwhile (src/wram.asm)
 DEF MODULE_BSS_SIZE EQU 3072;6 blocks
-DEF MODULE_BSS_BACKUP EQU $3DC0
+DEF MODULE_BSS_BACKUP EQU $3DE0
 DEF MODULE_SOURCE_CHUNK EQU 128;bytes ModSource copies at most
 ;ASM.MOD (modules/asm.c): inside the large-file add buffer, so only text-buffer documents assemble
 DEF ASM_IMAGE_BLOCK  EQU $0400;the ROM image, up to ASM_IMAGE_BLOCKS
 DEF ASM_IMAGE_BLOCKS EQU 2048;1 MiB, 64 banks
 DEF ASM_SYMBOL_BLOCK EQU $0C00;the symbol table, 1024 blocks (65536 8-byte units)
-DEF MODULE_ABI     EQU 4;newest ABI the host provides, modules built for older ones still load
+DEF ASM_INCLUDE_BLOCK EQU $1000;included files, 128 blocks (64 KiB) each
+DEF ASM_INCLUDES     EQU 16
+DEF MODULE_ABI     EQU 5;newest ABI the host provides, modules built for older ones still load
 DEF MODULE_TABLE   EQU $7F00;ABI jump table in resident bank 1, 3 bytes per entry
 DEF MODULE_SLOTS   EQU 32;entries reserved for it
 DEF MODULE_FORMAT  EQU 1;one page, BSS after the code
@@ -91,7 +97,9 @@ DEF MODULE_H_BSS_SIZE EQU 16
 DEF MODULE_H_CRC      EQU 18;CRC-16/CCITT of the payload (both pages' for wide modules), initial $FFFF
 DEF MODULE_H_PAGE2    EQU 20;wide modules: the second page and its payload bytes, which follow the first's
 DEF MODULE_H_LENGTH2  EQU 21
-DEF MODULE_H_RESERVED EQU 23;zero up to MODULE_HEADER
+DEF MODULE_H_PAGE3    EQU 23;a third page and its bytes, which follow the second's; both 0 without one
+DEF MODULE_H_LENGTH3  EQU 24
+DEF MODULE_H_RESERVED EQU 26;zero up to MODULE_HEADER
 DEF MODULE_ERR_ABI    EQU 20;RunModule results past FatFs's FRESULT codes
 DEF MODULE_ERR_VERIFY EQU 21;a page copy didn't read back
 

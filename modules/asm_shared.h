@@ -6,6 +6,17 @@
 // split keeps them to a few per statement; pointers never cross pages.
 #include "../build/modules/sdk.h"
 #include "asm.h"
+#include "lib/psram.h"
+
+// Advance's fast path: run_n bytes from run_p belong to the current frame without a check.
+// Anything that moves the window or changes the frames drops it (run_n = 0).
+extern unsigned char run_n;
+#undef Window
+#ifdef HOST_TEST
+#define Window(block) (run_n = 0, psram_select(block))
+#else
+#define Window(block) (run_n = 0, *(volatile unsigned int*)0xBD02 = (block))
+#endif
 
 #define NAME_MAX 32
 
@@ -32,13 +43,14 @@ extern unsigned int oval[2];
 void Fail(unsigned char code);
 
 // asm_emit.c
-extern unsigned int scope, found, sym_value, next_unit, heads[256];
-extern unsigned char sym_kind, sym_bank;
+extern unsigned int scope, found, sym_value, sym_extra, next_unit, heads[256];
+extern unsigned char sym_kind, sym_bank, sym_seen; // sym_seen: Mark()ed
 extern unsigned char in_section, sec_rom, sec_bank, rom_used;
 extern unsigned int pc, sec_last;
 unsigned char Find(void);
 void Add(unsigned char kind, unsigned int value, unsigned char bank);
 void SetValue(unsigned int value);
+void Mark(void);
 unsigned int Apply(unsigned char o, unsigned int a, unsigned int b);
 void Emit(unsigned char b);
 void Emit16(unsigned int v);
@@ -52,5 +64,99 @@ void Header(void);
 #define SYM_LABEL 0
 #define SYM_EQU   1
 #define SYM_VAR   2
+#define SYM_MACRO 3 // value: body start, bank: source, extra: body end
+#define SYM_INCLUDE 4 // name: the path, value: source number
+#define SYM_SEEN 0x80 // with the kind: defined this pass (see Mark)
 
+// shared by asm.c and asm_line.c
+#define D_SECTION 0
+#define D_DB 1
+#define D_DS 3
+#define D_DEF 4
+#define D_REDEF 5
+#define D_INCLUDE 8
+#define D_IF 9
+#define D_ELIF 10
+#define D_ELSE 11
+#define D_ENDC 12
+#define D_MACRO 13
+#define D_ENDM 14
+#define D_REPT 15
+#define D_ENDR 16
+#define D_RSRESET 17
+#define D_RSSET 18
+#define D_FAIL 22
+#define D_ASSERT 23
+#define D_SHIFT 25
+#define DIRECTIVES 26 // the supported ones
+#define T_MNEMONICS 0
+#define T_DIRECTIVES 1
+#define T_REGISTERS 2
+#define T_BRACKETS 3
+#define T_FUNCTIONS 4
+#define T_TYPES 5
+#define T_ATTRIBUTES 6
+#define T_DEFINERS 7
+#define F_TEXT 0
+#define F_MACRO 1
+#define F_REPT 2
+#define F_ARG 3
+#define FRAMES 10
+#define SRC_ARGS 0xFF // args[]
+#define SRC_ID 0xFE // idtext[]
+typedef struct {
+  unsigned char kind, source;
+  unsigned int pos, end; // the next character, one past the last
+  unsigned int start, count; // a repeat body's first character and iterations left
+  unsigned int line, line_pos; // in the source, from 1; where its current line starts
+  unsigned int first_line; // a repeat body's, for rewinding
+  unsigned int id; // \@
+  unsigned char args, nargs; // a macro's arguments in args[], 0-ended each
+} Frame;
+#define ROM_BANKS 64 // ASM_IMAGE_BLOCKS / 32
+#define ASM_SECTIONS 64
+#define SECT_ADDRESS 1 // flags: the address was given
+#define SECT_BANK 2 // the bank was given
+#define SECT_PLACED 4 // Link placed it
+typedef struct {
+  unsigned char type, bank, align, flags; // type: index into the region tables (ROM0 ROMX VRAM SRAM WRAM0 WRAMX OAM HRAM)
+  unsigned int start, size, base; // pass 1's start (the address, or the region's start), size; Link's address
+  unsigned char file; // where it was declared, for errors
+  unsigned int line, pos;
+} Sect;
+extern Sect sects[ASM_SECTIONS];
+extern unsigned char nsects, cur;
+unsigned char Link(void);
+void Relocate(void);
+extern Frame frames[FRAMES];
+extern unsigned char depth, chunk_n, arg_top, includes, max_bank;
+extern char args[256], path[48];
+extern unsigned int unique, inc_len[ASM_INCLUDES];
+unsigned char Keyword(unsigned char which); // the index of ident in a T_ table, 0xFF if absent
+unsigned char IsStart(unsigned char c);
+unsigned char IsIdentChar(unsigned char c);
+Frame* TextFrame(void);
+Frame* Push(unsigned char kind, unsigned char source, unsigned int pos, unsigned int end);
+void ToEnd(void);
+void Operands(void);
+void Pass(unsigned char p);
+void Advance(void);
+void Space(void);
+unsigned char AtEnd(void);
+void Expect(unsigned char c);
+void ReadIdent(void);
+void SaveName(void);
+void LoadName(void);
+unsigned char Char(void);
+unsigned int Eval(void);
+unsigned int Constant(void);
+unsigned char FindDotted(void); // asm_emit.c
+#define SKIP_IF 0
+#define SKIP_REPT 1
+#define SKIP_MACRO 2
+extern unsigned int scan_begin;
+unsigned char Scan(unsigned char mode); // asm.c: skips lines to the directive that ends them
+void Line(void);
+void Label(void); // asm_line.c
+void Statement(void);
 #endif

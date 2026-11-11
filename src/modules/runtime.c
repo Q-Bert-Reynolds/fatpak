@@ -11,6 +11,7 @@
 #include "../keyboard/keyboard.h"
 #include "../rtc/rtc.h"
 #include "../editor/settings.h"
+#include "../editor/state.h"
 #include "../ui/theme.h"
 #include "../../build/modules/sdk.h"
 
@@ -35,10 +36,10 @@ extern void SetWindowBlock(unsigned int block);
 #define WINDOW_BLOCK (*(volatile unsigned int*)0xBD02)
 #define WINDOW ((const unsigned char*)0xBE00u)
 
-// Wide modules (MODULE_FORMAT_WIDE) also take MODULE_PAGE2 and the editor's WRAMX buffers,
-// which come back before HideBox needs them.
+// Wide modules (MODULE_FORMAT_WIDE) also take MODULE_PAGE2, maybe MODULE_PAGE3, and the
+// editor's WRAMX buffers, which come back before HideBox needs them.
 unsigned char RunModule(const char* path, unsigned char id) {
-  unsigned char result, step = 0; // 1: the first page is installed, 2: both, 3: and the buffers saved
+  unsigned char result, step = 0; // pages installed, 4: the buffers saved too
   unsigned int window = WINDOW_BLOCK; // modules may move it
   if (module_busy) return FR_LOCKED;
   module_busy = 1;
@@ -53,14 +54,20 @@ unsigned char RunModule(const char* path, unsigned char id) {
       else {
         step = 2;
         if (ModuleSwap(5)) result = MODULE_ERR_VERIFY;
-        else if (ModuleSwapRAM(0)) result = MODULE_ERR_VERIFY; // the buffers are intact
+        else if (module_wide > 1 && ModuleSwap(8)) result = MODULE_ERR_VERIFY;
         else {
-          step = 3;
-          module_status = ModuleEnter();
+          if (module_wide > 1) step = 3;
+          if (step == 3 && ModuleSwap(9)) result = MODULE_ERR_VERIFY;
+          else if (ModuleSwapRAM(0)) result = MODULE_ERR_VERIFY; // the buffers are intact
+          else {
+            step = 4;
+            module_status = ModuleEnter();
+          }
         }
       }
     }
-    if (step == 3 && ModuleSwapRAM(2)) RestartDevice(); // never run on state that didn't come back
+    if (step == 4 && ModuleSwapRAM(2)) RestartDevice(); // never run on state that didn't come back
+    if (step >= 3 && module_wide > 1 && ModuleSwap(10)) RestartDevice();
     if (step >= 2 && ModuleSwap(6)) RestartDevice();
     HideBox(); // remove any modal state before restoring the page
     if (step && ModuleSwap(2)) RestartDevice();
@@ -189,3 +196,28 @@ unsigned char ModuleAPISource(unsigned int pos, char* dest) {
   return (unsigned char)n;
 }
 // ModuleAPIFar is in runtime.asm: wide modules' cross-page thunks
+
+// ABI 5
+// A file into PSRAM blocks from block: the path is relative to the document's folder, or
+// failing that its base name is looked for there. Returns the length, 0 if it can't be read,
+// 0xFFFF if it's 64 KiB or more. For ASM.MOD's INCLUDE.
+// dir "/" name into full (JoinPath is in page 5, which ASM.MOD borrows); 0 if it doesn't fit
+static unsigned char Join(char* full, const char* name) {
+  unsigned char i = 0;
+  const char* p;
+  for (p = file_dir; *p; ++p) { if (i == PATH_SIZE + FS_NAME_SIZE - 2) return 0; full[i++] = *p; }
+  full[i++] = '/';
+  for (p = name; *p; ++p) { if (i == PATH_SIZE + FS_NAME_SIZE - 1) return 0; full[i++] = *p; }
+  full[i] = 0;
+  return 1;
+}
+unsigned int ModuleAPIFile(const char* path, unsigned int block) {
+  char full[PATH_SIZE + FS_NAME_SIZE]; // path is in the module's WRAMX BSS, readable throughout
+  const char *base = path, *p;
+  unsigned int length = 0;
+  if (Join(full, path)) length = FileReadFile(full, block);
+  if (length) return length;
+  for (p = path; *p; ++p) if (*p == '/') base = p + 1;
+  if (base == path || !Join(full, base)) return 0;
+  return FileReadFile(full, block);
+}

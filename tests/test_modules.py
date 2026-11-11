@@ -54,6 +54,13 @@ def fixtures():
     value=bytearray(variants['wide']);value[C['MODULE_H_PAGE2']]^=1;variants['widepage']=value
     value=bytearray(variants['wide']);value[C['MODULE_H_LENGTH2']]+=1;variants['widelength']=value
     value=bytearray(variants['wide']);value[C['MODULE_H_BSS_SIZE']+1]=0x10;variants['widebss']=value
+    # Three pages: page 13 calls page 5, which calls page 12 (the wide fixture's code), then adds 1.
+    third=bytes([0xCD,0x05,0xA0,0x3C,0xC9, 0xCD,far&255,far>>8,C['MODULE_PAGE2'],0x00,0xA0]) # call thunk; inc a; ret
+    call3=bytes([0xCD,0x06,0xA0,0xC9,0,0,0xCD,far&255,far>>8,C['MODULE_PAGE3'],0x00,0xA0])
+    variants['wide3']=package(call3,0,1,0,1,C['MODULE_ABI'],second,third)
+    value=bytearray(variants['wide3']);value[C['MODULE_H_PAGE3']]^=1;variants['widepage3']=value
+    value=bytearray(variants['wide']);value[C['MODULE_H_LENGTH3']]=1;variants['widelength3']=value
+    rejected(package,b'\xC9',0,1,0,0,1,None,b'\xC9')
     for name,value in variants.items(): (out/(name+'.MOD')).write_bytes(value)
     rejected(package,b'\xC9',0,1,5,0,1,b'\xC9')
     rejected(package,b'\xC9',0,1,0,C['MODULE_BSS_SIZE']+1,1,b'\xC9')

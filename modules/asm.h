@@ -3,10 +3,11 @@
 // ASM.MOD's context (notes/ASSEMBLER.md): the host passes the source length, the module reports back.
 typedef struct {
   unsigned int length; // in: the text buffer's length
-  unsigned int line;   // out: the line an error is on (from 1), or lines assembled
-  unsigned int pos;    // out: that line's start, for the cursor
+  unsigned int line;   // out: the line an error is on (from 1) in its file
+  unsigned int pos;    // out: that line's start in the document (the INCLUDE line for an included file), for the cursor
   unsigned int blocks; // out: the ROM image's size in 512-byte blocks from ASM_IMAGE_BLOCK
-  unsigned int symbols; // out: labels and constants defined
+  unsigned int symbols; // out: labels, constants, macros and includes defined
+  unsigned char file;  // out: 0 the document, n the nth included file
 } AsmContext;
 
 // ModuleMain's result (module_status), 0 when the image is complete
@@ -29,5 +30,9 @@ typedef struct {
 #define ASM_ERR_SYMBOLS     17 // table full
 #define ASM_ERR_EMPTY       18 // nothing in ROM
 #define ASM_ERR_BANK        19
-#define ASM_ERR_COUNT       19
+#define ASM_ERR_ASSERT      20 // ASSERT false, or FAIL
+#define ASM_ERR_FILE        21 // INCLUDE can't open it
+#define ASM_ERR_NESTING     22 // frames, IF levels, arguments, includes or sections: too many
+#define ASM_ERR_OVERLAP     23 // two sections with addresses overlap
+#define ASM_ERR_COUNT       23
 #endif

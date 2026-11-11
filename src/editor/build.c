@@ -17,7 +17,8 @@
 static const char errors[ASM_ERR_COUNT][17] = {
   "SYNTAX ERROR", "UNKNOWN SYMBOL", "ALREADY DEFINED", "VALUE TOO BIG", "JR TOO FAR", "BAD OPERAND",
   "NO SECTION", "SECTION FULL", "NOT YET DEFINED", "NOT SUPPORTED", "NAME TOO LONG", "DIVIDE BY ZERO",
-  "BAD INSTRUCTION", "PHASE ERROR", "BAD STRING", "NO GLOBAL LABEL", "TOO MANY SYMBOLS", "NO CODE", "BAD BANK"};
+  "BAD INSTRUCTION", "PHASE ERROR", "BAD STRING", "NO GLOBAL LABEL", "TOO MANY SYMBOLS", "NO CODE", "BAD BANK",
+  "ASSERT FAILED", "NO SUCH FILE", "TOO DEEP", "SECTIONS OVERLAP"};
 
 // the document's path with its extension replaced by .gb
 static void OutputPath(char* path) {
@@ -39,12 +40,15 @@ void BuildFile(unsigned char run) {
   if (modified || !file_name[0]) SaveFile(0); // the ROM matches the file on the card
   if (modified || !file_name[0]) return; // declined or failed, with its own message
   ShowBusy("Assembling...");
+  context.length = tb_Length();
   module_context = &context;
   result = RUN_MODULE(ASM);
   HideBox();
   if (result) { ShowModuleError(result); return; }
-  if (module_status) { // the cursor goes to the line
-    end = PutText(text, "L");
+  if (module_status) { // the cursor goes to the line, or to the INCLUDE of the file (In)
+    end = text;
+    if (context.file) { *end++ = 'I'; end = PutNumber(end, context.file); *end++ = ' '; }
+    *end++ = 'L';
     end = PutNumber(end, context.line);
     *end++ = ' ';
     *PutText(end, errors[module_status - 1]) = 0;

@@ -15,6 +15,7 @@ import utils
 
 PAGE = utils.constants()['MODULE_PAGE']
 PAGE2 = utils.constants()['MODULE_PAGE2']  # wide modules borrow it too (module_build.py writes which entries they use)
+PAGE3 = utils.constants()['MODULE_PAGE3']
 
 # Audited assembly: name -> what it can reach. Each must stay resident or save,
 # switch and restore the page itself. EditorDraw's plain-row path uses page 12;
@@ -36,6 +37,15 @@ ASM = {
     # ScrollRows -> Layout: ROM0 renderer and row-table helpers only
     '_RenderSetMapRow': [], '_RenderStage': [], '_tb_ScrollRows': [],
     '_tb_Read': [],  # ROM0 text buffer readers
+    '_FileReadFile': ['_fs_ReadFile'],  # BANKED_C stub (ROM0)
+    '_ClockFatTime': ['_rtc_FatTime'],  # BANKED_C stub (ROM0)
+    '___memcpy': [],  # FatFs disk/memory helpers (ROM0)
+    '_memset': [],  # FatFs disk/memory helpers (ROM0)
+    '_strchr': [],  # FatFs disk/memory helpers (ROM0)
+    '_memcmp': [],  # FatFs disk/memory helpers (ROM0)
+    '_sd_ReadSector': [],  # FatFs disk/memory helpers (ROM0)
+    '_sd_WriteSector': [],  # FatFs disk/memory helpers (ROM0)
+    '_sd_Init': [],  # FatFs disk/memory helpers (ROM0)
     '_ModuleAPIFar': ['FarCallInline'], 'FarCallInline': [],  # ROM0
     # interrupt handlers
     'VBLInterrupt': ['gbdk_DMATransfer', 'LatchPad'],
@@ -44,6 +54,9 @@ ASM = {
     'gbdk_DMATransfer': [], 'LatchPad': [], 'RenderLCDInterrupt': [], 'PS2KeyboardInterrupt': [],
 }
 INTERRUPTS = ['VBLInterrupt', 'LCDInterrupt', 'SerialInterrupt']
+# Not followed for wide modules: FatFs calls get_fattime (RTC, page 12) only when it creates or
+# writes a file, and the only file entry wide modules use (ModFile -> fs_ReadFile) opens read-only.
+WIDE_UNREACHED = {'_get_fattime'}
 
 
 def check(sources, symbol_path):
@@ -63,8 +76,8 @@ def check(sources, symbol_path):
         if match := re.match(r'([\da-f]+):([\da-f]+) (\w+)$', line):
             symbols[match[3]] = (int(match[1], 16), int(match[2], 16))
     abi = json.loads(Path('modules/abi.json').read_text())
-    def walk(roots, pages):
-        visited = set()
+    def walk(roots, pages, unreached=()):
+        visited = set(unreached)
 
         def visit(name, chain):
             if name in visited:
@@ -97,8 +110,8 @@ def check(sources, symbol_path):
     visited = walk(['_ModuleAPI' + name for name, *_ in abi['entries']] + INTERRUPTS, {str(PAGE)})
     wide = Path('build/modules/wide.txt')
     wide = wide.read_text().split() if wide.exists() else []
-    walk(wide + INTERRUPTS, {str(PAGE), str(PAGE2)})
-    print(f'module ABI: {len(visited)} reachable functions, no page-{PAGE} imports; {len(wide)} wide entries clear of page {PAGE2}')
+    walk(wide + INTERRUPTS, {str(PAGE), str(PAGE2), str(PAGE3)}, WIDE_UNREACHED)
+    print(f'module ABI: {len(visited)} reachable functions, no page-{PAGE} imports; {len(wide)} wide entries clear of pages {PAGE2} and {PAGE3}')
 
 
 if __name__ == '__main__':

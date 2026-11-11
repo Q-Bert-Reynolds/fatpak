@@ -1,8 +1,13 @@
 # Priority
 
-- Assembler ([ASSEMBLER.md](ASSEMBLER.md)): first version done as `ASM.MOD` (two passes, symbols and image in PSRAM, sequential section placement, rgbfix header, BUILD/RUN through the game path and the swap file). Next: hardware timing, speed (module loads, per-character calls, image fill/checksum), then `INCLUDE`/`INCBIN` via a module file API, `IF`/`REPT`/macros, 32-bit values, overlap checks, listings, assembling large documents from the card.
-- Export table built from `GBCOS.sym` in its own section, plus a small ROM0 API (print, keys, files, exit) for user programs.
-- Loadable modules (gbt_player from 132083e, map loader from 8c7c9ef).
+- module load fails
+- both "Build" and "Run" from editor menu launch a broken game (build succeeds and running from directory works)
+- hello.gb does not exit to OS when the cart button is pressed
+- editor menu has no spaces between characters when editing an assembly file
+- if osk hidden, B+dpad should scroll without moving the cursor 
+- directives (ie. SECTION, DEF, INCLUDE, EXPORT, etc) should be bold instead of labels and keywords
+- keywords and labels should use italics instead
+- Assembler ([ASSEMBLER.md](ASSEMBLER.md)): `INCLUDE`, `IF`, `REPT`, macros and rgblink placement done; FatPak's math/memory1/gbdk match RGBDS. Next: `EQUS`/string functions/`{}` (for `rev_Check_hardware_inc`), speed (module load, per-line `Keyword`/far calls), `INCBIN`/`FOR`/`LOAD`/`UNION`/`CHARMAP`, 32-bit values, listings, large sources from the card.
 - Small-C style compiler matching SDCC's calling convention, multi-pass via SD temp files
 
 # Rendering

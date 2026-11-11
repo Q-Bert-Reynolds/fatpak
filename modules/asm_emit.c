@@ -29,11 +29,12 @@ static unsigned int Div(unsigned int a, unsigned int b, unsigned char remainder)
 
 // --- symbols: 8-byte units in PSRAM from ASM_SYMBOL_BLOCK, 256 hash chains.
 // unit: next (2), scope (2, the unit of the enclosing global label, 0 for globals), value (2),
-// kind (1), bank (1), length (1), name. An entry never crosses a block.
+// kind (1), bank (1), extra (2), length (1), name. An entry never crosses a block.
+#define SYM_HEADER 11
 unsigned int heads[256];
 unsigned int next_unit, scope, found;
-unsigned int sym_value;
-unsigned char sym_kind, sym_bank;
+unsigned int sym_value, sym_extra;
+unsigned char sym_kind, sym_bank, sym_seen;
 
 static unsigned char* Entry(unsigned int unit) {
   Window(ASM_SYMBOL_BLOCK + (unit >> 6));
@@ -53,13 +54,15 @@ unsigned char Find(void) {
   unsigned char i;
   while (unit) {
     e = Entry(unit);
-    if (e[8] == ident_len && (e[2] | (e[3] << 8)) == want) {
-      for (i = 0; i < ident_len && e[9 + i] == ident[i]; ++i);
+    if (e[10] == ident_len && (e[2] | (e[3] << 8)) == want) {
+      for (i = 0; i < ident_len && e[SYM_HEADER + i] == ident[i]; ++i);
       if (i == ident_len) {
         found = unit;
         sym_value = e[4] | (e[5] << 8);
-        sym_kind = e[6];
+        sym_kind = e[6] & 0x7F;
+        sym_seen = e[6] >> 7;
         sym_bank = e[7];
+        sym_extra = e[8] | (e[9] << 8);
         return 1;
       }
     }
@@ -68,7 +71,7 @@ unsigned char Find(void) {
   return 0;
 }
 void Add(unsigned char kind, unsigned int value, unsigned char bank) {
-  unsigned char units = (9 + ident_len + 7) >> 3, h = Hash(), i;
+  unsigned char units = (SYM_HEADER + ident_len + 7) >> 3, h = Hash(), i;
   unsigned int want = Scope();
   unsigned char* e;
   if ((next_unit & 63) + units > 64) next_unit = (next_unit + 63) & ~63;
@@ -83,12 +86,52 @@ void Add(unsigned char kind, unsigned int value, unsigned char bank) {
   e[5] = (unsigned char)(value >> 8);
   e[6] = kind;
   e[7] = bank;
-  e[8] = ident_len;
-  for (i = 0; i < ident_len; ++i) e[9 + i] = ident[i];
+  e[8] = (unsigned char)sym_extra;
+  e[9] = (unsigned char)(sym_extra >> 8);
+  e[10] = ident_len;
+  for (i = 0; i < ident_len; ++i) e[SYM_HEADER + i] = ident[i];
   heads[h] = found;
   next_unit += units;
   ++context->symbols;
 }
+static char local[NAME_MAX + 1];
+unsigned char FindDotted(void) { // Find, with Global.local names too
+  unsigned char i, dot = 0, ok;
+  unsigned int outer = scope;
+  for (i = 1; i < ident_len; ++i) if (ident[i] == '.') dot = i;
+  if (!dot) return Find();
+  for (i = dot; i <= ident_len; ++i) local[i - dot] = ident[i];
+  ident_len = dot;
+  ident[dot] = 0;
+  ok = Find();
+  scope = found;
+  for (i = 0; (ident[i] = local[i]) != 0; ++i);
+  ident_len = i;
+  if (ok) ok = Find();
+  scope = outer;
+  return ok;
+}
+
+// after Link: every label moves with its section (extra = its index), and takes its bank
+void Relocate(void) {
+  unsigned int unit;
+  unsigned char h = 0, *e;
+  Sect* s;
+  do {
+    for (unit = heads[h]; unit; unit = e[0] | (e[1] << 8)) {
+      e = Entry(unit);
+      if ((e[6] & 0x7F) != SYM_LABEL) continue;
+      s = &sects[e[8]];
+      sym_value = (e[4] | (e[5] << 8)) - s->start + s->base;
+      e[4] = (unsigned char)sym_value;
+      e[5] = (unsigned char)(sym_value >> 8);
+      e[7] = s->bank;
+    }
+  } while (++h);
+}
+
+// found was defined in this pass so far (pass 2 marks; pass 1 doesn't need to): DEF() reads it
+void Mark(void) { Entry(found)[6] |= 0x80; }
 void SetValue(unsigned int value) {
   unsigned char* e = Entry(found);
   e[4] = (unsigned char)value;

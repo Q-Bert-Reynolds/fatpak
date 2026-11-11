@@ -12,9 +12,10 @@ ASSERT $3C00 + $A4 <= DATA_BLOCK
 ASSERT NAME_HISTORY_BLOCK + 16 <= MODULE_STAGE
 ASSERT MODULE_STAGE + MODULE_SECTORS <= MODULE_BACKUP
 ASSERT MODULE_STAGE2 == MODULE_STAGE + $20 && MODULE_BACKUP2 == MODULE_BACKUP + $20
-ASSERT MODULE_BACKUP2 + MODULE_SECTORS <= MODULE_BSS_BACKUP
+ASSERT MODULE_STAGE3 == MODULE_STAGE + $40 && MODULE_BACKUP3 == MODULE_BACKUP + $40
+ASSERT MODULE_BACKUP3 + MODULE_SECTORS <= MODULE_BSS_BACKUP
 ASSERT MODULE_BSS_BACKUP + MODULE_BSS_SIZE / 512 < $3E2F;game metadata (src/fatfs/fatfs.c GAME_META)
-ASSERT HIGH(MODULE_STAGE) == HIGH(MODULE_BACKUP2 + MODULE_SECTORS - 1)
+ASSERT HIGH(MODULE_STAGE) == HIGH(MODULE_BACKUP3 + MODULE_SECTORS - 1)
 ASSERT MODULE_BSS_SIZE % 512 == 0 && LOW(MODULE_BSS) == 0
 ASSERT MODULE_TABLE + 3 * MODULE_SLOTS <= $8000
 
@@ -28,17 +29,20 @@ _module_context:: DW;passed to the module's ModuleMain, 0 if its host gives none
 FIXED "Module loader"
 ; A = 0 backup (page to MODULE_BACKUP), 1 install (MODULE_STAGE to page),
 ; 2 restore (MODULE_BACKUP to page); + 4 for the second page (MODULE_PAGE2, the
-; blocks $20 higher). Each block is compared after it's copied.
+; blocks $20 higher), + 8 for the third (MODULE_PAGE3, $40 higher). Each block is
+; compared after it's copied.
 ; Returns A=0 when everything read back, nonzero on a mismatch.
 ; Only resident LCD handling runs during transfer; no HDMA is initiated here.
 _ModuleSwap::
   ld [module_operation], a
   call ModuleSwapBegin
-  bit 2, a
-  ld a, MODULE_PAGE
-  jr z, .page
-  ld a, MODULE_PAGE2
-.page
+  and 12
+  ld hl, ModulePages
+  rrca
+  rrca
+  add l
+  ld l, a
+  ld a, [hl]
   SET_BANK
   ei
   ld hl, $A000
@@ -53,10 +57,10 @@ _ModuleSwap::
 .block
   ld b, a
   ld a, [module_operation]
-  and 4
+  and 12
   add a, a
   add a, a
-  add a, a;$20 for the second page
+  add a, a;$20 per page after the first
   add b
   ld b, a
   ld a, [module_sector]
@@ -269,6 +273,9 @@ _ModuleEnter::
   ret
 .enter
   jp hl
+
+ModulePages: DB MODULE_PAGE, MODULE_PAGE2, MODULE_PAGE3
+ASSERT LOW(ModulePages) < $FD
 
 ;a wide module's thunks: call _ModFar, DB page, DW target (module_build.py), like bank_split's
 _ModuleAPIFar::

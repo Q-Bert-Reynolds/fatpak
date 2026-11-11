@@ -81,7 +81,7 @@ static void Modules(const char* image,const char* symbols,const char* data,const
     Write(root+"/GBCSYS/EDITOR.DAT",Read(data));
     // Each malformed file has a distinct path: the emulator's FAT image is a
     // snapshot of the folder when mounted.
-    const char* names[]={"valid","magic","version","abi","id","page","address","entry","length","bss","reserved","crc","short","trailing","empty","abizero","abinew","context","max","wide","widepage","widelength","widebss"};
+    const char* names[]={"valid","magic","version","abi","id","page","address","entry","length","bss","reserved","crc","short","trailing","empty","abizero","abinew","context","max","wide","widepage","widelength","widebss","wide3","widepage3","widelength3"};
     for(const char* name:names)Write(root+"/"+name+".MOD",Read(std::string(fixtures)+"/"+name+".MOD"));
     std::vector<u8> large(70000,'z');for(unsigned i=63;i<large.size();i+=64)large[i]='\n';
     Write(root+"/Large.txt",large);
@@ -143,6 +143,12 @@ static void Modules(const char* image,const char* symbols,const char* data,const
         Check(same,"editor buffers restored after a wide module");
     }
     run("widepage",invalid);run("widelength",invalid);run("widebss",invalid);
+    // three pages: 13 -> 5 -> 12 and back; page 5 comes back too
+    auto original5=Page(memory,5);
+    run("wide3",0);
+    Check(memory->Read(syms.at("_module_status"))==0x43,"three-page module calls across all its pages");
+    Check(Page(memory,5)==original5 && Page(memory,12)==original12,"third borrowed page restored");
+    run("widepage3",invalid);run("widelength3",invalid);
     memory->Write(syms.at("_module_context"),0x34);memory->Write(syms.at("_module_context")+1,0x12);
     run("context",0);
     Check(memory->Read(syms.at("_module_status"))==0x34,"module receives module_context in DE");

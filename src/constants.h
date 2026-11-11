@@ -64,19 +64,25 @@
 #define MODULE_PAGE    13//the OS page a module borrows
 #define MODULE_STAGE   0x3D80u//PSRAM: the validated module page, 15 blocks
 #define MODULE_BACKUP  0x3D90u//PSRAM: the borrowed OS page, 15 blocks
-//wide modules (MODULE_FORMAT_WIDE) borrow a second page and keep their BSS in the editor's WRAMX buffers
+//wide modules (MODULE_FORMAT_WIDE) borrow a second and maybe a third page and keep their BSS in the
+//editor's WRAMX buffers
 #define MODULE_PAGE2   12
-#define MODULE_STAGE2  0x3DA0u//MODULE_STAGE + 0x20: ModuleSwap adds 0x20 for the second page
+#define MODULE_PAGE3   5
+#define MODULE_STAGE2  0x3DA0u//MODULE_STAGE + 0x20 per page: ModuleSwap adds 0x20 for the second, 0x40 for the third
 #define MODULE_BACKUP2 0x3DB0u
+#define MODULE_STAGE3  0x3DC0u
+#define MODULE_BACKUP3 0x3DD0u
 #define MODULE_BSS     0xD000u//tile_buffer: the editor's buffers, saved to PSRAM meanwhile (src/wram.asm)
 #define MODULE_BSS_SIZE 3072//6 blocks
-#define MODULE_BSS_BACKUP 0x3DC0u
+#define MODULE_BSS_BACKUP 0x3DE0u
 #define MODULE_SOURCE_CHUNK 128//bytes ModSource copies at most
 //ASM.MOD (modules/asm.c): inside the large-file add buffer, so only text-buffer documents assemble
 #define ASM_IMAGE_BLOCK  0x0400u//the ROM image, up to ASM_IMAGE_BLOCKS
 #define ASM_IMAGE_BLOCKS 2048//1 MiB, 64 banks
 #define ASM_SYMBOL_BLOCK 0x0C00u//the symbol table, 1024 blocks (65536 8-byte units)
-#define MODULE_ABI     4//newest ABI the host provides, modules built for older ones still load
+#define ASM_INCLUDE_BLOCK 0x1000u//included files, 128 blocks (64 KiB) each
+#define ASM_INCLUDES     16
+#define MODULE_ABI     5//newest ABI the host provides, modules built for older ones still load
 #define MODULE_TABLE   0x7F00u//ABI jump table in resident bank 1, 3 bytes per entry
 #define MODULE_SLOTS   32//entries reserved for it
 #define MODULE_FORMAT  1//one page, BSS after the code
@@ -94,7 +100,9 @@
 #define MODULE_H_CRC      18//CRC-16/CCITT of the payload (both pages' for wide modules), initial 0xFFFF
 #define MODULE_H_PAGE2    20//wide modules: the second page and its payload bytes, which follow the first's
 #define MODULE_H_LENGTH2  21
-#define MODULE_H_RESERVED 23//zero up to MODULE_HEADER
+#define MODULE_H_PAGE3    23//a third page and its bytes, which follow the second's// both 0 without one
+#define MODULE_H_LENGTH3  24
+#define MODULE_H_RESERVED 26//zero up to MODULE_HEADER
 #define MODULE_ERR_ABI    20//RunModule results past FatFs's FRESULT codes
 #define MODULE_ERR_VERIFY 21//a page copy didn't read back
 

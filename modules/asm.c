@@ -1,46 +1,46 @@
 // ASM.MOD: a two-pass assembler for an RGBDS subset (notes/ASSEMBLER.md). The host
 // (src/editor/build.c) runs it on the open document: the source streams in through
-// ModSource, labels and constants go in a hashed table in PSRAM, and the ROM image is
-// built in PSRAM from ASM_IMAGE_BLOCK with its logo and checksums fixed like rgbfix -v.
-// This page reads characters: the stream, words, expressions, operands, directives and
-// the line parser. asm_emit.c has the symbol table, instruction encoders and the image.
+// ModSource (includes through ModFile into PSRAM), labels and constants go in a hashed
+// table in PSRAM, and the ROM image is built in PSRAM from ASM_IMAGE_BLOCK with its logo
+// and checksums fixed like rgbfix -v.
+// This page reads characters: the stream and its frames, words, expressions, operands,
+// directives and the line parser. asm_emit.c has the symbol table, instruction encoders
+// and the image.
 #include "asm_shared.h"
+#include "lib/psram.h"
 
 #define CHUNK MODULE_SOURCE_CHUNK
-#define ROM_BANKS 64 // ASM_IMAGE_BLOCKS / 32
 
 // --- word tables: each word is its length then its lowercase letters, a 0 length ends
 // the table (Keyword only compares words of ident's length)
 static const char mnemonics[] = // Instruction's order
   "\003nop\004halt\004stop\002di\002ei\004rlca\004rrca\003rla\003rra\003daa\003cpl\003scf\003ccf\004reti"
   "\002ld\003ldh\003ldi\003ldd\003add\003adc\003sub\003sbc\003and\003xor\002or\002cp\003inc\003dec\002jp\002jr\004call\003ret\003rst\004push\003pop\003rlc\003rrc\002rl\002rr\003sla\003sra\004swap\003srl\003bit\003res\003set";
-static const char directives[] = // the supported ones first
-  "\007section\002db\002dw\002ds\003def\005redef\006export\006global"
-  "\007include\006incbin\005macro\004endm\004rept\003for\004endr\002if\004elif\004else\004endc\004load\004endl\005union\005nextu\004endu\007charmap\005print\007println\006assert\005purge\003opt\005pushs\004pops\005pusho\004popo\005align\005rsset\007rsreset\002rb\002rw\002rl\004equs";
-#define DIRECTIVES 8 // the supported ones
+static const char directives[] = // the supported ones first, in D_* order
+  "\007section\002db\002dw\002ds\003def\005redef\006export\006global\007include\002if\004elif\004else\004endc"
+  "\005macro\004endm\004rept\004endr\007rsreset\005rsset\004warn\005print\007println\004fail\006assert\005purge\005shift"
+  "\006incbin\003for\004load\004endl\005union\005nextu\004endu\007charmap\003opt\005pushs\004pops\005pusho\004popo\005align\004equs";
 static const char registers[] = "\001b\001c\001d\001e\001h\001l\001a\002bc\002de\002hl\002sp\002af\002nz\001z\002nc";
 static const char brackets[] = "\002hl\003hli\003hld\002bc\002de\001c";
-static const char functions[] = "\004high\003low\004bank";
+static const char functions[] = "\004high\003low\004bank\003def\005_narg";
 static const char types[] = "\004rom0\004romx\004vram\004sram\005wram0\005wramx\003oam\004hram";
 static const char attributes[] = "\004bank\005align";
-static const char equ[] = "\003equ";
-static const char* const tables[8] = {mnemonics, directives, registers, brackets, functions, types, attributes, equ};
-#define T_MNEMONICS 0
-#define T_DIRECTIVES 1
-#define T_REGISTERS 2
-#define T_BRACKETS 3
-#define T_FUNCTIONS 4
-#define T_TYPES 5
-#define T_ATTRIBUTES 6
-#define T_EQU 7
+static const char definers[] = "\003equ\002rb\002rw\002rl";
+static const char* const tables[8] = {mnemonics, directives, registers, brackets, functions, types, attributes, definers};
 
-// the index of ident in one of the tables, 0xFF if absent
-static unsigned char Keyword(unsigned char which) {
+// the index of ident in one of the tables, 0xFF if absent. Every statement looks its first
+// word up here, so it's assembly on the device (the C is the PC harness's).
+#ifdef HOST_TEST
+unsigned char Keyword(unsigned char which) {
   const char* table = tables[which];
-  unsigned char index = 0, i, length;
+  unsigned char index = 0, i, length, c;
   while ((length = *table++) != 0) {
     if (length == ident_len) {
-      for (i = 0; i < length && (ident[i] | 0x20) == table[i]; ++i);
+      for (i = 0; i < length; ++i) {
+        c = ident[i];
+        if (c >= 'A' && c <= 'Z') c |= 0x20;
+        if (c != table[i]) break;
+      }
       if (i == length) return index;
     }
     table += length;
@@ -48,31 +48,291 @@ static unsigned char Keyword(unsigned char which) {
   }
   return 0xFF;
 }
-static unsigned char IsStart(unsigned char c) {
-  c |= 0x20;
-  return (c >= 'a' && c <= 'z') || c == '_' || c == '.';
+#else
+unsigned char Keyword(unsigned char which) __naked {
+  which;
+  __asm
+	add	a, a
+	ld	hl, _tables
+	add	a, l
+	ld	l, a
+	adc	a, h
+	sub	a, l
+	ld	h, a
+	ld	a, [hl+]
+	ld	h, [hl]
+	ld	l, a
+	ld	a, [_ident]
+	cp	a, 65
+	jr	c, .first
+	cp	a, 91
+	jr	nc, .first
+	or	a, 32
+.first:
+	ld	b, a
+	ld	c, 0
+	ld	a, [_ident_len]
+	ld	d, a
+.next:
+	ld	a, [hl+]
+	or	a, a
+	jr	z, .none
+	ld	e, a
+	cp	a, d
+	jr	nz, .skip
+	ld	a, [hl]
+	cp	a, b
+	jr	nz, .skip
+	push	bc
+	push	de
+	push	hl
+	ld	bc, _ident
+.char:
+	ld	a, [bc]
+	cp	a, 65
+	jr	c, .lower
+	cp	a, 91
+	jr	nc, .lower
+	or	a, 32
+.lower:
+	cp	a, [hl]
+	jr	nz, .differ
+	inc	bc
+	inc	hl
+	dec	e
+	jr	nz, .char
+	pop	hl
+	pop	de
+	pop	bc
+	ld	a, c
+	ret
+.differ:
+	pop	hl
+	pop	de
+	pop	bc
+.skip:
+	ld	a, e
+	add	a, l
+	ld	l, a
+	adc	a, h
+	sub	a, l
+	ld	h, a
+	inc	c
+	jr	.next
+.none:
+	ld	a, 255
+	ret
+  __endasm;
 }
+#endif
+static unsigned char IsDigit(unsigned char c) { return c >= '0' && c <= '9'; }
+unsigned char IsStart(unsigned char c) {
+  return ((c | 0x20) >= 'a' && (c | 0x20) <= 'z') || c == '_' || c == '.';
+}
+unsigned char IsIdentChar(unsigned char c) { return IsStart(c) || IsDigit(c); }
 
-
-#define CHUNK MODULE_SOURCE_CHUNK
-
-// --- source stream
+// --- the stream: characters come from a stack of frames. The document (source 0) and
+// included files (sources 1.., copied to PSRAM) are text; macro and repeat bodies are
+// ranges of a text source that expand \1-\9 and \@; argument frames replay text from
+// args. A frame ends at its end position: a repeat rewinds, anything else pops.
 AsmContext* context;
-static char buf[CHUNK];
-unsigned char at, count; // buf[at] is the next character, count are valid
-unsigned int pos; // source position of buf[0]
+Frame frames[FRAMES];
+unsigned char depth; // frames[depth] is being read
+static char buf[CHUNK]; // the document's current chunk
+static unsigned int chunk_pos;
+unsigned char chunk_n;
+char args[256];
+unsigned char arg_top;
+static char idtext[8];
+unsigned int unique; // the last \@
+unsigned int inc_len[ASM_INCLUDES];
+unsigned char includes;
+char path[48];
+static unsigned int* lf_line; // the line count of the frame a line feed in ch came from
 unsigned char ch;
 unsigned char error, pass;
-unsigned int line, line_pos;
-void Advance(void) {
-  if (error) { ch = 0; return; }
-  if (at >= count) {
-    pos += count;
-    count = ModSource(pos, buf);
-    at = 0;
-    if (!count) { ch = 0; return; }
+
+// a byte of a source
+static unsigned char Raw(unsigned char source, unsigned int p) {
+  if (source == 0) {
+    if (p < chunk_pos || p >= chunk_pos + chunk_n) {
+      chunk_pos = p;
+      chunk_n = ModSource(p, buf);
+      if (!chunk_n) return 0;
+    }
+    return buf[p - chunk_pos];
   }
-  ch = buf[at++];
+  if (source == SRC_ARGS) return args[p];
+  if (source == SRC_ID) return idtext[p];
+  Window(ASM_INCLUDE_BLOCK + ((unsigned int)(source - 1) << 7) + (p >> 9));
+  return WINDOW[p & 511];
+}
+Frame* TextFrame(void) { // the innermost frame that is real text
+  Frame* f = &frames[depth];
+  while (f->kind == F_ARG) --f;
+  return f;
+}
+Frame* Push(unsigned char kind, unsigned char source, unsigned int pos, unsigned int end) {
+  Frame* f;
+  if (depth == FRAMES - 1) { Fail(ASM_ERR_NESTING); return &frames[depth]; }
+  run_n = 0;
+  f = &frames[++depth];
+  f->kind = kind;
+  f->source = source;
+  f->pos = f->start = pos;
+  f->end = end;
+  f->count = 0;
+  f->line = 1;
+  f->line_pos = pos;
+  f->id = 0;
+  f->nargs = 0;
+  return f;
+}
+// \1-\9: the enclosing macro's argument as a frame (empty if it has none)
+static void PushArg(unsigned char n) {
+  Frame* m = &frames[depth];
+  unsigned char at, i;
+  while (m > frames && m->kind != F_MACRO) --m;
+  if (m->kind != F_MACRO || n >= m->nargs) { Push(F_ARG, SRC_ARGS, 0, 0); return; }
+  for (at = m->args, i = 0; i < n; ++i) while (args[at++]);
+  for (i = at; args[i]; ++i);
+  Push(F_ARG, SRC_ARGS, at, i);
+}
+static void PushId(void) { // \@: _ and the innermost macro or repeat's number
+  Frame* m = &frames[depth];
+  unsigned int id;
+  unsigned char i = 7;
+  while (m > frames && m->kind != F_MACRO && m->kind != F_REPT) --m;
+  id = m->id;
+  idtext[i] = 0;
+  do { idtext[--i] = '0' + Apply('%', id, 10); id = Apply('/', id, 10); } while (id); // no SDCC helpers
+  idtext[--i] = '_';
+  Push(F_ARG, SRC_ID, i, 7);
+}
+unsigned char run_n;
+static const unsigned char* run_p;
+static unsigned int* run_pos; // the frame's pos
+static unsigned int* run_line; // and its line count
+static unsigned char run_expand; // a macro or repeat body: a backslash goes the slow way
+// the next character into ch. Most come from the current run: on the device that's the
+// assembly below, and everything else (line feeds, run ends, backslashes) is AdvanceSlow.
+#ifdef HOST_TEST
+#define AdvanceSlow Advance
+#else
+void AdvanceSlow(void);
+void Advance(void) __naked {
+  __asm
+	ld	a, [_error]
+	or	a, a
+	jr	nz, .slow
+	ld	a, [_ch]
+	cp	a, 10
+	jr	nz, .run
+	ld	hl, _lf_line
+	ld	a, [hl+]
+	ld	h, [hl]
+	ld	l, a
+	inc	[hl]
+	jr	nz, .left
+	inc	hl
+	inc	[hl]
+.left:
+	xor	a, a
+	ld	[_ch], a
+.run:
+	ld	a, [_run_n]
+	or	a, a
+	jr	z, .slow
+	ld	hl, _run_p
+	ld	a, [hl+]
+	ld	h, [hl]
+	ld	l, a
+	ld	a, [_run_expand]
+	or	a, a
+	jr	z, .take
+	ld	a, [hl]
+	cp	a, 92
+	jr	z, .slow
+.take:
+	ld	a, [hl+]
+	ld	[_ch], a
+	ld	a, l
+	ld	[_run_p], a
+	ld	a, h
+	ld	[_run_p + 1], a
+	ld	hl, _run_n
+	dec	[hl]
+	ld	hl, _run_pos
+	ld	a, [hl+]
+	ld	h, [hl]
+	ld	l, a
+	inc	[hl]
+	jr	nz, .counted
+	inc	hl
+	inc	[hl]
+.counted:
+	ld	a, [_ch]
+	cp	a, 10
+	ret	nz
+	ld	hl, _run_line
+	ld	a, [hl+]
+	ld	[_lf_line], a
+	ld	a, [hl]
+	ld	[_lf_line + 1], a
+	ret
+.slow:
+	jp	_AdvanceSlow
+  __endasm;
+}
+#endif
+void AdvanceSlow(void) {
+  Frame* f;
+  unsigned char c, n;
+  unsigned int p, left;
+  if (error) { ch = 0; return; }
+  if (ch == 10) ++*lf_line; // counted as it's left, so an error at a line's end stays on it
+  if (run_n && !(run_expand && *run_p == '\\')) {
+    --run_n;
+    ++*run_pos;
+    ch = *run_p++;
+    if (ch == 10) lf_line = run_line;
+    return;
+  }
+  while (1) {
+    f = &frames[depth];
+    if (f->pos >= f->end) {
+      run_n = 0;
+      if (f->kind == F_REPT && --f->count) { f->pos = f->start; f->line = f->first_line; f->id = ++unique; continue; }
+      if (!depth) { ch = 0; return; }
+      if (f->kind == F_MACRO) arg_top = f->args;
+      --depth;
+      continue;
+    }
+    p = f->pos;
+    left = f->end - p;
+    if (f->source == 0 || f->source < SRC_ID) { // text: set up the run that follows this byte
+      c = Raw(f->source, p);
+      run_p = f->source ? WINDOW + (p & 511) : (const unsigned char*)buf + (p - chunk_pos);
+      n = f->source ? 512 - (p & 511) > 255 ? 255 : 512 - (p & 511) : chunk_pos + chunk_n - p;
+      if (n > left) n = (unsigned char)left;
+      run_n = n ? n - 1 : 0; // after this one (none if the document's text ran out)
+      ++run_p;
+      run_pos = &f->pos;
+      run_line = &f->line;
+      run_expand = f->kind == F_MACRO || f->kind == F_REPT;
+      ++f->pos;
+    }
+    else c = Raw(f->source, f->pos++);
+    if (c == '\\' && (f->kind == F_MACRO || f->kind == F_REPT)) {
+      run_n = 0;
+      n = Raw(f->source, f->pos);
+      if (n == '@') { ++f->pos; PushId(); continue; }
+      if (n >= '1' && n <= '9') { ++f->pos; PushArg(n - '1'); continue; }
+    }
+    if (c == 10) lf_line = &f->line;
+    ch = c;
+    return;
+  }
 }
 // the first error ends the statement and the pass: everything after looks like the end
 void Fail(unsigned char code) {
@@ -86,18 +346,12 @@ void Expect(unsigned char c) {
   if (ch != c) Fail(ASM_ERR_SYNTAX);
   else Advance();
 }
-
+void ToEnd(void) { while (ch && ch != 10) Advance(); } // the comment or the rest of a line
 
 // --- words
 char ident[NAME_MAX + 1], name[NAME_MAX + 1]; // the word read; a name kept while its value is read
 unsigned char ident_len;
 
-static unsigned char IsDigit(unsigned char c) { return c >= '0' && c <= '9'; }
-static unsigned char IsIdentStart(unsigned char c) {
-  c |= 0x20;
-  return (c >= 'a' && c <= 'z') || c == '_' || c == '.';
-}
-static unsigned char IsIdentChar(unsigned char c) { return IsIdentStart(c) || IsDigit(c); }
 void ReadIdent(void) {
   ident_len = 0;
   while (IsIdentChar(ch)) {
@@ -115,27 +369,6 @@ void LoadName(void) {
   for (ident_len = 0; (ident[ident_len] = name[ident_len]) != 0; ++ident_len);
 }
 
-
-// --- sections
-static unsigned char max_bank;
-static unsigned int rom_cursor[ROM_BANKS], ram_cursor[16]; // where the next unplaced section goes
-static unsigned char cursor; // the current section's index into those
-
-// region (type) base, size, bank count and the ram_cursor index of its first bank
-static const unsigned int region_base[8] = {0, 0x4000, 0x8000, 0xA000, 0xC000, 0xD000, 0xFE00, 0xFF80};
-static const unsigned int region_size[8] = {0x4000, 0x4000, 0x2000, 0x2000, 0x1000, 0x1000, 0xA0, 0x7F};
-static const unsigned char region_banks[8] = {1, ROM_BANKS, 2, 4, 1, 8, 1, 1};
-static const unsigned char region_first[8] = {0, 0, 0, 2, 6, 7, 14, 15};
-static const unsigned char cursor_type[16] = {2, 2, 3, 3, 3, 3, 4, 5, 5, 5, 5, 5, 5, 5, 6, 7};
-
-static void CloseSection(void) {
-  if (!in_section) return;
-  if (sec_rom) { if (pc > rom_cursor[cursor]) rom_cursor[cursor] = pc; }
-  else if (pc > ram_cursor[cursor]) ram_cursor[cursor] = pc;
-  in_section = 0;
-}
-
-
 // --- expressions
 unsigned char undefined; // a symbol wasn't defined yet (pass 1 only)
 unsigned char pending; // ident holds the expression's first word already
@@ -150,7 +383,7 @@ static unsigned int Scale(unsigned int v, unsigned char base) {
   while (base > 1) { v <<= 1; base >>= 1; }
   return v;
 }
-static unsigned int Number(unsigned char base) {
+static unsigned int Digits(unsigned char base) {
   unsigned int v = 0;
   unsigned char d, any = 0;
   while (1) {
@@ -167,6 +400,16 @@ static unsigned int Number(unsigned char base) {
   if (!any) Fail(ASM_ERR_SYNTAX);
   return v;
 }
+// decimal, or a fixed-point literal like 1.25 as 8.8 (RGBDS: 16.16; the values compare alike)
+static unsigned int Number(void) {
+  unsigned int v = Digits(10), f, scale = 1;
+  if (ch != '.') return v;
+  Advance();
+  if (!IsDigit(ch)) { Fail(ASM_ERR_SYNTAX); return 0; }
+  for (f = 0; IsDigit(ch) && scale < 1000; Advance()) { f = Scale(f, 10) + ch - '0'; scale = Scale(scale, 10); }
+  while (IsDigit(ch)) Advance();
+  return (v << 8) | Apply('/', (f << 8) + (scale >> 1), scale);
+}
 unsigned char Char(void) { // a character of a string or literal, quotes end it
   unsigned char c = ch;
   if (c == 0 || c == 10) { Fail(ASM_ERR_STRING); return 0; }
@@ -182,24 +425,8 @@ unsigned char Char(void) { // a character of a string or literal, quotes end it
   Fail(ASM_ERR_STRING);
   return 0;
 }
-static char local[NAME_MAX + 1];
-static unsigned int Lookup(void) { // ident's value (Global.local too), 0 and undefined when it has none yet
-  unsigned char i, dot = 0, ok;
-  unsigned int outer = scope;
-  for (i = 1; i < ident_len; ++i) if (ident[i] == '.') dot = i;
-  if (dot) {
-    for (i = dot; i <= ident_len; ++i) local[i - dot] = ident[i];
-    ident_len = dot;
-    ident[dot] = 0;
-    ok = Find();
-    scope = found;
-    for (i = 0; (ident[i] = local[i]) != 0; ++i);
-    ident_len = i;
-    if (ok) ok = Find();
-    scope = outer;
-  }
-  else ok = Find();
-  if (ok) return sym_value;
+static unsigned int Lookup(void) { // ident's value, 0 and undefined when it has none yet
+  if (FindDotted()) return sym_value;
   if (pass == 2) Fail(ASM_ERR_SYMBOL);
   undefined = 1;
   return 0;
@@ -207,18 +434,23 @@ static unsigned int Lookup(void) { // ident's value (Global.local too), 0 and un
 static unsigned int Symbol(void) { // ident is a name, a function or the register c
   unsigned int v;
   unsigned char k = Keyword(T_FUNCTIONS);
+  if (k == 4) { // _NARG: the enclosing macro's argument count
+    Frame* m = &frames[depth];
+    while (m > frames && m->kind != F_MACRO) --m;
+    return m->kind == F_MACRO ? m->nargs : 0;
+  }
   if (k != 0xFF) {
     Space();
     if (ch == '(') {
       Advance();
       Space();
-      if (k == 2) {
-        if (ch == '@') { Advance(); v = sec_bank; }
+      if (k >= 2) { // bank(label or @), def(name)
+        if (k == 2 && ch == '@') { Advance(); v = sec_bank; }
         else {
           ReadIdent();
           if (!ident_len) Fail(ASM_ERR_SYNTAX);
-          Lookup();
-          v = sym_bank;
+          if (k == 3) v = FindDotted() && (pass == 1 || sym_seen); // defined above, in this pass
+          else { Lookup(); v = sym_bank; }
         }
       }
       else {
@@ -248,10 +480,10 @@ static unsigned int Primary(void) {
   if (c == '+') { Advance(); return Primary(); }
   if (c == '~') { Advance(); return ~Primary(); }
   if (c == '!') { Advance(); return !Primary(); }
-  if (c == '$') { Advance(); return Number(16); }
-  if (c == '%') { Advance(); return Number(2); }
-  if (c == '&') { Advance(); return Number(8); }
-  if (IsDigit(c)) return Number(10);
+  if (c == '$') { Advance(); return Digits(16); }
+  if (c == '%') { Advance(); return Digits(2); }
+  if (c == '&') { Advance(); return Digits(8); }
+  if (IsDigit(c)) return Number();
   if (c == '\'') {
     Advance();
     v = Char();
@@ -260,7 +492,7 @@ static unsigned int Primary(void) {
     return v;
   }
   if (c == '@') { Advance(); return pc; }
-  if (IsIdentStart(c)) { ReadIdent(); return Symbol(); }
+  if (IsStart(c)) { ReadIdent(); return Symbol(); }
   Fail(ASM_ERR_SYNTAX);
   return 0;
 }
@@ -317,6 +549,79 @@ unsigned int Constant(void) { // an expression that must be known in pass 1: siz
   unsigned int v = Eval();
   if (undefined) Fail(ASM_ERR_FORWARD);
   return v;
+}
+
+// --- skipping: lines of a false IF branch or of a macro or repeat body being recorded.
+// Starts on the line feed before them; stops after the directive word that ends them,
+// with scan_begin = the position of that line's start. Nested IF/ENDC and REPT/ENDR pairs
+// are passed over, so are """ block strings.
+unsigned int scan_begin;
+unsigned char Scan(unsigned char mode) {
+  unsigned char nest = 0, block = 0, quotes, d;
+  Frame* f;
+  while (1) {
+    ToEnd();
+    if (!ch) { Fail(ASM_ERR_SYNTAX); return 0xFF; }
+    Advance();
+    f = TextFrame();
+    scan_begin = f->pos - 1;
+    if (!block) {
+      Space();
+      if (IsStart(ch)) {
+        ident_len = 0; // like ReadIdent, but long words are just cut
+        while (IsIdentChar(ch)) {
+          if (ident_len < NAME_MAX) ident[ident_len++] = ch;
+          Advance();
+        }
+        ident[ident_len] = 0;
+        d = Keyword(T_DIRECTIVES);
+        if (mode == SKIP_IF) {
+          if (d == D_IF) ++nest;
+          else if (d == D_ENDC && nest) --nest;
+          else if (d == D_ENDC || (!nest && (d == D_ELIF || d == D_ELSE))) return d;
+        }
+        else if (mode == SKIP_REPT) {
+          if (d == D_REPT) ++nest;
+          else if (d == D_ENDR && nest) --nest;
+          else if (d == D_ENDR) return d;
+        }
+        else if (d == D_ENDM) return d;
+      }
+    }
+    for (quotes = 0; ch && ch != 10; Advance()) { // """ toggles a block string
+      if (ch == '"') { if (++quotes == 3) { block ^= 1; quotes = 0; } }
+      else quotes = 0;
+    }
+  }
+}
+
+// [label[:[:]]] [statement] [; comment]: a global label needs its colon, a local one doesn't
+void Line(void) {
+  Frame* f = TextFrame();
+  undefined = 0;
+  f->line_pos = f->pos - 1;
+  Space();
+  if (IsStart(ch)) {
+    ReadIdent();
+    if (ch == ':') {
+      Advance();
+      if (ch == ':') Advance();
+      Label();
+    }
+    else if (ident[0] == '.') Label();
+    else goto statement;
+    Space();
+    if (!AtEnd()) {
+      ReadIdent();
+      if (!ident_len) { Fail(ASM_ERR_SYNTAX); return; }
+    statement:
+      Statement();
+    }
+  }
+  Space();
+  if (ch == ';') ToEnd();
+  if (ch == 10) Advance();
+  else if (ch) Fail(ASM_ERR_SYNTAX);
 }
 
 
@@ -377,7 +682,7 @@ static void ParseOp(unsigned char i) {
   oreg[i] = reg;
   oval[i] = v;
 }
-static void Operands(void) {
+void Operands(void) {
   nops = 0;
   Space();
   if (AtEnd()) return;
@@ -391,194 +696,44 @@ static void Operands(void) {
   }
 }
 
-// --- directives
-static void Define(unsigned char kind) { // name gets the value at ch
-  unsigned int v = Constant();
-  LoadName();
-  if (error) return;
-  if (Find()) {
-    if (kind == SYM_VAR || pass == 2) SetValue(v);
-    else Fail(ASM_ERR_DUPLICATE);
-  }
-  else if (pass == 1) Add(kind, v, 0);
-  else Fail(ASM_ERR_PHASE);
+// rgbasm's version symbols: this assembles what RGBDS 1.0 does, where it does
+static void Builtin(const char* word, unsigned int value) {
+  for (ident_len = 0; (ident[ident_len] = word[ident_len]) != 0; ++ident_len);
+  Add(SYM_EQU | SYM_SEEN, value, 0); // defined before both passes
 }
-static void Label(void) { // ident
-  unsigned char local = ident[0] == '.';
-  if (!in_section) { Fail(ASM_ERR_SECTION); return; }
-  if (local && !scope) { Fail(ASM_ERR_SCOPE); return; }
-  if (Find()) {
-    if (pass == 1 || sym_value != pc) Fail(pass == 1 ? ASM_ERR_DUPLICATE : ASM_ERR_PHASE);
-  }
-  else if (pass == 1) Add(SYM_LABEL, pc, sec_bank);
-  else Fail(ASM_ERR_PHASE);
-  if (!local) scope = found;
-}
-static void Section(void) {
-  unsigned char type, bank, align = 0, placed = 0;
-  unsigned int address = 0, size;
-  CloseSection();
-  Space();
-  if (ch != '"') { Fail(ch ? ASM_ERR_UNSUPPORTED : ASM_ERR_SYNTAX); return; }
-  Advance();
-  while (ch != '"') { if (!ch || ch == 10) { Fail(ASM_ERR_SYNTAX); return; } Advance(); }
-  Advance();
-  Expect(',');
-  Space();
-  ReadIdent();
-  type = Keyword(T_TYPES);
-  if (type == 0xFF) { Fail(ASM_ERR_SYNTAX); return; }
-  bank = type == 1 || type == 5;
-  Space();
-  if (ch == '[') { Advance(); address = Constant(); Expect(']'); placed = 1; }
-  while (!error) {
-    Space();
-    if (ch != ',') break;
-    Advance();
-    Space();
-    ReadIdent();
-    type |= Keyword(T_ATTRIBUTES) << 4; // 0 bank, 1 align, else 0xF: unsupported
-    Expect('[');
-    size = Constant();
-    Expect(']');
-    if (type < 0x10) bank = (unsigned char)size;
-    else if (type < 0x20) align = (unsigned char)size;
-    else Fail(ASM_ERR_UNSUPPORTED);
-    type &= 15;
-  }
-  if (error) return;
-  if (bank >= region_banks[type] || ((type == 1 || type == 5) && !bank)) { Fail(ASM_ERR_BANK); return; }
-  sec_rom = type < 2;
-  sec_bank = bank;
-  cursor = sec_rom ? bank : region_first[type] + bank - (type == 5);
-  sec_last = region_base[type] + region_size[type] - 1;
-  pc = placed ? address : sec_rom ? rom_cursor[cursor] : ram_cursor[cursor];
-  if (align) {
-    size = (1 << align) - 1;
-    pc = (pc + size) & ~size;
-  }
-  if (pc < region_base[type] || pc > sec_last) { Fail(ASM_ERR_FULL); return; }
-  if (sec_rom && bank > max_bank) max_bank = bank;
-  in_section = 1;
-}
-static void Data(unsigned char word) { // db, dw
-  unsigned int v;
-  Space();
-  if (AtEnd()) { Reserve(word + 1, 0); return; }
-  while (!error) {
-    Space();
-    if (ch == '"' && !word) {
-      Advance();
-      while (ch != '"' && !error) Emit(Char());
-      Advance();
-    }
-    else {
-      v = Eval();
-      if (word) Emit16(v); else Emit8(v);
-    }
-    Space();
-    if (ch != ',') break;
-    Advance();
-  }
-}
-static void Ds(void) { // ds count[, fill]
-  unsigned int n = Constant();
-  unsigned char fill = 0;
-  Space();
-  if (ch == ',') {
-    Advance();
-    fill = (unsigned char)Eval();
-    if (!sec_rom) { Fail(ASM_ERR_SECTION); return; }
-  }
-  Reserve(n, fill);
-}
-// the word in ident starts a statement
-static void Statement(void) {
-  unsigned char m = Keyword(T_MNEMONICS), d;
-  if (m != 0xFF) { Operands(); Instruction(m); return; }
-  d = Keyword(T_DIRECTIVES);
-  if (d == 0) Section();
-  else if (d <= 2) Data(d - 1);
-  else if (d == 3) Ds();
-  else if (d <= 5) { // def name equ|= expr, redef name = expr
-    Space();
-    ReadIdent();
-    if (!ident_len) { Fail(ASM_ERR_SYNTAX); return; }
-    SaveName();
-    Space();
-    if (ch == '=') { Advance(); Define(SYM_VAR); }
-    else {
-      ReadIdent();
-      if (d == 5 || Keyword(T_EQU) != 0) Fail(ASM_ERR_SYNTAX);
-      else Define(SYM_EQU);
-    }
-  }
-  else if (d <= 7) { while (ch && ch != 10) Advance(); } // export, global: labels are visible anyway
-  else if (d == 0xFF) Fail(ASM_ERR_MNEMONIC);
-  else Fail(ASM_ERR_UNSUPPORTED);
-}
-static void Line(void) {
-  unsigned char statement = 0;
-  undefined = 0;
-  line_pos = pos + at - 1;
-  if (IsStart(ch)) { // a label, a definition or a statement at column 0
-    ReadIdent();
-    if (ch == ':') {
-      Advance();
-      if (ch == ':') Advance();
-      Label();
-    }
-    else if (ident[0] == '.') Label();
-    else {
-      statement = 1;
-      Space();
-      Statement();
-    }
-  }
-  Space();
-  if (!statement && !AtEnd()) {
-    ReadIdent();
-    if (!ident_len) { Fail(ASM_ERR_SYNTAX); return; }
-    Statement();
-    Space();
-  }
-  if (ch == ';') while (ch && ch != 10) Advance();
-  if (ch == 10) { Advance(); ++line; }
-  else if (ch) Fail(ASM_ERR_SYNTAX);
-}
-
-
-static void Pass(unsigned char p) {
-  unsigned char i;
-  pass = p;
-  pos = count = at = 0;
-  line = 1;
-  scope = 0;
-  in_section = 0;
-  for (i = 0; i < ROM_BANKS; ++i) rom_cursor[i] = i ? 0x4000 : 0;
-  for (i = 0; i < 16; ++i) ram_cursor[i] = region_base[cursor_type[i]];
-  Advance();
-  while (ch && !error) Line();
-  CloseSection();
-}
-
 
 unsigned char ModuleMain(AsmContext* c) {
   unsigned int blocks, i;
+  Frame* f;
   context = c;
   c->symbols = 0;
   next_unit = 1; // unit 0 means "none"
   for (i = 0; i < 256; ++i) heads[i] = 0;
+  Builtin("__RGBDS_MAJOR__", 1);
+  Builtin("__RGBDS_MINOR__", 0);
+  Builtin("__RGBDS_PATCH__", 1);
   Pass(1);
   if (!error && !rom_used) Fail(ASM_ERR_EMPTY);
+  if (!error && (i = Link()) != 0xFF) { // reported at the section that doesn't fit
+    error = sects[i].flags & SECT_ADDRESS ? ASM_ERR_OVERLAP : ASM_ERR_FULL;
+    c->file = sects[i].file;
+    c->line = sects[i].line;
+    c->pos = sects[i].pos;
+    return error;
+  }
   if (!error) {
+    Relocate();
     for (blocks = 64; blocks < (unsigned int)(max_bank + 1) << 5; blocks <<= 1);
     c->blocks = blocks;
     Fill();
     Pass(2);
   }
   if (!error) Header();
-  c->line = line;
-  c->pos = line_pos;
+  // an error in a macro body is reported at its invocation (whose line feed was already
+  // counted); one in a repeat at the body line
+  for (f = &frames[depth], i = 0; f > frames && f->kind != F_TEXT && f->kind != F_REPT; --f) i = 1;
+  c->file = f->source;
+  c->line = f->line - i;
+  c->pos = f->source ? frames[0].line_pos : f->line_pos;
   return error;
 }

@@ -20,6 +20,7 @@
     ["Draw", "void", "void", 3],
     ["Theme", "unsigned char", "unsigned char theme", 3],
     ["Source", "unsigned char", "unsigned int pos, char* dest", 4],
-    ["Far", "void", "void", 4]
+    ["Far", "void", "void", 4],
+    ["File", "unsigned int", "const char* path, unsigned int block", 5]
   ]
 }

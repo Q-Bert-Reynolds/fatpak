@@ -1141,6 +1141,21 @@ static FRESULT SnapshotFile(const char* path, BYTE write, UINT first) {
   SetWindowBlock(TB_PSRAM_HIGH << 8);
   closed = f_close(&save_file); return result ? result : closed;
 }
+// a whole file into PSRAM blocks from first (ASM.MOD's includes): its length, 0 if it can't
+// be opened or is empty, 0xFFFF if it's 64 KiB or more
+UINT fs_ReadFile(const char* path, UINT first) {
+  UINT n, done; DWORD size;
+  if (fs_Mount() || f_open(&save_file, path, FA_READ)) return 0;
+  size = f_size(&save_file);
+  if (size >= 0x10000) { f_close(&save_file); return 0xFFFF; }
+  for (n = 0; n < (UINT)((size + 511) >> 9); ++n) {
+    SetWindowBlock(first + n);
+    if (f_read(&save_file, WINDOW, 512, &done)) { size = 0; break; }
+  }
+  SetWindowBlock(TB_PSRAM_HIGH << 8);
+  f_close(&save_file);
+  return (UINT)size;
+}
 // ASM.MOD's ROM image (ASM_IMAGE_BLOCK, blocks of 512) to a file, replacing it
 unsigned char fs_WriteImage(const char* path, UINT blocks) {
   UINT n, done; FRESULT result, closed;
@@ -1542,11 +1557,11 @@ unsigned char fs_Session(const char* folder, unsigned char mode) {
 // leaving an open editor document and its undo history alone.
 extern unsigned int module_entry;
 extern UINT ModuleCRC(const BYTE* data, UINT count, UINT crc); // src/modules/runtime.asm
-unsigned char module_wide; // the staged module is MODULE_FORMAT_WIDE: a second page, BSS in WRAMX
+unsigned char module_wide; // the staged module is MODULE_FORMAT_WIDE: 1 or 2 more pages, BSS in WRAMX
 unsigned char fs_LoadModule(const char* path, unsigned char id) {
   FIL module;
   BYTE header[MODULE_HEADER], result, close_result, wide, page;
-  UINT done, length, length2 = 0, offset, crc = 0xFFFF, expected, entry, bss, bss_size, i;
+  UINT done, length, length2 = 0, length3 = 0, offset, crc = 0xFFFF, expected, entry, bss, bss_size, i;
   UINT saved_block = *(volatile UINT*)0xBD02;
   BYTE saved_config = *(volatile BYTE*)0xBD06;
   result = f_open(&module, path, FA_READ);
@@ -1568,10 +1583,13 @@ unsigned char fs_LoadModule(const char* path, unsigned char id) {
       !length || length > 0x1D00 || entry >= length) goto close;
   if (wide) {
     length2 = ld_16(header + MODULE_H_LENGTH2);
+    length3 = ld_16(header + MODULE_H_LENGTH3);
     if (header[MODULE_H_PAGE2] != MODULE_PAGE2 || !length2 || length2 > 0x1D00 || bss || bss_size > MODULE_BSS_SIZE) goto close;
+    if (header[MODULE_H_PAGE3] != (length3 ? MODULE_PAGE3 : 0) || length3 > 0x1D00) goto close;
+    wide += length3 != 0; // pages after the first
   }
   else if (bss < length || bss > 0x1D00 || bss_size > 0x1D00 - bss) goto close;
-  if (f_size(&module) != (DWORD)length + length2 + sizeof(header)) goto close;
+  if (f_size(&module) != (DWORD)length + length2 + length3 + sizeof(header)) goto close;
   for (i = wide ? MODULE_H_RESERVED : MODULE_H_PAGE2; i < sizeof(header); ++i) if (header[i]) goto close;
   result = FR_OK;
   *(volatile BYTE*)0xBD06 = saved_config & ~2;
@@ -1590,11 +1608,11 @@ unsigned char fs_LoadModule(const char* path, unsigned char id) {
         if (done != size) { result = FR_INVALID_OBJECT; goto close; }
         crc = ModuleCRC(buffer, size, crc);
       }
-      SetWindowBlock((page ? MODULE_STAGE2 : MODULE_STAGE) + (offset >> 9));
+      SetWindowBlock(MODULE_STAGE + (page << 5) + (offset >> 9));
       memcpy(WINDOW, buffer, sector_size);
       offset += sector_size;
     }
-    length = length2;
+    length = page ? length3 : length2;
   }
   if (crc != expected) result = FR_INVALID_OBJECT;
   else { module_entry = 0xA000 + entry; module_wide = wide; }

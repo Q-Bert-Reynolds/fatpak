@@ -6,6 +6,6 @@
     {"name": "FILEINFO", "id": 3, "sources": ["info.c", "lib/text.c"]},
     {"name": "HELP", "id": 4, "sources": ["help.c"]},
     {"name": "THEME", "id": 5, "sources": ["theme.c", "lib/text.c"]},
-    {"name": "ASM", "id": 6, "sources": ["asm.c"], "sources2": ["asm_emit.c"]}
+    {"name": "ASM", "id": 6, "sources": ["asm.c"], "sources2": ["asm_emit.c"], "sources3": ["asm_line.c"]}
   ]
 }

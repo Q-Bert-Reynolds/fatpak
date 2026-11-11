@@ -70,16 +70,22 @@ struct Session {
     Memory* memory;
     std::map<std::string, unsigned> syms;
     unsigned tiles;
-    // one source file on a fresh card, opened in the editor
-    Session(const char* image, const char* symbols, const char* data, bool color, const char* name, const std::string& source) {
+    // one source file on a fresh card, opened in the editor; includes go in a "lib" folder
+    // (listed after GBCSYS, before the file)
+    Session(const char* image, const char* symbols, const char* data, bool color, const char* name, const std::string& source,
+            const std::map<std::string, std::string>& includes = {}, const std::map<std::string, std::string>& beside = {}) {
         char folder[] = "/tmp/fatpak-build-XXXXXX"; Check(mkdtemp(folder), "build SD");
         root = folder; mkdir((root + "/GBCSYS").c_str(), 0700);
         Write(root + "/GBCSYS/EDITOR.DAT", Read(data)); InstallModules(root, data);
         Write(root + "/" + name, std::vector<u8>(source.begin(), source.end()));
+        if (!includes.empty()) mkdir((root + "/lib").c_str(), 0700);
+        for (auto& file : includes) Write(root + "/lib/" + file.first, std::vector<u8>(file.second.begin(), file.second.end()));
+        for (auto& file : beside) Write(root + "/" + file.first, std::vector<u8>(file.second.begin(), file.second.end()));
         core.Init(); core.SetEverdriveFolder(folder);
         Check(core.LoadROM(image, !color), "build OS"); Frames(core, 600);
         memory = core.GetMemory(); syms = Symbols(symbols); tiles = syms.at("tile_buffer");
-        pad(Down_Key); pad(A_Key); Frames(core, 60); // GBCSYS, then the file
+        pad(Down_Key); if (!includes.empty()) pad(Down_Key);
+        pad(A_Key); Frames(core, 60); // GBCSYS, lib, then the file
         Check(row(18).find(name) != std::string::npos, "source opens in the editor");
     }
     void pad(Gameboy_Keys key) { core.KeyPressed(key); Frames(core, 4); core.KeyReleased(key); Frames(core, 70); }
@@ -98,16 +104,17 @@ struct Session {
     // FILE > BUILD (item 4) or RUN (5); returns the frames until the status row shows text,
     // writing: those spent in the "Writing..." box
     unsigned writing;
-    unsigned command(unsigned item, const char* until) {
+    unsigned command(unsigned item, const char* until, unsigned limit = 4000) {
         pad(Start_Key); pad(A_Key);
         for (unsigned i = 0; i < item; ++i) pad(Down_Key);
         core.KeyPressed(A_Key); Frames(core, 4); core.KeyReleased(A_Key);
         unsigned waited = 0; writing = 0;
-        while (waited < 4000 && row(19).find(until) == std::string::npos) {
+        while (waited < limit && row(19).find(until) == std::string::npos) {
             Frames(core, 1); ++waited;
             if (box() == "Writing...") ++writing;
         }
-        if (waited == 4000) {
+        if (waited < limit) Frames(core, 10); // the rest of the row (DMG draws it over more than a frame)
+        if (waited == limit) {
             unsigned box = syms.at("_render_box_text"); box = memory->Read(box) | (memory->Read(box + 1) << 8);
             std::string text; while (memory->Read(box)) text += char(memory->Read(box++));
             fprintf(stderr, "timeout: box '%s' top %u status %u busy %u pc %04x page %u\n", text.c_str(),
@@ -171,12 +178,52 @@ static void Run(const char* image, const char* symbols, const char* data, const 
     printf("%s RUN reaches the launch\n", color ? "CGB" : "DMG");
 }
 
+static std::string Text(const std::string& path) { auto bytes = Read(path); return std::string(bytes.begin(), bytes.end()); }
+
+// INCLUDE, IF, REPT and macros on the device: tests/asm/features.asm with its lib/ files
+static void Features(const char* image, const char* symbols, const char* data, const std::string& dir, const char* expected, bool color) {
+    std::map<std::string, std::string> lib = {{"util.inc", Text(dir + "/lib/util.inc")}, {"data.inc", Text(dir + "/lib/data.inc")}};
+    Session s(image, symbols, data, color, "features.asm", Text(dir + "/features.asm"), lib);
+    unsigned frames = s.command(4, "BUILT ");
+    Check(frames < 4000, "features.asm builds");
+    Check(Read(s.root + "/features.gb") == Read(expected), "features.gb matches RGBDS");
+    s.pad(A_Key);
+    printf("%s INCLUDE/IF/REPT/MACRO build: %u frames\n", color ? "CGB" : "DMG", frames);
+}
+
+// an error inside an included file names the file and its line, and the cursor goes to the INCLUDE
+static void IncludeError(const char* image, const char* symbols, const char* data, bool color) {
+    const std::string main = "SECTION \"x\", ROM0[$150]\n nop\nINCLUDE \"lib/bad.inc\"\n nop\n";
+    Session s(image, symbols, data, color, "Main.asm", main, {{"bad.inc", "; first\n ld a, 1\n ld a, 999\n"}});
+    Check(s.command(4, "I1 L3") < 4000 && s.row(19).find(" I1 L3 VALUE TOO BIG") == 0, "an included file's error names it and its line");
+    Check(s.word("_cursor") == main.find("INCLUDE"), "the cursor goes to the INCLUDE line");
+    s.pad(A_Key);
+    printf("%s include errors passed\n", color ? "CGB" : "DMG");
+}
+
+// FatPak's gbdk.asm, which includes memory1.asm and hardware.inc by "src/..." paths that resolve
+// beside it; memory1.asm without its rev_Check_hardware_inc line (EQUS isn't supported)
+static void Library(const char* image, const char* symbols, const char* data, const std::string& src, const char* expected, bool color) {
+    std::string memory1 = Text(src + "/memory1.asm");
+    memory1.replace(memory1.find("  rev_Check_hardware_inc 4"), 26, ";");
+    Session s(image, symbols, data, color, "gbdk.asm", Text(src + "/gbdk.asm"), {},
+              {{"memory1.asm", memory1}, {"hardware.inc", Text(src + "/hardware.inc")}});
+    unsigned frames = s.command(4, "BUILT ", 40000);
+    Check(frames < 40000, "gbdk.asm builds");
+    Check(Read(s.root + "/gbdk.gb") == Read(expected), "gbdk.gb matches RGBDS");
+    s.pad(A_Key);
+    printf("%s gbdk.asm with memory1.asm and hardware.inc: %u frames\n", color ? "CGB" : "DMG", frames);
+}
+
 int main(int argc, char** argv) {
-    Check(argc == 6, "usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT hello.asm hello.gb");
+    Check(argc == 10, "usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT hello.asm hello.gb tests/asm features.gb src gbdk.gb");
     for (int color = 0; color < 2; ++color) {
         Build(argv[1], argv[2], argv[3], argv[4], argv[5], color);
         Errors(argv[1], argv[2], argv[3], color);
         NotAssembly(argv[1], argv[2], argv[3], color);
         Run(argv[1], argv[2], argv[3], argv[4], argv[5], color);
+        Features(argv[1], argv[2], argv[3], argv[6], argv[7], color);
+        IncludeError(argv[1], argv[2], argv[3], color);
+        Library(argv[1], argv[2], argv[3], argv[8], argv[9], color);
     }
 }
