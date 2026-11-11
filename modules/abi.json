@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "address": 32512,
+  "entries": [
+    ["Version", "unsigned char", "void"],
+    ["Row", "void", "unsigned char row, const char* text"],
+    ["Frame", "unsigned char", "void"],
+    ["Event", "unsigned int", "void"],
+    ["Listen", "void", "void"],
+    ["Keyboard", "void", "ModuleKeyboard* state"],
+    ["Scan", "unsigned int", "unsigned char index"],
+    ["Box", "void", "const char* text"],
+    ["HideBox", "void", "void"],
+    ["Clock", "unsigned char", "ModuleClock* clock"]
+  ]
+}

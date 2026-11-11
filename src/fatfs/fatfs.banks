@@ -31,3 +31,4 @@ FIXED: session_path fs_SaveSwap
 11: SameName
 4: fs_List
 FIXED: fs_Mount
+FIXED: fs_LoadModule

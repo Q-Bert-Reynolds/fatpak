@@ -40,6 +40,8 @@ INCLUDE "src/game/snapshot.asm"
 INCLUDE "src/game/launch.asm"
 INCLUDE "src/fatfs/fatfs.asm"
 
+INCLUDE "src/modules/runtime.asm"
+
 INCLUDE "src/wram.asm"
 INCLUDE "src/sram.asm"
 

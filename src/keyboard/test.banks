@@ -1,3 +1,1 @@
-# Code placement; feature ownership follows the source files.
-*: 5
-13: PutHex KeyboardTest test_errors
+*: FIXED

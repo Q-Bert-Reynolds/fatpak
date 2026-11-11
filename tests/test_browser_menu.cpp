@@ -198,7 +198,9 @@ static void HelpScroll(GearboyCore& core,const std::map<std::string,unsigned>& s
 static void UI(const char* image,const char* symbols,const char* data,bool color) {
     char folder[]="/tmp/fatpak-browser-XXXXXX";Check(mkdtemp(folder),"temporary browser SD");
     std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);
-    Write(root+"/GBCSYS/EDITOR.DAT",Read(data));Write(root+"/Document.txt",{'h','i','\n'});
+    Write(root+"/GBCSYS/EDITOR.DAT",Read(data));
+    mkdir((root+"/GBCSYS/MODULES").c_str(),0700);
+    Write(root+"/GBCSYS/MODULES/KEYTEST.MOD",Read(std::string(data).substr(0,std::string(data).find_last_of('/'))+"/MODULES/KEYTEST.MOD"));Write(root+"/Document.txt",{'h','i','\n'});
     GearboyCore core;core.Init();core.SetEverdriveFolder(folder);core.SetPS2KeyboardEnabled(true);
     Check(core.LoadROM(image,!color),"browser UI OS");auto memory=core.GetMemory();auto syms=Symbols(symbols);
     auto byte=[&](const char* name){return memory->Read(syms.at(name));};
@@ -257,7 +259,7 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     Check(row(19).find("\201 Edit \001Set \002Back")!=std::string::npos,"clock footer uses direction and action icons");
     pad(B_Key);Check(byte("_render_box_top")==255,"B exits clock settings as advertised");
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
-    pad(Down_Key);pad(A_Key);Check(row(0)=="KEYBOARD TEST","browser settings launches keyboard test");pad(B_Key);
+    pad(Down_Key);pad(A_Key);Frames(core,180);Check(row(0)=="KEYBOARD TEST","browser settings launches keyboard test");pad(B_Key);
     Check(byte("_render_text")==0 && byte("_tb_rows")==16 && byte("_bars")==1,"settings restore browser layout");
     menu();pad(Down_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);
     Check(row(18).find("FILE BROWSER")!=std::string::npos,"help directly opens browser help with header");
@@ -323,6 +325,8 @@ static void GameProperties(const char* image,const char* symbols,const char* dat
     char folder[]="/tmp/fatpak-info-XXXXXX";Check(mkdtemp(folder),"properties SD");
     std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);
     Write(root+"/GBCSYS/EDITOR.DAT",Read(data));
+    mkdir((root+"/GBCSYS/MODULES").c_str(),0700);
+    Write(root+"/GBCSYS/MODULES/KEYTEST.MOD",Read(std::string(data).substr(0,std::string(data).find_last_of('/'))+"/MODULES/KEYTEST.MOD"));
     std::vector<u8> game(1536);std::string title="CRYSTAL";
     for(unsigned i=0;i<title.size();++i)game[0x134+i]=title[i];
     game[0x143]=0xC0;game[0x146]=3;game[0x147]=0x10;game[0x148]=6;game[0x149]=3;
@@ -367,6 +371,8 @@ static void RenameEdges(const char* image,const char* symbols,const char* data,b
     char folder[]="/tmp/fatpak-rename-XXXXXX";Check(mkdtemp(folder),"rename edge SD");
     std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);mkdir((root+"/Folder").c_str(),0700);
     Write(root+"/GBCSYS/EDITOR.DAT",Read(data));
+    mkdir((root+"/GBCSYS/MODULES").c_str(),0700);
+    Write(root+"/GBCSYS/MODULES/KEYTEST.MOD",Read(std::string(data).substr(0,std::string(data).find_last_of('/'))+"/MODULES/KEYTEST.MOD"));
     for(unsigned i=0;i<19;++i) { char file[32];snprintf(file,sizeof(file),"/Z%02u.txt",i);Write(root+file,{'x'}); }
     GearboyCore core;core.Init();core.SetEverdriveFolder(folder);core.SetPS2KeyboardEnabled(true);
     Check(core.LoadROM(image,!color),"rename edge OS");auto memory=core.GetMemory();auto syms=Symbols(symbols);

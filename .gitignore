@@ -89,3 +89,5 @@ node_modules
 /build/asm/
 /build/c_calls.asm
 /build/c_modules.inc
+
+/build/modules/

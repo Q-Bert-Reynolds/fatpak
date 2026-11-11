@@ -25,9 +25,13 @@ C_LIBS    = $(wildcard $(SRC_DIR)/*/lib/*.c) $(wildcard $(SRC_DIR)/*/lib/*.h)
 # Preserve raw output: page placement and cross-module call resolution run together.
 C_RAW     = $(patsubst %.c,$(BUILD_DIR)/c/%.asm,$(C_SOURCES))
 
+.PHONY: all code modules assemble run assets clean
+
 all: clean assets assemble run
 
 code: assemble run
+
+$(BUILD_DIR)/c/src/modules/runtime.asm: modules
 
 $(BUILD_DIR)/c/%.asm: %.c $(C_HEADERS) $(C_LIBS)
 	@mkdir -p $(dir $@)
@@ -37,13 +41,17 @@ $(BUILD_DIR)/c/%.asm: %.c $(C_HEADERS) $(C_LIBS)
 $(SRC_DIR)/constants.h: $(SRC_DIR)/constants.asm build.py
 	$(PYTHON) build.py
 
-assemble: $(C_RAW)
+modules:
+	$(PYTHON) module_build.py
+
+assemble: modules $(C_RAW)
 	@mkdir -p $(BUILD_DIR) $(BIN_DIR)
 	$(PYTHON) bank_split.py --build-dir $(BUILD_DIR) $(C_SOURCES)
 	$(PYTHON) ingame_menu.py
 	rgbasm $(DEFINES) -o $(BUILD_DIR)/main.o $(SRC_DIR)/main.asm
 	rgblink -l pages.link -m $(BUILD_DIR)/main.map -n $(SYM_FILE) -o $(ROM_FILE) $(BUILD_DIR)/main.o
 	$(PYTHON) check_pages.py $(BUILD_DIR)/main.map
+	$(PYTHON) check_module_abi.py $(SYM_FILE) $(C_SOURCES)
 	rgbfix -v -c -s -j -t GBXOS -i KRKZ -l 0x33 -m 0 -r 0 -p 255 $(ROM_FILE)
 ifneq ($(ROM_FILE),$(BIN_DIR)/GBCOS.BIN)
 	cp $(ROM_FILE) $(BIN_DIR)/GBCOS.BIN
@@ -52,9 +60,11 @@ endif
 	@if mountpoint -q "$(SD_MOUNT)"; then \
 		cp $(BIN_DIR)/GBCOS.BIN "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
 		cp $(BIN_DIR)/EDITOR.DAT "$(SD_MOUNT)/GBCSYS/EDITOR.DAT" && \
+		mkdir -p "$(SD_MOUNT)/GBCSYS/MODULES" && \
+		cp $(BIN_DIR)/MODULES/*.MOD "$(SD_MOUNT)/GBCSYS/MODULES/" && \
 		sync -f "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
 		sync -f "$(SD_MOUNT)/GBCSYS/EDITOR.DAT" && \
-		echo "Copied GBCOS.BIN and EDITOR.DAT to mounted GAMEBOY card"; \
+		echo "Copied GBCOS.BIN, EDITOR.DAT and modules to mounted GAMEBOY card"; \
 	fi
 
 run:
