@@ -1,10 +1,7 @@
 # Priority
 
-- if osk hidden, B+dpad should scroll without moving the cursor 
-- hello.gb does not exit to OS when the cart button is pressed
-- keywords and labels should use italics instead
-- Assembler ([ASSEMBLER.md](ASSEMBLER.md)): `INCLUDE`, `IF`, `REPT`, macros and rgblink placement done; FatPak's math/memory1/gbdk match RGBDS. Next: `EQUS`/string functions/`{}` (for `rev_Check_hardware_inc`), speed (module load, per-line `Keyword`/far calls), `INCBIN`/`FOR`/`LOAD`/`UNION`/`CHARMAP`, 32-bit values, listings, large sources from the card.
-- Small-C style compiler matching SDCC's calling convention, multi-pass via SD temp files
+- view binary files as hex
+- Assembler ([ASSEMBLER.md](ASSEMBLER.md)): `EQUS`/string functions/`{}` (for `rev_Check_hardware_inc`), speed (module load, per-line `Keyword`/far calls), `INCBIN`/`FOR`/`LOAD`/`UNION`/`CHARMAP`, 32-bit values, listings, large sources from the card.
 
 # Rendering
 
@@ -17,40 +14,34 @@
 - `tb_Load` scans up to 64 KB at boot when the gap is at the end (~0.9 s DMG); tighten the loop. Profile large gap moves.
 - DMG smooth scroll (shelved): no spare block for the partial row. Blank-tile half-step idea pops visibly and SGB attributes are 8 px anyway.
 
-# Syntax highlighting
+# Text Editor
 
+- Find and replace
 - `ScrollX` ignores bold widths.
 - Fixed-width code: bold keywords widen cells until a 4 px bold font exists; registers share keyword blue; the preprocessor colors only the directive; RGBDS `/* */` and string interpolation aren't lexed.
 - First scan after an edit near the top of a big C file is slow (~0.5 frame/KB on GBC).
 - Untested: SGB colors, code highlighting on DMG, italics on screen.
-- Later: SGB attribute colors (ATTR_CHR, 4 palettes, resent on scroll); user-selectable UI/syntax colors in THEME.MOD (dark mode exists); theme the in-game menu.
+- SGB attribute colors (ATTR_CHR, 4 palettes, resent on scroll); user-selectable UI/syntax colors in THEME.MOD (dark mode exists); theme the in-game menu.
+- Save As into another folder.
+- Rebalance PSRAM between the 7,936-byte clipboard, 56 KiB undo log and piece table.
+- Ctrl+End line count restarts from the file start; resume from the last known window.
 
-# UI/UX
+# Game Launcher
 
 - Loading bar in the launch box, drawn with the existing CPU-copy progress path between chunks.
-- Route hard-coded editor, clock and cart-menu labels through the string pipeline.
 - Cheat editing/toggles in the game UI (the text files already work).
-- Rebalance PSRAM between the 7,936-byte clipboard, 56 KiB undo log and piece table.
-- Undo: persist across power-off; select restored text after undoing a cut/delete.
-- Status bar: free space.
-- OSK: hold A to repeat; move the cursor vertically while open.
-- SGB: use the whole GB screen for text with header/footer in the border, or go fullscreen ([SGB.md](SGB.md)); SNES mouse.
+- In-game tools on the snapshot: memory dump to files; VRAM viewer (tiles, maps, OAM, palettes); BMP/stored-deflate PNG export; screenshot rebuilt from the snapshot (VBlank state only, so raster effects are wrong).
 
-# Files
+# File Browser
 
-- Browser: sort by name (needs names in memory), new folder, delete.
-- Save As into another folder.
+- sort by name (needs names in memory), new folder, delete.
 - Move FatFs helpers out of ROM0 behind far calls.
-
-# Large files
-
 - 8 MiB ROMs: snapshot staging at `$3c00` caps ROMs at 7.5 MiB; find another place to stage.
 - Unsaved edits are lost on reset: persist the piece table and add-buffer length in PSRAM; restore if size/date match.
 - Window limits: moving clears undo, selection and Ctrl+A stop at the window; markdown fences/C comments open at the window start aren't seen; lines longer than the 8 KB margin with wrap off.
 - 96 pieces max ("TOO MANY EDITS"); merge adjacent add-buffer pieces.
 - Save is slow (~9 s for 320 KB in Gearboy) with no progress: skip busy polling like stock, use CMD25, avoid FatFs partial-sector copies.
 - Window load via `tb_Append` (0.37 s): have the SD loop drop CRs and write the buffer directly.
-- Ctrl+End line count restarts from the file start; resume from the last known window.
 
 # Peripherals
 
@@ -59,12 +50,11 @@
 - WorkBoy keyboard; Game Boy Printer output.
 - Test PS/2 input on LSDJ.
 
-# OS utilities
+# Other
 
-- In-game tools on the snapshot: memory dump to files; VRAM viewer (tiles, maps, OAM, palettes); BMP/stored-deflate PNG export; screenshot rebuilt from the snapshot (VBlank state only, so raster effects are wrong).
-- PNG viewer: inflate with a 32 KB PSRAM window, 8-bit gray/RGB/RGBA/palette (no Adam7/16-bit), fit/1x/2x/4x with panning, dithered on DMG, per-tile palettes on GBC; see [IMAGE_VIEWER.md](IMAGE_VIEWER.md).
-
-# Platforms
-
+- Small-C style compiler matching SDCC's calling convention, multi-pass via SD temp files
+- image viewer module see [IMAGE_VIEWER.md](IMAGE_VIEWER.md).
 - Document real differences of other X-series carts rather than assuming X7 SD/RTC/button behavior.
 - Ports to other cartridges need a loader, SD access and a new memory layout; the PSRAM window is assumed everywhere.
+- All strings should be loaded from a .BIN file with a lookup table. Support multiple languages.
+- SGB: use the whole GB screen for text with header/footer in the border, or go fullscreen ([SGB.md](SGB.md)); SNES mouse.

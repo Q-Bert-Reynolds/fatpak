@@ -105,18 +105,27 @@ unsigned char PadKey(void) {
   pad_mods = 0;
   if (shift_timer) --shift_timer; // once per frame: the editor and AskName call this every frame
   if (pressed & PADF_SELECT) ToggleOSK();
-  if (pressed & PADF_B) return KEY_BACKSPACE;
   if (pressed & PADF_START) return KEY_MENU;
-  if (osk_shown && (pressed & PADF_A)) return PressOSKKey();
+  
   held = DpadRepeat(pressed);
-  if (!held) return KEY_NONE;
-  if (!osk_shown && (button_state & PADF_A)) pad_mods = KB_MOD_SHIFT;
   if (osk_shown) {
+    if (pressed & PADF_A) return PressOSKKey();
+    if (pressed & PADF_B) return KEY_BACKSPACE;
     MoveOSKSelection(held);
     return KEY_NONE;
   }
+
+  if (button_state & PADF_B) {
+    if (button_state & PADF_UP) return KEY_PAGE_UP;
+    if (button_state & PADF_DOWN) return KEY_PAGE_DOWN;
+    if (button_state & PADF_LEFT) return KEY_HOME;
+    if (button_state & PADF_RIGHT) return KEY_END;
+  }
+
+  if (button_state & PADF_A) pad_mods = KB_MOD_SHIFT;
   if (held & PADF_UP) return KEY_UP;
   if (held & PADF_DOWN) return KEY_DOWN;
   if (held & PADF_LEFT) return KEY_LEFT;
-  return KEY_RIGHT;
+  if (held & PADF_RIGHT) return KEY_RIGHT;
+  return KEY_NONE;
 }

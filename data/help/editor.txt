@@ -1,32 +1,32 @@
 TEXT EDITOR
 
-<BTN_START> / Esc  menu
-F1  editor help
+ <BTN_SELECT> show/hide keyboard
+ <BTN_START> show menu
 
-<BTN_DPAD>  move the cursor
-<BTN_A> + <BTN_DPAD>  select text
-<BTN_B>  backspace
-<BTN_SELECT>  show/hide keyboard
-<BTN_A>  type the selected key
-<BTN_START>  close keyboard/menu
+Keyboard Hidden
+ <BTN_DPAD> move the cursor
+ <BTN_A>+<BTN_DPAD> select text
+ <BTN_B>+<BTN_UD> page up/down
+ <BTN_B>+<BTN_LR> home/end
 
-Ctrl+O  open file browser
-Ctrl+S  save
-Ctrl+N  new document
-Ctrl+A  select all
-Ctrl+X/C/V  cut/copy/paste
-F7  build .asm to .gb
-F5  build and run .asm
-Ctrl+Z  undo
-Ctrl+Y / Ctrl+Shift+Z  redo
-Shift + arrows  select
-Ctrl+Left/Right  word
-Ctrl+Up/Down  scroll
-Ctrl+Home/End  start/end
+Keyboard Visible
+ <BTN_A> type selected key
+ <BTN_B> backspace
 
-Settings: wrap and full screen
-Alt+Z  line wrap
-F11  full screen
-
-<BTN_UD>  scroll this help
-<BTN_B>  return to editor
+Link Port Keyboard
+ F1 help
+ F5 build and run .asm
+ F7 build .asm to .gb
+ F11 full screen
+ Ctrl+O open file browser
+ Ctrl+S save
+ Ctrl+N new document
+ Ctrl+A select all
+ Ctrl+X/C/V cut/copy/paste
+ Ctrl+Z undo
+ Ctrl+Y / Ctrl+Shift+Z redo
+ Shift + arrows select
+ Ctrl+Left/Right word
+ Ctrl+Up/Down scroll
+ Ctrl+Home/End start/end
+ Alt+Z line wrap

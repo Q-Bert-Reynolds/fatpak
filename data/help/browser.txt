@@ -1,32 +1,30 @@
 FILE BROWSER
 
-<BTN_DPAD>  select a file/folder
-<BTN_A> / <BTN_RIGHT>  open selection
-<BTN_B> / <BTN_LEFT>  parent folder
-Esc  return to editor
-<BTN_START>  browser menu
-<BTN_SELECT>  file info
+<BTN_DPAD> select a file/folder
+<BTN_A> / <BTN_RIGHT> open selection
+<BTN_B> / <BTN_LEFT> parent folder
+Esc return to editor
+<BTN_START> browser menu
+<BTN_SELECT> file info
 
-FILE > INFO  file details
-FILE > RENAME  edit name
+FILE > INFO file details
+FILE > RENAME edit name
 Rename opens the keyboard
-<BTN_A>  type the selected key
-<BTN_B>  erase (empty: cancel)
-Return key  accept name
-<BTN_START> / Esc  cancel rename
-Undo/redo keys  name history
-Ctrl+Z / Ctrl+Y  undo/redo
+<BTN_A> type the selected key
+<BTN_B> erase (empty: cancel)
+Return key accept name
+<BTN_START> / Esc cancel rename
+Undo/redo keys name history
+Ctrl+Z / Ctrl+Y undo/redo
 
-EDIT > CUT  prepare a move
-EDIT > COPY  prepare a copy
+EDIT > CUT prepare a move
+EDIT > COPY prepare a copy
 Browse to the destination
-EDIT > PASTE  move/copy here
+EDIT > PASTE move/copy here
 Folders include their contents
 Existing names are protected
 
-SETTINGS > CLOCK  set time
+SETTINGS > CLOCK set time
 SETTINGS > KEYBOARD TEST
-HELP  show browser controls
-RESTART  full hardware reset
-
-<BTN_B>  return to browser
+HELP show browser controls
+RESTART full hardware reset
