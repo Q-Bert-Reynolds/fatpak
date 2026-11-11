@@ -98,7 +98,7 @@ _OSKDraw::;a = layer, e = first tile_buffer row
   pop af
   cp a, OSK_CAPS
   ret nz
-  ld [hl], "⇪"
+  ld [hl], '⇪'
   ret
 
 _OSKSelect::;a = x, e = y

@@ -114,14 +114,14 @@ _SettingsLoad::
   ld a, [de];the version
   cp a, [hl]
   jr z, .load
-  cp a, "2"
+  cp a, '2'
   jr nz, .never
 .load
   push af
   ld a, 1
   call SettingsCopy
   pop af
-  cp a, "2"
+  cp a, '2'
   jr nz, .loaded
   xor a;SET2 had nothing after the file name: the theme byte is whatever was there
   ld [_theme], a
