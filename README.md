@@ -50,8 +50,11 @@ shows the current time at the bottom right in 12-hour format, such as `10:42pm`.
 F11 (or FULL SCREEN in the menu) hides the editor's bars. F1 (or HELP) shows the controls.
 
 PS/2 keyboards type directly: arrows, home, end, page up/down, backspace, delete, enter.
-Escape opens the menu: FILE (open, save, save as, new), EDIT (undo, redo, cut, copy, paste, select all),
-SETTINGS (line wrap, full screen), HELP (editor controls) and CLOSE (the file browser).
+Escape opens the menu: FILE (open, save, save as, new, build, run), EDIT (undo, redo, cut, copy, paste, select all),
+SETTINGS (line wrap, full screen, theme), HELP (editor controls) and CLOSE (the file browser).
+BUILD (F7) assembles an `.asm` file on the Game Boy into `<name>.gb` beside it, RUN (F5) builds and launches it;
+it takes an RGBDS subset (every instruction, labels, `DEF`/`EQU`, `SECTION`, `DB`/`DW`/`DS`, expressions; no
+`INCLUDE` or macros yet), fixes the header's logo and checksums, and reports errors by line.
 The browser settings menu's keyboard test shows each byte the
 PS/2 keyboard sends (hex, bits and start/parity/finish/timeout errors) and the key it makes, and listens for a
 keyboard even if none was found at boot (it keeps listening afterwards). B or Backspace goes back from a submenu, START or Escape closes

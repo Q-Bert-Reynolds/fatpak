@@ -69,8 +69,8 @@ static std::string Text(Memory* memory, unsigned address) {
     while (memory->Read(address)) value += char(memory->Read(address++));
     return value;
 }
-static std::vector<u8> Page(Memory* m) {
-    unsigned old=m->Read(0xBD08);m->Write(0xBD08,13);
+static std::vector<u8> Page(Memory* m,unsigned page=13) {
+    unsigned old=m->Read(0xBD08);m->Write(0xBD08,page);
     std::vector<u8> bytes(0x1D00);
     for(unsigned i=0;i<bytes.size();++i)bytes[i]=m->Read(0xA000+i);
     m->Write(0xBD08,old);return bytes;
@@ -81,7 +81,7 @@ static void Modules(const char* image,const char* symbols,const char* data,const
     Write(root+"/GBCSYS/EDITOR.DAT",Read(data));
     // Each malformed file has a distinct path: the emulator's FAT image is a
     // snapshot of the folder when mounted.
-    const char* names[]={"valid","magic","version","abi","id","page","address","entry","length","bss","reserved","crc","short","trailing","empty","abizero","abinew","context","max"};
+    const char* names[]={"valid","magic","version","abi","id","page","address","entry","length","bss","reserved","crc","short","trailing","empty","abizero","abinew","context","max","wide","widepage","widelength","widebss"};
     for(const char* name:names)Write(root+"/"+name+".MOD",Read(std::string(fixtures)+"/"+name+".MOD"));
     std::vector<u8> large(70000,'z');for(unsigned i=63;i<large.size();i+=64)large[i]='\n';
     Write(root+"/Large.txt",large);
@@ -132,6 +132,17 @@ static void Modules(const char* image,const char* symbols,const char* data,const
     run("abizero",abi);run("abinew",abi);
     run("valid",0);run("valid",0);run("max",0);
     Check(memory->Read(syms.at("_module_status"))==0,"module result kept in module_status");
+    // wide: both pages and the WRAMX buffers come back; the BSS is zeroed for every run
+    auto original12=Page(memory,12);
+    std::vector<u8> buffers(3072);for(unsigned i=0;i<buffers.size();++i)buffers[i]=memory->Read(0xD000+i);
+    for(unsigned pass=0;pass<2;++pass){
+        run("wide",0);
+        Check(memory->Read(syms.at("_module_status"))==0x42,"wide module calls across its pages with zeroed BSS");
+        Check(Page(memory,12)==original12,"second borrowed page restored");
+        bool same=true;for(unsigned i=0;i<buffers.size();++i)same=same&&memory->Read(0xD000+i)==buffers[i];
+        Check(same,"editor buffers restored after a wide module");
+    }
+    run("widepage",invalid);run("widelength",invalid);run("widebss",invalid);
     memory->Write(syms.at("_module_context"),0x34);memory->Write(syms.at("_module_context")+1,0x12);
     run("context",0);
     Check(memory->Read(syms.at("_module_status"))==0x34,"module receives module_context in DE");

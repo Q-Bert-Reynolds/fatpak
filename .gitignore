@@ -91,3 +91,6 @@ node_modules
 /build/c_modules.inc
 
 /build/modules/
+
+# tests/test_asm.py's PC build of the assembler module
+/build/asm_host*

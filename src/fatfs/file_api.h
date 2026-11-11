@@ -41,6 +41,7 @@ extern unsigned char FileSave(const char* path); // FRESULT
 extern unsigned char FileLoadData(const char* path); // FRESULT, copies the data file to PSRAM
 extern unsigned char FileSaveSwap(void); // FRESULT, the text, clipboard and settings
 extern unsigned char FileLoadSwap(void); // FRESULT, restores them if PSRAM lost them
+extern unsigned char FileWriteImage(const char* path, unsigned int blocks); // FRESULT, the assembled ROM (ASM_IMAGE_BLOCK, 512-byte blocks) to a file
 extern unsigned char swap_dirty; // they changed since FileSaveSwap
 extern unsigned char FileLoadLarge(const char* path); // FRESULT, opens a file too big for the text buffer, loads the window at its start
 extern unsigned char FileLoadWindow(void); // FRESULT, the text buffer is the file from win_start (see src/fatfs/fatfs.c)

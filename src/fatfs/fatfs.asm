@@ -11,6 +11,7 @@ INCLUDE "src/fatpak.inc"
 ;   FileLoadData                de = path, OS mode: copies the data file to PSRAM, returns FRESULT in a
 ;   FileSaveSwap                OS mode: writes the text, clipboard and settings to the swap file, returns FRESULT in a
 ;   FileLoadSwap                OS mode: restores them at boot if PSRAM lost them, returns FRESULT in a
+;   FileWriteImage              de = path, bc = blocks: writes the assembled ROM image from PSRAM, returns FRESULT in a
 
 SECTION FRAGMENT "FatFs Stubs", ROM0
 _FileSession::   BANKED_C _fs_Session
@@ -28,6 +29,7 @@ _FileSave::      BANKED_C _fs_Save
 _FileLoadData::  BANKED_C _fs_LoadData
 _FileSaveSwap::  BANKED_C _fs_SaveSwap
 _FileLoadSwap::  BANKED_C _fs_LoadSwap
+_FileWriteImage:: BANKED_C _fs_WriteImage
 _FileLoadLarge:: BANKED_C _fs_LoadLarge
 _FileLoadWindow:: BANKED_C _fs_LoadWindow
 _FileCloseLarge:: BANKED_C _fs_CloseLarge

@@ -25,22 +25,46 @@ unsigned int module_entry;
 unsigned char module_status;
 extern unsigned char fs_LoadModule(const char* path, unsigned char id); // src/fatfs/fatfs.c
 extern unsigned char ModuleSwap(unsigned char operation); // 0 when the copy read back
+extern unsigned char ModuleSwapRAM(unsigned char operation);
+extern unsigned char module_wide; // fs_LoadModule: the staged module is MODULE_FORMAT_WIDE
+extern unsigned int tb_read_pos; // src/editor/text_buffer.asm
+extern unsigned int tb_Read(unsigned char* buffer, unsigned int size); // from tb_read_pos, returns bytes copied
 extern unsigned char ModuleEnter(void);
 extern unsigned char buffer[512]; // synchronous scratch; no module file services
+extern void SetWindowBlock(unsigned int block);
+#define WINDOW_BLOCK (*(volatile unsigned int*)0xBD02)
+#define WINDOW ((const unsigned char*)0xBE00u)
 
+// Wide modules (MODULE_FORMAT_WIDE) also take MODULE_PAGE2 and the editor's WRAMX buffers,
+// which come back before HideBox needs them.
 unsigned char RunModule(const char* path, unsigned char id) {
-  unsigned char result;
+  unsigned char result, step = 0; // 1: the first page is installed, 2: both, 3: and the buffers saved
+  unsigned int window = WINDOW_BLOCK; // modules may move it
   if (module_busy) return FR_LOCKED;
   module_busy = 1;
   result = fs_LoadModule(path, id);
   if (!result) {
     if (ModuleSwap(0)) result = MODULE_ERR_VERIFY; // backup unreadable: the page is untouched
-    else if (ModuleSwap(1)) result = MODULE_ERR_VERIFY; // partly installed: restore below
     else {
-      module_status = ModuleEnter();
-      HideBox(); // remove any modal state before restoring the page
+      step = 1;
+      if (ModuleSwap(1)) result = MODULE_ERR_VERIFY; // partly installed: restored below
+      else if (!module_wide) module_status = ModuleEnter();
+      else if (ModuleSwap(4)) result = MODULE_ERR_VERIFY;
+      else {
+        step = 2;
+        if (ModuleSwap(5)) result = MODULE_ERR_VERIFY;
+        else if (ModuleSwapRAM(0)) result = MODULE_ERR_VERIFY; // the buffers are intact
+        else {
+          step = 3;
+          module_status = ModuleEnter();
+        }
+      }
     }
-    if (ModuleSwap(2)) RestartDevice(); // never run an OS page that didn't come back
+    if (step == 3 && ModuleSwapRAM(2)) RestartDevice(); // never run on state that didn't come back
+    if (step >= 2 && ModuleSwap(6)) RestartDevice();
+    HideBox(); // remove any modal state before restoring the page
+    if (step && ModuleSwap(2)) RestartDevice();
+    SetWindowBlock(window);
   }
   module_context = 0;
   module_busy = 0;
@@ -130,9 +154,6 @@ unsigned char ModuleAPIClockSet(const ModuleClock* clock) {
 
 // ABI 3
 // Bytes of EDITOR.DAT (offset from its first block); 1 if it isn't loaded or the range is outside it.
-extern void SetWindowBlock(unsigned int block);
-#define WINDOW_BLOCK (*(volatile unsigned int*)0xBD02)
-#define WINDOW ((const unsigned char*)0xBE00u)
 unsigned char ModuleAPIData(unsigned int offset, char* dest, unsigned char length) {
   unsigned int saved = WINDOW_BLOCK, block = 0xFFFF, at;
   unsigned char i;
@@ -156,3 +177,15 @@ unsigned char ModuleAPITheme(unsigned char value) {
   }
   return theme;
 }
+
+// ABI 4
+// up to MODULE_SOURCE_CHUNK bytes of the text buffer from pos, returns how many (0 past the end)
+unsigned char ModuleAPISource(unsigned int pos, char* dest) {
+  unsigned int saved = WINDOW_BLOCK, n; // the text buffer selects its blocks with the low byte only
+  SetWindowBlock(TB_PSRAM_HIGH << 8);
+  tb_read_pos = pos;
+  n = tb_Read((unsigned char*)dest, MODULE_SOURCE_CHUNK);
+  SetWindowBlock(saved);
+  return (unsigned char)n;
+}
+// ModuleAPIFar is in runtime.asm: wide modules' cross-page thunks

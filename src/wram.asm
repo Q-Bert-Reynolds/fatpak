@@ -63,6 +63,8 @@ tb_check_end::      DW
 tb_check_pos::      DW
 tb_check_state::    DB
                     DS 3*BUFFER_SIZE - (@ - tile_buffer)
+ASSERT @ - tile_buffer == MODULE_BSS_SIZE, "wide modules borrow exactly this region (MODULE_BSS)"
+ASSERT tile_buffer == MODULE_BSS
 cmd_buffer::        DS BUFFER_SIZE/2;the renderer's row bitmap, masks and palettes, then render_dim
 ASSERT LOW(win_buffer) == 0, "render_accent must start a page"
 _str_buffer::

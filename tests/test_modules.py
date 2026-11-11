@@ -43,7 +43,22 @@ def fixtures():
     variants['context']=package(bytes([0x7B,0xC9]),0,1,2,0)
     # A maximal page exercises the 256-byte final sector, without touching BD00.
     variants['max']=package(code+bytes(PAGE_SIZE-len(code)),0,1,PAGE_SIZE,0)
+    # Wide: page 13 calls page 12 through a ModFar thunk; page 12 checks its WRAMX BSS is
+    # zero, writes it and returns $42 (2 if the BSS wasn't zeroed).
+    import json
+    entries=[entry[0] for entry in json.loads(Path('modules/abi.json').read_text())['entries']]
+    far=table+3*entries.index('Far')
+    first=bytes([0xCD,0x06,0xA0,0xC9,0,0,0xCD,far&255,far>>8,C['MODULE_PAGE2'],0x00,0xA0])
+    second=bytes([0x21,0x00,0xD0,0x7E,0xB7,0x20,0x05,0x36,0x5A,0x3E,0x42,0xC9,0x3E,0x02,0xC9])
+    variants['wide']=package(first,0,1,0,1,C['MODULE_ABI'],second)
+    value=bytearray(variants['wide']);value[C['MODULE_H_PAGE2']]^=1;variants['widepage']=value
+    value=bytearray(variants['wide']);value[C['MODULE_H_LENGTH2']]+=1;variants['widelength']=value
+    value=bytearray(variants['wide']);value[C['MODULE_H_BSS_SIZE']+1]=0x10;variants['widebss']=value
     for name,value in variants.items(): (out/(name+'.MOD')).write_bytes(value)
+    rejected(package,b'\xC9',0,1,5,0,1,b'\xC9')
+    rejected(package,b'\xC9',0,1,0,C['MODULE_BSS_SIZE']+1,1,b'\xC9')
+    rejected(package,b'\xC9',0,1,0,0,1,b'')
+    rejected(package,b'\xC9',0,1,0,0,1,bytes(PAGE_SIZE+1))
     rejected(package,b'',0,1,0,0)
     rejected(package,bytes(PAGE_SIZE+1),0,1,PAGE_SIZE+1,0)
     rejected(package,b'\xC9',1,1,1,0)
@@ -59,6 +74,11 @@ def fixtures():
     _, used = assembly([one,two],versions)
     assert used == {'_ModRow','_ModText'}, used
     assert max(versions[name] for name in used) == 2, 'an ABI 2 entry makes an ABI 2 module'
+    one=one.replace(' call','\tcall') # SDCC's tabs, as BRANCH_RE expects
+    wide, used = assembly([one],versions,[two])
+    assert '_Helper__far:' in wide and 'call _Helper__far' in wide and 'call _ModFar' in wide, wide
+    assert used == {'_ModRow','_ModText','_ModFar'}, used
+    rejected(assembly,[one+'\n\tld hl, _Helper'],versions,[two])
     print('Module packer bounds and SDK import checks passed')
 
 if __name__ == '__main__': fixtures()

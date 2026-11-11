@@ -3,8 +3,11 @@
 
 usage: python3 module_build.py [--headers]
 
-modules/abi.json lists the resident ABI, modules/modules.json the modules.
-Memory layout, versions and header offsets come from src/constants.asm.
+modules/abi.json lists the resident ABI, modules/modules.json the modules: "sources" go in
+the borrowed page; a module with "sources2" is wide (MODULE_FORMAT_WIDE): those go in a
+second page, calls between the pages pass through ModFar thunks, and its BSS lives in the
+editor's WRAMX buffers (MODULE_BSS). Pointers must not cross pages: a page's constant data
+is only read by its own code. Memory layout, versions and header offsets come from src/constants.asm.
 Modules link only against the SDK; never against the host's symbol file.
 --headers only regenerates build/modules/{sdk.h,modules.h,imports.inc,table.inc}.
 """
@@ -16,6 +19,7 @@ import subprocess
 import sys
 
 import utils
+from bank_split import BRANCH_RE
 
 ROOT = Path(__file__).resolve().parent
 OUTPUT = ROOT / 'build/modules'
@@ -27,27 +31,37 @@ SDCC = ['sdcc', '-msm83', '--asm=rgbds', '--opt-code-size', '--dataseg', 'WRAM0'
         '--no-peep', '--peep-file', 'peephole.def', '--disable-warning', '218', '-S']
 
 
-def package(payload, entry, module_id, bss_offset, bss_size, abi=1):
+def package(payload, entry, module_id, bss_offset, bss_size, abi=1, payload2=None):
+    """The .MOD bytes. payload2 (the second page's code) makes a wide module: bss_offset is
+    then unused (0) and bss_size counts WRAMX bytes at MODULE_BSS."""
+    wide = payload2 is not None
     if not 0 < len(payload) <= PAGE_SIZE or not 0 <= entry < len(payload):
         raise ValueError('module payload/entry exceeds executable page')
     if not 1 <= module_id <= 255:
         raise ValueError('module ID must be 1..255')
-    if not len(payload) <= bss_offset <= PAGE_SIZE or not 0 <= bss_size <= PAGE_SIZE - bss_offset:
+    if wide:
+        if not 0 < len(payload2) <= PAGE_SIZE or bss_offset or not 0 <= bss_size <= C['MODULE_BSS_SIZE']:
+            raise ValueError('wide module second page or BSS exceeds its region')
+    elif not len(payload) <= bss_offset <= PAGE_SIZE or not 0 <= bss_size <= PAGE_SIZE - bss_offset:
         raise ValueError('module BSS overlaps payload or exceeds page')
     if not 1 <= abi <= C['MODULE_ABI']:
         raise ValueError('module ABI must be 1..MODULE_ABI')
     header = bytearray(C['MODULE_HEADER'])
     header[0:4] = b'FPKM'
-    header[C['MODULE_H_FORMAT']] = C['MODULE_FORMAT']
+    header[C['MODULE_H_FORMAT']] = C['MODULE_FORMAT_WIDE'] if wide else C['MODULE_FORMAT']
     header[C['MODULE_H_ABI']] = abi
     header[C['MODULE_H_ID']] = module_id
     header[C['MODULE_H_PAGE']] = C['MODULE_PAGE']
-    for field, value in (('ADDRESS', PAGE_ADDRESS), ('ENTRY', entry), ('LENGTH', len(payload)),
-                         ('BSS', bss_offset), ('BSS_SIZE', bss_size),
-                         ('CRC', binascii.crc_hqx(payload, 0xFFFF))):
+    fields = [('ADDRESS', PAGE_ADDRESS), ('ENTRY', entry), ('LENGTH', len(payload)),
+              ('BSS', bss_offset), ('BSS_SIZE', bss_size),
+              ('CRC', binascii.crc_hqx(payload + (payload2 or b''), 0xFFFF))]
+    if wide:
+        header[C['MODULE_H_PAGE2']] = C['MODULE_PAGE2']
+        fields.append(('LENGTH2', len(payload2)))
+    for field, value in fields:
         offset = C['MODULE_H_' + field]
         header[offset:offset + 2] = value.to_bytes(2, 'little')
-    return bytes(header) + payload
+    return bytes(header) + payload + (payload2 or b'')
 
 
 def write_if_changed(path, text):
@@ -129,52 +143,109 @@ def sections(raw):
     return code, bss
 
 
-def assembly(raws, allowed):
+def definitions(lines):
+    return set(re.findall(r'^\s*(_[\w]+):', '\n'.join(lines), re.M))
+
+
+def references(lines):
+    referenced = set()
+    for line in lines:
+        line = re.sub(r'"(?:[^"\\]|\\.)*"', '', line)
+        line = line.split(';', 1)[0]
+        referenced.update(re.findall(r'(?<![\w.])_+[A-Za-z][\w]*', line))
+    return referenced
+
+
+def thunked(code, remote, page):
+    """Calls and jumps from code to functions in remote (another page) go through ModFar
+    thunks, appended to code. Any other reference to a remote symbol is a pointer that
+    would be read with the wrong page mapped, so it's rejected."""
+    out, thunks = [], []
+    for line in code:
+        branch = BRANCH_RE.match(line)
+        if branch and branch[2] in remote:
+            if branch[2] not in thunks:
+                thunks.append(branch[2])
+            line = branch[1] + branch[2] + '__far' + branch[3]
+        out.append(line)
+    crossing = references(out) & remote
+    if crossing:
+        raise ValueError('pointer into the other page: ' + ', '.join(sorted(crossing)))
+    for target in thunks:
+        out += [f'{target}__far:', '\tcall _ModFar', f'\tDB {page}', f'\tDW {target}']
+    return out
+
+
+def assembly(raws, allowed, raws2=None):
     """Link-ready source for one module from its SDCC outputs; also returns the SDK names used.
 
     Everything goes in one LOAD block at the borrowed page: code and literals, then BSS.
+    A wide module (raws2) gets a second LOAD block for the second page and its BSS in WRAMX.
     Rejects initialized data, duplicate symbols and any import outside the SDK,
     including SDCC's arithmetic helpers.
     """
     if isinstance(raws, str):
         raws = [raws]
-    code, bss, defined = [], [], set()
-    for raw in raws:
-        part_code, part_bss = sections(raw)
-        names = re.findall(r'^\s*(_[\w]+):', '\n'.join(part_code + part_bss), re.M)
-        duplicates = defined & set(names)
-        if duplicates:
-            raise ValueError('symbol defined twice in module: ' + ', '.join(sorted(duplicates)))
-        defined.update(names)
-        code += part_code
-        bss += part_bss
-    referenced = set()
-    for line in code + bss:
-        line = re.sub(r'"(?:[^"\\]|\\.)*"', '', line)
-        line = line.split(';', 1)[0]
-        referenced.update(re.findall(r'(?<![\w.])_+[A-Za-z][\w]*', line))
-    unknown = referenced - defined - set(allowed)
+    pages = [[], []]
+    bss, defined = [], set()
+    for index, group in enumerate((raws, raws2 or [])):
+        for raw in group:
+            part_code, part_bss = sections(raw)
+            names = definitions(part_code + part_bss)
+            duplicates = defined & names
+            if duplicates:
+                raise ValueError('symbol defined twice in module: ' + ', '.join(sorted(duplicates)))
+            defined.update(names)
+            pages[index] += part_code
+            bss += part_bss
+    wide = raws2 is not None
+    if wide:
+        first, second = definitions(pages[0]), definitions(pages[1])
+        pages[0] = thunked(pages[0], second, C['MODULE_PAGE2'])
+        pages[1] = thunked(pages[1], first, C['MODULE_PAGE'])
+        if wide and '_ModFar' not in allowed:
+            raise ValueError('wide modules need the ModFar ABI entry')
+    referenced = references(pages[0] + pages[1] + bss)
+    unknown = referenced - defined - set(allowed) - {name + '__far' for name in defined}
     if unknown:
         raise ValueError('non-SDK imports: ' + ', '.join(sorted(unknown)))
     page = C['MODULE_PAGE']
-    text = '\n'.join(['INCLUDE "build/modules/imports.inc"',
-        'SECTION "Module", ROMX[$4000], BANK[1]',
-        f'LOAD "Module RAM", SRAM[${PAGE_ADDRESS:04X}], BANK[{page}]',
-        'ModuleStart:', *code, 'ModulePayloadEnd:', *bss, 'ModuleEnd:',
-        f'ASSERT ModuleEnd <= ${PAGE_ADDRESS + PAGE_SIZE:04X}', 'ENDL']) + '\n'
-    return text, referenced & set(allowed)
+    lines = ['INCLUDE "build/modules/imports.inc"',
+             'SECTION "Module", ROMX[$4000], BANK[1]',
+             f'LOAD "Module RAM", SRAM[${PAGE_ADDRESS:04X}], BANK[{page}]',
+             'ModuleStart:', *pages[0], 'ModulePayloadEnd:']
+    if wide:
+        lines += ['ModuleEnd:', f'ASSERT ModuleEnd <= ${PAGE_ADDRESS + PAGE_SIZE:04X}', 'ENDL',
+                  'SECTION "Module B", ROMX[$4000], BANK[2]',
+                  f'LOAD "Module RAM B", SRAM[${PAGE_ADDRESS:04X}], BANK[{C["MODULE_PAGE2"]}]',
+                  'ModuleStartB:', *pages[1], 'ModulePayloadEndB:',
+                  f'ASSERT ModulePayloadEndB <= ${PAGE_ADDRESS + PAGE_SIZE:04X}', 'ENDL',
+                  f'SECTION "Module BSS", WRAMX[${C["MODULE_BSS"]:04X}], BANK[1]',
+                  'ModuleBSS:', *bss, 'ModuleBSSEnd:',
+                  f'ASSERT ModuleBSSEnd <= ${C["MODULE_BSS"] + C["MODULE_BSS_SIZE"]:04X}']
+    else:
+        lines += [*bss, 'ModuleEnd:', f'ASSERT ModuleEnd <= ${PAGE_ADDRESS + PAGE_SIZE:04X}', 'ENDL']
+    return '\n'.join(lines) + '\n', referenced & set(allowed)
 
 
-def build_module(module, versions):
-    name = module['name']
-    work = OUTPUT / name
-    work.mkdir(parents=True, exist_ok=True)
+def compile_sources(work, sources):
     raws = []
-    for source in module['sources']:
+    for source in sources:
         raw = work / (Path(source).stem + '.raw.asm')
         subprocess.run(SDCC + [str(ROOT / 'modules' / source), '-o', str(raw)], check=True, cwd=ROOT)
         raws.append(raw.read_text())
-    text, used = assembly(raws, versions)
+    return raws
+
+
+def build_module(module, versions):
+    """Builds bin/MODULES/<name>.MOD; returns the SDK names it uses."""
+    name = module['name']
+    work = OUTPUT / name
+    work.mkdir(parents=True, exist_ok=True)
+    wide = 'sources2' in module
+    raws = compile_sources(work, module['sources'])
+    raws2 = compile_sources(work, module['sources2']) if wide else None
+    text, used = assembly(raws, versions, raws2)
     (work / 'module.asm').write_text(text)
     subprocess.run(['rgbasm', '-o', str(work / 'module.o'), str(work / 'module.asm')], check=True, cwd=ROOT)
     subprocess.run(['rgblink', '-n', str(work / 'module.sym'), '-o', str(work / 'module.bin'),
@@ -184,25 +255,40 @@ def build_module(module, versions):
         match = re.match(r'[0-9a-fA-F]+:([0-9a-fA-F]+) (\w+)$', line)
         if match:
             symbols[match[2]] = int(match[1], 16)
-    if '_ModuleMain' not in symbols:
-        raise ValueError(f'{name}: no ModuleMain')
+    if '_ModuleMain' not in symbols or not PAGE_ADDRESS <= symbols['_ModuleMain'] < symbols['ModulePayloadEnd']:
+        raise ValueError(f'{name}: no ModuleMain in the first page')
     size = symbols['ModulePayloadEnd'] - PAGE_ADDRESS
-    bss = symbols['ModuleEnd'] - symbols['ModulePayloadEnd']
     abi = max([versions[symbol] for symbol in used], default=1)
-    payload = (work / 'module.bin').read_bytes()[0x4000:0x4000 + size]
+    image = (work / 'module.bin').read_bytes()
+    payload = image[0x4000:0x4000 + size]
+    payload2 = None
+    if wide:
+        size2 = symbols['ModulePayloadEndB'] - PAGE_ADDRESS
+        payload2 = image[0x8000:0x8000 + size2]
+        bss_offset, bss = 0, symbols['ModuleBSSEnd'] - symbols['ModuleBSS']
+        report = f'{size} + {size2} code/data bytes in two pages, {bss} BSS bytes in WRAMX'
+    else:
+        bss_offset, bss = size, symbols['ModuleEnd'] - symbols['ModulePayloadEnd']
+        report = f'{size} code/data bytes, {bss} BSS bytes'
     destination = ROOT / f'bin/MODULES/{name}.MOD'
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_bytes(package(payload, symbols['_ModuleMain'] - PAGE_ADDRESS, module['id'],
-                                    size, bss, abi))
-    print(f'{name}.MOD: {size} code/data bytes, {bss} BSS bytes, ABI {abi}')
+                                    bss_offset, bss, abi, payload2))
+    print(f'{name}.MOD: {report}, ABI {abi}')
+    return used
 
 
 def build(headers_only=False):
     versions = sdk()
     if headers_only:
         return
+    wide_used = set()
     for module in manifest():
-        build_module(module, versions)
+        used = build_module(module, versions)
+        if 'sources2' in module:
+            wide_used |= used
+    # check_module_abi.py keeps these entries out of the second page too
+    write_if_changed(OUTPUT / 'wide.txt', ''.join(sorted(name.replace('_Mod', '_ModuleAPI', 1) + '\n' for name in wide_used)))
 
 
 if __name__ == '__main__':

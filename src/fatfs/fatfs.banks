@@ -14,7 +14,7 @@ OMIT: f_getfree f_truncate
 10: f_write create_chain put_fat dir_register remove_chain sync_window dir_clear dir_alloc move_window ld_clust st_clust
 11: tchar2uni put_utf cmp_lfn put_lfn gen_numname create_name get_fileinfo ff_wtoupper ff_uni2oem ff_oem2uni fs_GameFinish
 14: fs_LoadLarge fs_LoadWindow fs_DocLineStart fs_ScanStep AddCopy DocPiece DocRead DocReadAll OneFilePiece Split fs_CommitWindow SaveOut fs_SaveLarge disk_read BackupSnapshot
-13: f_unlink f_rename f_stat f_mkdir dir_remove fs_CloseLarge Signature SnapshotPath CheatHex GameCheats
+13: f_unlink f_rename f_stat f_mkdir dir_remove fs_CloseLarge Signature SnapshotPath CheatHex GameCheats fs_WriteImage
 15: SaveRamBlock SaveRamFile fs_BackupSave fs_GameOpen battery_types
 12: fs_GameCopy get_fattime ReadGameRTC WriteGameRTC BackupRegistry RegistrySum
 4: SnapshotCopy SnapshotStore fs_Snapshot

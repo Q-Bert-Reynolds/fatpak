@@ -1,3 +1,10 @@
+# Priority
+
+- Assembler ([ASSEMBLER.md](ASSEMBLER.md)): first version done as `ASM.MOD` (two passes, symbols and image in PSRAM, sequential section placement, rgbfix header, BUILD/RUN through the game path and the swap file). Next: hardware timing, speed (module loads, per-character calls, image fill/checksum), then `INCLUDE`/`INCBIN` via a module file API, `IF`/`REPT`/macros, 32-bit values, overlap checks, listings, assembling large documents from the card.
+- Export table built from `GBCOS.sym` in its own section, plus a small ROM0 API (print, keys, files, exit) for user programs.
+- Loadable modules (gbt_player from 132083e, map loader from 8c7c9ef).
+- Small-C style compiler matching SDCC's calling convention, multi-pass via SD temp files
+
 # Rendering
 
 - Font selection (VWF, 4 px fixed, Tiny5 Mono in `img/fonts/tiny5mono_font.png`, ...) separately for text and code, saved in settings.
@@ -53,15 +60,8 @@
 
 # OS utilities
 
-- **Modules:** keyboard test, clock and file info are modules. Hardware-test them; remaining work in [MODULES.md](MODULES.md#next-steps).
 - In-game tools on the snapshot: memory dump to files; VRAM viewer (tiles, maps, OAM, palettes); BMP/stored-deflate PNG export; screenshot rebuilt from the snapshot (VBlank state only, so raster effects are wrong).
 - PNG viewer: inflate with a 32 KB PSRAM window, 8-bit gray/RGB/RGBA/palette (no Adam7/16-bit), fit/1x/2x/4x with panning, dithered on DMG, per-tile palettes on GBC; see [IMAGE_VIEWER.md](IMAGE_VIEWER.md).
-- On-device development, in order:
-  1. Two-pass assembler for an RGBDS subset reusing `TBLexCode`/keyword tables; symbols in SRAM; swap the editor's PSRAM to SD while a program runs, with a crash/power-loss restore flag.
-  2. Export table built from `GBCOS.sym` in its own section, plus a small ROM0 API (print, keys, files, exit) for user programs.
-  3. ROM builder (ORG/BANK placement, then sections and a linker; rgbfix-style header) launched via the existing path. Measure source/symbol counts and SD speed first.
-  4. Loadable modules (gbt_player from 132083e, map loader from 8c7c9ef).
-  5. Small-C style compiler matching SDCC's calling convention, multi-pass via SD temp files; Forth as the cheaper alternative.
 
 # Platforms
 

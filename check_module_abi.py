@@ -14,6 +14,7 @@ from bank_split import Module, FUNCTION_RE, BRANCH_RE
 import utils
 
 PAGE = utils.constants()['MODULE_PAGE']
+PAGE2 = utils.constants()['MODULE_PAGE2']  # wide modules borrow it too (module_build.py writes which entries they use)
 
 # Audited assembly: name -> what it can reach. Each must stay resident or save,
 # switch and restore the page itself. EditorDraw's plain-row path uses page 12;
@@ -34,6 +35,8 @@ ASM = {
     'sgb_SetPal': ['sgb_PacketTransfer'], 'sgb_PacketTransfer': [], '_EditorInvertCursor': [],
     # ScrollRows -> Layout: ROM0 renderer and row-table helpers only
     '_RenderSetMapRow': [], '_RenderStage': [], '_tb_ScrollRows': [],
+    '_tb_Read': [],  # ROM0 text buffer readers
+    '_ModuleAPIFar': ['FarCallInline'], 'FarCallInline': [],  # ROM0
     # interrupt handlers
     'VBLInterrupt': ['gbdk_DMATransfer', 'LatchPad'],
     'LCDInterrupt': ['RenderLCDInterrupt'],  # via rLCDInterrupt; the editor's handler
@@ -60,38 +63,42 @@ def check(sources, symbol_path):
         if match := re.match(r'([\da-f]+):([\da-f]+) (\w+)$', line):
             symbols[match[3]] = (int(match[1], 16), int(match[2], 16))
     abi = json.loads(Path('modules/abi.json').read_text())
-    visited = set()
+    def walk(roots, pages):
+        visited = set()
 
-    def visit(name, chain):
-        if name in visited:
-            return
-        visited.add(name)
-        chain = chain + [name]
-        if destinations.get(name) == str(PAGE):
-            raise ValueError('module ABI reaches displaced page: ' + ' -> '.join(chain))
-        if name in edges:
-            for target in edges[name]:
-                visit(target, chain)
-        elif name in ASM:
-            if name not in symbols:
-                raise ValueError('audited assembly gate is missing from the symbols: ' + name)
-            bank, address = symbols[name]
-            if 0xA000 <= address < 0xBD00 and bank == PAGE:
-                raise ValueError('assembly ABI gate moved into the borrowed page: ' + name)
-            for target in ASM[name]:
-                visit(target, chain)
-        else:
-            raise ValueError('unaudited assembly ABI gate: ' + ' -> '.join(chain))
+        def visit(name, chain):
+            if name in visited:
+                return
+            visited.add(name)
+            chain = chain + [name]
+            if destinations.get(name) in pages:
+                raise ValueError(f'module ABI reaches a borrowed page ({destinations[name]}): ' + ' -> '.join(chain))
+            if name in edges:
+                for target in edges[name]:
+                    visit(target, chain)
+            elif name in ASM:
+                if name not in symbols:
+                    raise ValueError('audited assembly gate is missing from the symbols: ' + name)
+                bank, address = symbols[name]
+                if 0xA000 <= address < 0xBD00 and str(bank) in pages:
+                    raise ValueError('assembly ABI gate moved into a borrowed page: ' + name)
+                for target in ASM[name]:
+                    visit(target, chain)
+            else:
+                raise ValueError('unaudited assembly ABI gate: ' + ' -> '.join(chain))
+        for name in roots:
+            visit(name, [])
+        return visited
     for module in modules:
         if module.source == Path('src/modules/runtime.c'):
             for name, dest in module.functions.items():
                 if dest not in ('FIXED', 'ROM0'):
                     raise ValueError('module runtime must remain resident: ' + name)
-    for name, *_ in abi['entries']:
-        visit('_ModuleAPI' + name, [])
-    for name in INTERRUPTS:
-        visit(name, [])
-    print(f'module ABI: {len(visited)} reachable functions, no page-{PAGE} imports')
+    visited = walk(['_ModuleAPI' + name for name, *_ in abi['entries']] + INTERRUPTS, {str(PAGE)})
+    wide = Path('build/modules/wide.txt')
+    wide = wide.read_text().split() if wide.exists() else []
+    walk(wide + INTERRUPTS, {str(PAGE), str(PAGE2)})
+    print(f'module ABI: {len(visited)} reachable functions, no page-{PAGE} imports; {len(wide)} wide entries clear of page {PAGE2}')
 
 
 if __name__ == '__main__':

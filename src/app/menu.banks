@@ -1,4 +1,5 @@
 # Code placement; feature ownership follows the source files.
 *: 5
-4: FileMenu HandleFileKey
+4: HandleFileKey
+6: FileMenu
 15: PreferencesMenu

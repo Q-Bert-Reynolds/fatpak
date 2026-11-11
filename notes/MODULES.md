@@ -7,8 +7,9 @@ into an OS page for one call and puts the page back. The model follows CP/M
 `.OVL` overlays ([LINK-80 Operator's Guide, Appendix E](https://www.bitsavers.org/pdf/digitalResearch/cpm/LINK-80_Operators_Guide_Dec80.pdf)):
 fixed load address and length, sharing memory with the host program.
 
-Status: five modules pass in Gearboy (DMG and CGB). KEYTEST, CLOCK and FILEINFO
-work on hardware; HELP and THEME (ABI 3) haven't been tried there yet.
+Status: six modules pass in Gearboy (DMG and CGB). KEYTEST, CLOCK and FILEINFO
+work on hardware; HELP and THEME (ABI 3) and ASM (ABI 4, the first wide module)
+haven't been tried there yet.
 
 | Module | ID | ABI | Host | Size |
 | --- | --- | --- | --- | --- |
@@ -17,6 +18,7 @@ work on hardware; HELP and THEME (ABI 3) haven't been tried there yet.
 | `FILEINFO.MOD` | 3 | 2 | FILE > INFO, Select (`browser/info.c`) | 3,141 B + 43 B BSS |
 | `HELP.MOD` | 4 | 3 | HELP, F1 (`editor/help.c`) | 327 B + 34 B BSS |
 | `THEME.MOD` | 5 | 3 | SETTINGS > THEME (`ui/theme.c`) | 510 B |
+| `ASM.MOD` | 6 | 4 | FILE > BUILD, RUN (`editor/build.c`), [ASSEMBLER.md](ASSEMBLER.md) | wide: 6,034 + 4,929 B, 948 B BSS |
 
 ## Rules
 
@@ -30,6 +32,17 @@ work on hardware; HELP and THEME (ABI 3) haven't been tried there yet.
   enforces this for every ABI entry and interrupt handler.
 - No relocation, callbacks, initialized writable globals (`_GSINIT` is rejected),
   SDCC arithmetic helpers, or host pointers into module memory after return.
+- **Wide modules** (`MODULE_FORMAT_WIDE`, `"sources2"` in `modules.json`) also
+  borrow **page 12** (`MODULE_PAGE2`) and keep their BSS in the editor's WRAMX
+  buffers (`MODULE_BSS`, `$D000`, 3,072 bytes: `tile_buffer` to the lexer
+  state), saved to PSRAM meanwhile. Calls between the two pages go through
+  `ModFar` thunks that `module_build.py` generates (a resident far call, like
+  `bank_split.py`'s); a pointer from one page into the other's code or constants
+  is rejected at build time, because the other page isn't mapped when it would
+  be read. Nothing in page 12 may run meanwhile either (`BeginView`, `NameChar`,
+  `ShowGameProgress`, `fs_GameCopy`, the game RTC and registry), and nothing may
+  draw, since `tile_buffer` is the module's BSS: the checker keeps the entries a
+  wide module uses (`build/modules/wide.txt`) out of both pages.
 - Host pattern: show a busy box, set `module_context` if the module needs input,
   `RUN_MODULE(NAME)`, and on a nonzero result `ShowModuleError`. The module hides
   or replaces the box when it draws. The host restores layout and flags after,
@@ -42,7 +55,8 @@ work on hardware; HELP and THEME (ABI 3) haven't been tried there yet.
 | --- | --- | --- |
 | Page, PSRAM blocks, ABI version, table address/slots, header offsets, error codes | `src/constants.asm` | asm, C (`constants.h`), Python (`utils.constants()`) |
 | ABI entries, in table order, with the ABI version that added each | `modules/abi.json` | `module_build.py`, `check_module_abi.py` |
-| Module names, IDs, sources | `modules/modules.json` | `module_build.py` → `build/modules/modules.h` |
+| Module names, IDs, sources (`sources2` makes a wide module) | `modules/modules.json` | `module_build.py` → `build/modules/modules.h` |
+| Second page, BSS region, source chunk | `src/constants.asm` (`MODULE_PAGE2`, `MODULE_BSS*`, `MODULE_SOURCE_CHUNK`) | asm, C, Python, `src/wram.asm` asserts the region |
 | Joypad bits | `src/pad.h` | host (`input.h`) and modules (`sdk.h`) |
 | Row names `HEADER_LINE`, `STATUS_LINE` | `src/constants.asm` | host and modules |
 
@@ -55,7 +69,7 @@ work on hardware; HELP and THEME (ABI 3) haven't been tried there yet.
 | `modules/lib/text.c` | `PutText`, `PutNumber` (32-bit, by subtraction), `PutNumber2`, `PutHex` |
 | `modules/info.h` | `InfoContext`, shared by FILEINFO and its host (uses FatPak's `FileEntry`/`FileDetails`) |
 | `src/modules/runtime.c` | `RunModule`, `ShowModuleError`, `ModuleAPI*` wrappers, marshaling (all FIXED) |
-| `src/modules/runtime.asm` | PSRAM asserts, `ModuleSwap`, `ModuleCompare`, `ModuleCRC`, `ModuleEnter`, the table |
+| `src/modules/runtime.asm` | PSRAM asserts, `ModuleSwap` (either page), `ModuleSwapRAM` (the WRAMX region), `ModuleCompare`, `ModuleCRC`, `ModuleEnter`, `ModuleAPIFar`, the table |
 | `src/fatfs/fatfs.c` | `fs_LoadModule`: validate and stage (FIXED) |
 
 The Makefile gives the generated headers a real rule (C recompiles only when
@@ -75,6 +89,12 @@ sources, and any `_`-symbol not defined locally or in the SDK. It emits one
 the entries the module actually references, so a module that sticks to older
 entries runs on older hosts.
 
+A wide module gets a second `LOAD` block for page 12 from its `sources2`, a
+`WRAMX[$D000]` section for every source's BSS, and `_X__far` thunks (`call
+_ModFar`, `DB page`, `DW _X`) appended to whichever page calls `_X` in the
+other; `call`/`jp` lines are rewritten to them and any other cross-page symbol
+reference fails the build. `ModuleMain` must be in the first page.
+
 ### File format
 
 32-byte little-endian header (offsets are `MODULE_H_*`), then the payload:
@@ -91,8 +111,13 @@ entries runs on older hosts.
 | 12 | 2 | Payload length (1-`$1D00`; file size must equal 32 + length) |
 | 14 | 2 | BSS offset (≥ length) |
 | 16 | 2 | BSS size (BSS end ≤ `$1D00`) |
-| 18 | 2 | CRC-16/CCITT of payload (`binascii.crc_hqx`, init `$FFFF`) |
-| 20 | 12 | Zero |
+| 18 | 2 | CRC-16/CCITT of payload (`binascii.crc_hqx`, init `$FFFF`; wide: both pages' bytes in order) |
+| 20 | 1 | Wide: second page (12); otherwise zero |
+| 21 | 2 | Wide: second page's payload length, which follows the first in the file |
+| 23 | 9 | Zero |
+
+Format 2 (`MODULE_FORMAT_WIDE`) uses those fields; its BSS offset is 0 and its
+BSS size counts WRAMX bytes (≤ `MODULE_BSS_SIZE`).
 
 ### PSRAM
 
@@ -102,6 +127,8 @@ entries runs on older hosts.
 | `$3d55-$3d64` | Filename undo history |
 | `$3d80-$3d8e` | `MODULE_STAGE`: staged page (14 sectors + 256 bytes, zero past payload) |
 | `$3d90-$3d9e` | `MODULE_BACKUP`: the OS page |
+| `$3da0-$3dae`, `$3db0-$3dbe` | `MODULE_STAGE2`, `MODULE_BACKUP2`: the same for page 12 (wide modules) |
+| `$3dc0-$3dc5` | `MODULE_BSS_BACKUP`: the editor's WRAMX buffers while a wide module runs |
 
 `runtime.asm` asserts these stay clear of the large-file add buffer, snapshot
 staging (`$3c00-$3ca3`) and game metadata (`$3e2f`), and that the table fits
@@ -123,7 +150,15 @@ below `$8000`. Copies never touch the final sector's upper 256 bytes.
    to page 13.
 4. `HideBox`, then `ModuleSwap(2)` restores the page. If the backup or install
    doesn't read back, the module never runs and the page is restored; if the
-   restore doesn't read back, `RestartDevice`.
+   restore doesn't read back, `RestartDevice`. The window block is put back to
+   what it was before the call.
+
+A wide module adds, between the first install and the run: `ModuleSwap(4)` and
+`(5)` for page 12 and `ModuleSwapRAM(0)`, which saves the WRAMX region to PSRAM
+and zeroes it; after the run `ModuleSwapRAM(2)` and `ModuleSwap(6)` put them
+back before `HideBox`. Each step that fails to read back restores only what was
+installed so far. `ModuleAPISource` selects the text buffer's PSRAM high block
+around `tb_Read`, since the module may have moved the window.
 
 | Result | `ShowModuleError` |
 | --- | --- |
@@ -157,6 +192,8 @@ entries. Entries are append-only; changing one's meaning needs a new entry.
 | `ModScroll(down)` | 3 | `ScrollRows`: rotate the text rows one row, keeping drawn rows |
 | `ModDraw` | 3 | `EditorDraw` |
 | `ModTheme(theme)` | 3 | `0xFF` reads it; otherwise sets light/dark, `ThemeApply`, `SettingsSave`. Returns the theme |
+| `ModSource(pos, dest)` | 4 | Up to `MODULE_SOURCE_CHUNK` (128) bytes of the text buffer from `pos`; returns the count, 0 past the end |
+| `ModFar` | 4 | Not called from C: the resident far call behind a wide module's thunks (`FarCallInline`) |
 
 Pointer rule: wrappers run with page 13 mapped, so they read module memory
 directly but copy it into host memory (`buffer` or the stack) before calling
@@ -167,13 +204,19 @@ sector buffer, so a future file API must not share it with a pending string.
 ## Tests
 
 - `tests/test_modules.py`: packer bounds, ABI range, import and duplicate-symbol
-  rejection, per-module ABI stamping; writes fixtures (every header field
-  corrupted, short, trailing, empty, ABI 0 and too new, context echo, max size).
+  rejection, per-module ABI stamping, wide packing (thunks generated, cross-page
+  pointers rejected); writes fixtures (every header field corrupted, short,
+  trailing, empty, ABI 0 and too new, context echo, max size, a wide module that
+  calls across its pages and checks its BSS, and wide headers with a bad second
+  page, length or BSS size).
 - `tests/run_modules.sh` (DMG, CGB): swaps read back and preserve mapping, IE and
   window; byte-identical page restore; nested call rejected; missing, malformed
   and wrong-ABI files rejected with the page untouched; an ABI 1 module runs;
   `module_context` arrives in `de` and is cleared; `module_status`; BSS zeroed;
-  literals marshaled; max-size page; open large document survives; stack guard.
+  literals marshaled; max-size page; open large document survives; stack guard;
+  the wide fixture runs twice with zeroed BSS, page 12 and the WRAMX buffers
+  come back byte-identical, and its malformed variants are rejected.
+- `tests/run_build.sh`: ASM.MOD end to end ([ASSEMBLER.md](ASSEMBLER.md)).
 - `tests/run_browser_menu.sh` (DMG, CGB): KEYBOARD TEST, the clock's fields,
   selection and editing, and every info field for text, folder and game files
   (including DMG/dual flags and MBC2 with a bad checksum) through the real
@@ -197,23 +240,23 @@ The busy box stays up throughout, so nothing looks frozen.
 
 ## Next steps
 
-1. **Hardware pass:** CLOCK and FILEINFO on DMG, CGB and GBA SP (set the clock,
-   inspect text/folder/ROM files); delete or corrupt a `.MOD` to see each error;
-   launch a game and return after using them; time the info page.
-2. **Speed**, if hardware feels slow, in order of payoff:
+- **Speed**, if hardware feels slow, in order of payoff:
    - Back up page 13 once per boot: on later runs compare the page against the
      backup instead of copying (one compare instead of copy + compare), and only
      recopy on a mismatch.
    - Stage and install only the payload's sectors, then zero the rest of the
      page directly, instead of copying 15 sectors every time.
    - `ModuleCRC`: keep the data pointer in a register instead of push/pop.
-3. **Verification failure path:** Gearboy can't make a copy read back wrong, so
+- **Verification failure path:** Gearboy can't make a copy read back wrong, so
    `MODULE_ERR_VERIFY` and the restart path are untested. A test-only fault hook
    (or a Gearboy write-drop option) would cover them.
-4. **More extractions:** pick by `check_pages.py`; good candidates are
+- **More extractions:** pick by `check_pages.py`; good candidates are
    self-contained screens with no file writes. Pages 7 and 14 have 0 bytes free.
-5. **Theme editor:** grow THEME.MOD's menu (UI and syntax colours, saved as more
+- **Theme editor:** grow THEME.MOD's menu (UI and syntax colours, saved as more
    settings after `theme`); theme the in-game menu.
-6. **Later:** a second borrowable page or relocation once a real module
-   (assembler, PNG viewer, snapshot tools) exceeds 7,424 bytes; a module
-   discovery UI; reuse for `SGB.DAT`'s GB backend ([SGB.md](SGB.md)).
+- **Wide modules** cost two more page swaps and the WRAMX save (about 25 frames
+   on DMG) and a far call per cross-page call; a module can't draw while it
+   runs. If a third page is ever needed, the BSS region can't grow (WRAMX is
+   full), so the next step is relocating BSS to PSRAM through accessors.
+- **Later:** a module discovery UI; reuse for `SGB.DAT`'s GB backend
+   ([SGB.md](SGB.md)); a file API for modules (`INCLUDE`, listings).

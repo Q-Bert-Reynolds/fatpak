@@ -1,7 +1,9 @@
 INCLUDE "src/fatpak.inc"
 
-;   ModuleSwap                  copies the borrowed page to/from PSRAM and reads it back
+;   ModuleSwap                  copies a borrowed page to/from PSRAM and reads it back
+;   ModuleSwapRAM               the same for a wide module's BSS region (the editor's WRAMX buffers)
 ;   ModuleEnter                 calls the installed module with module_context in de
+;   ModuleAPIFar                the far call behind a wide module's cross-page thunks
 ;   ModuleABI                   the jump table modules call (build/modules/table.inc)
 
 DEF MODULE_SECTORS EQU 15;14 full blocks and 256 bytes: PAGE_SIZE never reaches $BD00
@@ -9,8 +11,11 @@ ASSERT ADD_BLOCK + (ADD_MAX + 511) / 512 <= DATA_BLOCK
 ASSERT $3C00 + $A4 <= DATA_BLOCK
 ASSERT NAME_HISTORY_BLOCK + 16 <= MODULE_STAGE
 ASSERT MODULE_STAGE + MODULE_SECTORS <= MODULE_BACKUP
-ASSERT MODULE_BACKUP + MODULE_SECTORS < $3E2F;game metadata (src/fatfs/fatfs.c GAME_META)
-ASSERT HIGH(MODULE_STAGE) == HIGH(MODULE_BACKUP + MODULE_SECTORS - 1)
+ASSERT MODULE_STAGE2 == MODULE_STAGE + $20 && MODULE_BACKUP2 == MODULE_BACKUP + $20
+ASSERT MODULE_BACKUP2 + MODULE_SECTORS <= MODULE_BSS_BACKUP
+ASSERT MODULE_BSS_BACKUP + MODULE_BSS_SIZE / 512 < $3E2F;game metadata (src/fatfs/fatfs.c GAME_META)
+ASSERT HIGH(MODULE_STAGE) == HIGH(MODULE_BACKUP2 + MODULE_SECTORS - 1)
+ASSERT MODULE_BSS_SIZE % 512 == 0 && LOW(MODULE_BSS) == 0
 ASSERT MODULE_TABLE + 3 * MODULE_SLOTS <= $8000
 
 SECTION "Module transfer state", WRAM0
@@ -21,12 +26,89 @@ module_mismatch: DB
 _module_context:: DW;passed to the module's ModuleMain, 0 if its host gives none
 
 FIXED "Module loader"
-; A=0 backup (page to MODULE_BACKUP), 1 install (MODULE_STAGE to page),
-; 2 restore (MODULE_BACKUP to page). Each block is compared after it's copied.
+; A = 0 backup (page to MODULE_BACKUP), 1 install (MODULE_STAGE to page),
+; 2 restore (MODULE_BACKUP to page); + 4 for the second page (MODULE_PAGE2, the
+; blocks $20 higher). Each block is compared after it's copied.
 ; Returns A=0 when everything read back, nonzero on a mismatch.
 ; Only resident LCD handling runs during transfer; no HDMA is initiated here.
 _ModuleSwap::
   ld [module_operation], a
+  call ModuleSwapBegin
+  bit 2, a
+  ld a, MODULE_PAGE
+  jr z, .page
+  ld a, MODULE_PAGE2
+.page
+  SET_BANK
+  ei
+  ld hl, $A000
+  ST_HL_VAR module_pointer
+.loop
+  ld a, [module_operation]
+  and 3
+  cp 1
+  ld a, LOW(MODULE_BACKUP)
+  jr nz, .block
+  ld a, LOW(MODULE_STAGE)
+.block
+  ld b, a
+  ld a, [module_operation]
+  and 4
+  add a, a
+  add a, a
+  add a, a;$20 for the second page
+  add b
+  ld b, a
+  ld a, [module_sector]
+  add b
+  ld [EDX_BLOCK], a
+  ld a, HIGH(MODULE_STAGE)
+  ld [EDX_BLOCK+1], a
+  ld bc, 512
+  ld a, [module_sector]
+  cp MODULE_SECTORS - 1
+  jr nz, .count
+  ld bc, PAGE_SIZE - (MODULE_SECTORS - 1) * 512
+.count
+  call ModuleSwapBlock
+  cp MODULE_SECTORS
+  jr c, .loop
+  jp ModuleSwapEnd
+
+; A = 0 saves the BSS region (MODULE_BSS) to MODULE_BSS_BACKUP and zeroes it for the
+; module, 2 restores it. Returns A=0 when the copy read back.
+_ModuleSwapRAM::
+  ld [module_operation], a
+  call ModuleSwapBegin
+  ei
+  ld hl, MODULE_BSS
+  ST_HL_VAR module_pointer
+.loop
+  ld a, [module_sector]
+  add LOW(MODULE_BSS_BACKUP)
+  ld [EDX_BLOCK], a
+  ld a, HIGH(MODULE_BSS_BACKUP)
+  ld [EDX_BLOCK+1], a
+  ld bc, 512
+  call ModuleSwapBlock
+  cp MODULE_BSS_SIZE / 512
+  jr c, .loop
+  ld a, [module_operation]
+  or a
+  jp nz, ModuleSwapEnd
+  ld a, [module_mismatch]
+  or a
+  jp nz, ModuleSwapEnd;the editor's buffers stay as they are
+  ld hl, MODULE_BSS
+  ld bc, MODULE_BSS_SIZE
+  xor a
+  call mem_Set
+  jp ModuleSwapEnd
+
+;disables everything but the LCD interrupt, saves the bank, $BD06 and the window block on
+;the stack (under its return address) and starts the sector count, returns [module_operation] in a
+ModuleSwapBegin:
+  pop hl
   call RenderWaitDMA
   di
   ldh a, [rIE]
@@ -45,37 +127,19 @@ _ModuleSwap::
   push af
   ld a, [EDX_BLOCK+1]
   push af
-  ld a, MODULE_PAGE
-  SET_BANK
-  ei
-  ld hl, $A000
-  ST_HL_VAR module_pointer
   xor a
   ld [module_sector], a
   ld [module_mismatch], a
-.loop
   ld a, [module_operation]
-  cp 1
-  ld a, LOW(MODULE_BACKUP)
-  jr nz, .block
-  ld a, LOW(MODULE_STAGE)
-.block
-  ld b, a
-  ld a, [module_sector]
-  add b
-  ld [EDX_BLOCK], a
-  ld a, HIGH(MODULE_STAGE)
-  ld [EDX_BLOCK+1], a
-  ld bc, 512
-  ld a, [module_sector]
-  cp MODULE_SECTORS - 1
-  jr nz, .count
-  ld bc, PAGE_SIZE - (MODULE_SECTORS - 1) * 512
-.count
+  jp hl
+
+;copies bc bytes between [module_pointer] and the window (the window is the destination for
+;operation 0), compares them, advances module_pointer and the sector, returns it in a
+ModuleSwapBlock:
   LD_HL_VAR module_pointer;source: the page when backing up
   ld de, EDX_WINDOW
   ld a, [module_operation]
-  and a
+  and 3
   jr z, .copy
   ld d, h;otherwise the window is the source
   ld e, l
@@ -101,8 +165,9 @@ _ModuleSwap::
   ld hl, module_sector
   inc [hl]
   ld a, [hl]
-  cp MODULE_SECTORS
-  jr c, .loop
+  ret
+
+ModuleSwapEnd:
   di
   pop af
   ld [EDX_BLOCK+1], a
@@ -204,5 +269,9 @@ _ModuleEnter::
   ret
 .enter
   jp hl
+
+;a wide module's thunks: call _ModFar, DB page, DW target (module_build.py), like bank_split's
+_ModuleAPIFar::
+  jp FarCallInline
 
 INCLUDE "build/modules/table.inc"

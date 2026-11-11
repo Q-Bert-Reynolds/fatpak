@@ -1141,6 +1141,18 @@ static FRESULT SnapshotFile(const char* path, BYTE write, UINT first) {
   SetWindowBlock(TB_PSRAM_HIGH << 8);
   closed = f_close(&save_file); return result ? result : closed;
 }
+// ASM.MOD's ROM image (ASM_IMAGE_BLOCK, blocks of 512) to a file, replacing it
+unsigned char fs_WriteImage(const char* path, UINT blocks) {
+  UINT n, done; FRESULT result, closed;
+  if ((result = fs_Mount()) || (result = f_open(&save_file, path, FA_WRITE | FA_CREATE_ALWAYS))) return result;
+  for (n = 0; !result && n < blocks; ++n) {
+    SetWindowBlock(ASM_IMAGE_BLOCK + n);
+    result = f_write(&save_file, WINDOW, 512, &done);
+    if (!result && done != 512) result = FR_DENIED;
+  }
+  SetWindowBlock(TB_PSRAM_HIGH << 8);
+  closed = f_close(&save_file); return result ? result : closed;
+}
 // kind 0: staged -> live; 1: live -> slot; 2: staged -> slot; 3: slot -> staged.
 static void SnapshotCopy(BYTE kind) {
   UINT n;
@@ -1530,10 +1542,11 @@ unsigned char fs_Session(const char* folder, unsigned char mode) {
 // leaving an open editor document and its undo history alone.
 extern unsigned int module_entry;
 extern UINT ModuleCRC(const BYTE* data, UINT count, UINT crc); // src/modules/runtime.asm
+unsigned char module_wide; // the staged module is MODULE_FORMAT_WIDE: a second page, BSS in WRAMX
 unsigned char fs_LoadModule(const char* path, unsigned char id) {
   FIL module;
-  BYTE header[MODULE_HEADER], result, close_result;
-  UINT done, length, offset = 0, crc = 0xFFFF, expected, entry, bss, bss_size, i;
+  BYTE header[MODULE_HEADER], result, close_result, wide, page;
+  UINT done, length, length2 = 0, offset, crc = 0xFFFF, expected, entry, bss, bss_size, i;
   UINT saved_block = *(volatile UINT*)0xBD02;
   BYTE saved_config = *(volatile BYTE*)0xBD06;
   result = f_open(&module, path, FA_READ);
@@ -1541,7 +1554,8 @@ unsigned char fs_LoadModule(const char* path, unsigned char id) {
   result = f_read(&module, header, sizeof(header), &done);
   if (result) goto close;
   result = FR_INVALID_OBJECT;
-  if (done != sizeof(header) || memcmp(header, "FPKM", 4) || header[MODULE_H_FORMAT] != MODULE_FORMAT) goto close;
+  wide = header[MODULE_H_FORMAT] == MODULE_FORMAT_WIDE;
+  if (done != sizeof(header) || memcmp(header, "FPKM", 4) || (header[MODULE_H_FORMAT] != MODULE_FORMAT && !wide)) goto close;
   // Hosts keep older ABI entries, so any version up to the host's runs.
   if (!header[MODULE_H_ABI] || header[MODULE_H_ABI] > MODULE_ABI) { result = MODULE_ERR_ABI; goto close; }
   length = ld_16(header + MODULE_H_LENGTH);
@@ -1551,31 +1565,39 @@ unsigned char fs_LoadModule(const char* path, unsigned char id) {
   expected = ld_16(header + MODULE_H_CRC);
   if (header[MODULE_H_ID] != id || !id || header[MODULE_H_PAGE] != MODULE_PAGE ||
       ld_16(header + MODULE_H_ADDRESS) != 0xA000 ||
-      !length || length > 0x1D00 || entry >= length ||
-      bss < length || bss > 0x1D00 || bss_size > 0x1D00 - bss ||
-      f_size(&module) != (DWORD)length + sizeof(header)) goto close;
-  for (i = MODULE_H_RESERVED; i < sizeof(header); ++i) if (header[i]) goto close;
+      !length || length > 0x1D00 || entry >= length) goto close;
+  if (wide) {
+    length2 = ld_16(header + MODULE_H_LENGTH2);
+    if (header[MODULE_H_PAGE2] != MODULE_PAGE2 || !length2 || length2 > 0x1D00 || bss || bss_size > MODULE_BSS_SIZE) goto close;
+  }
+  else if (bss < length || bss > 0x1D00 || bss_size > 0x1D00 - bss) goto close;
+  if (f_size(&module) != (DWORD)length + length2 + sizeof(header)) goto close;
+  for (i = wide ? MODULE_H_RESERVED : MODULE_H_PAGE2; i < sizeof(header); ++i) if (header[i]) goto close;
   result = FR_OK;
   *(volatile BYTE*)0xBD06 = saved_config & ~2;
   // Read into WRAM: disk_read itself uses the cartridge's PSRAM window.
-  while (offset < 0x1D00) {
-    UINT size = length > offset ? length - offset : 0;
-    UINT sector_size = 0x1D00 - offset;
-    if (size > 512) size = 512;
-    if (sector_size > 512) sector_size = 512;
-    memset(buffer, 0, 512);
-    if (size) {
-      result = f_read(&module, buffer, size, &done);
-      if (result) goto close;
-      if (done != size) { result = FR_INVALID_OBJECT; goto close; }
-      crc = ModuleCRC(buffer, size, crc);
+  for (page = 0; page <= wide; ++page) {
+    offset = 0;
+    while (offset < 0x1D00) {
+      UINT size = length > offset ? length - offset : 0;
+      UINT sector_size = 0x1D00 - offset;
+      if (size > 512) size = 512;
+      if (sector_size > 512) sector_size = 512;
+      memset(buffer, 0, 512);
+      if (size) {
+        result = f_read(&module, buffer, size, &done);
+        if (result) goto close;
+        if (done != size) { result = FR_INVALID_OBJECT; goto close; }
+        crc = ModuleCRC(buffer, size, crc);
+      }
+      SetWindowBlock((page ? MODULE_STAGE2 : MODULE_STAGE) + (offset >> 9));
+      memcpy(WINDOW, buffer, sector_size);
+      offset += sector_size;
     }
-    SetWindowBlock(MODULE_STAGE + (offset >> 9));
-    memcpy(WINDOW, buffer, sector_size);
-    offset += sector_size;
+    length = length2;
   }
   if (crc != expected) result = FR_INVALID_OBJECT;
-  else module_entry = 0xA000 + entry;
+  else { module_entry = 0xA000 + entry; module_wide = wide; }
 close:
   close_result = f_close(&module);
   if (!result) result = close_result;

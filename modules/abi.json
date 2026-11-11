@@ -18,6 +18,8 @@
     ["Data", "unsigned char", "unsigned int offset, char* dest, unsigned char length", 3],
     ["Scroll", "void", "unsigned char down", 3],
     ["Draw", "void", "void", 3],
-    ["Theme", "unsigned char", "unsigned char theme", 3]
+    ["Theme", "unsigned char", "unsigned char theme", 3],
+    ["Source", "unsigned char", "unsigned int pos, char* dest", 4],
+    ["Far", "void", "void", 4]
   ]
 }

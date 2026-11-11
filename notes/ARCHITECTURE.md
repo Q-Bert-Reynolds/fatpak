@@ -118,7 +118,8 @@ mapper-write byte backup. Cart RAM ownership comes from `EDITOR.GAM` and
   globals. Large-file and game bookkeeping live in writable resident ROM
   (`fatfs.asm`).
 - **WRAMX 1:** `tile_buffer`, `bkg_buffer` (19 blocks × 40), `win_buffer` (360 B,
-  gap-move chunks), `tile_attrs`, lexer row states, `cmd_buffer` (row bitmap,
+  gap-move chunks), `tile_attrs`, lexer row states (the first 3,072 bytes, which
+  a wide module borrows as its BSS while it runs), `cmd_buffer` (row bitmap,
   page aligned), `str_buffer`, `name_buffer`, `render_dma_buffer`.
 - **HRAM:** `loaded_bank`, input, `pad_latch`, interrupt vars, OAM DMA routine,
   `vbl_done`, `sys_info`.
@@ -136,6 +137,8 @@ RAM instead when `$BD06` bit 1 is set).
 | `$3d00-$3d54` | `EDITOR.DAT` v5 (85 blocks): header, fonts, SGB border, help, paired shift tables (77), VWF bold widths (84) |
 | `$3d55-$3d64` | Filename prompt undo ring (64 states) |
 | `$0400-$3cff` | Large-file add buffer (`ADD_MAX` = `$720000` bytes), bounded before protected assets |
+| `$0400-$0bff`, `$0c00-$0fff` | While a text-buffer document is open: `ASM.MOD`'s ROM image (1 MiB) and symbol table ([ASSEMBLER.md](ASSEMBLER.md)) |
+| `$3d80-$3dc5` | Module staging, page backups and the WRAMX backup ([MODULES.md](MODULES.md)) |
 
 | Blocks | Game use |
 | --- | --- |
@@ -376,7 +379,7 @@ only draw after typing (`AskName`) still show them.
 ### Menus, browser and dialogs
 
 `Choose` draws untitled menu boxes. Editor menu: FILE (open, save, save as,
-new), EDIT, SETTINGS (line wrap, full screen, theme), HELP, CLOSE. Browser menu: FILE
+new, build, run), EDIT, SETTINGS (line wrap, full screen, theme), HELP, CLOSE. Browser menu: FILE
 (info, rename), EDIT (cut, copy, paste), SETTINGS (theme, clock, keyboard test), HELP,
 RESTART (saves the swap, then `$BD06=$10` for a full cartridge reset through the
 boot ROM). Select opens file info directly.
@@ -385,6 +388,9 @@ boot ROM). Select opens file info directly.
   text from `data/help/*.txt`, packed as 32-byte rows. `BeginView(1)` keeps the
   header/footer; `ScrollRows` reuses the display ring and reads only the
   incoming record per step.
+- **Build, Run** (`editor/build.c`, F7 and F5): `ASM.MOD` assembles the `.asm`
+  document to `<name>.gb` beside it; RUN then `LaunchGame`s it. Errors name the
+  line and move the cursor ([ASSEMBLER.md](ASSEMBLER.md)).
 - **Info** (`browser/info.c` reads, `FILEINFO.MOD` draws): FAT dates/times
   (zero shows `--`), size in B/KB/MB. `FileInspect` uses a private `FIL` (an open large document survives):
   text ≤32 KiB gets word and line counts, NULs mean binary; games read only the
@@ -470,7 +476,9 @@ strings are marshaled).
   button glyphs. `python3 tests/test_modules.py`: module packer and imports.
 - `bash tests/run_*.sh` (prebuilt sibling Gearboy core, temporary SD folders,
   DMG and CGB): browser menus, file ops, info and clock modules; footer clock;
-  in-game return; loading; session restore; module loader.
+  in-game return; loading; session restore; module loader; BUILD/RUN with the
+  assembler (`run_build.sh`, which first runs `tests/test_asm.py`, the PC
+  comparison against RGBDS).
 - `make -C ../Gearboy/tests everdrive` runs Gearboy's EverDrive component tests.
 - Gearboy over MCP (`--mcp-stdio`/`--mcp-http`, `--headless`) has a per-function
   cycle profiler.
@@ -498,6 +506,7 @@ Table lookups preserve the selected PSRAM block, including during text reads.
 Assets and filename undo moved above ROM loading and snapshot staging so game
 progress cannot overwrite live shift tables. The large-document add limit now
 stops before this reservation. Keep the OS and data file versions together.
-With the keyboard test, clock dialog and file info moved into modules, the map
-has ~1.1 KiB free in ROM0, ~3.6 KiB in resident bank 1, ~1 KiB in pages 6 and 13,
-and 9 bytes in WRAM0; the other pages are 98-100% full. See [MODULES.md](MODULES.md).
+With the keyboard test, clock dialog, file info, help and theme in modules, and
+the assembler a two-page module, the map has ~1 KiB free in ROM0, ~3 KiB in
+resident bank 1, ~0.7 KiB in page 6 and 6 bytes in WRAM0; the other pages are
+95-100% full. See [MODULES.md](MODULES.md).

@@ -61,10 +61,23 @@ DEF STATUS_LINE EQU (TB_ROWS + 1)
 DEF MODULE_PAGE    EQU 13;the OS page a module borrows
 DEF MODULE_STAGE   EQU $3D80;PSRAM: the validated module page, 15 blocks
 DEF MODULE_BACKUP  EQU $3D90;PSRAM: the borrowed OS page, 15 blocks
-DEF MODULE_ABI     EQU 3;newest ABI the host provides, modules built for older ones still load
+;wide modules (MODULE_FORMAT_WIDE) borrow a second page and keep their BSS in the editor's WRAMX buffers
+DEF MODULE_PAGE2   EQU 12
+DEF MODULE_STAGE2  EQU $3DA0;MODULE_STAGE + $20: ModuleSwap adds $20 for the second page
+DEF MODULE_BACKUP2 EQU $3DB0
+DEF MODULE_BSS     EQU $D000;tile_buffer: the editor's buffers, saved to PSRAM meanwhile (src/wram.asm)
+DEF MODULE_BSS_SIZE EQU 3072;6 blocks
+DEF MODULE_BSS_BACKUP EQU $3DC0
+DEF MODULE_SOURCE_CHUNK EQU 128;bytes ModSource copies at most
+;ASM.MOD (modules/asm.c): inside the large-file add buffer, so only text-buffer documents assemble
+DEF ASM_IMAGE_BLOCK  EQU $0400;the ROM image, up to ASM_IMAGE_BLOCKS
+DEF ASM_IMAGE_BLOCKS EQU 2048;1 MiB, 64 banks
+DEF ASM_SYMBOL_BLOCK EQU $0C00;the symbol table, 1024 blocks (65536 8-byte units)
+DEF MODULE_ABI     EQU 4;newest ABI the host provides, modules built for older ones still load
 DEF MODULE_TABLE   EQU $7F00;ABI jump table in resident bank 1, 3 bytes per entry
 DEF MODULE_SLOTS   EQU 32;entries reserved for it
-DEF MODULE_FORMAT  EQU 1
+DEF MODULE_FORMAT  EQU 1;one page, BSS after the code
+DEF MODULE_FORMAT_WIDE EQU 2;pages MODULE_PAGE and MODULE_PAGE2, BSS at MODULE_BSS
 DEF MODULE_HEADER  EQU 32;bytes before the payload
 DEF MODULE_H_FORMAT   EQU 4;header offsets, after the "FPKM" magic
 DEF MODULE_H_ABI      EQU 5;ABI the module needs
@@ -75,8 +88,10 @@ DEF MODULE_H_ENTRY    EQU 10;offset into the payload
 DEF MODULE_H_LENGTH   EQU 12;payload bytes
 DEF MODULE_H_BSS      EQU 14;offset, at or after the payload
 DEF MODULE_H_BSS_SIZE EQU 16
-DEF MODULE_H_CRC      EQU 18;CRC-16/CCITT of the payload, initial $FFFF
-DEF MODULE_H_RESERVED EQU 20;zero up to MODULE_HEADER
+DEF MODULE_H_CRC      EQU 18;CRC-16/CCITT of the payload (both pages' for wide modules), initial $FFFF
+DEF MODULE_H_PAGE2    EQU 20;wide modules: the second page and its payload bytes, which follow the first's
+DEF MODULE_H_LENGTH2  EQU 21
+DEF MODULE_H_RESERVED EQU 23;zero up to MODULE_HEADER
 DEF MODULE_ERR_ABI    EQU 20;RunModule results past FatFs's FRESULT codes
 DEF MODULE_ERR_VERIFY EQU 21;a page copy didn't read back
 

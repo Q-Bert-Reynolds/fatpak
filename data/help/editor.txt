@@ -14,9 +14,9 @@ Ctrl+O  open file browser
 Ctrl+S  save
 Ctrl+N  new document
 Ctrl+A  select all
-Ctrl+X  cut text
-Ctrl+C  copy text
-Ctrl+V  paste text
+Ctrl+X/C/V  cut/copy/paste
+F7  build .asm to .gb
+F5  build and run .asm
 Ctrl+Z  undo
 Ctrl+Y / Ctrl+Shift+Z  redo
 Shift + arrows  select
