@@ -11,6 +11,7 @@
 #include "../ui/dialogs.h"
 #include "../ui/render.h"
 #include "../ui/screen.h"
+#include "../ui/theme.h"
 
 extern const char loading_text[]; // shared with the game loader
 static const char startup_name[] = "FatPak";
@@ -19,6 +20,7 @@ void AppMain(void) {
   // The VWF font is resident: show the normal bars before any card IO.
   EditorSetup();
   EditorInit();
+  ThemeApply(); // PSRAM settings survive a reset; a cold start learns the theme from the swap below
   render_text = 0;
   BeginView(1);
   ClearScreen();
@@ -33,6 +35,7 @@ void AppMain(void) {
   FileLoadSwap(); // before recovering the gap layout
   tb_Load();
   EditorInit();
+  ThemeApply();
   if (backup_skipped) ShowMessage("SAVE NOT BACKED UP");
   session_open = modified; // legacy swap without a session: keep recoverable edits
   FileSession(0, 255);

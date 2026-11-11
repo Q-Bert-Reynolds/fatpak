@@ -15,7 +15,7 @@
 - Fixed-width code: bold keywords widen cells until a 4 px bold font exists; registers share keyword blue; the preprocessor colors only the directive; RGBDS `/* */` and string interpolation aren't lexed.
 - First scan after an edit near the top of a big C file is slow (~0.5 frame/KB on GBC).
 - Untested: SGB colors, code highlighting on DMG, italics on screen.
-- Later: SGB attribute colors (ATTR_CHR, 4 palettes, resent on scroll); user-selectable UI/syntax colors and an inverted theme.
+- Later: SGB attribute colors (ATTR_CHR, 4 palettes, resent on scroll); user-selectable UI/syntax colors in THEME.MOD (dark mode exists); theme the in-game menu.
 
 # UI/UX
 

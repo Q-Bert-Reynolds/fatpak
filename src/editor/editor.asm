@@ -1,5 +1,8 @@
 INCLUDE "src/fatpak.inc"
 
+SECTION "Editor cursor vars", WRAM0
+cursor_white:: DB;EditorInvertCursor's last argument, for theme changes
+
 SECTION FRAGMENT "Editor ROM0", ROM0
 ;C functions (src/editor/editor.h)
 ;   EditorSetup
@@ -35,7 +38,20 @@ _EditorSetup::
   DISPLAY_ON
   ret
 
-_EditorInvertCursor::;a = 1 for a white cursor
+_EditorInvertCursor::;a = 1 for a white cursor (0 black), as on a light theme
+  ld [cursor_white], a
+  ld b, a
+  ld a, [_theme];DMG's dark theme inverts every shade, so the cursor's colour flips too
+  and a
+  jr z, .shade
+  ldh a, [sys_info]
+  and a, SYS_INFO_GBC | SYS_INFO_SGB;they keep DMG shades and change colours
+  jr nz, .shade
+  ld a, b
+  xor a, 1
+  ld b, a
+.shade
+  ld a, b
   and a
   ld a, DMG_PAL_BDLW
   jr z, .setPalette

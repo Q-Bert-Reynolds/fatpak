@@ -7,14 +7,16 @@ into an OS page for one call and puts the page back. The model follows CP/M
 `.OVL` overlays ([LINK-80 Operator's Guide, Appendix E](https://www.bitsavers.org/pdf/digitalResearch/cpm/LINK-80_Operators_Guide_Dec80.pdf)):
 fixed load address and length, sharing memory with the host program.
 
-Status: three modules pass in Gearboy (DMG and CGB). The first KEYTEST build
-worked on hardware; this build (all three, ABI 2) hasn't been tried there yet.
+Status: five modules pass in Gearboy (DMG and CGB). KEYTEST, CLOCK and FILEINFO
+work on hardware; HELP and THEME (ABI 3) haven't been tried there yet.
 
 | Module | ID | ABI | Host | Size |
 | --- | --- | --- | --- | --- |
 | `KEYTEST.MOD` | 1 | 1 | SETTINGS > KEYBOARD TEST (`keyboard/test.c`) | 1,311 B |
 | `CLOCK.MOD` | 2 | 2 | SETTINGS > CLOCK (`rtc/menu.c`) | 1,009 B |
 | `FILEINFO.MOD` | 3 | 2 | FILE > INFO, Select (`browser/info.c`) | 3,141 B + 43 B BSS |
+| `HELP.MOD` | 4 | 3 | HELP, F1 (`editor/help.c`) | 327 B + 34 B BSS |
+| `THEME.MOD` | 5 | 3 | SETTINGS > THEME (`ui/theme.c`) | 510 B |
 
 ## Rules
 
@@ -30,7 +32,9 @@ worked on hardware; this build (all three, ABI 2) hasn't been tried there yet.
   SDCC arithmetic helpers, or host pointers into module memory after return.
 - Host pattern: show a busy box, set `module_context` if the module needs input,
   `RUN_MODULE(NAME)`, and on a nonzero result `ShowModuleError`. The module hides
-  or replaces the box when it draws. The host restores layout and flags after.
+  or replaces the box when it draws. The host restores layout and flags after,
+  and does anything that needs page 13 (THEME's host saves the swap file when
+  `module_status` says the theme changed).
 
 ## Single sources
 
@@ -149,6 +153,10 @@ entries. Entries are append-only; changing one's meaning needs a new entry.
 | `ModKey` | 2 | `EditorDraw`, then `MenuKey` (`KEY_*`, 0 for none) |
 | `ModMenu(lines, count, selected)` | 2 | Menu box from `count` lines of `BOX_STRIDE` chars (≤11), `selected` 0-based or `0xFF` |
 | `ModClockSet(clock)` | 2 | `ClockWrite` via a host copy; 0 = set |
+| `ModData(offset, dest, length)` | 3 | Copies `EDITOR.DAT` bytes (offset from its first block) through the window; 1 if not loaded or out of range |
+| `ModScroll(down)` | 3 | `ScrollRows`: rotate the text rows one row, keeping drawn rows |
+| `ModDraw` | 3 | `EditorDraw` |
+| `ModTheme(theme)` | 3 | `0xFF` reads it; otherwise sets light/dark, `ThemeApply`, `SettingsSave`. Returns the theme |
 
 Pointer rule: wrappers run with page 13 mapped, so they read module memory
 directly but copy it into host memory (`buffer` or the stack) before calling
@@ -169,7 +177,11 @@ sector buffer, so a future file API must not share it with a pending string.
 - `tests/run_browser_menu.sh` (DMG, CGB): KEYBOARD TEST, the clock's fields,
   selection and editing, and every info field for text, folder and game files
   (including DMG/dual flags and MBC2 with a bad checksum) through the real
-  modules. `PutSize`'s 32-bit cases run inside FILEINFO.MOD's page.
+  modules. `PutSize`'s 32-bit cases run inside FILEINFO.MOD's page. Help opens
+  in both contexts and scrolls one row, redrawing only the incoming block. THEME
+  turns dark mode on and off (DMG `BGP`/`OBP0`/`OBP1`, CGB palette RAM), keeps
+  it over an emulated power cycle, and loads an old `SET2` record as light.
+  Every built `.MOD` is installed on the test card.
 
 ## Timing
 
@@ -199,8 +211,9 @@ The busy box stays up throughout, so nothing looks frozen.
    `MODULE_ERR_VERIFY` and the restart path are untested. A test-only fault hook
    (or a Gearboy write-drop option) would cover them.
 4. **More extractions:** pick by `check_pages.py`; good candidates are
-   self-contained screens with no file writes (e.g. the help viewer). Pages 7 and
-   14 have 0 bytes free.
-5. **Later:** a second borrowable page or relocation once a real module
+   self-contained screens with no file writes. Pages 7 and 14 have 0 bytes free.
+5. **Theme editor:** grow THEME.MOD's menu (UI and syntax colours, saved as more
+   settings after `theme`); theme the in-game menu.
+6. **Later:** a second borrowable page or relocation once a real module
    (assembler, PNG viewer, snapshot tools) exceeds 7,424 bytes; a module
    discovery UI; reuse for `SGB.DAT`'s GB backend ([SGB.md](SGB.md)).

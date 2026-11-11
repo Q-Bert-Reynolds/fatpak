@@ -10,6 +10,8 @@
 #include "../input.h"
 #include "../keyboard/keyboard.h"
 #include "../rtc/rtc.h"
+#include "../editor/settings.h"
+#include "../ui/theme.h"
 #include "../../build/modules/sdk.h"
 
 #define FR_NO_FILE        4 // FRESULT (src/fatfs/lib/ff.h), defined locally like src/app/dialogs.c
@@ -124,4 +126,33 @@ unsigned char ModuleAPIClockSet(const ModuleClock* clock) {
   unsigned char i;
   for (i = 0; i < sizeof(local); ++i) ((unsigned char*)&local)[i] = ((const unsigned char*)clock)[i];
   return ClockWrite(&local);
+}
+
+// ABI 3
+// Bytes of EDITOR.DAT (offset from its first block); 1 if it isn't loaded or the range is outside it.
+extern void SetWindowBlock(unsigned int block);
+#define WINDOW_BLOCK (*(volatile unsigned int*)0xBD02)
+#define WINDOW ((const unsigned char*)0xBE00u)
+unsigned char ModuleAPIData(unsigned int offset, char* dest, unsigned char length) {
+  unsigned int saved = WINDOW_BLOCK, block = 0xFFFF, at;
+  unsigned char i;
+  if (!data_loaded || offset > DATA_BLOCKS * 512u - length) return 1;
+  for (i = 0; i < length; ++i) {
+    at = offset + i;
+    if ((at >> 9) != block) SetWindowBlock(DATA_BLOCK + (block = at >> 9));
+    dest[i] = WINDOW[at & 511];
+  }
+  SetWindowBlock(saved);
+  return 0;
+}
+void ModuleAPIScroll(unsigned char down) { ScrollRows(down); }
+void ModuleAPIDraw(void) { EditorDraw(); }
+// theme 0xFF only reads it; a change applies the palettes and saves the setting
+unsigned char ModuleAPITheme(unsigned char value) {
+  if (value != 0xFF && (value ? THEME_DARK : THEME_LIGHT) != theme) {
+    theme = value ? THEME_DARK : THEME_LIGHT;
+    ThemeApply();
+    SettingsSave();
+  }
+  return theme;
 }

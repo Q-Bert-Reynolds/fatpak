@@ -61,7 +61,7 @@ DEF STATUS_LINE EQU (TB_ROWS + 1)
 DEF MODULE_PAGE    EQU 13;the OS page a module borrows
 DEF MODULE_STAGE   EQU $3D80;PSRAM: the validated module page, 15 blocks
 DEF MODULE_BACKUP  EQU $3D90;PSRAM: the borrowed OS page, 15 blocks
-DEF MODULE_ABI     EQU 2;newest ABI the host provides, modules built for older ones still load
+DEF MODULE_ABI     EQU 3;newest ABI the host provides, modules built for older ones still load
 DEF MODULE_TABLE   EQU $7F00;ABI jump table in resident bank 1, 3 bytes per entry
 DEF MODULE_SLOTS   EQU 32;entries reserved for it
 DEF MODULE_FORMAT  EQU 1

@@ -10,6 +10,7 @@
 #include <vector>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
 #include "GearboyCore.h"
 #include "Memory.h"
 #include "Processor.h"
@@ -209,10 +210,14 @@ static void InstallModules(const std::string& root,const char* data)
 {
     std::string bin=std::string(data).substr(0,std::string(data).find_last_of('/'))+"/MODULES/";
     mkdir((root+"/GBCSYS/MODULES").c_str(),0700);
-    for(const char* name:{"KEYTEST.MOD","CLOCK.MOD","FILEINFO.MOD"}) {
+    DIR* dir=opendir(bin.c_str());Check(dir,"bin/MODULES");unsigned count=0;
+    while(dirent* entry=readdir(dir)) {
+        std::string name=entry->d_name;
+        if(name.size()<5 || name.substr(name.size()-4)!=".MOD") continue;
         std::vector<u8> module=Read(bin+name);Check(!module.empty(),"built module");
-        Write(root+"/GBCSYS/MODULES/"+name,module);
+        Write(root+"/GBCSYS/MODULES/"+name,module);++count;
     }
+    closedir(dir);Check(count>=5,"every built module installed");
 }
 
 static void UI(const char* image,const char* symbols,const char* data,bool color) {
@@ -275,10 +280,11 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     menu();pad(Down_Key);pad(A_Key);pad(Down_Key);pad(Down_Key);pad(A_Key); // Paste
     Check(Read(root+"/GBCSYS/a")==std::vector<u8>({'h','i','\n'}),"browser clipboard pastes in another directory");
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
-    Check(byte("_render_box_rows")==4,"browser has exactly two settings");
-    Check(Text(memory,syms.at("tile_buffer")+20*40)==" CLOCK","clock is a browser setting");
-    Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" KEYBOARD TEST","keyboard test is a browser setting");
-    pad(A_Key);Frames(core,120); // clock settings
+    Check(byte("_render_box_rows")==5,"browser has three settings");
+    Check(Text(memory,syms.at("tile_buffer")+20*40)==" THEME","theme is a browser setting");
+    Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" CLOCK","clock is a browser setting");
+    Check(Text(memory,syms.at("tile_buffer")+20*40+40)==" KEYBOARD TEST","keyboard test is a browser setting");
+    pad(Down_Key);pad(A_Key);Frames(core,120); // clock settings
     Check(row(19).find("\201 Edit \001Set \002Back")!=std::string::npos,"clock footer uses direction and action icons");
     auto field=[&](unsigned line){return Text(memory,syms.at("tile_buffer")+20*40+line*20);};
     Check(field(0).find(" Year 20")==0 && field(5).find(" Second ")==0 && byte("_render_box_rows")==8,"clock module lists six fields in a box");
@@ -287,9 +293,11 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     pad(Right_Key);Check(field(1)!=month && field(1).find(" Month ")==0,"right adjusts the selected field");
     pad(B_Key);Check(byte("_render_box_top")==255,"B exits clock settings as advertised");
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
-    pad(Down_Key);pad(A_Key);Frames(core,180);Check(row(0)=="KEYBOARD TEST","browser settings launches keyboard test");pad(B_Key);
+    pad(Down_Key);pad(Down_Key);pad(A_Key);Frames(core,180);Check(row(0)=="KEYBOARD TEST","browser settings launches keyboard test");pad(B_Key);
     Check(byte("_render_text")==0 && byte("_tb_rows")==16 && byte("_bars")==1,"settings restore browser layout");
-    menu();pad(Down_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);
+    menu();pad(Down_Key);pad(Down_Key);pad(Down_Key);pad(A_Key); // HELP.MOD: wait for its page
+    for(unsigned waited=0;row(18).find("FILE BROWSER")==std::string::npos && waited<300;++waited)Frames(core,1);
+    Frames(core,150);
     Check(row(18).find("FILE BROWSER")!=std::string::npos,"help directly opens browser help with header");
     HelpScroll(core,syms,color);
     pad(A_Key);Check(byte("_tb_rows")==16,"A does not dismiss help");pad(B_Key);
@@ -300,10 +308,13 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     Check(byte("_render_text")==0 && row(18)==" /","B, Backspace and Left stay in browser at root");
     key(0x76); // Escape still returns to the editor
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
-    Check(byte("_render_box_rows")==4,"editor has exactly two settings");
+    Check(byte("_render_box_rows")==5,"editor has three settings");
     Check(Text(memory,syms.at("tile_buffer")+20*40)==" LINE WRAP","line wrap is an editor setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" FULL SCREEN","full screen is an editor setting");
-    pad(B_Key);pad(Down_Key);pad(A_Key);
+    Check(Text(memory,syms.at("tile_buffer")+20*40+40)==" THEME","theme is an editor setting");
+    pad(B_Key);pad(Down_Key);pad(A_Key); // HELP.MOD: wait for its page
+    for(unsigned waited=0;row(18).find("TEXT EDITOR")==std::string::npos && waited<300;++waited)Frames(core,1);
+    Frames(core,150);
     Check(row(18).find("TEXT EDITOR")!=std::string::npos,"editor help opens directly with editor header");
     HelpScroll(core,syms,color);
     pad(B_Key);Check(byte("_render_text")==1,"B returns from help to editor");
@@ -459,10 +470,60 @@ static void OSKShift(const char* image,const char* symbols,const char* data,bool
     printf("%s OSK shift, one-shot and caps lock in editor and rename passed\n",color?"CGB":"DMG");
 }
 
+// SETTINGS > THEME: dark mode applies at once, survives a power cycle through the swap
+// file, and an old SET2 settings record (no theme byte) still loads, as light.
+static void Theme(const char* image,const char* symbols,const char* data,bool color) {
+    char folder[]="/tmp/fatpak-theme-XXXXXX";Check(mkdtemp(folder),"theme SD");
+    std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);
+    Write(root+"/GBCSYS/EDITOR.DAT",Read(data));InstallModules(root,data);
+    const u16 light_paper=27<<10|29<<5|29, dark_paper=4<<10|3<<5|3; // theme.asm
+    auto boot=[&](GearboyCore& core){core.Init();core.SetEverdriveFolder(folder);
+        Check(core.LoadROM(image,!color),"theme OS");Frames(core,600);};
+    auto paper=[&](GearboyCore& core){return (*core.GetVideo()->GetCGBBackgroundPalettes())[0][0][0];};
+    auto dark=[&](GearboyCore& core){auto m=core.GetMemory();
+        return color ? paper(core)==dark_paper && (*core.GetVideo()->GetCGBSpritePalettes())[0][3][0]!=0
+                     : m->Read(0xFF47)==0x1B && m->Read(0xFF48)==0x1B && m->Read(0xFF49)==0x27;}; // white cursor
+    auto light=[&](GearboyCore& core){auto m=core.GetMemory();
+        return color ? paper(core)==light_paper : m->Read(0xFF47)==0xE4 && m->Read(0xFF48)==0xE4 && m->Read(0xFF49)==0xE4;};
+    {
+        GearboyCore core;boot(core);auto memory=core.GetMemory();auto syms=Symbols(symbols);
+        auto pad=[&](Gameboy_Keys key){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,70);};
+        auto line=[&](){return Text(memory,syms.at("tile_buffer")+20*40);};
+        Check(light(core),"light theme by default");
+        pad(Start_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);
+        Check(line()==" THEME" && memory->Read(syms.at("_render_box_rows"))==5,"theme is the browser's first setting");
+        pad(A_Key);Frames(core,120);
+        Check(line()==" Dark mode  Off","theme module shows the dark mode toggle");
+        pad(A_Key);
+        Check(memory->Read(syms.at("_theme"))==1 && dark(core) && line()==" Dark mode  On ","A turns dark mode on at once");
+        pad(B_Key);Frames(core,60);
+        Check(memory->Read(syms.at("_render_box_top"))==255 && dark(core),"dark mode stays after leaving the menu");
+        Check(Read(root+"/GBCSYS/EDITOR.SWP").size()>0xE9 && Read(root+"/GBCSYS/EDITOR.SWP")[0xE9]==1,"theme saved in the swap file");
+    }
+    {
+        GearboyCore core;boot(core);auto memory=core.GetMemory();auto syms=Symbols(symbols);
+        Check(memory->Read(syms.at("_theme"))==1 && dark(core),"dark mode comes back after a power cycle");
+        auto pad=[&](Gameboy_Keys key){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,70);};
+        pad(Start_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);pad(A_Key);Frames(core,120);pad(Right_Key);
+        Check(memory->Read(syms.at("_theme"))==0 && light(core),"turning it off restores the light palettes");
+        pad(B_Key);Frames(core,60);
+    }
+    auto swap=Read(root+"/GBCSYS/EDITOR.SWP");
+    swap[0x23]='2';swap[0xE9]=0x5A;swap[0x25]=0; // SET2, junk where the theme now is, bars off
+    Write(root+"/GBCSYS/EDITOR.SWP",swap);
+    {
+        GearboyCore core;boot(core);auto memory=core.GetMemory();auto syms=Symbols(symbols);
+        Check(memory->Read(syms.at("_theme"))==0 && light(core),"SET2 settings load with the light theme");
+        Check(memory->Read(syms.at("_bars_on"))==0,"SET2 settings keep their other values");
+    }
+    printf("%s theme dark mode, persistence and SET2 settings passed\n",color?"CGB":"DMG");
+}
+
 int main(int argc,char** argv) {
     Check(argc==4,"usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT");
     Operations(argv[1],argv[2]);UI(argv[1],argv[2],argv[3],false);UI(argv[1],argv[2],argv[3],true);
     GameProperties(argv[1],argv[2],argv[3],false);GameProperties(argv[1],argv[2],argv[3],true);
     RenameEdges(argv[1],argv[2],argv[3],false);RenameEdges(argv[1],argv[2],argv[3],true);
     OSKShift(argv[1],argv[2],argv[3],false);OSKShift(argv[1],argv[2],argv[3],true);
+    Theme(argv[1],argv[2],argv[3],false);Theme(argv[1],argv[2],argv[3],true);
 }

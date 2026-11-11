@@ -77,6 +77,7 @@ DEF UNDO_PAGE     EQU 15;with undo.c (undo.banks)
 DEF DOC_PAGE      EQU 14;with the large file functions in fatfs.c (fatfs.banks)
 DEF GAME_PAGE     EQU 12;sd_ReadBlocks, with fs_GameCopy in fatfs.c (fatfs.banks)
 DEF LAUNCH_PAGE   EQU 6;GameLaunch and game/loader.c (loader.banks)
+DEF THEME_PAGE    EQU 6;the editor's palettes (src/ui/theme.asm), outside MODULE_PAGE
 MACRO KEYWORDS_SECTION
   PAGE KEYWORDS_PAGE
 ENDM

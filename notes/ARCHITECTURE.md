@@ -269,8 +269,9 @@ excluded); physical offsets map to block + window offset.
   `tb_Render`/`tb_RenderRows`/`tb_ScrollRows` fill `tile_buffer` (18 rows ×
   `TB_STRIDE` 40).
 - **Settings** (`src/sram.asm`): `SettingsTable` (`tb_nowrap`, `bars_on`,
-  `fs_crlf`, `modified`, `file_dir`, `file_name`) saved behind `SET2` in block
-  `$01f0` whenever one changes.
+  `fs_crlf`, `modified`, `file_dir`, `file_name`, `theme`) saved behind `SET3` in
+  block `$01f0` whenever one changes. New settings go last: `SettingsLoad` still
+  reads `SET2` (no theme) and defaults the theme to light.
 - **Clipboard:** `tb_DeleteRange` grows the gap over a range; `tb_Copy`/`tb_Paste`
   move 256 bytes at a time through `win_buffer`. Selection is `anchor`..`cursor`.
 - **Undo** (`undo.c` + `undo.asm`): ring of records (header, text, trailing
@@ -322,6 +323,13 @@ Text is drawn as pixels so fonts can be any width. Every cell has its own tile
   block's map row so accented blocks are rewritten when they move.
   `EditorSetPalettes`: paper, highlight, dim, ink; accents blue (headings), dark
   red (code), purple, brown-orange.
+- **Theme** (`src/ui/theme.asm`, `THEME_PAGE` 6): `theme` picks light or dark.
+  `ThemeApply` (resident) reloads every palette: GBC BG palettes 0-4 and OBJ
+  palette 0 (cursor, keyboard highlight) from `LightPalettes`/`DarkPalettes`;
+  SGB the same colours through `PAL01`; DMG inverts `BGP` and `OBP0` (`$1B`) and
+  `EditorInvertCursor` flips the cursor's shade, remembering its last argument in
+  `cursor_white`. Startup applies it after each settings load. The in-game menu
+  isn't themed.
 - **Selection:** `render_sel` holds each row's selected column range; changed
   rows redraw. DMG shows colors 1/2 inverted, GBC/SGB as blue. OBP1 turns the
   cursor white at a selection start.
@@ -368,14 +376,15 @@ only draw after typing (`AskName`) still show them.
 ### Menus, browser and dialogs
 
 `Choose` draws untitled menu boxes. Editor menu: FILE (open, save, save as,
-new), EDIT, SETTINGS (line wrap, full screen), HELP, CLOSE. Browser menu: FILE
-(info, rename), EDIT (cut, copy, paste), SETTINGS (clock, keyboard test), HELP,
+new), EDIT, SETTINGS (line wrap, full screen, theme), HELP, CLOSE. Browser menu: FILE
+(info, rename), EDIT (cut, copy, paste), SETTINGS (theme, clock, keyboard test), HELP,
 RESTART (saves the swap, then `$BD06=$10` for a full cartridge reset through the
 boot ROM). Select opens file info directly.
 
-- **Help** (`editor/help.c`): context-specific text from `data/help/*.txt`,
-  packed as 32-byte rows. `BeginView(1)` keeps the header/footer; `ScrollRows`
-  reuses the display ring and reads only the incoming record per step.
+- **Help** (`editor/help.c` sets up the view, `HELP.MOD` draws): context-specific
+  text from `data/help/*.txt`, packed as 32-byte rows. `BeginView(1)` keeps the
+  header/footer; `ScrollRows` reuses the display ring and reads only the
+  incoming record per step.
 - **Info** (`browser/info.c` reads, `FILEINFO.MOD` draws): FAT dates/times
   (zero shows `--`), size in B/KB/MB. `FileInspect` uses a private `FIL` (an open large document survives):
   text ≤32 KiB gets word and line counts, NULs mean binary; games read only the

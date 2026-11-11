@@ -9,23 +9,27 @@
 #include "../keyboard/test.h"
 #include "../rtc/menu.h"
 #include "../ui/dialogs.h"
+#include "../ui/theme.h"
 
 static const char menu_items[][ITEM_SIZE] = {"FILE", "EDIT", "SETTINGS", "HELP", "CLOSE"};
 static const char submenu_items[][ITEM_SIZE] = { // FILE, EDIT, SETTINGS
   "OPEN", "SAVE", "SAVE AS", "NEW",
   "UNDO", "REDO", "CUT", "COPY", "PASTE", "SELECT ALL",
-  "LINE WRAP", "FULL SCREEN", "CLOCK", "KEYBOARD TEST"};
+  "LINE WRAP", "FULL SCREEN", "THEME", "CLOCK", "KEYBOARD TEST"}; // editor: 10-12, browser: 12-14
 static const unsigned char submenu_starts[] = {0, 4, 10};
 
 // Shared by the editor and browser; B returns to their enclosing menu.
 unsigned char PreferencesMenu(unsigned char browser) {
-  unsigned char item = Choose(0, submenu_items[browser ? 12 : 10], 2, 0);
+  unsigned char item = Choose(0, submenu_items[browser ? 12 : 10], 3, 0);
   if (item >= BACK) return item;
   if (browser) {
-    if (item) KeyboardTest(); else ClockSetup();
+    if (!item) ThemeSetup();
+    else if (item == 1) ClockSetup();
+    else KeyboardTest();
   }
   else if (!item) ToggleWrap();
-  else ToggleBars();
+  else if (item == 1) ToggleBars();
+  else ThemeSetup();
   return item;
 }
 

@@ -3,6 +3,8 @@
   "modules": [
     {"name": "KEYTEST", "id": 1, "sources": ["keyboard.c", "lib/text.c"]},
     {"name": "CLOCK", "id": 2, "sources": ["clock.c", "lib/text.c"]},
-    {"name": "FILEINFO", "id": 3, "sources": ["info.c", "lib/text.c"]}
+    {"name": "FILEINFO", "id": 3, "sources": ["info.c", "lib/text.c"]},
+    {"name": "HELP", "id": 4, "sources": ["help.c"]},
+    {"name": "THEME", "id": 5, "sources": ["theme.c", "lib/text.c"]}
   ]
 }

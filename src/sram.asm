@@ -1,5 +1,5 @@
 ;text buffer, see src/editor/text_buffer.asm
-DEF SETTINGS_SIZE EQU 4+PATH_SIZE+FS_NAME_SIZE;SettingsTable
+DEF SETTINGS_SIZE EQU 5+PATH_SIZE+FS_NAME_SIZE;SettingsTable
 ;PSRAM through the window: the text buffer and undo log are blocks (see constants.asm),
 ;this is PSRAM block MAIN_SRAM_BANK and the clipboard's text starts at offset $100 of it (TB_CLIP_SIZE)
 DEF sram_tb_signature EQU TB_BASE
@@ -12,10 +12,11 @@ ASSERT sram_settings+SETTINGS_SIZE <= TB_BASE+$100, "settings must end before th
 
 SECTION "Settings Vars", WRAM0
 settings_load: DB;SettingsCopy's direction
+_theme:: DB;0 light, 1 dark (src/ui/theme.asm)
 
 SECTION "Settings Code", ROM0
 
-SettingsSignature: DB "SET2";SET1 had the font
+SettingsSignature: DB "SET3";SET1 had the font, SET2 is SET3 without the theme
 
 MACRO SETTING ;\1 = C variable, \2 = size
   DW \1
@@ -29,6 +30,7 @@ SettingsTable:
   SETTING _modified, 1
   SETTING _file_dir, PATH_SIZE
   SETTING _file_name, FS_NAME_SIZE
+  SETTING _theme, 1;SET3: keep new settings last, so older tables are a prefix
   DW 0
 
 ;C functions (src/editor/settings.h)
@@ -100,7 +102,7 @@ _SettingsLoad::
   SWITCH_RAM_MBC5 MAIN_SRAM_BANK
   ld hl, SettingsSignature
   ld de, sram_settings_signature
-  ld b, 4
+  ld b, 3
 .check
     ld a, [de]
     cp a, [hl]
@@ -109,8 +111,21 @@ _SettingsLoad::
     inc hl
     dec b
     jr nz, .check
+  ld a, [de];the version
+  cp a, [hl]
+  jr z, .load
+  cp a, "2"
+  jr nz, .never
+.load
+  push af
   ld a, 1
   call SettingsCopy
+  pop af
+  cp a, "2"
+  jr nz, .loaded
+  xor a;SET2 had nothing after the file name: the theme byte is whatever was there
+  ld [_theme], a
+.loaded
   ld a, 1
   ret
 .never

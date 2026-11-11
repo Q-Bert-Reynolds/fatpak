@@ -64,7 +64,7 @@
 #define MODULE_PAGE    13//the OS page a module borrows
 #define MODULE_STAGE   0x3D80u//PSRAM: the validated module page, 15 blocks
 #define MODULE_BACKUP  0x3D90u//PSRAM: the borrowed OS page, 15 blocks
-#define MODULE_ABI     2//newest ABI the host provides, modules built for older ones still load
+#define MODULE_ABI     3//newest ABI the host provides, modules built for older ones still load
 #define MODULE_TABLE   0x7F00u//ABI jump table in resident bank 1, 3 bytes per entry
 #define MODULE_SLOTS   32//entries reserved for it
 #define MODULE_FORMAT  1

@@ -28,6 +28,12 @@ ASM = {
     'ProcessKeyCodes': [],  # page 15 with its jump tables and handlers
     '_RenderTextWidth': [], '_RTCRead': [], '_RTCWrite': [], '_KBListen': [], '_KBPopEvent': [], '_PadPressed': [],
     'RenderRow': [],
+    '_SetWindowBlock': [], '_SettingsSave': [],  # register writes; mem_Copy and its own loop (ROM0)
+    '_ThemeApply': ['EditorSetPalettes'],  # THEME_PAGE
+    'EditorSetPalettes': ['sgb_SetPal', '_EditorInvertCursor'],
+    'sgb_SetPal': ['sgb_PacketTransfer'], 'sgb_PacketTransfer': [], '_EditorInvertCursor': [],
+    # ScrollRows -> Layout: ROM0 renderer and row-table helpers only
+    '_RenderSetMapRow': [], '_RenderStage': [], '_tb_ScrollRows': [],
     # interrupt handlers
     'VBLInterrupt': ['gbdk_DMATransfer', 'LatchPad'],
     'LCDInterrupt': ['RenderLCDInterrupt'],  # via rLCDInterrupt; the editor's handler

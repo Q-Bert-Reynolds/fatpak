@@ -14,6 +14,10 @@
     ["Text", "void", "unsigned char row, unsigned char col, const char* text", 2],
     ["Key", "unsigned char", "void", 2],
     ["Menu", "void", "const char* lines, unsigned char count, unsigned char selected", 2],
-    ["ClockSet", "unsigned char", "const ModuleClock* clock", 2]
+    ["ClockSet", "unsigned char", "const ModuleClock* clock", 2],
+    ["Data", "unsigned char", "unsigned int offset, char* dest, unsigned char length", 3],
+    ["Scroll", "void", "unsigned char down", 3],
+    ["Draw", "void", "void", 3],
+    ["Theme", "unsigned char", "unsigned char theme", 3]
   ]
 }
