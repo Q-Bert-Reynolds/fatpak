@@ -1,4 +1,6 @@
+// Overlay loader and the resident wrappers behind the module ABI (notes/MODULES.md).
 #include "runtime.h"
+#include "../app/dialogs.h"
 #include "../fatfs/file_api.h"
 #include "../game/loader.h"
 #include "../ui/dialogs.h"
@@ -10,28 +12,45 @@
 #include "../rtc/rtc.h"
 #include "../../build/modules/sdk.h"
 
+#define FR_NO_FILE        4 // FRESULT (src/fatfs/lib/ff.h), defined locally like src/app/dialogs.c
+#define FR_NO_PATH        5
+#define FR_INVALID_OBJECT 9
+#define FR_LOCKED         16
+#define MENU_LINES ((BUFFER_SIZE - BOX_LINE * TB_STRIDE) / BOX_STRIDE) // box text stays inside tile_buffer
+
 unsigned char module_busy;
 unsigned int module_entry;
-extern unsigned char FileLoadModule(const char* path, unsigned char id);
-extern unsigned int ModuleSwap(unsigned char operation);
+unsigned char module_status;
+extern unsigned char fs_LoadModule(const char* path, unsigned char id); // src/fatfs/fatfs.c
+extern unsigned char ModuleSwap(unsigned char operation); // 0 when the copy read back
 extern unsigned char ModuleEnter(void);
 extern unsigned char buffer[512]; // synchronous scratch; no module file services
 
 unsigned char RunModule(const char* path, unsigned char id) {
   unsigned char result;
-  unsigned int sum;
-  if (module_busy) return 16; // FR_LOCKED
+  if (module_busy) return FR_LOCKED;
   module_busy = 1;
-  result = FileLoadModule(path, id);
+  result = fs_LoadModule(path, id);
   if (!result) {
-    sum = ModuleSwap(0);
-    ModuleSwap(1);
-    result = ModuleEnter();
-    HideBox(); // remove any modal state before restoring the page
-    if (ModuleSwap(2) != sum) RestartDevice();
+    if (ModuleSwap(0)) result = MODULE_ERR_VERIFY; // backup unreadable: the page is untouched
+    else if (ModuleSwap(1)) result = MODULE_ERR_VERIFY; // partly installed: restore below
+    else {
+      module_status = ModuleEnter();
+      HideBox(); // remove any modal state before restoring the page
+    }
+    if (ModuleSwap(2)) RestartDevice(); // never run an OS page that didn't come back
   }
+  module_context = 0;
   module_busy = 0;
   return result;
+}
+
+void ShowModuleError(unsigned char result) {
+  if (result == FR_NO_FILE || result == FR_NO_PATH) ShowMessage("MODULE MISSING");
+  else if (result == FR_INVALID_OBJECT) ShowMessage("MODULE DAMAGED");
+  else if (result == MODULE_ERR_ABI) ShowMessage("MODULE NEEDS NEWER OS");
+  else if (result == MODULE_ERR_VERIFY) ShowMessage("MODULE LOAD FAILED");
+  else ShowError(result, "MODULE MISSING");
 }
 
 // Copy while the module is still mapped; paged render functions must never see
@@ -42,7 +61,7 @@ static void Marshal(const char* text, unsigned char limit) {
   buffer[i] = 0;
 }
 
-unsigned char ModuleAPIVersion(void) { return MODULE_ABI_VERSION; }
+unsigned char ModuleAPIVersion(void) { return MODULE_ABI; }
 void ModuleAPIRow(unsigned char row, const char* text) {
   if (row >= TB_ROWS) return;
   Marshal(text, TB_STRIDE);
@@ -78,4 +97,31 @@ unsigned char ModuleAPIClock(ModuleClock* clock) {
   result = ClockRead(&local);
   for (i = 0; i < sizeof(local); ++i) ((unsigned char*)clock)[i] = ((unsigned char*)&local)[i];
   return result;
+}
+
+// ABI 2
+void ModuleAPIText(unsigned char row, unsigned char col, const char* text) {
+  if (row > STATUS_LINE || col >= TB_STRIDE) return; // text rows and both bars
+  Marshal(text, TB_STRIDE);
+  DrawRow(row, col, (char*)buffer);
+}
+unsigned char ModuleAPIKey(void) {
+  EditorDraw();
+  return MenuKey();
+}
+// count lines of BOX_STRIDE chars, selected 0xFF for no highlight
+void ModuleAPIMenu(const char* lines, unsigned char count, unsigned char selected) {
+  char* dest = RowAddress(BOX_LINE);
+  unsigned int i, size;
+  if (count > MENU_LINES) count = MENU_LINES;
+  size = (unsigned int)count * BOX_STRIDE;
+  for (i = 0; i < size; ++i) dest[i] = lines[i];
+  OpenBox(count);
+  render_box_sel = selected < count ? selected + 1 : 0xFF;
+}
+unsigned char ModuleAPIClockSet(const ModuleClock* clock) {
+  ClockDate local;
+  unsigned char i;
+  for (i = 0; i < sizeof(local); ++i) ((unsigned char*)&local)[i] = ((const unsigned char*)clock)[i];
+  return ClockWrite(&local);
 }

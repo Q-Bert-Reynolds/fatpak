@@ -1,23 +1,29 @@
 INCLUDE "src/fatpak.inc"
 
-DEF MODULE_PAGE EQU 13
-DEF MODULE_STAGE EQU $3D80
-DEF MODULE_BACKUP EQU $3D90
+;   ModuleSwap                  copies the borrowed page to/from PSRAM and reads it back
+;   ModuleEnter                 calls the installed module with module_context in de
+;   ModuleABI                   the jump table modules call (build/modules/table.inc)
+
+DEF MODULE_SECTORS EQU 15;14 full blocks and 256 bytes: PAGE_SIZE never reaches $BD00
 ASSERT ADD_BLOCK + (ADD_MAX + 511) / 512 <= DATA_BLOCK
 ASSERT $3C00 + $A4 <= DATA_BLOCK
 ASSERT NAME_HISTORY_BLOCK + 16 <= MODULE_STAGE
-ASSERT MODULE_STAGE + 15 <= MODULE_BACKUP
-ASSERT MODULE_BACKUP + 15 < $3E2F
+ASSERT MODULE_STAGE + MODULE_SECTORS <= MODULE_BACKUP
+ASSERT MODULE_BACKUP + MODULE_SECTORS < $3E2F;game metadata (src/fatfs/fatfs.c GAME_META)
+ASSERT HIGH(MODULE_STAGE) == HIGH(MODULE_BACKUP + MODULE_SECTORS - 1)
+ASSERT MODULE_TABLE + 3 * MODULE_SLOTS <= $8000
 
 SECTION "Module transfer state", WRAM0
 module_operation: DB
 module_sector: DB
 module_pointer: DW
+module_mismatch: DB
+_module_context:: DW;passed to the module's ModuleMain, 0 if its host gives none
 
 FIXED "Module loader"
-_FileLoadModule:: BANKED_C _fs_LoadModule
-
-; A=0 backup, 1 install, 2 restore. Return BC=sum of mapped page.
+; A=0 backup (page to MODULE_BACKUP), 1 install (MODULE_STAGE to page),
+; 2 restore (MODULE_BACKUP to page). Each block is compared after it's copied.
+; Returns A=0 when everything read back, nonzero on a mismatch.
 ; Only resident LCD handling runs during transfer; no HDMA is initiated here.
 _ModuleSwap::
   ld [module_operation], a
@@ -46,6 +52,7 @@ _ModuleSwap::
   ST_HL_VAR module_pointer
   xor a
   ld [module_sector], a
+  ld [module_mismatch], a
 .loop
   ld a, [module_operation]
   cp 1
@@ -61,35 +68,41 @@ _ModuleSwap::
   ld [EDX_BLOCK+1], a
   ld bc, 512
   ld a, [module_sector]
-  cp 14
+  cp MODULE_SECTORS - 1
   jr nz, .count
-  ld bc, 256
+  ld bc, PAGE_SIZE - (MODULE_SECTORS - 1) * 512
 .count
-  LD_HL_VAR module_pointer
+  LD_HL_VAR module_pointer;source: the page when backing up
   ld de, EDX_WINDOW
   ld a, [module_operation]
   and a
   jr z, .copy
-  ld d, h
+  ld d, h;otherwise the window is the source
   ld e, l
   ld hl, EDX_WINDOW
 .copy
+  push bc
+  push de
+  push hl
   call mem_Copy
-  ld a, [module_operation]
-  and a
-  jr z, .pointer
-  ld h, d
-  ld l, e
-.pointer
+  pop hl
+  pop de
+  pop bc
+  push bc
+  call ModuleCompare
+  pop bc
+  jr z, .next
+  ld a, 1
+  ld [module_mismatch], a
+.next
+  LD_HL_VAR module_pointer
+  add hl, bc
   ST_HL_VAR module_pointer
   ld hl, module_sector
   inc [hl]
   ld a, [hl]
-  cp 15
+  cp MODULE_SECTORS
   jr c, .loop
-  ld de, $A000
-  ld bc, PAGE_SIZE
-  call _ByteSum
   di
   pop af
   ld [EDX_BLOCK+1], a
@@ -104,13 +117,84 @@ _ModuleSwap::
   pop af
   ldh [rIE], a
   ei
+  ld a, [module_mismatch]
   ret
 
+;hl, de = 256-byte aligned data (the page and the window), b = 256-byte chunks > 0,
+;returns z if they're the same. Only the low bytes step inside a chunk.
+ASSERT LOW(EDX_WINDOW) == 0 && (PAGE_SIZE - (MODULE_SECTORS - 1) * 512) % 256 == 0
+ModuleCompare:
+  ld c, 256 / 8
+.eight
+REPT 8
+  ld a, [de]
+  inc e
+  cp [hl]
+  ret nz
+  inc l
+ENDR
+  dec c
+  jr nz, .eight
+  inc d
+  inc h
+  dec b
+  jr nz, ModuleCompare
+  ret
+
+;CRC-16/CCITT (polynomial $1021, as Python's binascii.crc_hqx), a byte at a time without a table:
+;x = high ^ byte, x ^= x >> 4, crc = crc << 8 ^ x << 12 ^ x << 5 ^ x
+;de = data, bc = count > 0, stack: crc; returns bc = crc and removes its stack argument
+_ModuleCRC::
+  ld hl, sp+2
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+.byte
+  ld a, [de]
+  inc de
+  push de
+  xor h
+  ld d, a
+  swap a
+  and $0F
+  xor d
+  ld d, a;x
+  swap a
+  and $F0
+  xor l
+  ld e, a;low ^ x << 4
+  ld a, d
+  rrca
+  rrca
+  rrca
+  ld l, a;x rotated right 3
+  and $1F
+  xor e
+  ld h, a;high = low ^ x << 4 ^ x >> 3
+  ld a, l
+  and $E0
+  xor d
+  ld l, a;low = x << 5 ^ x
+  pop de
+  dec bc
+  ld a, b
+  or c
+  jr nz, .byte
+  ld b, h
+  ld c, l
+  pop hl
+  add sp, 2
+  jp hl
+
+;calls [_module_entry] with de = [_module_context], returns its A
 _ModuleEnter::
   ldh a, [loaded_bank]
   push af
   ld a, MODULE_PAGE
   SET_BANK
+  LD_HL_VAR _module_context
+  ld d, h
+  ld e, l
   LD_HL_VAR _module_entry
   call .enter
   ld h, a

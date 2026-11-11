@@ -125,12 +125,21 @@ static void Operations(const char* image, const char* symbols) {
         Check(Call(core,syms.at("_FileLanguage__far"),0xDC00)==languages[i],"file types share case-insensitive editor language detection");}
     const unsigned long sizes[]={0,512,1024,1536,1048576,3145728,0xFFFFFFFFUL};
     const char* formatted[]={"0B","512B","1KB","1.5KB","1MB","3MB","4095.9MB"};
+    // PutSize lives in FILEINFO.MOD: install its page by hand and call it there.
+    std::string bin=std::string(image).substr(0,std::string(image).find_last_of('/'));
+    std::vector<u8> module=Read(bin+"/MODULES/FILEINFO.MOD");Check(module.size()>32,"FILEINFO.MOD built");
+    auto modsyms=Symbols((bin+"/../build/modules/FILEINFO/module.sym").c_str());
+    unsigned page=memory->Read(0xBD08);std::vector<u8> saved(module.size()-32);
+    memory->Write(0xBD08,13);memory->Write(syms.at("loaded_bank"),13);
+    for(unsigned i=0;i<saved.size();++i){saved[i]=memory->Read(0xA000+i);memory->Write(0xA000+i,module[32+i]);}
     for(unsigned i=0;i<7;++i){
         for(unsigned b=0;b<4;++b)memory->Write(0xE000+b,sizes[i]>>(8*b));
-        Call(core,syms.at("_PutSize__far"),0xDC00);
+        Call(core,modsyms.at("_PutSize"),0xDC00);
         memory->Write(core.GetProcessor()->GetState()->BC->GetValue(),0);
         Check(Text(memory,0xDC00)==formatted[i],"compact size formatting including 32-bit maximum");
     }
+    for(unsigned i=0;i<saved.size();++i)memory->Write(0xA000+i,saved[i]);
+    memory->Write(0xBD08,page);memory->Write(syms.at("loaded_bank"),page);
     Check(operation("_FileCopy","/Original.txt","/Duplicate.txt")==0,"copy file across sectors");
     Check(Read(root+"/Duplicate.txt")==bytes,"file copy preserves all bytes");
     Check(operation("_FileCopy","/Original.txt","/Duplicate.txt")==8,"copy refuses overwrite");
@@ -195,12 +204,22 @@ static void HelpScroll(GearboyCore& core,const std::map<std::string,unsigned>& s
         Check(((positions[i]-positions[i-1])&255)==(color?2u:8u),"help reuses editor scroll animation");
 }
 
+// Every built module, as make assemble installs them on the card.
+static void InstallModules(const std::string& root,const char* data)
+{
+    std::string bin=std::string(data).substr(0,std::string(data).find_last_of('/'))+"/MODULES/";
+    mkdir((root+"/GBCSYS/MODULES").c_str(),0700);
+    for(const char* name:{"KEYTEST.MOD","CLOCK.MOD","FILEINFO.MOD"}) {
+        std::vector<u8> module=Read(bin+name);Check(!module.empty(),"built module");
+        Write(root+"/GBCSYS/MODULES/"+name,module);
+    }
+}
+
 static void UI(const char* image,const char* symbols,const char* data,bool color) {
     char folder[]="/tmp/fatpak-browser-XXXXXX";Check(mkdtemp(folder),"temporary browser SD");
     std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);
     Write(root+"/GBCSYS/EDITOR.DAT",Read(data));
-    mkdir((root+"/GBCSYS/MODULES").c_str(),0700);
-    Write(root+"/GBCSYS/MODULES/KEYTEST.MOD",Read(std::string(data).substr(0,std::string(data).find_last_of('/'))+"/MODULES/KEYTEST.MOD"));Write(root+"/Document.txt",{'h','i','\n'});
+    InstallModules(root,data);Write(root+"/Document.txt",{'h','i','\n'});
     GearboyCore core;core.Init();core.SetEverdriveFolder(folder);core.SetPS2KeyboardEnabled(true);
     Check(core.LoadROM(image,!color),"browser UI OS");auto memory=core.GetMemory();auto syms=Symbols(symbols);
     auto byte=[&](const char* name){return memory->Read(syms.at(name));};
@@ -218,7 +237,11 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     for(unsigned i=0;i<32;++i) memory->Write(syms.at("stack_top")+i,0xA5);
     pad(Down_Key); // select Document.txt
     Check(row(19).find(" \001Open \003Info \004Menu")==0,"browser footer shows button shortcuts");
-    pad(Select_Key);Check(row(18).find("Document.txt")!=std::string::npos,"Select directly opens file info");
+    // Select loads FILEINFO.MOD; wait for its page rather than a fixed delay.
+    core.KeyPressed(Select_Key);Frames(core,4);core.KeyReleased(Select_Key);
+    for(unsigned waited=0;row(0)!=" Type: Plain Text" && waited<300;++waited)Frames(core,1);
+    Frames(core,10);
+    Check(row(18).find("Document.txt")!=std::string::npos,"Select directly opens file info");
     Check(row(19).find("Esc")==std::string::npos,"info footer has no keyboard shortcut hints");
     pad(B_Key);
     menu();pad(A_Key);Check(byte("_render_box_rows")==4,"file submenu");
@@ -255,8 +278,13 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     Check(byte("_render_box_rows")==4,"browser has exactly two settings");
     Check(Text(memory,syms.at("tile_buffer")+20*40)==" CLOCK","clock is a browser setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" KEYBOARD TEST","keyboard test is a browser setting");
-    pad(A_Key); // clock settings
+    pad(A_Key);Frames(core,120); // clock settings
     Check(row(19).find("\201 Edit \001Set \002Back")!=std::string::npos,"clock footer uses direction and action icons");
+    auto field=[&](unsigned line){return Text(memory,syms.at("tile_buffer")+20*40+line*20);};
+    Check(field(0).find(" Year 20")==0 && field(5).find(" Second ")==0 && byte("_render_box_rows")==8,"clock module lists six fields in a box");
+    Check(byte("_render_box_sel")==1,"clock starts on the year");
+    std::string month=field(1);pad(Down_Key);Check(byte("_render_box_sel")==2,"down selects the month");
+    pad(Right_Key);Check(field(1)!=month && field(1).find(" Month ")==0,"right adjusts the selected field");
     pad(B_Key);Check(byte("_render_box_top")==255,"B exits clock settings as advertised");
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
     pad(Down_Key);pad(A_Key);Frames(core,180);Check(row(0)=="KEYBOARD TEST","browser settings launches keyboard test");pad(B_Key);
@@ -325,8 +353,7 @@ static void GameProperties(const char* image,const char* symbols,const char* dat
     char folder[]="/tmp/fatpak-info-XXXXXX";Check(mkdtemp(folder),"properties SD");
     std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);
     Write(root+"/GBCSYS/EDITOR.DAT",Read(data));
-    mkdir((root+"/GBCSYS/MODULES").c_str(),0700);
-    Write(root+"/GBCSYS/MODULES/KEYTEST.MOD",Read(std::string(data).substr(0,std::string(data).find_last_of('/'))+"/MODULES/KEYTEST.MOD"));
+    InstallModules(root,data);
     std::vector<u8> game(1536);std::string title="CRYSTAL";
     for(unsigned i=0;i<title.size();++i)game[0x134+i]=title[i];
     game[0x143]=0xC0;game[0x146]=3;game[0x147]=0x10;game[0x148]=6;game[0x149]=3;
@@ -338,7 +365,7 @@ static void GameProperties(const char* image,const char* symbols,const char* dat
     auto pad=[&](Gameboy_Keys key){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,70);};
     auto row=[&](unsigned n){std::string s;for(unsigned i=0;i<40;++i)s+=char(memory->Read(syms.at("tile_buffer")+n*40+i));
         while(!s.empty() && s.back()==' ')s.pop_back();return s;};
-    auto info=[&](){pad(Select_Key);};
+    auto info=[&](){pad(Select_Key);Frames(core,120);};
     Frames(core,600);info();
     Check(row(0)==" Type: Folder" && row(1)==" Size: --","folder properties avoid misleading total size");
     pad(B_Key);pad(A_Key); // enter GBCSYS, select its parent row
@@ -353,17 +380,15 @@ static void GameProperties(const char* image,const char* symbols,const char* dat
     core.QueuePS2KeyboardScanCode(0x76);Frames(core,4);
     core.QueuePS2KeyboardScanCode(0xF0);core.QueuePS2KeyboardScanCode(0x76);Frames(core,70);
     Check(row(18).find("Crystal.gbc")==std::string::npos,"Esc returns to file browser");
-    info();
-    const unsigned header=syms.at("_src_browser_info_c_details")+8;
+    // The module formats whatever header the host read: rewrite the ROM in place.
+    auto reopen=[&](){pad(B_Key);info();};
     for(unsigned flag : {0u,0x80u}) {
-        memory->Write(header+15,flag);
-        Call(core,syms.at("_src_browser_info_c_GameInfo"));
+        game[0x143]=flag;game[0x14D]=0;for(unsigned i=0x134;i<=0x14C;++i)game[0x14D]-=game[i]+1;
+        Write(root+"/Crystal.gbc",game);reopen();
         Check(row(8)==(flag?" Platform: GB / Color":" Platform: Game Boy"),"DMG and dual-platform cartridge flags");
     }
-    memory->Write(syms.at("_src_browser_info_c_details")+37,2);
-    memory->Write(header+19,5);memory->Write(header+21,0);
-    Call(core,syms.at("_src_browser_info_c_GameInfo"));
-    Check(row(12)==" RAM: 512 x 4 bits" && row(15)==" Header checksum: Bad","MBC2 RAM and invalid header checksum");
+    game[0x147]=5;game[0x149]=0;game[0x14D]^=1;Write(root+"/Crystal.gbc",game);reopen();
+    Check(row(10)==" Mapper: MBC2" && row(12)==" RAM: 512 x 4 bits" && row(15)==" Header checksum: Bad","MBC2 RAM and invalid header checksum");
     printf("%s full-screen folder and cartridge properties passed\n",color?"CGB":"DMG");
 }
 
@@ -371,8 +396,7 @@ static void RenameEdges(const char* image,const char* symbols,const char* data,b
     char folder[]="/tmp/fatpak-rename-XXXXXX";Check(mkdtemp(folder),"rename edge SD");
     std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);mkdir((root+"/Folder").c_str(),0700);
     Write(root+"/GBCSYS/EDITOR.DAT",Read(data));
-    mkdir((root+"/GBCSYS/MODULES").c_str(),0700);
-    Write(root+"/GBCSYS/MODULES/KEYTEST.MOD",Read(std::string(data).substr(0,std::string(data).find_last_of('/'))+"/MODULES/KEYTEST.MOD"));
+    InstallModules(root,data);
     for(unsigned i=0;i<19;++i) { char file[32];snprintf(file,sizeof(file),"/Z%02u.txt",i);Write(root+file,{'x'}); }
     GearboyCore core;core.Init();core.SetEverdriveFolder(folder);core.SetPS2KeyboardEnabled(true);
     Check(core.LoadROM(image,!color),"rename edge OS");auto memory=core.GetMemory();auto syms=Symbols(symbols);

@@ -1,152 +1,206 @@
-# Loadable modules and overlays
+# Loadable modules
 
-Status: implementation plan. The loader and module ABI do not exist yet.
+[Architecture](ARCHITECTURE.md) · [TODO](TODO.md)
 
-Call the features **modules**, and the memory replacement mechanism an
-**overlay loader**. An overlay is code loaded over another program region and
-removed/restored when it returns; a module is the separately built component.
-This terminology has 8-bit precedent: Digital Research's December 1980
-[LINK-80 Operator's Guide, Appendix E](https://www.bitsavers.org/pdf/digitalResearch/cpm/LINK-80_Operators_Guide_Dec80.pdf)
-describes CP/M `.OVL` files with a load address and length, sharing memory with
-other program components. FatPak can use `.MOD` filenames without changing the
-technical meaning of the loader.
+A **module** is a separately linked `.MOD` file; the **overlay loader** swaps it
+into an OS page for one call and puts the page back. The model follows CP/M
+`.OVL` overlays ([LINK-80 Operator's Guide, Appendix E](https://www.bitsavers.org/pdf/digitalResearch/cpm/LINK-80_Operators_Guide_Dec80.pdf)):
+fixed load address and length, sharing memory with the host program.
 
-## First scope
+Status: three modules pass in Gearboy (DMG and CGB). The first KEYTEST build
+worked on hardware; this build (all three, ABI 2) hasn't been tried there yet.
 
-Extract keyboard diagnostics first. It is a bounded, synchronous screen and
-already returns to its caller. Follow with file info and clock settings after
-measuring their imports. Keep startup, the browser, interrupts, game capture/
-resume, the renderer, SD/FatFs and the loader available while a module runs.
-Do not start with the assembler or PNG decoder: first establish a small working
-loader and a stable API. This plan does not add a plugin discovery UI.
+| Module | ID | ABI | Host | Size |
+| --- | --- | --- | --- | --- |
+| `KEYTEST.MOD` | 1 | 1 | SETTINGS > KEYBOARD TEST (`keyboard/test.c`) | 1,311 B |
+| `CLOCK.MOD` | 2 | 2 | SETTINGS > CLOCK (`rtc/menu.c`) | 1,009 B |
+| `FILEINFO.MOD` | 3 | 2 | FILE > INFO, Select (`browser/info.c`) | 3,141 B + 43 B BSS |
 
-V1 supports one active module, one code page, one entry and a normal return.
-No nesting, resident modules, runtime relocation, exported callbacks or saved
-pointers into a module after it exits. Modules run synchronously on the OS stack.
+## Rules
 
-## Memory and execution
+- One module at a time, synchronous, on the OS stack. `module_busy` rejects
+  nesting (`FR_LOCKED`).
+- Borrows **page 13** (`$A000-$BCFF`, 7,424 bytes) for code, constants and BSS.
+  Nothing in page 13 may run meanwhile: SGB setup, keyword tables and
+  `KeywordLookup` (so nothing may re-lex text: no `Render`/`ShowMessage`),
+  `f_stat`/`f_unlink`/`f_mkdir`/`f_rename`, `fs_Rename`, `fs_Copy`,
+  `fs_CloseLarge`, cheat and snapshot-path helpers. `check_module_abi.py`
+  enforces this for every ABI entry and interrupt handler.
+- No relocation, callbacks, initialized writable globals (`_GSINIT` is rejected),
+  SDCC arithmetic helpers, or host pointers into module memory after return.
+- Host pattern: show a busy box, set `module_context` if the module needs input,
+  `RUN_MODULE(NAME)`, and on a nonzero result `ShowModuleError`. The module hides
+  or replaces the box when it draws. The host restores layout and flags after.
 
-The executable window is `$A000-$BCFF`, exactly 7,424 bytes. `$BD00-$BFFF`
-contains registers and the PSRAM window and must never be overwritten. Module
-code, constants and zero-initialized private data must all fit in that page;
-there is no spare general-purpose WRAM allocation.
+## Single sources
 
-Start by borrowing **page 13**, subject to an import audit. Current code on that
-page includes syntax keywords/SGB setup and filesystem operations such as
-stat, rename, unlink and mkdir. Those services cannot be called while the page
-contains module code. V1 diagnostics use plain UI drawing and input; initial
-file services may expose open/read/write/seek/close only after confirming their
-entire call chains avoid page 13. Move any required conflicting implementation
-to another page before adding that import. Far calls to a displaced page do
-not become safe merely because they pass through a resident thunk.
+| What | Where | Read by |
+| --- | --- | --- |
+| Page, PSRAM blocks, ABI version, table address/slots, header offsets, error codes | `src/constants.asm` | asm, C (`constants.h`), Python (`utils.constants()`) |
+| ABI entries, in table order, with the ABI version that added each | `modules/abi.json` | `module_build.py`, `check_module_abi.py` |
+| Module names, IDs, sources | `modules/modules.json` | `module_build.py` → `build/modules/modules.h` |
+| Joypad bits | `src/pad.h` | host (`input.h`) and modules (`sdk.h`) |
+| Row names `HEADER_LINE`, `STATUS_LINE` | `src/constants.asm` | host and modules |
 
-Keep the transfer loop, entry/return trampoline and API jump table resident.
-The copy loop must execute in ROM0 or always-mapped bank 1: switching to page
-13 while executing an ordinary paged C loader would replace its own code.
-The caller's return address must likewise remain usable until restoration.
+## Pieces
 
-Proposed PSRAM reservations, not allocated by a loader yet:
-
-| Blocks | Purpose |
+| File | Role |
 | --- | --- |
-| `$3d00-$3d54` | Current `EDITOR.DAT` assets, protected from ROM loading |
+| `module_build.py` | `--headers`: `build/modules/{sdk.h,modules.h,imports.inc,table.inc}`, rewritten only when changed. Default: also builds every module into `bin/MODULES/<NAME>.MOD` |
+| `check_module_abi.py` | Walks the ABI entries' and interrupt handlers' call graphs (C from SDCC output and `.banks`, asm from an audited allowlist); fails on page 13, an unaudited asm routine, or `runtime.c` leaving FIXED/ROM0 |
+| `modules/lib/text.c` | `PutText`, `PutNumber` (32-bit, by subtraction), `PutNumber2`, `PutHex` |
+| `modules/info.h` | `InfoContext`, shared by FILEINFO and its host (uses FatPak's `FileEntry`/`FileDetails`) |
+| `src/modules/runtime.c` | `RunModule`, `ShowModuleError`, `ModuleAPI*` wrappers, marshaling (all FIXED) |
+| `src/modules/runtime.asm` | PSRAM asserts, `ModuleSwap`, `ModuleCompare`, `ModuleCRC`, `ModuleEnter`, the table |
+| `src/fatfs/fatfs.c` | `fs_LoadModule`: validate and stage (FIXED) |
+
+The Makefile gives the generated headers a real rule (C recompiles only when
+their content changes); `make modules` always rebuilds the `.MOD` files.
+`make assemble` builds modules first, runs the checker after linking, and copies
+`*.MOD` to a mounted card.
+
+### Build
+
+Each source compiles with the main build's SDCC flags (including
+`peephole.def`). `module_build.py` keeps only `_CODE` (ROMX) and `_DATA` (WRAM0)
+fragments, rejects other sections, symbols defined twice across a module's
+sources, and any `_`-symbol not defined locally or in the SDK. It emits one
+`LOAD` block at `$A000` in page 13: code and literals, `ModulePayloadEnd`, BSS,
+`ModuleEnd` (asserted ≤ `$BD00`). Imports are `DEF _ModX EQU $7Fxx` from
+`imports.inc`, never `GBCOS.sym`. The header's ABI is the newest version among
+the entries the module actually references, so a module that sticks to older
+entries runs on older hosts.
+
+### File format
+
+32-byte little-endian header (offsets are `MODULE_H_*`), then the payload:
+
+| Offset | Size | Field |
+| --- | --- | --- |
+| 0 | 4 | `FPKM` |
+| 4 | 1 | Format (1) |
+| 5 | 1 | ABI the module needs (1 to host's `MODULE_ABI`, else `MODULE_ERR_ABI`) |
+| 6 | 1 | Module ID (must match the caller's) |
+| 7 | 1 | Page (13) |
+| 8 | 2 | Load address (`$A000`) |
+| 10 | 2 | Entry offset (< length) |
+| 12 | 2 | Payload length (1-`$1D00`; file size must equal 32 + length) |
+| 14 | 2 | BSS offset (≥ length) |
+| 16 | 2 | BSS size (BSS end ≤ `$1D00`) |
+| 18 | 2 | CRC-16/CCITT of payload (`binascii.crc_hqx`, init `$FFFF`) |
+| 20 | 12 | Zero |
+
+### PSRAM
+
+| Blocks | Use |
+| --- | --- |
+| `$3d00-$3d54` | `EDITOR.DAT` v5 |
 | `$3d55-$3d64` | Filename undo history |
-| `$3d80-$3d8e` | Incoming module staging, 15 sectors |
-| `$3d90-$3d9e` | Backup of the displaced OS page, 15 sectors |
+| `$3d80-$3d8e` | `MODULE_STAGE`: staged page (14 sectors + 256 bytes, zero past payload) |
+| `$3d90-$3d9e` | `MODULE_BACKUP`: the OS page |
 
-An OS page occupies 14 full sectors plus 256 bytes. Copy/checksum exactly 7,424
-bytes, never the final sector's register/window range. Assert reservations in
-the build against asset growth, large-file additions, snapshot staging at
-`$3c00-$3ca3`, game metadata at `$3e2f` and the snapshot/menu workspace above it.
-No module scratch is placed inside the editor text, undo or clipboard regions.
+`runtime.asm` asserts these stay clear of the large-file add buffer, snapshot
+staging (`$3c00-$3ca3`) and game metadata (`$3e2f`), and that the table fits
+below `$8000`. Copies never touch the final sector's upper 256 bytes.
 
-## File format and ABI
+### Call sequence (`RunModule`)
 
-Build each module with its own RGBDS link script and a ROM fragment with a
-`LOAD` section in SRAM page 13, as current OS pages do. Its execution addresses
-are absolute at `$A000`, limited to `$BD00`. Extract just the fragment payload
-from the linked image using its section bounds; do not ship a padded OS ROM. Use SDCC's existing register/stack calling convention. A host tool
-packages the linked payload into `/GBCSYS/MODULES/<name>.MOD` with a 32-byte
-header. Freeze exact byte offsets when writing the packer and loader together.
+1. `fs_LoadModule` opens the file with a private `FIL` (an open large document is
+   untouched), validates the header, reads 512 bytes at a time into `buffer`
+   with `ModuleCRC` (assembly, ~180 cycles/byte), zero-pads to the full page and
+   copies to staging. Window block and `$BD06` are restored on every exit.
+2. `ModuleSwap(0)` backs up page 13, `ModuleSwap(1)` installs staging. Every
+   block is compared after it's copied (`ModuleCompare`, ~32 cycles/byte). Both
+   wait for HDMA, allow only STAT during the copy, and restore IE/IF,
+   `loaded_bank`, `$BD06` and the window block.
+3. `ModuleEnter` maps page 13 and calls `module_entry` with `de` =
+   `module_context`. The module's result goes to `module_status`. ABI calls go
+   through `jp` stubs at `$7F00` to FIXED wrappers; far calls from there return
+   to page 13.
+4. `HideBox`, then `ModuleSwap(2)` restores the page. If the backup or install
+   doesn't read back, the module never runs and the page is restored; if the
+   restore doesn't read back, `RestartDevice`.
 
-The header needs magic `FPKM`, format version, host ABI version, module ID,
-load address/page requirement, entry offset, payload length, BSS offset/length,
-CRC-16 of the payload, and zero reserved bytes. Reject wrong versions, truncated
-or trailing payloads, bad checksums, entry points outside executable payload,
-and overlapping/out-of-range BSS before replacing any code. Zero unused space
-so a short module cannot execute residual OS instructions accidentally.
+| Result | `ShowModuleError` |
+| --- | --- |
+| `FR_NO_FILE`, `FR_NO_PATH` | MODULE MISSING |
+| `FR_INVALID_OBJECT` (any header, size or CRC problem) | MODULE DAMAGED |
+| `MODULE_ERR_ABI` | MODULE NEEDS NEWER OS |
+| `MODULE_ERR_VERIFY` | MODULE LOAD FAILED |
+| other FRESULT | `ShowError` (NO SD CARD, SD ERROR n, ...) |
 
-Expose a small, explicitly versioned resident jump table, rather than linking
-against arbitrary addresses from `GBCOS.sym`. Keep its position stable with a
-linker reservation and assertions; select the actual address after the resident
-space audit. Generate an SDK include/header from the same ABI definition.
+### ABI
 
-Initial imports: API/version query, draw plain row, draw/update frame, wait/get
-input, show/close box, read clock, a bounded keyboard-diagnostics snapshot/
-listen service, and return status. Add audited file handles
-for the next module. Avoid exposing FatFs structs, renderer globals or raw
-mapper registers as ABI. A small host-owned call context passes the invocation
-and result; the module's other state lives in its own page. Document stack use
-and test it against the existing FatFs/editor stack guard before shipping.
+The table at `MODULE_TABLE` (`$7F00`, bank 1) reserves `MODULE_SLOTS` (32)
+entries. Entries are append-only; changing one's meaning needs a new entry.
 
-## Pointers across page changes
+| Entry | ABI | Does |
+| --- | --- | --- |
+| `ModVersion` | 1 | Host ABI version |
+| `ModRow(row, text)` | 1 | Draws a text row from column 0 (last row as footer, with clock) |
+| `ModFrame` | 1 | `EditorDraw`, `WaitFrame`, new pad presses (`PADF_*`) |
+| `ModEvent` | 1 | `KBPopEvent` |
+| `ModListen` | 1 | `KBListen` |
+| `ModKeyboard(state)` | 1 | Keyboard type, ring write index, byte and error counters |
+| `ModScan(index)` | 1 | Scan code (low) and error bits (high) from the ring |
+| `ModBox(text)` / `ModHideBox` | 1 | Busy box (≤19 chars) |
+| `ModClock(clock)` | 1 | `ClockRead` via a host copy |
+| `ModText(row, col, text)` | 2 | `DrawRow` on text rows, `HEADER_LINE` or `STATUS_LINE` |
+| `ModKey` | 2 | `EditorDraw`, then `MenuKey` (`KEY_*`, 0 for none) |
+| `ModMenu(lines, count, selected)` | 2 | Menu box from `count` lines of `BOX_STRIDE` chars (≤11), `selected` 0-based or `0xFF` |
+| `ModClockSet(clock)` | 2 | `ClockWrite` via a host copy; 0 = set |
 
-A second ABI audit is essential: a pointer into module code/data at `$A000`
-cannot be passed straight to a host routine that switches pages. It would read
-that host page at the same address instead. A far-call thunk fixes execution
-mapping, not the lifetime of the argument's memory.
+Pointer rule: wrappers run with page 13 mapped, so they read module memory
+directly but copy it into host memory (`buffer` or the stack) before calling
+anything paged, and copy results back after. `buffer` is the 512-byte FatFs
+sector buffer, so a future file API must not share it with a pending string.
+`module_context` and anything it points to must be host WRAM.
 
-Resident API wrappers must marshal strings and I/O through a bounded bounce
-buffer before switching pages, then copy results back after reselecting the
-module. Reuse an audited existing host scratch buffer (the 512-byte filesystem
-buffer is a candidate) rather than allocating another WRAM block. Give the API
-bounded lengths and opaque file handles; keep its scratch use synchronous and
-nonreentrant. Audit UI drawing and file operations separately for scratch-buffer
-aliasing and preserve the large document's open file handle. The call context
-itself must be in host WRAM/stack, not in the borrowed page. Test module-local
-strings, read/write destinations and error messages across every host page call.
+## Tests
 
-## Load, call and restore
+- `tests/test_modules.py`: packer bounds, ABI range, import and duplicate-symbol
+  rejection, per-module ABI stamping; writes fixtures (every header field
+  corrupted, short, trailing, empty, ABI 0 and too new, context echo, max size).
+- `tests/run_modules.sh` (DMG, CGB): swaps read back and preserve mapping, IE and
+  window; byte-identical page restore; nested call rejected; missing, malformed
+  and wrong-ABI files rejected with the page untouched; an ABI 1 module runs;
+  `module_context` arrives in `de` and is cleared; `module_status`; BSS zeroed;
+  literals marshaled; max-size page; open large document survives; stack guard.
+- `tests/run_browser_menu.sh` (DMG, CGB): KEYBOARD TEST, the clock's fields,
+  selection and editing, and every info field for text, folder and game files
+  (including DMG/dual flags and MBC2 with a bad checksum) through the real
+  modules. `PutSize`'s 32-bit cases run inside FILEINFO.MOD's page.
 
-1. Show a resident loading box; reject a second module invocation.
-2. Open and fully validate the module into staging using a private file handle.
-   Keep an existing large document's handle, text and undo untouched.
-3. Save caller page, interrupt masks and UI context. Copy/checksum the borrowed
-   page into its backup from resident code. Disable nonresident interrupt work
-   during page replacement; retain only audited resident LCD handling so the
-   loading screen remains valid. Do not start HDMA while the mapping changes.
-4. Install the staged code/constants, clear its BSS, then enter through the
-   resident trampoline. Enable only services/interrupts safe with page 13 absent.
-5. On normal return or a host-reported cancellation/error, remove modal pointers
-   into module memory, restore and verify the OS page, restore mapping and UI
-   state, then redraw the caller. The host restores editor layout/syntax after the page
-   is restored; module cleanup must not call an editor refresh that needs the
-   displaced keyword code. Do not return into the replaced page first.
-6. Missing/bad modules leave OS code untouched and report the existing SD/module
-   error UI. A native module can still crash; there is no memory protection.
-   If the saved page cannot be verified, do not execute it: recovery must use
-   the full device restart path. Power loss naturally returns to normal OS boot.
+## Timing
 
-## Implementation milestones
+Gearboy, FILE > INFO on a small text file, from the button press to the page:
 
-1. **Inventory and ABI:** list page-13 residents and transitive imports; establish
-   the jump-table reservation, call context, stack budget and SDK. Add build
-   checks rejecting imports into the displaced page and oversized images.
-2. **Packer and transfer primitive:** build a diagnostic module that draws a
-   line and returns. Validate headers/checksums and test page backup/restore
-   independently of any existing feature extraction.
-3. **Keyboard diagnostic extraction:** move the current keyboard test behind
-   the browser's existing Settings command. Preserve PS/2 detection and B exit.
-   Package/install required modules with `GBCOS.BIN` and `EDITOR.DAT`.
-4. **Next modules:** move file info, then clock settings, one at a time. Keep
-   filesystem helpers required by their ABI outside the borrowed page. Update
-   the map after each move and use the freed space for the next extraction.
-5. **Utilities:** only then add snapshot viewers, PNG decoding and on-device
-   development features. Revisit multiple pages/relocation if an actual module
-   exceeds 7,424 bytes.
+| | DMG | CGB (double speed) |
+| --- | --- | --- |
+| Host inspect + header | 14 frames | 7 frames |
+| Module load + 3 swaps + draw | 41 frames (0.68 s) | 20 frames (0.33 s) |
 
-Acceptance checks: DMG/CGB; byte-identical page restoration; repeated and failed
-loads; wrong version/checksum/length/BSS/entry; cancellation; all UI exits;
-keyboard input; caller stack guards; open small/large documents and undo;
-unchanged save/snapshot data; then GBA SP hardware testing and a Crystal launch
-following module return. Measure page space recovered and SD load latency.
+The swaps cost about 7 frames each on DMG; loading FILEINFO about 20 (CRC ~8).
+The busy box stays up throughout, so nothing looks frozen.
+
+## Next steps
+
+1. **Hardware pass:** CLOCK and FILEINFO on DMG, CGB and GBA SP (set the clock,
+   inspect text/folder/ROM files); delete or corrupt a `.MOD` to see each error;
+   launch a game and return after using them; time the info page.
+2. **Speed**, if hardware feels slow, in order of payoff:
+   - Back up page 13 once per boot: on later runs compare the page against the
+     backup instead of copying (one compare instead of copy + compare), and only
+     recopy on a mismatch.
+   - Stage and install only the payload's sectors, then zero the rest of the
+     page directly, instead of copying 15 sectors every time.
+   - `ModuleCRC`: keep the data pointer in a register instead of push/pop.
+3. **Verification failure path:** Gearboy can't make a copy read back wrong, so
+   `MODULE_ERR_VERIFY` and the restart path are untested. A test-only fault hook
+   (or a Gearboy write-drop option) would cover them.
+4. **More extractions:** pick by `check_pages.py`; good candidates are
+   self-contained screens with no file writes (e.g. the help viewer). Pages 7 and
+   14 have 0 bytes free.
+5. **Later:** a second borrowable page or relocation once a real module
+   (assembler, PNG viewer, snapshot tools) exceeds 7,424 bytes; a module
+   discovery UI; reuse for `SGB.DAT`'s GB backend ([SGB.md](SGB.md)).

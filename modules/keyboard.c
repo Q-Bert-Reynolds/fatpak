@@ -1,34 +1,12 @@
 #include "../build/modules/sdk.h"
-#include "../src/constants.h"
 #include "../src/ui/icons.h"
+#include "lib/text.h"
 
 #define TEST_CODES 11 // scan code rows
 #define TEST_FIRST 5 // the first one's screen row
 static const char test_errors[][9] = {"finish", "parity", "start", "", "", "timeout"}; // PS2_ERROR_* bits
 
-static char* PutText(char* out, const char* text) {
-  while (*text) *out++ = *text++;
-  return out;
-}
-static char* PutNumber(char* out, unsigned char value) {
-  unsigned char hundreds = 0, tens = 0;
-  while (value >= 100) { value -= 100; ++hundreds; }
-  while (value >= 10) { value -= 10; ++tens; }
-  if (hundreds) *out++ = '0' + hundreds;
-  if (hundreds || tens) *out++ = '0' + tens;
-  *out++ = '0' + value;
-  return out;
-}
-
-static char* PutHex(char* dest, unsigned char n) {
-  unsigned char digit = n >> 4;
-  *dest++ = digit < 10 ? '0' + digit : 'A' - 10 + digit;
-  digit = n & 15;
-  *dest++ = digit < 10 ? '0' + digit : 'A' - 10 + digit;
-  return dest;
-}
-
-// HELP > KEYBOARD TEST: the PS/2 interrupt's bytes (hex, bits, errors, counted from here, up to 255) and
+// SETTINGS > KEYBOARD TEST: the PS/2 interrupt's bytes (hex, bits, errors, counted from here, up to 255) and
 // the keys they make, listening
 // even if no keyboard was found at boot (it keeps listening afterwards)
 unsigned char ModuleMain(void) {
@@ -81,7 +59,7 @@ unsigned char ModuleMain(void) {
       *end = 0;
       ModRow(3, text);
     }
-    if (ModFrame() & (MODULE_PAD_B | MODULE_PAD_START)) break;
+    if (ModFrame() & (PADF_B | PADF_START)) break;
   }
   return 0;
 }

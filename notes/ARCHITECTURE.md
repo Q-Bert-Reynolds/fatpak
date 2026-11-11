@@ -69,13 +69,13 @@ flowchart LR
 | `src/main.asm`, `fatpak.inc` | Header, boot; includes every module (order matters) |
 | `src/app/` | Startup (`main.c`), menus/shortcuts (`menu.c`), `Choose` and dialogs (`dialogs.c`) |
 | `src/editor/` | Edit loop, documents, navigation, large-file window, view/bars, help, filename prompt, OSK, text buffer, keywords, undo |
-| `src/browser/` | Folder browser (`browser.c`), file info (`info.c`), UTF-8/path helpers (`paths.c`) |
+| `src/browser/` | Folder browser (`browser.c`), file-info host (`info.c`), UTF-8/path helpers (`paths.c`) |
 | `src/ui/` | Layout, renderer, boxes, text formatting, footer clock, frame waits, theme/color, SGB, fades, icon escapes |
 | `src/game/` | Loader UI (`loader.c`), loading display (`loading.asm`), launch (`launch.asm`), cart menu (`ingame.asm`), snapshots (`snapshot.asm`) |
 | `src/fatfs/` | FatFs (`lib/`), SD/SPI (`sd.asm`), file API and game-file formats (`fatfs.c`) |
-| `src/keyboard/` | PS/2 and iGKB drivers, keyboard test (`test.c`) |
-| `src/rtc/` | Calendar I2C, clock dialog, date validation, FAT timestamps, game RTC |
-| `src/tests/` | Standalone low-level test sources (not in the build) |
+| `src/keyboard/` | PS/2 and iGKB drivers, keyboard-test host (`test.c`) |
+| `src/rtc/` | Calendar I2C, clock-dialog host, date validation, FAT timestamps, game RTC |
+| `src/modules/`, `modules/` | Overlay loader and module ABI wrappers; module sources and `abi.json` ([MODULES.md](MODULES.md)) |
 | `src/core.asm`, `gbdk.asm`, `memory1.asm`, `math.asm`, `strings.asm`, `far_call.asm` | Trampoline, VBlank waits, tile/sprite/memory copies, math, strings, `FarCall` |
 | `src/input.*`, `interrupts.asm` | Joypad/keyboard input and repeat, interrupt vectors |
 | `src/charmap.asm`, `constants.asm`, `macros.asm`, `hardware.inc`, `wram.asm`, `sram.asm` | Charmap, constants, macros, registers, RAM layout |
@@ -372,8 +372,8 @@ boot ROM). Select opens file info directly.
 - **Help** (`editor/help.c`): context-specific text from `data/help/*.txt`,
   packed as 32-byte rows. `BeginView(1)` keeps the header/footer; `ScrollRows`
   reuses the display ring and reads only the incoming record per step.
-- **Info** (`browser/info.c`): FAT dates/times (zero shows `--`), size in
-  B/KB/MB. `FileInspect` uses a private `FIL` (an open large document survives):
+- **Info** (`browser/info.c` reads, `FILEINFO.MOD` draws): FAT dates/times
+  (zero shows `--`), size in B/KB/MB. `FileInspect` uses a private `FIL` (an open large document survives):
   text ≤32 KiB gets word and line counts, NULs mean binary; games read only the
   header (`$134-$14F`). It borrows the directory-mark buffer, so the browser
   reloads on exit.
@@ -446,20 +446,19 @@ configures the mapper, installs the cart-menu vector and does the stock handoff.
 See [EverDrive](EVERDRIVE.md) for formats, launch and transfer constraints, and
 [In-game menu](GAME_MENU.md) for capture, restore and warm return.
 
-The clock dialog (`rtc/menu.c`) uses `BOX_STRIDE` rows and resident field names:
-a far call keeps the caller's page, but a page-local string pointer passed to
-code on another page reads garbage.
+The clock dialog is `CLOCK.MOD`; `rtc/menu.c` only runs it. Menu box text uses
+`BOX_STRIDE` rows. A far call keeps the caller's page, but a page-local string
+pointer passed to code on another page reads garbage (the same reason module
+strings are marshaled).
 
 ## Testing and debugging
 
 - `python3 -m unittest discover -s tests -v`: bank splitting, private names,
-  button glyphs.
-- `bash tests/run_*.sh` (sibling Gearboy core): browser menu and file ops,
-  footer clock, in-game return, loading, session restore.
-- `make -C ../Gearboy/tests fatpak` runs Gearboy's integration suite against
-  `bin/GBCOS.BIN`/`.sym` (editing, undo, clipboard, OSK, menus, large files,
-  snapshots, ownership, 128 KiB SRAM, RTC, mapper latches). `everdrive` runs
-  component tests.
+  button glyphs. `python3 tests/test_modules.py`: module packer and imports.
+- `bash tests/run_*.sh` (prebuilt sibling Gearboy core, temporary SD folders,
+  DMG and CGB): browser menus, file ops, info and clock modules; footer clock;
+  in-game return; loading; session restore; module loader.
+- `make -C ../Gearboy/tests everdrive` runs Gearboy's EverDrive component tests.
 - Gearboy over MCP (`--mcp-stdio`/`--mcp-http`, `--headless`) has a per-function
   cycle profiler.
 - Renderer/text-buffer changes: compare incremental updates with a full redraw
@@ -486,8 +485,6 @@ Table lookups preserve the selected PSRAM block, including during text reads.
 Assets and filename undo moved above ROM loading and snapshot staging so game
 progress cannot overwrite live shift tables. The large-document add limit now
 stops before this reservation. Keep the OS and data file versions together.
-The current map has 910 bytes free in ROM0 (previously 158), about 3.7 KiB in
-resident bank 1 (previously 41 bytes), and 20 bytes in WRAM0 (previously 17).
-Paged code still needs the module extraction work.
-The loader design, proposed page borrow, ABI and implementation milestones are
-in [MODULES.md](MODULES.md); the loader itself is not implemented.
+With the keyboard test, clock dialog and file info moved into modules, the map
+has ~1.1 KiB free in ROM0, ~3.6 KiB in resident bank 1, ~1 KiB in pages 6 and 13,
+and 9 bytes in WRAM0; the other pages are 98-100% full. See [MODULES.md](MODULES.md).

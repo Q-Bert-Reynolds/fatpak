@@ -81,7 +81,7 @@ static void Modules(const char* image,const char* symbols,const char* data,const
     Write(root+"/GBCSYS/EDITOR.DAT",Read(data));
     // Each malformed file has a distinct path: the emulator's FAT image is a
     // snapshot of the folder when mounted.
-    const char* names[]={"valid","magic","version","abi","id","page","address","entry","length","bss","reserved","crc","short","trailing","empty","max"};
+    const char* names[]={"valid","magic","version","abi","id","page","address","entry","length","bss","reserved","crc","short","trailing","empty","abizero","abinew","context","max"};
     for(const char* name:names)Write(root+"/"+name+".MOD",Read(std::string(fixtures)+"/"+name+".MOD"));
     std::vector<u8> large(70000,'z');for(unsigned i=63;i<large.size();i+=64)large[i]='\n';
     Write(root+"/Large.txt",large);
@@ -99,13 +99,11 @@ static void Modules(const char* image,const char* symbols,const char* data,const
     memory->Write(0xBD06,6);memory->Write(0xBD02,0x34);memory->Write(0xBD03,1);
     unsigned oldpage=memory->Read(0xBD08), oldie=memory->Read(0xFFFF);
     auto swap=[&](unsigned mode){
-        Call(core,syms.at("_ModuleSwap"),0,mode);
-        unsigned sum=core.GetProcessor()->GetState()->BC->GetValue();
+        Check(Call(core,syms.at("_ModuleSwap"),0,mode)==0,"swap reads back what it copied");
         Check(memory->Read(0xBD08)==oldpage && memory->Read(0xFFFF)==oldie,"swap preserves mapping and interrupts");
         Check(memory->Read(0xBD06)==6 && memory->Read(0xBD02)==0x34 && memory->Read(0xBD03)==1,"swap preserves window/config");
-        return sum;
     };
-    unsigned sum=swap(0);swap(1);Check(swap(2)==sum,"restored page checksum");
+    swap(0);swap(1);swap(2);
     Check(Page(memory)==original,"low-level swaps restore all page bytes");
     memory->Write(0xBD06,4);memory->Write(0xBD02,0x9E);memory->Write(0xBD03,0x3D);
     for(unsigned i=256;i<512;++i)Check(memory->Read(0xBE00+i)==0xA5,"last backup sector stays bounded");
@@ -128,9 +126,16 @@ static void Modules(const char* image,const char* symbols,const char* data,const
     memory->Write(syms.at("_module_busy"),1);
     Text(memory,path,"/valid.MOD");Check(Call(core,syms.at("_RunModule"),path,1)==16,"nested invocation rejected");
     Check(Page(memory)==original,"nested rejection leaves page alone");memory->Write(syms.at("_module_busy"),0);
+    const unsigned invalid=9, abi=20; // FR_INVALID_OBJECT, MODULE_ERR_ABI
     run("missing",4);
-    for(unsigned i=1;i<15;++i)run(names[i],9);
+    for(unsigned i=1;i<15;++i)run(names[i],std::string(names[i])=="abi"?abi:invalid);
+    run("abizero",abi);run("abinew",abi);
     run("valid",0);run("valid",0);run("max",0);
+    Check(memory->Read(syms.at("_module_status"))==0,"module result kept in module_status");
+    memory->Write(syms.at("_module_context"),0x34);memory->Write(syms.at("_module_context")+1,0x12);
+    run("context",0);
+    Check(memory->Read(syms.at("_module_status"))==0x34,"module receives module_context in DE");
+    Check(memory->Read(syms.at("_module_context"))==0 && memory->Read(syms.at("_module_context")+1)==0,"context cleared after the call");
     Check(Text(memory,syms.at("tile_buffer")+3*40).substr(0,13)=="MODULE STRING","module-local literal marshaled before page change");
     Text(memory,path,"/Large.txt");Check(Call(core,syms.at("_FileLoadLarge"),path)==0,"open large document");
     unsigned position=syms.at("_doc_pos");
@@ -140,7 +145,7 @@ static void Modules(const char* image,const char* symbols,const char* data,const
     for(unsigned i=0;i<4;++i)Check(memory->Read(position+i)==state[i],"module preserves document position");
     Check(Call(core,syms.at("_FileLoadWindow"))==0,"large document reads after module return");
     for(unsigned i=0;i<32;++i)Check(memory->Read(syms.at("stack_top")+i)==0xA5,"loader and SDK stay within host stack");
-    printf("%s modules: malformed files, BSS, repeated calls, pointer marshaling, full page restoration and open document passed\n",color?"CGB":"DMG");
+    printf("%s modules: malformed files, ABI versions, context, BSS, repeated calls, pointer marshaling, full page restoration and open document passed\n",color?"CGB":"DMG");
 }
 int main(int argc,char** argv) {
     Check(argc==5,"usage: modules GBCOS.BIN GBCOS.sym EDITOR.DAT fixtures");

@@ -15,9 +15,9 @@ void KeyboardTest(void) {
   BeginFullScreen();
   ClearScreen();
   ShowBusy("Loading");
-  result = RunModule("/GBCSYS/MODULES/KEYTEST.MOD", 1);
+  result = RUN_MODULE(KEYTEST);
   HideBox();
-  if (result) ShowError(result, "Module unavailable");
+  if (result) ShowModuleError(result);
   font = old_font;
   SetFont(font);
   render_text = 1;

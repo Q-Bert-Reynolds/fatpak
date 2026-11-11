@@ -3,7 +3,7 @@
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from module_build import package, assembly, sdk, PAGE_SIZE
+from module_build import package, assembly, sdk, PAGE_SIZE, C
 
 
 def rejected(function, *args):
@@ -17,10 +17,12 @@ def rejected(function, *args):
 def fixtures():
     out = Path('build/modules/fixtures')
     out.mkdir(parents=True, exist_ok=True)
+    versions = sdk()
+    table = C['MODULE_TABLE']
     # Checks zeroed BSS, then exercises module-page pointers through host APIs.
     # Failure returns FR_INT_ERR; normal return is zero.
     code = bytearray([0xFA,0x00,0xA1,0xB7,0x28,0x03,0x3E,0x02,0xC9])
-    code += bytes([0xCD,0x00,0x7F,0xFE,1,0x28,3,0x3E,2,0xC9]) # Version
+    code += bytes([0xCD,table&255,table>>8,0xFE,C['MODULE_ABI'],0x28,3,0x3E,2,0xC9]) # Version
     code += bytes([0x11,0x10,0xA1,0xCD,0x0F,0x7F]) # Keyboard(BSS)
     code += bytes([0xFA,0x12,0xA1,0xFE,37,0x28,3,0x3E,2,0xC9]) # Snapshot in BSS
     code += bytes([0x11,0x20,0xA1,0xCD,0x1B,0x7F]) # Clock(BSS)
@@ -28,11 +30,17 @@ def fixtures():
     code += bytes([0x11,0x60,0xA0,0xCD,0x15,0x7F,0xCD,0x18,0x7F]) # Box/Hide
     code += bytes([0x3E,0x5A,0xEA,0x00,0xA1,0xAF,0xC9])
     code += bytes(0x60-len(code)) + b'MODULE STRING\0'
-    valid=package(code,0,1,0x100,0x26)
+    valid=package(code,0,1,0x100,0x26) # ABI 1: older modules keep running
     variants={'valid':valid,'short':valid[:10],'trailing':valid+b'!','empty':b''}
-    for name,offset in [('magic',0),('version',4),('abi',5),('id',6),('page',7),
-                        ('address',8),('entry',11),('length',13),('bss',15),('reserved',20),('crc',18)]:
+    for name,offset in [('magic',0),('version',C['MODULE_H_FORMAT']),('abi',C['MODULE_H_ABI']),
+                        ('id',C['MODULE_H_ID']),('page',C['MODULE_H_PAGE']),('address',C['MODULE_H_ADDRESS']+1),
+                        ('entry',C['MODULE_H_ENTRY']+1),('length',C['MODULE_H_LENGTH']+1),
+                        ('bss',C['MODULE_H_BSS']+1),('reserved',C['MODULE_H_RESERVED']),('crc',C['MODULE_H_CRC'])]:
         value=bytearray(valid);value[offset]^=0x80;variants[name]=value
+    for name,abi in [('abizero',0),('abinew',C['MODULE_ABI']+1)]:
+        value=bytearray(valid);value[C['MODULE_H_ABI']]=abi;variants[name]=value
+    # Returns the low byte of the context pointer it was given in DE.
+    variants['context']=package(bytes([0x7B,0xC9]),0,1,2,0)
     # A maximal page exercises the 256-byte final sector, without touching BD00.
     variants['max']=package(code+bytes(PAGE_SIZE-len(code)),0,1,PAGE_SIZE,0)
     for name,value in variants.items(): (out/(name+'.MOD')).write_bytes(value)
@@ -41,9 +49,16 @@ def fixtures():
     rejected(package,b'\xC9',1,1,1,0)
     rejected(package,b'\xC9',0,1,0,1)
     rejected(package,b'\xC9',0,1,PAGE_SIZE,1)
+    rejected(package,b'\xC9',0,1,1,0,C['MODULE_ABI']+1)
     rejected(assembly,'SECTION FRAGMENT "x_CODE",ROMX\n_ModuleMain:\n call _f_open',set())
     rejected(assembly,'SECTION FRAGMENT "_GSINIT",ROM0\n ld a,1',set())
     rejected(assembly,'SECTION FRAGMENT "x_CODE",ROMX\n_ModuleMain:\n call ___mulint',set())
+    one='SECTION FRAGMENT "a_CODE",ROMX\n_ModuleMain:\n call _ModRow\n call _Helper'
+    two='SECTION FRAGMENT "b_CODE",ROMX\n_Helper:\n call _ModText\n ret'
+    rejected(assembly,[one,two.replace('_Helper:','_ModuleMain:')],versions)
+    _, used = assembly([one,two],versions)
+    assert used == {'_ModRow','_ModText'}, used
+    assert max(versions[name] for name in used) == 2, 'an ABI 2 entry makes an ABI 2 module'
     print('Module packer bounds and SDK import checks passed')
 
 if __name__ == '__main__': fixtures()

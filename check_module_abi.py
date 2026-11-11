@@ -1,24 +1,40 @@
-"""Reject ABI call chains reaching the displaced page.
+"""Reject module ABI and interrupt call chains reaching the borrowed page.
+
+usage: python3 check_module_abi.py bin/GBCOS.sym <C sources>
 
 C edges come from SDCC output and .banks metadata. Handwritten assembly gates
 are explicitly audited below; a new unknown assembly gate fails the build.
+Interrupts stay enabled while a module runs, so their handlers are roots too.
 """
 import json
 from pathlib import Path
 import re
 import sys
 from bank_split import Module, FUNCTION_RE, BRANCH_RE
+import utils
 
-# These assembly services stay resident or explicitly save/restore page 15.
-# EditorDraw's plain-row path uses page 12; styled text is disabled by the host.
+PAGE = utils.constants()['MODULE_PAGE']
+
+# Audited assembly: name -> what it can reach. Each must stay resident or save,
+# switch and restore the page itself. EditorDraw's plain-row path uses page 12;
+# rows are already lexed, so drawing never reaches KeywordLookup (page 13).
 ASM = {
     '_EditorDraw': ['RenderRow'],
     '_WaitFrame': ['UpdateInput', '_FooterTick'],
     '_FooterTick': ['_footer_Tick'],
     '_ClockRead': ['_rtc_Read'],
-    '_RenderTextWidth': [], '_RTCRead': [], '_KBListen': [], '_KBPopEvent': [], '_PadPressed': [],
-    'UpdateInput': [], 'RenderRow': [],
+    '_ClockWrite': ['_rtc_Write'],
+    'UpdateInput': ['ProcessKeyCodes'],
+    'ProcessKeyCodes': [],  # page 15 with its jump tables and handlers
+    '_RenderTextWidth': [], '_RTCRead': [], '_RTCWrite': [], '_KBListen': [], '_KBPopEvent': [], '_PadPressed': [],
+    'RenderRow': [],
+    # interrupt handlers
+    'VBLInterrupt': ['gbdk_DMATransfer', 'LatchPad'],
+    'LCDInterrupt': ['RenderLCDInterrupt'],  # via rLCDInterrupt; the editor's handler
+    'SerialInterrupt': ['PS2KeyboardInterrupt'],
+    'gbdk_DMATransfer': [], 'LatchPad': [], 'RenderLCDInterrupt': [], 'PS2KeyboardInterrupt': [],
 }
+INTERRUPTS = ['VBLInterrupt', 'LCDInterrupt', 'SerialInterrupt']
 
 
 def check(sources, symbol_path):
@@ -45,15 +61,17 @@ def check(sources, symbol_path):
             return
         visited.add(name)
         chain = chain + [name]
-        if destinations.get(name) == '13':
+        if destinations.get(name) == str(PAGE):
             raise ValueError('module ABI reaches displaced page: ' + ' -> '.join(chain))
         if name in edges:
             for target in edges[name]:
                 visit(target, chain)
         elif name in ASM:
+            if name not in symbols:
+                raise ValueError('audited assembly gate is missing from the symbols: ' + name)
             bank, address = symbols[name]
-            if 0xA000 <= address < 0xBD00 and bank == 13:
-                raise ValueError('assembly ABI gate moved into page 13: ' + name)
+            if 0xA000 <= address < 0xBD00 and bank == PAGE:
+                raise ValueError('assembly ABI gate moved into the borrowed page: ' + name)
             for target in ASM[name]:
                 visit(target, chain)
         else:
@@ -63,9 +81,11 @@ def check(sources, symbol_path):
             for name, dest in module.functions.items():
                 if dest not in ('FIXED', 'ROM0'):
                     raise ValueError('module runtime must remain resident: ' + name)
-    for name, _, _ in abi['entries']:
+    for name, *_ in abi['entries']:
         visit('_ModuleAPI' + name, [])
-    print(f'module ABI: {len(visited)} reachable functions, no page-13 imports')
+    for name in INTERRUPTS:
+        visit(name, [])
+    print(f'module ABI: {len(visited)} reachable functions, no page-{PAGE} imports')
 
 
 if __name__ == '__main__':

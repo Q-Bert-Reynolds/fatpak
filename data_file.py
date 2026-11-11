@@ -6,6 +6,7 @@ src/ui/render.asm), the SGB border's tiles and its map, then the base fixed font
 usage: python3 data_file.py out_file
 """
 import re
+import utils
 import sys
 
 BLOCK = 512
@@ -14,13 +15,7 @@ FONTS = ["h1", "h2", "h3", "h4", "fixed_bold", "fixed_italic", "fixed_bold_itali
 
 
 def constants():
-  values = {}
-  with open("src/constants.asm", encoding="utf8") as file:
-    for line in file:
-      match = re.match(r"DEF (DATA_\w+)\s+EQU \$?(\w+)", line)
-      if match:
-        values[match.group(1)] = int(match.group(2), 16 if "$" in line.split(";")[0] else 10)
-  return values
+  return utils.constants()
 
 
 def number(text):

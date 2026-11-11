@@ -1,6 +1,5 @@
 # Priority
 
-- Implement the module ABI and overlay loader in [MODULES.md](MODULES.md), starting with keyboard diagnostics. First headroom pass complete: removed legacy paths and moved shift/bold-width tables to protected `EDITOR.DAT`; resident bank 1 now has about 3.7 KiB free (previously 41 bytes), ROM0 has 910 bytes and WRAM0 has 20.
 - Loading bar in the launch box, drawn with the existing CPU-copy progress path between chunks.
 - 8 MiB ROMs: snapshot staging at `$3c00` caps ROMs at 7.5 MiB; find another place to stage.
 
@@ -57,9 +56,9 @@
 
 # OS utilities
 
-- **Loadable modules:** follow [MODULES.md](MODULES.md): audited page borrowing, resident ABI/trampoline, staged/validated loading and page restoration. The overlay loader is planned, not implemented.
+- **Modules:** keyboard test, clock and file info are modules. Hardware-test them; remaining work in [MODULES.md](MODULES.md#next-steps).
 - In-game tools on the snapshot: memory dump to files; VRAM viewer (tiles, maps, OAM, palettes); BMP/stored-deflate PNG export; screenshot rebuilt from the snapshot (VBlank state only, so raster effects are wrong).
-- PNG viewer: inflate with a 32 KB PSRAM window, 8-bit gray/RGB/RGBA/palette (no Adam7/16-bit), fit/1x/2x/4x with panning, dithered on DMG, per-tile palettes on GBC.
+- PNG viewer: inflate with a 32 KB PSRAM window, 8-bit gray/RGB/RGBA/palette (no Adam7/16-bit), fit/1x/2x/4x with panning, dithered on DMG, per-tile palettes on GBC; see [IMAGE_VIEWER.md](IMAGE_VIEWER.md).
 - On-device development, in order:
   1. Two-pass assembler for an RGBDS subset reusing `TBLexCode`/keyword tables; symbols in SRAM; swap the editor's PSRAM to SD while a program runs, with a crash/power-loss restore flag.
   2. Export table built from `GBCOS.sym` in its own section, plus a small ROM0 API (print, keys, files, exit) for user programs.

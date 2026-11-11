@@ -1,3 +1,2 @@
+# Code placement; the page itself is FILEINFO.MOD.
 *: FIXED
-6: PutSize
-ROM0: Field Row Value SizeRow DateRow

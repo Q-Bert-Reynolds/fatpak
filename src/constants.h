@@ -56,6 +56,32 @@
 #define TB_WIDTH  TB_COLS*8//pixels per row
 #define TB_STRIDE 40//characters per row in tile_buffer
 #define BOX_STRIDE 20//characters per line of the menu box's text, 0 ends a line
+#define HEADER_LINE TB_ROWS//tile_buffer rows of the file name and status bars
+#define STATUS_LINE (TB_ROWS + 1)
+
+//loadable modules (src/modules, notes/MODULES.md)// module_build.py and
+//check_module_abi.py read these too
+#define MODULE_PAGE    13//the OS page a module borrows
+#define MODULE_STAGE   0x3D80u//PSRAM: the validated module page, 15 blocks
+#define MODULE_BACKUP  0x3D90u//PSRAM: the borrowed OS page, 15 blocks
+#define MODULE_ABI     2//newest ABI the host provides, modules built for older ones still load
+#define MODULE_TABLE   0x7F00u//ABI jump table in resident bank 1, 3 bytes per entry
+#define MODULE_SLOTS   32//entries reserved for it
+#define MODULE_FORMAT  1
+#define MODULE_HEADER  32//bytes before the payload
+#define MODULE_H_FORMAT   4//header offsets, after the "FPKM" magic
+#define MODULE_H_ABI      5//ABI the module needs
+#define MODULE_H_ID       6
+#define MODULE_H_PAGE     7
+#define MODULE_H_ADDRESS  8//16 bit fields are little endian
+#define MODULE_H_ENTRY    10//offset into the payload
+#define MODULE_H_LENGTH   12//payload bytes
+#define MODULE_H_BSS      14//offset, at or after the payload
+#define MODULE_H_BSS_SIZE 16
+#define MODULE_H_CRC      18//CRC-16/CCITT of the payload, initial 0xFFFF
+#define MODULE_H_RESERVED 20//zero up to MODULE_HEADER
+#define MODULE_ERR_ABI    20//RunModule results past FatFs's FRESULT codes
+#define MODULE_ERR_VERIFY 21//a page copy didn't read back
 
 //fonts
 #define FONT_MONO 0

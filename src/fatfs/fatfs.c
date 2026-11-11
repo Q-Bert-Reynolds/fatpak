@@ -1529,9 +1529,10 @@ unsigned char fs_Session(const char* folder, unsigned char mode) {
 // The borrowed page is still OS code here. Validate/stage with a private FIL,
 // leaving an open editor document and its undo history alone.
 extern unsigned int module_entry;
+extern UINT ModuleCRC(const BYTE* data, UINT count, UINT crc); // src/modules/runtime.asm
 unsigned char fs_LoadModule(const char* path, unsigned char id) {
   FIL module;
-  BYTE header[32], result, close_result, bit;
+  BYTE header[MODULE_HEADER], result, close_result;
   UINT done, length, offset = 0, crc = 0xFFFF, expected, entry, bss, bss_size, i;
   UINT saved_block = *(volatile UINT*)0xBD02;
   BYTE saved_config = *(volatile BYTE*)0xBD06;
@@ -1539,25 +1540,22 @@ unsigned char fs_LoadModule(const char* path, unsigned char id) {
   if (result) goto restore;
   result = f_read(&module, header, sizeof(header), &done);
   if (result) goto close;
-  if (done != sizeof(header)) { result = FR_INVALID_OBJECT; goto close; }
-  length = ld_16(header + 12);
-  entry = ld_16(header + 10);
-  bss = ld_16(header + 14);
-  bss_size = ld_16(header + 16);
-  expected = ld_16(header + 18);
-  if (done != sizeof(header) || memcmp(header, "FPKM", 4) ||
-      header[4] != 1 || header[5] != 1 || header[6] != id || !id ||
-      header[7] != 13 || ld_16(header + 8) != 0xA000 ||
+  result = FR_INVALID_OBJECT;
+  if (done != sizeof(header) || memcmp(header, "FPKM", 4) || header[MODULE_H_FORMAT] != MODULE_FORMAT) goto close;
+  // Hosts keep older ABI entries, so any version up to the host's runs.
+  if (!header[MODULE_H_ABI] || header[MODULE_H_ABI] > MODULE_ABI) { result = MODULE_ERR_ABI; goto close; }
+  length = ld_16(header + MODULE_H_LENGTH);
+  entry = ld_16(header + MODULE_H_ENTRY);
+  bss = ld_16(header + MODULE_H_BSS);
+  bss_size = ld_16(header + MODULE_H_BSS_SIZE);
+  expected = ld_16(header + MODULE_H_CRC);
+  if (header[MODULE_H_ID] != id || !id || header[MODULE_H_PAGE] != MODULE_PAGE ||
+      ld_16(header + MODULE_H_ADDRESS) != 0xA000 ||
       !length || length > 0x1D00 || entry >= length ||
       bss < length || bss > 0x1D00 || bss_size > 0x1D00 - bss ||
-      f_size(&module) != (DWORD)length + sizeof(header)) {
-    result = FR_INVALID_OBJECT;
-    goto close;
-  }
-  for (i = 20; i < sizeof(header); ++i) if (header[i]) {
-    result = FR_INVALID_OBJECT;
-    goto close;
-  }
+      f_size(&module) != (DWORD)length + sizeof(header)) goto close;
+  for (i = MODULE_H_RESERVED; i < sizeof(header); ++i) if (header[i]) goto close;
+  result = FR_OK;
   *(volatile BYTE*)0xBD06 = saved_config & ~2;
   // Read into WRAM: disk_read itself uses the cartridge's PSRAM window.
   while (offset < 0x1D00) {
@@ -1570,13 +1568,9 @@ unsigned char fs_LoadModule(const char* path, unsigned char id) {
       result = f_read(&module, buffer, size, &done);
       if (result) goto close;
       if (done != size) { result = FR_INVALID_OBJECT; goto close; }
-      for (i = 0; i < size; ++i) {
-        crc ^= (UINT)buffer[i] << 8;
-        for (bit = 0; bit < 8; ++bit)
-          crc = crc & 0x8000 ? (crc << 1) ^ 0x1021 : crc << 1;
-      }
+      crc = ModuleCRC(buffer, size, crc);
     }
-    SetWindowBlock(0x3D80 + (offset >> 9));
+    SetWindowBlock(MODULE_STAGE + (offset >> 9));
     memcpy(WINDOW, buffer, sector_size);
     offset += sector_size;
   }

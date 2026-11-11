@@ -6,8 +6,6 @@
 #define WIN_MAP_ROWS     (OSK_ROWS + 2)
 #define STATUS_BLOCK     17
 #define HEADER_BLOCK     8 // the bars' blocks work in either tile data mode (see src/ui/render.asm)
-#define STATUS_LINE      (TB_ROWS + 1)
-#define HEADER_LINE      TB_ROWS // tile_buffer rows of the file name and status bars
 #define BG_MAP_ROWS      32
 
 void Layout(void);

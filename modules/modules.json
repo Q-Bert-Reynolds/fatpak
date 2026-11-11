@@ -1,0 +1,8 @@
+{
+  "comment": "Modules built into bin/MODULES/<name>.MOD. IDs are permanent; hosts call RUN_MODULE(<name>).",
+  "modules": [
+    {"name": "KEYTEST", "id": 1, "sources": ["keyboard.c", "lib/text.c"]},
+    {"name": "CLOCK", "id": 2, "sources": ["clock.c", "lib/text.c"]},
+    {"name": "FILEINFO", "id": 3, "sources": ["info.c", "lib/text.c"]}
+  ]
+}

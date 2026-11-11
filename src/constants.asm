@@ -53,6 +53,32 @@ DEF TB_ROWS   EQU 18
 DEF TB_WIDTH  EQU TB_COLS*8;pixels per row
 DEF TB_STRIDE EQU 40;characters per row in tile_buffer
 DEF BOX_STRIDE EQU 20;characters per line of the menu box's text, 0 ends a line
+DEF HEADER_LINE EQU TB_ROWS;tile_buffer rows of the file name and status bars
+DEF STATUS_LINE EQU (TB_ROWS + 1)
+
+;loadable modules (src/modules, notes/MODULES.md); module_build.py and
+;check_module_abi.py read these too
+DEF MODULE_PAGE    EQU 13;the OS page a module borrows
+DEF MODULE_STAGE   EQU $3D80;PSRAM: the validated module page, 15 blocks
+DEF MODULE_BACKUP  EQU $3D90;PSRAM: the borrowed OS page, 15 blocks
+DEF MODULE_ABI     EQU 2;newest ABI the host provides, modules built for older ones still load
+DEF MODULE_TABLE   EQU $7F00;ABI jump table in resident bank 1, 3 bytes per entry
+DEF MODULE_SLOTS   EQU 32;entries reserved for it
+DEF MODULE_FORMAT  EQU 1
+DEF MODULE_HEADER  EQU 32;bytes before the payload
+DEF MODULE_H_FORMAT   EQU 4;header offsets, after the "FPKM" magic
+DEF MODULE_H_ABI      EQU 5;ABI the module needs
+DEF MODULE_H_ID       EQU 6
+DEF MODULE_H_PAGE     EQU 7
+DEF MODULE_H_ADDRESS  EQU 8;16 bit fields are little endian
+DEF MODULE_H_ENTRY    EQU 10;offset into the payload
+DEF MODULE_H_LENGTH   EQU 12;payload bytes
+DEF MODULE_H_BSS      EQU 14;offset, at or after the payload
+DEF MODULE_H_BSS_SIZE EQU 16
+DEF MODULE_H_CRC      EQU 18;CRC-16/CCITT of the payload, initial $FFFF
+DEF MODULE_H_RESERVED EQU 20;zero up to MODULE_HEADER
+DEF MODULE_ERR_ABI    EQU 20;RunModule results past FatFs's FRESULT codes
+DEF MODULE_ERR_VERIFY EQU 21;a page copy didn't read back
 
 ;fonts
 DEF FONT_MONO EQU 0

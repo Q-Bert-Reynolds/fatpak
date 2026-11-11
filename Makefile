@@ -31,9 +31,14 @@ all: clean assets assemble run
 
 code: assemble run
 
-$(BUILD_DIR)/c/src/modules/runtime.asm: modules
+# Module SDK/host headers: module_build.py rewrites them only when their content changes.
+MODULE_HEADERS = $(BUILD_DIR)/modules/sdk.h $(BUILD_DIR)/modules/modules.h
+MODULE_INPUTS  = module_build.py utils.py modules/abi.json modules/modules.json $(SRC_DIR)/constants.asm
 
-$(BUILD_DIR)/c/%.asm: %.c $(C_HEADERS) $(C_LIBS)
+$(MODULE_HEADERS): $(MODULE_INPUTS)
+	$(PYTHON) module_build.py --headers
+
+$(BUILD_DIR)/c/%.asm: %.c $(C_HEADERS) $(C_LIBS) $(MODULE_HEADERS) $(wildcard modules/*.h)
 	@mkdir -p $(dir $@)
 	sdcc $< -msm83 --asm=rgbds --opt-code-size --dataseg WRAM0 --no-peep --peep-file peephole.def $(DEFINES) --disable-warning 218 -S -o $@
 	@sed -i 's/^\t\.byte /\tDB /' $@ # SDCC writes long constants as .byte
@@ -41,7 +46,7 @@ $(BUILD_DIR)/c/%.asm: %.c $(C_HEADERS) $(C_LIBS)
 $(SRC_DIR)/constants.h: $(SRC_DIR)/constants.asm build.py
 	$(PYTHON) build.py
 
-modules:
+modules: $(SRC_DIR)/constants.h $(MODULE_HEADERS)
 	$(PYTHON) module_build.py
 
 assemble: modules $(C_RAW)

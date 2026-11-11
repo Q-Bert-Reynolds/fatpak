@@ -1,6 +1,5 @@
 {
-  "version": 1,
-  "address": 32512,
+  "comment": "Append-only. Entry n is MODULE_TABLE + 3n. The fourth field is the ABI version that added it (default 1); MODULE_ABI in src/constants.asm must equal the newest.",
   "entries": [
     ["Version", "unsigned char", "void"],
     ["Row", "void", "unsigned char row, const char* text"],
@@ -11,6 +10,10 @@
     ["Scan", "unsigned int", "unsigned char index"],
     ["Box", "void", "const char* text"],
     ["HideBox", "void", "void"],
-    ["Clock", "unsigned char", "ModuleClock* clock"]
+    ["Clock", "unsigned char", "ModuleClock* clock"],
+    ["Text", "void", "unsigned char row, unsigned char col, const char* text", 2],
+    ["Key", "unsigned char", "void", 2],
+    ["Menu", "void", "const char* lines, unsigned char count, unsigned char selected", 2],
+    ["ClockSet", "unsigned char", "const ModuleClock* clock", 2]
   ]
 }
