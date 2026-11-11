@@ -1,5 +1,7 @@
 # Priority
 
+- Shift key on OSK doesn't update tiles (still shows lower case)
+- Double-tap shift key should shift lock (like mobile devices do)
 - Loading bar in the launch box, drawn with the existing CPU-copy progress path between chunks.
 - 8 MiB ROMs: snapshot staging at `$3c00` caps ROMs at 7.5 MiB; find another place to stage.
 

@@ -529,8 +529,15 @@ gbdk_Delay::
 ;
 ; gbdk_CPUSlow - Sets GameBoy Color to DMG speed
 ;
+; Both speed routines do nothing outside CGB mode: KEY1 reads $FF on a DMG
+; (and can't switch in DMG compatibility mode), and the switch's STOP would
+; halt the CPU until a button press.
+;
 ;***************************************************************************
 gbdk_CPUSlow::
+  ldh a, [sys_info]
+  and a, SYS_INFO_GBC
+  ret z
   ldh a,[rKEY1]
   and a, KEY1F_DBLSPEED
   ret z
@@ -562,6 +569,9 @@ shift_speed:
 ;
 ;***************************************************************************
 gbdk_CPUFast::
+  ldh a, [sys_info]
+  and a, SYS_INFO_GBC
+  ret z
   ldh a, [rKEY1]
   and KEY1F_DBLSPEED
   ret nz

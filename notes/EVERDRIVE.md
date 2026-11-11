@@ -53,7 +53,9 @@ mask and supplies an X7 model, but doesn't emulate the bits' effects.
 ## Game launch
 
 Like stock `Cart_LaunchGame`: write launch config `$08` (keeping option bit 5),
-initialize mapper latches, select normal speed, leave IE off, enable audio,
+initialize mapper latches, select normal speed (CGB only: `gbdk_CPUSlow` checks
+`sys_info`, because a DMG reads `KEY1` as `$FF` and its `STOP` would freeze the
+launch at "Preparing game..."), leave IE off, enable audio,
 write `$BD07`, then spin in resident cartridge code. The reset/boot path supplies
 the game's registers; there's no timeout or jump to `$0100`.
 

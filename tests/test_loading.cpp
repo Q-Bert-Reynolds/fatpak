@@ -303,6 +303,23 @@ static void LookupTables(GearboyCore& core, const std::map<std::string,unsigned>
     puts("External/fallback shifts, clipped edges, widths and window/register preservation passed");
 }
 
+// Real DMGs read KEY1 as $FF and halt on a speed-switch STOP until a button press;
+// Gearboy ignores STOP outside CGB mode, so check the executed opcodes instead.
+static void NoDMGSpeedSwitch(GearboyCore& core, const std::map<std::string, unsigned>& syms)
+{
+    auto cpu = core.GetProcessor()->GetState(); auto memory = core.GetMemory();
+    for (const char* routine : {"gbdk_CPUSlow", "gbdk_CPUFast"}) {
+        memory->Load(0xFF4D, 0xFF);
+        cpu->SP->SetValue(0xDFFE); memory->Write(0xDFFE, 0xFF); memory->Write(0xDFFF, 0x7F);
+        cpu->PC->SetValue(syms.at(routine));
+        for (unsigned i = 0; i < 10000 && cpu->PC->GetValue() != 0x7FFF; ++i) {
+            Check(memory->Read(cpu->PC->GetValue()) != 0x10, "DMG never executes a CGB speed-switch STOP");
+            unsigned ticks = 0; core.RunCycle(frame.data(), ticks);
+        }
+        Check(cpu->PC->GetValue() == 0x7FFF, "speed routine returns on DMG");
+    }
+}
+
 static void Loading(const char* image, const char* symbols, const char* data, bool color) {
     char folder[] = "/tmp/fatpak-loading-XXXXXX";
     Check(mkdtemp(folder), "loading SD");
@@ -343,7 +360,8 @@ static void Loading(const char* image, const char* symbols, const char* data, bo
     Check(core.GetProcessor()->CGBSpeed() == color && memory->Read(0xFFFF) == original_ie, "error recovery restores speed and interrupts");
     Check(!memory->Read(syms.at("_render_cpu_copy")), "error recovery restores normal renderer");
     LookupTables(core, syms, data);
-    printf("%s startup bars/clock/loading and loading/error speed preservation passed\n", color ? "CGB" : "DMG");
+    if (!color) NoDMGSpeedSwitch(core, syms);
+    printf("%s startup bars/clock/loading, loading/error speed preservation and DMG speed guard passed\n", color ? "CGB" : "DMG");
 }
 static void Copies(const char* image, const char* symbols) {
     GearboyCore core; core.Init(); Check(core.LoadROM(image, true), "copy OS");
