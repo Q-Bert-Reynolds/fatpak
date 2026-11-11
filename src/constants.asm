@@ -72,6 +72,7 @@ DEF MODULE_BACKUP3 EQU $3DD0
 DEF MODULE_BSS     EQU $D000;tile_buffer: the editor's buffers, saved to PSRAM meanwhile (src/wram.asm)
 DEF MODULE_BSS_SIZE EQU 3072;6 blocks
 DEF MODULE_BSS_BACKUP EQU $3DE0
+DEF MODULE_FAIL_BLOCK EQU $3DE6;a restore that never read back, recorded before restarting (ShowModuleRestart)
 DEF MODULE_SOURCE_CHUNK EQU 128;bytes ModSource copies at most
 ;ASM.MOD (modules/asm.c): inside the large-file add buffer, so only text-buffer documents assemble
 DEF ASM_IMAGE_BLOCK  EQU $0400;the ROM image, up to ASM_IMAGE_BLOCKS

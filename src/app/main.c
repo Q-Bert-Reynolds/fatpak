@@ -8,6 +8,7 @@
 #include "../editor/text_buffer.h"
 #include "../editor/undo.h"
 #include "../fatfs/file_api.h"
+#include "../modules/runtime.h"
 #include "../ui/dialogs.h"
 #include "../ui/render.h"
 #include "../ui/screen.h"
@@ -37,6 +38,7 @@ void AppMain(void) {
   EditorInit();
   ThemeApply();
   if (backup_skipped) ShowMessage("SAVE NOT BACKED UP");
+  ShowModuleRestart();
   session_open = modified; // legacy swap without a session: keep recoverable edits
   FileSession(0, 255);
   if (!session_open) {

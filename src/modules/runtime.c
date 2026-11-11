@@ -5,6 +5,7 @@
 #include "../game/loader.h"
 #include "../ui/dialogs.h"
 #include "../ui/render.h"
+#include "../ui/text.h"
 #include "../ui/screen.h"
 #include "../ui/footer.h"
 #include "../input.h"
@@ -27,6 +28,7 @@ unsigned char module_status;
 extern unsigned char fs_LoadModule(const char* path, unsigned char id); // src/fatfs/fatfs.c
 extern unsigned char ModuleSwap(unsigned char operation); // 0 when the copy read back
 extern unsigned char ModuleSwapRAM(unsigned char operation);
+extern unsigned int module_fail; // runtime.asm: operation and block of the first copy that never read back
 extern unsigned char module_wide; // fs_LoadModule: the staged module is MODULE_FORMAT_WIDE
 extern unsigned int tb_read_pos; // src/editor/text_buffer.asm
 extern unsigned int tb_Read(unsigned char* buffer, unsigned int size); // from tb_read_pos, returns bytes copied
@@ -38,11 +40,22 @@ extern void SetWindowBlock(unsigned int block);
 
 // Wide modules (MODULE_FORMAT_WIDE) also take MODULE_PAGE2, maybe MODULE_PAGE3, and the
 // editor's WRAMX buffers, which come back before HideBox needs them.
+// a restore that never read back: recorded in PSRAM (it survives the cartridge reset), then restart
+static void Unrecoverable(void) {
+  SetWindowBlock(MODULE_FAIL_BLOCK);
+  ((unsigned char*)WINDOW)[0] = 'M';
+  ((unsigned char*)WINDOW)[1] = 'F';
+  ((unsigned char*)WINDOW)[2] = ((unsigned char*)&module_fail)[0];
+  ((unsigned char*)WINDOW)[3] = ((unsigned char*)&module_fail)[1];
+  RestartDevice();
+}
+
 unsigned char RunModule(const char* path, unsigned char id) {
   unsigned char result, step = 0; // pages installed, 4: the buffers saved too
   unsigned int window = WINDOW_BLOCK; // modules may move it
   if (module_busy) return FR_LOCKED;
   module_busy = 1;
+  module_fail = 0;
   result = fs_LoadModule(path, id);
   if (!result) {
     if (ModuleSwap(0)) result = MODULE_ERR_VERIFY; // backup unreadable: the page is untouched
@@ -66,11 +79,11 @@ unsigned char RunModule(const char* path, unsigned char id) {
         }
       }
     }
-    if (step == 4 && ModuleSwapRAM(2)) RestartDevice(); // never run on state that didn't come back
-    if (step >= 3 && module_wide > 1 && ModuleSwap(10)) RestartDevice();
-    if (step >= 2 && ModuleSwap(6)) RestartDevice();
+    if (step == 4 && ModuleSwapRAM(2)) Unrecoverable(); // never run on state that didn't come back
+    if (step >= 3 && module_wide > 1 && ModuleSwap(10)) Unrecoverable();
+    if (step >= 2 && ModuleSwap(6)) Unrecoverable();
     HideBox(); // remove any modal state before restoring the page
-    if (step && ModuleSwap(2)) RestartDevice();
+    if (step && ModuleSwap(2)) Unrecoverable();
     SetWindowBlock(window);
   }
   module_context = 0;
@@ -78,11 +91,37 @@ unsigned char RunModule(const char* path, unsigned char id) {
   return result;
 }
 
+// text and the failed copy as operation:block (ModuleSwap's operation, 6 for the WRAMX buffers)
+static void ShowFailure(const char* text) {
+  char line[28], *end;
+  unsigned char op = ((unsigned char*)&module_fail)[0];
+  end = PutText(line, text);
+  end = PutNumber(end, op);
+  *end++ = ':';
+  *PutNumber(end, ((unsigned char*)&module_fail)[1]) = 0;
+  ShowMessage(line);
+}
+// after a restart for a restore that never read back: says so once (main.c)
+void ShowModuleRestart(void) {
+  unsigned char* w = (unsigned char*)WINDOW;
+  unsigned int saved = WINDOW_BLOCK;
+  unsigned char found;
+  SetWindowBlock(MODULE_FAIL_BLOCK);
+  found = w[0] == 'M' && w[1] == 'F';
+  if (found) {
+    ((unsigned char*)&module_fail)[0] = w[2];
+    ((unsigned char*)&module_fail)[1] = w[3];
+    w[0] = 0;
+  }
+  SetWindowBlock(saved);
+  if (found) ShowFailure("RESTORE FAILED ");
+}
+
 void ShowModuleError(unsigned char result) {
   if (result == FR_NO_FILE || result == FR_NO_PATH) ShowMessage("MODULE MISSING");
   else if (result == FR_INVALID_OBJECT) ShowMessage("MODULE DAMAGED");
   else if (result == MODULE_ERR_ABI) ShowMessage("MODULE NEEDS NEWER OS");
-  else if (result == MODULE_ERR_VERIFY) ShowMessage("MODULE LOAD FAILED");
+  else if (result == MODULE_ERR_VERIFY) ShowFailure("MODULE LOAD FAILED ");
   else ShowError(result, "MODULE MISSING");
 }
 

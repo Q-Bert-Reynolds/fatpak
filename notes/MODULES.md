@@ -161,6 +161,15 @@ below `$8000`. Copies never touch the final sector's upper 256 bytes.
    restore doesn't read back, `RestartDevice`. The window block is put back to
    what it was before the call.
 
+Every block copy is retried twice before it counts as failed; the first failure's
+operation and block go to `module_fail` (operations: 0-2 page 13, 4-6 page 12,
+8-10 page 5, 16/18 the WRAMX buffers' save/restore). A restore that still fails
+writes `MF`, operation, block to PSRAM block `MODULE_FAIL_BLOCK` (`$3de6`) before
+`RestartDevice`; startup shows it once as RESTORE FAILED op:block
+(`ShowModuleRestart`). Page and buffer copies have failed on hardware since the
+third page was added (2026-11-11): BUILD restarted the device, larger sources
+gave MODULE LOAD FAILED. Gearboy can't reproduce it; the codes say where.
+
 A wide module adds, between the first install and the run: `ModuleSwap(4)` and
 `(5)` for page 12, `(8)` and `(9)` for page 5 if it has a third page, and
 `ModuleSwapRAM(0)`, which saves the WRAMX region to PSRAM and zeroes it; after
@@ -174,7 +183,7 @@ around `tb_Read`, since the module may have moved the window.
 | `FR_NO_FILE`, `FR_NO_PATH` | MODULE MISSING |
 | `FR_INVALID_OBJECT` (any header, size or CRC problem) | MODULE DAMAGED |
 | `MODULE_ERR_ABI` | MODULE NEEDS NEWER OS |
-| `MODULE_ERR_VERIFY` | MODULE LOAD FAILED |
+| `MODULE_ERR_VERIFY` | MODULE LOAD FAILED op:block (the first copy that never read back) |
 | other FRESULT | `ShowError` (NO SD CARD, SD ERROR n, ...) |
 
 ### ABI

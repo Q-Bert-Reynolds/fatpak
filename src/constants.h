@@ -75,6 +75,7 @@
 #define MODULE_BSS     0xD000u//tile_buffer: the editor's buffers, saved to PSRAM meanwhile (src/wram.asm)
 #define MODULE_BSS_SIZE 3072//6 blocks
 #define MODULE_BSS_BACKUP 0x3DE0u
+#define MODULE_FAIL_BLOCK 0x3DE6u//a restore that never read back, recorded before restarting (ShowModuleRestart)
 #define MODULE_SOURCE_CHUNK 128//bytes ModSource copies at most
 //ASM.MOD (modules/asm.c): inside the large-file add buffer, so only text-buffer documents assemble
 #define ASM_IMAGE_BLOCK  0x0400u//the ROM image, up to ASM_IMAGE_BLOCKS

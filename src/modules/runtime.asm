@@ -14,7 +14,7 @@ ASSERT MODULE_STAGE + MODULE_SECTORS <= MODULE_BACKUP
 ASSERT MODULE_STAGE2 == MODULE_STAGE + $20 && MODULE_BACKUP2 == MODULE_BACKUP + $20
 ASSERT MODULE_STAGE3 == MODULE_STAGE + $40 && MODULE_BACKUP3 == MODULE_BACKUP + $40
 ASSERT MODULE_BACKUP3 + MODULE_SECTORS <= MODULE_BSS_BACKUP
-ASSERT MODULE_BSS_BACKUP + MODULE_BSS_SIZE / 512 < $3E2F;game metadata (src/fatfs/fatfs.c GAME_META)
+ASSERT MODULE_BSS_BACKUP + MODULE_BSS_SIZE / 512 <= MODULE_FAIL_BLOCK && MODULE_FAIL_BLOCK < $3E2F;game metadata (src/fatfs/fatfs.c GAME_META)
 ASSERT HIGH(MODULE_STAGE) == HIGH(MODULE_BACKUP3 + MODULE_SECTORS - 1)
 ASSERT MODULE_BSS_SIZE % 512 == 0 && LOW(MODULE_BSS) == 0
 ASSERT MODULE_TABLE + 3 * MODULE_SLOTS <= $8000
@@ -24,6 +24,8 @@ module_operation: DB
 module_sector: DB
 module_pointer: DW
 module_mismatch: DB
+module_tries: DB
+_module_fail:: DW;the first block that never read back: operation, sector (ShowModuleError)
 _module_context:: DW;passed to the module's ModuleMain, 0 if its host gives none
 
 FIXED "Module loader"
@@ -37,11 +39,13 @@ _ModuleSwap::
   ld [module_operation], a
   call ModuleSwapBegin
   and 12
-  ld hl, ModulePages
   rrca
   rrca
-  add l
+  add LOW(ModulePages)
   ld l, a
+  adc HIGH(ModulePages)
+  sub l
+  ld h, a
   ld a, [hl]
   SET_BANK
   ei
@@ -82,6 +86,7 @@ _ModuleSwap::
 ; A = 0 saves the BSS region (MODULE_BSS) to MODULE_BSS_BACKUP and zeroes it for the
 ; module, 2 restores it. Returns A=0 when the copy read back.
 _ModuleSwapRAM::
+  or 16;so a failure reads 16 (save) or 18 (restore), apart from the pages
   ld [module_operation], a
   call ModuleSwapBegin
   ei
@@ -98,7 +103,7 @@ _ModuleSwapRAM::
   cp MODULE_BSS_SIZE / 512
   jr c, .loop
   ld a, [module_operation]
-  or a
+  and 3
   jp nz, ModuleSwapEnd
   ld a, [module_mismatch]
   or a
@@ -140,6 +145,9 @@ ModuleSwapBegin:
 ;copies bc bytes between [module_pointer] and the window (the window is the destination for
 ;operation 0), compares them, advances module_pointer and the sector, returns it in a
 ModuleSwapBlock:
+  ld a, 3;tries: a block that reads back wrong is copied again
+  ld [module_tries], a
+.again
   LD_HL_VAR module_pointer;source: the page when backing up
   ld de, EDX_WINDOW
   ld a, [module_operation]
@@ -160,8 +168,18 @@ ModuleSwapBlock:
   call ModuleCompare
   pop bc
   jr z, .next
-  ld a, 1
+  ld hl, module_tries
+  dec [hl]
+  jr nz, .again
+  ld a, [module_mismatch]
+  and a
+  jr nz, .next;keep the first failure
+  inc a
   ld [module_mismatch], a
+  ld a, [module_operation]
+  ld [_module_fail], a
+  ld a, [module_sector]
+  ld [_module_fail+1], a
 .next
   LD_HL_VAR module_pointer
   add hl, bc
@@ -275,7 +293,6 @@ _ModuleEnter::
   jp hl
 
 ModulePages: DB MODULE_PAGE, MODULE_PAGE2, MODULE_PAGE3
-ASSERT LOW(ModulePages) < $FD
 
 ;a wide module's thunks: call _ModFar, DB page, DW target (module_build.py), like bank_split's
 _ModuleAPIFar::
