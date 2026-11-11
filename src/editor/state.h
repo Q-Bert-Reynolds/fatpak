@@ -27,9 +27,7 @@ extern signed char edit_delta;
 extern unsigned char blink_timer;
 extern unsigned char dirty;
 extern unsigned char modified;
-extern unsigned char everdrive; // text is saved to SD, otherwise SRAM is the only copy so the gap is closed when idle
 extern unsigned char idle_frames;
-extern unsigned char normalized;
 extern unsigned char saved_modified; // modified as last saved with the settings
 extern char file_name[FS_NAME_SIZE]; // current file (UTF-8), empty for new text
 extern char file_dir[PATH_SIZE]; // its folder, "" = root, new text is saved here too

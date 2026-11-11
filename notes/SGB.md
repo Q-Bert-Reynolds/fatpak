@@ -286,8 +286,8 @@ order of preference:
 1. **Overlay.** The [TODO](TODO.md#os-utilities) overlay design is built first as
    general infrastructure. On SGB fullscreen, the DMG/GBC renderer's drawing code
    is dead, and the SGB backend loads from `SGB.DAT` into a page at boot.
-2. Move the renderer's 4 KB shift tables and the fonts' width tables (data) into
-   `EDITOR.DAT`/PSRAM to free a page.
+2. The renderer shift tables and VWF bold widths now live in `EDITOR.DAT`.
+   Keep the base UI font/widths resident for boot and game-menu fallback.
 3. Squeeze into the existing per-page gaps (fragile; last resort).
 
 ## Data file: `bin/SGB.DAT`

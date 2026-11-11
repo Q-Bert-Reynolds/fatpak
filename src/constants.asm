@@ -22,27 +22,27 @@ DEF DRAW_FLAGS_NO_SPACE EQU %00000100
 DEF TB_BANKS     EQU 127;blocks 0-126, positions are 16 bit
 DEF TB_BANK_SIZE EQU $0200
 DEF TB_BASE      EQU $BE00
-DEF TB_HOLE      EQU $0200;no register hole
-DEF TB_HOLE_SIZE EQU 0
 DEF TB_PSRAM_HIGH EQU 1;$BD03
 DEF UNDO_BANK    EQU 128;undo log in blocks 128-239
 DEF UNDO_BANKS   EQU 112
-;the data file (data_file.py) in PSRAM blocks from $0200 (256KB), loaded at boot
-DEF DATA_BLOCK         EQU $0200;$BD03:$BD02
+;the data file in protected PSRAM from $3D00, above ROMs and snapshot staging
+DEF DATA_BLOCK         EQU $3D00;$BD03:$BD02
 DEF DATA_FONTS         EQU 1;the styled fonts (FontStyles order), 2KB each
 DEF DATA_BORDER_TILES  EQU 41;the SGB border's 8KB of tiles
 DEF DATA_BORDER_MAP    EQU 57;its map and palettes, 4KB
 DEF DATA_FIXED         EQU 65;the base fixed font, four blocks
 DEF DATA_HELP          EQU 69;two 32-line help screens, 32 bytes per line
 DEF DATA_MONO          EQU 73;base monospaced glyphs, four blocks
-DEF DATA_BLOCKS        EQU 77
-DEF DATA_VERSION       EQU 4;block 0 starts with "EDITOR.DAT" and this
+DEF DATA_SHIFTS        EQU 77;seven blocks, paired right/left shift tables
+DEF DATA_WIDTHS        EQU 84;VWF bold widths, 256 bytes
+DEF DATA_BLOCKS        EQU 85
+DEF DATA_VERSION       EQU 5;block 0 starts with "EDITOR.DAT" and this
 DEF NAME_HISTORY_BLOCK EQU DATA_BLOCK+DATA_BLOCKS;16 scratch blocks, separate from document undo
 DEF WIN_SIZE           EQU $C000;the part of a large file in the text buffer (src/fatfs/fatfs.c)
 DEF WIN_CHUNKS         EQU WIN_SIZE/512+1;sector boundaries in it
 DEF MAX_PIECES         EQU 96;a large file's piece table (src/fatfs/fatfs.c)
 DEF ADD_BLOCK          EQU $0400;text added to a large file, PSRAM 512KB up to the save states at $3E40
-DEF ADD_MAX            EQU $7A0000
+DEF ADD_MAX            EQU $720000;stop before the protected EDITOR.DAT region
 DEF TB_SIZE      EQU (TB_BANK_SIZE*TB_BANKS)
 DEF TB_CLIP_OFFSET EQU $0100;the clipboard's text in PSRAM blocks 240-255 (src/sram.asm)
 DEF TB_CLIP_SIZE EQU ($2000-TB_CLIP_OFFSET)

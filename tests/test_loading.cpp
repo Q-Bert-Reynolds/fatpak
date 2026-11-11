@@ -265,6 +265,44 @@ static void ROMTransferTest(const char* image, const char* symbols)
 }
 
 
+static void LookupTables(GearboyCore& core, const std::map<std::string,unsigned>& syms, const char* data) {
+    auto memory = core.GetMemory(); auto cpu = core.GetProcessor()->GetState();
+    const u8 glyph[] = {0x80,0x01,0xFE,0x33,0x81,0xFF,0,0x55};
+    auto assets = Read(data);
+    Check(memory->Read(syms.at("_data_loaded")) == 1, "external editor data loads");
+    unsigned plane = syms.at("cmd_buffer");
+    for (unsigned cached = 0; cached < 2; ++cached) {
+        memory->Write(syms.at("_data_loaded"), cached);
+        for (unsigned x = 0; x < 160; ++x) {
+            std::vector<u8> expected(160, 0x22);
+            for (unsigned y = 0; y < 8; ++y) {
+                memory->Write(0xD000+y, glyph[y]);
+                for (unsigned bit = 0; bit < 8 && x+bit < 160; ++bit)
+                    if (glyph[y] & (128 >> bit)) expected[((x+bit)&~7)+y] |= 128 >> ((x+bit)&7);
+            }
+            for (unsigned i = 0; i < 160; ++i) memory->Write(plane+i, 0x22);
+            memory->Write(plane+160, 0xA5);
+            memory->Write(syms.at("render_x"), x);
+            memory->Write(0xBD02, 0x14); memory->Write(0xBD03, 0x3C);
+            cpu->BC->SetValue(0xD000);
+            Call(core, syms.at("RenderGlyphPlane"), plane&0xFF00);
+            for (unsigned i = 0; i < 160; ++i) Check(memory->Read(plane+i) == expected[i], "cached/fallback glyph pixels at every x and clipped edge");
+            Check(memory->Read(plane+160) == 0xA5, "glyph drawing stays within its plane");
+            Check(memory->Read(0xBD02) == 0x14 && memory->Read(0xBD03) == 0x3C, "glyph drawing preserves PSRAM selection");
+        }
+        for (unsigned c = 0; c < 256; ++c) {
+            cpu->BC->SetValue(0xA500|c); cpu->HL->SetValue(0x1234);
+            unsigned width = Call(core, syms.at("StyledWidth"), 0x7777, 5);
+            unsigned expected = cached ? assets[assets.size()-512+c] : memory->Read(syms.at("FontVWFWidths")+c);
+            Check(width == expected, "cached/fallback bold width");
+            Check(cpu->BC->GetValue() == (0xA500|c) && cpu->DE->GetValue() == 0x7777 && cpu->HL->GetValue() == 0x1234, "width lookup preserves registers");
+            Check(memory->Read(0xBD02) == 0x14 && memory->Read(0xBD03) == 0x3C, "width lookup preserves PSRAM selection");
+        }
+    }
+    memory->Write(syms.at("_data_loaded"), 1);
+    puts("External/fallback shifts, clipped edges, widths and window/register preservation passed");
+}
+
 static void Loading(const char* image, const char* symbols, const char* data, bool color) {
     char folder[] = "/tmp/fatpak-loading-XXXXXX";
     Check(mkdtemp(folder), "loading SD");
@@ -304,6 +342,7 @@ static void Loading(const char* image, const char* symbols, const char* data, bo
     Call(core, syms.at("_GameLoadingEnd"));
     Check(core.GetProcessor()->CGBSpeed() == color && memory->Read(0xFFFF) == original_ie, "error recovery restores speed and interrupts");
     Check(!memory->Read(syms.at("_render_cpu_copy")), "error recovery restores normal renderer");
+    LookupTables(core, syms, data);
     printf("%s startup bars/clock/loading and loading/error speed preservation passed\n", color ? "CGB" : "DMG");
 }
 static void Copies(const char* image, const char* symbols) {

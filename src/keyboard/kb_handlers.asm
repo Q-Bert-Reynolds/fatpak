@@ -9,8 +9,6 @@
 
 ;simulates on screen keyboard actions
 ;_c = caps, _x,_y = char pos
-UILowerCase: DB "abcdefghijklmnopqrstuvwxyz *():;[]#%-?!*+/.,"
-UIUpperCase: DB "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 MACRO EDITOR_KEY ;\1 = key, jumps to KBHandleEditorKey in editor mode
   ld a, [kb_mode]
   cp a, KB_MODE_EDITOR
@@ -48,27 +46,14 @@ KBHandleEditorKey::;a = key, queues key presses in editor mode
   ret
 
 KBHandleCharacter::;a = character in ASCII
-  ld b, a;ASCII
+  ld b, a
   ld a, [kb_mode]
   cp a, KB_MODE_EDITOR
-  jr nz, .notEditor
+  jr nz, .buttons
   ld a, b
   jp KBHandleEditorKey
-.notEditor
-  cp a, KB_MODE_BUTTONS
-  jr z, .updateButtonState
-  
-  ld a, [kb_flags]
-  and a, KB_FLAG_RELEASE
-  ret nz;if release flag set, return early
-
-  ld a, [kb_mode]
-  cp a, KB_MODE_TYPING
-  ret z ;ui.asm is no longer with us
-  
-
-.updateButtonState
-  ld a, b;ASCII
+.buttons
+  ld a, b
   ld b, PADF_A
   cp a, 'z'
   jp z, KBUpdateButtons
@@ -77,8 +62,6 @@ KBHandleCharacter::;a = character in ASCII
   jp z, KBUpdateButtons
   ld b, 0
   jp KBUpdateButtons
-
-  ret
 
 KBHandleArrowKey::;a = dpad flags
   ld b, a

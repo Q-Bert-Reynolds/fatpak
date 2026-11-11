@@ -58,7 +58,7 @@ flowchart LR
   clock and cart-menu labels are still hard-coded English.
 - **Install:** if `/media/qbertreynolds/GAMEBOY` is mounted, `make assemble`
   copies `GBCOS.BIN` and `EDITOR.DAT` to `GBCSYS/`. Keep them in sync (data
-  version 4).
+  version 5).
 - **Shared constants:** `build.py` turns `DEF X EQU ...` in `src/constants.asm`
   into `#define`s in `src/constants.h`. Parenthesize expressions.
 
@@ -133,9 +133,9 @@ RAM instead when `$BD06` bit 1 is set).
 | `$0100-$017e` | Text gap buffer (127 blocks, 65,024 bytes) |
 | `$0180-$01ef` | Undo ring (112 blocks, 56 KiB) |
 | `$01f0-$01ff` | Settings/signatures and 7,936-byte clipboard |
-| `$0200-$024c` | `EDITOR.DAT` (77 blocks): header, styled fonts (1), SGB border (41), fixed font (65), help (69), mono font (73) |
-| `$024d-$025c` | Filename prompt undo ring (64 states) |
-| `$0400-` | Large-file add buffer (`ADD_MAX` = `$7a0000` bytes) |
+| `$3d00-$3d54` | `EDITOR.DAT` v5 (85 blocks): header, fonts, SGB border, help, paired shift tables (77), VWF bold widths (84) |
+| `$3d55-$3d64` | Filename prompt undo ring (64 states) |
+| `$0400-$3cff` | Large-file add buffer (`ADD_MAX` = `$720000` bytes), bounded before protected assets |
 
 | Blocks | Game use |
 | --- | --- |
@@ -309,8 +309,8 @@ Text is drawn as pixels so fonts can be any width. Every cell has its own tile
   and layout changes move SCY at once.
 - **Row cache:** `bkg_buffer`, `row_font` and `block_states` let `RenderRow` skip
   unchanged rows.
-- **Drawing:** glyphs are ORed into a 160×8 1bpp bitmap via 4 KB shift tables
-  (4 KB aligned), plus `render_dim` for dim styles and, on GBC, `render_accent`
+- **Drawing:** glyphs are ORed into a 160×8 1bpp bitmap via seven paired
+  512-byte right/left shift tables in `EDITOR.DAT`, plus `render_dim` for dim styles and, on GBC, `render_accent`
   (`win_buffer`) for accents. `RenderEncode` builds 2bpp tiles in
   `render_dma_buffer`: ink 3, dim 2, accent 1 on paper 0. DMG inverts selected
   pixels; SGB/GBC highlight them (color 1, accent ink → 3). Uploads: DMG copies
@@ -341,10 +341,12 @@ italic and bold-italic fonts (widths in `styled_widths.asm`). Plain text and
 markdown use the VWF; C/asm use the 4 px font. OSK rows use the 8 px font; bars
 and help the VWF. No font picker yet.
 
-`EDITOR.DAT` holds the styled glyphs, fixed and mono glyphs, SGB border and
-help; renderers (`RenderStyleGlyph`, `RenderFixedGlyph`) read them through the
+`EDITOR.DAT` holds the styled glyphs, fixed and mono glyphs, SGB border,
+help, paired shifts and VWF bold widths; renderers (`RenderStyleGlyph`, `RenderFixedGlyph`) read them through the
 window and restore the previous block. Without the file, rendering falls back to
-resident VWF/mono glyphs. Width tables stay in the OS image for layout.
+resident VWF glyphs with fixed spacing where needed. Base VWF widths remain
+resident; bold widths come from the data file and headings/code use constant
+width IDs. Without external data, shifts are computed and bold uses base widths.
 
 Button icons are codes 1-8 in `ui_font.png` (129-131 are composed D-pad
 glyphs), copied into both the VWF (9 px advance) and mono font. They keep their
@@ -376,7 +378,7 @@ boot ROM). Select opens file info directly.
   header (`$134-$14F`). It borrows the directory-mark buffer, so the browser
   reloads on exit.
 - **Rename** (`editor/name.c`, shared with filename prompts): edits the list row
-  above the OSK, with its own 64-state undo ring at `$024d-$025c`.
+  above the OSK, with its own 64-state undo ring at `$3d55-$3d64`.
 - **File clipboard:** session-only, separate from text. Move = FatFs rename; copy
   walks whole trees (hidden and empty folders included), never overwrites, and
   removes an incomplete file on failure. Moves fix up the open document's path.
@@ -470,3 +472,22 @@ code on another page reads garbage.
   top of each module. Each module includes `src/fatpak.inc` first.
 - C-visible asm labels start with `_`; their prototypes go in the module's header
   (`text_buffer.h`, `render.h`, `loader.h`).
+
+## Memory headroom and loadable modules
+
+The non-EverDrive normalization/detection paths, register-hole branches, empty
+SRAM enable macros, obsolete keyboard typing/demo support and unreferenced
+arithmetic helpers have been removed.
+VWF bold widths and 3,584 bytes of shift tables now live in `EDITOR.DAT` v5.
+The resident VWF glyphs/base widths remain available before SD loading and in
+the game menu; rendering computes shifts when external data is unavailable.
+Table lookups preserve the selected PSRAM block, including during text reads.
+
+Assets and filename undo moved above ROM loading and snapshot staging so game
+progress cannot overwrite live shift tables. The large-document add limit now
+stops before this reservation. Keep the OS and data file versions together.
+The current map has 910 bytes free in ROM0 (previously 158), about 3.7 KiB in
+resident bank 1 (previously 41 bytes), and 20 bytes in WRAM0 (previously 17).
+Paged code still needs the module extraction work.
+The loader design, proposed page borrow, ABI and implementation milestones are
+in [MODULES.md](MODULES.md); the loader itself is not implemented.

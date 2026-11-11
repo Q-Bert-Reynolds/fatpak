@@ -1,5 +1,5 @@
 ;Undo log copying, in undo.c's bank. The log is a ring of UNDO_SIZE bytes in SRAM banks UNDO_BANK and up,
-;laid out like the text buffer (offsets skip $BD00-$BD0F in each bank, see TBPhysRunFrom)
+;through the 512-byte PSRAM window, like the text buffer.
 ;C functions (src/editor/undo.c)
 ;   log_Write                   de = buffer, bc = count, copies to the log at log_ptr, advances it
 ;   log_Read                    de = buffer, bc = count, copies from the log at log_ptr, advances it
@@ -37,7 +37,6 @@ LogCopy:
   ld [log_left], a
   ld a, b
   ld [log_left+1], a
-  SRAM_ON
 .run;up to the register hole or the bank end
     LD_HL_VAR log_left
     ld a, h
@@ -94,7 +93,6 @@ LogCopy:
     ld [hl], a
     jr .run
 .done
-  SRAM_OFF
   ret
 
 _log_SaveText::
@@ -103,7 +101,6 @@ _log_SaveText::
   jr LogText
 _log_RestoreText::
   push bc
-  SRAM_ON
   call TBMoveGap
   pop bc
   ld a, 1

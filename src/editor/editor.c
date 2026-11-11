@@ -12,7 +12,6 @@
 #include "view.h"
 #include "window.h"
 #include "../fatfs/file_api.h"
-#include "../fatfs/sd.h"
 #include "../input.h"
 #include "../keyboard/keyboard.h"
 #include "../ui/dialogs.h"
@@ -20,7 +19,6 @@
 #include "../ui/screen.h"
 
 #define CURSOR_BLINK     30
-#define NORMALIZE_DELAY  30 // frames without input before closing the gap
 #define SWAP_DELAY       120 // frames without input before writing the swap file (OS mode)
 
 unsigned int cursor;
@@ -42,18 +40,14 @@ signed char edit_delta;
 unsigned char blink_timer;
 unsigned char dirty;
 unsigned char modified;
-unsigned char everdrive; // text is saved to SD, otherwise SRAM is the only copy so the gap is closed when idle
 unsigned char idle_frames;
-unsigned char normalized;
 unsigned char saved_modified; // modified as last saved with the settings
 
 // Called after the recovery file and hardware screen setup.
 void EditorInit(void) {
   unsigned char key;
   for (key = 0; key < BG_MAP_ROWS + WIN_MAP_ROWS; ++key) map_blocks[key] = key < TB_ROWS ? key : 0xFF; // set by RenderSetup
-  everdrive = sd_Detect();
   idle_frames = 0;
-  normalized = 0;
   cursor = 0;
   top = 0;
   selecting = 0;
@@ -306,12 +300,10 @@ void Editor(void) {
       Refresh();
       dirty = 0;
       edited = 0;
-      normalized = 0;
       continue;
     }
     if (edited) {
       edited = 0;
-      normalized = 0;
       RenderAfterEdit();
       if (!PlaceCursor()) {
         if (cursor >= tb_row_starts[tb_rows] && tb_RowStart(cursor) == tb_row_starts[tb_rows]) ScrollDown();
@@ -341,7 +333,6 @@ void Editor(void) {
       lines_known = 1;
       bars_changed = 1;
     }
-    if (idle_frames >= NORMALIZE_DELAY && !everdrive && !normalized) normalized = tb_NormalizeStep(); // keeps the .sav readable as text
     if (idle_frames >= SWAP_DELAY && swap_dirty && !doc_large) {
       swap_dirty = 0;
       FileSaveSwap();

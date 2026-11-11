@@ -1,8 +1,6 @@
-;Gap buffer stored in SRAM banks 0-7, skipping $BD00-$BD0F in each bank so text
-;can never reach the EverDrive registers (writing $A5 to $BD0A unlocks them). Positions are logical (gap excluded),
-;physical offsets include the gap. The gap is always zeroed and text never
-;contains 0, so the buffer can be recovered from SRAM without metadata:
-;text before the gap, zeros, text after the gap up to TB_SIZE.
+;Gap buffer in PSRAM blocks $0100-$017e through the 512-byte window.
+;Positions exclude the gap; physical offsets include it. The gap is zeroed
+;and text contains no zero bytes, allowing recovery without gap metadata.
 ;
 ;C functions (src/editor/text_buffer.h)
 ;   tb_Load                     recovers buffer from SRAM, clears it if the signature is missing
@@ -11,8 +9,6 @@
 ;   tb_GetChar                  de = pos, returns char in a
 ;   tb_Insert                   de = pos, a = char, returns a = 0 if buffer is full
 ;   tb_Delete                   de = pos, returns deleted char in a (0 = nothing deleted)
-;   tb_Normalize                moves gap to the end so SRAM reads as plain text
-;   tb_NormalizeStep            moves gap up to TB_NORMALIZE_STEP bytes toward the end, returns a = 1 when it's there
 ;   tb_Append                   de = buffer, bc = count, inserts at the gap dropping 0s and CRs (sets tb_cr if it drops a CR),
 ;                               returns a = 0 if it filled up
 ;   tb_Read                     de = buffer, bc = size, copies text from tb_read_pos until the buffer is full or the text ends,
@@ -33,11 +29,6 @@
 
 ;PSRAM is always there through the window
 DEF TB_BANK_REG EQU EDX_BLOCK
-MACRO SRAM_ON
-ENDM
-MACRO SRAM_OFF
-ENDM
-
 SECTION "Text Buffer Vars", WRAM0
 tb_gap_start: DW
 tb_gap_end: DW
@@ -83,7 +74,6 @@ _TBSignature::
 TBSignature: DB "TXT3";in PSRAM block MAIN_SRAM_BANK while the text there is good
 
 _tb_Load::
-  SRAM_ON
   SWITCH_RAM_MBC5 MAIN_SRAM_BANK
   ld hl, sram_tb_signature
   ld de, TBSignature
@@ -104,7 +94,6 @@ _tb_Load::
   ld a, 1
   call TBFindPhys;first non 0 after gap start
   ST_DE_VAR tb_gap_end
-  SRAM_OFF
   jp TBResetChecks
 
 .clear
@@ -118,21 +107,14 @@ _tb_Load::
 _tb_Clear::
   ld a, 1;the swap file needs writing (src/editor/editor.c)
   ld [_swap_dirty], a
-  SRAM_ON
   xor a
 .clearBankLoop;everything but the register hole
     push af;bank
     ld [TB_BANK_REG], a
     xor a
     ld hl, TB_BASE
-    ld bc, TB_HOLE
+    ld bc, TB_BANK_SIZE
     call mem_Set
-IF TB_HOLE_SIZE
-    xor a
-    ld hl, _SRAM+TB_HOLE+TB_HOLE_SIZE
-    ld bc, $2000-TB_HOLE-TB_HOLE_SIZE
-    call mem_Set
-ENDC
     pop af;bank
     inc a
     cp a, TB_BANKS
@@ -143,13 +125,11 @@ _tb_Empty::;empties the text buffer without clearing it (tb_Load can't find the 
 ;file's window clears the signature, see src/fatfs/fatfs.c)
   ld a, 1
   ld [_swap_dirty], a
-  SRAM_ON
 TBEmpty:
   ld hl, 0
   ST_HL_VAR tb_gap_start
   ld hl, TB_SIZE
   ST_HL_VAR tb_gap_end
-  SRAM_OFF
   jp TBResetChecks
 
 ;returns z if de = TB_SIZE, only affects a
@@ -275,14 +255,6 @@ TBReadNext:
   ld a, h
   cp a, $C0
   jr z, .seek;crossed into next bank
-IF TB_HOLE_SIZE
-  cp a, HIGH(_SRAM+TB_HOLE)
-  jr nz, .checkGap
-  ld a, l
-  and a
-  jr nz, .checkGap
-  ld l, TB_HOLE_SIZE;skip the register hole
-ENDC
 .checkGap
   ld a, [tb_gap_start]
   cp a, e
@@ -297,10 +269,8 @@ ENDC
   ret
 
 _tb_GetChar::;de = pos, returns char in a
-  SRAM_ON
   call TBReadSeek
   ld b, [hl]
-  SRAM_OFF
   ld a, b
   ret
 
@@ -510,7 +480,6 @@ _tb_Insert::;de = pos, a = char, returns a = 0 if buffer is full
   ld b, a
   push bc;char
   call TBEdited
-  SRAM_ON
   call TBMoveGap
   call TBGapLength
   ld a, b
@@ -529,13 +498,11 @@ _tb_Insert::;de = pos, a = char, returns a = 0 if buffer is full
 .full
   ld b, 0
 .done
-  SRAM_OFF
   ld a, b
   ret
 
 _tb_Delete::;de = pos, returns deleted char in a (0 = nothing deleted)
   call TBEdited
-  SRAM_ON
   call TBLength
   ld a, e
   sub a, l
@@ -553,7 +520,6 @@ _tb_Delete::;de = pos, returns deleted char in a (0 = nothing deleted)
   ld b, [hl]
   ld [hl], 0
 .done
-  SRAM_OFF
   ld a, b
   ret
 
@@ -562,7 +528,6 @@ _tb_Append::;de = buffer, bc = count, inserts at the gap dropping 0s and CRs (se
   LD_DE_VAR tb_gap_start
   call TBEdited
   pop de
-  SRAM_ON
   ST_DE_VAR tb_dest;source
   ld a, c
   ld [tb_count], a
@@ -657,11 +622,9 @@ _tb_Append::;de = buffer, bc = count, inserts at the gap dropping 0s and CRs (se
     or a, c
     jr nz, .check
 .done
-  SRAM_OFF
   ld a, 1
   ret
 .full
-  SRAM_OFF
   xor a
   ret
 
@@ -673,7 +636,6 @@ _tb_Read::;de = buffer, bc = size, copies text from [_tb_read_pos] until the buf
   xor a
 TBRead:
   ld [tb_crlf], a
-  SRAM_ON
   ST_DE_VAR tb_dest
   ld a, c
   ld [tb_count], a
@@ -793,45 +755,6 @@ TBRead:
   ld a, h
   sbc a, b
   ld b, a
-  SRAM_OFF
-  ret
-
-DEF TB_NORMALIZE_STEP EQU 512;about half a frame
-
-_tb_NormalizeStep::;moves the gap up to TB_NORMALIZE_STEP bytes toward the end, returns a = 1 when it's there
-  SRAM_ON
-  call TBLength
-  ld d, h
-  ld e, l
-  LD_HL_VAR tb_gap_start
-  ld bc, TB_NORMALIZE_STEP
-  add hl, bc
-  call TBMin
-  ld d, h
-  ld e, l
-  call TBMoveGap
-  call TBLength
-  ld a, [tb_gap_start]
-  cp a, l
-  jr nz, .notDone
-  ld a, [tb_gap_start+1]
-  cp a, h
-  jr nz, .notDone
-  SRAM_OFF
-  ld a, 1
-  ret
-.notDone
-  SRAM_OFF
-  xor a
-  ret
-
-_tb_Normalize::
-  SRAM_ON
-  call TBLength
-  ld d, h
-  ld e, l
-  call TBMoveGap
-  SRAM_OFF
   ret
 
 _tb_DeleteRange::;de = pos, bc = count, deletes count chars at pos (they must exist)
@@ -842,7 +765,6 @@ _tb_DeleteRange::;de = pos, bc = count, deletes count chars at pos (they must ex
   or a, c
   ret z
   call TBEdited
-  SRAM_ON
   call TBMoveGap
 .loop;zero runs after the gap and grow it over them
     LD_HL_VAR tb_gap_end
@@ -873,7 +795,6 @@ _tb_DeleteRange::;de = pos, bc = count, deletes count chars at pos (they must ex
     ld [tb_count+1], a
     or a, c
     jr nz, .loop
-  SRAM_OFF
   ret
 
 DEF TB_CLIP_CHUNK EQU 256;bytes copied at a time through win_buffer
@@ -888,7 +809,6 @@ TBClipAddr:
   ret
 
 _tb_ClipLength::;returns clipboard length in bc, 0 if it's empty or was never set
-  SRAM_ON
   ld a, MAIN_SRAM_BANK
   ld [TB_BANK_REG], a
   ld hl, sram_clip_length
@@ -907,7 +827,6 @@ _tb_ClipLength::;returns clipboard length in bc, 0 if it's empty or was never se
 .empty
   ld bc, 0
 .done
-  SRAM_OFF
   ret
 
 ;returns min([tb_clip_left], TB_CLIP_CHUNK) in bc, z if it's 0, affects a, de, hl
@@ -950,7 +869,6 @@ _tb_Copy::;de = pos, bc = count, copies text to the clipboard, returns a = 0 if 
   ld [tb_clip_left], a
   ld a, b
   ld [tb_clip_left+1], a
-  SRAM_ON
   ld a, MAIN_SRAM_BANK
   ld [TB_BANK_REG], a
   ld hl, sram_clip_length
@@ -972,8 +890,7 @@ _tb_Copy::;de = pos, bc = count, copies text to the clipboard, returns a = 0 if 
     push bc
     ld de, win_buffer
     call _tb_Read
-    SRAM_ON
-    call TBClipAddr
+      call TBClipAddr
     ld d, h
     ld e, l
     pop bc
@@ -984,7 +901,6 @@ _tb_Copy::;de = pos, bc = count, copies text to the clipboard, returns a = 0 if 
     call TBClipAdvance
     jr .loop
 .done
-  SRAM_OFF
   ld a, 1
   ret
 
@@ -997,7 +913,6 @@ _tb_Paste::;de = pos, inserts the clipboard, returns a = 0 if it doesn't fit (no
   ld a, b
   ld [tb_clip_left+1], a
   pop de
-  SRAM_ON
   call TBMoveGap
   call TBGapLength
   ld hl, tb_clip_left
@@ -1007,7 +922,6 @@ _tb_Paste::;de = pos, inserts the clipboard, returns a = 0 if it doesn't fit (no
   ld a, b
   sbc a, [hl]
   jr nc, .fits
-  SRAM_OFF
   xor a
   ret
 .fits
@@ -1026,12 +940,10 @@ _tb_Paste::;de = pos, inserts the clipboard, returns a = 0 if it doesn't fit (no
     push bc
     ld de, win_buffer
     call _tb_Append
-    SRAM_ON
-    pop bc
+      pop bc
     call TBClipAdvance
     jr .loop
 .done
-  SRAM_OFF
   ld a, 1
   ret
 
@@ -2482,7 +2394,6 @@ _tb_CountLines::;de = start, bc = end, returns the line feeds in [start, end) in
   ld [tb_count+1], a
   ld hl, 0
   ST_HL_VAR tb_lines
-  SRAM_ON
 .run;a run is in one bank, on one side of the gap and the register hole
     ld a, [tb_count]
     ld c, a
@@ -2549,20 +2460,16 @@ _tb_CountLines::;de = start, bc = end, returns the line feeds in [start, end) in
     ld e, l
     jp .run
 .done
-  SRAM_OFF
   LD_BC_VAR tb_lines
   ret
 
 _tb_LineStart::;de = pos, returns the start of its line in bc
-  SRAM_ON
   call TBLineStart
-  SRAM_OFF
   ld b, d
   ld c, e
   ret
 
 _tb_RowStart::;de = pos, returns start of the visual row containing pos in bc
-  SRAM_ON
   call TBStartScan
   call TBLineStart
   call TBLineState
@@ -2582,11 +2489,9 @@ _tb_RowStart::;de = pos, returns start of the visual row containing pos in bc
     cp a, d
     jr nz, .loop;no progress, pos is past the end
 .done
-  SRAM_OFF
   ret
 
 _tb_NextRow::;de = row start, returns start of the next visual row in bc
-  SRAM_ON
   push de
   ld de, $FFFF
   call TBStartScan
@@ -2595,7 +2500,6 @@ _tb_NextRow::;de = row start, returns start of the next visual row in bc
   call TBScanRow
   ld b, d
   ld c, e
-  SRAM_OFF
   ret
 
 _tb_Render::;de = top, draws [_tb_rows] rows into tile_buffer, sets _tb_found_col/row for [_tb_find] and _tb_bottom
@@ -2616,7 +2520,6 @@ _tb_RenderRows::;a = first row, e = end row, scans rows [first, end) from _tb_ro
   ld [tb_row], a
   ld a, e
   ld [tb_end], a
-  SRAM_ON
   call TBLength
   ST_HL_VAR tb_len
   ld a, [tb_row]
@@ -2710,7 +2613,6 @@ _tb_RenderRows::;a = first row, e = end row, scans rows [first, end) from _tb_ro
   jr nz, .done
   ST_DE_VAR _tb_bottom
 .done
-  SRAM_OFF
   ret
 
 ;hl = last source byte, de = last destination byte, bc = count, copies backwards

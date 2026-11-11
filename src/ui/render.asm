@@ -65,7 +65,6 @@ block_accents: DS RENDER_BLOCKS;GBC: the block's map row has accent palettes
 _render_text:: DB;1 = rows below tb_rows are TBScanRow's text (styled by tile_attrs), 0 = the file browser and help draw their own
 render_x: DB
 render_w: DB
-render_shift: DB
 render_col: DB
 draw_row: DB
 render_block: DB
@@ -207,20 +206,50 @@ StyledWidth::;a = virtual fixed-width ID or VWF table page, c = char; preserves 
   cp a, 5
   jr nc, .variable
   cpl
-  add a, 9;IDs 0..4 have widths 8..4, avoiding five identical 256-byte tables
+  add a, 9
   ret
 .variable
   push hl
-  ld h, a
+  push de
   ld l, c
+  ld a, [_data_loaded]
+  and a
+  jr z, .fallback
+  ld a, [EDX_BLOCK]
+  ld e, a
+  ld a, [EDX_BLOCK+1]
+  ld d, a
+  ld a, LOW(DATA_BLOCK + DATA_WIDTHS)
+  ld [EDX_BLOCK], a
+  ld a, HIGH(DATA_BLOCK + DATA_WIDTHS)
+  ld [EDX_BLOCK+1], a
+  ld h, HIGH(EDX_WINDOW)
+  ld l, [hl]
+  ld a, e
+  ld [EDX_BLOCK], a
+  ld a, d
+  ld [EDX_BLOCK+1], a
+  ld a, l
+  pop de
+  pop hl
+  ret
+.fallback;no data file: styled glyphs fall back to the resident VWF too
   ldh a, [loaded_bank]
   push af
-  ld a, BANK(VWFBoldWidths)
+  ld a, BANK(FontVWFWidths)
   SET_BANK
+  ld h, HIGH(FontVWFWidths)
+  ld a, l
+  add a, LOW(FontVWFWidths)
+  ld l, a
+  ld a, h
+  adc a, 0
+  ld h, a
   ld l, [hl]
   pop af
   SET_BANK
   ld a, l
+  pop de
   pop hl
   ret
 
@@ -928,28 +957,8 @@ ELSE
 ENDC
 ENDR
 
-SECTION "Render", ROMX, BANK[1], ALIGN[12]
+SECTION "Render", ROMX, BANK[1]
 ASSERT LOW(render_bitmap) == 0, "render_bitmap must be page aligned"
-
-;Shifts 1-7 use lookup pages; aligned glyphs copy directly, avoiding two redundant shift-zero pages.
-RenderShiftRight:
-FOR RS_SHIFT, 1, 8
-FOR RS_BYTE, 256
-  DB RS_BYTE >> RS_SHIFT
-ENDR
-ENDR
-RenderShiftLeft:
-FOR RS_SHIFT, 1, 8
-FOR RS_BYTE, 256
-  DB (RS_BYTE << (8 - RS_SHIFT)) & $FF
-ENDR
-ENDR
-
-;the styled fonts (fonts.py): headings 1-4, then the fixed and VWF fonts' bold, italic, bold italic
-MACRO FONT_STYLE;\1 = glyphs
-  DB BANK(\1)
-  DW \1
-ENDM
 
 ;bc = glyph, returns the glyph styled by [render_look] and [render_head] in bc (render_glyph if it
 ;changed, copied from its styled font)
@@ -1922,8 +1931,31 @@ RenderGlyphPlane:
   ld a, [render_x]
   and a, %00000111
   jp z, .aligned
-  add a, HIGH(RenderShiftRight)-1
-  ld h, a;right table, seven pages before the matching left table
+  ld a, [_data_loaded]
+  and a
+  jp z, .fallback
+  push bc
+  ld a, [EDX_BLOCK]
+  ld l, a
+  ld a, [EDX_BLOCK+1]
+  ld h, a
+  ld a, [render_x]
+  and a, 7
+  add a, LOW(DATA_BLOCK + DATA_SHIFTS)-1
+  ld [EDX_BLOCK], a
+  ld a, HIGH(DATA_BLOCK + DATA_SHIFTS)
+  ld [EDX_BLOCK+1], a
+  pop bc
+  push hl
+  ld h, HIGH(EDX_WINDOW);paired right/left tables in the same 512-byte block
+  call .shifted
+  pop hl
+  ld a, l
+  ld [EDX_BLOCK], a
+  ld a, h
+  ld [EDX_BLOCK+1], a
+  ret
+.shifted
   ld a, [render_x]
   cp a, TB_WIDTH-8
   jp nc, .lastTile
@@ -1934,18 +1966,14 @@ RenderGlyphPlane:
   ld a, [de]
   or a, [hl]
   ld [de], a
-  ld a, h
-  add a, 7
-  ld h, a
+  inc h
   ld a, e
   add a, 8
   ld e, a
   ld a, [de]
   or a, [hl]
   ld [de], a
-  ld a, h
-  sub a, 7
-  ld h, a
+  dec h
   ld a, e
   sub a, 7
   ld e, a
@@ -1964,6 +1992,39 @@ RenderGlyphPlane:
   and a, 7
   jr nz, .lastTile
   ret
+.fallback;startup and in-game text work without EDITOR.DAT
+  ld a, [bc]
+  inc bc
+  ld h, a
+  ld l, 0
+  ld a, [render_x]
+  and a, 7
+.shift
+  srl h
+  rr l
+  dec a
+  jr nz, .shift
+  ld a, [de]
+  or a, h
+  ld [de], a
+  ld a, e
+  add a, 8
+  cp a, TB_WIDTH
+  jr nc, .nextLine
+  ld e, a
+  ld a, [de]
+  or a, l
+  ld [de], a
+  ld a, e
+  sub a, 8
+  ld e, a
+.nextLine
+  inc e
+  ld a, e
+  and a, 7
+  jr nz, .fallback
+  ret
+
 .aligned
   ld h, d
   ld l, e
@@ -2272,12 +2333,13 @@ RenderWritePalettes:
   ldh [rVBK], a
   ret
 
-;the styled fonts, each in its own bank's section (RenderStyleGlyph)
-MACRO STYLED_FONT;\1 = file
-SECTION "Styled Font \1", ROMX
-INCLUDE "img/fonts/\1.asm"
-ENDM
-
-SECTION "Styled Widths", ROMX, BANK[1], ALIGN[8]
-INCLUDE "img/fonts/styled_widths.asm"
-ASSERT HIGH(FixedBoldWidths) == HIGH(HeadingWidths) + 4
+;Virtual width IDs: headings 8/7/6/5 px, code bold 4 px, VWF bold from EDITOR.DAT.
+DEF HeadingWidths EQU $0000
+DEF Heading2Widths EQU $0100
+DEF Heading3Widths EQU $0200
+DEF Heading4Widths EQU $0300
+DEF FixedBoldWidths EQU $0400
+DEF VWFBoldWidths EQU $0500
+ASSERT HIGH(DATA_BLOCK + DATA_SHIFTS) == HIGH(DATA_BLOCK + DATA_SHIFTS + 6)
+ASSERT DATA_BLOCK + DATA_BLOCKS + 16 <= $3E2F, "assets and name undo must precede game metadata"
+ASSERT ADD_BLOCK + (ADD_MAX >> 9) == DATA_BLOCK, "large edits must stop before assets"

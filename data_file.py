@@ -1,7 +1,7 @@
 """Builds the OS mode data file (/GBCSYS/EDITOR.DAT): what doesn't fit in the 128KB image, loaded
 into PSRAM at boot and read through the $BE00 window. Layout (DATA_* in src/constants.asm), in 512
 byte blocks: 0 = "EDITOR.DAT" and DATA_VERSION, then the styled fonts (FontStyles order in
-src/ui/render.asm), the SGB border's tiles and its map, then the base fixed font, help texts and base monospaced font.
+src/ui/render.asm), the SGB border's tiles and its map, then the base fixed font, help texts, base monospaced font, glyph shift tables and VWF bold widths.
 
 usage: python3 data_file.py out_file
 """
@@ -70,6 +70,10 @@ def main(out_path):
       (c["DATA_FIXED"] - c["DATA_BORDER_MAP"]) * BLOCK)
   put(data, c["DATA_FIXED"], db_bytes("img/fonts/font_fixed.asm", "FontFixedGlyphs", "FontFixedWidths"), 4 * BLOCK)
   put(data, c["DATA_MONO"], db_bytes("img/fonts/font_mono.asm", "FontMonoGlyphs", "FontMonoWidths"), 4 * BLOCK)
+  for shift in range(1, 8):
+    table = bytes(b >> shift for b in range(256)) + bytes((b << (8 - shift)) & 255 for b in range(256))
+    put(data, c["DATA_SHIFTS"] + shift - 1, table, BLOCK)
+  put(data, c["DATA_WIDTHS"], db_bytes("img/fonts/styled_widths.asm", "VWFBoldWidths"), BLOCK)
   buttons = {token: chr(int(code)) for token, code in
              re.findall(r'charmap "(<BTN_[A-Z]+>)", (\d+)', open("src/charmap.asm", encoding="utf8").read())}
   for context, name in enumerate(("editor", "browser")):

@@ -26,8 +26,6 @@ extern unsigned char tb_Copy(unsigned int pos, unsigned int count); // to the cl
 extern unsigned char tb_Paste(unsigned int pos); // 0 if it doesn't fit
 extern unsigned int tb_ClipLength(void);
 extern void tb_ResetChecks(void); // forgets the comment and code block checkpoints (the language changed)
-extern void tb_Normalize(void);
-extern unsigned char tb_NormalizeStep(void); // 1 when the gap is at the end
 extern unsigned int tb_CountLines(unsigned int start, unsigned int end); // line feeds in [start, end)
 extern unsigned int tb_LineStart(unsigned int pos); // after the line feed before pos
 extern unsigned int tb_RowStart(unsigned int pos);

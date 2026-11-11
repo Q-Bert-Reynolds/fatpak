@@ -25,27 +25,27 @@
 #define TB_BANKS     127//blocks 0-126, positions are 16 bit
 #define TB_BANK_SIZE 0x0200u
 #define TB_BASE      0xBE00u
-#define TB_HOLE      0x0200u//no register hole
-#define TB_HOLE_SIZE 0
 #define TB_PSRAM_HIGH 1//0xBD03
 #define UNDO_BANK    128//undo log in blocks 128-239
 #define UNDO_BANKS   112
-//the data file (data_file.py) in PSRAM blocks from 0x0200 (256KB), loaded at boot
-#define DATA_BLOCK         0x0200u//0xBD03:0xBD02
+//the data file in protected PSRAM from 0x3D00, above ROMs and snapshot staging
+#define DATA_BLOCK         0x3D00u//0xBD03:0xBD02
 #define DATA_FONTS         1//the styled fonts (FontStyles order), 2KB each
 #define DATA_BORDER_TILES  41//the SGB border's 8KB of tiles
 #define DATA_BORDER_MAP    57//its map and palettes, 4KB
 #define DATA_FIXED         65//the base fixed font, four blocks
 #define DATA_HELP          69//two 32-line help screens, 32 bytes per line
 #define DATA_MONO          73//base monospaced glyphs, four blocks
-#define DATA_BLOCKS        77
-#define DATA_VERSION       4//block 0 starts with "EDITOR.DAT" and this
+#define DATA_SHIFTS        77//seven blocks, paired right/left shift tables
+#define DATA_WIDTHS        84//VWF bold widths, 256 bytes
+#define DATA_BLOCKS        85
+#define DATA_VERSION       5//block 0 starts with "EDITOR.DAT" and this
 #define NAME_HISTORY_BLOCK DATA_BLOCK+DATA_BLOCKS//16 scratch blocks, separate from document undo
 #define WIN_SIZE           0xC000u//the part of a large file in the text buffer (src/fatfs/fatfs.c)
 #define WIN_CHUNKS         WIN_SIZE/512+1//sector boundaries in it
 #define MAX_PIECES         96//a large file's piece table (src/fatfs/fatfs.c)
 #define ADD_BLOCK          0x0400u//text added to a large file, PSRAM 512KB up to the save states at 0x3E40
-#define ADD_MAX            0x7A0000
+#define ADD_MAX            0x720000//stop before the protected EDITOR.DAT region
 #define TB_SIZE      (TB_BANK_SIZE*TB_BANKS)
 #define TB_CLIP_OFFSET 0x0100u//the clipboard's text in PSRAM blocks 240-255 (src/sram.asm)
 #define TB_CLIP_SIZE (0x2000u-TB_CLIP_OFFSET)
