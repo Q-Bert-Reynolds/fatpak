@@ -21,6 +21,11 @@ Folders come first; A or Enter opens a file or
 folder, and B, Backspace, or Left goes up a folder. Escape returns to the text
 editor; B, Backspace, and Left stay in the browser at the root.
 
+Binary files (a NUL in the first 512 bytes) open read only as hex: each row is 8 bytes in hex
+then the characters they make (a dim period for bytes that don't print), in the 4 pixel fixed font.
+The D-pad moves the selected byte (left/right a byte, up/down a row), and a keyboard's page up/down,
+home and end jump; the footer shows its address, binary and decimal value. B or Escape goes back.
+
 SELECT opens file info directly. START opens the browser menu: FILE (info, rename), EDIT (cut, copy, paste),
 SETTINGS (clock, keyboard test), HELP, and RESTART. Rename uses the on-screen
 keyboard and supports undo/redo. File info shows timestamps, file type and size,

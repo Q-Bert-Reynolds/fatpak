@@ -18,7 +18,7 @@ OMIT: f_getfree f_truncate
 15: SaveRamBlock SaveRamFile fs_BackupSave fs_GameOpen battery_types
 12: fs_GameCopy get_fattime ReadGameRTC WriteGameRTC BackupRegistry RegistrySum
 4: SnapshotCopy SnapshotStore fs_Snapshot
-6: SnapshotFile GamePath fs_ReadFile
+6: SnapshotFile GamePath fs_ReadFile fs_ViewOpen fs_ViewRead fs_ViewClose
 5: CheatApply
 
 FIXED: fs_ListEntry

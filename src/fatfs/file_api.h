@@ -43,6 +43,11 @@ extern unsigned char FileSaveSwap(void); // FRESULT, the text, clipboard and set
 extern unsigned char FileLoadSwap(void); // FRESULT, restores them if PSRAM lost them
 extern unsigned char FileWriteImage(const char* path, unsigned int blocks); // FRESULT, the assembled ROM (ASM_IMAGE_BLOCK, 512-byte blocks) to a file
 extern unsigned int FileReadFile(const char* path, unsigned int block); // the whole file into PSRAM from block; its length, 0 if it can't be read, 0xFFFF if 64 KiB or more
+// HEXVIEW.MOD's file, read only in save_file (nothing else uses it while a module runs)
+extern unsigned char FileViewOpen(const char* path); // FRESULT, sets view_size
+extern unsigned int FileViewRead(unsigned int count); // up to 512 bytes from view_pos into the FatFs buffer; how many, 0 at the end or on an error
+extern void FileViewClose(void);
+extern unsigned long view_size, view_pos;
 extern unsigned char swap_dirty; // they changed since FileSaveSwap
 extern unsigned char FileLoadLarge(const char* path); // FRESULT, opens a file too big for the text buffer, loads the window at its start
 extern unsigned char FileLoadWindow(void); // FRESULT, the text buffer is the file from win_start (see src/fatfs/fatfs.c)

@@ -1,5 +1,6 @@
 // SD file browser. Opening text and games uses their feature APIs.
 #include "browser.h"
+#include "hexview.h"
 #include "info.h"
 #include "../app/dialogs.h"
 #include "../app/menu.h"
@@ -304,6 +305,19 @@ unsigned char Browse(void) {
         if (IsGame(entry.name)) {
           LaunchGame(path); // returns if it doesn't launch
           path[length] = 0;
+          drawn = LIST_ALL;
+          continue;
+        }
+        if (ShowHexView(path, &entry)) { // binary: read only, back to the list after
+          path[length] = 0;
+          font = FONT_VWF;
+          SetFont(font);
+          render_text = 0;
+          bars = 1;
+          tb_rows = LIST_ROWS;
+          Layout();
+          ListLoading(path, 0xFF);
+          ListFolder(path, 0); // its reads used the folder's marks (the FatFs buffer)
           drawn = LIST_ALL;
           continue;
         }

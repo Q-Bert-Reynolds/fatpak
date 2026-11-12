@@ -13,6 +13,7 @@
 #include "../rtc/rtc.h"
 #include "../editor/settings.h"
 #include "../editor/state.h"
+#include "../editor/text_buffer.h"
 #include "../ui/theme.h"
 #include "../../build/modules/sdk.h"
 
@@ -259,4 +260,34 @@ unsigned int ModuleAPIFile(const char* path, unsigned int block) {
   for (p = path; *p; ++p) if (*p == '/') base = p + 1;
   if (base == path || !Join(full, base)) return 0;
   return FileReadFile(full, block);
+}
+
+// ABI 6: HEXVIEW.MOD
+// up to MODULE_SOURCE_CHUNK bytes of the file the host opened with FileViewOpen, from offset;
+// returns how many (0 past the end)
+unsigned char ModuleAPIRead(unsigned long offset, char* dest, unsigned char length) {
+  unsigned char n, i;
+  if (length > MODULE_SOURCE_CHUNK) length = MODULE_SOURCE_CHUNK;
+  view_pos = offset;
+  n = (unsigned char)FileViewRead(length);
+  for (i = 0; i < n; ++i) dest[i] = buffer[i];
+  return n;
+}
+// TB_STRIDE tile_attrs (STYLE_* << 4 | width) for a text row, drawn as styled text while
+// render_text is set (the host sets it and the font)
+void ModuleAPIStyle(unsigned char row, const char* styles) {
+  unsigned char* dest;
+  unsigned char i;
+  if (row >= tb_rows) return;
+  dest = tile_attrs + (unsigned int)(RowAddress(row) - (char*)tile_buffer);
+  for (i = 0; i < TB_STRIDE; ++i) dest[i] = styles[i];
+}
+// selects columns first to end (exclusive) of a text row and nothing else on the text rows
+void ModuleAPISelect(unsigned char row, unsigned char first, unsigned char end) {
+  unsigned char i, at;
+  for (i = 0; i < tb_rows; ++i) {
+    at = (render_text_top + i) << 1;
+    render_sel[at] = i == row ? first : 0;
+    render_sel[at + 1] = i == row ? end : 0;
+  }
 }

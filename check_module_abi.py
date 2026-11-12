@@ -38,6 +38,7 @@ ASM = {
     '_RenderSetMapRow': [], '_RenderStage': [], '_tb_ScrollRows': [],
     '_tb_Read': [],  # ROM0 text buffer readers
     '_FileReadFile': ['_fs_ReadFile'],  # BANKED_C stub (ROM0)
+    '_FileViewRead': ['_fs_ViewRead'],  # BANKED_C stub (ROM0)
     '_ClockFatTime': ['_rtc_FatTime'],  # BANKED_C stub (ROM0)
     '___memcpy': [],  # FatFs disk/memory helpers (ROM0)
     '_memset': [],  # FatFs disk/memory helpers (ROM0)

@@ -13,6 +13,9 @@ INCLUDE "src/fatpak.inc"
 ;   FileLoadSwap                OS mode: restores them at boot if PSRAM lost them, returns FRESULT in a
 ;   FileWriteImage              de = path, bc = blocks: writes the assembled ROM image from PSRAM, returns FRESULT in a
 ;   FileReadFile                de = path, bc = first block: copies the file to PSRAM, returns its length in bc (0, or $FFFF if too big)
+;   FileViewOpen                de = path, opens it read only for HEXVIEW.MOD (sets view_size), returns FRESULT in a
+;   FileViewRead                de = count (at most 512), reads from view_pos into buffer, returns the bytes read in bc
+;   FileViewClose               closes it
 
 SECTION FRAGMENT "FatFs Stubs", ROM0
 _FileSession::   BANKED_C _fs_Session
@@ -32,6 +35,9 @@ _FileSaveSwap::  BANKED_C _fs_SaveSwap
 _FileLoadSwap::  BANKED_C _fs_LoadSwap
 _FileWriteImage:: BANKED_C _fs_WriteImage
 _FileReadFile::  BANKED_C _fs_ReadFile
+_FileViewOpen::  BANKED_C _fs_ViewOpen
+_FileViewRead::  BANKED_C _fs_ViewRead
+_FileViewClose:: BANKED_C _fs_ViewClose
 _FileLoadLarge:: BANKED_C _fs_LoadLarge
 _FileLoadWindow:: BANKED_C _fs_LoadWindow
 _FileCloseLarge:: BANKED_C _fs_CloseLarge
@@ -186,7 +192,9 @@ _piece_count:: DS 1
 _piece_i:: DS 1;the piece DocRead found last
 _piece_start:: DS 4;and its document offset
 _add_len:: DS 4;bytes in the add buffer
-_save_file:: DS 64;a FIL for saving a large file and games' saves (fatfs.c checks the size)
+_save_file:: DS 64;a FIL for saving a large file and games' saves, or the file HEXVIEW.MOD shows (fatfs.c checks the size)
+_view_size:: DS 4;the viewed file's size (FileViewOpen)
+_view_pos:: DS 4;where FileViewRead reads
 _game_mapper:: DS 1;GameLaunch's $BD07, $BD04 and $BD05 (fs_LoadGame)
 _game_rom_mask:: DS 1
 _game_ram_mask:: DS 1

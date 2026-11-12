@@ -1156,6 +1156,18 @@ UINT fs_ReadFile(const char* path, UINT first) {
   f_close(&save_file);
   return (UINT)size;
 }
+// HEXVIEW.MOD's file (src/browser/hexview.c), read only
+unsigned char fs_ViewOpen(const char* path) {
+  FRESULT result = f_open(&save_file, path, FA_READ);
+  view_size = result ? 0 : f_size(&save_file);
+  return result;
+}
+UINT fs_ViewRead(UINT count) {
+  UINT done;
+  if (f_lseek(&save_file, view_pos) || f_read(&save_file, buffer, count, &done)) return 0;
+  return done;
+}
+void fs_ViewClose(void) { f_close(&save_file); }
 // ASM.MOD's ROM image (ASM_IMAGE_BLOCK, blocks of 512) to a file, replacing it
 unsigned char fs_WriteImage(const char* path, UINT blocks) {
   UINT n, done; FRESULT result, closed;

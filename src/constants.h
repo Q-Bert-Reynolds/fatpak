@@ -83,7 +83,7 @@
 #define ASM_SYMBOL_BLOCK 0x0C00u//the symbol table, 1024 blocks (65536 8-byte units)
 #define ASM_INCLUDE_BLOCK 0x1000u//included files, 128 blocks (64 KiB) each
 #define ASM_INCLUDES     16
-#define MODULE_ABI     5//newest ABI the host provides, modules built for older ones still load
+#define MODULE_ABI     6//newest ABI the host provides, modules built for older ones still load
 #define MODULE_TABLE   0x7F00u//ABI jump table in resident bank 1, 3 bytes per entry
 #define MODULE_SLOTS   32//entries reserved for it
 #define MODULE_FORMAT  1//one page, BSS after the code

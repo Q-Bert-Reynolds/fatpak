@@ -519,6 +519,87 @@ static void Theme(const char* image,const char* symbols,const char* data,bool co
     printf("%s theme dark mode, persistence and SET2 settings passed\n",color?"CGB":"DMG");
 }
 
+// A binary file (a NUL in its first sector) opens HEXVIEW.MOD: 8 bytes a row in hex and as
+// characters (non-printing ones a dim period), the selected byte highlighted and in the footer.
+// FATPAK_SCREENSHOT=dir saves the page as a PPM.
+static void HexView(const char* image,const char* symbols,const char* data,bool color) {
+    char folder[]="/tmp/fatpak-hex-XXXXXX";Check(mkdtemp(folder),"hex SD");
+    std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);
+    Write(root+"/GBCSYS/EDITOR.DAT",Read(data));InstallModules(root,data);
+    std::vector<u8> bytes={0xD9,'F','a','t','P','a','k',0};
+    while(bytes.size()<300) bytes.push_back(u8(bytes.size()*37));
+    Write(root+"/Data.bin",bytes);Write(root+"/Text.txt",{'h','i','\n'});
+    GearboyCore core;core.Init();core.SetEverdriveFolder(folder);core.SetPS2KeyboardEnabled(true);
+    Check(core.LoadROM(image,!color),"hex OS");auto memory=core.GetMemory();auto syms=Symbols(symbols);
+    auto byte=[&](const char* name){return memory->Read(syms.at(name));};
+    auto pad=[&](Gameboy_Keys key){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,30);};
+    auto extended=[&](u8 code){core.QueuePS2KeyboardScanCode(0xE0);core.QueuePS2KeyboardScanCode(code);Frames(core,4);
+        core.QueuePS2KeyboardScanCode(0xE0);core.QueuePS2KeyboardScanCode(0xF0);core.QueuePS2KeyboardScanCode(code);Frames(core,60);};
+    auto row=[&](unsigned n){std::string s;for(unsigned i=0;i<40;++i)s+=char(memory->Read(syms.at("tile_buffer")+n*40+i));
+        while(!s.empty() && s.back()==' ')s.pop_back();return s;};
+    auto expected=[&](unsigned offset){ // the row starting at offset
+        std::string hex="  ",chars;char pair[4];
+        for(unsigned i=0;i<8 && offset+i<bytes.size();++i){
+            u8 c=bytes[offset+i];snprintf(pair,sizeof(pair),"%02X ",c);hex+=pair;
+            chars+=c>=' ' && c<='~'?char(c):'.';}
+        if(chars.empty())return std::string();
+        hex.resize(29,' ');return hex+chars;};
+    auto footer=[&](unsigned offset){
+        u8 c=bytes[offset];char text[40];snprintf(text,sizeof(text)," $%06X  %%",offset);std::string s=text;
+        for(unsigned bit=0x80;bit;bit>>=1)s+=c&bit?'1':'0';return s+"  "+std::to_string(c);};
+    auto selected=[&](unsigned text_row,unsigned first){
+        for(unsigned r=0;r<16;++r){unsigned at=syms.at("_render_sel")+(r+1)*2;
+            if(memory->Read(at)!=(r==text_row?first:0) || memory->Read(at+1)!=(r==text_row?first+2:0))return false;}
+        return true;};
+    Frames(core,600);
+    if(row(1).find("Data.bin")==std::string::npos)pad(Down_Key);
+    pad(Down_Key);
+    core.KeyPressed(A_Key);Frames(core,4);core.KeyReleased(A_Key);
+    for(unsigned waited=0;row(19).find(" $000000")!=0 && waited<400;++waited)Frames(core,1);
+    Frames(core,30);
+    Check(row(18)==" Data.bin","hex view header shows the file name");
+    Check(byte("_render_text")==1 && byte("_tb_rows")==16 && byte("_bars")==1,"hex view uses styled text rows between the bars");
+    Check(row(0)=="  D9 46 61 74 50 61 6B 00    .FatPak.","first row: 8 hex bytes, 4 spaces, the characters");
+    for(unsigned r=0;r<16;++r)Check(row(r)==expected(r*8),"every row matches the file");
+    unsigned attrs=syms.at("tile_attrs");
+    Check(memory->Read(attrs+29)==0x44 && memory->Read(attrs+30)==0x04 && memory->Read(attrs+36)==0x44,"non-printing bytes are dim periods, the rest plain");
+    Check(memory->Read(attrs+2)==0x04,"hex digits are plain 4 px cells");
+    Check(row(19).find(footer(0))==0 && memory->Read(syms.at("tile_buffer")+19*40+32)==127,"footer: address, binary, decimal and the clock");
+    Check(selected(0,2),"the first byte's hex digits are highlighted");
+    if(const char* dir=getenv("FATPAK_SCREENSHOT")){ // 160x144 RGB565, once DMG has drawn every row
+        Frames(core,90);
+        std::string path=std::string(dir)+(color?"/hex_cgb.ppm":"/hex_dmg.ppm");
+        FILE* f=fopen(path.c_str(),"wb");fprintf(f,"P6 160 144 255\n");
+        for(unsigned i=0;i<160*144;++i){u16 p=frame[i];u8 rgb[3]={u8((p>>11)<<3),u8(((p>>5)&63)<<2),u8((p&31)<<3)};fwrite(rgb,1,3,f);}
+        fclose(f);}
+    pad(Right_Key);Check(row(19).find(footer(1))==0 && selected(0,5),"right moves a byte");
+    pad(Down_Key);Check(row(19).find(footer(9))==0 && selected(1,5),"down moves a row");
+    pad(Left_Key);pad(Up_Key);Check(row(19).find(footer(0))==0 && selected(0,2),"left and up move back");
+    pad(Up_Key);pad(Left_Key);Check(row(19).find(footer(0))==0,"the cursor stops at the start");
+    unsigned ring=byte("_ring_top");
+    for(unsigned i=0;i<16;++i)pad(Down_Key);
+    Check(row(19).find(footer(128))==0 && selected(15,2),"down past the last row");
+    Check(byte("_ring_top")==((ring+1)&31),"scrolls one row through the ring");
+    for(unsigned r=0;r<16;++r)Check(row(r)==expected(8+r*8),"rows after scrolling");
+    Check(memory->Read(attrs+15*40+29)==(bytes[128]>=' ' && bytes[128]<='~'?0x04:0x44),"the incoming row has its own styles");
+    extended(0x69); // End
+    Check(row(19).find(footer(299))==0 && selected(15,11),"End selects the last byte");
+    Check(row(15)==expected(296) && row(14)==expected(288),"the last, partial row at the bottom");
+    pad(Down_Key);Check(row(19).find(footer(299))==0,"the cursor stops at the end");
+    extended(0x6C); // Home
+    Check(row(19).find(footer(0))==0 && row(0)==expected(0),"Home goes back to the start");
+    extended(0x7A); // Page down
+    Check(row(19).find(footer(128))==0 && row(15)==expected(128),"Page down moves 16 rows");
+    pad(B_Key); // the browser lists the folder again
+    for(unsigned waited=0;byte("_render_box_top")!=255 && waited<300;++waited)Frames(core,1);
+    Check(byte("_render_text")==0 && row(18)==" /" && (row(0)+row(1)+row(2)).find("Data.bin")!=std::string::npos,"B returns to the browser");
+    unsigned text_row=row(1).find("Text.txt")!=std::string::npos?1:2;
+    while(memory->Read(syms.at("_render_sel")+(text_row+1)*2+1)!=0xFF)pad(Down_Key);
+    pad(A_Key);Frames(core,120);
+    Check(byte("_render_text")==1 && Text(memory,syms.at("_file_name"))=="Text.txt" && row(0)=="hi","a text file still opens in the editor");
+    printf("%s hex view of binary files passed\n",color?"CGB":"DMG");
+}
+
 int main(int argc,char** argv) {
     Check(argc==4,"usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT");
     Operations(argv[1],argv[2]);UI(argv[1],argv[2],argv[3],false);UI(argv[1],argv[2],argv[3],true);
@@ -526,4 +607,5 @@ int main(int argc,char** argv) {
     RenameEdges(argv[1],argv[2],argv[3],false);RenameEdges(argv[1],argv[2],argv[3],true);
     OSKShift(argv[1],argv[2],argv[3],false);OSKShift(argv[1],argv[2],argv[3],true);
     Theme(argv[1],argv[2],argv[3],false);Theme(argv[1],argv[2],argv[3],true);
+    HexView(argv[1],argv[2],argv[3],false);HexView(argv[1],argv[2],argv[3],true);
 }

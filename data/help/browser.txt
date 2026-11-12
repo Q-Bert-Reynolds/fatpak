@@ -6,6 +6,8 @@ FILE BROWSER
 Esc return to editor
 <BTN_START> browser menu
 <BTN_SELECT> file info
+Binary files open as hex
+(read only, <BTN_DPAD> moves)
 
 FILE > INFO file details
 FILE > RENAME edit name
