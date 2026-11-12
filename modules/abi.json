@@ -24,6 +24,7 @@
     ["File", "unsigned int", "const char* path, unsigned int block", 5],
     ["Read", "unsigned char", "unsigned long offset, char* dest, unsigned char length", 6],
     ["Style", "void", "unsigned char row, const char* styles", 6],
-    ["Select", "void", "unsigned char row, unsigned char first, unsigned char end", 6]
+    ["Select", "void", "unsigned char row, unsigned char first, unsigned char end", 6],
+    ["Tiles", "void", "unsigned char row, const unsigned char* tiles", 6]
   ]
 }

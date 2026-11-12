@@ -30,6 +30,7 @@
 ;                               is drawn with FONT_FIXED in any font, see RenderGlyph)
 ;   EditorDraw                  draws the screen rows whose characters, font or selection changed
 ;   EditorRedraw                forgets which rows are drawn so EditorDraw redraws all of them
+;   RenderRawRow                a = screen row, de = 20 raw 2bpp tiles: draws them over the row (TILEVIEW.MOD)
 ;   RenderSetMapRow             a = BG map row (32 and up are window map rows), e = block, points the map row at the block's tiles
 ;   RenderStage                 stages LCDC changes for render_row_blocks, render_text_top and tb_rows
 ;   RenderTextWidth             de = text (0 ends it), returns its width in the variable width font in a
@@ -1411,6 +1412,7 @@ ENDR
 ;while the CPU carries on (VBK stays on the block's bank until it's done, see RenderWaitDMA)
 RenderRowDMA:
   call RenderWritePalettes
+RenderRowUpload:;GBC: render_dma_buffer to render_block, attributes already written
   ld a, [render_block]
   ld e, a
   cp a, GBC_BANK1_BLOCK
@@ -1440,6 +1442,115 @@ RenderRowDMA:
   ld a, $80 | (TB_WIDTH*2/16-1);HBlank DMA, 16 bytes per HBlank
   ldh [rHDMA5], a
   ret
+
+;C: a = screen row, de = 20 tiles of 2bpp (TB_WIDTH*2 bytes): sends them to the row's block as they are,
+;over what EditorDraw drew there (call it first). The row's cache still says that, so EditorDraw leaves
+;them until the row's text, font, selection or a box over it changes; EditorRedraw puts the text back.
+;GBC: the row's cells use BG palette 7, four greys. DMG/SGB: dark mode inverts BGP (and SGB's colours),
+;so the tiles are inverted to keep their shades.
+DEF RAW_PALETTE EQU 7;GBC BG palette of raw rows (the theme sets 0-4)
+_RenderRawRow::
+  push de
+  ld c, a
+  ld b, 0
+  ld hl, _render_row_blocks
+  add hl, bc
+  ld a, [hl]
+  ld [render_block], a
+  call RenderWaitDMA;the last row's transfer reads render_dma_buffer
+  pop hl
+  ld de, render_dma_buffer
+  ld bc, TB_WIDTH*2
+  call mem_Copy
+  ld a, [_render_gbc]
+  and a
+  jr nz, .gbc
+  ld a, [_theme]
+  and a
+  jr z, .dmgCopy
+  ld hl, render_dma_buffer
+  ld c, TB_WIDTH*2/2
+.invert
+    ld a, [hl]
+    cpl
+    ld [hli], a
+    ld a, [hl]
+    cpl
+    ld [hli], a
+    dec c
+    jr nz, .invert
+.dmgCopy
+  ld a, [render_block]
+  add a, a
+  ld c, a
+  ld b, 0
+  ld hl, BlockTileAddress
+  add hl, bc
+  ld a, [hli]
+  ld e, a
+  ld d, [hl]
+  jp RenderCopyTiles
+.gbc
+  ld a, BCPSF_AUTOINC | (RAW_PALETTE * 8)
+  ldh [rBCPS], a
+  ld hl, RawPalette
+  ld c, 8
+.palette
+    LCD_WAIT_VRAM
+    ld a, [hli]
+    ldh [rBCPD], a
+    dec c
+    jr nz, .palette
+  ld a, [render_block]
+  ld c, a
+  ld b, 0
+  ld hl, block_accents
+  add hl, bc
+  ld [hl], 2;not palette 0: the row's next normal draw writes its attributes again
+  ld hl, block_map_rows
+  add hl, bc
+  ld a, [hl]
+  cp a, $FF
+  jp z, RenderRowUpload
+  push af
+  ld a, c
+  cp a, GBC_BANK1_BLOCK
+  ld a, RAW_PALETTE
+  jr c, .bank
+  or a, %00001000
+.bank
+  ld hl, render_map_row
+  ld b, TB_COLS
+.attribute
+    ld [hli], a
+    dec b
+    jr nz, .attribute
+  pop af
+  ld l, a
+  ld h, 0
+  add hl, hl
+  add hl, hl
+  add hl, hl
+  add hl, hl
+  add hl, hl;row * SCRN_VX_B
+  ld de, _SCRN0
+  add hl, de
+  ld d, h
+  ld e, l
+  ld a, 1
+  ldh [rVBK], a
+  ld hl, render_map_row
+  ld bc, TB_COLS
+  call mem_CopyVRAM
+  xor a
+  ldh [rVBK], a
+  jp RenderRowUpload
+
+RawPalette:
+  RGB 31, 31, 31
+  RGB 21, 21, 21
+  RGB 10, 10, 10
+  RGB 0, 0, 0
 
 ;VRAM address of the first tile of each block on GBC (blocks 12 and up are in bank 1)
 BlockTileAddressGBC:

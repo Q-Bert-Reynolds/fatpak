@@ -396,10 +396,13 @@ boot ROM). Select opens file info directly.
   text ≤32 KiB gets word and line counts, NULs mean binary; games read only the
   header (`$134-$14F`). It borrows the directory-mark buffer, so the browser
   reloads on exit.
-- **Hex view** (`browser/hexview.c` opens the file, `HEXVIEW.MOD` draws): opening a
-  file whose first sector has a NUL shows it read only, 8 bytes a row in hex and
-  characters, in `FONT_FIXED` with `render_text` set so `ModStyle` can dim the
-  non-printing bytes. The file stays open in `save_file`; `ModRead` seeks and reads it.
+- **File views** (`browser/viewer.c` opens the file in `save_file`; `ModRead` seeks and
+  reads it). A file whose first sector has a NUL opens in `HEXVIEW.MOD`: read only, 8
+  bytes a row in hex and characters, in `FONT_FIXED` with `render_text` set so
+  `ModStyle` can dim the non-printing bytes. A `.tiles` file opens in `TILEVIEW.MOD`,
+  whose rows are all raw 2bpp (`ModTiles` → `RenderRawRow`, after `EditorDraw` so the
+  row cache keeps them): the tile 8x, 2x and 1x, and a sheet of tiles. The host calls
+  `EditorRedraw` after, and the browser lists its folder again (the reads used `buffer`).
 - **Rename** (`editor/name.c`, shared with filename prompts): edits the list row
   above the OSK, with its own 64-state undo ring at `$3d55-$3d64`.
 - **File clipboard:** session-only, separate from text. Move = FatFs rename; copy

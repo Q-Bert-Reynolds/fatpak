@@ -46,6 +46,7 @@ static void Page(void) {
 }
 
 // highlights the byte's hex digits and shows it in the footer, e.g. $0001A4  %11011001  217
+// (over 16 MiB $01A4F0C2 %11011001 217: the footer's text stops where the clock starts)
 static void Show(void) {
   const unsigned char* at = (const unsigned char*)&cursor;
   unsigned char value = 0, bit, col = LEFT, i = at[0] & 7;
@@ -54,14 +55,16 @@ static void Show(void) {
   ModSelect((unsigned char)((cursor - top) >> 3), col, col + 2);
   ModRead(cursor, (char*)&value, 1);
   *end++ = '$';
-  if (size > 0x1000000UL) end = PutHex(end, at[3]);
+  if (size > 0x1000000UL) end = PutHex(end, at[3]); // and single spaces, the clock needs the rest
   end = PutHex(end, at[2]);
   end = PutHex(end, at[1]);
   end = PutHex(end, at[0]);
-  end = PutText(end, "  %");
+  *end++ = ' ';
+  if (size <= 0x1000000UL) *end++ = ' ';
+  *end++ = '%';
   for (bit = 0x80; bit; bit >>= 1) *end++ = value & bit ? '1' : '0';
   *end++ = ' ';
-  *end++ = ' ';
+  if (size <= 0x1000000UL) *end++ = ' ';
   *PutNumber(end, value) = 0;
   ModText(STATUS_LINE, 1, text);
 }
@@ -74,9 +77,9 @@ unsigned char ModuleMain(const unsigned long* file_size) {
   top = cursor = 0;
   Page();
   ModHideBox(); // the host's loading box
+  Show();
   while (1) {
-    Show();
-    key = ModKey();
+    key = ModKey(); // every frame, 0 for none: redraw only after a move
     if (key == KEY_BACKSPACE || key == KEY_ESCAPE) break;
     next = cursor;
     if (key == KEY_LEFT) { if (next) --next; }
@@ -87,22 +90,24 @@ unsigned char ModuleMain(const unsigned long* file_size) {
     else if (key == KEY_PAGE_DOWN) next = next + PAGE < last ? next + PAGE : last;
     else if (key == KEY_HOME) next = 0;
     else if (key == KEY_END) next = last;
-    else continue;
+    if (next == cursor) continue;
     cursor = next;
     first = top;
     if (next < top) first = next & ~7UL;
     else if (next >= top + PAGE) first = (next & ~7UL) - (PAGE - 8);
-    if (first == top) continue;
-    down = first > top;
-    if (first == top + 8 || first + 8 == top) { // a row at a time, so the screen ring keeps its drawn rows
-      top = first;
-      ModScroll(down);
-      Row(down ? ROWS - 1 : 0);
+    if (first != top) {
+      down = first > top;
+      if (first == top + 8 || first + 8 == top) { // a row at a time, so the screen ring keeps its drawn rows
+        top = first;
+        ModScroll(down);
+        Row(down ? ROWS - 1 : 0);
+      }
+      else {
+        top = first;
+        Page();
+      }
     }
-    else {
-      top = first;
-      Page();
-    }
+    Show();
   }
   return 0;
 }

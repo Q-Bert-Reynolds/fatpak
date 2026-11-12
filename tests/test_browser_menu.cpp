@@ -600,6 +600,75 @@ static void HexView(const char* image,const char* symbols,const char* data,bool 
     printf("%s hex view of binary files passed\n",color?"CGB":"DMG");
 }
 
+// A .tiles file opens TILEVIEW.MOD: the selected tile 8x (each pixel a tile), 2x and 1x beside it,
+// a sheet of the tiles below with the selected one inverted. Checked on the screen: every copy shows
+// the file's pixel values, 0 as the blank background and 3 as the frame. FATPAK_SCREENSHOT=dir saves it.
+static void TileView(const char* image,const char* symbols,const char* data,bool color) {
+    char folder[]="/tmp/fatpak-tiles-XXXXXX";Check(mkdtemp(folder),"tiles SD");
+    std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);
+    Write(root+"/GBCSYS/EDITOR.DAT",Read(data));InstallModules(root,data);
+    std::string repo=std::string(image).substr(0,std::string(image).find_last_of('/'))+"/..";
+    std::vector<u8> tiles=Read(repo+"/img/ui_font.tiles");Check(tiles.size()==4096,"ui_font.tiles fixture");
+    Write(root+"/Font.TILES",tiles);
+    GearboyCore core;core.Init();core.SetEverdriveFolder(folder);core.SetPS2KeyboardEnabled(true);
+    Check(core.LoadROM(image,!color),"tiles OS");auto memory=core.GetMemory();auto syms=Symbols(symbols);
+    auto byte=[&](const char* name){return memory->Read(syms.at(name));};
+    auto pad=[&](Gameboy_Keys key){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,60);};
+    auto extended=[&](u8 code){core.QueuePS2KeyboardScanCode(0xE0);core.QueuePS2KeyboardScanCode(code);Frames(core,4);
+        core.QueuePS2KeyboardScanCode(0xE0);core.QueuePS2KeyboardScanCode(0xF0);core.QueuePS2KeyboardScanCode(code);Frames(core,90);};
+    auto row=[&](unsigned n){std::string s;for(unsigned i=0;i<40;++i)s+=char(memory->Read(syms.at("tile_buffer")+n*40+i));
+        while(!s.empty() && s.back()==' ')s.pop_back();return s;};
+    auto pixel=[&](unsigned x,unsigned y){return frame[y*160+x];};
+    auto value=[&](unsigned t,unsigned x,unsigned y){u8 lo=tiles[t*16+y*2],hi=tiles[t*16+y*2+1];
+        return unsigned((lo>>(7-x))&1)|unsigned(((hi>>(7-x))&1)<<1);};
+    // screen rows: header, then text rows from 1; zoom at column 2, text rows 1-8; 2x at column 13,
+    // rows 4-5; 1x at column 16, row 5; the sheet from column 2, text row 10
+    auto check=[&](unsigned t,unsigned first){
+        u16 shade[4];bool seen[4]={true,false,false,true};
+        shade[0]=pixel(156,130);shade[3]=pixel(19,15); // blank, the frame above the zoom
+        for(unsigned y=0;y<8;++y)for(unsigned x=0;x<8;++x){unsigned v=value(t,x,y);
+            if(!seen[v]){seen[v]=true;shade[v]=pixel(16+x*8+3,16+y*8+3);}}
+        for(unsigned a=0;a<4;++a)for(unsigned b=a+1;b<4;++b)Check(!seen[a]||!seen[b]||shade[a]!=shade[b],"four distinct shades");
+        unsigned sx=16+(t-first)%16*8,sy=88+(t-first)/16*8;
+        for(unsigned y=0;y<8;++y)for(unsigned x=0;x<8;++x){unsigned v=value(t,x,y);
+            for(unsigned dy=0;dy<8;dy+=7)for(unsigned dx=0;dx<8;dx+=7)
+                Check(pixel(16+x*8+dx,16+y*8+dy)==shade[v],"each pixel 8x, a whole tile");
+            Check(pixel(128+x,48+y)==shade[v],"1x copy");
+            Check(pixel(104+x*2,40+y*2)==shade[v] && pixel(105+x*2,41+y*2)==shade[v],"2x copy");
+            Check(pixel(sx+x,sy+y)==shade[3-v],"the selected tile is inverted in the sheet");}
+        if(t+1<256 && (t+1-first)%16){unsigned n=t+1;
+            for(unsigned y=0;y<8;++y)for(unsigned x=0;x<8;++x)
+                if(value(n,x,y)==0||value(n,x,y)==3)Check(pixel(sx+8+x,sy+y)==shade[value(n,x,y)],"the next tile in the sheet as it is");}
+    };
+    Frames(core,600);
+    pad(Down_Key);
+    core.KeyPressed(A_Key);Frames(core,4);core.KeyReleased(A_Key);
+    for(unsigned waited=0;row(19).find(" Tile 0/256  $0000")!=0 && waited<400;++waited)Frames(core,1);
+    Frames(core,90);
+    Check(row(18)==" Font.TILES","tile view header shows the file name");
+    Check(row(19).find(" Tile 0/256  $0000")==0 && memory->Read(syms.at("tile_buffer")+19*40+32)==127,"footer: tile, count, offset and the clock");
+    pad(Right_Key);Frames(core,30);
+    Check(row(19).find(" Tile 1/256  $0010")==0,"right selects the next tile");
+    check(1,0);
+    if(const char* dir=getenv("FATPAK_SCREENSHOT")){ // 160x144 RGB565
+        std::string path=std::string(dir)+(color?"/tiles_cgb.ppm":"/tiles_dmg.ppm");
+        FILE* f=fopen(path.c_str(),"wb");fprintf(f,"P6 160 144 255\n");
+        for(unsigned i=0;i<160*144;++i){u16 p=frame[i];u8 rgb[3]={u8((p>>11)<<3),u8(((p>>5)&63)<<2),u8((p&31)<<3)};fwrite(rgb,1,3,f);}
+        fclose(f);}
+    pad(Down_Key);Frames(core,30);
+    Check(row(19).find(" Tile 17/256  $0110")==0,"down moves a sheet row");
+    check(17,0);
+    extended(0x69); // End: the sheet scrolls to show the last row
+    Check(row(19).find(" Tile 255/256  $0FF0")==0,"End selects the last tile");
+    check(255,160);
+    pad(B_Key); // the browser lists the folder again
+    for(unsigned waited=0;byte("_render_box_top")!=255 && waited<300;++waited)Frames(core,1);
+    Frames(core,90);
+    Check(byte("_render_text")==0 && row(18)==" /" && (row(0)+row(1)).find("Font.TILES")!=std::string::npos,"B returns to the browser");
+    Check(pixel(16+3,48+3)==pixel(156,130) && pixel(156,130)!=pixel(0,0),"blank browser rows replace the tiles, in the theme's paper");
+    printf("%s tile view of .tiles files passed\n",color?"CGB":"DMG");
+}
+
 int main(int argc,char** argv) {
     Check(argc==4,"usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT");
     Operations(argv[1],argv[2]);UI(argv[1],argv[2],argv[3],false);UI(argv[1],argv[2],argv[3],true);
@@ -608,4 +677,5 @@ int main(int argc,char** argv) {
     OSKShift(argv[1],argv[2],argv[3],false);OSKShift(argv[1],argv[2],argv[3],true);
     Theme(argv[1],argv[2],argv[3],false);Theme(argv[1],argv[2],argv[3],true);
     HexView(argv[1],argv[2],argv[3],false);HexView(argv[1],argv[2],argv[3],true);
+    TileView(argv[1],argv[2],argv[3],false);TileView(argv[1],argv[2],argv[3],true);
 }

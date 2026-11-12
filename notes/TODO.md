@@ -1,6 +1,6 @@
 # Priority
 
-- Hex view: editing; gamepad page up/down; files with no NUL in the first sector but other control bytes open as text.
+- Hex/tile views: editing; SGB shows tile colour 1 as the highlight colour; gamepad page up/down; files with no NUL in the first sector but other control bytes open as text.
 - Assembler ([ASSEMBLER.md](ASSEMBLER.md)): `EQUS`/string functions/`{}` (for `rev_Check_hardware_inc`), speed (module load, per-line `Keyword`/far calls), `INCBIN`/`FOR`/`LOAD`/`UNION`/`CHARMAP`, 32-bit values, listings, large sources from the card.
 
 # Rendering

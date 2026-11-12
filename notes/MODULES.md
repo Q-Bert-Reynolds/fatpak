@@ -7,9 +7,9 @@ into an OS page for one call and puts the page back. The model follows CP/M
 `.OVL` overlays ([LINK-80 Operator's Guide, Appendix E](https://www.bitsavers.org/pdf/digitalResearch/cpm/LINK-80_Operators_Guide_Dec80.pdf)):
 fixed load address and length, sharing memory with the host program.
 
-Status: seven modules pass in Gearboy (DMG and CGB). KEYTEST, CLOCK, FILEINFO and
-the first ASM work on hardware; HELP, THEME, ASM's three-page version (ABI 5) and
-HEXVIEW haven't been tried there yet.
+Status: eight modules pass in Gearboy (DMG and CGB). KEYTEST, CLOCK, FILEINFO and
+the first ASM work on hardware; HELP, THEME, ASM's three-page version (ABI 5),
+HEXVIEW and TILEVIEW haven't been tried there yet.
 
 | Module | ID | ABI | Host | Size |
 | --- | --- | --- | --- | --- |
@@ -19,7 +19,8 @@ HEXVIEW haven't been tried there yet.
 | `HELP.MOD` | 4 | 3 | HELP, F1 (`editor/help.c`) | 327 B + 34 B BSS |
 | `THEME.MOD` | 5 | 3 | SETTINGS > THEME (`ui/theme.c`) | 510 B |
 | `ASM.MOD` | 6 | 5 | FILE > BUILD, RUN (`editor/build.c`), [ASSEMBLER.md](ASSEMBLER.md) | wide, 3 pages: 7,110 + 5,637 + 6,202 B, 2,315 B BSS |
-| `HEXVIEW.MOD` | 7 | 6 | Opening a binary file in the browser (`browser/hexview.c`) | 2,142 B + 221 B BSS |
+| `HEXVIEW.MOD` | 7 | 6 | Opening a binary file in the browser (`browser/viewer.c`) | 2,243 B + 221 B BSS |
+| `TILEVIEW.MOD` | 8 | 6 | Opening a `.tiles` file in the browser (`browser/viewer.c`) | 2,134 B + 383 B BSS |
 
 ## Rules
 
@@ -217,6 +218,7 @@ entries. Entries are append-only; changing one's meaning needs a new entry.
 | `ModRead(offset, dest, length)` | 6 | Up to `MODULE_SOURCE_CHUNK` bytes from `offset` of the file the host opened with `FileViewOpen` (in `save_file`); returns the count, 0 past the end. Reads through `buffer`, so the browser lists its folder again after |
 | `ModStyle(row, styles)` | 6 | `TB_STRIDE` `tile_attrs` bytes (`STYLE_* << 4` \| width) for a text row; the host sets `render_text` and the font so the rows draw styled |
 | `ModSelect(row, first, end)` | 6 | Highlights columns `first` to `end` (exclusive) of one text row, clearing the other text rows |
+| `ModTiles(row, tiles)` | 6 | `EditorDraw`, then `RenderRawRow`: `TB_COLS` 2bpp tiles (320 bytes) sent as they are to a text row's block, which keeps them until the row's text, selection or a box over it changes. GBC: BG palette 7 (four greys); DMG/SGB dark mode inverts them so they keep their shades. The host calls `EditorRedraw` after |
 
 Pointer rule: wrappers run with page 13 mapped, so they read module memory
 directly but copy it into host memory (`buffer` or the stack) before calling

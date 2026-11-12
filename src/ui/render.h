@@ -8,6 +8,7 @@ extern unsigned char HeadingCharWidth(unsigned char level, unsigned char c); // 
 extern void SetFont(unsigned char font);
 extern void EditorDraw(void); // draws screen rows whose characters, font or selection changed
 extern void EditorRedraw(void); // redraw every row next EditorDraw
+extern void RenderRawRow(unsigned char row, const unsigned char* tiles); // screen row, TB_COLS 2bpp tiles over what EditorDraw drew
 extern unsigned char RenderCursorX(unsigned char col); // x of col in tb_found_row
 extern void RenderSetMapRow(unsigned char map_row, unsigned char block);
 extern unsigned char block_map_rows[]; // map row each block was last set to (RenderSetMapRow)

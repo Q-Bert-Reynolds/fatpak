@@ -26,6 +26,13 @@ then the characters they make (a dim period for bytes that don't print), in the 
 The D-pad moves the selected byte (left/right a byte, up/down a row), and a keyboard's page up/down,
 home and end jump; the footer shows its address, binary and decimal value. B or Escape goes back.
 
+`.tiles` files (Game Boy 2bpp tiles, 16 bytes each, as `img2rgbds.py` writes them) open in a tile
+viewer: the selected tile 8 times its size (each pixel a whole tile) with 2x and 1x copies beside it,
+and below a sheet of the tiles at their real size, 16 a row, the selected one inverted. Left/right
+cycle through the tiles, up/down move a sheet row, page up/down, home and end jump; the footer shows
+the tile's number and file offset. On GBC the tiles use four greys; on SGB colour 1 shows as the
+theme's highlight colour.
+
 SELECT opens file info directly. START opens the browser menu: FILE (info, rename), EDIT (cut, copy, paste),
 SETTINGS (clock, keyboard test), HELP, and RESTART. Rename uses the on-screen
 keyboard and supports undo/redo. File info shows timestamps, file type and size,

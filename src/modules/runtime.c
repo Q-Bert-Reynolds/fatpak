@@ -291,3 +291,10 @@ void ModuleAPISelect(unsigned char row, unsigned char first, unsigned char end) 
     render_sel[at + 1] = i == row ? end : 0;
   }
 }
+// TB_COLS tiles of 2bpp (16 bytes each) drawn as they are over a text row, which keeps them
+// until it changes; the host calls EditorRedraw after (RenderRawRow)
+void ModuleAPITiles(unsigned char row, const unsigned char* tiles) {
+  if (row >= tb_rows) return;
+  EditorDraw(); // the row's text first, so drawing it later doesn't cover the tiles
+  RenderRawRow(render_text_top + row, tiles);
+}
