@@ -229,7 +229,7 @@ int main(int argc, char** argv) {
         NotAssembly(argv[1], argv[2], argv[3], color);
         Run(argv[1], argv[2], argv[3], argv[4], argv[5], color);
         std::string work = std::string(argv[7]).substr(0, std::string(argv[7]).find_last_of('/'));
-        for (const char* name : {"features", "strings", "loops"}) Sample(argv[1], argv[2], argv[3], argv[6], work, name, color);
+        for (const char* name : {"features", "strings", "loops", "charmap"}) Sample(argv[1], argv[2], argv[3], argv[6], work, name, color);
         IncludeError(argv[1], argv[2], argv[3], color);
         Library(argv[1], argv[2], argv[3], argv[8], argv[9], color);
     }

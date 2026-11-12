@@ -294,10 +294,10 @@ static void Jump(unsigned char m) { // jp jr call ret
 }
 void Instruction(unsigned char m) {
   unsigned char r;
-  if (m < M_LD) {
-    Need(0);
+  if (m < M_LD) { // and the optional operands: cpl a, stop n (its second byte, else 0)
+    if (!(nops == 1 && ((m == 10 && Is(0, K_R8, 7)) || (m == 2 && okind[0] == K_IMM)))) Need(0);
     Emit(simple[m]);
-    if (m == 2) Emit(0);
+    if (m == 2) Emit8(nops ? oval[0] : 0);
   }
   else if (m == M_LD) Ld();
   else if (m == 15) Ldh();

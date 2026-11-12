@@ -240,24 +240,35 @@ unsigned char ModuleAPISource(unsigned int pos, char* dest) {
 // A file into PSRAM blocks from block: the path is relative to the document's folder, or
 // failing that its base name is looked for there. Returns the length, 0 if it can't be read,
 // 0xFFFF if it's 64 KiB or more. For ASM.MOD's INCLUDE.
-// dir "/" name into full (JoinPath is in page 5, which ASM.MOD borrows); 0 if it doesn't fit
-static unsigned char Join(char* full, const char* name) {
-  unsigned char i = 0;
+// the first n characters of the document's folder, "/", name into full (JoinPath is in page 5,
+// which ASM.MOD borrows); 0 if it doesn't fit
+static unsigned char Join(char* full, unsigned char n, const char* name) {
+  unsigned char i;
   const char* p;
-  for (p = file_dir; *p; ++p) { if (i == PATH_SIZE + FS_NAME_SIZE - 2) return 0; full[i++] = *p; }
+  for (i = 0; i < n; ++i) full[i] = file_dir[i];
   full[i++] = '/';
   for (p = name; *p; ++p) { if (i == PATH_SIZE + FS_NAME_SIZE - 1) return 0; full[i++] = *p; }
   full[i] = 0;
   return 1;
 }
+// path relative to the document's folder, then to each folder above it (RGBDS resolves
+// includes from where it runs, usually a project's root: "src/x.inc" from src/main.asm), then
+// its base name in the document's folder
 unsigned int ModuleAPIFile(const char* path, unsigned int block) {
   char full[PATH_SIZE + FS_NAME_SIZE]; // path is in the module's WRAMX BSS, readable throughout
   const char *base = path, *p;
-  unsigned int length = 0;
-  if (Join(full, path)) length = FileReadFile(full, block);
-  if (length) return length;
+  unsigned int length;
+  unsigned char n = 0;
+  while (file_dir[n]) ++n;
+  while (1) {
+    if (Join(full, n, path) && (length = FileReadFile(full, block))) return length;
+    if (!n) break;
+    while (n && file_dir[n - 1] != '/') --n; // up a folder
+    if (n) --n;
+  }
   for (p = path; *p; ++p) if (*p == '/') base = p + 1;
-  if (base == path || !Join(full, base)) return 0;
+  while (file_dir[n]) ++n;
+  if (base == path || !Join(full, n, base)) return 0;
   return FileReadFile(full, block);
 }
 

@@ -31,9 +31,12 @@ assemble byte-identical to RGBDS, unmodified (`memory1.asm` calls
   the game returns or at the next boot.
 - Only text-buffer documents (≤ 65,024 bytes) assemble; large files report
   FILE TOO BIG. Included files can be up to 64 KiB each, 16 of them.
-- `INCLUDE "path"` is relative to the document's folder; if that file isn't
-  there, its base name is tried in the document's folder, so `INCLUDE
-  "src/hardware.inc"` works with `hardware.inc` beside the source.
+- `INCLUDE "path"` is tried relative to the document's folder, then to each
+  folder above it, then as a base name in the document's folder. RGBDS resolves
+  paths from where it runs, usually a project's root, so `src/main.asm` can
+  `INCLUDE "src/keyboard/keyboard.asm"` as it does in a Makefile build, and
+  `INCLUDE "src/hardware.inc"` also finds `hardware.inc` beside the source. An
+  included file may end without a line feed.
 - `INCBIN` finds files the same way; it and `INCLUDE` share the 16 slots, and
   a file used twice is read once.
 - Samples: `tests/asm/` (`hello.asm`, `features.asm`, `strings.asm`,
@@ -58,6 +61,7 @@ assemble byte-identical to RGBDS, unmodified (`memory1.asm` calls
 | `STRCAT`, `STRUPR`, `STRLWR`, `STRSLICE` (0-based, negative from the end), `STRSUB` (1-based, deprecated in RGBDS), `STRRPL`; `STRLEN`, `STRCMP`, `STRFIND`, `STRRFIND` in expressions | `\\` in a macro body stays a backslash for the string that reads it |
 | `INCBIN "file"[, start[, length]]` | |
 | `PURGE name, ...` | names can be defined again (pass 2 too) |
+| `CHARMAP "string", value, ...`, `NEWCHARMAP name[, base]`, `SETCHARMAP name`, `PUSHC`, `POPC` | strings in `DB` and character literals go through the current map: the longest entry at each position, unmapped characters as themselves; `'x'` must be one entry of one byte; 8 maps, 60 KiB of entries; `\{` `\}` are literal braces |
 | `ASSERT expr[, msg]`, `FAIL` | ASSERT is checked in pass 2 |
 | `EXPORT`, `GLOBAL`, `WARN`, `PRINT`, `PRINTLN` | accepted and ignored |
 | Expressions | `+ - * / % & \| ^ << >> == != < > <= >= && \|\| ! ~`, unary `-`, parentheses, `@`, `HIGH()`, `LOW()`, `BANK(label or @)`, `DEF(name)`, `_NARG`, `__RGBDS_MAJOR__` etc., `$hex %bin &oct 123 'c'`, fixed point `1.5` (8.8), `_` separators |
@@ -69,9 +73,10 @@ Fixed-point literals are 8.8 (RGBDS: 16.16), which compares and shifts alike for
 small values. Nesting: 10 frames (includes, macros, repeats and arguments
 together), 256 bytes of macro arguments in flight.
 
-Not supported, with the NOT SUPPORTED error: `LOAD`, `UNION`, `CHARMAP` (and
-`CHARLEN`, `CHARSUB`...), `OPT`, `PUSHS`/`POPS`, `ALIGN` as a directive,
-`SECTION FRAGMENT`, `STRFMT`, `\<10>` and named macro arguments. String symbols
+Not supported, with the NOT SUPPORTED error: `LOAD`, `UNION`, `CHARLEN`,
+`CHARSUB` and the other charmap functions, `OPT`, `PUSHS`/`POPS`, `ALIGN` and
+`DS ALIGN`, `SECTION FRAGMENT`, `STRFMT`, `\<10>` and named macro arguments.
+Names are up to 63 characters; nesting is 16 frames. String symbols
 are at most 256 bytes; the `EQUS` heap holds 64 KiB over both passes. Old `X EQU`/`X SET` without `DEF` and `ld [c], a` without `ldh` are
 gone from RGBDS 1.0 and aren't accepted.
 
@@ -210,6 +215,36 @@ with three pages; the fourth page and `EQUS` cost ~290 more.
   on a `.txt`, FILE > RUN up to `GameLaunch`, `features.asm`, `strings.asm` and
   `loops.asm` with the `lib/` folder matching RGBDS, an error inside an included
   file, and `gbdk.asm` with `memory1.asm` and `hardware.inc` unmodified.
+
+## beisbolgb
+
+The goal: build `../beisbol/beisbolgb` on the device. Its Makefile runs one
+`rgbasm -D _DEMO -D LANG_EN src/main.asm`, then `rgbfix -jvcs -k 01 -l 0x33 -m 0x1B
+-p 255`. A PC probe (`tests/asm_host.c` on a scratch copy, with the defines in a
+two-line prelude and limits raised) worked through it as far as it could:
+
+| Need | beisbol | Status |
+| --- | --- | --- |
+| `CHARMAP`, `NEWCHARMAP` | 176 entries | done |
+| `INCLUDE "src/..."` from `src/main.asm` | every include | done (folders above the document) |
+| A file ending without a line feed | `math.asm` | done |
+| `\{`, `\}` in strings | `charmap.asm` | done |
+| `cpl a`, `stop n` | `kb_handlers.asm` | done |
+| Names over 32 characters | macro names | done (63) |
+| Nesting over 10 frames | `tile_anim.asm`: `FOR`/`FOR`/macro/`REPT`/macro/`REPT` | done (16) |
+| Paths over 48 characters | `INCBIN` of tilemaps | done (128) |
+| Hundreds of files | 444 sources (2.0 MB), 675 `INCBIN` files (187 KB) | **to do**: pack sources in PSRAM, read `INCBIN` on the spot, 16-bit source numbers in frames and macros |
+| Files over 64 KB | `player_data.asm` 200 KB, `Overworld.gbmap` 245 KB, `Mountains.gbmap` 122 KB | **to do**: positions past 64 KB |
+| More than 64 sections | 114 | **to do**: the section table in PSRAM |
+| `DS ALIGN[n]` | `tile_anim.asm` | **to do**: an alignment offset in placement |
+| `SECTION FRAGMENT` | 13, C output (`_announcer.asm`) | **to do** |
+| `PUSHS`/`POPS` | 6 | **to do** |
+| 32-bit values | `D24`, `D32` (item costs) | **to do** |
+| `-D` defines, `rgbfix` options | `_DEMO`, `LANG_EN`; `-jvcs -k 01 -l 0x33 -m 0x1B -p 255` | **to do**: a per-project setting |
+| Speed | ~1.8 MB read per pass | **to do**: about 30 minutes on DMG, 15 on GBC at today's rate |
+
+The probe stopped in `src/players.asm` on its own shortcut (source numbers in a
+byte), so whatever comes after is still unknown.
 
 ## Next steps
 

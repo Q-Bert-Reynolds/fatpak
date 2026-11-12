@@ -47,6 +47,7 @@ static void Frames(GearboyCore& core, unsigned count)
     while (count--) { int n = 0; core.RunToVBlank(frame.data(), audio, &n); }
 }
 static unsigned call_stack;
+static unsigned call_bc;
 static unsigned Call(GearboyCore& core, unsigned address, unsigned argument = 0, u8 a = 0, unsigned bc = 0)
 {
     auto cpu = core.GetProcessor()->GetState(); auto memory = core.GetMemory();
@@ -58,6 +59,7 @@ static unsigned Call(GearboyCore& core, unsigned address, unsigned argument = 0,
         if (i % 3000 == 2999) { s16 audio[AUDIO_BUFFER_SIZE]; int n = 0; core.EndFrame(audio, &n); }
     }
     Check(cpu->PC->GetValue() == 0x7FFF, "OS routine returns");
+    call_bc = cpu->BC->GetValue(); // 16-bit results come back in bc
     return cpu->AF->GetValue() >> 8;
 }
 
@@ -85,6 +87,9 @@ static void Modules(const char* image,const char* symbols,const char* data,const
     for(const char* name:names)Write(root+"/"+name+".MOD",Read(std::string(fixtures)+"/"+name+".MOD"));
     std::vector<u8> large(70000,'z');for(unsigned i=63;i<large.size();i+=64)large[i]='\n';
     Write(root+"/Large.txt",large);
+    // INCLUDE paths (ModuleAPIFile): a project at proj/ with its document in proj/src/
+    mkdir((root+"/proj").c_str(),0700);mkdir((root+"/proj/src").c_str(),0700);mkdir((root+"/proj/src/inc").c_str(),0700);
+    Write(root+"/proj/src/inc/deep.inc",{'D','E','E','P'});Write(root+"/proj/src/base.inc",{'B','A','S','E','!'});
     GearboyCore core;core.Init();core.SetEverdriveFolder(folder);
     Check(core.LoadROM(image,!color),"module OS");Frames(core,600);
     auto memory=core.GetMemory();auto syms=Symbols(symbols);
@@ -160,6 +165,17 @@ static void Modules(const char* image,const char* symbols,const char* data,const
     Check(memory->Read(syms.at("_module_status"))==0x34,"module receives module_context in DE");
     Check(memory->Read(syms.at("_module_context"))==0 && memory->Read(syms.at("_module_context")+1)==0,"context cleared after the call");
     Check(Text(memory,syms.at("tile_buffer")+3*40).substr(0,13)=="MODULE STRING","module-local literal marshaled before page change");
+    {
+        auto file=[&](const char* name){Text(memory,path,name);Call(core,syms.at("_ModuleAPIFile"),path,0,0x1000);return call_bc;};
+        auto first=[&](){memory->Write(0xBD03,0x10);memory->Write(0xBD02,0x00);return memory->Read(0xBE00);};
+        Text(memory,syms.at("_file_dir"),"proj/src");
+        Check(file("inc/deep.inc")==4 && first()=='D',"INCLUDE finds a path from the document's folder");
+        Check(file("src/inc/deep.inc")==4 && first()=='D',"INCLUDE finds a path from a folder above it (a project's root)");
+        Check(file("lib/base.inc")==5 && first()=='B',"INCLUDE falls back to the base name in the document's folder");
+        Check(file("nothere.inc")==0,"a missing INCLUDE reads nothing");
+        memory->Write(syms.at("_file_dir"),0);
+        memory->Write(0xBD03,1);memory->Write(0xBD02,0x34);
+    }
     Text(memory,path,"/Large.txt");Check(Call(core,syms.at("_FileLoadLarge"),path)==0,"open large document");
     unsigned position=syms.at("_doc_pos");
     std::vector<u8> state;for(unsigned i=0;i<4;++i)state.push_back(memory->Read(position+i));

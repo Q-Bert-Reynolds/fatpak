@@ -93,3 +93,6 @@ hOther: ds 2
 
 SECTION "Tail", ROM0[$3F00]
   dw wEnd, hOther
+ cpl a
+ stop 0
+ stop $55

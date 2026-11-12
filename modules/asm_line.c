@@ -253,9 +253,7 @@ static void Data(unsigned char word) { // db, dw
       pending = 1;
     }
     if (!word && (ch == '"' && !pending || pending && Keyword(T_STRFUNCS) != 0xFF)) {
-      v = StrExpr();
-      while (v < str_top) Emit(str[v++]);
-      str_top = 0; // used up
+      MapEmit(StrExpr());
     }
     else {
       v = Eval();
@@ -468,6 +466,7 @@ void Statement(void) {
       break;
     case D_SHIFT: Shift(); break;
     case D_FOR: For(); break;
+    case D_CHARMAP: case D_CHARMAP + 1: case D_CHARMAP + 2: case D_CHARMAP + 3: case D_POPC: Charmap(d - D_CHARMAP); break;
     case D_INCBIN: Incbin(); break;
     case D_ENDM: case D_ENDR: Fail(ASM_ERR_SYNTAX); break;
     case D_PURGE:
@@ -509,6 +508,7 @@ void Pass(unsigned char p) {
   nsects = 0;
   run_n = 0;
   str_top = literal = bs_literal = 0;
+  CharmapReset();
   Advance();
   while (ch && !error) Line();
   if (!error && (if_depth || depth)) Fail(ASM_ERR_SYNTAX);

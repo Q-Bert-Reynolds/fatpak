@@ -19,7 +19,8 @@ static const char mnemonics[] = // Instruction's order
 static const char directives[] = // the supported ones first, in D_* order
   "\007section\002db\002dw\002ds\003def\005redef\006export\006global\007include\002if\004elif\004else\004endc"
   "\005macro\004endm\004rept\004endr\007rsreset\005rsset\004warn\005print\007println\004fail\006assert\005purge\005shift"
-  "\006incbin\003for\004load\004endl\005union\005nextu\004endu\007charmap\003opt\005pushs\004pops\005pusho\004popo\005align\004equs";
+  "\006incbin\003for\007charmap\012newcharmap\012setcharmap\005pushc\004popc"
+  "\004load\004endl\005union\005nextu\004endu\003opt\005pushs\004pops\005pusho\004popo\005align\004equs";
 static const char registers[] = "\001b\001c\001d\001e\001h\001l\001a\002bc\002de\002hl\002sp\002af\002nz\001z\002nc";
 static const char brackets[] = "\002hl\003hli\003hld\002bc\002de\001c";
 static const char functions[] = "\004high\003low\004bank\003def\005_narg\006strlen\006strcmp\007strfind\010strrfind";
@@ -148,7 +149,7 @@ static char idtext[8];
 unsigned int unique; // the last \@
 unsigned int inc_len[ASM_INCLUDES];
 unsigned char includes;
-char path[48];
+char path[128];
 static unsigned int* lf_line; // the line count of the frame a line feed in ch came from
 unsigned char ch;
 unsigned char error, pass;
@@ -293,10 +294,11 @@ void Advance(void) __naked {
 unsigned char literal, bs_literal;
 void AdvanceSlow(void) {
   Frame* f;
-  unsigned char c, n;
+  unsigned char c, n, prev;
   unsigned int p, left;
   if (error) { ch = 0; return; }
   if (ch == 10) ++*lf_line; // counted as it's left, so an error at a line's end stays on it
+  prev = ch; // \{ is a brace, not interpolation
   ch = 0; // so Interpolate's own reads don't count it again
   if (run_n && !(run_expand && *run_p == '\\') && *run_p != '{') {
     --run_n;
@@ -316,6 +318,11 @@ void AdvanceSlow(void) {
       if (!depth) { ch = 0; return; }
       if (f->kind == F_MACRO) arg_top = f->args;
       --depth;
+      if (f->kind == F_TEXT && f->source && f->source <= ASM_INCLUDES) { // a file's end ends its last line
+        lf_line = &f->line; // (counted in the finished frame, not the one that included it)
+        ch = 10;
+        return;
+      }
       continue;
     }
     p = f->pos;
@@ -343,7 +350,7 @@ void AdvanceSlow(void) {
         if (n == '\\') bs_literal = 1;
       }
     }
-    if (c == '{' && !literal) { run_n = 0; Interpolate(); continue; }
+    if (c == '{' && !literal && prev != '\\') { run_n = 0; Interpolate(); continue; }
     if (c == 10) lf_line = &f->line;
     ch = c;
     return;
@@ -436,7 +443,7 @@ unsigned char Char(void) { // a character of a string or literal, quotes end it
   if (c == 't') return 9;
   if (c == 'r') return 13;
   if (c == '0') return 0;
-  if (c == '\\' || c == '"' || c == '\'') return c;
+  if (c == '\\' || c == '"' || c == '\'' || c == '{' || c == '}') return c;
   Fail(ASM_ERR_STRING);
   return 0;
 }
@@ -514,13 +521,7 @@ static unsigned int Primary(void) {
   if (c == '%') { Advance(); return Digits(2); }
   if (c == '&') { Advance(); return Digits(8); }
   if (IsDigit(c)) return Number();
-  if (c == '\'') {
-    Advance();
-    v = Char();
-    if (ch != '\'') Fail(ASM_ERR_STRING);
-    else Advance();
-    return v;
-  }
+  if (c == '\'') { Advance(); return CharLiteral(); } // through the charmap
   if (c == '@') { Advance(); return pc; }
   if (IsStart(c)) { ReadIdent(); return Symbol(); }
   Fail(ASM_ERR_SYNTAX);

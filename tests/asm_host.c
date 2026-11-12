@@ -33,10 +33,12 @@ static unsigned short Load(const char* name, unsigned short block) {
   fclose(f);
   return (unsigned short)size;
 }
+static unsigned files;
 unsigned short ModFile(const char* path, unsigned short block) {
   unsigned short length = Load(path, block);
   const char* base = strrchr(path, '/');
   if (!length && base) length = Load(base + 1, block);
+  if (getenv("ASM_HOST_FILES")) fprintf(stderr, "I%u %s (%u bytes)\n", ++files, path, length);
   return length;
 }
 

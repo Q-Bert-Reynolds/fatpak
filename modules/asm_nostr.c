@@ -27,3 +27,17 @@ unsigned int StrNumber(unsigned char k) { k; Fail(ASM_ERR_UNSUPPORTED); return 0
 void DefineString(unsigned int start) { start; Fail(ASM_ERR_UNSUPPORTED); }
 void Interpolate(void) { Fail(ASM_ERR_UNSUPPORTED); }
 void Purge(void) { Fail(ASM_ERR_UNSUPPORTED); }
+
+// no charmaps either: strings and character literals are their own bytes
+void CharmapReset(void) {}
+void Charmap(unsigned char d) { d; Fail(ASM_ERR_UNSUPPORTED); }
+void MapEmit(unsigned int start) {
+  while (start < str_top && !error) Emit(str[start++]);
+  str_top = 0;
+}
+unsigned int CharLiteral(void) {
+  unsigned int v = Char();
+  if (ch != '\'') Fail(ASM_ERR_STRING);
+  else Advance();
+  return v;
+}

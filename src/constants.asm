@@ -83,6 +83,7 @@ DEF ASM_IMAGE_BLOCKS EQU 2048;1 MiB, 64 banks
 DEF ASM_SYMBOL_BLOCK EQU $0C00;the symbol table, 1024 blocks (65536 8-byte units)
 DEF ASM_INCLUDE_BLOCK EQU $1000;included files, 128 blocks (64 KiB) each
 DEF ASM_INCLUDES     EQU 16
+DEF ASM_CHARMAP_BLOCK EQU $1880;after the EQUS heap (the 17th include slot): names, 8 maps' heads, then a 60 KiB pool
 DEF MODULE_ABI     EQU 6;newest ABI the host provides, modules built for older ones still load
 DEF MODULE_TABLE   EQU $7F00;ABI jump table in resident bank 1, 3 bytes per entry
 DEF MODULE_SLOTS   EQU 32;entries reserved for it

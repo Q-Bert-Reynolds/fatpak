@@ -18,7 +18,7 @@ extern unsigned char run_n;
 #define Window(block) (run_n = 0, *(volatile unsigned char*)0xBD03 = (unsigned char)((block) >> 8), *(volatile unsigned char*)0xBD02 = (unsigned char)(block)) // high, then low (lib/psram.h)
 #endif
 
-#define NAME_MAX 32
+#define NAME_MAX 63
 
 // asm.c
 extern AsmContext* context;
@@ -92,7 +92,9 @@ void Header(void);
 #define D_SHIFT 25
 #define D_INCBIN 26
 #define D_FOR 27
-#define DIRECTIVES 28 // the supported ones
+#define D_CHARMAP 28 // then NEWCHARMAP, SETCHARMAP, PUSHC, POPC
+#define D_POPC 32
+#define DIRECTIVES 33 // the supported ones
 #define T_MNEMONICS 0
 #define T_DIRECTIVES 1
 #define T_REGISTERS 2
@@ -106,7 +108,7 @@ void Header(void);
 #define F_MACRO 1
 #define F_REPT 2
 #define F_ARG 3
-#define FRAMES 10
+#define FRAMES 16
 #define SRC_ARGS 0xFF // args[]
 #define SRC_ID 0xFE // idtext[]
 typedef struct {
@@ -136,7 +138,7 @@ unsigned char Link(void);
 void Relocate(void);
 extern Frame frames[FRAMES];
 extern unsigned char depth, chunk_n, arg_top, includes, max_bank;
-extern char args[256], path[48];
+extern char args[256], path[128];
 extern unsigned int unique, inc_len[ASM_INCLUDES];
 unsigned char Keyword(unsigned char which); // the index of ident in a T_ table, 0xFF if absent
 unsigned char IsStart(unsigned char c);
@@ -173,6 +175,10 @@ unsigned int StrNumber(unsigned char k);
 void DefineString(unsigned int start);
 void Interpolate(void);
 void Purge(void);
+void CharmapReset(void); // charmaps (asm_str.c)
+void Charmap(unsigned char d); // d: 0 CHARMAP, 1 NEWCHARMAP, 2 SETCHARMAP, 3 PUSHC, 4 POPC
+void MapEmit(unsigned int start); // str[start..str_top) through the charmap, used up
+unsigned int CharLiteral(void);
 unsigned char Comma(void); // asm_str.c: past a comma, 0 if there isn't one
 void Expand(void); // asm.c: the string symbol just read replaces it in the source
 #define SKIP_IF 0

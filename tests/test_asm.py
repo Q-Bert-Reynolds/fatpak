@@ -47,7 +47,9 @@ ERRORS = [ # source, expected error, line
     (' ld a, b\n', 'SECTION', 1),
     ('SECTION "a", ROM0[$3FFF]\n nop\n nop\n', 'FULL', 3),
     ('SECTION "a", ROM0[0]\n ds Later\nDEF Later EQU 2\n', 'FORWARD', 2),
-    ('SECTION "a", ROM0[0]\n CHARMAP "a", 1\n', 'UNSUPPORTED', 2),
+    ('SECTION "a", ROM0[0]\n LOAD "x", WRAM0\n', 'UNSUPPORTED', 2),
+    ('SECTION "a", ROM0[0]\nCHARMAP "x", 1, 2\n db \'x\'\n', 'STRING', 3),
+    ('SECTION "a", ROM0[0]\n SETCHARMAP nothere\n', 'SYMBOL', 2),
     ('SECTION "a", ROM0[0]\n nop\nREPT 2\n nop\n ld a, 300\nENDR\n', 'RANGE', 5),
     ('SECTION "a", ROM0[0]\nFOR I, 2\n FOR J, 2\n  db I * 250 + J * 10\n ENDR\nENDR\n', 'RANGE', 4),
     ('SECTION "a", ROM0[0]\n INCLUDE "nothere.inc"\n', 'FILE', 2),
@@ -68,7 +70,7 @@ ERRORS = [ # source, expected error, line
     ('SECTION "a", ROMX, BANK[0]\n nop\n', 'BANK', 1),
     ('SECTION "a", ROM0[0]\n ld a,, b\n', 'SYNTAX', 2),
     ('SECTION "a", WRAM0\n db 1\n', 'SECTION', 2),
-    ('SECTION "a", ROM0[0]\n nop\n ld a, ' + 'x' * 33 + '\n', 'NAME', 3),
+    ('SECTION "a", ROM0[0]\n nop\n ld a, ' + 'x' * 64 + '\n', 'NAME', 3),
 ]
 
 def sections(work, cases=150):

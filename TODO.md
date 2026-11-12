@@ -1,6 +1,6 @@
 # Priority
 
-- Assembler ([ASSEMBLER.md](notes/ASSEMBLER.md)): speed (four module loads and swaps, per-line `Keyword`/far calls), `CHARMAP`/`LOAD`/`UNION`, 32-bit values, `STRFMT`, listings, large sources from the card.
+- Assembler: build beisbolgb on the device ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): hundreds of files and files over 64 KB, >64 sections, `DS ALIGN`, `SECTION FRAGMENT`, `PUSHS`/`POPS`, 32-bit values, per-project defines and rgbfix options, and speed (~30 min DMG at today's rate).
 
 # Rendering
 
