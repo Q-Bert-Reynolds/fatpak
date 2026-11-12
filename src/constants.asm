@@ -65,14 +65,17 @@ DEF MODULE_BACKUP  EQU $3D90;PSRAM: the borrowed OS page, 15 blocks
 ;editor's WRAMX buffers
 DEF MODULE_PAGE2   EQU 12
 DEF MODULE_PAGE3   EQU 5
+DEF MODULE_PAGE4   EQU 4
 DEF MODULE_STAGE2  EQU $3DA0;MODULE_STAGE + $20 per page: ModuleSwap adds $20 for the second, $40 for the third
 DEF MODULE_BACKUP2 EQU $3DB0
 DEF MODULE_STAGE3  EQU $3DC0
 DEF MODULE_BACKUP3 EQU $3DD0
+DEF MODULE_STAGE4  EQU $3DE0
+DEF MODULE_BACKUP4 EQU $3DF0
 DEF MODULE_BSS     EQU $D000;tile_buffer: the editor's buffers, saved to PSRAM meanwhile (src/wram.asm)
 DEF MODULE_BSS_SIZE EQU 3072;6 blocks
-DEF MODULE_BSS_BACKUP EQU $3DE0
-DEF MODULE_FAIL_BLOCK EQU $3DE6;a restore that never read back, recorded before restarting (ShowModuleRestart)
+DEF MODULE_BSS_BACKUP EQU $3D68;below the staging blocks: $3E00 and up broke the cart on hardware (2026-11-12)
+DEF MODULE_FAIL_BLOCK EQU $3D6E;a restore that never read back, recorded before restarting (ShowModuleRestart)
 DEF MODULE_SOURCE_CHUNK EQU 128;bytes ModSource copies at most
 ;ASM.MOD (modules/asm.c): inside the large-file add buffer, so only text-buffer documents assemble
 DEF ASM_IMAGE_BLOCK  EQU $0400;the ROM image, up to ASM_IMAGE_BLOCKS
@@ -100,7 +103,10 @@ DEF MODULE_H_PAGE2    EQU 20;wide modules: the second page and its payload bytes
 DEF MODULE_H_LENGTH2  EQU 21
 DEF MODULE_H_PAGE3    EQU 23;a third page and its bytes, which follow the second's; both 0 without one
 DEF MODULE_H_LENGTH3  EQU 24
-DEF MODULE_H_RESERVED EQU 26;zero up to MODULE_HEADER
+DEF MODULE_H_PAGE4    EQU 26;and a fourth: each extra page is a 3-byte record (page, length) from MODULE_H_PAGE2
+DEF MODULE_H_LENGTH4  EQU 27
+DEF MODULE_H_RESERVED EQU 29;zero up to MODULE_HEADER
+DEF MODULE_PAGES_MAX EQU 4
 DEF MODULE_ERR_ABI    EQU 20;RunModule results past FatFs's FRESULT codes
 DEF MODULE_ERR_VERIFY EQU 21;a page copy didn't read back
 

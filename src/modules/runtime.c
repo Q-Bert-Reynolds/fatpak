@@ -30,13 +30,15 @@ extern unsigned char fs_LoadModule(const char* path, unsigned char id); // src/f
 extern unsigned char ModuleSwap(unsigned char operation); // 0 when the copy read back
 extern unsigned char ModuleSwapRAM(unsigned char operation);
 extern unsigned int module_fail; // runtime.asm: operation and block of the first copy that never read back
-extern unsigned char module_wide; // fs_LoadModule: the staged module is MODULE_FORMAT_WIDE
+extern unsigned char module_wide; // fs_LoadModule: a wide module's pages after the first (0 for others)
 extern unsigned int tb_read_pos; // src/editor/text_buffer.asm
 extern unsigned int tb_Read(unsigned char* buffer, unsigned int size); // from tb_read_pos, returns bytes copied
 extern unsigned char ModuleEnter(void);
 extern unsigned char buffer[512]; // synchronous scratch; no module file services
 extern void SetWindowBlock(unsigned int block);
 #define WINDOW_BLOCK (*(volatile unsigned int*)0xBD02)
+#define INTERRUPT_ENABLE (*(volatile unsigned char*)0xFFFF) // rIE
+#define IEF_LCD_ONLY 0x02 // IEF_STAT
 #define WINDOW ((const unsigned char*)0xBE00u)
 
 // Wide modules (MODULE_FORMAT_WIDE) also take MODULE_PAGE2, maybe MODULE_PAGE3, and the
@@ -52,39 +54,36 @@ static void Unrecoverable(void) {
 }
 
 unsigned char RunModule(const char* path, unsigned char id) {
-  unsigned char result, step = 0; // pages installed, 4: the buffers saved too
+  unsigned char result, pages = 0, buffers = 0, i, ie; // pages backed up (each is restored), the buffers saved
   unsigned int window = WINDOW_BLOCK; // modules may move it
   if (module_busy) return FR_LOCKED;
   module_busy = 1;
   module_fail = 0;
   result = fs_LoadModule(path, id);
   if (!result) {
-    if (ModuleSwap(0)) result = MODULE_ERR_VERIFY; // backup unreadable: the page is untouched
-    else {
-      step = 1;
-      if (ModuleSwap(1)) result = MODULE_ERR_VERIFY; // partly installed: restored below
-      else if (!module_wide) module_status = ModuleEnter();
-      else if (ModuleSwap(4)) result = MODULE_ERR_VERIFY;
+    for (i = 0; i <= module_wide && !result; ++i) { // the first page, then a wide module's others
+      if (ModuleSwap(i << 2)) result = MODULE_ERR_VERIFY; // backup unreadable: that page is untouched
       else {
-        step = 2;
-        if (ModuleSwap(5)) result = MODULE_ERR_VERIFY;
-        else if (module_wide > 1 && ModuleSwap(8)) result = MODULE_ERR_VERIFY;
-        else {
-          if (module_wide > 1) step = 3;
-          if (step == 3 && ModuleSwap(9)) result = MODULE_ERR_VERIFY;
-          else if (ModuleSwapRAM(0)) result = MODULE_ERR_VERIFY; // the buffers are intact
-          else {
-            step = 4;
-            module_status = ModuleEnter();
-          }
-        }
+        ++pages;
+        if (ModuleSwap(i << 2 | 1)) result = MODULE_ERR_VERIFY; // partly installed: restored below
       }
     }
-    if (step == 4 && ModuleSwapRAM(2)) Unrecoverable(); // never run on state that didn't come back
-    if (step >= 3 && module_wide > 1 && ModuleSwap(10)) Unrecoverable();
-    if (step >= 2 && ModuleSwap(6)) Unrecoverable();
+    if (!result && module_wide) {
+      if (ModuleSwapRAM(0)) result = MODULE_ERR_VERIFY; // the buffers are intact
+      else buffers = 1;
+    }
+    if (!result) {
+      // A wide module can't draw or read input, so only the LCD interrupt (the screen's
+      // layout) stays on: no VBlank (sprite DMA, pad latch) and no keyboard
+      ie = INTERRUPT_ENABLE;
+      if (module_wide) INTERRUPT_ENABLE = ie & IEF_LCD_ONLY;
+      module_status = ModuleEnter();
+      INTERRUPT_ENABLE = ie;
+    }
+    if (buffers && ModuleSwapRAM(2)) Unrecoverable(); // never run on state that didn't come back
+    while (pages > 1) if (ModuleSwap(--pages << 2 | 2)) Unrecoverable();
     HideBox(); // remove any modal state before restoring the page
-    if (step && ModuleSwap(2)) Unrecoverable();
+    if (pages && ModuleSwap(2)) Unrecoverable();
     SetWindowBlock(window);
   }
   module_context = 0;

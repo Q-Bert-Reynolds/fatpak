@@ -283,7 +283,7 @@ static void LookupTables(GearboyCore& core, const std::map<std::string,unsigned>
             for (unsigned i = 0; i < 160; ++i) memory->Write(plane+i, 0x22);
             memory->Write(plane+160, 0xA5);
             memory->Write(syms.at("render_x"), x);
-            memory->Write(0xBD02, 0x14); memory->Write(0xBD03, 0x3C);
+            memory->Write(0xBD03, 0x3C); memory->Write(0xBD02, 0x14);
             cpu->BC->SetValue(0xD000);
             Call(core, syms.at("RenderGlyphPlane"), plane&0xFF00);
             for (unsigned i = 0; i < 160; ++i) Check(memory->Read(plane+i) == expected[i], "cached/fallback glyph pixels at every x and clipped edge");

@@ -47,7 +47,9 @@ ERRORS = [ # source, expected error, line
     (' ld a, b\n', 'SECTION', 1),
     ('SECTION "a", ROM0[$3FFF]\n nop\n nop\n', 'FULL', 3),
     ('SECTION "a", ROM0[0]\n ds Later\nDEF Later EQU 2\n', 'FORWARD', 2),
-    ('SECTION "a", ROM0[0]\n INCBIN "x.bin"\n', 'UNSUPPORTED', 2),
+    ('SECTION "a", ROM0[0]\n CHARMAP "a", 1\n', 'UNSUPPORTED', 2),
+    ('SECTION "a", ROM0[0]\n nop\nREPT 2\n nop\n ld a, 300\nENDR\n', 'RANGE', 5),
+    ('SECTION "a", ROM0[0]\nFOR I, 2\n FOR J, 2\n  db I * 250 + J * 10\n ENDR\nENDR\n', 'RANGE', 4),
     ('SECTION "a", ROM0[0]\n INCLUDE "nothere.inc"\n', 'FILE', 2),
     ('SECTION "a", ROM0[0]\n nop\n ASSERT 1 == 2\n', 'ASSERT', 3),
     ('SECTION "a", ROM0[0]\n nop\n FAIL "no"\n', 'ASSERT', 3),
@@ -108,7 +110,9 @@ def main():
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '.o', str(ROOT / 'modules/asm.c')])
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '2.o', str(ROOT / 'modules/asm_emit.c')])
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '3.o', str(ROOT / 'modules/asm_line.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c'), str(HOST) + '.o', str(HOST) + '2.o', str(HOST) + '3.o'])
+    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '4.o', str(ROOT / 'modules/asm_str.c')])
+    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '5.o', str(ROOT / 'modules/asm_loop.c')])
+    run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c'), str(HOST) + '.o', str(HOST) + '2.o', str(HOST) + '3.o', str(HOST) + '4.o', str(HOST) + '5.o'])
     failed = 0
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
@@ -127,13 +131,11 @@ def main():
                 failed += 1
             else:
                 print(f'{path.name}: {len(image)} bytes match')
-        # the OS's own library files match RGBDS: memory1.asm's rev_Check_hardware_inc needs
-        # EQUS and string functions, so that line goes
+        # the OS's own library files match RGBDS, unmodified
         lib = work / 'src'
         lib.mkdir(exist_ok=True)
         for name in ('math.asm', 'gbdk.asm', 'memory1.asm', 'hardware.inc'):
             text = (ROOT / 'src' / name).read_text()
-            if name == 'memory1.asm': text = text.replace('  rev_Check_hardware_inc 4\n', '')
             (lib / name).write_text(text)
         for name in ('math.asm', 'memory1.asm', 'gbdk.asm'):
             status, line, file = assemble(lib / name, work)

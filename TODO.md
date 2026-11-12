@@ -1,6 +1,6 @@
 # Priority
 
-- Assembler ([ASSEMBLER.md](ASSEMBLER.md)): `EQUS`/string functions/`{}` (for `rev_Check_hardware_inc`), speed (module load, per-line `Keyword`/far calls), `INCBIN`/`FOR`/`LOAD`/`UNION`/`CHARMAP`, 32-bit values, listings, large sources from the card.
+- Assembler ([ASSEMBLER.md](notes/ASSEMBLER.md)): speed (four module loads and swaps, per-line `Keyword`/far calls), `CHARMAP`/`LOAD`/`UNION`, 32-bit values, `STRFMT`, listings, large sources from the card.
 
 # Rendering
 

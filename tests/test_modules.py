@@ -61,6 +61,11 @@ def fixtures():
     value=bytearray(variants['wide3']);value[C['MODULE_H_PAGE3']]^=1;variants['widepage3']=value
     value=bytearray(variants['wide']);value[C['MODULE_H_LENGTH3']]=1;variants['widelength3']=value
     rejected(package,b'\xC9',0,1,0,0,1,None,b'\xC9')
+    # Four pages: 13 -> 4 -> 5 -> 12 and back, 1 added on the way back from 4 and 5.
+    fourth=bytes([0xCD,0x05,0xA0,0x3C,0xC9, 0xCD,far&255,far>>8,C['MODULE_PAGE3'],0x00,0xA0])
+    call4=bytes([0xCD,0x06,0xA0,0xC9,0,0,0xCD,far&255,far>>8,C['MODULE_PAGE4'],0x00,0xA0])
+    variants['wide4']=package(call4,0,1,0,1,C['MODULE_ABI'],second,third,fourth)
+    value=bytearray(variants['wide4']);value[C['MODULE_H_PAGE4']]^=1;variants['widepage4']=value
     for name,value in variants.items(): (out/(name+'.MOD')).write_bytes(value)
     rejected(package,b'\xC9',0,1,5,0,1,b'\xC9')
     rejected(package,b'\xC9',0,1,0,C['MODULE_BSS_SIZE']+1,1,b'\xC9')

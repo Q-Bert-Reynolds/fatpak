@@ -15,7 +15,7 @@ extern unsigned char run_n;
 #ifdef HOST_TEST
 #define Window(block) (run_n = 0, psram_select(block))
 #else
-#define Window(block) (run_n = 0, *(volatile unsigned int*)0xBD02 = (block))
+#define Window(block) (run_n = 0, *(volatile unsigned char*)0xBD03 = (unsigned char)((block) >> 8), *(volatile unsigned char*)0xBD02 = (unsigned char)(block)) // high, then low (lib/psram.h)
 #endif
 
 #define NAME_MAX 32
@@ -66,6 +66,7 @@ void Header(void);
 #define SYM_VAR   2
 #define SYM_MACRO 3 // value: body start, bank: source, extra: body end
 #define SYM_INCLUDE 4 // name: the path, value: source number
+#define SYM_STRING 5 // EQUS: value: heap offset, extra: length
 #define SYM_SEEN 0x80 // with the kind: defined this pass (see Mark)
 
 // shared by asm.c and asm_line.c
@@ -87,8 +88,11 @@ void Header(void);
 #define D_RSSET 18
 #define D_FAIL 22
 #define D_ASSERT 23
+#define D_PURGE 24
 #define D_SHIFT 25
-#define DIRECTIVES 26 // the supported ones
+#define D_INCBIN 26
+#define D_FOR 27
+#define DIRECTIVES 28 // the supported ones
 #define T_MNEMONICS 0
 #define T_DIRECTIVES 1
 #define T_REGISTERS 2
@@ -97,6 +101,7 @@ void Header(void);
 #define T_TYPES 5
 #define T_ATTRIBUTES 6
 #define T_DEFINERS 7
+#define T_STRFUNCS 8
 #define F_TEXT 0
 #define F_MACRO 1
 #define F_REPT 2
@@ -110,6 +115,7 @@ typedef struct {
   unsigned int start, count; // a repeat body's first character and iterations left
   unsigned int line, line_pos; // in the source, from 1; where its current line starts
   unsigned int first_line; // a repeat body's, for rewinding
+  unsigned int for_unit, for_step; // FOR: its variable's symbol unit (0 for REPT) and step
   unsigned int id; // \@
   unsigned char args, nargs; // a macro's arguments in args[], 0-ended each
 } Frame;
@@ -151,6 +157,24 @@ unsigned char Char(void);
 unsigned int Eval(void);
 unsigned int Constant(void);
 unsigned char FindDotted(void); // asm_emit.c
+unsigned char* Entry(unsigned int unit);
+
+// asm_str.c: string symbols on a heap in PSRAM, string expressions, {} interpolation
+#define STR_SIZE 256
+#define FMT_SIZE 24
+#define SRC_HEAP (ASM_INCLUDES + 1) // a source like an included file: the EQUS heap
+#define SRC_FMT 0xFD // fmt_text
+#define ASM_HEAP_BLOCK (ASM_INCLUDE_BLOCK + (ASM_INCLUDES << 7))
+extern char str[], fmt_text[]; // sized in asm_str.c (asm_nostr.c leaves them tiny)
+extern unsigned int str_top, heap_top;
+extern unsigned char redef, literal, bs_literal; // REDEF is defining; >0: no {} interpolation (comments, skipping)
+unsigned int StrExpr(void);
+unsigned int StrNumber(unsigned char k);
+void DefineString(unsigned int start);
+void Interpolate(void);
+void Purge(void);
+unsigned char Comma(void); // asm_str.c: past a comma, 0 if there isn't one
+void Expand(void); // asm.c: the string symbol just read replaces it in the source
 #define SKIP_IF 0
 #define SKIP_REPT 1
 #define SKIP_MACRO 2
@@ -159,4 +183,10 @@ unsigned char Scan(unsigned char mode); // asm.c: skips lines to the directive t
 void Line(void);
 void Label(void); // asm_line.c
 void Statement(void);
+void DefineValue(unsigned char kind, unsigned int v); // name gets v
+void Repeat(unsigned int n, unsigned int unit, unsigned int step); // the body after this line n times
+unsigned char OpenFile(void); // INCLUDE and INCBIN's "path": its source number, 0 if it failed
+void StepVar(unsigned int unit, unsigned int step); // asm_emit.c: FOR's variable moves on
+void For(void); // asm_str.c
+void Incbin(void);
 #endif

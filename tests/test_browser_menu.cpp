@@ -344,7 +344,7 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     static_cast<EverdriveOSMemoryRule*>(memory->GetCurrentRule())->TakeSwitch();
     auto asset=Read(data);
     for(unsigned base : {0u,0x800u}) for(unsigned glyph : {0u,95u,97u,233u,255u}) {
-        memory->Write(0xBD02,0x79);memory->Write(0xBD03,1);
+        memory->Write(0xBD03,1);memory->Write(0xBD02,0x79);
         core.GetProcessor()->GetState()->BC->SetValue(base+glyph*8);
         Call(core,syms.at("RenderFixedGlyph"));
         for(unsigned row=0;row<8;++row)

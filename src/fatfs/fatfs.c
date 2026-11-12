@@ -1569,23 +1569,25 @@ unsigned char fs_Session(const char* folder, unsigned char mode) {
 // leaving an open editor document and its undo history alone.
 extern unsigned int module_entry;
 extern UINT ModuleCRC(const BYTE* data, UINT count, UINT crc); // src/modules/runtime.asm
-unsigned char module_wide; // the staged module is MODULE_FORMAT_WIDE: 1 or 2 more pages, BSS in WRAMX
+unsigned char module_wide; // the staged module's pages after the first (MODULE_FORMAT_WIDE), 0 for others
 unsigned char fs_LoadModule(const char* path, unsigned char id) {
   FIL module;
-  BYTE header[MODULE_HEADER], result, close_result, wide, page;
-  UINT done, length, length2 = 0, length3 = 0, offset, crc = 0xFFFF, expected, entry, bss, bss_size, i;
+  BYTE header[MODULE_HEADER], result, close_result, wide = 0, page;
+  UINT done, length, lengths[MODULE_PAGES_MAX], offset, crc = 0xFFFF, expected, entry, bss, bss_size, i;
+  DWORD total;
   UINT saved_block = *(volatile UINT*)0xBD02;
   BYTE saved_config = *(volatile BYTE*)0xBD06;
+  static const BYTE extra_pages[MODULE_PAGES_MAX - 1] = {MODULE_PAGE2, MODULE_PAGE3, MODULE_PAGE4};
   result = f_open(&module, path, FA_READ);
   if (result) goto restore;
   result = f_read(&module, header, sizeof(header), &done);
   if (result) goto close;
   result = FR_INVALID_OBJECT;
-  wide = header[MODULE_H_FORMAT] == MODULE_FORMAT_WIDE;
-  if (done != sizeof(header) || memcmp(header, "FPKM", 4) || (header[MODULE_H_FORMAT] != MODULE_FORMAT && !wide)) goto close;
+  if (done != sizeof(header) || memcmp(header, "FPKM", 4) ||
+      (header[MODULE_H_FORMAT] != MODULE_FORMAT && header[MODULE_H_FORMAT] != MODULE_FORMAT_WIDE)) goto close;
   // Hosts keep older ABI entries, so any version up to the host's runs.
   if (!header[MODULE_H_ABI] || header[MODULE_H_ABI] > MODULE_ABI) { result = MODULE_ERR_ABI; goto close; }
-  length = ld_16(header + MODULE_H_LENGTH);
+  length = lengths[0] = ld_16(header + MODULE_H_LENGTH);
   entry = ld_16(header + MODULE_H_ENTRY);
   bss = ld_16(header + MODULE_H_BSS);
   bss_size = ld_16(header + MODULE_H_BSS_SIZE);
@@ -1593,20 +1595,29 @@ unsigned char fs_LoadModule(const char* path, unsigned char id) {
   if (header[MODULE_H_ID] != id || !id || header[MODULE_H_PAGE] != MODULE_PAGE ||
       ld_16(header + MODULE_H_ADDRESS) != 0xA000 ||
       !length || length > 0x1D00 || entry >= length) goto close;
-  if (wide) {
-    length2 = ld_16(header + MODULE_H_LENGTH2);
-    length3 = ld_16(header + MODULE_H_LENGTH3);
-    if (header[MODULE_H_PAGE2] != MODULE_PAGE2 || !length2 || length2 > 0x1D00 || bss || bss_size > MODULE_BSS_SIZE) goto close;
-    if (header[MODULE_H_PAGE3] != (length3 ? MODULE_PAGE3 : 0) || length3 > 0x1D00) goto close;
-    wide += length3 != 0; // pages after the first
+  total = length;
+  if (header[MODULE_H_FORMAT] == MODULE_FORMAT_WIDE) {
+    // records of page and length from MODULE_H_PAGE2, in order; unused ones are zero
+    for (i = 0; i < MODULE_PAGES_MAX - 1; ++i) {
+      BYTE* record = header + MODULE_H_PAGE2 + 3 * i;
+      UINT n = ld_16(record + 1);
+      if (wide == i && n) {
+        if (record[0] != extra_pages[i] || n > 0x1D00) goto close;
+        lengths[++wide] = n;
+        total += n;
+      }
+      else if (record[0] || n) goto close;
+    }
+    if (!wide || bss || bss_size > MODULE_BSS_SIZE) goto close;
   }
   else if (bss < length || bss > 0x1D00 || bss_size > 0x1D00 - bss) goto close;
-  if (f_size(&module) != (DWORD)length + length2 + length3 + sizeof(header)) goto close;
+  if (f_size(&module) != total + sizeof(header)) goto close;
   for (i = wide ? MODULE_H_RESERVED : MODULE_H_PAGE2; i < sizeof(header); ++i) if (header[i]) goto close;
   result = FR_OK;
   *(volatile BYTE*)0xBD06 = saved_config & ~2;
   // Read into WRAM: disk_read itself uses the cartridge's PSRAM window.
   for (page = 0; page <= wide; ++page) {
+    length = lengths[page];
     offset = 0;
     while (offset < 0x1D00) {
       UINT size = length > offset ? length - offset : 0;
@@ -1624,7 +1635,6 @@ unsigned char fs_LoadModule(const char* path, unsigned char id) {
       memcpy(WINDOW, buffer, sector_size);
       offset += sector_size;
     }
-    length = page ? length3 : length2;
   }
   if (crc != expected) result = FR_INVALID_OBJECT;
   else { module_entry = 0xA000 + entry; module_wide = wide; }

@@ -81,7 +81,7 @@ static void Modules(const char* image,const char* symbols,const char* data,const
     Write(root+"/GBCSYS/EDITOR.DAT",Read(data));
     // Each malformed file has a distinct path: the emulator's FAT image is a
     // snapshot of the folder when mounted.
-    const char* names[]={"valid","magic","version","abi","id","page","address","entry","length","bss","reserved","crc","short","trailing","empty","abizero","abinew","context","max","wide","widepage","widelength","widebss","wide3","widepage3","widelength3"};
+    const char* names[]={"valid","magic","version","abi","id","page","address","entry","length","bss","reserved","crc","short","trailing","empty","abizero","abinew","context","max","wide","widepage","widelength","widebss","wide3","widepage3","widelength3","wide4","widepage4"};
     for(const char* name:names)Write(root+"/"+name+".MOD",Read(std::string(fixtures)+"/"+name+".MOD"));
     std::vector<u8> large(70000,'z');for(unsigned i=63;i<large.size();i+=64)large[i]='\n';
     Write(root+"/Large.txt",large);
@@ -94,9 +94,9 @@ static void Modules(const char* image,const char* symbols,const char* data,const
     for(unsigned i=0;i<32;++i)memory->Write(syms.at("stack_top")+i,0xA5);
     // Exercise swaps independently with the save-RAM window selected. The
     // final sector's upper half is a canary outside the 7424-byte page.
-    memory->Write(0xBD06,4);memory->Write(0xBD02,0x9E);memory->Write(0xBD03,0x3D);
+    memory->Write(0xBD06,4);memory->Write(0xBD03,0x3D);memory->Write(0xBD02,0x9E);
     for(unsigned i=256;i<512;++i)memory->Write(0xBE00+i,0xA5);
-    memory->Write(0xBD06,6);memory->Write(0xBD02,0x34);memory->Write(0xBD03,1);
+    memory->Write(0xBD06,6);memory->Write(0xBD03,1);memory->Write(0xBD02,0x34);
     unsigned oldpage=memory->Read(0xBD08), oldie=memory->Read(0xFFFF);
     auto swap=[&](unsigned mode){
         Check(Call(core,syms.at("_ModuleSwap"),0,mode)==0,"swap reads back what it copied");
@@ -105,13 +105,13 @@ static void Modules(const char* image,const char* symbols,const char* data,const
     };
     swap(0);swap(1);swap(2);
     Check(Page(memory)==original,"low-level swaps restore all page bytes");
-    memory->Write(0xBD06,4);memory->Write(0xBD02,0x9E);memory->Write(0xBD03,0x3D);
+    memory->Write(0xBD06,4);memory->Write(0xBD03,0x3D);memory->Write(0xBD02,0x9E);
     for(unsigned i=256;i<512;++i)Check(memory->Read(0xBE00+i)==0xA5,"last backup sector stays bounded");
     unsigned path=syms.at("_str_buffer");
     // Use existing WRAM path scratch rather than overwriting stack/document data.
     auto run=[&](const char* name,unsigned expected) {
         Text(memory,path,std::string("/")+name+".MOD");
-        memory->Write(0xBD02,0x34);memory->Write(0xBD03,0x01);
+        memory->Write(0xBD03,0x01);memory->Write(0xBD02,0x34);
         unsigned before_page=memory->Read(0xBD08), before_ie=memory->Read(0xFFFF), before_config=memory->Read(0xBD06);
         unsigned actual=Call(core,syms.at("_RunModule"),path,1);
         if(actual!=expected)fprintf(stderr,"%s: status %u expected %u pc %04x\n",name,actual,expected,core.GetProcessor()->GetState()->PC->GetValue());
@@ -149,6 +149,12 @@ static void Modules(const char* image,const char* symbols,const char* data,const
     Check(memory->Read(syms.at("_module_status"))==0x43,"three-page module calls across all its pages");
     Check(Page(memory,5)==original5 && Page(memory,12)==original12,"third borrowed page restored");
     run("widepage3",invalid);run("widelength3",invalid);
+    // four pages: 13 -> 4 -> 5 -> 12 and back; page 4 comes back too
+    auto original4=Page(memory,4);
+    run("wide4",0);
+    Check(memory->Read(syms.at("_module_status"))==0x44,"four-page module calls across all its pages");
+    Check(Page(memory,4)==original4 && Page(memory,5)==original5 && Page(memory,12)==original12,"fourth borrowed page restored");
+    run("widepage4",invalid);
     memory->Write(syms.at("_module_context"),0x34);memory->Write(syms.at("_module_context")+1,0x12);
     run("context",0);
     Check(memory->Read(syms.at("_module_status"))==0x34,"module receives module_context in DE");

@@ -14,6 +14,21 @@ basename (same-named games in different folders share files, as in stock).
 | `/GBCSYS/REGISTRY.BIN` | Stock current-game record and options |
 | `/GBCSYS/EDITOR.GAM` | FatPak ownership record (GAM3; GAM1/GAM2 still read) |
 
+## PSRAM window
+
+`$BD03:$BD02` select the 512-byte block shown at `$BE00`. Write the high byte
+first, then the low byte, as the stock OS does (`CopyDEtoBD02`): its
+`IncrementBD02` writes only `$BD02`, so the low-byte write is what switches the
+window, and a `$BD03` write appears to wait for it. With the low byte first
+(FatPak until 2026-11-12) every switch that changed the high byte read or wrote
+the old high byte's block first. That corrupted module backups, staging and the
+assembler's PSRAM at random: MODULE LOAD FAILED, RESTORE FAILED, wrong assembler
+errors, freezes and garbled header/footer on DMG and GBA SP, made more or less
+likely by any code-layout change. Gearboy applied each byte at once, so it never
+failed. `GEARBOY_EVERDRIVE_LATCH_BD03=1` (Gearboy, set by every `tests/run_*.sh`)
+holds a `$BD03` write until the next `$BD02` write; with it the old order froze
+the module tests at once. Writing only `$BD02` to step within a high byte is fine.
+
 ## Registry and ownership
 
 Launch updates stock `REGISTRY.BIN` (game metadata, directory entry, valid flag,

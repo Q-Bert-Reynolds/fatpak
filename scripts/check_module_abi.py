@@ -16,6 +16,7 @@ import utils
 PAGE = utils.constants()['MODULE_PAGE']
 PAGE2 = utils.constants()['MODULE_PAGE2']  # wide modules borrow it too (module_build.py writes which entries they use)
 PAGE3 = utils.constants()['MODULE_PAGE3']
+PAGE4 = utils.constants()['MODULE_PAGE4']
 
 # Audited assembly: name -> what it can reach. Each must stay resident or save,
 # switch and restore the page itself. EditorDraw's plain-row path uses page 12;
@@ -112,8 +113,8 @@ def check(sources, symbol_path):
     visited = walk(['_ModuleAPI' + name for name, *_ in abi['entries']] + INTERRUPTS, {str(PAGE)})
     wide = Path('build/modules/wide.txt')
     wide = wide.read_text().split() if wide.exists() else []
-    walk(wide + INTERRUPTS, {str(PAGE), str(PAGE2), str(PAGE3)}, WIDE_UNREACHED)
-    print(f'module ABI: {len(visited)} reachable functions, no page-{PAGE} imports; {len(wide)} wide entries clear of pages {PAGE2} and {PAGE3}')
+    walk(wide + INTERRUPTS, {str(PAGE), str(PAGE2), str(PAGE3), str(PAGE4)}, WIDE_UNREACHED)
+    print(f'module ABI: {len(visited)} reachable functions, no page-{PAGE} imports; {len(wide)} wide entries clear of pages {PAGE2}, {PAGE3} and {PAGE4}')
 
 
 if __name__ == '__main__':

@@ -457,10 +457,10 @@ _sd_ReadBlocks::
   jr nz, .commandError
   call SDAutoRead
 .block
+  ld a, d
+  ld [EDX_BLOCK+1], a;high byte first, then low, like the stock OS: the low byte write is what switches the window
   ld a, e
   ld [EDX_BLOCK], a
-  ld a, d
-  ld [EDX_BLOCK+1], a
   push bc
   push de
   ld de, EDX_SPI_DATA

@@ -196,10 +196,10 @@ RenderWindowGlyph:;a = data block, hl = glyph in the window, copies it to render
   ld bc, 8
   call mem_Copy
   pop bc
+  ld a, b
+  ld [EDX_BLOCK+1], a;high byte first, then low, like the stock OS: the low byte write is what switches the window
   ld a, c
   ld [EDX_BLOCK], a
-  ld a, b
-  ld [EDX_BLOCK+1], a
   ld bc, render_glyph
   ret
 
@@ -220,16 +220,16 @@ StyledWidth::;a = virtual fixed-width ID or VWF table page, c = char; preserves 
   ld e, a
   ld a, [EDX_BLOCK+1]
   ld d, a
+  ld a, HIGH(DATA_BLOCK + DATA_WIDTHS)
+  ld [EDX_BLOCK+1], a;high byte first, then low, like the stock OS: the low byte write is what switches the window
   ld a, LOW(DATA_BLOCK + DATA_WIDTHS)
   ld [EDX_BLOCK], a
-  ld a, HIGH(DATA_BLOCK + DATA_WIDTHS)
-  ld [EDX_BLOCK+1], a
   ld h, HIGH(EDX_WINDOW)
   ld l, [hl]
-  ld a, e
-  ld [EDX_BLOCK], a
   ld a, d
   ld [EDX_BLOCK+1], a
+  ld a, e
+  ld [EDX_BLOCK], a
   ld a, l
   pop de
   pop hl
@@ -2059,18 +2059,20 @@ RenderGlyphPlane:
   ld a, [render_x]
   and a, 7
   add a, LOW(DATA_BLOCK + DATA_SHIFTS)-1
-  ld [EDX_BLOCK], a
+  ld b, a
   ld a, HIGH(DATA_BLOCK + DATA_SHIFTS)
-  ld [EDX_BLOCK+1], a
+  ld [EDX_BLOCK+1], a;high byte first, then low, like the stock OS: the low byte write is what switches the window
+  ld a, b
+  ld [EDX_BLOCK], a
   pop bc
   push hl
   ld h, HIGH(EDX_WINDOW);paired right/left tables in the same 512-byte block
   call .shifted
   pop hl
-  ld a, l
-  ld [EDX_BLOCK], a
   ld a, h
   ld [EDX_BLOCK+1], a
+  ld a, l
+  ld [EDX_BLOCK], a
   ret
 .shifted
   ld a, [render_x]

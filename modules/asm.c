@@ -22,11 +22,12 @@ static const char directives[] = // the supported ones first, in D_* order
   "\006incbin\003for\004load\004endl\005union\005nextu\004endu\007charmap\003opt\005pushs\004pops\005pusho\004popo\005align\004equs";
 static const char registers[] = "\001b\001c\001d\001e\001h\001l\001a\002bc\002de\002hl\002sp\002af\002nz\001z\002nc";
 static const char brackets[] = "\002hl\003hli\003hld\002bc\002de\001c";
-static const char functions[] = "\004high\003low\004bank\003def\005_narg";
+static const char functions[] = "\004high\003low\004bank\003def\005_narg\006strlen\006strcmp\007strfind\010strrfind";
 static const char types[] = "\004rom0\004romx\004vram\004sram\005wram0\005wramx\003oam\004hram";
 static const char attributes[] = "\004bank\005align";
-static const char definers[] = "\003equ\002rb\002rw\002rl";
-static const char* const tables[8] = {mnemonics, directives, registers, brackets, functions, types, attributes, definers};
+static const char definers[] = "\003equ\002rb\002rw\002rl\004equs";
+static const char strfuncs[] = "\006strcat\006strupr\006strlwr\010strslice\006strsub\006strrpl";
+static const char* const tables[9] = {mnemonics, directives, registers, brackets, functions, types, attributes, definers, strfuncs};
 
 // the index of ident in one of the tables, 0xFF if absent. Every statement looks its first
 // word up here, so it's assembly on the device (the C is the PC harness's).
@@ -164,6 +165,7 @@ static unsigned char Raw(unsigned char source, unsigned int p) {
   }
   if (source == SRC_ARGS) return args[p];
   if (source == SRC_ID) return idtext[p];
+  if (source == SRC_FMT) return fmt_text[p];
   Window(ASM_INCLUDE_BLOCK + ((unsigned int)(source - 1) << 7) + (p >> 9));
   return WINDOW[p & 511];
 }
@@ -247,6 +249,9 @@ void Advance(void) __naked {
 	ld	a, [hl+]
 	ld	h, [hl]
 	ld	l, a
+	ld	a, [hl]
+	cp	a, 123
+	jr	z, .slow
 	ld	a, [_run_expand]
 	or	a, a
 	jr	z, .take
@@ -285,13 +290,15 @@ void Advance(void) __naked {
   __endasm;
 }
 #endif
+unsigned char literal, bs_literal;
 void AdvanceSlow(void) {
   Frame* f;
   unsigned char c, n;
   unsigned int p, left;
   if (error) { ch = 0; return; }
   if (ch == 10) ++*lf_line; // counted as it's left, so an error at a line's end stays on it
-  if (run_n && !(run_expand && *run_p == '\\')) {
+  ch = 0; // so Interpolate's own reads don't count it again
+  if (run_n && !(run_expand && *run_p == '\\') && *run_p != '{') {
     --run_n;
     ++*run_pos;
     ch = *run_p++;
@@ -302,7 +309,10 @@ void AdvanceSlow(void) {
     f = &frames[depth];
     if (f->pos >= f->end) {
       run_n = 0;
-      if (f->kind == F_REPT && --f->count) { f->pos = f->start; f->line = f->first_line; f->id = ++unique; continue; }
+      if (f->kind == F_REPT) {
+        if (f->for_unit) StepVar(f->for_unit, f->for_step); // after every pass, as RGBDS leaves it
+        if (--f->count) { f->pos = f->start; f->line = f->first_line; f->id = ++unique; continue; }
+      }
       if (!depth) { ch = 0; return; }
       if (f->kind == F_MACRO) arg_top = f->args;
       --depth;
@@ -310,7 +320,7 @@ void AdvanceSlow(void) {
     }
     p = f->pos;
     left = f->end - p;
-    if (f->source == 0 || f->source < SRC_ID) { // text: set up the run that follows this byte
+    if (f->source <= SRC_HEAP) { // text: set up the run that follows this byte
       c = Raw(f->source, p);
       run_p = f->source ? WINDOW + (p & 511) : (const unsigned char*)buf + (p - chunk_pos);
       n = f->source ? 512 - (p & 511) > 255 ? 255 : 512 - (p & 511) : chunk_pos + chunk_n - p;
@@ -325,10 +335,15 @@ void AdvanceSlow(void) {
     else c = Raw(f->source, f->pos++);
     if (c == '\\' && (f->kind == F_MACRO || f->kind == F_REPT)) {
       run_n = 0;
-      n = Raw(f->source, f->pos);
-      if (n == '@') { ++f->pos; PushId(); continue; }
-      if (n >= '1' && n <= '9') { ++f->pos; PushArg(n - '1'); continue; }
+      if (bs_literal) bs_literal = 0; // the second of \\: kept for the string that reads it
+      else {
+        n = Raw(f->source, f->pos);
+        if (n == '@') { ++f->pos; PushId(); continue; }
+        if (n >= '1' && n <= '9') { ++f->pos; PushArg(n - '1'); continue; }
+        if (n == '\\') bs_literal = 1;
+      }
     }
+    if (c == '{' && !literal) { run_n = 0; Interpolate(); continue; }
     if (c == 10) lf_line = &f->line;
     ch = c;
     return;
@@ -346,7 +361,7 @@ void Expect(unsigned char c) {
   if (ch != c) Fail(ASM_ERR_SYNTAX);
   else Advance();
 }
-void ToEnd(void) { while (ch && ch != 10) Advance(); } // the comment or the rest of a line
+void ToEnd(void) { ++literal; while (ch && ch != 10) Advance(); --literal; } // the comment or the rest of a line
 
 // --- words
 char ident[NAME_MAX + 1], name[NAME_MAX + 1]; // the word read; a name kept while its value is read
@@ -427,13 +442,25 @@ unsigned char Char(void) { // a character of a string or literal, quotes end it
 }
 static unsigned int Lookup(void) { // ident's value, 0 and undefined when it has none yet
   if (FindDotted()) return sym_value;
+  sym_kind = 0xFF;
   if (pass == 2) Fail(ASM_ERR_SYMBOL);
   undefined = 1;
   return 0;
 }
+static unsigned int Primary(void);
+// a string symbol's text replaces the name just read: the character after the name (in ch)
+// goes back to be read again after the text
+void Expand(void) {
+  unsigned int start = sym_value;
+  if (ch) --frames[depth].pos;
+  ch = 0;
+  Push(F_TEXT, SRC_HEAP, start, start + sym_extra);
+  Advance();
+}
 static unsigned int Symbol(void) { // ident is a name, a function or the register c
   unsigned int v;
   unsigned char k = Keyword(T_FUNCTIONS);
+  if (k >= 5 && k != 0xFF) return StrNumber(k); // STRLEN, STRCMP, STRFIND, STRRFIND
   if (k == 4) { // _NARG: the enclosing macro's argument count
     Frame* m = &frames[depth];
     while (m > frames && m->kind != F_MACRO) --m;
@@ -462,7 +489,10 @@ static unsigned int Symbol(void) { // ident is a name, a function or the registe
     }
   }
   if (bracket && ident_len == 1 && (ident[0] | 0x20) == 'c') { mem_c = 1; return 0; }
-  return Lookup();
+  v = Lookup();
+  if (sym_kind != SYM_STRING) return v;
+  Expand(); // its text takes the name's place
+  return Primary();
 }
 static unsigned int Primary(void) {
   unsigned int v;
@@ -556,7 +586,7 @@ unsigned int Constant(void) { // an expression that must be known in pass 1: siz
 // with scan_begin = the position of that line's start. Nested IF/ENDC and REPT/ENDR pairs
 // are passed over, so are """ block strings.
 unsigned int scan_begin;
-unsigned char Scan(unsigned char mode) {
+static unsigned char ScanLines(unsigned char mode) {
   unsigned char nest = 0, block = 0, quotes, d;
   Frame* f;
   while (1) {
@@ -581,7 +611,7 @@ unsigned char Scan(unsigned char mode) {
           else if (d == D_ENDC || (!nest && (d == D_ELIF || d == D_ELSE))) return d;
         }
         else if (mode == SKIP_REPT) {
-          if (d == D_REPT) ++nest;
+          if (d == D_REPT || d == D_FOR) ++nest;
           else if (d == D_ENDR && nest) --nest;
           else if (d == D_ENDR) return d;
         }
@@ -625,76 +655,18 @@ void Line(void) {
 }
 
 
+unsigned char Scan(unsigned char mode) { // skipped lines aren't interpolated
+  unsigned char d;
+  ++literal;
+  d = ScanLines(mode);
+  --literal;
+  return d;
+}
+
 // --- operands
 unsigned char okind[2], oreg[2], nops;
 unsigned int oval[2];
 
-static void ParseOp(unsigned char i) {
-  unsigned char kind = K_IMM, reg = 0;
-  unsigned int v = 0;
-  Space();
-  if (ch == '[') {
-    Advance();
-    Space();
-    bracket = 1;
-    mem_c = 0;
-    if (IsStart(ch)) {
-      ReadIdent();
-      reg = Keyword(T_BRACKETS);
-      if (reg == 0) {
-        Space();
-        if (ch == '+') { Advance(); reg = 1; }
-        else if (ch == '-') { Advance(); reg = 2; }
-      }
-      if (reg == 0) { kind = K_R8; reg = 6; }
-      else if (reg <= 2) { kind = K_MEMR; reg += 1; }
-      else if (reg <= 4) { kind = K_MEMR; reg -= 3; }
-      else if (reg == 5) kind = K_MEMC;
-      else { pending = 1; kind = K_MEM; v = Eval(); }
-    }
-    else { kind = K_MEM; v = Eval(); }
-    if (mem_c) kind = K_MEMC;
-    bracket = 0;
-    Expect(']');
-  }
-  else if (IsStart(ch)) {
-    ReadIdent();
-    reg = Keyword(T_REGISTERS);
-    if (reg <= 6) { kind = K_R8; if (reg == 6) reg = 7; }
-    else if (reg <= 10) {
-      kind = K_R16;
-      reg -= 7;
-      if (reg == 3) {
-        Space();
-        if (ch == '+' || ch == '-') {
-          kind = K_SPREL;
-          if (ch == '-') { Advance(); v = -Eval(); }
-          else { Advance(); v = Eval(); }
-        }
-      }
-    }
-    else if (reg == 11) kind = K_AF;
-    else if (reg <= 14) { kind = K_COND; reg -= 12; }
-    else { pending = 1; v = Eval(); }
-  }
-  else v = Eval();
-  okind[i] = kind;
-  oreg[i] = reg;
-  oval[i] = v;
-}
-void Operands(void) {
-  nops = 0;
-  Space();
-  if (AtEnd()) return;
-  ParseOp(0);
-  nops = 1;
-  Space();
-  if (ch == ',') {
-    Advance();
-    ParseOp(1);
-    nops = 2;
-  }
-}
 
 // rgbasm's version symbols: this assembles what RGBDS 1.0 does, where it does
 static void Builtin(const char* word, unsigned int value) {
@@ -709,6 +681,7 @@ unsigned char ModuleMain(AsmContext* c) {
   c->symbols = 0;
   next_unit = 1; // unit 0 means "none"
   for (i = 0; i < 256; ++i) heads[i] = 0;
+  heap_top = 0;
   Builtin("__RGBDS_MAJOR__", 1);
   Builtin("__RGBDS_MINOR__", 0);
   Builtin("__RGBDS_PATCH__", 1);
@@ -731,7 +704,9 @@ unsigned char ModuleMain(AsmContext* c) {
   if (!error) Header();
   // an error in a macro body is reported at its invocation (whose line feed was already
   // counted); one in a repeat at the body line
-  for (f = &frames[depth], i = 0; f > frames && f->kind != F_TEXT && f->kind != F_REPT; --f) i = 1;
+  // (expansions of string symbols and {} report the line they're on)
+  for (f = &frames[depth], i = 0; f > frames && (f->kind == F_MACRO || f->kind == F_ARG || f->source >= SRC_HEAP); --f)
+    if (f->kind == F_MACRO) i = 1;
   c->file = f->source;
   c->line = f->line - i;
   c->pos = f->source ? frames[0].line_pos : f->line_pos;

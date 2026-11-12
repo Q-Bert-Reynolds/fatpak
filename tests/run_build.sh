@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # FILE > BUILD / RUN with ASM.MOD in Gearboy. Requires the sibling Gearboy desktop core and RGBDS.
 set -euo pipefail
+# The X7 hypothesis that found the 2026-11-12 PSRAM corruption: a $BD03 write takes effect
+# at the next $BD02 write, so block switches must write the high byte first (notes/EVERDRIVE.md)
+export GEARBOY_EVERDRIVE_LATCH_BD03=1
 fatpak_root=$(cd -- "$(dirname -- "$0")/.." && pwd)
 gearboy_root=${GEARBOY_ROOT:-"$fatpak_root/../Gearboy"}
 work=$(mktemp -d /tmp/fatpak-build-test.XXXXXX)
@@ -14,12 +17,13 @@ trap 'rm -rf "$work"' EXIT
 rgbasm -o "$work/hello.o" "$fatpak_root/tests/asm/hello.asm"
 rgblink -o "$work/hello.gb" "$work/hello.o"
 rgbfix -v -p 0 "$work/hello.gb"
-(cd "$fatpak_root/tests/asm" && rgbasm -o "$work/features.o" features.asm)
-rgblink -o "$work/features.gb" "$work/features.o"
-rgbfix -v -p 0 "$work/features.gb"
+for sample in features strings loops; do
+    (cd "$fatpak_root/tests/asm" && rgbasm -Wno-obsolete -o "$work/$sample.o" $sample.asm)
+    rgblink -o "$work/$sample.gb" "$work/$sample.o"
+    rgbfix -v -p 0 "$work/$sample.gb"
+done
 mkdir -p "$work/lib/src"
-cp "$fatpak_root/src/gbdk.asm" "$fatpak_root/src/hardware.inc" "$work/lib/src/"
-sed 's/^  rev_Check_hardware_inc 4/;/' "$fatpak_root/src/memory1.asm" > "$work/lib/src/memory1.asm"
+cp "$fatpak_root/src/gbdk.asm" "$fatpak_root/src/hardware.inc" "$fatpak_root/src/memory1.asm" "$work/lib/src/"
 (cd "$work/lib" && rgbasm -o "$work/gbdk.o" src/gbdk.asm)
 rgblink -o "$work/gbdk.gb" "$work/gbdk.o"
 rgbfix -v -p 0 "$work/gbdk.gb"

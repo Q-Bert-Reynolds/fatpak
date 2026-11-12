@@ -297,15 +297,19 @@ SnapshotCartRAM:
   ld a, c
   jr z, .readCart
   add a, $62
-  ld [EDX_BLOCK], a
+  ld c, a
   ld a, $3E
-  ld [EDX_BLOCK+1], a
+  ld [EDX_BLOCK+1], a;high byte first, then low, like the stock OS: the low byte write is what switches the window
+  ld a, c
+  ld [EDX_BLOCK], a
   ld a, 4
   jr .read
 .readCart
-  ld [EDX_BLOCK], a
+  ld c, a
   xor a
-  ld [EDX_BLOCK+1], a
+  ld [EDX_BLOCK+1], a;high byte first (above)
+  ld a, c
+  ld [EDX_BLOCK], a
   ld a, 6
 .read
   ld [EDX_CONFIG], a
@@ -319,16 +323,20 @@ SnapshotCartRAM:
   and a
   ld a, c
   jr z, .writeSnapshot
-  ld [EDX_BLOCK], a
+  ld c, a
   xor a
-  ld [EDX_BLOCK+1], a
+  ld [EDX_BLOCK+1], a;high byte first (above)
+  ld a, c
+  ld [EDX_BLOCK], a
   ld a, 6
   jr .write
 .writeSnapshot
   add a, $62
-  ld [EDX_BLOCK], a
+  ld c, a
   ld a, $3E
-  ld [EDX_BLOCK+1], a
+  ld [EDX_BLOCK+1], a;high byte first, then low, like the stock OS: the low byte write is what switches the window
+  ld a, c
+  ld [EDX_BLOCK], a
   ld a, 4
 .write
   ld [EDX_CONFIG], a

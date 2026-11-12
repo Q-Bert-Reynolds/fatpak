@@ -8,11 +8,12 @@ and launches it through the normal game path. It assembles an RGBDS 1.0 subset:
 a file that builds here builds with `rgbasm`/`rgblink`/`rgbfix -v -p 0` to the
 same bytes (that is what the tests check), not the other way round.
 
-Status: the first version (no includes or macros) works on hardware (DMG01, GBA
-SP). Includes, conditionals, repeats, macros and rgblink-style placement pass on
-the PC and in Gearboy (DMG, CGB); not yet tried on hardware. FatPak's own
-`math.asm`, `memory1.asm` and `gbdk.asm` assemble byte-identical to RGBDS, except
-that `memory1.asm`'s `rev_Check_hardware_inc` call needs `EQUS` (below).
+Status: includes, conditionals, repeats, macros and rgblink-style placement work
+on hardware (DMG01, GBA SP). `EQUS`, string functions, `{}` interpolation,
+`PURGE`, `FOR` and `INCBIN` pass on the PC and in Gearboy (DMG, CGB); not yet
+tried on hardware. FatPak's own `math.asm`, `memory1.asm` and `gbdk.asm`
+assemble byte-identical to RGBDS, unmodified (`memory1.asm` calls
+`hardware.inc`'s `rev_Check_hardware_inc`, which builds a macro from an `EQUS`).
 
 ## Using it
 
@@ -33,9 +34,11 @@ that `memory1.asm`'s `rev_Check_hardware_inc` call needs `EQUS` (below).
 - `INCLUDE "path"` is relative to the document's folder; if that file isn't
   there, its base name is tried in the document's folder, so `INCLUDE
   "src/hardware.inc"` works with `hardware.inc` beside the source.
-- Samples: `tests/asm/` (`hello.asm`, `features.asm` with `lib/`). The card's
-  `Asm` folder has those plus `math.asm`, `gbdk.asm`, `memory1.asm` (its
-  `rev_Check_hardware_inc` line commented out) and `hardware.inc`.
+- `INCBIN` finds files the same way; it and `INCLUDE` share the 16 slots, and
+  a file used twice is read once.
+- Samples: `tests/asm/` (`hello.asm`, `features.asm`, `strings.asm`,
+  `loops.asm`, with `lib/`). The card's `Asm` folder has those plus `math.asm`,
+  `gbdk.asm`, `memory1.asm` and `hardware.inc`.
 
 ## The subset
 
@@ -48,10 +51,15 @@ that `memory1.asm`'s `rev_Check_hardware_inc` call needs `EQUS` (below).
 | `DB`/`DW` (with strings and `\n \t \r \0 \\ \" \'`), `DS n[, fill]`, bare `DB`/`DW` in RAM | |
 | `INCLUDE "file"` | nested, and the same file again is read from PSRAM, not the card |
 | `IF`/`ELIF`/`ELSE`/`ENDC` | nested to 15 levels; skipped lines aren't parsed |
-| `REPT n`/`ENDR` | nested; `\@` is unique per iteration |
+| `REPT n`/`ENDR`, `FOR name, [start,] stop[, step]`/`ENDR` | nested; `\@` is unique per iteration; the `FOR` variable ends one step past its last value, like RGBDS |
 | `MACRO name`/`ENDM`, invocation, `\1`-`\9`, `\@`, `_NARG`, `SHIFT` | arguments split at top-level commas, outside `()`, `[]` and quotes |
+| `DEF`/`REDEF name EQUS string`, `"""..."""` (may span lines) | a string symbol used as a word is replaced by its text, as in RGBDS: at a statement's start, in an expression, in macro arguments |
+| `{name}`, `{fmt:name}` anywhere but comments, in strings and in the middle of words | numbers default to `$` and uppercase hex; formats `[#][0][width]` and `d u x X b o`; string symbols give their text |
+| `STRCAT`, `STRUPR`, `STRLWR`, `STRSLICE` (0-based, negative from the end), `STRSUB` (1-based, deprecated in RGBDS), `STRRPL`; `STRLEN`, `STRCMP`, `STRFIND`, `STRRFIND` in expressions | `\\` in a macro body stays a backslash for the string that reads it |
+| `INCBIN "file"[, start[, length]]` | |
+| `PURGE name, ...` | names can be defined again (pass 2 too) |
 | `ASSERT expr[, msg]`, `FAIL` | ASSERT is checked in pass 2 |
-| `EXPORT`, `GLOBAL`, `WARN`, `PRINT`, `PRINTLN`, `PURGE` | accepted and ignored |
+| `EXPORT`, `GLOBAL`, `WARN`, `PRINT`, `PRINTLN` | accepted and ignored |
 | Expressions | `+ - * / % & \| ^ << >> == != < > <= >= && \|\| ! ~`, unary `-`, parentheses, `@`, `HIGH()`, `LOW()`, `BANK(label or @)`, `DEF(name)`, `_NARG`, `__RGBDS_MAJOR__` etc., `$hex %bin &oct 123 'c'`, fixed point `1.5` (8.8), `_` separators |
 
 Values are 16 bits (RGBDS uses 32), so `/`, `%`, `>>` and comparisons act on
@@ -61,10 +69,10 @@ Fixed-point literals are 8.8 (RGBDS: 16.16), which compares and shifts alike for
 small values. Nesting: 10 frames (includes, macros, repeats and arguments
 together), 256 bytes of macro arguments in flight.
 
-Not supported, with the NOT SUPPORTED error: `INCBIN`, `FOR`, `LOAD`, `UNION`,
-`CHARMAP`, `OPT`, `PUSHS`/`POPS`, `ALIGN` as a directive, `EQUS` (and so string
-functions and `{}` interpolation), `SECTION FRAGMENT`, `\<10>` and named macro
-arguments. Old `X EQU`/`X SET` without `DEF` and `ld [c], a` without `ldh` are
+Not supported, with the NOT SUPPORTED error: `LOAD`, `UNION`, `CHARMAP` (and
+`CHARLEN`, `CHARSUB`...), `OPT`, `PUSHS`/`POPS`, `ALIGN` as a directive,
+`SECTION FRAGMENT`, `STRFMT`, `\<10>` and named macro arguments. String symbols
+are at most 256 bytes; the `EQUS` heap holds 64 KiB over both passes. Old `X EQU`/`X SET` without `DEF` and `ld [c], a` without `ldh` are
 gone from RGBDS 1.0 and aren't accepted.
 
 **Placement** follows rgblink, checked against it on thousands of random
@@ -93,8 +101,15 @@ earlier in pass 2 (a mark bit per symbol), so include guards work.
   128 bytes at a time), included files (copied whole into PSRAM at
   `ASM_INCLUDE_BLOCK`, 64 KiB each, by `ModFile`), macro and repeat bodies (a
   range of a text source, replayed; `\1`-`\9` and `\@` push small argument
-  frames) and arguments. Skipping (false `IF` branches, recording a `MACRO` or
-  `REPT` body) scans lines for the directive that ends them, counting nesting.
+  frames) and arguments. Skipping (false `IF` branches, recording a `MACRO`,
+  `REPT` or `FOR` body) scans lines for the directive that ends them, counting
+  nesting. `{` starts interpolation in `Advance` itself (not while skipping or
+  in comments), which pushes the text as a frame; a string symbol's expansion is
+  a frame too, after putting back the character read past its name.
+- **String symbols** go on a heap in PSRAM (`SRC_HEAP`, the 17th include slot)
+  that never shrinks during a build, so a macro defined from a string keeps its
+  body; the symbol's value is its offset, extra its length. String expressions
+  are built in a 256-byte WRAMX buffer, nested ones stacked.
 - **Symbols** live in PSRAM from `ASM_SYMBOL_BLOCK` as 8-byte units: next, scope
   (the parent label's unit, 0 for globals), value, kind (top bit: defined this
   pass), bank, extra (a label's section, a macro's body end), length, name. 256
@@ -103,15 +118,17 @@ earlier in pass 2 (a mark bit per symbol), so include guards work.
 - **Image** at `ASM_IMAGE_BLOCK` (up to 1 MiB, 2048 blocks); `Emit` selects the
   block from the bank and address. Image, symbols and includes are inside the
   large-file add buffer, which is unused while a text-buffer document is open.
-- **Pages.** A three-page wide module ([MODULES.md](MODULES.md)):
-  `modules/asm.c` (page 13: the stream, words, expressions, operands, word
-  tables, `ModuleMain`), `modules/asm_emit.c` (page 12: arithmetic, symbol
-  table, relocation, instruction encoders, image fill and header) and
-  `modules/asm_line.c` (page 5: lines, directives, `IF`/`REPT`/`MACRO`/
-  `INCLUDE`, sections and `Link`). Calls between pages cost a far call each;
-  pointers never cross: each page's constants are read by its own code;
-  `modules/asm_shared.h` lists what is shared (globals are WRAMX BSS, readable
-  from all three).
+- **Pages.** A four-page wide module ([MODULES.md](MODULES.md)):
+  `modules/asm.c` (page 13: the stream, words, expressions, word tables,
+  `ModuleMain`), `modules/asm_emit.c` (page 12: arithmetic, symbol table,
+  relocation, instruction encoders, image fill and header),
+  `modules/asm_line.c` (page 5: lines, operands, directives,
+  `IF`/`REPT`/`MACRO`/`INCLUDE`, sections and `Link`) and `modules/asm_str.c`
+  (page 4: `EQUS`, string functions, `{}`, `FOR`, `INCBIN`). Calls between pages
+  cost a far call each; pointers never cross: each page's constants are read by
+  its own code; `modules/asm_shared.h` lists what is shared (globals are WRAMX
+  BSS, readable from all four). Free bytes: page 13 ~260, 12 ~1,700, 5 ~330,
+  4 ~2,900.
 - **Host** (`src/editor/build.c`, page 13, `FileWriteImage` and `fs_ReadFile`
   in `fatfs.c`): saves, runs the module with an `AsmContext` (length in; line,
   position, file, blocks, symbols back), shows `errors[]`, writes the blocks with
@@ -139,13 +156,13 @@ earlier in pass 2 (a mark bit per symbol), so include guards work.
 | 12 | DIVIDE BY ZERO | |
 | 13 | BAD INSTRUCTION | not a mnemonic, directive or macro |
 | 14 | PHASE ERROR | assembler bug: a label moved between passes |
-| 15 | BAD STRING | unterminated, or a bad escape |
+| 15 | BAD STRING | unterminated, a bad escape, or a string over 256 bytes |
 | 16 | NO GLOBAL LABEL | local label before any global one |
 | 17 | TOO MANY SYMBOLS | 512 KiB of symbol table used |
 | 18 | NO CODE | nothing in ROM |
 | 19 | BAD BANK | wrong bank for the region, ROMX bank 0 or > 63, `ALIGN` > 13 |
 | 20 | ASSERT FAILED | `ASSERT` false or `FAIL` |
-| 21 | NO SUCH FILE | `INCLUDE` can't read it (or it's empty) |
+| 21 | NO SUCH FILE | `INCLUDE` or `INCBIN` can't read it (or it's empty) |
 | 22 | TOO DEEP | nesting, arguments, 16 includes or 64 sections exceeded |
 | 23 | SECTIONS OVERLAP | two sections with addresses overlap |
 
@@ -159,19 +176,20 @@ Gearboy, from the keypress to the message (`tests/run_build.sh` prints these):
 
 | Source | DMG | CGB |
 | --- | --- | --- |
-| `hello.asm` (1 KB, 32 KiB ROM) | 456 frames (7.6 s) | 222 frames (3.7 s) |
-| `features.asm` with two includes | 573 frames (9.6 s) | 278 frames (4.6 s) |
-| `gbdk.asm` with `memory1.asm` and `hardware.inc` (52 KB of source) | 2,766 frames (46 s) | 1,342 frames (22 s) |
+| `hello.asm` (1 KB, 32 KiB ROM) | 517 frames (8.6 s) | 251 frames (4.2 s) |
+| `features.asm` with two includes | 637 frames (10.6 s) | 309 frames (5.2 s) |
+| `strings.asm` | 605 frames (10.1 s) | 296 frames (4.9 s) |
+| `loops.asm` | 513 frames (8.6 s) | 249 frames (4.2 s) |
+| `gbdk.asm` with `memory1.asm` and `hardware.inc` (52 KB of source) | 3,051 frames (51 s) | 1,481 frames (25 s) |
 
-About 55 / 28 frames of each are the card write; loading and swapping the three
-pages plus the WRAMX region is about 230 on DMG. Two routines are hand-written
+About 55 / 28 frames of each are the card write; loading and swapping the four
+pages plus the WRAMX region is about 300 on DMG. Two routines are hand-written
 assembly on the device because every character or statement goes through them:
 `Advance`'s fast path (a pointer and count for the run of bytes left in the
 current chunk or PSRAM block; anything that moves the window or the frame stack
-drops it) and `Keyword`. They took `gbdk.asm` from 7,397 frames to the figure
-above, along with moving `Scan` and `Line` into page 13 and `FindDotted` into
-page 12 to cut far calls. A sampling profile of that build is now spread out:
-`Advance` ~23%, `Keyword` ~9%, the rest under 4% each.
+drops it, and `{`, line feeds and macro backslashes take the C path) and
+`Keyword`. With fewer far calls they took `gbdk.asm` from 7,397 frames to 2,766
+with three pages; the fourth page and `EQUS` cost ~290 more.
 
 ## Tests
 
@@ -180,28 +198,28 @@ page 12 to cut far calls. A sampling profile of that build is now spread out:
   form; `directives.asm`, data, expressions, locals, banks and RAM sections;
   `features.asm`, includes, guards, `IF`/`ELIF`, `REPT` with `\@`, macros with
   `\@`, `_NARG` and `SHIFT`, RS counters, fixed point, indented labels;
-  `hello.asm`), FatPak's `math.asm`, `memory1.asm` and `gbdk.asm`, and 150
+  `strings.asm`, every string function, format and `EQUS` use including a macro
+  built from a string and `PURGE`; `loops.asm`, `FOR` (nested, negative step,
+  none) and `INCBIN`; `hello.asm`), FatPak's `math.asm`, `memory1.asm` and
+  `gbdk.asm`, and 150
   random section layouts whose labels and banks go in a fixed table. Then each
   error code's line and position.
 - `tests/run_build.sh` (DMG, CGB): runs `test_asm.py`, then in Gearboy opens a
   file in the editor and uses FILE > BUILD (message, matching `.gb`, page 12 and
   the editor view restored, timing), an error (line and cursor, no `.gb`), BUILD
-  on a `.txt`, FILE > RUN up to `GameLaunch`, `features.asm` with its `lib/`
-  folder matching RGBDS, and an error inside an included file.
+  on a `.txt`, FILE > RUN up to `GameLaunch`, `features.asm`, `strings.asm` and
+  `loops.asm` with the `lib/` folder matching RGBDS, an error inside an included
+  file, and `gbdk.asm` with `memory1.asm` and `hardware.inc` unmodified.
 
 ## Next steps
 
-1. **Hardware pass** for includes, macros and placement, with the `Asm` folder.
-2. **`EQUS`**, string functions (`STRRPL`, `STRCAT`, `STRSUB`, `STRLEN`...) and
-   `{}` interpolation: enough for `hardware.inc`'s `rev_Check_hardware_inc`.
-   Page 5 has about 600 bytes left, so this likely means rebalancing the pages.
-3. **Speed:** the three module loads and swaps (~230 frames on DMG) are the
-   biggest fixed cost for small files; a cached backup compare (MODULES.md) or
-   keeping the module installed across builds would help. For big sources,
-   `Keyword` could index its tables by length, and comment lines could be
-   skipped in assembly without a call per character.
-4. **Language:** `INCBIN`, `FOR`, `LOAD`, `UNION`, `CHARMAP`, 32-bit values,
-   anonymous labels, a symbol listing to a file.
-5. **Large sources:** assemble a large document from its file on the card.
-6. From the TODO: an export table of OS routines for user programs and a ROM0
+1. **Hardware pass** for `EQUS`, `FOR` and `INCBIN` with the `Asm` folder.
+2. **Speed:** four module loads and swaps are now the biggest fixed cost for
+   small files; a cached backup compare (MODULES.md) or keeping the module
+   installed across builds would help. For big sources, `Keyword` could index
+   its tables by length, and comment lines could be skipped in assembly.
+3. **Language:** `CHARMAP`, `LOAD`, `UNION`, 32-bit values, anonymous labels,
+   `STRFMT`, a symbol listing to a file. Page 4 has the room.
+4. **Large sources:** assemble a large document from its file on the card.
+5. From the TODO: an export table of OS routines for user programs and a ROM0
    API (print, keys, files, exit), and the compiler.

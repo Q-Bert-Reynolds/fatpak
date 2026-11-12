@@ -13,9 +13,11 @@ ASSERT NAME_HISTORY_BLOCK + 16 <= MODULE_STAGE
 ASSERT MODULE_STAGE + MODULE_SECTORS <= MODULE_BACKUP
 ASSERT MODULE_STAGE2 == MODULE_STAGE + $20 && MODULE_BACKUP2 == MODULE_BACKUP + $20
 ASSERT MODULE_STAGE3 == MODULE_STAGE + $40 && MODULE_BACKUP3 == MODULE_BACKUP + $40
-ASSERT MODULE_BACKUP3 + MODULE_SECTORS <= MODULE_BSS_BACKUP
-ASSERT MODULE_BSS_BACKUP + MODULE_BSS_SIZE / 512 <= MODULE_FAIL_BLOCK && MODULE_FAIL_BLOCK < $3E2F;game metadata (src/fatfs/fatfs.c GAME_META)
-ASSERT HIGH(MODULE_STAGE) == HIGH(MODULE_BACKUP3 + MODULE_SECTORS - 1)
+ASSERT MODULE_STAGE4 == MODULE_STAGE + $60 && MODULE_BACKUP4 == MODULE_BACKUP + $60
+ASSERT NAME_HISTORY_BLOCK + 16 <= MODULE_BSS_BACKUP
+ASSERT MODULE_FAIL_BLOCK < MODULE_STAGE && MODULE_BACKUP4 + MODULE_SECTORS <= $3E00;nothing of ours at $3E00 and up
+ASSERT MODULE_BSS_BACKUP + MODULE_BSS_SIZE / 512 <= MODULE_FAIL_BLOCK
+ASSERT HIGH(MODULE_STAGE) == HIGH(MODULE_BACKUP4 + MODULE_SECTORS - 1)
 ASSERT MODULE_BSS_SIZE % 512 == 0 && LOW(MODULE_BSS) == 0
 ASSERT MODULE_TABLE + 3 * MODULE_SLOTS <= $8000
 
@@ -31,8 +33,8 @@ _module_context:: DW;passed to the module's ModuleMain, 0 if its host gives none
 FIXED "Module loader"
 ; A = 0 backup (page to MODULE_BACKUP), 1 install (MODULE_STAGE to page),
 ; 2 restore (MODULE_BACKUP to page); + 4 for the second page (MODULE_PAGE2, the
-; blocks $20 higher), + 8 for the third (MODULE_PAGE3, $40 higher). Each block is
-; compared after it's copied.
+; blocks $20 higher), + 8 for the third (MODULE_PAGE3, $40 higher), + 12 for the fourth
+; (MODULE_PAGE4, $60 higher). Each block is compared after it's copied.
 ; Returns A=0 when everything read back, nonzero on a mismatch.
 ; Only resident LCD handling runs during transfer; no HDMA is initiated here.
 _ModuleSwap::
@@ -69,9 +71,11 @@ _ModuleSwap::
   ld b, a
   ld a, [module_sector]
   add b
-  ld [EDX_BLOCK], a
+  ld b, a
   ld a, HIGH(MODULE_STAGE)
-  ld [EDX_BLOCK+1], a
+  ld [EDX_BLOCK+1], a;high byte first, then low, like the stock OS: the low byte write is what switches the window
+  ld a, b
+  ld [EDX_BLOCK], a
   ld bc, 512
   ld a, [module_sector]
   cp MODULE_SECTORS - 1
@@ -95,9 +99,11 @@ _ModuleSwapRAM::
 .loop
   ld a, [module_sector]
   add LOW(MODULE_BSS_BACKUP)
-  ld [EDX_BLOCK], a
+  ld b, a
   ld a, HIGH(MODULE_BSS_BACKUP)
-  ld [EDX_BLOCK+1], a
+  ld [EDX_BLOCK+1], a;high byte first, then low, like the stock OS: the low byte write is what switches the window
+  ld a, b
+  ld [EDX_BLOCK], a
   ld bc, 512
   call ModuleSwapBlock
   cp MODULE_BSS_SIZE / 512
@@ -292,7 +298,7 @@ _ModuleEnter::
 .enter
   jp hl
 
-ModulePages: DB MODULE_PAGE, MODULE_PAGE2, MODULE_PAGE3
+ModulePages: DB MODULE_PAGE, MODULE_PAGE2, MODULE_PAGE3, MODULE_PAGE4
 
 ;a wide module's thunks: call _ModFar, DB page, DW target (module_build.py), like bank_split's
 _ModuleAPIFar::

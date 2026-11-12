@@ -181,14 +181,21 @@ static void Run(const char* image, const char* symbols, const char* data, const 
 static std::string Text(const std::string& path) { auto bytes = Read(path); return std::string(bytes.begin(), bytes.end()); }
 
 // INCLUDE, IF, REPT and macros on the device: tests/asm/features.asm with its lib/ files
-static void Features(const char* image, const char* symbols, const char* data, const std::string& dir, const char* expected, bool color) {
-    std::map<std::string, std::string> lib = {{"util.inc", Text(dir + "/lib/util.inc")}, {"data.inc", Text(dir + "/lib/data.inc")}};
-    Session s(image, symbols, data, color, "features.asm", Text(dir + "/features.asm"), lib);
+// a sample from tests/asm built on the device, with every file of tests/asm/lib beside it in
+// lib/: features.asm (INCLUDE/IF/REPT/MACRO), strings.asm (EQUS, {}), loops.asm (FOR, INCBIN)
+static void Sample(const char* image, const char* symbols, const char* data, const std::string& dir,
+                   const std::string& work, const char* name, bool color) {
+    std::map<std::string, std::string> lib;
+    DIR* folder = opendir((dir + "/lib").c_str()); Check(folder, "tests/asm/lib");
+    while (dirent* entry = readdir(folder)) if (entry->d_name[0] != '.') lib[entry->d_name] = Text(dir + "/lib/" + entry->d_name);
+    closedir(folder);
+    std::string file = std::string(name) + ".asm";
+    Session s(image, symbols, data, color, file.c_str(), Text(dir + "/" + file), lib);
     unsigned frames = s.command(4, "BUILT ");
-    Check(frames < 4000, "features.asm builds");
-    Check(Read(s.root + "/features.gb") == Read(expected), "features.gb matches RGBDS");
+    Check(frames < 4000, "the sample builds");
+    Check(Read(s.root + "/" + name + ".gb") == Read(work + "/" + name + ".gb"), "the sample matches RGBDS");
     s.pad(A_Key);
-    printf("%s INCLUDE/IF/REPT/MACRO build: %u frames\n", color ? "CGB" : "DMG", frames);
+    printf("%s %s.asm: %u frames\n", color ? "CGB" : "DMG", name, frames);
 }
 
 // an error inside an included file names the file and its line, and the cursor goes to the INCLUDE
@@ -202,10 +209,9 @@ static void IncludeError(const char* image, const char* symbols, const char* dat
 }
 
 // FatPak's gbdk.asm, which includes memory1.asm and hardware.inc by "src/..." paths that resolve
-// beside it; memory1.asm without its rev_Check_hardware_inc line (EQUS isn't supported)
+// beside it, all unmodified (memory1.asm's rev_Check_hardware_inc runs hardware.inc's EQUS macro)
 static void Library(const char* image, const char* symbols, const char* data, const std::string& src, const char* expected, bool color) {
     std::string memory1 = Text(src + "/memory1.asm");
-    memory1.replace(memory1.find("  rev_Check_hardware_inc 4"), 26, ";");
     Session s(image, symbols, data, color, "gbdk.asm", Text(src + "/gbdk.asm"), {},
               {{"memory1.asm", memory1}, {"hardware.inc", Text(src + "/hardware.inc")}});
     unsigned frames = s.command(4, "BUILT ", 40000);
@@ -222,7 +228,8 @@ int main(int argc, char** argv) {
         Errors(argv[1], argv[2], argv[3], color);
         NotAssembly(argv[1], argv[2], argv[3], color);
         Run(argv[1], argv[2], argv[3], argv[4], argv[5], color);
-        Features(argv[1], argv[2], argv[3], argv[6], argv[7], color);
+        std::string work = std::string(argv[7]).substr(0, std::string(argv[7]).find_last_of('/'));
+        for (const char* name : {"features", "strings", "loops"}) Sample(argv[1], argv[2], argv[3], argv[6], work, name, color);
         IncludeError(argv[1], argv[2], argv[3], color);
         Library(argv[1], argv[2], argv[3], argv[8], argv[9], color);
     }

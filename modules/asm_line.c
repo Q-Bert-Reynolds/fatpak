@@ -88,12 +88,80 @@ unsigned char Link(void) {
 }
 
 
+// --- operands (the variables are in asm.c)
+static void ParseOp(unsigned char i) {
+  unsigned char kind = K_IMM, reg = 0;
+  unsigned int v = 0;
+  Space();
+  if (ch == '[') {
+    Advance();
+    Space();
+    bracket = 1;
+    mem_c = 0;
+    if (IsStart(ch)) {
+      ReadIdent();
+      reg = Keyword(T_BRACKETS);
+      if (reg == 0) {
+        Space();
+        if (ch == '+') { Advance(); reg = 1; }
+        else if (ch == '-') { Advance(); reg = 2; }
+      }
+      if (reg == 0) { kind = K_R8; reg = 6; }
+      else if (reg <= 2) { kind = K_MEMR; reg += 1; }
+      else if (reg <= 4) { kind = K_MEMR; reg -= 3; }
+      else if (reg == 5) kind = K_MEMC;
+      else { pending = 1; kind = K_MEM; v = Eval(); }
+    }
+    else { kind = K_MEM; v = Eval(); }
+    if (mem_c) kind = K_MEMC;
+    bracket = 0;
+    Expect(']');
+  }
+  else if (IsStart(ch)) {
+    ReadIdent();
+    reg = Keyword(T_REGISTERS);
+    if (reg <= 6) { kind = K_R8; if (reg == 6) reg = 7; }
+    else if (reg <= 10) {
+      kind = K_R16;
+      reg -= 7;
+      if (reg == 3) {
+        Space();
+        if (ch == '+' || ch == '-') {
+          kind = K_SPREL;
+          if (ch == '-') { Advance(); v = -Eval(); }
+          else { Advance(); v = Eval(); }
+        }
+      }
+    }
+    else if (reg == 11) kind = K_AF;
+    else if (reg <= 14) { kind = K_COND; reg -= 12; }
+    else { pending = 1; v = Eval(); }
+  }
+  else v = Eval();
+  okind[i] = kind;
+  oreg[i] = reg;
+  oval[i] = v;
+}
+void Operands(void) {
+  nops = 0;
+  Space();
+  if (AtEnd()) return;
+  ParseOp(0);
+  nops = 1;
+  Space();
+  if (ch == ',') {
+    Advance();
+    ParseOp(1);
+    nops = 2;
+  }
+}
+
 // --- directives
 static unsigned int if_active, if_taken; // bit per open IF level
 static unsigned char if_depth;
 static unsigned int rs; // RSSET/RB counter
 
-static void DefineValue(unsigned char kind, unsigned int v) { // name gets v
+void DefineValue(unsigned char kind, unsigned int v) { // name gets v
   LoadName();
   if (error) return;
   if (Find()) {
@@ -101,8 +169,7 @@ static void DefineValue(unsigned char kind, unsigned int v) { // name gets v
     else Fail(ASM_ERR_DUPLICATE);
     if (pass == 2) Mark();
   }
-  else if (pass == 1) Add(kind, v, 0);
-  else Fail(ASM_ERR_PHASE);
+  else Add(pass == 2 ? kind | SYM_SEEN : kind, v, 0); // pass 2 too: it may have been PURGEd
 }
 static void Define(unsigned char kind) { DefineValue(kind, Constant()); }
 void Label(void) { // ident
@@ -181,10 +248,14 @@ static void Data(unsigned char word) { // db, dw
   if (AtEnd()) { Reserve(word + 1, 0); return; }
   while (!error) {
     Space();
-    if (ch == '"' && !word) {
-      Advance();
-      while (ch != '"' && !error) Emit(Char());
-      Advance();
+    if (IsStart(ch)) { // a string function, or the start of an expression
+      ReadIdent();
+      pending = 1;
+    }
+    if (!word && (ch == '"' && !pending || pending && Keyword(T_STRFUNCS) != 0xFF)) {
+      v = StrExpr();
+      while (v < str_top) Emit(str[v++]);
+      str_top = 0; // used up
     }
     else {
       v = Eval();
@@ -228,21 +299,26 @@ static void If(void) {
   if (Eval()) if_active |= if_taken |= bit;
   else { ToEnd(); IfSkip(); }
 }
-static void Rept(void) {
-  unsigned int n = Constant(), start, start_line;
+void Repeat(unsigned int n, unsigned int unit, unsigned int step) {
+  unsigned int start, start_line;
   Frame* f;
-  if (error) return;
   ToEnd();
   f = TextFrame();
   start = f->pos;
+  start_line = f->line + 1; // the body starts on the line after REPT, whose line feed is still in ch
   Scan(SKIP_REPT);
   ToEnd(); // ENDR's line, so the body takes over at its line feed
   if (error || !n) return;
-  start_line = f->line + 1; // the body starts on the line after REPT, whose line feed is still in ch
   f = Push(F_REPT, f->source, start, scan_begin);
   f->count = n;
   f->line = f->first_line = start_line;
   f->id = ++unique;
+  f->for_unit = unit;
+  f->for_step = step;
+}
+static void Rept(void) {
+  unsigned int n = Constant();
+  if (!error) Repeat(n, 0, 0);
 }
 static void Macro(void) {
   unsigned int start;
@@ -258,9 +334,8 @@ static void Macro(void) {
   if (error) return;
   sym_extra = scan_begin;
   LoadName();
-  if (pass == 2) { if (Find()) Mark(); }
-  else if (Find()) Fail(ASM_ERR_DUPLICATE);
-  else Add(SYM_MACRO, start, f->source);
+  if (Find()) { if (pass == 2) Mark(); else Fail(ASM_ERR_DUPLICATE); }
+  else Add(pass == 2 ? SYM_MACRO | SYM_SEEN : SYM_MACRO, start, f->source); // pass 2: after a PURGE
 }
 // ident is a macro: its arguments (top-level commas separate them) go to args[], its body
 // becomes a frame. The line feed stays for Line.
@@ -298,14 +373,14 @@ static void Invoke(void) {
   f->nargs = n;
   f->id = ++unique;
 }
-static void Include(void) {
+unsigned char OpenFile(void) {
   unsigned char i;
   unsigned int length;
   Space();
-  if (ch != '"') { Fail(ASM_ERR_SYNTAX); return; }
+  if (ch != '"') { Fail(ASM_ERR_SYNTAX); return 0; }
   Advance();
   for (i = 0; ch != '"'; ++i) {
-    if (ch == 0 || ch == 10 || i == sizeof(path) - 1) { Fail(ASM_ERR_STRING); return; }
+    if (ch == 0 || ch == 10 || i == sizeof(path) - 1) { Fail(ASM_ERR_STRING); return 0; }
     path[i] = ch;
     Advance();
   }
@@ -316,13 +391,18 @@ static void Include(void) {
   ident[ident_len] = 0;
   if (Find()) i = (unsigned char)sym_value;
   else {
-    if (includes == ASM_INCLUDES) { Fail(ASM_ERR_NESTING); return; }
+    if (includes == ASM_INCLUDES) { Fail(ASM_ERR_NESTING); return 0; }
     length = ModFile(path, ASM_INCLUDE_BLOCK + ((unsigned int)includes << 7));
-    if (!length || length == 0xFFFF) { Fail(length ? ASM_ERR_FULL : ASM_ERR_FILE); return; }
+    if (!length || length == 0xFFFF) { Fail(length ? ASM_ERR_FULL : ASM_ERR_FILE); return 0; }
     inc_len[includes++] = length;
     i = includes;
     Add(SYM_INCLUDE, i, 0);
   }
+  return i;
+}
+static void Include(void) {
+  unsigned char i = OpenFile();
+  if (!i) return;
   ToEnd();
   Push(F_TEXT, i, 0, inc_len[i - 1]);
 }
@@ -352,6 +432,11 @@ void Statement(void) {
       if (ch == '=') { Advance(); Define(SYM_VAR); break; }
       ReadIdent();
       k = Keyword(T_DEFINERS);
+      if (k == 4) { // EQUS
+        redef = d == D_REDEF;
+        DefineString(StrExpr());
+        break;
+      }
       if (d == D_REDEF || k == 0xFF) { Fail(ASM_ERR_SYNTAX); return; }
       if (k == 0) { Define(SYM_EQU); break; }
       Space();
@@ -382,9 +467,25 @@ void Statement(void) {
       ToEnd();
       break;
     case D_SHIFT: Shift(); break;
+    case D_FOR: For(); break;
+    case D_INCBIN: Incbin(); break;
     case D_ENDM: case D_ENDR: Fail(ASM_ERR_SYNTAX); break;
+    case D_PURGE:
+      do {
+        Space();
+        ReadIdent();
+        if (FindDotted()) Purge();
+      } while (Comma());
+      break;
     case 0xFF:
-      if (Find() && sym_kind == SYM_MACRO) Invoke();
+      if (!Find()) Fail(ASM_ERR_MNEMONIC);
+      else if (sym_kind == SYM_MACRO) Invoke();
+      else if (sym_kind == SYM_STRING) { // its text is the statement
+        Expand();
+        Space();
+        ReadIdent();
+        if (ident_len) Statement();
+      }
       else Fail(ASM_ERR_MNEMONIC);
       break;
     default:
@@ -407,6 +508,7 @@ void Pass(unsigned char p) {
   in_section = 0;
   nsects = 0;
   run_n = 0;
+  str_top = literal = bs_literal = 0;
   Advance();
   while (ch && !error) Line();
   if (!error && (if_depth || depth)) Fail(ASM_ERR_SYNTAX);

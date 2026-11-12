@@ -75,10 +75,10 @@ _ByteSum::;de = data, bc = count, returns the sum of the bytes in bc
   ret
 
 _SetWindowBlock::;de = PSRAM block the window at $BE00 shows
+  ld a, d
+  ld [EDX_BLOCK+1], a;high byte first, then low, like the stock OS: the low byte write is what switches the window
   ld a, e
   ld [EDX_BLOCK], a
-  ld a, d
-  ld [EDX_BLOCK+1], a
   ret
 
 

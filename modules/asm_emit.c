@@ -36,7 +36,7 @@ unsigned int next_unit, scope, found;
 unsigned int sym_value, sym_extra;
 unsigned char sym_kind, sym_bank, sym_seen;
 
-static unsigned char* Entry(unsigned int unit) {
+unsigned char* Entry(unsigned int unit) {
   Window(ASM_SYMBOL_BLOCK + (unit >> 6));
   return WINDOW + ((unit & 63) << 3);
 }
@@ -128,6 +128,13 @@ void Relocate(void) {
       e[7] = s->bank;
     }
   } while (++h);
+}
+
+void StepVar(unsigned int unit, unsigned int step) {
+  unsigned char* e = Entry(unit);
+  unsigned int v = (e[4] | (e[5] << 8)) + step;
+  e[4] = (unsigned char)v;
+  e[5] = (unsigned char)(v >> 8);
 }
 
 // found was defined in this pass so far (pass 2 marks; pass 1 doesn't need to): DEF() reads it
