@@ -1,202 +1,81 @@
-# FatPak
+# FatPak OS
 
-FatPak is an operating system for the EverDrive GB X7, with a file browser, a text
-editor, and a game launcher for the Game Boy, Game Boy Color, and Super Game Boy.
-It is built on the Béisbol engine.
+FatPak is an operating system for the Game Boy that runs on the EverDrive GB X7.
 
-Browse and manage files and folders on the SD card, edit text with a PS/2 keyboard
-or the on-screen keyboard, and launch Game Boy games with stock-compatible battery
-saves, RTC files, save states, and cheats. The text editor supports variable-width
-and styled fonts, Markdown, and C and assembly syntax highlighting.
+- Browse, copy, move and rename files and folders on the SD card
+- Write text with the on-screen keyboard or a PS/2 keyboard
+- Markdown is styled; C and RGBDS assembly are syntax highlighted
+- Assemble an `.asm` file into a `.gb` ROM on the Game Boy, and run it
+- Launch games with battery saves, RTC, save states and cheats compatible with the stock EverDrive OS
+- View binary files as hex, and `.tiles` files as tiles
+- Light and dark themes
 
-See [Architecture](notes/ARCHITECTURE.md) for the implementation,
-[EverDrive compatibility](notes/EVERDRIVE.md) for game files and limits,
-and [TODO](TODO.md) for remaining work. Other project notes live in `notes/`.
+| | Game Boy Color | Game Boy | GBC (Dark) | DMG (Dark)
+| --- | --- | --- | --- | --- |
+| File browser | ![](screenshots/browser_gbc.png) | ![](screenshots/browser_dmg.png) | ![](screenshots/browser_gbc_dark.png) | ![](screenshots/browser_dmg_dark.png) |
+| Markdown | ![](screenshots/markdown_gbc.png) | ![](screenshots/markdown_dmg.png) | ![](screenshots/markdown_gbc_dark.png) | ![](screenshots/markdown_dmg_dark.png) |
+| On-screen keyboard | ![](screenshots/keyboard_gbc.png) | ![](screenshots/keyboard_dmg.png) | ![](screenshots/keyboard_gbc_dark.png) | ![](screenshots/keyboard_dmg_dark.png) |
+| Assembly | ![](screenshots/assembly_gbc.png) | ![](screenshots/assembly_dmg.png) | ![](screenshots/assembly_gbc_dark.png) | ![](screenshots/assembly_dmg_dark.png) |
+| Menu | ![](screenshots/menu_gbc.png) | ![](screenshots/menu_dmg.png) | ![](screenshots/menu_gbc_dark.png) | ![](screenshots/menu_dmg_dark.png) |
+| File info | ![](screenshots/info_gbc.png) | ![](screenshots/info_dmg.png) | ![](screenshots/info_gbc_dark.png) | ![](screenshots/info_dmg_dark.png) |
+| Hex view | ![](screenshots/hex_gbc.png) | ![](screenshots/hex_dmg.png) | ![](screenshots/hex_gbc_dark.png) | ![](screenshots/hex_dmg_dark.png) |
+| Tile view | ![](screenshots/tiles_gbc.png) | ![](screenshots/tiles_dmg.png) | ![](screenshots/tiles_gbc_dark.png) | ![](screenshots/tiles_dmg_dark.png) |
 
-# File browser
+# Using it
 
-FatPak resumes the document that was open when you powered off. After closing a
-document, it starts in the last browsed folder (or root if that folder is gone).
-Folders come first; A or Enter opens a file or
-folder, and B, Backspace, or Left goes up a folder. Escape returns to the text
-editor; B, Backspace, and Left stay in the browser at the root.
+FatPak reopens whatever you had open when the power went off. HELP in either menu (or F1) shows the
+controls on the Game Boy.
 
-Binary files (a NUL in the first 512 bytes) open read only as hex: each row is 8 bytes in hex
-then the characters they make (a dim period for bytes that don't print), in the 4 pixel fixed font.
-The D-pad moves the selected byte (left/right a byte, up/down a row), and a keyboard's page up/down,
-home and end jump; the footer shows its address, binary and decimal value. B or Escape goes back.
+**File browser.** The D-pad moves, A opens a file or folder, B goes up a folder, SELECT shows file
+info and START opens the menu (rename, cut, copy, paste, settings, help, restart). Text files open in
+the editor, `.gb` and `.gbc` files launch, `.tiles` files open in the tile viewer and other binary
+files in the hex viewer. Both viewers are read only; B goes back.
 
-`.tiles` files (Game Boy 2bpp tiles, 16 bytes each, as `img2rgbds.py` writes them) open in a tile
-viewer: the selected tile 8 times its size (each pixel a whole tile) with 2x and 1x copies beside it,
-and below a sheet of the tiles at their real size, 16 a row, the selected one inverted. Left/right
-cycle through the tiles, up/down move a sheet row, page up/down, home and end jump; the footer shows
-the tile's number and file offset. On GBC the tiles use four greys; on SGB colour 1 shows as the
-theme's highlight colour.
-
-SELECT opens file info directly. START opens the browser menu: FILE (info, rename), EDIT (cut, copy, paste),
-SETTINGS (clock, keyboard test), HELP, and RESTART. Rename uses the on-screen
-keyboard and supports undo/redo. File info shows timestamps, file type and size,
-word/line counts for text files up to 32KB, and cartridge header details for games.
-RESTART performs a full device restart, including the Nintendo splash.
-
-The header shows the current folder, or the filename when viewing file info.
-Every visible footer shows the current time at the bottom right in 12-hour format,
-such as `10:42pm`. Footer hints use gamepad button icons. Help is scrollable; B or Escape exits help and file info.
-
-# Text editor controls
+**Text editor.**
 
 | Button | Action |
 | --- | --- |
-| D-pad | move cursor, or the on screen keyboard selection when it's open |
-| A + D-pad | select text (on screen keyboard closed) |
-| A | type the selected key |
-| B | backspace |
-| START | open/close the menu |
-| SELECT | show/hide the on screen keyboard |
+| D-pad | Move the cursor, or the keyboard selection when it's open |
+| A + D-pad | Select text (keyboard closed) |
+| A | Type the selected key |
+| B | Backspace |
+| B + D-pad | Page up/down, home, end (keyboard closed) |
+| SELECT | Show or hide the on-screen keyboard |
+| START | Open or close the menu |
 
-On screen keyboard bottom row: shift (one shot), symbols, menu (≡), space, undo (↶), redo (↷), new line (↵).
+The menu has FILE (open, save, save as, new, build, run), EDIT (undo, redo, cut, copy, paste,
+select all), SETTINGS (line wrap, full screen, theme), HELP and CLOSE.
 
-The top bar shows the file name (* = unsaved changes). The editor footer shows
-the line and column, or the selection count, on the left. Every visible footer
-shows the current time at the bottom right in 12-hour format, such as `10:42pm`.
-F11 (or FULL SCREEN in the menu) hides the editor's bars. F1 (or HELP) shows the controls.
+A PS/2 keyboard works like a PC's: arrows, home/end, page up/down, Ctrl to move by word,
+Shift to select, and Ctrl+Z/Y/X/C/V/A/S/O/N. Escape opens the menu, F1 shows help, F5 runs,
+F7 builds, F11 toggles full screen, Alt+Z toggles line wrap.
 
-PS/2 keyboards type directly: arrows, home, end, page up/down, backspace, delete, enter.
-Escape opens the menu: FILE (open, save, save as, new, build, run), EDIT (undo, redo, cut, copy, paste, select all),
-SETTINGS (line wrap, full screen, theme), HELP (editor controls) and CLOSE (the file browser).
-BUILD (F7) assembles an `.asm` file on the Game Boy into `<name>.gb` beside it, RUN (F5) builds and launches it;
-it takes an RGBDS subset (every instruction, labels, `DEF`/`EQU`, `SECTION`, `DB`/`DW`/`DS`, expressions; no
-`INCLUDE` or macros yet), fixes the header's logo and checksums, and reports errors by line.
-The browser settings menu's keyboard test shows each byte the
-PS/2 keyboard sends (hex, bits and start/parity/finish/timeout errors) and the key it makes, and listens for a
-keyboard even if none was found at boot (it keeps listening afterwards). B or Backspace goes back from a submenu, START or Escape closes
-the menu. Ctrl+O opens, Ctrl+S saves, Ctrl+N starts a new file.
-OPEN (Ctrl+O) returns to the file browser.
-Files up to 63.5 KiB (65,024 bytes) open as text, and bigger files open too (the editor reads a
-48KB window of the file from the card that moves with the cursor, Ctrl+End shows "Line ?" until the lines
-before it are counted; saving one writes ~EDITOR.TMP in its folder and renames it over the file, and unsaved
-edits to one don't survive a reset), long file names (up to 64 characters) are shown. SAVE AS saves in the open
-file's folder. .gb and .gbc files launch: the game is copied to the cart, its save comes from
-/GBCSYS/SAVE/<name>.srm (where the EverDrive's OS keeps them) and goes back there at the next boot. The cart's system
-button combo (Select+Start unless changed in the EverDrive's OS) opens Resume game, Save state,
-Load state, and Return to OS (which backs up the save). RTC clocks, state files, cheats and save ownership
-use stock EverDrive formats; see [EVERDRIVE.md](notes/EVERDRIVE.md). CR LF line endings are kept.
-Code is drawn with the 4 pixel fixed width font, everything else with the variable width font: C and asm
-files are fixed width, plain text and markdown variable width except markdown's code.
-Markdown files (.md) are styled: a line starting with # to #### and a space is a heading in a wider,
-taller, bold font (8, 7, 6 and 5 pixels a character), ##### and ###### are bold, **bold** and *italic*
-or _italic_ (not inside a word) are drawn bold and slanted, `code` is fixed width and red on GBC, and so
-are the lines of a code block (from a line starting with ``` to the next one). The markers stay visible,
-dimmed (dark grey on DMG). Headings are blue on GBC.
-C (.c, .h) and RGBDS asm (.asm, .inc, .s) are highlighted: keywords and instructions are bold, comments
-dimmed. On GBC keywords, types and registers are blue, strings red, numbers purple, preprocessor lines,
-directives and asm labels orange (labels bold).
-Alt+Z (or LINE WRAP) turns line wrapping off and on. Without it each line is one row, and the text scrolls
-sideways to keep the cursor on screen.
-The line wrapping and full screen settings are kept in PSRAM and the SD swap with the text, and so are the open file's
-name and folder (and whether it has unsaved changes), so after turning the Game Boy off and on the file
-name bar still shows the file and OPEN starts in its folder.
-Ctrl+Left/Right move a word (or run of punctuation) at a time, Ctrl+Up/Down scroll a row without moving
-the cursor, Ctrl+Home/End go to the start/end of the text.
-Shift + any of those keys selects text, Ctrl+A selects everything. Ctrl+X cuts, Ctrl+C copies,
-Ctrl+V pastes. Typing, backspace or delete replace the selection. The clipboard holds up to 7936 characters
-and is kept in PSRAM and the SD swap. Selected text is inverted on DMG and highlighted on GBC and SGB.
-Ctrl+Z undoes, Ctrl+Y (or Ctrl+Shift+Z) redoes, a word or a run of deletes at a time. The history uses a 56 KiB log and is cleared by opening a file, a new file, or turning the power off.
+**Games.** The game's save is kept in `/GBCSYS/SAVE/` like the stock EverDrive OS. The cartridge's
+menu button combo (Select+Start by default) opens Resume, Save state, Load state and Return to OS.
+See [EverDrive compatibility](notes/EVERDRIVE.md).
 
-Editor text, settings and clipboard live in PSRAM while running. The OS swap file
-(`/GBCSYS/EDITOR.SWP`) preserves them on the SD card across power-off; unsaved large-file
-windows are the exception described above.
+# Building
 
-# Engine
-- FatFs (ChaN) with long file names for the SD card, split across resident code and OS pages by bank_split.py
-- asm for core routines (drawing, input, math, memory), C (SDCC) for higher level logic
-- PS/2 and iGKB keyboard drivers (src/keyboard)
-- fades, GBC palettes, SGB borders/palettes
-- translated strings from CSV (en, es, fr, it, pt, de, ja)
+Needs [RGBDS](https://rgbds.gbdev.io/) 1.0, [SDCC](https://sdcc.sourceforge.net/) 4.2 and Python 3
+with Pillow.
 
-# Source layout
+    make all        # assets, OS image and modules, then run
+    make assemble   # just the OS image and modules
 
-Application startup and menus live in `src/app`, file browsing in `src/browser`, shared drawing in
-`src/ui`, and ROM loading/cart menus/save states in `src/game`. `src/editor` contains text editing,
-document handling, navigation, the on-screen keyboard, syntax and undo. See
-[Architecture](notes/ARCHITECTURE.md#source-layout) for module details and banked C calls.
+Pick a language with `make assemble LANGUAGE=ES` (EN, ES, FR, IT, PT, DE or JA).
 
-# Fonts
-The editor draws text as pixels, so fonts can be any width (src/ui/render.asm). fonts.py converts:
-- img/ui_font.png, the 8 pixel fixed width font (the on screen keyboard)
-- img/fonts/fixed_font.png, the 4 pixel fixed width font for text (40 characters per row), the
-  left 4 pixels of each cell
-- img/fonts/tiny5mono_font.png, a 6 pixel fixed width font (26 characters per row), not built yet
-  (see font selection in [TODO.md](notes/TODO.md))
-- img/fonts/vwf_font.png, the variable width font. Glyphs are moved to the left edge of their cell
-  and each character's width is its last pixel + 2. Empty glyphs (space) are 4 pixels.
+Copy `bin/GBCOS.BIN`, `bin/EDITOR.DAT` and `bin/MODULES/` to `/GBCSYS/` on the SD card
+(`make assemble` does this when the card is mounted at `/media/qbertreynolds/GAMEBOY`).
 
-All are 16x16 grids of 8x8 glyphs indexed by character code, dark pixels are drawn.
-Styled text uses its own fonts, drawn as they are (not moved left). Their widths are measured from
-the images: a fixed width font (headings, fixed bold) is its most common last pixel + 2 wide (a few
-glyphs can draw into the gap), VWF bold is each glyph's last pixel + 2 (4 if it's empty), italic
-fonts use their upright font's widths:
-- img/fonts/heading1_font.png to heading4_font.png, markdown headings 1-4
-- img/fonts/fixed_bold_font.png, fixed_italic_font.png, fixed_bold_italic_font.png
-- img/fonts/vwf_bold_font.png, vwf_italic_font.png, vwf_bold_italic_font.png
+Tests and the emulator setup are in [Architecture](notes/ARCHITECTURE.md#testing-and-debugging).
+`scripts/screenshots.sh` retakes these screenshots in the emulator.
 
-`python3 scripts/fonts.py derive` draws any that are missing from the base fonts (headings stretched with 2
-pixel strokes and 1 pixel taller, bold ORed 1 pixel right or stretched in the fixed font, italic's
-top 4 rows 1 pixel right), `--force` draws them all again (overwriting edits).
+# Notes
 
-img/ui_font.png is 256 tiles. Tile index matches the character code:
-- 0-31: UI glyphs (box drawing, arrows, etc.)
-- 32-126: ASCII
-- 160-255: Latin-1 (ISO-8859-1), only the accented characters used by translations so far
-- "\n" in engine strings is 128
-
-# Tests
-Run `python3 -m unittest discover -s tests -v` to check C module bank placement.
-The browser settings menu's keyboard test checks PS/2 and iGKB input. See
-[GAME_MENU.md](notes/GAME_MENU.md) for cart-menu validation. With the sibling
-Gearboy checkout, `make -C ../Gearboy/tests fatpak` runs assembled-OS integration
-tests against temporary SD folders; `make -C ../Gearboy/tests everdrive` runs the
-standalone cartridge component tests.
-
-# SD card
-The Gearboy fork emulates EverDrive OS mapping, the cartridge button, SD access,
-and RTC hardware. Select a host folder with EverDrive X SD Folder... (or set
-`GEARBOY_SD_DIR`); its default is the home folder. SD writes update host files,
-including file replacement during saving. `GEARBOY_SD_IMAGE=/path/card.img` selects
-an existing FAT disk image instead.
-
-# Compiling:
-    make clean
-    make all
-
-`make assemble` builds without regenerating assets or running the emulator. Pick a language with `make assemble LANGUAGE=ES`.
-
-# Cart
-FatPak builds as a 128KB EverDrive GB X7 OS image, `bin/GBCOS.BIN`.
-Install it as `/GBCSYS/GBCOS.BIN`, with `bin/EDITOR.DAT` alongside it. Builds
-copy the OS image and data file automatically when `/media/qbertreynolds/GAMEBOY` is mounted.
-The first 32KB is resident; the rest runs through the OS page window. C page
-assignments are in `src/*/*.banks` and the layout is checked after linking.
-
-# Credits
-
-- Code, Art, Audio - Nolan Baker
-- hardware.inc - Jones, Carsten Sorenson, Jeff Frohwein, Antonio Niño Díaz
-- memory1.asm - Jeff Frohwein, Carsten Sorensen
-- gbdk.asm - Pascal Felber, Lars Malmborg, Michael Hope
-- sgb.asm - Imanol Barriuso, Martin Ahrnbom
-- FatFs - ChaN (src/fatfs/lib, BSD style license)
-- sd.asm - based on TXTReaderGB's diskio by Toxa and RodrigoCard (MIT)
-- vwf_font.png - ASCII glyphs from Toxa's VWF (MIT)
-- fixed_font.png - ASCII glyphs from Damian Yerrick's onebit4x8.png (pinobatch/bitmap-fonts, MIT No Attribution)
-- tiny5mono_font.png - Tiny5 Mono by Stefan Schmidt (Gissio/font_Tiny5Mono, SIL Open Font License, img/fonts/Tiny5Mono-OFL.txt)
-
-# Thanks
-
-- [Jeff Frohwein](https://devrs.com/gb/)
-- [John Metcalf](http://www.retroprogramming.com)
-- [Z80 Heaven](https://z80-heaven.wikidot.com/)
-- [GameBoy Pandocs](https://gbdev.github.io/pandocs/):
-- [GameBoy CPU Manual](http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf)
-- [untoxa/VWF](https://github.com/untoxa/VWF)
-- [RodrigoCard/TXTReaderGB](https://github.com/RodrigoCard/TXTReaderGB)
+- [Architecture](notes/ARCHITECTURE.md): how it's built, memory, rendering, editor internals
+- [EverDrive compatibility](notes/EVERDRIVE.md): game files, saves and limits
+- [Modules](notes/MODULES.md): loadable `.MOD` overlays
+- [Assembler](notes/ASSEMBLER.md): the on-device RGBDS subset
+- [Fonts](notes/FONTS.md): font images and how they're converted
+- [In-game menu](notes/GAME_MENU.md): the cartridge menu, capture and restore
+- [TODO](notes/TODO.md); plans for [SGB](notes/SGB.md) and an [image viewer](notes/IMAGE_VIEWER.md)

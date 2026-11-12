@@ -4,7 +4,7 @@ FatPak is a Game Boy text editor and game launcher built as a single 128 KiB
 EverDrive GB X7 OS image for DMG, CGB and SGB: SD file editing, PS/2 input,
 styled text, stock-compatible saves, RTC, save states and Game Genie codes.
 
-See also [README](../README.md) (controls, building), [TODO](../TODO.md),
+See also [README](../README.md) (controls, building), [TODO](TODO.md),
 [EverDrive compatibility](EVERDRIVE.md) (file formats, launch) and
 [In-game menu](GAME_MENU.md) (capture/restore). Paths are relative to the repo root.
 
@@ -15,7 +15,7 @@ See also [README](../README.md) (controls, building), [TODO](../TODO.md),
 | [RGBDS](https://rgbds.gbdev.io/) 1.0 | `rgbasm`, `rgblink`, `rgbfix` |
 | [SDCC](https://sdcc.sourceforge.net/) 4.2 (`-msm83 --asm=rgbds`) | C to RGBDS assembly |
 | Python 3 + Pillow | Asset conversion, page splitting, layout checks |
-| [Gearboy](https://github.com/drhelius/Gearboy) fork | EverDrive mapping, SD, RTC, cart button and PS/2 emulation; MCP debugging |
+| [Gearboy](https://github.com/Q-Bert-Reynolds/Gearboy) fork | EverDrive mapping, SD, RTC, cart button and PS/2 emulation; MCP debugging |
 
 **Assembly** for hardware, hot paths and heavy lifting (drawing, input, memory,
 text buffer, SPI); **C** for higher-level logic (editor state, menus, file API).
@@ -347,7 +347,7 @@ Text is drawn as pixels so fonts can be any width. Every cell has its own tile
 
 ### Fonts and icons
 
-`fonts.py` converts `img/ui_font.png` (8 px mono), `img/fonts/fixed_font.png`
+`scripts/fonts.py` ([FONTS.md](FONTS.md) has the image conventions) converts `img/ui_font.png` (8 px mono), `img/fonts/fixed_font.png`
 (4 px) and `img/fonts/vwf_font.png`, and derives/converts the heading, bold,
 italic and bold-italic fonts (widths in `styled_widths.asm`). Plain text and
 markdown use the VWF; C/asm use the 4 px font. OSK rows use the 8 px font; bars
