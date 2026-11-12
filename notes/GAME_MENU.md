@@ -1,6 +1,6 @@
 # In-game cart-button menu
 
-[Architecture](ARCHITECTURE.md) · [EverDrive compatibility](EVERDRIVE.md) · [TODO](TODO.md)
+[Architecture](ARCHITECTURE.md) · [EverDrive compatibility](EVERDRIVE.md) · [TODO](../TODO.md)
 
 The cart button opens Resume game, Save state, Load state and Return to OS.
 Up/Down/Select move, A/Start choose, B resumes. A successful save or load

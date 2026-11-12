@@ -12,7 +12,7 @@ Styled fonts (bold, italic, markdown headings) are PNGs too, drawn as they are (
 Their widths go to img/fonts/styled_widths.asm: fixed fonts use constant IDs (widths 8..4),
 a proportional font uses a 256-byte table with each
 glyph's last pixel + 2 (4 if it's empty). Italic fonts use their upright font's widths.
-`python3 fonts.py derive` draws any that are missing from the base fonts (--force redraws them all):
+`python3 scripts/fonts.py derive` draws any that are missing from the base fonts (--force redraws them all):
   headings 1-4: the fixed font stretched (columns 2,3,2,1 / 2,2,2,1 / 2,1,2,1 / 1,2,1,1 pixels wide),
                 1 pixel taller (row 3 twice, row 0 dropped unless it's used)
   fixed bold: stretched 2,1,2,1, VWF bold: ORed 1 pixel right

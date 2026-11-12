@@ -1,6 +1,6 @@
 # Loadable modules
 
-[Architecture](ARCHITECTURE.md) · [TODO](TODO.md)
+[Architecture](ARCHITECTURE.md) · [TODO](../TODO.md)
 
 A **module** is a separately linked `.MOD` file; the **overlay loader** swaps it
 into an OS page for one call and puts the page back. The model follows CP/M

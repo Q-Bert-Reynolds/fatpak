@@ -3,7 +3,7 @@ into PSRAM at boot and read through the $BE00 window. Layout (DATA_* in src/cons
 byte blocks: 0 = "EDITOR.DAT" and DATA_VERSION, then the styled fonts (FontStyles order in
 src/ui/render.asm), the SGB border's tiles and its map, then the base fixed font, help texts, base monospaced font, glyph shift tables and VWF bold widths.
 
-usage: python3 data_file.py out_file
+usage: python3 scripts/data_file.py out_file
 """
 import re
 import utils

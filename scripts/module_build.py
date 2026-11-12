@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build independently linked, fixed-address FatPak modules and their SDK.
 
-usage: python3 module_build.py [--headers]
+usage: python3 scripts/module_build.py [--headers]
 
 modules/abi.json lists the resident ABI, modules/modules.json the modules: "sources" go in
 the borrowed page; a module with "sources2" (and maybe "sources3") is wide
@@ -21,7 +21,7 @@ import sys
 import utils
 from bank_split import BRANCH_RE
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / 'build/modules'
 C = utils.constants(str(ROOT / 'src/constants.asm'))
 PAGE_SIZE = 0x1D00

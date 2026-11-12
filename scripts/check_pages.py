@@ -1,7 +1,7 @@
 """EverDrive X OS mode build check: everything in ROMX banks 2-7 has to be a page (src/pages.asm),
 code assembled for $4000 there can't run. Prints how full each page is.
 
-usage: python3 check_pages.py build/main.map
+usage: python3 scripts/check_pages.py build/main.map
 """
 import re
 import sys

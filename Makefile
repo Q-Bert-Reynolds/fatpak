@@ -31,37 +31,37 @@ all: clean assets assemble run
 
 code: assemble run
 
-# Module SDK/host headers: module_build.py rewrites them only when their content changes.
+# Module SDK/host headers: scripts/module_build.py rewrites them only when their content changes.
 MODULE_HEADERS = $(BUILD_DIR)/modules/sdk.h $(BUILD_DIR)/modules/modules.h
-MODULE_INPUTS  = module_build.py utils.py modules/abi.json modules/modules.json $(SRC_DIR)/constants.asm
+MODULE_INPUTS  = scripts/module_build.py scripts/utils.py modules/abi.json modules/modules.json $(SRC_DIR)/constants.asm
 
 $(MODULE_HEADERS): $(MODULE_INPUTS)
-	$(PYTHON) module_build.py --headers
+	$(PYTHON) scripts/module_build.py --headers
 
 $(BUILD_DIR)/c/%.asm: %.c $(C_HEADERS) $(C_LIBS) $(MODULE_HEADERS) $(wildcard modules/*.h)
 	@mkdir -p $(dir $@)
 	sdcc $< -msm83 --asm=rgbds --opt-code-size --dataseg WRAM0 --no-peep --peep-file peephole.def $(DEFINES) --disable-warning 218 -S -o $@
 	@sed -i 's/^\t\.byte /\tDB /' $@ # SDCC writes long constants as .byte
 
-$(SRC_DIR)/constants.h: $(SRC_DIR)/constants.asm build.py
-	$(PYTHON) build.py
+$(SRC_DIR)/constants.h: $(SRC_DIR)/constants.asm scripts/build.py
+	$(PYTHON) scripts/build.py
 
 modules: $(SRC_DIR)/constants.h $(MODULE_HEADERS)
-	$(PYTHON) module_build.py
+	$(PYTHON) scripts/module_build.py
 
 assemble: modules $(C_RAW)
 	@mkdir -p $(BUILD_DIR) $(BIN_DIR)
-	$(PYTHON) bank_split.py --build-dir $(BUILD_DIR) $(C_SOURCES)
-	$(PYTHON) ingame_menu.py
+	$(PYTHON) scripts/bank_split.py --build-dir $(BUILD_DIR) $(C_SOURCES)
+	$(PYTHON) scripts/ingame_menu.py
 	rgbasm $(DEFINES) -o $(BUILD_DIR)/main.o $(SRC_DIR)/main.asm
 	rgblink -l pages.link -m $(BUILD_DIR)/main.map -n $(SYM_FILE) -o $(ROM_FILE) $(BUILD_DIR)/main.o
-	$(PYTHON) check_pages.py $(BUILD_DIR)/main.map
-	$(PYTHON) check_module_abi.py $(SYM_FILE) $(C_SOURCES)
+	$(PYTHON) scripts/check_pages.py $(BUILD_DIR)/main.map
+	$(PYTHON) scripts/check_module_abi.py $(SYM_FILE) $(C_SOURCES)
 	rgbfix -v -c -s -j -t GBXOS -i KRKZ -l 0x33 -m 0 -r 0 -p 255 $(ROM_FILE)
 ifneq ($(ROM_FILE),$(BIN_DIR)/GBCOS.BIN)
 	cp $(ROM_FILE) $(BIN_DIR)/GBCOS.BIN
 endif
-	$(PYTHON) data_file.py $(BIN_DIR)/EDITOR.DAT
+	$(PYTHON) scripts/data_file.py $(BIN_DIR)/EDITOR.DAT
 	@if mountpoint -q "$(SD_MOUNT)"; then \
 		cp $(BIN_DIR)/GBCOS.BIN "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
 		cp $(BIN_DIR)/EDITOR.DAT "$(SD_MOUNT)/GBCSYS/EDITOR.DAT" && \
@@ -86,12 +86,12 @@ assets:
 	@mkdir -p $(BUILD_DIR)
 	@mkdir -p $(BIN_DIR)
 
-	$(PYTHON) build.py 
-	$(PYTHON) img2rgbds.py
-	$(PYTHON) fonts.py
-	$(PYTHON) keywords.py
-	$(PYTHON) sgb_border.py
-	$(PYTHON) translate.py 
+	$(PYTHON) scripts/build.py 
+	$(PYTHON) scripts/img2rgbds.py
+	$(PYTHON) scripts/fonts.py
+	$(PYTHON) scripts/keywords.py
+	$(PYTHON) scripts/sgb_border.py
+	$(PYTHON) scripts/translate.py 
 
 clean:
 	@rm -rf $(BUILD_DIR)

@@ -3,7 +3,7 @@ tests/asm/*.asm with both and compares the ROMs byte for byte; then checks error
 usage: python3 tests/test_asm.py"""
 import subprocess, sys, tempfile
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'scripts'))
 
 ROOT = Path(__file__).resolve().parent.parent
 HOST = ROOT / 'build/asm_host'

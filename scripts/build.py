@@ -4,7 +4,7 @@ import re
 def main():
   if os.path.isfile("src/constants.h"):
     h_change = os.path.getmtime("src/constants.h")
-    if os.path.getmtime("src/constants.asm") < h_change and os.path.getmtime("./build.py") < h_change:
+    if os.path.getmtime("src/constants.asm") < h_change and os.path.getmtime(__file__) < h_change:
       print('Skipping "constants.asm". Generated header is up to date.')
       return
 

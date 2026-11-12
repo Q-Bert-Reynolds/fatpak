@@ -1,6 +1,6 @@
 # EverDrive compatibility
 
-[Architecture](ARCHITECTURE.md) · [In-game menu](GAME_MENU.md) · [TODO](TODO.md)
+[Architecture](ARCHITECTURE.md) · [In-game menu](GAME_MENU.md) · [TODO](../TODO.md)
 
 FatPak uses stock GBCOS v1.06 file names and formats, keyed by the ROM's
 basename (same-named games in different folders share files, as in stock).

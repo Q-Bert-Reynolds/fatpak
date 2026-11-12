@@ -283,7 +283,7 @@ ROM0 has about 160 bytes free and every OS page is 98-100% full (0-85 bytes
 each). The GB-side SGB code (estimated 2.5-4 KB) can't be resident. Options, in
 order of preference:
 
-1. **Overlay.** The [TODO](TODO.md#os-utilities) overlay design is built first as
+1. **Overlay.** The [TODO](../TODO.md#os-utilities) overlay design is built first as
    general infrastructure. On SGB fullscreen, the DMG/GBC renderer's drawing code
    is dead, and the SGB backend loads from `SGB.DAT` into a page at boot.
 2. The renderer shift tables and VWF bold widths now live in `EDITOR.DAT`.

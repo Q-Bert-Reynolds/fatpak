@@ -8,7 +8,7 @@ from PIL import Image
 from PIL import GifImagePlugin
 from sgb_border import convert as sgb_convert
 
-py_change = os.path.getmtime("./img2rgbds.py")
+py_change = os.path.getmtime(__file__)
 verbose = False #TODO: adds this as a cmd flag
 
 def parse_all():

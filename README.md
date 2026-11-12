@@ -11,7 +11,7 @@ and styled fonts, Markdown, and C and assembly syntax highlighting.
 
 See [Architecture](notes/ARCHITECTURE.md) for the implementation,
 [EverDrive compatibility](notes/EVERDRIVE.md) for game files and limits,
-and [TODO](notes/TODO.md) for remaining work. Other project notes live in `notes/`.
+and [TODO](TODO.md) for remaining work. Other project notes live in `notes/`.
 
 # File browser
 
@@ -140,7 +140,7 @@ fonts use their upright font's widths:
 - img/fonts/fixed_bold_font.png, fixed_italic_font.png, fixed_bold_italic_font.png
 - img/fonts/vwf_bold_font.png, vwf_italic_font.png, vwf_bold_italic_font.png
 
-`python3 fonts.py derive` draws any that are missing from the base fonts (headings stretched with 2
+`python3 scripts/fonts.py derive` draws any that are missing from the base fonts (headings stretched with 2
 pixel strokes and 1 pixel taller, bold ORed 1 pixel right or stretched in the fixed font, italic's
 top 4 rows 1 pixel right), `--force` draws them all again (overwriting edits).
 

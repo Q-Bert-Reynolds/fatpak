@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parents[1] / 'bank_split.py'
+SCRIPT = Path(__file__).resolve().parents[1] / 'scripts/bank_split.py'
 
 
 class BankSplitTest(unittest.TestCase):

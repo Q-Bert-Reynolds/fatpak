@@ -1,6 +1,6 @@
 # Assembler
 
-[Architecture](ARCHITECTURE.md) · [Modules](MODULES.md) · [TODO](TODO.md)
+[Architecture](ARCHITECTURE.md) · [Modules](MODULES.md) · [TODO](../TODO.md)
 
 `ASM.MOD` assembles the open `.asm` document on the device into a bootable ROM.
 FILE > BUILD (F7) writes `<name>.gb` beside the source; FILE > RUN (F5) builds

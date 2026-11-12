@@ -4,7 +4,7 @@ FatPak is a Game Boy text editor and game launcher built as a single 128 KiB
 EverDrive GB X7 OS image for DMG, CGB and SGB: SD file editing, PS/2 input,
 styled text, stock-compatible saves, RTC, save states and Game Genie codes.
 
-See also [README](../README.md) (controls, building), [TODO](TODO.md),
+See also [README](../README.md) (controls, building), [TODO](../TODO.md),
 [EverDrive compatibility](EVERDRIVE.md) (file formats, launch) and
 [In-game menu](GAME_MENU.md) (capture/restore). Paths are relative to the repo root.
 
@@ -79,6 +79,7 @@ flowchart LR
 | `src/core.asm`, `gbdk.asm`, `memory1.asm`, `math.asm`, `strings.asm`, `far_call.asm` | Trampoline, VBlank waits, tile/sprite/memory copies, math, strings, `FarCall` |
 | `src/input.*`, `interrupts.asm` | Joypad/keyboard input and repeat, interrupt vectors |
 | `src/charmap.asm`, `constants.asm`, `macros.asm`, `hardware.inc`, `wram.asm`, `sram.asm` | Charmap, constants, macros, registers, RAM layout |
+| `scripts/` | Python build tools: asset converters, `build.py` (constants header), `bank_split.py`, `module_build.py`, page/ABI checkers, `data_file.py`; run from the repo root (the Makefile does) |
 | `tests/` | Python bank-split/glyph checks; Gearboy-driven `run_*.sh` integration tests |
 | `img/`, `data/`, `sd/` | Graphics, fonts, strings, help text; sample SD contents |
 

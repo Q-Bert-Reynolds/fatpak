@@ -1,6 +1,6 @@
 # Image viewer (PNG)
 
-[Architecture](ARCHITECTURE.md) · [Modules](MODULES.md) · [EverDrive compatibility](EVERDRIVE.md) · [TODO](TODO.md)
+[Architecture](ARCHITECTURE.md) · [Modules](MODULES.md) · [EverDrive compatibility](EVERDRIVE.md) · [TODO](../TODO.md)
 
 This document details the architectural exploration and implementation plan for
 viewing PNG images in FatPak on DMG, CGB, and SGB hardware.

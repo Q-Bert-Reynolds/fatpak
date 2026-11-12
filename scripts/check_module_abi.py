@@ -1,6 +1,6 @@
 """Reject module ABI and interrupt call chains reaching the borrowed page.
 
-usage: python3 check_module_abi.py bin/GBCOS.sym <C sources>
+usage: python3 scripts/check_module_abi.py bin/GBCOS.sym <C sources>
 
 C edges come from SDCC output and .banks metadata. Handwritten assembly gates
 are explicitly audited below; a new unknown assembly gate fails the build.

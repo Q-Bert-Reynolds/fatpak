@@ -287,7 +287,7 @@ if __name__ == "__main__":
     import sys
     
     if len(sys.argv) < 3:
-        print("Usage: python sgb_border.py INFILE OUTFILE")
+        print("Usage: python scripts/sgb_border.py INFILE OUTFILE")
         print("INFILE should be a path to a .png image which fulfills the requirements for an SGB border")
         print("OUTFILE should be a path where a .inc file should be created, which can be included in a Game Boy game written with RGBDS and GingerBread")
     else:

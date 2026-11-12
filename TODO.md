@@ -1,6 +1,5 @@
 # Priority
 
-- Hex/tile views: editing; SGB shows tile colour 1 as the highlight colour; gamepad page up/down; files with no NUL in the first sector but other control bytes open as text.
 - Assembler ([ASSEMBLER.md](ASSEMBLER.md)): `EQUS`/string functions/`{}` (for `rev_Check_hardware_inc`), speed (module load, per-line `Keyword`/far calls), `INCBIN`/`FOR`/`LOAD`/`UNION`/`CHARMAP`, 32-bit values, listings, large sources from the card.
 
 # Rendering
@@ -53,7 +52,6 @@
 # Other
 
 - Small-C style compiler matching SDCC's calling convention, multi-pass via SD temp files
-- image viewer module see [IMAGE_VIEWER.md](IMAGE_VIEWER.md).
 - Document real differences of other X-series carts rather than assuming X7 SD/RTC/button behavior.
 - Ports to other cartridges need a loader, SD access and a new memory layout; the PSRAM window is assumed everywhere.
 - All strings should be loaded from a .BIN file with a lookup table. Support multiple languages.

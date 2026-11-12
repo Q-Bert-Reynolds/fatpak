@@ -2,7 +2,7 @@
 """Packer bounds/import checks and malformed on-cartridge fixtures."""
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from module_build import package, assembly, sdk, PAGE_SIZE, C
 
 
