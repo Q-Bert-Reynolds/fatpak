@@ -1,4 +1,5 @@
-// ASM.MOD: FOR and INCBIN (see asm_shared.h), in whichever page has room.
+// ASM.MOD: FOR, INCLUDE and INCBIN's files (see asm_shared.h), in whichever page
+// has room.
 #include "asm_shared.h"
 
 unsigned char Comma(void) {
@@ -29,25 +30,67 @@ void For(void) {
   if (!error) Repeat(n, found, step);
 }
 
-// INCBIN "file"[, start[, length]]: its bytes, read whole into PSRAM like an included file
+// INCBIN "file"[, start[, length]]: its bytes, from the file read whole into PSRAM
 void Incbin(void) {
-  unsigned char source = OpenFile();
-  unsigned int from = 0, n, block;
-  if (!source) return;
-  n = inc_len[source - 1];
+  Pos at, end;
+  unsigned int n;
+  if (!OpenFile()) return;
+  at = file_at;
+  end = at + file_size;
   if (Comma()) {
-    from = Constant();
-    if (from > n) { Fail(ASM_ERR_RANGE); return; }
-    n -= from;
+    n = Constant();
+    if (n > file_size) { Fail(ASM_ERR_RANGE); return; }
+    at += n;
     if (Comma()) {
-      block = Constant();
-      if (block > n) { Fail(ASM_ERR_RANGE); return; }
-      n = block;
+      n = Constant();
+      if (n > end - at) { Fail(ASM_ERR_RANGE); return; }
+      end = at + n;
     }
   }
-  block = ASM_INCLUDE_BLOCK + ((unsigned int)(source - 1) << 7);
-  for (n += from; from < n && !error; ++from) {
-    Window(block + (from >> 9));
-    Emit(WINDOW[from & 511]);
+  for (; at < end && !error; ++at) {
+    Window(BLOCK(at));
+    Emit(WINDOW[(unsigned int)at & 511]);
   }
+}
+
+Pos file_at, file_size;
+unsigned int file_top;
+unsigned int OpenFile(void) {
+  unsigned char i;
+  ModuleLoad load;
+  Space();
+  if (ch != '"') { Fail(ASM_ERR_SYNTAX); return 0; }
+  Advance();
+  for (i = 0; ch != '"'; ++i) {
+    if (ch == 0 || ch == 10 || i == sizeof(path) - 1) { Fail(ASM_ERR_STRING); return 0; }
+    path[i] = ch;
+    Advance();
+  }
+  path[i] = 0;
+  Advance();
+  // the path (its last NAME_MAX characters) is its symbol: its first block and size. Each
+  // file is read once, in pass 1.
+  i = i > NAME_MAX ? i - NAME_MAX : 0;
+  for (ident_len = 0; (ident[ident_len] = path[i++]) != 0; ++ident_len);
+  if (!Find()) {
+    load.block = file_top;
+    load.blocks = ASM_FILE_END - file_top;
+    i = ModLoad(path, &load);
+    if (i) { Fail(i == 1 ? ASM_ERR_FILE : ASM_ERR_FULL); return 0; }
+    sym_value = file_top;
+    sym_bank = (unsigned char)(load.size >> 16);
+    sym_extra = (unsigned int)load.size;
+    Add(SYM_INCLUDE, sym_value, sym_bank);
+    if (error) return 0;
+    file_top += BLOCK(load.size + 511);
+  }
+  file_at = ADDRESS(sym_value);
+  file_size = sym_extra | (Pos)sym_bank << 16;
+  return found;
+}
+void Include(void) {
+  unsigned int file = OpenFile();
+  if (!file) return;
+  ToEnd();
+  Push(F_TEXT, SRC_TEXT, file_at, file_at + file_size)->file = file;
 }

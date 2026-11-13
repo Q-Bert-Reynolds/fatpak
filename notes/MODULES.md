@@ -18,7 +18,7 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
 | `FILEINFO.MOD` | 3 | 2 | FILE > INFO, Select (`browser/info.c`) | 3,141 B + 43 B BSS |
 | `HELP.MOD` | 4 | 3 | HELP, F1 (`editor/help.c`) | 327 B + 34 B BSS |
 | `THEME.MOD` | 5 | 3 | SETTINGS > THEME (`ui/theme.c`) | 510 B |
-| `ASM.MOD` | 6 | 5 | FILE > BUILD, RUN (`editor/build.c`), [ASSEMBLER.md](ASSEMBLER.md) | wide, 4 pages: 7,165 + 5,702 + 7,096 + 4,524 B, 2,676 B BSS |
+| `ASM.MOD` | 6 | 7 | FILE > BUILD, RUN (`editor/build.c`), [ASSEMBLER.md](ASSEMBLER.md) | wide, 4 pages: 7,181 + 7,240 + 7,403 + 7,231 B, 2,793 B BSS |
 | `HEXVIEW.MOD` | 7 | 6 | Opening a binary file in the browser (`browser/viewer.c`) | 2,243 B + 221 B BSS |
 | `TILEVIEW.MOD` | 8 | 6 | Opening a `.tiles` file in the browser (`browser/viewer.c`) | 2,134 B + 383 B BSS |
 
@@ -51,7 +51,7 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
   (`build/modules/wide.txt`) out of all four pages. Of the other pages only 15
   is also clear of the file-reading path; 6-11 and 14 hold FatFs or its callers.
   One audited exception: FatFs reaches `get_fattime` (page 12) only when creating
-  or writing a file, and `ModFile` only reads, so the wide walk doesn't follow it.
+  or writing a file, and `ModFile` and `ModLoad` only read, so the wide walk doesn't follow it.
 - Host pattern: show a busy box, set `module_context` if the module needs input,
   `RUN_MODULE(NAME)`, and on a nonzero result `ShowModuleError`. The module hides
   or replaces the box when it draws. The host restores layout and flags after,
@@ -232,11 +232,12 @@ entries. Entries are append-only; changing one's meaning needs a new entry.
 | `ModTheme(theme)` | 3 | `0xFF` reads it; otherwise sets light/dark, `ThemeApply`, `SettingsSave`. Returns the theme |
 | `ModSource(pos, dest)` | 4 | Up to `MODULE_SOURCE_CHUNK` (128) bytes of the text buffer from `pos`; returns the count, 0 past the end |
 | `ModFar` | 4 | Not called from C: the resident far call behind a wide module's thunks (`FarCallInline`) |
-| `ModFile(path, block)` | 5 | Reads a whole file (< 64 KiB) into PSRAM from `block`: the path is relative to the open document's folder, else its base name is tried there. Returns the length, 0 if unreadable, `$FFFF` if too big |
+| `ModFile(path, block)` | 5 | Reads a whole file (< 64 KiB) into PSRAM from `block`: the path is tried from the open document's folder, then from each folder above it, then its base name in the document's folder (the folder level that worked last is tried first, reset per module run). Returns the length, 0 if unreadable, `$FFFF` if too big |
 | `ModRead(offset, dest, length)` | 6 | Up to `MODULE_SOURCE_CHUNK` bytes from `offset` of the file the host opened with `FileViewOpen` (in `save_file`); returns the count, 0 past the end. Reads through `buffer`, so the browser lists its folder again after |
 | `ModStyle(row, styles)` | 6 | `TB_STRIDE` `tile_attrs` bytes (`STYLE_* << 4` \| width) for a text row; the host sets `render_text` and the font so the rows draw styled |
 | `ModSelect(row, first, end)` | 6 | Highlights columns `first` to `end` (exclusive) of one text row, clearing the other text rows |
 | `ModTiles(row, tiles)` | 6 | `EditorDraw`, then `RenderRawRow`: `TB_COLS` 2bpp tiles (320 bytes) sent as they are to a text row's block, which keeps them until the row's text, selection or a box over it changes. GBC: BG palette 7 (four greys); DMG/SGB dark mode inverts them so they keep their shades. The host calls `EditorRedraw` after |
+| `ModLoad(path, load)` | 7 | `ModFile`'s search for a file of any size (below 16 MiB): a `ModuleLoad` `{block, blocks, size}` says where and how many blocks may be written; sets `size`. Returns 0, 1 if unreadable, 2 if it doesn't fit (nothing written). ASM.MOD's `INCLUDE` and `INCBIN` |
 
 Pointer rule: wrappers run with page 13 mapped, so they read module memory
 directly but copy it into host memory (`buffer` or the stack) before calling

@@ -27,11 +27,11 @@ static unsigned int Div(unsigned int a, unsigned int b, unsigned char remainder)
 }
 
 
-// --- symbols: 8-byte units in PSRAM from ASM_SYMBOL_BLOCK, 256 hash chains.
+// --- symbols: 8-byte units in PSRAM from ASM_SYMBOL_BLOCK, 256 hash chains whose heads
+// fill the first block (units 0-63).
 // unit: next (2), scope (2, the unit of the enclosing global label, 0 for globals), value (2),
 // kind (1), bank (1), extra (2), length (1), name. An entry never crosses a block.
 #define SYM_HEADER 11
-unsigned int heads[256];
 unsigned int next_unit, scope, found;
 unsigned int sym_value, sym_extra;
 unsigned char sym_kind, sym_bank, sym_seen;
@@ -39,6 +39,10 @@ unsigned char sym_kind, sym_bank, sym_seen;
 unsigned char* Entry(unsigned int unit) {
   Window(ASM_SYMBOL_BLOCK + (unit >> 6));
   return WINDOW + ((unit & 63) << 3);
+}
+static unsigned int* SymHead(unsigned char h) {
+  Window(ASM_SYMBOL_BLOCK);
+  return (unsigned int*)WINDOW + h;
 }
 static unsigned int Scope(void) { return ident[0] == '.' ? scope : 0; }
 static unsigned char Hash(void) {
@@ -49,7 +53,7 @@ static unsigned char Hash(void) {
 }
 // ident's entry: found, sym_value, sym_kind and sym_bank; 0 if it isn't defined
 unsigned char Find(void) {
-  unsigned int unit = heads[Hash()], want = Scope();
+  unsigned int unit = *SymHead(Hash()), want = Scope();
   unsigned char* e;
   unsigned char i;
   while (unit) {
@@ -72,14 +76,14 @@ unsigned char Find(void) {
 }
 void Add(unsigned char kind, unsigned int value, unsigned char bank) {
   unsigned char units = (SYM_HEADER + ident_len + 7) >> 3, h = Hash(), i;
-  unsigned int want = Scope();
+  unsigned int want = Scope(), head = *SymHead(h);
   unsigned char* e;
   if ((next_unit & 63) + units > 64) next_unit = (next_unit + 63) & ~63;
   if (next_unit + units < next_unit) { Fail(ASM_ERR_SYMBOLS); return; }
   found = next_unit;
   e = Entry(found);
-  e[0] = (unsigned char)heads[h];
-  e[1] = (unsigned char)(heads[h] >> 8);
+  e[0] = (unsigned char)head;
+  e[1] = (unsigned char)(head >> 8);
   e[2] = (unsigned char)want;
   e[3] = (unsigned char)(want >> 8);
   e[4] = (unsigned char)value;
@@ -90,8 +94,8 @@ void Add(unsigned char kind, unsigned int value, unsigned char bank) {
   e[9] = (unsigned char)(sym_extra >> 8);
   e[10] = ident_len;
   for (i = 0; i < ident_len; ++i) e[SYM_HEADER + i] = ident[i];
-  heads[h] = found;
   next_unit += units;
+  *SymHead(h) = found;
   ++context->symbols;
 }
 static char local[NAME_MAX + 1];
@@ -118,7 +122,7 @@ void Relocate(void) {
   unsigned char h = 0, *e;
   Sect* s;
   do {
-    for (unit = heads[h]; unit; unit = e[0] | (e[1] << 8)) {
+    for (unit = *SymHead(h); unit; unit = e[0] | (e[1] << 8)) {
       e = Entry(unit);
       if ((e[6] & 0x7F) != SYM_LABEL) continue;
       s = &sects[e[8]];

@@ -7,7 +7,8 @@ typedef struct {
   unsigned int pos;    // out: that line's start in the document (the INCLUDE line for an included file), for the cursor
   unsigned int blocks; // out: the ROM image's size in 512-byte blocks from ASM_IMAGE_BLOCK
   unsigned int symbols; // out: labels, constants, macros and includes defined
-  unsigned char file;  // out: 0 the document, n the nth included file
+  unsigned int file;   // out: 0 the document, else the included file's symbol
+  char name[9];        // out: then its name, without folders or extension, cut to 8 characters (the status bar is short)
 } AsmContext;
 
 // ModuleMain's result (module_status), 0 when the image is complete
@@ -21,7 +22,7 @@ typedef struct {
 #define ASM_ERR_FULL        8 // past the section's region
 #define ASM_ERR_FORWARD     9 // a size depends on a later symbol
 #define ASM_ERR_UNSUPPORTED 10
-#define ASM_ERR_NAME        11 // over 32 characters
+#define ASM_ERR_NAME        11 // over 79 characters
 #define ASM_ERR_DIVIDE      12
 #define ASM_ERR_MNEMONIC    13
 #define ASM_ERR_PHASE       14 // a label moved between passes (assembler bug)

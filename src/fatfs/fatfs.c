@@ -1141,20 +1141,23 @@ static FRESULT SnapshotFile(const char* path, BYTE write, UINT first) {
   SetWindowBlock(TB_PSRAM_HIGH << 8);
   closed = f_close(&save_file); return result ? result : closed;
 }
-// a whole file into PSRAM blocks from first (ASM.MOD's includes): its length, 0 if it can't
-// be opened or is empty, 0xFFFF if it's 64 KiB or more
-UINT fs_ReadFile(const char* path, UINT first) {
-  UINT n, done; DWORD size;
-  if (fs_Mount() || f_open(&save_file, path, FA_READ)) return 0;
+// ASM.MOD's files (ModFile, ModLoad): the whole file into PSRAM, a ModuleLoad {block, blocks,
+// size}; 0 ok, 1 unreadable, 2 too big
+typedef struct { UINT block, blocks; DWORD size; } FileLoadArea;
+BYTE fs_LoadFile(const char* path, FileLoadArea* load) {
+  UINT n, count, done; DWORD size; BYTE result = 0;
+  if (fs_Mount() || f_open(&save_file, path, FA_READ)) return 1;
   size = f_size(&save_file);
-  if (size >= 0x10000) { f_close(&save_file); return 0xFFFF; }
-  for (n = 0; n < (UINT)((size + 511) >> 9); ++n) {
-    SetWindowBlock(first + n);
-    if (f_read(&save_file, WINDOW, 512, &done)) { size = 0; break; }
+  count = (UINT)((size + 511) >> 9);
+  if (size >= 0x1000000 || count > load->blocks) result = 2;
+  for (n = 0; !result && n < count; ++n) {
+    SetWindowBlock(load->block + n);
+    if (f_read(&save_file, WINDOW, 512, &done)) result = 1;
   }
   SetWindowBlock(TB_PSRAM_HIGH << 8);
   f_close(&save_file);
-  return (UINT)size;
+  load->size = size;
+  return result;
 }
 // HEXVIEW.MOD's file (src/browser/hexview.c), read only
 unsigned char fs_ViewOpen(const char* path) {

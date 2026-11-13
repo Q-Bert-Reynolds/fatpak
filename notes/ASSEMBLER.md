@@ -102,34 +102,42 @@ known in pass 1 (NOT YET DEFINED otherwise); a label that ends up somewhere else
 in pass 2 is a PHASE ERROR (a bug). `DEF()` in pass 2 only sees symbols defined
 earlier in pass 2 (a mark bit per symbol), so include guards work.
 
-- **The stream** is a stack of frames: the document (read through `ModSource`
-  128 bytes at a time), included files (copied whole into PSRAM at
-  `ASM_INCLUDE_BLOCK`, 64 KiB each, by `ModFile`), macro and repeat bodies (a
-  range of a text source, replayed; `\1`-`\9` and `\@` push small argument
-  frames) and arguments. Skipping (false `IF` branches, recording a `MACRO`,
+- **The stream** is a stack of frames that read text by address (`Pos`, 32
+  bits): below 64 KiB the document (read through `ModSource` 128 bytes at a
+  time), above it a PSRAM byte (`block << 9 | offset`): included files, the EQUS
+  heap. `INCLUDE` and `INCBIN` files are read whole by `ModLoad`, once, in pass 1,
+  packed one after another from `ASM_FILE_BLOCK` up to `ASM_FILE_END` (about 5
+  MiB, any file size); the file's symbol keeps its first block and size. Macro
+  and repeat bodies are a range of addresses, replayed (`\1`-`\9` and `\@` push
+  small argument frames from memory). Each frame knows its file (the `INCLUDE`
+  symbol, 0 for the document) for errors, which name the file without its folders
+  or extension, cut to 8 characters (the status bar is short). Skipping (false `IF` branches, recording a `MACRO`,
   `REPT` or `FOR` body) scans lines for the directive that ends them, counting
   nesting. `{` starts interpolation in `Advance` itself (not while skipping or
   in comments), which pushes the text as a frame; a string symbol's expansion is
   a frame too, after putting back the character read past its name.
-- **String symbols** go on a heap in PSRAM (`SRC_HEAP`, the 17th include slot)
+- **String symbols** go on a heap in PSRAM (`ASM_HEAP_BLOCK`, 64 KiB)
   that never shrinks during a build, so a macro defined from a string keeps its
   body; the symbol's value is its offset, extra its length. String expressions
   are built in a 256-byte WRAMX buffer, nested ones stacked.
 - **Symbols** live in PSRAM from `ASM_SYMBOL_BLOCK` as 8-byte units: next, scope
   (the parent label's unit, 0 for globals), value, kind (top bit: defined this
-  pass), bank, extra (a label's section, a macro's body end), length, name. 256
-  hash chains with heads in WRAM; entries never cross a block. Macros keep their
-  body's source and range; includes are symbols named by their path.
+  pass), bank, extra (a label's section, a macro's body length), length, name
+  (up to 79 characters). 256 hash chains whose heads fill the first block;
+  entries never cross a block. Macros keep their body's address (value and bank)
+  and length; files are symbols named by their path's last 79 characters.
 - **Image** at `ASM_IMAGE_BLOCK` (up to 1 MiB, 2048 blocks); `Emit` selects the
-  block from the bank and address. Image, symbols and includes are inside the
-  large-file add buffer, which is unused while a text-buffer document is open.
+  block from the bank and address. Image, symbols, heap, charmaps and files are
+  inside the large-file add buffer, which is unused while a text-buffer document
+  is open.
 - **Pages.** A four-page wide module ([MODULES.md](MODULES.md)):
-  `modules/asm.c` (page 13: the stream, words, expressions, word tables,
-  `ModuleMain`), `modules/asm_emit.c` (page 12: arithmetic, symbol table,
-  relocation, instruction encoders, image fill and header),
-  `modules/asm_line.c` (page 5: lines, operands, directives,
-  `IF`/`REPT`/`MACRO`/`INCLUDE`, sections and `Link`) and `modules/asm_str.c`
-  (page 4: `EQUS`, string functions, `{}`, `FOR`, `INCBIN`). Calls between pages
+  `modules/asm.c` (page 13: the stream, words, expressions, word tables, a
+  `ModuleMain` that calls `Main`), `modules/asm_emit.c` with `asm_loop.c` (page
+  12: arithmetic, symbol table, relocation, instruction encoders, image fill and
+  header; `FOR`, opening files, `INCLUDE`, `INCBIN`), `modules/asm_line.c` (page
+  5: lines, operands, directives, `IF`/`REPT`/`MACRO`, sections, `Link` and the
+  error report) and `modules/asm_str.c` with `asm_main.c` (page 4: `EQUS`, string
+  functions, `{}`, charmaps; the passes). Calls between pages
   cost a far call each; pointers never cross: each page's constants are read by
   its own code; `modules/asm_shared.h` lists what is shared (globals are WRAMX
   BSS, readable from all four). Free bytes: page 13 ~260, 12 ~1,700, 5 ~330,
@@ -230,12 +238,12 @@ two-line prelude and limits raised) worked through it as far as it could:
 | A file ending without a line feed | `math.asm` | done |
 | `\{`, `\}` in strings | `charmap.asm` | done |
 | `cpl a`, `stop n` | `kb_handlers.asm` | done |
-| Names over 32 characters | macro names | done (63) |
+| Names over 32 characters | macro names, map constants (65) | done (79) |
 | Nesting over 10 frames | `tile_anim.asm`: `FOR`/`FOR`/macro/`REPT`/macro/`REPT` | done (16) |
-| Paths over 48 characters | `INCBIN` of tilemaps | done (128) |
-| Hundreds of files | 444 sources (2.0 MB), 675 `INCBIN` files (187 KB) | **to do**: pack sources in PSRAM, read `INCBIN` on the spot, 16-bit source numbers in frames and macros |
-| Files over 64 KB | `player_data.asm` 200 KB, `Overworld.gbmap` 245 KB, `Mountains.gbmap` 122 KB | **to do**: positions past 64 KB |
-| More than 64 sections | 114 | **to do**: the section table in PSRAM |
+| Paths over 48 characters | `INCBIN` of tilemaps (67) | done (127; the symbol is the last 79) |
+| Hundreds of files | 444 sources (2.0 MB), 675 `INCBIN` files (187 KB) | done: packed in PSRAM (about 5 MiB), read once |
+| Files over 64 KB | `player_data.asm` 200 KB, `Overworld.gbmap` 245 KB, `Mountains.gbmap` 122 KB | done: 32-bit positions |
+| More than 64 sections | over 255 | **to do**: the section table in PSRAM, 16-bit section numbers |
 | `DS ALIGN[n]` | `tile_anim.asm` | **to do**: an alignment offset in placement |
 | `SECTION FRAGMENT` | 13, C output (`_announcer.asm`) | **to do** |
 | `PUSHS`/`POPS` | 6 | **to do** |
@@ -243,8 +251,10 @@ two-line prelude and limits raised) worked through it as far as it could:
 | `-D` defines, `rgbfix` options | `_DEMO`, `LANG_EN`; `-jvcs -k 01 -l 0x33 -m 0x1B -p 255` | **to do**: a per-project setting |
 | Speed | ~1.8 MB read per pass | **to do**: about 30 minutes on DMG, 15 on GBC at today's rate |
 
-The probe stopped in `src/players.asm` on its own shortcut (source numbers in a
-byte), so whatever comes after is still unknown.
+With files done, the probe (the PC harness on a scratch copy, the section limit
+raised and `DS ALIGN`, `SECTION FRAGMENT` and `PUSHS`/`POPS` patched out) reads
+1,041 files through pass 1 and links; pass 2 then trips on its byte-sized section
+count. What comes after the sections is still unknown.
 
 ## Next steps
 

@@ -103,7 +103,8 @@ def sdk(output=OUTPUT):
                     '#ifndef FATPAK_MODULE_SDK_H', '#define FATPAK_MODULE_SDK_H',
                     '#include "../../src/constants.h"', '#include "../../src/pad.h"',
                     'typedef struct { unsigned char type, write, bytes, errors; } ModuleKeyboard;',
-                    'typedef struct { unsigned char year, month, day, hour, minute, second; } ModuleClock;']
+                    'typedef struct { unsigned char year, month, day, hour, minute, second; } ModuleClock;',
+                    'typedef struct { unsigned int block, blocks; unsigned long size; } ModuleLoad; // ModLoad: in, in, out']
     imports = []
     table = ['; Generated from modules/abi.json. Append only: addresses are the ABI.',
              'SECTION "Module ABI", ROMX[MODULE_TABLE], BANK[1]', 'ModuleABI::']

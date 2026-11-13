@@ -42,7 +42,7 @@ extern unsigned char FileLoadData(const char* path); // FRESULT, copies the data
 extern unsigned char FileSaveSwap(void); // FRESULT, the text, clipboard and settings
 extern unsigned char FileLoadSwap(void); // FRESULT, restores them if PSRAM lost them
 extern unsigned char FileWriteImage(const char* path, unsigned int blocks); // FRESULT, the assembled ROM (ASM_IMAGE_BLOCK, 512-byte blocks) to a file
-extern unsigned int FileReadFile(const char* path, unsigned int block); // the whole file into PSRAM from block; its length, 0 if it can't be read, 0xFFFF if 64 KiB or more
+extern unsigned char FileLoadFile(const char* path, void* load); // a ModuleLoad (sdk.h): the file into PSRAM from load->block, at most load->blocks; sets load->size, 0 ok, 1 unreadable, 2 too big
 // HEXVIEW.MOD's file, read only in save_file (nothing else uses it while a module runs)
 extern unsigned char FileViewOpen(const char* path); // FRESULT, sets view_size
 extern unsigned int FileViewRead(unsigned int count); // up to 512 bytes from view_pos into the FatFs buffer; how many, 0 at the end or on an error

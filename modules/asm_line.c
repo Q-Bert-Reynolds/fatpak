@@ -231,7 +231,7 @@ static void Section(void) {
     size = (1 << align) - 1;
     s->start = placed ? address : (region_base[type] + size) & ~size; // for this pass
     f = TextFrame();
-    s->file = f->source;
+    s->file = f->file;
     s->line = f->line;
     s->pos = frames[0].line_pos;
   }
@@ -298,7 +298,8 @@ static void If(void) {
   else { ToEnd(); IfSkip(); }
 }
 void Repeat(unsigned int n, unsigned int unit, unsigned int step) {
-  unsigned int start, start_line;
+  unsigned int start_line;
+  Pos start;
   Frame* f;
   ToEnd();
   f = TextFrame();
@@ -319,7 +320,7 @@ static void Rept(void) {
   if (!error) Repeat(n, 0, 0);
 }
 static void Macro(void) {
-  unsigned int start;
+  Pos start;
   Frame* f;
   Space();
   ReadIdent();
@@ -330,17 +331,17 @@ static void Macro(void) {
   start = f->pos;
   Scan(SKIP_MACRO);
   if (error) return;
-  sym_extra = scan_begin;
+  if (f->source != SRC_TEXT) { Fail(ASM_ERR_UNSUPPORTED); return; } // inside a {} expansion
+  sym_extra = (unsigned int)(scan_begin - start);
   LoadName();
   if (Find()) { if (pass == 2) Mark(); else Fail(ASM_ERR_DUPLICATE); }
-  else Add(pass == 2 ? SYM_MACRO | SYM_SEEN : SYM_MACRO, start, f->source); // pass 2: after a PURGE
+  else Add(pass == 2 ? SYM_MACRO | SYM_SEEN : SYM_MACRO, (unsigned int)start, (unsigned char)(start >> 16)); // pass 2: after a PURGE
 }
 // ident is a macro: its arguments (top-level commas separate them) go to args[], its body
 // becomes a frame. The line feed stays for Line.
 static void Invoke(void) {
   unsigned char first = arg_top, n = 0, nest = 0, quoted = 0;
-  unsigned int start = sym_value, end = sym_extra;
-  unsigned char source = sym_bank;
+  Pos start = sym_value | (Pos)sym_bank << 16, end = start + sym_extra;
   Frame* f;
   Space();
   while (!AtEnd() || quoted) {
@@ -366,43 +367,10 @@ static void Invoke(void) {
     ++n;
   }
   ToEnd(); // a comment or CR: the body takes over at the line feed
-  f = Push(F_MACRO, source, start, end);
+  f = Push(F_MACRO, SRC_TEXT, start, end);
   f->args = first;
   f->nargs = n;
   f->id = ++unique;
-}
-unsigned char OpenFile(void) {
-  unsigned char i;
-  unsigned int length;
-  Space();
-  if (ch != '"') { Fail(ASM_ERR_SYNTAX); return 0; }
-  Advance();
-  for (i = 0; ch != '"'; ++i) {
-    if (ch == 0 || ch == 10 || i == sizeof(path) - 1) { Fail(ASM_ERR_STRING); return 0; }
-    path[i] = ch;
-    Advance();
-  }
-  path[i] = 0;
-  Advance();
-  // the path is its symbol (hashed on up to NAME_MAX characters), its source number the value
-  for (ident_len = 0; ident_len < NAME_MAX && path[ident_len]; ++ident_len) ident[ident_len] = path[ident_len];
-  ident[ident_len] = 0;
-  if (Find()) i = (unsigned char)sym_value;
-  else {
-    if (includes == ASM_INCLUDES) { Fail(ASM_ERR_NESTING); return 0; }
-    length = ModFile(path, ASM_INCLUDE_BLOCK + ((unsigned int)includes << 7));
-    if (!length || length == 0xFFFF) { Fail(length ? ASM_ERR_FULL : ASM_ERR_FILE); return 0; }
-    inc_len[includes++] = length;
-    i = includes;
-    Add(SYM_INCLUDE, i, 0);
-  }
-  return i;
-}
-static void Include(void) {
-  unsigned char i = OpenFile();
-  if (!i) return;
-  ToEnd();
-  Push(F_TEXT, i, 0, inc_len[i - 1]);
 }
 static void Shift(void) { // the enclosing macro drops its first argument
   Frame* m = &frames[depth];
@@ -496,7 +464,8 @@ void Pass(unsigned char p) {
   pass = p;
   depth = 0;
   frames[0].kind = F_TEXT;
-  frames[0].source = 0;
+  frames[0].source = SRC_TEXT;
+  frames[0].file = 0;
   frames[0].pos = 0;
   frames[0].end = context->length;
   frames[0].line = 1;
@@ -514,4 +483,17 @@ void Pass(unsigned char p) {
   if (!error && (if_depth || depth)) Fail(ASM_ERR_SYNTAX);
   CloseSection();
 }
-
+// where the error is: its file's symbol and name, line and the document position
+void Report(unsigned int file, unsigned int line, Pos at) {
+  AsmContext* c = context;
+  unsigned char *e, n, i, from = 0;
+  c->file = file;
+  c->line = line;
+  c->pos = (unsigned int)at;
+  if (!file) return;
+  e = Entry(file);
+  n = e[10];
+  for (i = 0; i < n; ++i) if (e[11 + i] == '/') from = i + 1;
+  for (i = 0; from < n && e[11 + from] != '.' && i < sizeof(c->name) - 1; ++i) c->name[i] = e[11 + from++];
+  c->name[i] = 0;
+}

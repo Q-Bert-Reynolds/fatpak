@@ -1,6 +1,6 @@
 # Priority
 
-- Assembler: build beisbolgb on the device ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): hundreds of files and files over 64 KB, >64 sections, `DS ALIGN`, `SECTION FRAGMENT`, `PUSHS`/`POPS`, 32-bit values, per-project defines and rgbfix options, and speed (~30 min DMG at today's rate).
+- Assembler: build beisbolgb on the device ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): >255 sections (16-bit section numbers, table in PSRAM), `DS ALIGN`, `SECTION FRAGMENT`, `PUSHS`/`POPS`, 32-bit values, per-project defines and rgbfix options, and speed (~30 min DMG at today's rate).
 
 # Rendering
 

@@ -1,5 +1,5 @@
 // ASM.MOD, page 12 with asm_emit.c: string symbols (EQUS) kept in a PSRAM heap that reads
-// like an included file (source SRC_HEAP), string expressions and functions, and {}
+// like an included file (by address, from ASM_HEAP_BLOCK), string expressions and functions, and {}
 // interpolation. See notes/ASSEMBLER.md.
 #include "asm_shared.h"
 
@@ -163,6 +163,7 @@ static unsigned char word_len;
 void Interpolate(void) {
   unsigned char spec[NAME_MAX + 8], n = 0, colon = 0, i, type = 0, hash = 0, zero = 0, width = 0, base, d, neg = 0;
   unsigned int v;
+  Pos at;
   char digits[17];
   Advance();
   while (ch != '}') {
@@ -187,7 +188,11 @@ void Interpolate(void) {
     else if (d >= '0' && d <= '9') width = width * 10 + d - '0';
     else type = d;
   }
-  if (sym_kind == SYM_STRING) { Push(F_TEXT, SRC_HEAP, sym_value, sym_value + sym_extra); return; }
+  if (sym_kind == SYM_STRING) {
+    at = ADDRESS(ASM_HEAP_BLOCK) + sym_value;
+    Push(F_TEXT, SRC_TEXT, at, at + sym_extra)->file = FILE_EXPANSION;
+    return;
+  }
   v = sym_value;
   if (!colon) { type = 'X'; hash = 1; }
   base = type == 'b' ? 2 : type == 'o' ? 8 : type == 'x' || type == 'X' ? 16 : 10;
@@ -206,7 +211,7 @@ void Interpolate(void) {
   if (hash) fmt_text[i++] = base == 16 ? '$' : base == 2 ? '%' : '&';
   if (zero) for (d = n + neg + hash; d < width; ++d) fmt_text[i++] = '0'; // zeros after the sign
   while (n) fmt_text[i++] = digits[--n];
-  Push(F_TEXT, SRC_FMT, 0, i);
+  Push(F_TEXT, SRC_FMT, 0, i)->file = FILE_EXPANSION;
 }
 
 void Purge(void) { Entry(found)[10] = 0; } // unfindable: its length no longer matches any name

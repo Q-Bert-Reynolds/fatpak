@@ -80,11 +80,12 @@ DEF MODULE_SOURCE_CHUNK EQU 128;bytes ModSource copies at most
 ;ASM.MOD (modules/asm.c): inside the large-file add buffer, so only text-buffer documents assemble
 DEF ASM_IMAGE_BLOCK  EQU $0400;the ROM image, up to ASM_IMAGE_BLOCKS
 DEF ASM_IMAGE_BLOCKS EQU 2048;1 MiB, 64 banks
-DEF ASM_SYMBOL_BLOCK EQU $0C00;the symbol table, 1024 blocks (65536 8-byte units)
-DEF ASM_INCLUDE_BLOCK EQU $1000;included files, 128 blocks (64 KiB) each
-DEF ASM_INCLUDES     EQU 16
-DEF ASM_CHARMAP_BLOCK EQU $1880;after the EQUS heap (the 17th include slot): names, 8 maps' heads, then a 60 KiB pool
-DEF MODULE_ABI     EQU 6;newest ABI the host provides, modules built for older ones still load
+DEF ASM_SYMBOL_BLOCK EQU $0C00;the symbol table, 1024 blocks (65536 8-byte units); the first holds the 256 hash heads
+DEF ASM_HEAP_BLOCK   EQU $1000;the EQUS heap, 128 blocks (64 KiB)
+DEF ASM_CHARMAP_BLOCK EQU $1080;names, 8 maps' heads, then a 60 KiB pool (129 blocks)
+DEF ASM_FILE_BLOCK   EQU $1110;included and INCBIN files, packed whole from here
+DEF ASM_FILE_END     EQU $3900;ADD_MAX / 512: up to the add buffer's end
+DEF MODULE_ABI     EQU 7;newest ABI the host provides, modules built for older ones still load
 DEF MODULE_TABLE   EQU $7F00;ABI jump table in resident bank 1, 3 bytes per entry
 DEF MODULE_SLOTS   EQU 32;entries reserved for it
 DEF MODULE_FORMAT  EQU 1;one page, BSS after the code

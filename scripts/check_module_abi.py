@@ -39,7 +39,7 @@ ASM = {
     # ScrollRows -> Layout: ROM0 renderer and row-table helpers only
     '_RenderSetMapRow': [], '_RenderStage': [], '_tb_ScrollRows': [],
     '_tb_Read': [],  # ROM0 text buffer readers
-    '_FileReadFile': ['_fs_ReadFile'],  # BANKED_C stub (ROM0)
+    '_FileLoadFile': ['_fs_LoadFile'],  # BANKED_C stub (ROM0)
     '_FileViewRead': ['_fs_ViewRead'],  # BANKED_C stub (ROM0)
     '_ClockFatTime': ['_rtc_FatTime'],  # BANKED_C stub (ROM0)
     '___memcpy': [],  # FatFs disk/memory helpers (ROM0)
@@ -58,7 +58,7 @@ ASM = {
 }
 INTERRUPTS = ['VBLInterrupt', 'LCDInterrupt', 'SerialInterrupt']
 # Not followed for wide modules: FatFs calls get_fattime (RTC, page 12) only when it creates or
-# writes a file, and the only file entry wide modules use (ModFile -> fs_ReadFile) opens read-only.
+# writes a file, and the only file entry wide modules use (ModFile and ModLoad -> fs_LoadFile) opens read-only.
 WIDE_UNREACHED = {'_get_fattime'}
 
 

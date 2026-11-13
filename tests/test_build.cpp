@@ -202,7 +202,9 @@ static void Sample(const char* image, const char* symbols, const char* data, con
 static void IncludeError(const char* image, const char* symbols, const char* data, bool color) {
     const std::string main = "SECTION \"x\", ROM0[$150]\n nop\nINCLUDE \"lib/bad.inc\"\n nop\n";
     Session s(image, symbols, data, color, "Main.asm", main, {{"bad.inc", "; first\n ld a, 1\n ld a, 999\n"}});
-    Check(s.command(4, "I1 L3") < 4000 && s.row(19).find(" I1 L3 VALUE TOO BIG") == 0, "an included file's error names it and its line");
+    bool named = s.command(4, "bad L3") < 4000 && s.row(19).find(" bad L3 VALUE TOO BIG") == 0;
+    if (!named) fprintf(stderr, "status row: \"%s\"\n", s.row(19).c_str());
+    Check(named, "an included file's error names it and its line");
     Check(s.word("_cursor") == main.find("INCLUDE"), "the cursor goes to the INCLUDE line");
     s.pad(A_Key);
     printf("%s include errors passed\n", color ? "CGB" : "DMG");

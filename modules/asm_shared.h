@@ -18,7 +18,7 @@ extern unsigned char run_n;
 #define Window(block) (run_n = 0, *(volatile unsigned char*)0xBD03 = (unsigned char)((block) >> 8), *(volatile unsigned char*)0xBD02 = (unsigned char)(block)) // high, then low (lib/psram.h)
 #endif
 
-#define NAME_MAX 63
+#define NAME_MAX 79
 
 // asm.c
 extern AsmContext* context;
@@ -43,7 +43,7 @@ extern unsigned int oval[2];
 void Fail(unsigned char code);
 
 // asm_emit.c
-extern unsigned int scope, found, sym_value, sym_extra, next_unit, heads[256];
+extern unsigned int scope, found, sym_value, sym_extra, next_unit;
 extern unsigned char sym_kind, sym_bank, sym_seen; // sym_seen: Mark()ed
 extern unsigned char in_section, sec_rom, sec_bank, rom_used;
 extern unsigned int pc, sec_last;
@@ -64,8 +64,8 @@ void Header(void);
 #define SYM_LABEL 0
 #define SYM_EQU   1
 #define SYM_VAR   2
-#define SYM_MACRO 3 // value: body start, bank: source, extra: body end
-#define SYM_INCLUDE 4 // name: the path, value: source number
+#define SYM_MACRO 3 // value, bank: the body's address (bits 0-15, 16-23), extra: its length
+#define SYM_INCLUDE 4 // name: the path, value: its first block, bank and extra: its size (bits 16-23, 0-15)
 #define SYM_STRING 5 // EQUS: value: heap offset, extra: length
 #define SYM_SEEN 0x80 // with the kind: defined this pass (see Mark)
 
@@ -109,13 +109,23 @@ void Header(void);
 #define F_REPT 2
 #define F_ARG 3
 #define FRAMES 16
+// Text is read by address (Pos): below 64 KiB the document, else a PSRAM byte
+// (block << 9 | offset): files, the EQUS heap. Small sources in memory have their own numbers.
+typedef unsigned long Pos;
+#define BLOCK(p) ((unsigned int)((p) >> 8) >> 1)
+#define ADDRESS(block) ((Pos)(block) << 9)
+#define SRC_TEXT 0 // by address
 #define SRC_ARGS 0xFF // args[]
 #define SRC_ID 0xFE // idtext[]
+#define FILE_EXPANSION 0xFFFF // Frame.file of an EQUS or {} expansion
 typedef struct {
   unsigned char kind, source;
-  unsigned int pos, end; // the next character, one past the last
-  unsigned int start, count; // a repeat body's first character and iterations left
-  unsigned int line, line_pos; // in the source, from 1; where its current line starts
+  Pos pos, end; // the next character, one past the last
+  Pos start; // a repeat body's first character
+  unsigned int count; // and its iterations left
+  Pos line_pos; // where its current line starts
+  unsigned int line; // in the file, from 1
+  unsigned int file; // the INCLUDE symbol of the file it's in (0: the document), or FILE_EXPANSION
   unsigned int first_line; // a repeat body's, for rewinding
   unsigned int for_unit, for_step; // FOR: its variable's symbol unit (0 for REPT) and step
   unsigned int id; // \@
@@ -129,7 +139,7 @@ typedef struct {
 typedef struct {
   unsigned char type, bank, align, flags; // type: index into the region tables (ROM0 ROMX VRAM SRAM WRAM0 WRAMX OAM HRAM)
   unsigned int start, size, base; // pass 1's start (the address, or the region's start), size; Link's address
-  unsigned char file; // where it was declared, for errors
+  unsigned int file; // where it was declared, for errors
   unsigned int line, pos;
 } Sect;
 extern Sect sects[ASM_SECTIONS];
@@ -137,14 +147,14 @@ extern unsigned char nsects, cur;
 unsigned char Link(void);
 void Relocate(void);
 extern Frame frames[FRAMES];
-extern unsigned char depth, chunk_n, arg_top, includes, max_bank;
+extern unsigned char depth, chunk_n, arg_top, max_bank;
 extern char args[256], path[128];
-extern unsigned int unique, inc_len[ASM_INCLUDES];
+extern unsigned int unique;
 unsigned char Keyword(unsigned char which); // the index of ident in a T_ table, 0xFF if absent
 unsigned char IsStart(unsigned char c);
 unsigned char IsIdentChar(unsigned char c);
 Frame* TextFrame(void);
-Frame* Push(unsigned char kind, unsigned char source, unsigned int pos, unsigned int end);
+Frame* Push(unsigned char kind, unsigned char source, Pos pos, Pos end); // file: the current frame's
 void ToEnd(void);
 void Operands(void);
 void Pass(unsigned char p);
@@ -164,9 +174,7 @@ unsigned char* Entry(unsigned int unit);
 // asm_str.c: string symbols on a heap in PSRAM, string expressions, {} interpolation
 #define STR_SIZE 256
 #define FMT_SIZE 24
-#define SRC_HEAP (ASM_INCLUDES + 1) // a source like an included file: the EQUS heap
 #define SRC_FMT 0xFD // fmt_text
-#define ASM_HEAP_BLOCK (ASM_INCLUDE_BLOCK + (ASM_INCLUDES << 7))
 extern char str[], fmt_text[]; // sized in asm_str.c (asm_nostr.c leaves them tiny)
 extern unsigned int str_top, heap_top;
 extern unsigned char redef, literal, bs_literal; // REDEF is defining; >0: no {} interpolation (comments, skipping)
@@ -184,15 +192,19 @@ void Expand(void); // asm.c: the string symbol just read replaces it in the sour
 #define SKIP_IF 0
 #define SKIP_REPT 1
 #define SKIP_MACRO 2
-extern unsigned int scan_begin;
+extern Pos scan_begin;
 unsigned char Scan(unsigned char mode); // asm.c: skips lines to the directive that ends them
 void Line(void);
 void Label(void); // asm_line.c
 void Statement(void);
 void DefineValue(unsigned char kind, unsigned int v); // name gets v
 void Repeat(unsigned int n, unsigned int unit, unsigned int step); // the body after this line n times
-unsigned char OpenFile(void); // INCLUDE and INCBIN's "path": its source number, 0 if it failed
+unsigned int OpenFile(void); // INCLUDE and INCBIN's "path": its symbol, 0 if it failed; sets file_at, file_size
+extern Pos file_at, file_size;
+extern unsigned int file_top; // the next free block from ASM_FILE_BLOCK
 void StepVar(unsigned int unit, unsigned int step); // asm_emit.c: FOR's variable moves on
 void For(void); // asm_str.c
 void Incbin(void);
+void Include(void); // asm_loop.c
+void Report(unsigned int file, unsigned int line, Pos at); // asm_line.c: where the error is, into the context
 #endif

@@ -1,6 +1,6 @@
 // ASM.MOD: a two-pass assembler for an RGBDS subset (notes/ASSEMBLER.md). The host
 // (src/editor/build.c) runs it on the open document: the source streams in through
-// ModSource (includes through ModFile into PSRAM), labels and constants go in a hashed
+// ModSource (files through ModLoad into PSRAM), labels and constants go in a hashed
 // table in PSRAM, and the ROM image is built in PSRAM from ASM_IMAGE_BLOCK with its logo
 // and checksums fixed like rgbfix -v.
 // This page reads characters: the stream and its frames, words, expressions, operands,
@@ -147,16 +147,19 @@ char args[256];
 unsigned char arg_top;
 static char idtext[8];
 unsigned int unique; // the last \@
-unsigned int inc_len[ASM_INCLUDES];
-unsigned char includes;
 char path[128];
 static unsigned int* lf_line; // the line count of the frame a line feed in ch came from
 unsigned char ch;
 unsigned char error, pass;
 
 // a byte of a source
-static unsigned char Raw(unsigned char source, unsigned int p) {
-  if (source == 0) {
+static unsigned char Raw(unsigned char source, Pos at) {
+  unsigned int p = (unsigned int)at;
+  if (source == SRC_TEXT) {
+    if (at >> 16) {
+      Window(BLOCK(at));
+      return WINDOW[p & 511];
+    }
     if (p < chunk_pos || p >= chunk_pos + chunk_n) {
       chunk_pos = p;
       chunk_n = ModSource(p, buf);
@@ -164,22 +167,21 @@ static unsigned char Raw(unsigned char source, unsigned int p) {
     }
     return buf[p - chunk_pos];
   }
-  if (source == SRC_ARGS) return args[p];
-  if (source == SRC_ID) return idtext[p];
-  if (source == SRC_FMT) return fmt_text[p];
-  Window(ASM_INCLUDE_BLOCK + ((unsigned int)(source - 1) << 7) + (p >> 9));
-  return WINDOW[p & 511];
+  if (source == SRC_ARGS) return args[(unsigned char)p];
+  if (source == SRC_ID) return idtext[(unsigned char)p];
+  return fmt_text[(unsigned char)p];
 }
 Frame* TextFrame(void) { // the innermost frame that is real text
   Frame* f = &frames[depth];
   while (f->kind == F_ARG) --f;
   return f;
 }
-Frame* Push(unsigned char kind, unsigned char source, unsigned int pos, unsigned int end) {
+Frame* Push(unsigned char kind, unsigned char source, Pos pos, Pos end) {
   Frame* f;
   if (depth == FRAMES - 1) { Fail(ASM_ERR_NESTING); return &frames[depth]; }
   run_n = 0;
   f = &frames[++depth];
+  f->file = f[-1].file;
   f->kind = kind;
   f->source = source;
   f->pos = f->start = pos;
@@ -214,7 +216,7 @@ static void PushId(void) { // \@: _ and the innermost macro or repeat's number
 }
 unsigned char run_n;
 static const unsigned char* run_p;
-static unsigned int* run_pos; // the frame's pos
+static Pos* run_pos; // the frame's pos
 static unsigned int* run_line; // and its line count
 static unsigned char run_expand; // a macro or repeat body: a backslash goes the slow way
 // the next character into ch. Most come from the current run: on the device that's the
@@ -276,6 +278,9 @@ void Advance(void) __naked {
 	jr	nz, .counted
 	inc	hl
 	inc	[hl]
+	jr	nz, .counted
+	inc	hl
+	inc	[hl]
 .counted:
 	ld	a, [_ch]
 	cp	a, 10
@@ -295,7 +300,8 @@ unsigned char literal, bs_literal;
 void AdvanceSlow(void) {
   Frame* f;
   unsigned char c, n, prev;
-  unsigned int p, left;
+  unsigned int o;
+  Pos p;
   if (error) { ch = 0; return; }
   if (ch == 10) ++*lf_line; // counted as it's left, so an error at a line's end stays on it
   prev = ch; // \{ is a brace, not interpolation
@@ -318,7 +324,7 @@ void AdvanceSlow(void) {
       if (!depth) { ch = 0; return; }
       if (f->kind == F_MACRO) arg_top = f->args;
       --depth;
-      if (f->kind == F_TEXT && f->source && f->source <= ASM_INCLUDES) { // a file's end ends its last line
+      if (f->kind == F_TEXT && f->file && f->file != FILE_EXPANSION) { // a file's end ends its last line
         lf_line = &f->line; // (counted in the finished frame, not the one that included it)
         ch = 10;
         return;
@@ -326,12 +332,12 @@ void AdvanceSlow(void) {
       continue;
     }
     p = f->pos;
-    left = f->end - p;
-    if (f->source <= SRC_HEAP) { // text: set up the run that follows this byte
-      c = Raw(f->source, p);
-      run_p = f->source ? WINDOW + (p & 511) : (const unsigned char*)buf + (p - chunk_pos);
-      n = f->source ? 512 - (p & 511) > 255 ? 255 : 512 - (p & 511) : chunk_pos + chunk_n - p;
-      if (n > left) n = (unsigned char)left;
+    if (f->source == SRC_TEXT) { // text: set up the run that follows this byte
+      c = Raw(SRC_TEXT, p);
+      o = (unsigned int)p;
+      if (p >> 16) { run_p = WINDOW + (o & 511); o = 512 - (o & 511); n = o > 255 ? 255 : (unsigned char)o; }
+      else { run_p = (const unsigned char*)buf + (o - chunk_pos); n = chunk_pos + chunk_n - o; }
+      if (f->end - p < n) n = (unsigned char)(f->end - p);
       run_n = n ? n - 1 : 0; // after this one (none if the document's text ran out)
       ++run_p;
       run_pos = &f->pos;
@@ -458,10 +464,10 @@ static unsigned int Primary(void);
 // a string symbol's text replaces the name just read: the character after the name (in ch)
 // goes back to be read again after the text
 void Expand(void) {
-  unsigned int start = sym_value;
+  Pos start = ADDRESS(ASM_HEAP_BLOCK) + sym_value;
   if (ch) --frames[depth].pos;
   ch = 0;
-  Push(F_TEXT, SRC_HEAP, start, start + sym_extra);
+  Push(F_TEXT, SRC_TEXT, start, start + sym_extra)->file = FILE_EXPANSION;
   Advance();
 }
 static unsigned int Symbol(void) { // ident is a name, a function or the register c
@@ -586,7 +592,7 @@ unsigned int Constant(void) { // an expression that must be known in pass 1: siz
 // Starts on the line feed before them; stops after the directive word that ends them,
 // with scan_begin = the position of that line's start. Nested IF/ENDC and REPT/ENDR pairs
 // are passed over, so are """ block strings.
-unsigned int scan_begin;
+Pos scan_begin;
 static unsigned char ScanLines(unsigned char mode) {
   unsigned char nest = 0, block = 0, quotes, d;
   Frame* f;
@@ -669,47 +675,8 @@ unsigned char okind[2], oreg[2], nops;
 unsigned int oval[2];
 
 
-// rgbasm's version symbols: this assembles what RGBDS 1.0 does, where it does
-static void Builtin(const char* word, unsigned int value) {
-  for (ident_len = 0; (ident[ident_len] = word[ident_len]) != 0; ++ident_len);
-  Add(SYM_EQU | SYM_SEEN, value, 0); // defined before both passes
-}
-
+unsigned char Main(void); // asm_main.c
 unsigned char ModuleMain(AsmContext* c) {
-  unsigned int blocks, i;
-  Frame* f;
   context = c;
-  c->symbols = 0;
-  next_unit = 1; // unit 0 means "none"
-  for (i = 0; i < 256; ++i) heads[i] = 0;
-  heap_top = 0;
-  Builtin("__RGBDS_MAJOR__", 1);
-  Builtin("__RGBDS_MINOR__", 0);
-  Builtin("__RGBDS_PATCH__", 1);
-  Pass(1);
-  if (!error && !rom_used) Fail(ASM_ERR_EMPTY);
-  if (!error && (i = Link()) != 0xFF) { // reported at the section that doesn't fit
-    error = sects[i].flags & SECT_ADDRESS ? ASM_ERR_OVERLAP : ASM_ERR_FULL;
-    c->file = sects[i].file;
-    c->line = sects[i].line;
-    c->pos = sects[i].pos;
-    return error;
-  }
-  if (!error) {
-    Relocate();
-    for (blocks = 64; blocks < (unsigned int)(max_bank + 1) << 5; blocks <<= 1);
-    c->blocks = blocks;
-    Fill();
-    Pass(2);
-  }
-  if (!error) Header();
-  // an error in a macro body is reported at its invocation (whose line feed was already
-  // counted); one in a repeat at the body line
-  // (expansions of string symbols and {} report the line they're on)
-  for (f = &frames[depth], i = 0; f > frames && (f->kind == F_MACRO || f->kind == F_ARG || f->source >= SRC_HEAP); --f)
-    if (f->kind == F_MACRO) i = 1;
-  c->file = f->source;
-  c->line = f->line - i;
-  c->pos = f->source ? frames[0].line_pos : f->line_pos;
-  return error;
+  return Main();
 }

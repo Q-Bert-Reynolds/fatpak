@@ -173,6 +173,18 @@ static void Modules(const char* image,const char* symbols,const char* data,const
         Check(file("src/inc/deep.inc")==4 && first()=='D',"INCLUDE finds a path from a folder above it (a project's root)");
         Check(file("lib/base.inc")==5 && first()=='B',"INCLUDE falls back to the base name in the document's folder");
         Check(file("nothere.inc")==0,"a missing INCLUDE reads nothing");
+        Check(file("Large.txt")==0xFFFF,"ModFile refuses 64 KiB and more");
+        // ModLoad (ABI 7): any size, into a range of blocks; a ModuleLoad {block, blocks, size}
+        unsigned load=syms.at("tile_buffer")+0x100;
+        auto big=[&](unsigned blocks){
+            memory->Write(load,0x10);memory->Write(load+1,0x11);memory->Write(load+2,blocks&255);memory->Write(load+3,blocks>>8);
+            for(unsigned i=4;i<8;++i)memory->Write(load+i,0xEE);
+            Text(memory,path,"Large.txt");return Call(core,syms.at("_ModuleAPILoad"),path,0,load);};
+        auto size=[&](){unsigned v=0;for(unsigned i=0;i<4;++i)v|=memory->Read(load+4+i)<<(8*i);return v;};
+        auto at=[&](unsigned block,unsigned offset){memory->Write(0xBD03,block>>8);memory->Write(0xBD02,block&255);return memory->Read(0xBE00+offset);};
+        Check(big(137)==0 && size()==70000,"ModLoad reads a file over 64 KiB and its size");
+        Check(at(0x1110,0)=='z' && at(0x1110+136,70000-136*512-1)=='z' && at(0x1110+136,63)=='\n',"ModLoad's blocks hold the whole file");
+        Check(big(136)==2 && size()==70000,"ModLoad refuses a file that doesn't fit its blocks");
         memory->Write(syms.at("_file_dir"),0);
         memory->Write(0xBD03,1);memory->Write(0xBD02,0x34);
     }

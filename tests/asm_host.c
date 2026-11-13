@@ -22,24 +22,33 @@ unsigned char ModSource(unsigned short pos, char* dest) {
 unsigned char ModuleMain(AsmContext* c);
 
 static char source_dir[1024];
-static unsigned short Load(const char* name, unsigned short block) {
-  char full[2048]; FILE* f; long size; unsigned char* at = psram + (unsigned long)block * 512;
-  snprintf(full, sizeof(full), "%s%s", source_dir, name);
+typedef struct { unsigned short block, blocks; unsigned long size; } ModuleLoad; // sdk.h's, with 16-bit ints
+static unsigned char Load(const char* name, unsigned n, ModuleLoad* load) { // the first n characters of source_dir, then name
+  char full[2048]; FILE* f; long size; unsigned char* at = psram + (unsigned long)load->block * 512;
+  snprintf(full, sizeof(full), "%.*s%s", (int)n, source_dir, name);
   f = fopen(full, "rb");
-  if (!f) return 0;
+  if (!f) return 1;
   fseek(f, 0, SEEK_END); size = ftell(f); fseek(f, 0, SEEK_SET);
-  if (size >= 0x10000) { fclose(f); return 0xFFFF; }
+  load->size = size;
+  if (size >= 0x1000000 || (size + 511) / 512 > load->blocks) { fclose(f); return 2; }
   if (fread(at, 1, size, f) != (size_t)size) size = 0;
   fclose(f);
-  return (unsigned short)size;
+  return 0;
 }
 static unsigned files;
-unsigned short ModFile(const char* path, unsigned short block) {
-  unsigned short length = Load(path, block);
+// like the OS (src/modules/runtime.c): from the source's folder, then each folder above it,
+// then the base name in the source's folder
+unsigned char ModLoad(const char* path, ModuleLoad* load) {
+  unsigned n = strlen(source_dir), end = n;
+  unsigned char result;
   const char* base = strrchr(path, '/');
-  if (!length && base) length = Load(base + 1, block);
-  if (getenv("ASM_HOST_FILES")) fprintf(stderr, "I%u %s (%u bytes)\n", ++files, path, length);
-  return length;
+  while ((result = Load(path, n, load)) == 1 && n) {
+    --n; // past the folder's own slash, to the one before it
+    while (n && source_dir[n - 1] != '/') --n;
+  }
+  if (result == 1 && base) result = Load(base + 1, end, load);
+  if (getenv("ASM_HOST_FILES")) fprintf(stderr, "%u %s (%lu bytes at block %u)\n", ++files, path, load->size, load->block);
+  return result;
 }
 
 int main(int argc, char** argv) {
@@ -53,7 +62,7 @@ int main(int argc, char** argv) {
   source = malloc(source_len + 1);
   fread(source, 1, source_len, f); fclose(f);
   status = ModuleMain(&c);
-  printf("%u %u %u %u %u %u\n", status, c.line, c.pos, c.blocks, c.symbols, c.file);
+  printf("%u %u %u %u %u %u %s\n", status, c.line, c.pos, c.blocks, c.symbols, c.file, c.file ? c.name : "");
   if (!status && argc > 2) {
     f = fopen(argv[2], "wb");
     fwrite(psram + 0x0400ul * 512, 512, c.blocks, f);

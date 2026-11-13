@@ -22,13 +22,13 @@ def ours(source, work):
     src = work / 'in.asm'
     src.write_text(source)
     out = run([str(HOST), str(src), str(work / 'ours.gb')]).stdout.split()
-    status, line, pos, blocks, symbols, file = map(int, out)
+    status, line, pos, blocks, symbols, file = map(int, out[:6])
     return status, line, pos, (work / 'ours.gb').read_bytes() if not status else b''
 
 def assemble(path, work):
     """our status, line and file for a source file in place (includes resolve beside it)"""
     out = run([str(HOST), str(path), str(work / 'ours.gb')]).stdout.split()
-    return int(out[0]), int(out[1]), int(out[5])
+    return int(out[0]), int(out[1]), out[6] if len(out) > 6 else 'the document'
 
 def theirs(source, work, cwd=None):
     src = work / 'in.asm'
@@ -70,7 +70,7 @@ ERRORS = [ # source, expected error, line
     ('SECTION "a", ROMX, BANK[0]\n nop\n', 'BANK', 1),
     ('SECTION "a", ROM0[0]\n ld a,, b\n', 'SYNTAX', 2),
     ('SECTION "a", WRAM0\n db 1\n', 'SECTION', 2),
-    ('SECTION "a", ROM0[0]\n nop\n ld a, ' + 'x' * 64 + '\n', 'NAME', 3),
+    ('SECTION "a", ROM0[0]\n nop\n ld a, ' + 'x' * 80 + '\n', 'NAME', 3),
 ]
 
 def sections(work, cases=150):
@@ -107,6 +107,24 @@ def sections(work, cases=150):
     print(f'sections: {cases} random layouts, ' + (f'{bad} differ' if bad else 'all placed like rgblink'))
     return 1 if bad else 0
 
+def large_files(folder):
+    """an include and an INCBIN over 64 KiB: a macro and a REPT body defined past 64 KiB"""
+    filler = ''.join(f'; filler line {i:05d} keeps this file over 64 KiB\n' for i in range(1500))
+    (folder / 'lib').mkdir(exist_ok=True)
+    (folder / 'lib' / 'big.inc').write_text(filler + 'MACRO far_away\n db \\1, \\1 + 1\nENDM\nFarLabel:\nREPT 3\n db $AA\nENDR\n far_away 7\n')
+    (folder / 'lib' / 'big.bin').write_bytes(bytes(i * 7 & 255 for i in range(70000)))
+    return 'SECTION "a", ROM0[$150]\nINCLUDE "lib/big.inc"\n far_away 9\n dw FarLabel\n INCBIN "lib/big.bin", 1000, 16\n INCBIN "lib/big.bin", 65530, 12\n' # (offsets past 64 KiB need 32-bit values)
+
+def large(work):
+    source = large_files(work)
+    status, line, pos, image = ours(source, work)
+    if status:
+        print(f'large files: FAIL line {line}: {NAMES.get(status, status)}'); return 1
+    if image != theirs(source, work, cwd=work):
+        print('large files: FAIL differs from RGBDS'); return 1
+    print(f'large files: {len(image)} bytes match')
+    return 0
+
 def main():
     # the module's ints are 16 bits on SDCC: build it that way here too
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '.o', str(ROOT / 'modules/asm.c')])
@@ -114,7 +132,8 @@ def main():
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '3.o', str(ROOT / 'modules/asm_line.c')])
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '4.o', str(ROOT / 'modules/asm_str.c')])
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '5.o', str(ROOT / 'modules/asm_loop.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c'), str(HOST) + '.o', str(HOST) + '2.o', str(HOST) + '3.o', str(HOST) + '4.o', str(HOST) + '5.o'])
+    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '6.o', str(ROOT / 'modules/asm_main.c')])
+    run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c')] + [str(HOST) + suffix + '.o' for suffix in ('', '2', '3', '4', '5', '6')])
     failed = 0
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
@@ -152,6 +171,7 @@ def main():
                 print(f'src/{name}: FAIL differs from RGBDS'); failed += 1
             else:
                 print(f'src/{name}: {len(mine)} bytes match')
+        failed += large(work)
         failed += sections(work)
         for source, name, line in ERRORS:
             status, got, pos, _ = ours(source, work)

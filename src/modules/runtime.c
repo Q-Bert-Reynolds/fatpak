@@ -53,12 +53,14 @@ static void Unrecoverable(void) {
   RestartDevice();
 }
 
+static unsigned char file_level; // ModFile/ModLoad: the folder level (characters of file_dir) that last found one, 0xFF none yet
 unsigned char RunModule(const char* path, unsigned char id) {
   unsigned char result, pages = 0, buffers = 0, i, ie; // pages backed up (each is restored), the buffers saved
   unsigned int window = WINDOW_BLOCK; // modules may move it
   if (module_busy) return FR_LOCKED;
   module_busy = 1;
   module_fail = 0;
+  file_level = 0xFF;
   result = fs_LoadModule(path, id);
   if (!result) {
     for (i = 0; i <= module_wide && !result; ++i) { // the first page, then a wide module's others
@@ -236,40 +238,53 @@ unsigned char ModuleAPISource(unsigned int pos, char* dest) {
 }
 // ModuleAPIFar is in runtime.asm: wide modules' cross-page thunks
 
-// ABI 5
-// A file into PSRAM blocks from block: the path is relative to the document's folder, or
-// failing that its base name is looked for there. Returns the length, 0 if it can't be read,
-// 0xFFFF if it's 64 KiB or more. For ASM.MOD's INCLUDE.
-// the first n characters of the document's folder, "/", name into full (JoinPath is in page 5,
-// which ASM.MOD borrows); 0 if it doesn't fit
-static unsigned char Join(char* full, unsigned char n, const char* name) {
+// ABI 5 and 7: ASM.MOD's files, read whole into PSRAM. The path is tried relative to the document's folder, then to each folder above it (RGBDS resolves
+// includes from where it runs, usually a project's root: "src/x.inc" from src/main.asm), then
+// its base name in the document's folder. A build's files mostly resolve from one folder, so
+// the one that worked last is tried first.
+// FileTry and FileSearch: 0 read, 1 not there or unreadable, 2 too big
+static unsigned char FileTry(unsigned char n, const char* name, ModuleLoad* load) { // file_dir's first n characters, "/", name
+  char full[PATH_SIZE + FS_NAME_SIZE]; // name is in the module's WRAMX BSS, readable throughout
   unsigned char i;
-  const char* p;
   for (i = 0; i < n; ++i) full[i] = file_dir[i];
   full[i++] = '/';
-  for (p = name; *p; ++p) { if (i == PATH_SIZE + FS_NAME_SIZE - 1) return 0; full[i++] = *p; }
+  while (*name) { if (i == sizeof(full) - 1) return 1; full[i++] = *name++; }
   full[i] = 0;
-  return 1;
+  return FileLoadFile(full, load);
 }
-// path relative to the document's folder, then to each folder above it (RGBDS resolves
-// includes from where it runs, usually a project's root: "src/x.inc" from src/main.asm), then
-// its base name in the document's folder
-unsigned int ModuleAPIFile(const char* path, unsigned int block) {
-  char full[PATH_SIZE + FS_NAME_SIZE]; // path is in the module's WRAMX BSS, readable throughout
+static unsigned char FileSearch(const char* path, ModuleLoad* load) {
   const char *base = path, *p;
-  unsigned int length;
-  unsigned char n = 0;
+  unsigned char n = 0, end, result;
   while (file_dir[n]) ++n;
+  end = n;
+  if (file_level <= end && (result = FileTry(file_level, path, load)) != 1) return result;
   while (1) {
-    if (Join(full, n, path) && (length = FileReadFile(full, block))) return length;
+    if (n != file_level && (result = FileTry(n, path, load)) != 1) { file_level = n; return result; }
     if (!n) break;
-    while (n && file_dir[n - 1] != '/') --n; // up a folder
-    if (n) --n;
+    while (n && file_dir[--n] != '/'); // up a folder
   }
   for (p = path; *p; ++p) if (*p == '/') base = p + 1;
-  while (file_dir[n]) ++n;
-  if (base == path || !Join(full, n, base)) return 0;
-  return FileReadFile(full, block);
+  return base != path ? FileTry(end, base, load) : 1;
+}
+// ModFile: into PSRAM from block; the length, 0 if it can't be read, 0xFFFF if it's 64 KiB or more
+unsigned int ModuleAPIFile(const char* path, unsigned int block) {
+  ModuleLoad load;
+  unsigned char result;
+  load.block = block;
+  load.blocks = 128;
+  result = FileSearch(path, &load);
+  return result ? result == 2 ? 0xFFFF : 0 : (unsigned int)load.size;
+}
+// ABI 7: the same search for a file of any size: into load->blocks blocks from load->block;
+// load->size gets its size. 0 if it's there, 1 if it can't be read, 2 if it doesn't fit.
+unsigned char ModuleAPILoad(const char* path, ModuleLoad* load) {
+  ModuleLoad here; // the module's is in WRAMX
+  unsigned char result;
+  here.block = load->block;
+  here.blocks = load->blocks;
+  result = FileSearch(path, &here);
+  load->size = here.size;
+  return result;
 }
 
 // ABI 6: HEXVIEW.MOD

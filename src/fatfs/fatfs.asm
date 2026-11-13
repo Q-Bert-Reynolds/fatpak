@@ -12,7 +12,7 @@ INCLUDE "src/fatpak.inc"
 ;   FileSaveSwap                OS mode: writes the text, clipboard and settings to the swap file, returns FRESULT in a
 ;   FileLoadSwap                OS mode: restores them at boot if PSRAM lost them, returns FRESULT in a
 ;   FileWriteImage              de = path, bc = blocks: writes the assembled ROM image from PSRAM, returns FRESULT in a
-;   FileReadFile                de = path, bc = first block: copies the file to PSRAM, returns its length in bc (0, or $FFFF if too big)
+;   FileLoadFile                de = path, bc = ModuleLoad*: copies the file to PSRAM from its block, at most its blocks; sets its size, returns 0, 1 can't open/read, 2 too big
 ;   FileViewOpen                de = path, opens it read only for HEXVIEW.MOD (sets view_size), returns FRESULT in a
 ;   FileViewRead                de = count (at most 512), reads from view_pos into buffer, returns the bytes read in bc
 ;   FileViewClose               closes it
@@ -34,7 +34,7 @@ _FileLoadData::  BANKED_C _fs_LoadData
 _FileSaveSwap::  BANKED_C _fs_SaveSwap
 _FileLoadSwap::  BANKED_C _fs_LoadSwap
 _FileWriteImage:: BANKED_C _fs_WriteImage
-_FileReadFile::  BANKED_C _fs_ReadFile
+_FileLoadFile::  BANKED_C _fs_LoadFile
 _FileViewOpen::  BANKED_C _fs_ViewOpen
 _FileViewRead::  BANKED_C _fs_ViewRead
 _FileViewClose:: BANKED_C _fs_ViewClose

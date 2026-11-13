@@ -45,9 +45,9 @@ void BuildFile(unsigned char run) {
   result = RUN_MODULE(ASM);
   HideBox();
   if (result) { ShowModuleError(result); return; }
-  if (module_status) { // the cursor goes to the line, or to the INCLUDE of the file (In)
+  if (module_status) { // the cursor goes to the line, or to the INCLUDE of the file (named)
     end = text;
-    if (context.file) { *end++ = 'I'; end = PutNumber(end, context.file); *end++ = ' '; }
+    if (context.file) { end = PutText(end, context.name); *end++ = ' '; }
     *end++ = 'L';
     end = PutNumber(end, context.line);
     *end++ = ' ';

@@ -83,11 +83,12 @@
 //ASM.MOD (modules/asm.c): inside the large-file add buffer, so only text-buffer documents assemble
 #define ASM_IMAGE_BLOCK  0x0400u//the ROM image, up to ASM_IMAGE_BLOCKS
 #define ASM_IMAGE_BLOCKS 2048//1 MiB, 64 banks
-#define ASM_SYMBOL_BLOCK 0x0C00u//the symbol table, 1024 blocks (65536 8-byte units)
-#define ASM_INCLUDE_BLOCK 0x1000u//included files, 128 blocks (64 KiB) each
-#define ASM_INCLUDES     16
-#define ASM_CHARMAP_BLOCK 0x1880u//after the EQUS heap (the 17th include slot): names, 8 maps' heads, then a 60 KiB pool
-#define MODULE_ABI     6//newest ABI the host provides, modules built for older ones still load
+#define ASM_SYMBOL_BLOCK 0x0C00u//the symbol table, 1024 blocks (65536 8-byte units)// the first holds the 256 hash heads
+#define ASM_HEAP_BLOCK   0x1000u//the EQUS heap, 128 blocks (64 KiB)
+#define ASM_CHARMAP_BLOCK 0x1080u//names, 8 maps' heads, then a 60 KiB pool (129 blocks)
+#define ASM_FILE_BLOCK   0x1110u//included and INCBIN files, packed whole from here
+#define ASM_FILE_END     0x3900u//ADD_MAX / 512: up to the add buffer's end
+#define MODULE_ABI     7//newest ABI the host provides, modules built for older ones still load
 #define MODULE_TABLE   0x7F00u//ABI jump table in resident bank 1, 3 bytes per entry
 #define MODULE_SLOTS   32//entries reserved for it
 #define MODULE_FORMAT  1//one page, BSS after the code
