@@ -1,10 +1,8 @@
-INCLUDE "src/keyboard/usb_hid_keys.asm";USB HID key codes
 INCLUDE "src/keyboard/ps2_keys.asm";PS/2 keys codes
 
 ;kb_type
 DEF KB_TYPE_NONE EQU 0
 DEF KB_TYPE_PS2  EQU 1
-DEF KB_TYPE_IGKB EQU 2
 
 ;kb_mode
 DEF KB_MODE_NONE    EQU 0
@@ -112,7 +110,6 @@ INCLUDE "src/keyboard/kb_jump_table.asm"
 INCLUDE "src/keyboard/kb_handlers.asm"
 INCLUDE "src/keyboard/ps2_ascii_keymaps.asm"
 INCLUDE "src/keyboard/ps2_handlers.asm"
-INCLUDE "src/keyboard/igkb_handlers.asm"
 
 DetectKeyboard::
   xor a
@@ -128,7 +125,7 @@ DetectKeyboard::
   ld a, [kb_error]
   cp a, PS2_ERROR_TIMEOUT | PS2_ERROR_PARITY_BIT | PS2_ERROR_FINISH_BIT
   jr nz, .usePS2Clock;if magic error code not received, PS2 connected
-  ld a, KB_TYPE_NONE;KB_TYPE_IGKB
+  ld a, KB_TYPE_NONE
   ld [kb_type], a
   ret
 .usePS2Clock
@@ -171,29 +168,10 @@ ProcessKeyCodes::
   and a
   ret z;exit early if KB_MODE_NONE
   ld a, [kb_type]
-.processPS2
   cp a, KB_TYPE_PS2
-  jr nz, .processIGKB
+  ret nz;no keyboard
   call ProcessPS2KeyCodes
   jr KBRepeatHeldKey
-.processIGKB
-  cp a, KB_TYPE_IGKB
-  ret nz;unknown mode
-  ;fall through to process IG key codes
-
-ProcessIGKeyCodes:
-  xor a
-  ldh [rSB], a
-  ld a, SCF_START | SCF_SOURCE
-  ldh [rSC], a ;ask for byte using gb clock
-  ld de, 5
-  call gbdk_Delay
-  ldh a, [rSB]
-  and a
-  ret z
-  cp a, $FF
-  ret z
-  jp IGKBHandleCode
 
 ProcessPS2KeyCodes:
   ld a, [kb_buffer_write]

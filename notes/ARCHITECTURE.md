@@ -73,7 +73,7 @@ flowchart LR
 | `src/ui/` | Layout, renderer, boxes, text formatting, footer clock, frame waits, theme/color, SGB, fades, icon escapes |
 | `src/game/` | Loader UI (`loader.c`), loading display (`loading.asm`), launch (`launch.asm`), cart menu (`ingame.asm`), snapshots (`snapshot.asm`) |
 | `src/fatfs/` | FatFs (`lib/`), SD/SPI (`sd.asm`), file API and game-file formats (`fatfs.c`) |
-| `src/keyboard/` | PS/2 and iGKB drivers, keyboard-test host (`test.c`) |
+| `src/keyboard/` | PS/2 driver, keyboard-test host (`test.c`) |
 | `src/rtc/` | Calendar I2C, clock-dialog host, date validation, FAT timestamps, game RTC |
 | `src/modules/`, `modules/` | Overlay loader and module ABI wrappers; module sources and `abi.json` ([MODULES.md](MODULES.md)) |
 | `src/core.asm`, `gbdk.asm`, `memory1.asm`, `math.asm`, `strings.asm`, `far_call.asm` | Trampoline, VBlank waits, tile/sprite/memory copies, a multiply and 32-bit divide, `PutNumber` (decimal text), `FarCall` |
@@ -198,7 +198,8 @@ undo or unsaved large-file edits.
   (legacy, unused). No host-to-keyboard traffic, so no LEDs/caps lock.
   Detected at boot; KEYBOARD TEST calls `KBListen` later. In Gearboy, Caps Lock
   toggles the emulated keyboard.
-- **iGKB** handlers exist; detection is disabled.
+- **iGKB**: removed (2026-11-13; detection had been disabled and it was untested).
+  The handlers and USB HID key codes are in git history before that.
 
 ## Editor
 

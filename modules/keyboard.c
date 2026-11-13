@@ -20,7 +20,7 @@ unsigned char ModuleMain(void) {
   read = state.write; boot = state.type; bytes = state.bytes; errors_seen = state.errors;
   ModListen();
   ModRow(0, Str(S_KB_TITLE));
-  ModRow(1, Str(boot == 1 ? S_KB_PS2 : boot ? S_KB_IGKB : S_KB_NONE));
+  ModRow(1, Str(boot ? S_KB_PS2 : S_KB_NONE));
   ModRow(4, Str(S_KB_CODES));
   ModRow(TB_ROWS - 1, Str(S_KB_BACK));
   while (1) {

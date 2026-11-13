@@ -178,7 +178,6 @@ CHECK_BAD,row,,Bad,Mal
 MAPPER_TYPE,row,an unknown mapper's number follows,type ,tipo 
 KB_TITLE,row,keyboard test,KEYBOARD TEST,PRUEBA DE TECLADO
 KB_PS2,row,,Found at boot: PS/2,Detectado al inicio: PS/2
-KB_IGKB,row,,Found at boot: iGKB,Detectado al inicio: iGKB
 KB_NONE,row,,"Found at boot: none, listening anyway",Sin teclado al inicio; escuchando
 KB_CODES,row,,Scan codes (newest last):,Códigos (el último abajo):
 KB_BACK,row,,<B>/<START> Back,<B>/<START> Atrás

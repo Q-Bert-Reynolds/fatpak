@@ -4,8 +4,8 @@
 // PutStr(dest, id) and Str(id) (src/strings.asm), ModString in modules; S_PART(id, n) is the
 // text after its nth {}, up to the next
 #define S_PART(id, n) ((id) | ((n) << 12))
-#define STR_COUNT 198
-#define STR_HASH 0xF507u
+#define STR_COUNT 197
+#define STR_HASH 0x7113u
 #define LANGUAGES 2
 #define LANG_CODES "ENES" // 2 characters each: /GBCSYS/LANG/<code>.DAT
 #define S_MENU_FILE 0 // FILE
@@ -187,23 +187,22 @@
 #define S_MAPPER_TYPE 176 // type
 #define S_KB_TITLE 177 // KEYBOARD TEST
 #define S_KB_PS2 178 // Found at boot: PS/2
-#define S_KB_IGKB 179 // Found at boot: iGKB
-#define S_KB_NONE 180 // Found at boot: none, listening anyway
-#define S_KB_CODES 181 // Scan codes (newest last):
-#define S_KB_BACK 182 // <B>/<START> Back
-#define S_KB_BYTES 183 // Bytes {}   with errors {}
-#define S_KB_KEY 184 // Key {}   modifiers {}
-#define S_KB_FINISH 185 // finish
-#define S_KB_PARITY 186 // parity
-#define S_KB_START 187 // start
-#define S_KB_UNUSED3 188 //
-#define S_KB_UNUSED4 189 //
-#define S_KB_TIMEOUT 190 // timeout
-#define S_TILE_N 191 // Tile
-#define S_INGAME_RESUME 192 // Resume game
-#define S_INGAME_SAVE 193 // Save state
-#define S_INGAME_LOAD 194 // Load state
-#define S_INGAME_RETURN 195 // Return to OS
-#define S_INGAME_ERROR 196 // State / SD error
-#define S_INGAME_FOOTER 197 // <A> Select  <B> Resume
+#define S_KB_NONE 179 // Found at boot: none, listening anyway
+#define S_KB_CODES 180 // Scan codes (newest last):
+#define S_KB_BACK 181 // <B>/<START> Back
+#define S_KB_BYTES 182 // Bytes {}   with errors {}
+#define S_KB_KEY 183 // Key {}   modifiers {}
+#define S_KB_FINISH 184 // finish
+#define S_KB_PARITY 185 // parity
+#define S_KB_START 186 // start
+#define S_KB_UNUSED3 187 //
+#define S_KB_UNUSED4 188 //
+#define S_KB_TIMEOUT 189 // timeout
+#define S_TILE_N 190 // Tile
+#define S_INGAME_RESUME 191 // Resume game
+#define S_INGAME_SAVE 192 // Save state
+#define S_INGAME_LOAD 193 // Load state
+#define S_INGAME_RETURN 194 // Return to OS
+#define S_INGAME_ERROR 195 // State / SD error
+#define S_INGAME_FOOTER 196 // <A> Select  <B> Resume
 #endif

@@ -47,8 +47,8 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
   mapped when it would be read. Nothing in pages 12, 5 or 4 may run meanwhile
   either (page 12: `BeginView`, `NameChar`, `ShowGameProgress`, `fs_GameCopy`, the
   game RTC and registry; page 5: most of the editor, browser and `JoinPath`; page
-  4: snapshots, `HandleFileKey`; page 15: `ProcessKeyCodes` and the PS/2 and
-  iGKB handlers), and nothing may draw, since `tile_buffer` is the
+  4: snapshots, `HandleFileKey`; page 15: `ProcessKeyCodes` and the PS/2
+  handlers), and nothing may draw, since `tile_buffer` is the
   module's BSS: the checker keeps the entries a wide module uses
   (`build/modules/wide.txt`) out of all five pages. No other page can be
   borrowed: 6-11 and 14 hold FatFs or its callers.

@@ -1,7 +1,6 @@
 # Priority
 
 - Assembler: build beisbolgb on the device ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): per-project defines and rgbfix options, and speed (42 min CGB in Gearboy, over an hour on DMG).
-- Languages ([LANGUAGES.md](notes/LANGUAGES.md)): hand-touch the generated accented letters (À-ÿ) in every font PNG; `ui_font.png` and the heading fonts' capitals have no accent yet (the letters fill the top row), more languages.
 - move keyboard handlers into module, select keyboard type from settings
 
 # Rendering
@@ -49,7 +48,7 @@
 # Peripherals
 
 - Re-detect a PS/2 keyboard plugged in after boot.
-- iGKB (keys, mouse, pad): needs Gearboy emulation first; home/end/page/delete handlers untested.
+- iGKB (keys, mouse, pad): needs Gearboy emulation first; the old untested handlers are in git history (removed 2026-11-13). Add it, and WorkBoy, as alternative drivers in a page-15 slot copied at boot from a setting.
 - WorkBoy keyboard; Game Boy Printer output.
 - Test PS/2 input on LSDJ.
 
@@ -59,3 +58,4 @@
 - Document real differences of other X-series carts rather than assuming X7 SD/RTC/button behavior.
 - Ports to other cartridges need a loader, SD access and a new memory layout; the PSRAM window is assumed everywhere.
 - SGB: use the whole GB screen for text with header/footer in the border, or go fullscreen ([SGB.md](SGB.md)); SNES mouse.
+- fix accented characters in font images
