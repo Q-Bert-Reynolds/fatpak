@@ -120,16 +120,16 @@ unsigned char FindDotted(void) { // Find, with Global.local names too
 void Relocate(void) {
   unsigned int unit;
   unsigned char h = 0, *e;
-  Sect* s;
   do {
     for (unit = *SymHead(h); unit; unit = e[0] | (e[1] << 8)) {
       e = Entry(unit);
       if ((e[6] & 0x7F) != SYM_LABEL) continue;
-      s = &sects[e[8]];
-      sym_value = (e[4] | (e[5] << 8)) - s->start + s->base;
+      SectCopy(e[8] | (e[9] << 8), 0);
+      e = Entry(unit); // the section's block was in the window
+      sym_value = (e[4] | (e[5] << 8)) - sec.start + sec.base;
       e[4] = (unsigned char)sym_value;
       e[5] = (unsigned char)(sym_value >> 8);
-      e[7] = s->bank;
+      e[7] = sec.bank;
     }
   } while (++h);
 }

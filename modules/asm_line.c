@@ -3,91 +3,6 @@
 #include "asm_shared.h"
 
 
-// --- sections and their placement. Pass 1 records each section; a section without an
-// address starts at its region's base for the pass (labels are relocated after). Link then
-// places them the way rgblink does, and pass 2 assembles each at its final place.
-unsigned char max_bank;
-Sect sects[ASM_SECTIONS];
-unsigned char nsects, cur; // sections seen this pass, the current one
-
-// region (type) base, size, bank count, first bank
-static const unsigned int region_base[8] = {0, 0x4000, 0x8000, 0xA000, 0xC000, 0xD000, 0xFE00, 0xFF80};
-static const unsigned int region_size[8] = {0x4000, 0x4000, 0x2000, 0x2000, 0x1000, 0x1000, 0xA0, 0x7F};
-static const unsigned char region_banks[8] = {1, ROM_BANKS, 2, 4, 1, 8, 1, 1};
-
-static void CloseSection(void) {
-  if (!in_section) return;
-  if (pass == 1) sects[cur].size = pc - sects[cur].start;
-  in_section = 0;
-}
-
-// rgblink's order: address and bank given, then bank (one-bank regions count), then address,
-// then neither; within those aligned first, then bigger, then later in the source
-static unsigned char Rank(const Sect* s) {
-  unsigned char bank = (s->flags & SECT_BANK) || region_banks[s->type] == 1;
-  if (s->flags & SECT_ADDRESS) return bank ? 0 : 2;
-  return bank ? 1 : 3;
-}
-static unsigned char Before(const Sect* a, unsigned char ia, const Sect* b, unsigned char ib) {
-  unsigned char ra = Rank(a), rb = Rank(b);
-  if (ra != rb) return ra < rb;
-  if (!a->align != !b->align) return a->align != 0;
-  if (a->size != b->size) return a->size > b->size;
-  return ia > ib;
-}
-// the lowest address at or after at, aligned by mask, where s fits in bank among those placed
-static unsigned char Fits(unsigned char index, unsigned int at) {
-  Sect* s = &sects[index];
-  Sect* t;
-  unsigned char i;
-  unsigned long end = (unsigned long)at + s->size;
-  if (at < region_base[s->type] || end > (unsigned long)region_base[s->type] + region_size[s->type]) return 0;
-  for (i = 0, t = sects; i < nsects; ++i, ++t)
-    if ((t->flags & SECT_PLACED) && t->size && t->type == s->type && t->bank == s->bank &&
-        at < t->base + t->size && t->base < end) return 0;
-  return 1;
-}
-// places every section like rgblink; 0xFF, or the index of one that can't be placed
-unsigned char Link(void) {
-  unsigned char n, i, best, bank, last, found;
-  unsigned int mask, at, try;
-  Sect *s, *t;
-  max_bank = 0;
-  for (n = 0; n < nsects; ++n) {
-    best = 0xFF;
-    for (i = 0; i < nsects; ++i)
-      if (!(sects[i].flags & SECT_PLACED) && (best == 0xFF || Before(&sects[i], i, &sects[best], best))) best = i;
-    s = &sects[best];
-    mask = (1 << s->align) - 1;
-    bank = (s->flags & SECT_BANK) ? s->bank : s->type == 1 || s->type == 5;
-    last = (s->flags & SECT_BANK) ? bank : region_banks[s->type] - 1;
-    found = 0;
-    if (!s->size) { // empty: its address, or the region's start; it takes no room
-      s->bank = bank;
-      s->base = (s->flags & SECT_ADDRESS) ? s->start : (region_base[s->type] + mask) & ~mask;
-      found = 1;
-    }
-    for (; !found && bank <= last; ++bank) {
-      s->bank = bank;
-      if (s->flags & SECT_ADDRESS) { found = Fits(best, s->base = s->start); continue; }
-      at = 0xFFFF; // the lowest candidate: the region's start or a placed section's end
-      try = (region_base[s->type] + mask) & ~mask;
-      if (Fits(best, try)) at = try;
-      for (i = 0, t = sects; i < nsects; ++i, ++t)
-        if ((t->flags & SECT_PLACED) && t->size && t->type == s->type && t->bank == bank) {
-          try = (t->base + t->size + mask) & ~mask;
-          if (try >= t->base + t->size && try < at && Fits(best, try)) at = try;
-        }
-      if (at != 0xFFFF) { s->base = at; found = 1; }
-    }
-    if (!found) return best;
-    s->flags |= SECT_PLACED;
-    if (s->type < 2 && s->bank > max_bank) max_bank = s->bank; // empty ones too, like rgblink
-  }
-  return 0xFF;
-}
-
-
 // --- operands (the variables are in asm.c)
 static void ParseOp(unsigned char i) {
   unsigned char kind = K_IMM, reg = 0;
@@ -184,64 +99,6 @@ void Label(void) { // ident
   else Fail(ASM_ERR_PHASE);
   if (!local) scope = found;
 }
-static void Section(void) {
-  unsigned char type, bank, align = 0, placed = 0, fixed = 0;
-  unsigned int address = 0, size;
-  Sect* s;
-  Frame* f;
-  CloseSection();
-  Space();
-  if (ch != '"') { Fail(ch ? ASM_ERR_UNSUPPORTED : ASM_ERR_SYNTAX); return; }
-  Advance();
-  while (ch != '"') { if (!ch || ch == 10) { Fail(ASM_ERR_SYNTAX); return; } Advance(); }
-  Advance();
-  Expect(',');
-  Space();
-  ReadIdent();
-  type = Keyword(T_TYPES);
-  if (type == 0xFF) { Fail(ASM_ERR_SYNTAX); return; }
-  bank = type == 1 || type == 5;
-  Space();
-  if (ch == '[') { Advance(); address = Constant(); Expect(']'); placed = 1; }
-  while (!error) {
-    Space();
-    if (ch != ',') break;
-    Advance();
-    Space();
-    ReadIdent();
-    type |= Keyword(T_ATTRIBUTES) << 4; // 0 bank, 1 align, else 0xF: unsupported
-    Expect('[');
-    size = Constant();
-    Expect(']');
-    if (type < 0x10) { bank = (unsigned char)size; fixed = SECT_BANK; }
-    else if (type < 0x20) align = (unsigned char)size;
-    else Fail(ASM_ERR_UNSUPPORTED);
-    type &= 15;
-  }
-  if (error) return;
-  if (bank >= region_banks[type] || ((type == 1 || type == 5) && !bank) || align > 13) { Fail(ASM_ERR_BANK); return; }
-  if (placed && (address < region_base[type] || address - region_base[type] >= region_size[type])) { Fail(ASM_ERR_FULL); return; }
-  if (pass == 1) {
-    if (nsects == ASM_SECTIONS) { Fail(ASM_ERR_NESTING); return; }
-    s = &sects[cur = nsects++];
-    s->type = type;
-    s->bank = bank;
-    s->align = align;
-    s->flags = fixed | (placed ? SECT_ADDRESS : 0);
-    size = (1 << align) - 1;
-    s->start = placed ? address : (region_base[type] + size) & ~size; // for this pass
-    f = TextFrame();
-    s->file = f->file;
-    s->line = f->line;
-    s->pos = frames[0].line_pos;
-  }
-  else s = &sects[cur = nsects++];
-  sec_rom = type < 2;
-  sec_bank = s->bank;
-  sec_last = region_base[type] + region_size[type] - 1;
-  pc = pass == 1 ? s->start : s->base;
-  in_section = 1;
-}
 static void Data(unsigned char word) { // db, dw
   unsigned int v;
   Space();
@@ -264,9 +121,23 @@ static void Data(unsigned char word) { // db, dw
     Advance();
   }
 }
-static void Ds(void) { // ds count[, fill]
-  unsigned int n = Constant();
-  unsigned char fill = 0;
+static void Ds(void) { // ds count[, fill], ds align[a[, offset]][, fill]
+  unsigned int n, ofs = 0;
+  unsigned char fill = 0, a = 0xFF;
+  Space();
+  if (IsStart(ch)) {
+    ReadIdent();
+    if (Keyword(T_ATTRIBUTES) == 1) { // align
+      Expect('[');
+      a = (unsigned char)Constant();
+      Space();
+      if (ch == ',') { Advance(); ofs = Constant(); }
+      Expect(']');
+      if (a > 13) { Fail(ASM_ERR_UNSUPPORTED); return; }
+    }
+    else pending = 1;
+  }
+  n = a == 0xFF ? Constant() : AlignPad(a, ofs);
   Space();
   if (ch == ',') {
     Advance();
@@ -274,6 +145,7 @@ static void Ds(void) { // ds count[, fill]
     if (!sec_rom) { Fail(ASM_ERR_SECTION); return; }
   }
   Reserve(n, fill);
+  if (a != 0xFF && !error) AlignTo(a, ofs);
 }
 // IF/ELIF/ELSE/ENDC: when the open level isn't running, skip to the branch that is
 static void IfSkip(void) {
@@ -387,6 +259,8 @@ void Statement(void) {
   d = Keyword(T_DIRECTIVES);
   switch (d) {
     case D_SECTION: Section(); break;
+    case D_PUSHS: PushS(); break;
+    case D_POPS: PopS(); break;
     case D_DB: case D_DB + 1: Data(d - D_DB); break;
     case D_DS: Ds(); break;
     case D_DEF: case D_REDEF: // def name equ|=|rb|rw|rl ..., redef name = expr
@@ -473,8 +347,7 @@ void Pass(unsigned char p) {
   arg_top = if_depth = 0;
   unique = rs = 0;
   scope = 0;
-  in_section = 0;
-  nsects = 0;
+  in_section = sect_depth = 0;
   run_n = 0;
   str_top = literal = bs_literal = 0;
   CharmapReset();
@@ -494,6 +367,6 @@ void Report(unsigned int file, unsigned int line, Pos at) {
   e = Entry(file);
   n = e[10];
   for (i = 0; i < n; ++i) if (e[11 + i] == '/') from = i + 1;
-  for (i = 0; from < n && e[11 + from] != '.' && i < sizeof(c->name) - 1; ++i) c->name[i] = e[11 + from++];
+  for (i = 0; from < n && i < sizeof(c->name) - 1; ++i) c->name[i] = e[11 + from++];
   c->name[i] = 0;
 }

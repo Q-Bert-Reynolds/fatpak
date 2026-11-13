@@ -37,6 +37,24 @@ void OpenBox(unsigned char lines) {
   ++render_box_gen;
 }
 
+// copies text into the box's lines from line on, starting a line at each '\n' and after every
+// BOX_STRIDE - 1 characters, returns the line after its last
+unsigned char BoxText(unsigned char line, const char* text) {
+  char* dest = RowAddress(BOX_LINE) + line * BOX_STRIDE;
+  unsigned char n = 0;
+  for (;; ++text) {
+    if (!*text || *text == '\n' || n == BOX_STRIDE - 1) {
+      dest[n] = 0;
+      dest += BOX_STRIDE;
+      ++line;
+      n = 0;
+      if (!*text) return line;
+      if (*text == '\n') continue;
+    }
+    dest[n++] = *text;
+  }
+}
+
 // a box with text (Loading..., Saving...), drawn right away, before the work it's waiting for
 void ShowBusy(const char* text) {
   CopyName(RowAddress(BOX_LINE), text);

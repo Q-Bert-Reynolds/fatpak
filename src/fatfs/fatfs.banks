@@ -5,7 +5,7 @@ ROM0: ld_16 ld_32 st_16 st_32 dbc_1st dbc_2nd sum_sfn
 DATA: ROM0
 THUNKS: FIXED
 OMIT: f_getfree f_truncate
-13: fs_Copy fs_Rename
+13: fs_Copy fs_Rename fs_Delete
 10: fs_RenameName
 9: Inside
 8: dir_read f_opendir f_readdir f_closedir clst2sect uni2oem_sbcs oem2uni_sbcs RegistryGame

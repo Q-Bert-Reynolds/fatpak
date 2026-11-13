@@ -8,7 +8,7 @@ typedef struct {
   unsigned int blocks; // out: the ROM image's size in 512-byte blocks from ASM_IMAGE_BLOCK
   unsigned int symbols; // out: labels, constants, macros and includes defined
   unsigned int file;   // out: 0 the document, else the included file's symbol
-  char name[9];        // out: then its name, without folders or extension, cut to 8 characters (the status bar is short)
+  char name[65];       // out: then its name, without folders (FS_NAME_SIZE)
 } AsmContext;
 
 // ModuleMain's result (module_status), 0 when the image is complete

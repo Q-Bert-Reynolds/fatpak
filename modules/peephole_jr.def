@@ -1,0 +1,15 @@
+
+// Modules only (module_build.py appends this to peephole.def): jr where the label is in range,
+// a byte smaller than jp and as fast on the SM83 (SDCC's peeph.def 162a and 163; the rest of
+// that file stays off, see notes/ARCHITECTURE.md). rgbasm refuses a jr that's out of range.
+replace restart {
+	jp	%5
+} by {
+	jr	%5
+} if labelInRange(%5)
+
+replace restart {
+	jp	%1, %5
+} by {
+	jr	%1, %5
+} if same(%1 'c' 'nc' 'nz' 'z'), labelInRange(%5)

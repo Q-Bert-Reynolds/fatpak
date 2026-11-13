@@ -1,7 +1,6 @@
 # Priority
 
-- Assembler: build beisbolgb on the device ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): >255 sections (16-bit section numbers, table in PSRAM), `DS ALIGN`, `SECTION FRAGMENT`, `PUSHS`/`POPS`, 32-bit values, per-project defines and rgbfix options, and speed (~30 min DMG at today's rate).
-- show assembly results in box instead of footer
+- Assembler: build beisbolgb on the device ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): 32-bit values (the last 15 bytes; needs room: a fifth module page), per-project defines and rgbfix options, and speed (39 min CGB in Gearboy, over an hour on DMG).
 
 # Rendering
 
@@ -34,8 +33,6 @@
 
 # File Browser
 
-- press A to open file from file info screen
-- open games in hex editor
 - sort by name (needs names in memory), new folder, delete.
 - Move FatFs helpers out of ROM0 behind far calls.
 - 8 MiB ROMs: snapshot staging at `$3c00` caps ROMs at 7.5 MiB; find another place to stage.
@@ -44,6 +41,8 @@
 - 96 pieces max ("TOO MANY EDITS"); merge adjacent add-buffer pieces.
 - Save is slow (~9 s for 320 KB in Gearboy) with no progress: skip busy polling like stock, use CMD25, avoid FatFs partial-sector copies.
 - Window load via `tb_Append` (0.37 s): have the SD loop drop CRs and write the buffer directly.
+- delete should move files to trash unless deleting trash
+- show hidden files and folders in settings
 
 # Peripherals
 

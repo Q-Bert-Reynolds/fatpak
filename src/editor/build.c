@@ -13,7 +13,7 @@
 #include "../ui/text.h"
 #include "../../modules/asm.h"
 
-// ASM_ERR_* - 1; with "L1234 " these must fit the status bar's 112 pixels (FooterCompose)
+// ASM_ERR_* - 1, shown on their own line in the result box (BOX_STRIDE - 1 characters)
 static const char errors[ASM_ERR_COUNT][17] = {
   "SYNTAX ERROR", "UNKNOWN SYMBOL", "ALREADY DEFINED", "VALUE TOO BIG", "JR TOO FAR", "BAD OPERAND",
   "NO SECTION", "SECTION FULL", "NOT YET DEFINED", "NOT SUPPORTED", "NAME TOO LONG", "DIVIDE BY ZERO",
@@ -33,7 +33,7 @@ static void OutputPath(char* path) {
 
 void BuildFile(unsigned char run) {
   AsmContext context;
-  char path[PATH_SIZE + FS_NAME_SIZE], text[TB_STRIDE], *end;
+  char path[PATH_SIZE + FS_NAME_SIZE], text[FS_NAME_SIZE + 32], *end;
   unsigned char result;
   if (tb_lang != LANG_ASM) { ShowMessage("NOT AN ASM FILE"); return; }
   if (doc_large) { ShowMessage("FILE TOO BIG"); return; }
@@ -45,17 +45,15 @@ void BuildFile(unsigned char run) {
   result = RUN_MODULE(ASM);
   HideBox();
   if (result) { ShowModuleError(result); return; }
-  if (module_status) { // the cursor goes to the line, or to the INCLUDE of the file (named)
-    end = text;
-    if (context.file) { end = PutText(end, context.name); *end++ = ' '; }
-    *end++ = 'L';
-    end = PutNumber(end, context.line);
-    *end++ = ' ';
+  if (module_status) { // the file, line and error in a box; the cursor goes to the line, or to the INCLUDE of the file
+    end = ToLatin1(text, context.file ? context.name : file_name, FS_NAME_SIZE - 1);
+    end = PutNumber(PutText(end, "\nLine "), context.line);
+    *end++ = '\n';
     *PutText(end, errors[module_status - 1]) = 0;
     cursor = anchor = context.pos;
     selecting = 0;
     dirty = 1;
-    ShowMessage(text);
+    ShowBox(text);
     return;
   }
   OutputPath(path);
@@ -64,8 +62,9 @@ void BuildFile(unsigned char run) {
   HideBox();
   if (result) { ShowError(result, "DISK FULL"); return; }
   if (run) { LaunchGame(path); return; } // back only if it didn't launch
-  end = PutText(text, "BUILT ");
-  end = PutNumber(end, context.blocks >> 1);
+  for (end = path; *end; ++end); // the image's name
+  while (end != path && end[-1] != '/') --end;
+  end = PutNumber(PutText(ToLatin1(text, end, FS_NAME_SIZE - 1), "\nBuilt "), context.blocks >> 1);
   *PutText(end, " KB") = 0;
-  ShowMessage(text);
+  ShowBox(text);
 }

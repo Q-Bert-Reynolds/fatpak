@@ -1,6 +1,6 @@
 ; includes, conditionals, macros, repeats, RS counters, indented labels and fixed point
 INCLUDE "lib/util.inc"
-INCLUDE "lib/data.inc"
+INCLUDE "./lib/data.inc" ; a leading ./ (FatFs has no relative names; it is dropped)
 INCLUDE "lib/data.inc"
 
 DEF VERSION EQU 1.5

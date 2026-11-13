@@ -390,13 +390,16 @@ boot ROM). Select opens file info directly.
   header/footer; `ScrollRows` reuses the display ring and reads only the
   incoming record per step.
 - **Build, Run** (`editor/build.c`, F7 and F5): `ASM.MOD` assembles the `.asm`
-  document to `<name>.gb` beside it; RUN then `LaunchGame`s it. Errors name the
-  line and move the cursor ([ASSEMBLER.md](ASSEMBLER.md)).
+  document to `<name>.gb` beside it; RUN then `LaunchGame`s it. Results show in
+  a box (`ShowBox`); errors name the file and line and move the cursor ([ASSEMBLER.md](ASSEMBLER.md)).
+- **File menu:** OPEN (same as A), OPEN AS (TEXT, HEX or TILES: `ShowFileView`'s mode
+  overrides the extension and NUL checks), INFO, RENAME, DELETE (asks first; `FileDelete`
+  removes a file or an empty folder, refuses the open large document's file).
 - **Info** (`browser/info.c` reads, `FILEINFO.MOD` draws): FAT dates/times
   (zero shows `--`), size in B/KB/MB. `FileInspect` uses a private `FIL` (an open large document survives):
   text ≤32 KiB gets word and line counts, NULs mean binary; games read only the
   header (`$134-$14F`). It borrows the directory-mark buffer, so the browser
-  reloads on exit.
+  reloads on exit. A on the page opens the file (`InfoContext.open`).
 - **File views** (`browser/viewer.c` opens the file in `save_file`; `ModRead` seeks and
   reads it). A file whose first sector has a NUL opens in `HEXVIEW.MOD`: read only, 8
   bytes a row in hex and characters, in `FONT_FIXED` with `render_text` set so

@@ -86,7 +86,7 @@ static void GameInfo(const unsigned char* h) {
   Value(15, "Header checksum: ", context->details->status == 1 ? "OK" : "Bad");
 }
 
-unsigned char ModuleMain(const InfoContext* info) {
+unsigned char ModuleMain(InfoContext* info) {
   const FileEntry* entry = info->entry;
   const FileDetails* details = info->details;
   unsigned char row, key;
@@ -111,6 +111,7 @@ unsigned char ModuleMain(const InfoContext* info) {
     }
     else Value(7, "Counts: ", details->status == 2 ? "Binary file" : "Skipped (>32KB)");
   }
-  do { key = ModKey(); } while (key != KEY_BACKSPACE && key != KEY_ESCAPE);
+  do { key = ModKey(); } while (key != KEY_BACKSPACE && key != KEY_ESCAPE && key != KEY_ENTER);
+  info->open = key == KEY_ENTER;
   return 0;
 }

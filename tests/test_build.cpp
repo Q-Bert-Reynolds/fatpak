@@ -101,7 +101,19 @@ struct Session {
         std::string text; while (memory->Read(at)) text += char(memory->Read(at++));
         return memory->Read(syms.at("_render_box_top")) == 255 ? "" : text;
     }
-    // FILE > BUILD (item 4) or RUN (5); returns the frames until the status row shows text,
+    // the box's lines joined by '|' (BOX_STRIDE chars apart, half rows above and below), "" if it's hidden
+    std::string lines() {
+        if (box().empty()) return "";
+        unsigned at = syms.at("_render_box_text"); at = memory->Read(at) | (memory->Read(at + 1) << 8);
+        unsigned count = memory->Read(syms.at("_render_box_rows")) - 2;
+        std::string text;
+        for (unsigned i = 0; i < count; ++i, at += 20) {
+            if (i) text += '|';
+            for (unsigned c = at; memory->Read(c); ++c) text += char(memory->Read(c));
+        }
+        return text;
+    }
+    // FILE > BUILD (item 4) or RUN (5); returns the frames until the status row or the box shows text,
     // writing: those spent in the "Writing..." box
     unsigned writing;
     unsigned command(unsigned item, const char* until, unsigned limit = 4000) {
@@ -109,7 +121,7 @@ struct Session {
         for (unsigned i = 0; i < item; ++i) pad(Down_Key);
         core.KeyPressed(A_Key); Frames(core, 4); core.KeyReleased(A_Key);
         unsigned waited = 0; writing = 0;
-        while (waited < limit && row(19).find(until) == std::string::npos) {
+        while (waited < limit && row(19).find(until) == std::string::npos && lines().find(until) == std::string::npos) {
             Frames(core, 1); ++waited;
             if (box() == "Writing...") ++writing;
         }
@@ -130,11 +142,12 @@ static void Build(const char* image, const char* symbols, const char* data, cons
     std::string text((const char*)Read(source).data(), Read(source).size());
     Session s(image, symbols, data, color, "Hello.asm", text);
     auto page12 = Page(s.memory, 12);
-    unsigned frames = s.command(4, "BUILT ");
+    unsigned frames = s.command(4, "Built ");
     Check(frames < 4000, "BUILD reports the ROM size");
-    Check(s.row(19).find(" BUILT 32 KB") == 0, "BUILD reports the ROM size");
+    Check(s.lines() == "Hello.gb|Built 32 KB", "BUILD reports the ROM and its size in a box");
     Check(Page(s.memory, 12) == page12, "the second borrowed page comes back");
     s.pad(A_Key);
+    Check(s.box().empty(), "a key closes the result box");
     Check(s.row(0).find("; Hello: a checkerboard.") == 0 && s.row(18).find("Hello.asm") != std::string::npos, "the editor view survives the wide module");
     Check(Read(s.root + "/Hello.gb") == Read(expected), "Hello.gb matches rgbasm, rgblink and rgbfix");
     printf("%s BUILD: %u frames from the keypress to the message, %u of them writing the ROM\n", color ? "CGB" : "DMG", frames, s.writing);
@@ -143,8 +156,9 @@ static void Build(const char* image, const char* symbols, const char* data, cons
 static void Errors(const char* image, const char* symbols, const char* data, bool color) {
     const std::string bad = "SECTION \"x\", ROM0[$150]\n nop\n jp Nowhere\n ld a, 1\n";
     Session s(image, symbols, data, color, "Bad.asm", bad);
-    unsigned frames = s.command(4, "L3");
-    Check(frames < 4000 && s.row(19).find(" L3 UNKNOWN SYMBOL") == 0, "an error names its line");
+    unsigned frames = s.command(4, "Line 3");
+    if (s.lines() != "Bad.asm|Line 3|UNKNOWN SYMBOL") fprintf(stderr, "box: \"%s\"\n", s.lines().c_str());
+    Check(frames < 4000 && s.lines() == "Bad.asm|Line 3|UNKNOWN SYMBOL", "an error names its file and line in a box");
     Check(s.word("_cursor") == bad.find(" jp") && s.word("_cursor") == s.word("_anchor"), "the cursor moves to the line");
     s.pad(A_Key);
     Check(access((s.root + "/Bad.gb").c_str(), F_OK) != 0, "no ROM is written for a failed build");
@@ -191,19 +205,19 @@ static void Sample(const char* image, const char* symbols, const char* data, con
     closedir(folder);
     std::string file = std::string(name) + ".asm";
     Session s(image, symbols, data, color, file.c_str(), Text(dir + "/" + file), lib);
-    unsigned frames = s.command(4, "BUILT ");
+    unsigned frames = s.command(4, "Built ");
     Check(frames < 4000, "the sample builds");
     Check(Read(s.root + "/" + name + ".gb") == Read(work + "/" + name + ".gb"), "the sample matches RGBDS");
     s.pad(A_Key);
     printf("%s %s.asm: %u frames\n", color ? "CGB" : "DMG", name, frames);
 }
 
-// an error inside an included file names the file and its line, and the cursor goes to the INCLUDE
+// an error inside an included file names the file (wrapped, it's long) and its line, and the cursor goes to the INCLUDE
 static void IncludeError(const char* image, const char* symbols, const char* data, bool color) {
-    const std::string main = "SECTION \"x\", ROM0[$150]\n nop\nINCLUDE \"lib/bad.inc\"\n nop\n";
-    Session s(image, symbols, data, color, "Main.asm", main, {{"bad.inc", "; first\n ld a, 1\n ld a, 999\n"}});
-    bool named = s.command(4, "bad L3") < 4000 && s.row(19).find(" bad L3 VALUE TOO BIG") == 0;
-    if (!named) fprintf(stderr, "status row: \"%s\"\n", s.row(19).c_str());
+    const std::string main = "SECTION \"x\", ROM0[$150]\n nop\nINCLUDE \"lib/bad_include_with_a_long_name.inc\"\n nop\n";
+    Session s(image, symbols, data, color, "Main.asm", main, {{"bad_include_with_a_long_name.inc", "; first\n ld a, 1\n ld a, 999\n"}});
+    bool named = s.command(4, "Line 3") < 4000 && s.lines() == "bad_include_with_a_|long_name.inc|Line 3|VALUE TOO BIG";
+    if (!named) fprintf(stderr, "box: \"%s\"\n", s.lines().c_str());
     Check(named, "an included file's error names it and its line");
     Check(s.word("_cursor") == main.find("INCLUDE"), "the cursor goes to the INCLUDE line");
     s.pad(A_Key);
@@ -216,7 +230,7 @@ static void Library(const char* image, const char* symbols, const char* data, co
     std::string memory1 = Text(src + "/memory1.asm");
     Session s(image, symbols, data, color, "gbdk.asm", Text(src + "/gbdk.asm"), {},
               {{"memory1.asm", memory1}, {"hardware.inc", Text(src + "/hardware.inc")}});
-    unsigned frames = s.command(4, "BUILT ", 40000);
+    unsigned frames = s.command(4, "Built ", 40000);
     Check(frames < 40000, "gbdk.asm builds");
     Check(Read(s.root + "/gbdk.gb") == Read(expected), "gbdk.gb matches RGBDS");
     s.pad(A_Key);
@@ -231,7 +245,7 @@ int main(int argc, char** argv) {
         NotAssembly(argv[1], argv[2], argv[3], color);
         Run(argv[1], argv[2], argv[3], argv[4], argv[5], color);
         std::string work = std::string(argv[7]).substr(0, std::string(argv[7]).find_last_of('/'));
-        for (const char* name : {"features", "strings", "loops", "charmap"}) Sample(argv[1], argv[2], argv[3], argv[6], work, name, color);
+        for (const char* name : {"features", "strings", "loops", "charmap", "sections"}) Sample(argv[1], argv[2], argv[3], argv[6], work, name, color);
         IncludeError(argv[1], argv[2], argv[3], color);
         Library(argv[1], argv[2], argv[3], argv[8], argv[9], color);
     }

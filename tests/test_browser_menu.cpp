@@ -249,18 +249,23 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     Check(row(18).find("Document.txt")!=std::string::npos,"Select directly opens file info");
     Check(row(19).find("Esc")==std::string::npos,"info footer has no keyboard shortcut hints");
     pad(B_Key);
-    menu();pad(A_Key);Check(byte("_render_box_rows")==4,"file submenu");
+    menu();pad(A_Key);Check(byte("_render_box_rows")==7,"file submenu");
+    Check(Text(memory,syms.at("tile_buffer")+20*40)==" OPEN" && Text(memory,syms.at("tile_buffer")+20*40+20)==" OPEN AS" &&
+          Text(memory,syms.at("tile_buffer")+20*40+80)==" DELETE","file menu: OPEN, OPEN AS, INFO, RENAME, DELETE");
+    pad(Down_Key);pad(A_Key);Check(byte("_render_box_rows")==5 && Text(memory,syms.at("tile_buffer")+20*40+40)==" TILES","OPEN AS: TEXT, HEX, TILES");
+    pad(B_Key);Check(byte("_render_box_rows")==7 && byte("_render_box_sel")==2,"B goes back to FILE on OPEN AS");
+    pad(Up_Key);
     pad(B_Key);Check(byte("_render_box_rows")==7,"B returns to main menu");
-    pad(A_Key);pad(A_Key);
+    pad(A_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);
     Check(byte("_render_box_top")==255 && byte("_bars")==1 && byte("_tb_rows")==16,"file info is a full page with bars");
     Check(row(18).find("Document.txt")!=std::string::npos,"info header displays filename");
     Check(row(0)==" Type: Plain Text" && row(1)==" Size: 3B","info type and byte size");
     Check(row(7)==" Words: 1" && row(8)==" Lines: 1","info counts text without trailing empty line");
     Check(row(3).find(" Created: ")==0 && row(4).find(" Accessed: ")==0 && row(5).find(" Modified: ")==0,"info displays all FAT timestamps");
-    Check(row(19).find("\002Exit")!=std::string::npos && memory->Read(syms.at("tile_buffer")+19*40+32)==127,"info footer includes exit hint and clock");
-    pad(A_Key);Check(row(18).find("Document.txt")!=std::string::npos,"only B or Esc dismisses file info");
+    Check(row(19).find("\001Open \002Exit")!=std::string::npos && memory->Read(syms.at("tile_buffer")+19*40+32)==127,"info footer includes open and exit hints and clock");
+    pad(Start_Key);Check(row(18).find("Document.txt")!=std::string::npos,"only A, B or Esc dismisses file info");
     pad(B_Key);Check(byte("_render_text")==0 && byte("_render_box_top")==255,"info returns to browser");
-    menu();pad(A_Key);pad(Down_Key);pad(A_Key); // rename prompt
+    menu();pad(A_Key);for(unsigned i=0;i<3;++i)pad(Down_Key);pad(A_Key); // rename prompt
     Check(byte("_osk_shown")==1,"rename automatically opens on-screen keyboard");
     Check(row(1).find("Document.txt_")!=std::string::npos,"rename edits selected row in place");
     Check(row(18).find("Rename")==std::string::npos,"rename leaves path header intact");
@@ -414,7 +419,7 @@ static void RenameEdges(const char* image,const char* symbols,const char* data,b
     auto pad=[&](Gameboy_Keys key){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,70);};
     auto extended=[&](u8 code){core.QueuePS2KeyboardScanCode(0xE0);core.QueuePS2KeyboardScanCode(code);Frames(core,4);
         core.QueuePS2KeyboardScanCode(0xE0);core.QueuePS2KeyboardScanCode(0xF0);core.QueuePS2KeyboardScanCode(code);Frames(core,70);};
-    auto rename=[&](){pad(Start_Key);pad(A_Key);pad(Down_Key);pad(A_Key);};
+    auto rename=[&](){pad(Start_Key);pad(A_Key);for(unsigned i=0;i<3;++i)pad(Down_Key);pad(A_Key);};
     Frames(core,600);extended(0x69);rename(); // final entry, initially at screen bottom
     Check(memory->Read(syms.at("_name_row"))==10,"bottom entry moves above keyboard");
     Check(Text(memory,syms.at("tile_buffer")+10*40).find("Z18.txt_")!=std::string::npos,"bottom rename stays visible");
@@ -448,7 +453,7 @@ static void OSKShift(const char* image,const char* symbols,const char* data,bool
             return Text(memory,syms.at("bkg_buffer")+block*40).substr(0,19);};
         auto at=[&](unsigned x,unsigned y){memory->Write(syms.at("_osk_x"),x);memory->Write(syms.at("_osk_y"),y);};
         Frames(core,600);pad(Down_Key); // Document.txt
-        if(rename){pad(Start_Key);pad(A_Key);pad(Down_Key);pad(A_Key);} else {pad(A_Key);pad(Select_Key);}
+        if(rename){pad(Start_Key);pad(A_Key);for(unsigned i=0;i<3;++i)pad(Down_Key);pad(A_Key);} else {pad(A_Key);pad(Select_Key);}
         Check(byte("_osk_shown")==1,"keyboard open");
         auto typed=[&](){return rename?Text(memory,syms.at("tile_buffer")+byte("_name_row")*40):Text(memory,syms.at("tile_buffer"));};
         Check(shown(1)=="q w e r t y u i o p","lower case keys");
@@ -669,6 +674,50 @@ static void TileView(const char* image,const char* symbols,const char* data,bool
     printf("%s tile view of .tiles files passed\n",color?"CGB":"DMG");
 }
 
+// FILE > OPEN AS forces a view, DELETE asks first and removes files and empty folders only, and A
+// on the info page opens the file. Deletions are checked in the OS's own listing: Gearboy's
+// VirtualFat copies new and changed files to the host folder but doesn't remove deleted ones.
+static void FileMenu(const char* image,const char* symbols,const char* data,bool color) {
+    char folder[]="/tmp/fatpak-filemenu-XXXXXX";Check(mkdtemp(folder),"file menu SD");
+    std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);
+    Write(root+"/GBCSYS/EDITOR.DAT",Read(data));InstallModules(root,data);
+    mkdir((root+"/Empty").c_str(),0700);mkdir((root+"/Full").c_str(),0700);Write(root+"/Full/In.txt",{'x'});
+    Write(root+"/Text.txt",{'h','i','\n'});Write(root+"/Gone.txt",{'b','y','e'});
+    GearboyCore core;core.Init();core.SetEverdriveFolder(folder);
+    Check(core.LoadROM(image,!color),"file menu OS");auto memory=core.GetMemory();auto syms=Symbols(symbols);
+    auto byte=[&](const char* name){return memory->Read(syms.at(name));};
+    auto pad=[&](Gameboy_Keys key){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,70);};
+    auto row=[&](unsigned n){std::string s;for(unsigned i=0;i<40;++i){unsigned c=memory->Read(syms.at("tile_buffer")+n*40+i);if(!c)break;s+=char(c);}
+        while(!s.empty() && s.back()==' ')s.pop_back();return s;};
+    auto listed=[&](const std::string& name){for(unsigned r=0;r<16;++r)if(row(r)==" "+name)return int(r);return -1;};
+    auto select=[&](const std::string& name){ // from the top of the list
+        int r=listed(name);Check(r>=0,"entry listed");
+        for(unsigned i=0;i<16;++i)pad(Up_Key);
+        for(int i=0;i<r;++i)pad(Down_Key);};
+    auto line=[&](unsigned n){return Text(memory,syms.at("tile_buffer")+20*40+n*20);};
+    auto file=[&](unsigned item){pad(Start_Key);pad(A_Key);for(unsigned i=0;i<item;++i)pad(Down_Key);pad(A_Key);};
+    auto wait=[&](const char* text,unsigned footer){for(unsigned w=0;row(footer?19:0).find(text)==std::string::npos && w<400;++w)Frames(core,1);Frames(core,30);};
+    Frames(core,600);
+    select("Text.txt");file(1);pad(Down_Key);pad(A_Key); // OPEN AS > HEX
+    wait(" $000000",1);
+    Check(row(0).find("  68 69 0A")==0 && byte("_tb_rows")==16,"OPEN AS HEX shows a text file in hex");
+    pad(B_Key);Frames(core,60);Check(byte("_render_text")==0 && listed("Text.txt")>=0,"B returns to the list");
+    select("Gone.txt");file(4); // DELETE asks, NO first
+    Check(line(0)=="DELETE Gone.txt?" && line(1)==" NO" && line(2)==" YES" && byte("_render_box_rows")==5,"DELETE asks with the name");
+    pad(A_Key);Frames(core,60);Check(listed("Gone.txt")>=0,"NO keeps the file");
+    select("Gone.txt");file(4);pad(Down_Key);pad(A_Key);Frames(core,60);
+    Check(listed("Gone.txt")<0,"YES deletes the file and lists the folder again"); // VirtualFat doesn't remove host files
+    select("Full/");file(4);pad(Down_Key);pad(A_Key);Frames(core,30);
+    Check(row(19).find("Folder isn't empty")!=std::string::npos && listed("Full/")>=0,"a folder with files stays");
+    pad(A_Key);
+    select("Empty/");file(4);pad(Down_Key);pad(A_Key);Frames(core,60);
+    Check(listed("Empty/")<0,"an empty folder is deleted");
+    select("Text.txt");pad(Select_Key);wait(" Type: Plain Text",0);
+    pad(A_Key);Frames(core,120);
+    Check(byte("_render_text")==1 && Text(memory,syms.at("_file_name"))=="Text.txt" && row(0)=="hi","A on the info page opens the file");
+    printf("%s file menu OPEN AS, DELETE and info A passed\n",color?"CGB":"DMG");
+}
+
 int main(int argc,char** argv) {
     Check(argc==4,"usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT");
     Operations(argv[1],argv[2]);UI(argv[1],argv[2],argv[3],false);UI(argv[1],argv[2],argv[3],true);
@@ -678,4 +727,5 @@ int main(int argc,char** argv) {
     Theme(argv[1],argv[2],argv[3],false);Theme(argv[1],argv[2],argv[3],true);
     HexView(argv[1],argv[2],argv[3],false);HexView(argv[1],argv[2],argv[3],true);
     TileView(argv[1],argv[2],argv[3],false);TileView(argv[1],argv[2],argv[3],true);
+    FileMenu(argv[1],argv[2],argv[3],false);FileMenu(argv[1],argv[2],argv[3],true);
 }

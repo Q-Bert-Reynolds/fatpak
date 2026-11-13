@@ -25,6 +25,12 @@ static char source_dir[1024];
 typedef struct { unsigned short block, blocks; unsigned long size; } ModuleLoad; // sdk.h's, with 16-bit ints
 static unsigned char Load(const char* name, unsigned n, ModuleLoad* load) { // the first n characters of source_dir, then name
   char full[2048]; FILE* f; long size; unsigned char* at = psram + (unsigned long)load->block * 512;
+  const char* part;
+  for (part = name; *part; ) { // FatFs has no relative names (FF_FS_RPATH 0): "." and ".." aren't found
+    if (part[0] == '.' && (!part[1] || part[1] == '/' || (part[1] == '.' && (!part[2] || part[2] == '/')))) return 1;
+    while (*part && *part != '/') ++part;
+    while (*part == '/') ++part;
+  }
   snprintf(full, sizeof(full), "%.*s%s", (int)n, source_dir, name);
   f = fopen(full, "rb");
   if (!f) return 1;

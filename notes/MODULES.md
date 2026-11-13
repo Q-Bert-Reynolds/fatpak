@@ -18,7 +18,7 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
 | `FILEINFO.MOD` | 3 | 2 | FILE > INFO, Select (`browser/info.c`) | 3,141 B + 43 B BSS |
 | `HELP.MOD` | 4 | 3 | HELP, F1 (`editor/help.c`) | 327 B + 34 B BSS |
 | `THEME.MOD` | 5 | 3 | SETTINGS > THEME (`ui/theme.c`) | 510 B |
-| `ASM.MOD` | 6 | 7 | FILE > BUILD, RUN (`editor/build.c`), [ASSEMBLER.md](ASSEMBLER.md) | wide, 4 pages: 7,181 + 7,240 + 7,403 + 7,231 B, 2,793 B BSS |
+| `ASM.MOD` | 6 | 7 | FILE > BUILD, RUN (`editor/build.c`), [ASSEMBLER.md](ASSEMBLER.md) | wide, 4 pages: 7,149 + 7,104 + 7,396 + 7,232 B, 1,995 B BSS |
 | `HEXVIEW.MOD` | 7 | 6 | Opening a binary file in the browser (`browser/viewer.c`) | 2,243 B + 221 B BSS |
 | `TILEVIEW.MOD` | 8 | 6 | Opening a `.tiles` file in the browser (`browser/viewer.c`) | 2,134 B + 383 B BSS |
 
@@ -88,8 +88,11 @@ their content changes); `make modules` always rebuilds the `.MOD` files.
 
 ### Build
 
-Each source compiles with the main build's SDCC flags (including
-`peephole.def`). `module_build.py` keeps only `_CODE` (ROMX) and `_DATA` (WRAM0)
+Each source compiles with the main build's SDCC flags, but with
+`modules/peephole_jr.def` appended to `peephole.def`: every `jp` SDCC thinks is in
+range becomes `jr` (about 3% smaller). SDCC misjudges a few (it doesn't count the
+thunks), so `link()` turns each `jr` that rgbasm or rgblink rejects back into `jp`
+and tries again. `module_build.py` keeps only `_CODE` (ROMX) and `_DATA` (WRAM0)
 fragments, rejects other sections, symbols defined twice across a module's
 sources, and any `_`-symbol not defined locally or in the SDK. It emits one
 `LOAD` block at `$A000` in page 13: code and literals, `ModulePayloadEnd`, BSS,

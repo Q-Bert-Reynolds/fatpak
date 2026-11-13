@@ -7,6 +7,7 @@
 #define BOX_LINE         (TB_ROWS + 2) // menu box text in tile_buffer rows from here, BOX_STRIDE chars per line
 
 void WaitDismiss(void);
+unsigned char BoxText(unsigned char line, const char* text);
 void OpenBox(unsigned char lines);
 void ShowBusy(const char* text);
 void HideBox(void);

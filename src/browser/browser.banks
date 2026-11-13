@@ -4,7 +4,9 @@
 11: ListRows
 6: ListEntry RenameSelected
 FIXED: ListFolder ScrollList
-FIXED: BrowserMenu BrowserError
+FIXED: BrowserMenu
+15: DeleteSelected
+FIXED: BrowserError
 
 FIXED: ListBars
 

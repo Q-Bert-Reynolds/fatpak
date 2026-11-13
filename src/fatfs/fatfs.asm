@@ -24,6 +24,7 @@ FIXED "Browser File Stubs"
 _FileRename::    BANKED_C _fs_Rename
 _FileRenameName:: BANKED_C _fs_RenameName
 _FileCopy::      BANKED_C _fs_Copy
+_FileDelete::    BANKED_C _fs_Delete
 _FileInspect::   BANKED_C _fs_Inspect
 SECTION FRAGMENT "FatFs Stubs", ROM0
 _FileList::      BANKED_C _fs_List

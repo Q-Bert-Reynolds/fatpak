@@ -17,7 +17,7 @@ trap 'rm -rf "$work"' EXIT
 rgbasm -o "$work/hello.o" "$fatpak_root/tests/asm/hello.asm"
 rgblink -o "$work/hello.gb" "$work/hello.o"
 rgbfix -v -p 0 "$work/hello.gb"
-for sample in features strings loops charmap; do
+for sample in features strings loops charmap sections; do
     (cd "$fatpak_root/tests/asm" && rgbasm -Wno-obsolete -o "$work/$sample.o" $sample.asm)
     rgblink -o "$work/$sample.gb" "$work/$sample.o"
     rgbfix -v -p 0 "$work/$sample.gb"

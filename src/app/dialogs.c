@@ -17,12 +17,11 @@
 #define FR_DENIED        7
 #define FR_NO_FILESYSTEM 13
 
-// shows a list of ITEM_SIZE strings in a box over the text (under title, 0 = none) with item
-// selected highlighted, returns the chosen index, BACK or CANCEL
+// shows a list of ITEM_SIZE strings in a box over the text (under title, 0 = none, wrapped like
+// BoxText) with item selected highlighted, returns the chosen index, BACK or CANCEL
 unsigned char Choose(const char* title, const char* items, unsigned char count, unsigned char selected) {
-  char* line = RowAddress(BOX_LINE);
-  unsigned char i, key, first = title ? 1 : 0;
-  if (title) CopyName(line, title), line += BOX_STRIDE;
+  unsigned char i, key, first = title ? BoxText(0, title) : 0;
+  char* line = RowAddress(BOX_LINE) + first * BOX_STRIDE;
   for (i = 0; i < count; ++i, line += BOX_STRIDE, items += ITEM_SIZE) {
     line[0] = ' ';
     CopyName(line + 1, items);
@@ -65,6 +64,19 @@ void ShowMessage(const char* text) {
   else DrawRow(tb_rows - 1, 0, text);
   EditorDraw();
   WaitDismiss();
+  dirty = 1;
+}
+
+// shows text (wrapped like BoxText) in a box in the middle of the editor until a key is pressed
+void ShowBox(const char* text) {
+  Render(); // the text under it is current (the cursor's line after a build error)
+  EditorShowCursor(0);
+  if (osk_shown) OSKShow(0);
+  OpenBox(BoxText(0, text));
+  EditorDraw();
+  WaitDismiss();
+  HideBox();
+  if (osk_shown) OSKShow(1);
   dirty = 1;
 }
 

@@ -19,13 +19,13 @@ static const char mnemonics[] = // Instruction's order
 static const char directives[] = // the supported ones first, in D_* order
   "\007section\002db\002dw\002ds\003def\005redef\006export\006global\007include\002if\004elif\004else\004endc"
   "\005macro\004endm\004rept\004endr\007rsreset\005rsset\004warn\005print\007println\004fail\006assert\005purge\005shift"
-  "\006incbin\003for\007charmap\012newcharmap\012setcharmap\005pushc\004popc"
-  "\004load\004endl\005union\005nextu\004endu\003opt\005pushs\004pops\005pusho\004popo\005align\004equs";
+  "\006incbin\003for\007charmap\012newcharmap\012setcharmap\005pushc\004popc\005pushs\004pops"
+  "\004load\004endl\005union\005nextu\004endu\003opt\005pusho\004popo\005align\004equs";
 static const char registers[] = "\001b\001c\001d\001e\001h\001l\001a\002bc\002de\002hl\002sp\002af\002nz\001z\002nc";
 static const char brackets[] = "\002hl\003hli\003hld\002bc\002de\001c";
 static const char functions[] = "\004high\003low\004bank\003def\005_narg\006strlen\006strcmp\007strfind\010strrfind";
 static const char types[] = "\004rom0\004romx\004vram\004sram\005wram0\005wramx\003oam\004hram";
-static const char attributes[] = "\004bank\005align";
+static const char attributes[] = "\004bank\005align\010fragment";
 static const char definers[] = "\003equ\002rb\002rw\002rl\004equs";
 static const char strfuncs[] = "\006strcat\006strupr\006strlwr\010strslice\006strsub\006strrpl";
 static const char* const tables[9] = {mnemonics, directives, registers, brackets, functions, types, attributes, definers, strfuncs};

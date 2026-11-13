@@ -86,7 +86,8 @@
 #define ASM_SYMBOL_BLOCK 0x0C00u//the symbol table, 1024 blocks (65536 8-byte units)// the first holds the 256 hash heads
 #define ASM_HEAP_BLOCK   0x1000u//the EQUS heap, 128 blocks (64 KiB)
 #define ASM_CHARMAP_BLOCK 0x1080u//names, 8 maps' heads, then a 60 KiB pool (129 blocks)
-#define ASM_FILE_BLOCK   0x1110u//included and INCBIN files, packed whole from here
+#define ASM_SECTION_BLOCK 0x1110u//the section table, 32 blocks (512 32-byte records)
+#define ASM_FILE_BLOCK   0x1130u//included and INCBIN files, packed whole from here
 #define ASM_FILE_END     0x3900u//ADD_MAX / 512: up to the add buffer's end
 #define MODULE_ABI     7//newest ABI the host provides, modules built for older ones still load
 #define MODULE_TABLE   0x7F00u//ABI jump table in resident bank 1, 3 bytes per entry

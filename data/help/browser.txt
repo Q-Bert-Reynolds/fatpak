@@ -6,18 +6,18 @@ FILE BROWSER
 Esc return to editor
 <BTN_START> browser menu
 <BTN_SELECT> file info
-.tiles files show their tiles
-Other binary files open as hex
+.tiles show tiles, binary hex
 
+FILE > OPEN same as <BTN_A>
+FILE > OPEN AS text/hex/tiles
 FILE > INFO file details
+<BTN_A> on the info page opens it
 FILE > RENAME edit name
+FILE > DELETE file/empty folder
 Rename opens the keyboard
-<BTN_A> type the selected key
-<BTN_B> erase (empty: cancel)
-Return key accept name
-<BTN_START> / Esc cancel rename
-Undo/redo keys name history
-Ctrl+Z / Ctrl+Y undo/redo
+<BTN_A> type, <BTN_B> erase/cancel
+Return accept, Esc cancel
+Ctrl+Z / Ctrl+Y name history
 
 EDIT > CUT prepare a move
 EDIT > COPY prepare a copy

@@ -22,13 +22,13 @@ char file_dir[PATH_SIZE]; // its folder, "" = root, new text is saved here too
 
 #define NAME_CHARS     (FS_NAME_SIZE - 1)
 
-static const char discard_items[][ITEM_SIZE] = {"NO", "YES"};
+const char no_yes_items[][ITEM_SIZE] = {"NO", "YES"}; // shared with the browser's DELETE
 static const char * const lang_exts[] = { "md", "c", "h", "asm", "inc", "s" };
 static const unsigned char lang_ids[] = { LANG_MD, LANG_C, LANG_C, LANG_ASM, LANG_ASM, LANG_ASM };
 
 // returns 1 if there are no unsaved changes or the user wants to lose them
 unsigned char CanDiscard(void) {
-  return !modified || Choose("DISCARD CHANGES?", discard_items[0], 2, 0) == 1;
+  return !modified || Choose("DISCARD CHANGES?", no_yes_items[0], 2, 0) == 1;
 }
 
 unsigned char FileLanguage(const char* name) {

@@ -27,6 +27,10 @@
 #define KIND_UP        0
 #define KIND_FOLDER    1
 #define KIND_FILE      2
+#define ACTION_RENAME  1 // BrowserMenu's results besides 0
+#define ACTION_OPEN    2 // + a VIEW_* mode
+#define FR_DENIED      7 // FRESULTs for DELETE's messages (fatfs/lib/ff.h)
+#define FR_LOCKED      16
 
 static FileEntry entry;
 static unsigned int list_count; // file browser entries, with .. below the root
@@ -35,7 +39,8 @@ static unsigned char list_kinds[LIST_ROWS]; // file browser rows
 static unsigned char clipboard_cut;
 
 static const char browser_items[][ITEM_SIZE] = {"FILE", "EDIT", "SETTINGS", "HELP", "RESTART"};
-static const char file_items[][ITEM_SIZE] = {"INFO", "RENAME"};
+static const char file_items[][ITEM_SIZE] = {"OPEN", "OPEN AS", "INFO", "RENAME", "DELETE"};
+static const char open_items[][ITEM_SIZE] = {"TEXT", "HEX", "TILES"};
 static const char edit_items[][ITEM_SIZE] = {"CUT", "COPY", "PASTE"};
 
 // lists the folder at path (".." below the root, folders, then files), returns the index of the folder
@@ -137,14 +142,29 @@ static void BrowserError(unsigned char result) {
   else ListMessage("SD operation failed");
 }
 
+// FILE > DELETE: asks first, path is the selection's
+static void DeleteSelected(const char* path) {
+  char title[FS_NAME_SIZE + 8];
+  char* end = ToLatin1(PutText(title, "DELETE "), entry.name, FS_NAME_SIZE - 1);
+  unsigned char result;
+  end[0] = '?';
+  end[1] = 0;
+  if (Choose(title, no_yes_items[0], 2, 0) != 1) return;
+  ShowBusy("Deleting...");
+  result = FileDelete(path);
+  if (result == FR_DENIED) ListMessage(entry.dir ? "Folder isn't empty" : "File is read only");
+  else if (result == FR_LOCKED) ListMessage("File is open");
+  else BrowserError(result);
+}
+
 // Paths in the file clipboard are independent of the editor's text clipboard.
 // The caller reloads the directory after this, because transfers borrow its marks.
+// Returns 0, ACTION_RENAME, or ACTION_OPEN + a VIEW_* mode for the selection.
 static unsigned char BrowserMenu(char* path, char* clipboard, unsigned char info) {
-  unsigned char menu = 0, item, length = 0, result;
+  unsigned char menu = 0, item = 2, view = 0, length = 0, result;
   const char* name;
   while (path[length]) ++length;
-  if (info) item = 0;
-  else while (1) {
+  if (!info) while (1) {
     menu = Choose(0, browser_items[0], 5, menu);
     if (menu >= BACK) return 0;
     if (menu == 4) {
@@ -166,9 +186,11 @@ static unsigned char BrowserMenu(char* path, char* clipboard, unsigned char info
       if (PreferencesMenu(1) == BACK) continue;
       return 0;
     }
-    item = Choose(0, menu ? edit_items[0] : file_items[0], menu ? 3 : 2, 0);
+    item = 0;
+    while ((item = Choose(0, menu ? edit_items[0] : file_items[0], menu ? 3 : 5, item)) == 1 && !menu &&
+           (view = Choose(0, open_items[0], 3, 0)) == BACK); // OPEN AS's B goes back to FILE
     if (item == BACK) continue;
-    if (item == CANCEL) return 0;
+    if (item == CANCEL || view == CANCEL) return 0;
     break;
   }
   if (menu && item == 2) {
@@ -183,12 +205,17 @@ static unsigned char BrowserMenu(char* path, char* clipboard, unsigned char info
   else {
     if (!entry.name[0]) { ListMessage("Select file/folder"); return 0; }
     if (!menu) {
-      if (!item) {
-        if (JoinPath(path + length, "", entry.name, FS_NAME_SIZE + 1)) ShowFileInfo(path, &entry);
+      if (item < 2) return ACTION_OPEN + (item ? view + 1 : VIEW_AUTO);
+      if (item == 3) return ACTION_RENAME;
+      result = JoinPath(path + length, "", entry.name, FS_NAME_SIZE + 1);
+      if (item == 2) {
+        if (result) result = ShowFileInfo(path, &entry) ? ACTION_OPEN : 0;
         path[length] = 0;
-        return 0;
+        return result;
       }
-      return 1;
+      if (result) DeleteSelected(path);
+      path[length] = 0;
+      return 0;
     }
     JoinPath(path + length, "", entry.name, FS_NAME_SIZE + 1);
     CopyName(clipboard, path);
@@ -234,6 +261,7 @@ unsigned char Browse(void) {
   char clipboard[PATH_SIZE + FS_NAME_SIZE];
   unsigned int selected = 0, first = 0, drawn = LIST_ALL;
   unsigned char key, result, row, opened = 0, editor_font = font, length, editor_osk = osk_shown;
+  unsigned char action = 0, view; // a menu's OPEN runs as A on the selection
   clipboard[0] = 0;
   CopyName(path, file_dir);
   font = FONT_VWF;
@@ -278,7 +306,13 @@ unsigned char Browse(void) {
     NoHighlight();
     if (list_count) render_sel[(row + 1) << 1] = 0, render_sel[((row + 1) << 1) + 1] = 0xFF;
     EditorDraw();
-    while (!(key = MenuKey()));
+    view = VIEW_AUTO;
+    if (action >= ACTION_OPEN) {
+      key = KEY_ENTER;
+      view = action - ACTION_OPEN;
+      action = 0;
+    }
+    else while (!(key = MenuKey()));
     if (key == KEY_UP && selected) --selected;
     else if (key == KEY_DOWN && selected + 1 < list_count) ++selected;
     else if (key == KEY_PAGE_UP) selected = selected > LIST_ROWS ? selected - LIST_ROWS : 0;
@@ -302,13 +336,13 @@ unsigned char Browse(void) {
       }
       else {
         JoinPath(path + length, "", entry.name, FS_NAME_SIZE + 1);
-        if (IsGame(entry.name)) {
+        if (!view && IsGame(entry.name)) {
           LaunchGame(path); // returns if it doesn't launch
           path[length] = 0;
           drawn = LIST_ALL;
           continue;
         }
-        if (ShowFileView(path, &entry)) { // tiles or binary: read only, back to the list after
+        if (ShowFileView(path, &entry, view)) { // tiles or binary: read only, back to the list after
           path[length] = 0;
           font = FONT_VWF;
           SetFont(font);
@@ -342,7 +376,7 @@ unsigned char Browse(void) {
       if (key == KEY_INFO && !entry.name[0]) continue;
       name_row = row;
       if (key == KEY_F1) ShowBrowserHelp();
-      else if (BrowserMenu(path, clipboard, key == KEY_INFO)) RenameSelected(path, selected);
+      else if ((action = BrowserMenu(path, clipboard, key == KEY_INFO)) == ACTION_RENAME) RenameSelected(path, selected);
       if (osk_shown) OSKShow(0);
       osk_shown = 0;
       font = FONT_VWF;

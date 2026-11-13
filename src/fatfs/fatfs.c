@@ -1649,3 +1649,14 @@ restore:
   *(volatile BYTE*)0xBD06 = saved_config;
   return result;
 }
+
+// deletes a file or an empty folder (FR_DENIED if it has anything in it or is read only); the open
+// large document's file stays (FR_LOCKED), the editor reads it as it goes
+unsigned char fs_Delete(const char* path) {
+  char open[COPY_PATH];
+  if (doc_large) {
+    JoinPath(open, file_dir, file_name, COPY_PATH);
+    if (SameName(path, open)) return FR_LOCKED;
+  }
+  return f_unlink(path);
+}

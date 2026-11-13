@@ -22,11 +22,13 @@ unsigned char Main(void) {
   Builtin(version_major, 1);
   Builtin(version_minor, 0);
   Builtin(version_patch, 1);
+  nsects = 0;
   Pass(1);
   if (!error && !rom_used) Fail(ASM_ERR_EMPTY);
-  if (!error && (i = Link()) != 0xFF) { // reported at the section that doesn't fit
-    error = sects[i].flags & SECT_ADDRESS ? ASM_ERR_OVERLAP : ASM_ERR_FULL;
-    Report(sects[i].file, sects[i].line, sects[i].pos);
+  if (!error && (i = Link()) != NO_SECT) { // reported at the section that doesn't fit
+    SectCopy(i, 0);
+    error = sec.flags & SECT_ADDRESS ? ASM_ERR_OVERLAP : ASM_ERR_FULL;
+    Report(sec.file, sec.line, sec.pos);
     return error;
   }
   if (!error) {

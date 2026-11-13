@@ -21,6 +21,6 @@ ENDR
 Data:
   INCBIN "lib/data.bin"
   INCBIN "lib/data.bin", 7
-  INCBIN "lib/data.bin", 2, 3
+  INCBIN "././lib/data.bin", 2, 3
 .end
   db .end - Data

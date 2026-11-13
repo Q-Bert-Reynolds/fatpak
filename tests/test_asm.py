@@ -71,6 +71,11 @@ ERRORS = [ # source, expected error, line
     ('SECTION "a", ROM0[0]\n ld a,, b\n', 'SYNTAX', 2),
     ('SECTION "a", WRAM0\n db 1\n', 'SECTION', 2),
     ('SECTION "a", ROM0[0]\n nop\n ld a, ' + 'x' * 80 + '\n', 'NAME', 3),
+    ('SECTION "a", ROM0\n nop\nSECTION "b", ROM0\n nop\nSECTION "a", ROM0\n nop\n', 'DUPLICATE', 5),
+    ('SECTION FRAGMENT "a", ROM0\n nop\nSECTION "a", ROM0\n nop\n', 'DUPLICATE', 3),
+    ('SECTION FRAGMENT "a", ROM0\n nop\nSECTION FRAGMENT "a", ROMX\n nop\n', 'DUPLICATE', 3),
+    ('SECTION "a", ROM0\n nop\nPOPS\n', 'SYNTAX', 3),
+    ('SECTION UNION "a", WRAM0\n db\n', 'UNSUPPORTED', 1),
 ]
 
 def sections(work, cases=150):
@@ -90,9 +95,17 @@ def sections(work, cases=150):
             attrs = t
             if rng.random() < 0.25: attrs += f'[${base + rng.randrange(0, size // 2):04X}]'
             if t in ('ROMX', 'WRAMX', 'VRAM') and rng.random() < 0.4: attrs += f', BANK[{rng.randint(b0, b1)}]'
-            if '[' not in attrs.split(',')[0] and rng.random() < 0.3: attrs += f', ALIGN[{rng.randint(1, 6)}]'
-            lines += [f'SECTION "s{i}", {attrs}', f'L{i}:'] + ([f'  ds {n}' + (', 1' if t.startswith('ROM') else '')] if n else [])
+            if '[' not in attrs.split(',')[0] and rng.random() < 0.3:
+                a = rng.randint(1, 6)
+                attrs += f', ALIGN[{a}]' if rng.random() < 0.5 else f', ALIGN[{a}, {rng.randrange(1 << a)}]'
+            name = f's{i}'
+            if attrs == t and t != 'HRAM' and rng.random() < 0.2: name = f'frag {t}' # pieces of one section
+            lines += [f'SECTION {"FRAGMENT " if name.startswith("frag") else ""}"{name}", {attrs}', f'L{i}:'] + ([f'  ds {n}' + (', 1' if t.startswith('ROM') else '')] if n else [])
             names.append(f'L{i}')
+            if t != 'HRAM' and rng.random() < 0.3: # pads to, or aligns the section for, the next label
+                a = rng.randint(1, 8)
+                lines += [f'DS ALIGN[{a}' + (f', {rng.randrange(1 << a)}]' if rng.random() < 0.5 else ']'), f'M{i}:', '  ds 1' + (', 2' if t.startswith('ROM') else '')]
+                names.append(f'M{i}')
         lines += ['SECTION "table", ROM0[$3F00]'] + [f'  dw {l}\n  db BANK({l})' for l in names]
         source = '\n'.join(lines) + '\n'
         status, line, pos, image = ours(source, work)
@@ -106,6 +119,25 @@ def sections(work, cases=150):
             if bad <= 2: print(f'sections case {case}: ours {NAMES.get(status, status)} line {line}, rgblink {"ok" if linked else "fails"}\n{source}')
     print(f'sections: {cases} random layouts, ' + (f'{bad} differ' if bad else 'all placed like rgblink'))
     return 1 if bad else 0
+
+def many(work):
+    """400 sections, more than a byte can count: banks fill up and labels move with them"""
+    import random
+    rng = random.Random(2)
+    lines, names = [], []
+    for i in range(400):
+        attrs = 'ROMX' + (f', BANK[{rng.randint(1, 15)}]' if rng.random() < 0.2 else '') + (f', ALIGN[{rng.randint(1, 8)}]' if rng.random() < 0.1 else '')
+        lines += [f'SECTION "many {i}", {attrs}', f'L{i}:', f'  ds {rng.randint(1, 900)}, {i & 255}']
+        names.append(f'L{i}')
+    lines += ['SECTION "table", ROM0[$1000]'] + [f'  dw {l}\n  db BANK({l})' for l in names]
+    source = '\n'.join(lines) + '\n'
+    status, line, pos, image = ours(source, work)
+    if status:
+        print(f'many sections: FAIL line {line}: {NAMES.get(status, status)}'); return 1
+    if image != theirs(source, work):
+        print('many sections: FAIL differs from RGBDS'); return 1
+    print(f'many sections: 400, {len(image)} bytes match')
+    return 0
 
 def large_files(folder):
     """an include and an INCBIN over 64 KiB: a macro and a REPT body defined past 64 KiB"""
@@ -133,7 +165,10 @@ def main():
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '4.o', str(ROOT / 'modules/asm_str.c')])
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '5.o', str(ROOT / 'modules/asm_loop.c')])
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '6.o', str(ROOT / 'modules/asm_main.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c')] + [str(HOST) + suffix + '.o' for suffix in ('', '2', '3', '4', '5', '6')])
+    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '7.o', str(ROOT / 'modules/asm_sect.c')])
+    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '8.o', str(ROOT / 'modules/asm_pushs.c')])
+    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '9.o', str(ROOT / 'modules/asm_align.c')])
+    run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c')] + [str(HOST) + suffix + '.o' for suffix in ('', '2', '3', '4', '5', '6', '7', '8', '9')])
     failed = 0
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
@@ -173,6 +208,7 @@ def main():
                 print(f'src/{name}: {len(mine)} bytes match')
         failed += large(work)
         failed += sections(work)
+        failed += many(work)
         for source, name, line in ERRORS:
             status, got, pos, _ = ours(source, work)
             if name is None:

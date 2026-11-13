@@ -20,14 +20,15 @@ static unsigned char IsTiles(const char* name) {
   return !*dot;
 }
 
-unsigned char ShowFileView(const char* path, const FileEntry* entry) {
+unsigned char ShowFileView(const char* path, const FileEntry* entry, unsigned char mode) {
   char line[FS_NAME_SIZE];
-  unsigned char result, row, i, tiles = IsTiles(entry->name), shown;
+  unsigned char result, row, i, tiles = mode == VIEW_TILES || (!mode && IsTiles(entry->name)), shown;
   unsigned int n;
   unsigned char* attrs = tile_attrs;
-  if (FileViewOpen(path)) return 0; // opening it as text reports the error
-  shown = tiles && view_size; // an empty one opens as text
-  if (!tiles) {
+  if (mode == VIEW_TEXT || FileViewOpen(path)) return 0; // opening it as text reports the error
+  shown = view_size != 0; // an empty one opens as text
+  if (!tiles && !mode) {
+    shown = 0;
     view_pos = 0;
     n = FileViewRead(512);
     while (n) if (!buffer[--n]) { shown = 1; break; }

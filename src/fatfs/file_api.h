@@ -31,6 +31,7 @@ extern unsigned char session_open;
 extern unsigned char FileMount(void); // FRESULT, mounts the card if it isn't
 extern unsigned char FileRename(const char* source, const char* destination);
 extern unsigned char FileRenameName(const char* source, const char* name);
+extern unsigned char FileDelete(const char* path); // FRESULT: a file or an empty folder, FR_LOCKED for the open large document
 extern unsigned char FileCopy(const char* source, const char* destination); // includes folder contents; never overwrites
 extern unsigned char FileList(const char* path, const char* find); // FRESULT, UTF-8 path, "" = root
 extern unsigned char FileListEntry(unsigned int index, FileEntry* entry); // FRESULT, folders first

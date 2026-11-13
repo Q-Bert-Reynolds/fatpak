@@ -83,7 +83,8 @@ DEF ASM_IMAGE_BLOCKS EQU 2048;1 MiB, 64 banks
 DEF ASM_SYMBOL_BLOCK EQU $0C00;the symbol table, 1024 blocks (65536 8-byte units); the first holds the 256 hash heads
 DEF ASM_HEAP_BLOCK   EQU $1000;the EQUS heap, 128 blocks (64 KiB)
 DEF ASM_CHARMAP_BLOCK EQU $1080;names, 8 maps' heads, then a 60 KiB pool (129 blocks)
-DEF ASM_FILE_BLOCK   EQU $1110;included and INCBIN files, packed whole from here
+DEF ASM_SECTION_BLOCK EQU $1110;the section table, 32 blocks (512 32-byte records)
+DEF ASM_FILE_BLOCK   EQU $1130;included and INCBIN files, packed whole from here
 DEF ASM_FILE_END     EQU $3900;ADD_MAX / 512: up to the add buffer's end
 DEF MODULE_ABI     EQU 7;newest ABI the host provides, modules built for older ones still load
 DEF MODULE_TABLE   EQU $7F00;ABI jump table in resident bank 1, 3 bytes per entry

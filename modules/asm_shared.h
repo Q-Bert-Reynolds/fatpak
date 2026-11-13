@@ -67,6 +67,7 @@ void Header(void);
 #define SYM_MACRO 3 // value, bank: the body's address (bits 0-15, 16-23), extra: its length
 #define SYM_INCLUDE 4 // name: the path, value: its first block, bank and extra: its size (bits 16-23, 0-15)
 #define SYM_STRING 5 // EQUS: value: heap offset, extra: length
+#define SYM_SECTION 6 // name: '"' and the section's name, value: its index
 #define SYM_SEEN 0x80 // with the kind: defined this pass (see Mark)
 
 // shared by asm.c and asm_line.c
@@ -94,7 +95,9 @@ void Header(void);
 #define D_FOR 27
 #define D_CHARMAP 28 // then NEWCHARMAP, SETCHARMAP, PUSHC, POPC
 #define D_POPC 32
-#define DIRECTIVES 33 // the supported ones
+#define D_PUSHS 33
+#define D_POPS 34
+#define DIRECTIVES 35 // the supported ones
 #define T_MNEMONICS 0
 #define T_DIRECTIVES 1
 #define T_REGISTERS 2
@@ -132,19 +135,39 @@ typedef struct {
   unsigned char args, nargs; // a macro's arguments in args[], 0-ended each
 } Frame;
 #define ROM_BANKS 64 // ASM_IMAGE_BLOCKS / 32
-#define ASM_SECTIONS 64
+// asm_sect.c: sections, 32-byte records in PSRAM from ASM_SECTION_BLOCK (16 a block), each
+// found by a SYM_SECTION symbol. The open one is in sec, written back when it closes.
+#define ASM_SECTIONS 512
 #define SECT_ADDRESS 1 // flags: the address was given
 #define SECT_BANK 2 // the bank was given
 #define SECT_PLACED 4 // Link placed it
+#define SECT_FRAGMENT 8 // SECTION FRAGMENT: later ones with its name continue it
+#define SECT_OPEN 16 // pass 2 has opened it
 typedef struct {
   unsigned char type, bank, align, flags; // type: index into the region tables (ROM0 ROMX VRAM SRAM WRAM0 WRAMX OAM HRAM)
   unsigned int start, size, base; // pass 1's start (the address, or the region's start), size; Link's address
   unsigned int file; // where it was declared, for errors
   unsigned int line, pos;
+  unsigned int ofs; // the alignment's offset: base % (1 << align) == ofs (DS ALIGN tightens both)
+  unsigned char align0; // as declared: each pass starts from these
+  unsigned int ofs0;
+  unsigned int fill; // this pass's address after its last byte so far (FRAGMENTs and POPS go on there)
+  unsigned int next; // Link: the next placed section in its bank by address, NO_SECT for none
+  unsigned int rank; // Link's order, biggest first: rank, then size, then the index
 } Sect;
-extern Sect sects[ASM_SECTIONS];
-extern unsigned char nsects, cur;
-unsigned char Link(void);
+#define NO_SECT 0xFFFF
+extern Sect sec;
+extern unsigned int nsects, cur;
+extern unsigned char sect_depth; // PUSHS
+void SectCopy(unsigned int index, unsigned char store); // sec from (0) or to (1) PSRAM
+void Section(void);
+void Enter(void); // sec is open: pc goes on from its fill
+void CloseSection(void);
+void PushS(void);
+void PopS(void);
+unsigned int AlignPad(unsigned char a, unsigned int ofs); // DS ALIGN: the bytes to its address
+void AlignTo(unsigned char a, unsigned int ofs); // then the section's alignment is at least that
+unsigned int Link(void); // NO_SECT, or the section that doesn't fit
 void Relocate(void);
 extern Frame frames[FRAMES];
 extern unsigned char depth, chunk_n, arg_top, max_bank;

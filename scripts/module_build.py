@@ -27,8 +27,10 @@ C = utils.constants(str(ROOT / 'src/constants.asm'))
 PAGE_SIZE = 0x1D00
 PAGE_ADDRESS = 0xA000
 # The main build's flags (Makefile): peephole.def also fixes `jp (hl)` for RGBDS.
+# Modules also turn jp into jr where it reaches (modules/peephole_jr.def), written to PEEPHOLE.
+PEEPHOLE = OUTPUT / 'peephole.def'
 SDCC = ['sdcc', '-msm83', '--asm=rgbds', '--opt-code-size', '--dataseg', 'WRAM0',
-        '--no-peep', '--peep-file', 'peephole.def', '--disable-warning', '218', '-S']
+        '--no-peep', '--peep-file', str(PEEPHOLE), '--disable-warning', '218', '-S']
 
 
 def package(payload, entry, module_id, bss_offset, bss_size, abi=1, payload2=None, payload3=None, payload4=None):
@@ -251,12 +253,39 @@ def assembly(raws, allowed, raws2=None, raws3=None, raws4=None):
 
 
 def compile_sources(work, sources):
+    PEEPHOLE.parent.mkdir(parents=True, exist_ok=True)
+    write_if_changed(PEEPHOLE, (ROOT / 'peephole.def').read_text() + (ROOT / 'modules/peephole_jr.def').read_text())
     raws = []
     for source in sources:
         raw = work / (Path(source).stem + '.raw.asm')
         subprocess.run(SDCC + [str(ROOT / 'modules' / source), '-o', str(raw)], check=True, cwd=ROOT)
         raws.append(raw.read_text())
     return raws
+
+
+def link(work):
+    """rgbasm and rgblink. SDCC's labelInRange misjudges a few jumps (the thunks and pages
+    module_build adds aren't in its count): each jr the assembler or linker finds out of range
+    goes back to jp, and it tries again."""
+    source = work / 'module.asm'
+    for _ in range(16):
+        steps = [['rgbasm', '-o', str(work / 'module.o'), str(source)],
+                 ['rgblink', '-n', str(work / 'module.sym'), '-o', str(work / 'module.bin'), str(work / 'module.o')]]
+        for step in steps:
+            done = subprocess.run(step, capture_output=True, text=True, cwd=ROOT)
+            if done.returncode:
+                break
+        else:
+            return
+        far = [int(n) for n in re.findall(r'`JR` target must be[^\n]*\n\s*at [^\n]*?\((\d+)\)', done.stderr)]
+        if not far:
+            sys.stderr.write(done.stderr)
+            raise subprocess.CalledProcessError(done.returncode, done.args)
+        lines = source.read_text().split('\n')
+        for n in far:
+            lines[n - 1] = lines[n - 1].replace('\tjr\t', '\tjp\t', 1)
+        source.write_text('\n'.join(lines))
+    raise ValueError(f'{work.name}: jumps still out of range')
 
 
 def build_module(module, versions):
@@ -269,9 +298,7 @@ def build_module(module, versions):
     wide = groups[1] is not None
     text, used = assembly(*groups[:1], versions, *groups[1:])
     (work / 'module.asm').write_text(text)
-    subprocess.run(['rgbasm', '-o', str(work / 'module.o'), str(work / 'module.asm')], check=True, cwd=ROOT)
-    subprocess.run(['rgblink', '-n', str(work / 'module.sym'), '-o', str(work / 'module.bin'),
-                    str(work / 'module.o')], check=True, cwd=ROOT)
+    link(work)
     symbols = {}
     for line in (work / 'module.sym').read_text().splitlines():
         match = re.match(r'[0-9a-fA-F]+:([0-9a-fA-F]+) (\w+)$', line)

@@ -8,5 +8,6 @@ typedef struct {
   const FileDetails* details;
   unsigned char language; // FileLanguage: 0 plain, 1 markdown, 2 C, 3 assembly
   unsigned char result; // FileInspect's FRESULT, 0 for folders
+  unsigned char open; // out: 1 if A (enter) closed the page, the browser opens the file
 } InfoContext;
 #endif

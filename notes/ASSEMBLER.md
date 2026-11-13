@@ -21,9 +21,9 @@ assemble byte-identical to RGBDS, unmodified (`memory1.asm` calls
   first if the text is modified or unnamed.
 - The header's logo, ROM-size byte and both checksums are written for you
   (`rgbfix -v -p 0`); the rest of `$100-$14F` is yours, as in any RGBDS project.
-- An error shows as `L<line> <message>` in the status bar and moves the cursor
-  to that line. In an included file it's `I<n> L<line>`, the nth file included,
-  and the cursor goes to the document's `INCLUDE` line that led there. An error
+- An error shows in a box with the file's name, `Line <n>` and the message, and
+  moves the cursor to that line. In an included file the cursor goes to the
+  document's `INCLUDE` line that led there. An error
   in a macro is reported where the macro was used. The first error stops the
   build.
 - Success shows BUILT and the ROM size. RUN then launches like a game:
@@ -50,7 +50,9 @@ assemble byte-identical to RGBDS, unmodified (`memory1.asm` calls
 | Every SM83 instruction, RGBDS spellings | `ld [hl+]`/`[hli]`, `ldh [c]`/`[$ff00+c]`, `jp hl`/`[hl]`, `add b` without `a,`, `ld hl, sp±e`, `stop` is 2 bytes, `halt` 1 |
 | Labels `Name:`/`Name::`, locals `.loop` (colon optional), `Name.loop` references, indented labels | locals belong to the last global label |
 | `DEF X EQU`, `DEF X =`, `REDEF X =`, `DEF X RB/RW/RL [n]`, `RSRESET`, `RSSET` | constants must be known on the first pass (no forward references) |
-| `SECTION "name", TYPE[addr], BANK[n], ALIGN[n]` | ROM0, ROMX (banks 1-63), VRAM, SRAM, WRAM0, WRAMX, OAM, HRAM; placed like rgblink (below) |
+| `SECTION [FRAGMENT] "name", TYPE[addr], BANK[n], ALIGN[n[, offset]]` | ROM0, ROMX (banks 1-63), VRAM, SRAM, WRAM0, WRAMX, OAM, HRAM; up to 512; placed like rgblink (below). Fragments with one name join in source order (attributes count on the first) |
+| `PUSHS [section args]`, `POPS` | 8 deep; the label scope comes back too |
+| `DS ALIGN[n[, offset]][, fill]` | like rgbasm: pads as far as the section's address or alignment says, then tightens a floating section's alignment |
 | `DB`/`DW` (with strings and `\n \t \r \0 \\ \" \'`), `DS n[, fill]`, bare `DB`/`DW` in RAM | |
 | `INCLUDE "file"` | nested, and the same file again is read from PSRAM, not the card |
 | `IF`/`ELIF`/`ELSE`/`ENDC` | nested to 15 levels; skipped lines aren't parsed |
@@ -74,19 +76,22 @@ small values. Nesting: 10 frames (includes, macros, repeats and arguments
 together), 256 bytes of macro arguments in flight.
 
 Not supported, with the NOT SUPPORTED error: `LOAD`, `UNION`, `CHARLEN`,
-`CHARSUB` and the other charmap functions, `OPT`, `PUSHS`/`POPS`, `ALIGN` and
-`DS ALIGN`, `SECTION FRAGMENT`, `STRFMT`, `\<10>` and named macro arguments.
-Names are up to 63 characters; nesting is 16 frames. String symbols
+`CHARSUB` and the other charmap functions, `OPT`, the `ALIGN` directive,
+`SECTION UNION`, `STRFMT`, `\<10>` and named macro arguments.
+Names are up to 79 characters (section names 78); nesting is 16 frames. String symbols
 are at most 256 bytes; the `EQUS` heap holds 64 KiB over both passes. Old `X EQU`/`X SET` without `DEF` and `ld [c], a` without `ldh` are
 gone from RGBDS 1.0 and aren't accepted.
 
 **Placement** follows rgblink, checked against it on thousands of random
-layouts. Pass 1 records each section's type, bank, alignment, address and size.
+layouts. Pass 1 records each section's type, bank, alignment (and its offset),
+address and size.
 Then, in order: sections with address and bank given (one-bank regions count as
 given), then bank only, then address only, then neither; within each, aligned
 ones first, then bigger, then the later one in the source. Each goes in the
 lowest bank it may use, at the lowest address that fits among those already
-placed. An empty section goes at its region's start and takes no room. Fixed
+placed (each bank keeps a list of its sections by address, so `Link` walks only
+the gaps). An empty section goes at its region's start, whatever its offset, and
+takes no room. Fixed
 sections that overlap are SECTIONS OVERLAP; one that doesn't fit is SECTION FULL,
 reported at its `SECTION` line. The ROM is the smallest power of two ≥ 32 KiB
 that holds the highest ROM bank used.
@@ -110,8 +115,7 @@ earlier in pass 2 (a mark bit per symbol), so include guards work.
   MiB, any file size); the file's symbol keeps its first block and size. Macro
   and repeat bodies are a range of addresses, replayed (`\1`-`\9` and `\@` push
   small argument frames from memory). Each frame knows its file (the `INCLUDE`
-  symbol, 0 for the document) for errors, which name the file without its folders
-  or extension, cut to 8 characters (the status bar is short). Skipping (false `IF` branches, recording a `MACRO`,
+  symbol, 0 for the document) for errors, which name the file without its folders. Skipping (false `IF` branches, recording a `MACRO`,
   `REPT` or `FOR` body) scans lines for the directive that ends them, counting
   nesting. `{` starts interpolation in `Advance` itself (not while skipping or
   in comments), which pushes the text as a frame; a string symbol's expansion is
@@ -126,22 +130,31 @@ earlier in pass 2 (a mark bit per symbol), so include guards work.
   (up to 79 characters). 256 hash chains whose heads fill the first block;
   entries never cross a block. Macros keep their body's address (value and bank)
   and length; files are symbols named by their path's last 79 characters.
+- **Sections** are 32-byte records in PSRAM from `ASM_SECTION_BLOCK` (512, 32
+  blocks), each found by a symbol named `"` and the section's name (so a
+  FRAGMENT or pass 2 finds its own). The open one is a copy in WRAMX (`sec`),
+  written back when it closes; `fill` is where the pass is up to, so a FRAGMENT
+  or `POPS` goes on there. `DS ALIGN` changes the alignment while a pass runs,
+  so each pass starts from the declared one. Labels keep their section's 16-bit
+  index for `Relocate`.
 - **Image** at `ASM_IMAGE_BLOCK` (up to 1 MiB, 2048 blocks); `Emit` selects the
   block from the bank and address. Image, symbols, heap, charmaps and files are
   inside the large-file add buffer, which is unused while a text-buffer document
   is open.
 - **Pages.** A four-page wide module ([MODULES.md](MODULES.md)):
-  `modules/asm.c` (page 13: the stream, words, expressions, word tables, a
-  `ModuleMain` that calls `Main`), `modules/asm_emit.c` with `asm_loop.c` (page
-  12: arithmetic, symbol table, relocation, instruction encoders, image fill and
-  header; `FOR`, opening files, `INCLUDE`, `INCBIN`), `modules/asm_line.c` (page
-  5: lines, operands, directives, `IF`/`REPT`/`MACRO`, sections, `Link` and the
-  error report) and `modules/asm_str.c` with `asm_main.c` (page 4: `EQUS`, string
-  functions, `{}`, charmaps; the passes). Calls between pages
-  cost a far call each; pointers never cross: each page's constants are read by
-  its own code; `modules/asm_shared.h` lists what is shared (globals are WRAMX
-  BSS, readable from all four). Free bytes: page 13 ~260, 12 ~1,700, 5 ~330,
-  4 ~2,900.
+  `modules/asm.c` with `asm_pushs.c` (page 13: the stream, words, expressions,
+  word tables, a `ModuleMain` that calls `Main`; `PUSHS`/`POPS`),
+  `modules/asm_emit.c` with `asm_loop.c` (page 12: arithmetic, symbol table,
+  relocation, instruction encoders, image fill and header; `FOR`, opening files,
+  `INCLUDE`, `INCBIN`), `modules/asm_line.c` with `asm_sect.c` (page 5: lines,
+  operands, directives, `IF`/`REPT`/`MACRO`, the error report; sections and
+  `Link`) and `modules/asm_str.c` with `asm_main.c` and `asm_align.c` (page 4:
+  `EQUS`, string functions, `{}`, charmaps; the passes; `DS ALIGN`'s arithmetic).
+  Calls between pages cost a far call each; pointers never cross: each page's
+  constants are read by its own code; `modules/asm_shared.h` lists what is shared
+  (globals are WRAMX BSS, readable from all four). **The module is nearly full:**
+  free bytes are page 13 ~275, 12 ~320, 5 ~28, 4 ~190 (with `jr` for every jump
+  in range, `modules/peephole_jr.def`).
 - **Host** (`src/editor/build.c`, page 13, `FileWriteImage` and `fs_ReadFile`
   in `fatfs.c`): saves, runs the module with an `AsmContext` (length in; line,
   position, file, blocks, symbols back), shows `errors[]`, writes the blocks with
@@ -176,12 +189,13 @@ earlier in pass 2 (a mark bit per symbol), so include guards work.
 | 19 | BAD BANK | wrong bank for the region, ROMX bank 0 or > 63, `ALIGN` > 13 |
 | 20 | ASSERT FAILED | `ASSERT` false or `FAIL` |
 | 21 | NO SUCH FILE | `INCLUDE` or `INCBIN` can't read it (or it's empty) |
-| 22 | TOO DEEP | nesting, arguments, 16 includes or 64 sections exceeded |
+| 22 | TOO DEEP | nesting, arguments, 16 includes, 8 `PUSHS` or 512 sections exceeded |
 | 23 | SECTIONS OVERLAP | two sections with addresses overlap |
 
 Module load failures show the usual MODULE MISSING / DAMAGED / NEEDS NEWER OS.
-Messages are short because the status bar keeps its right 48 pixels for the
-clock (`FooterCompose`); the symbol count is only in `AsmContext`.
+Results show in a box in the middle of the editor (`ShowBox`): the file's whole
+name (wrapped at 19 characters), `Line <n>` and the message, or the ROM's name and
+`Built <n> KB`. The symbol count is only in `AsmContext`.
 
 ## Timing
 
@@ -214,9 +228,11 @@ with three pages; the fourth page and `EQUS` cost ~290 more.
   `strings.asm`, every string function, format and `EQUS` use including a macro
   built from a string and `PURGE`; `loops.asm`, `FOR` (nested, negative step,
   none) and `INCBIN`; `hello.asm`), FatPak's `math.asm`, `memory1.asm` and
-  `gbdk.asm`, and 150
-  random section layouts whose labels and banks go in a fixed table. Then each
-  error code's line and position.
+  `gbdk.asm`; `sections.asm` (`FRAGMENT`, `PUSHS`/`POPS` with scopes, `DS ALIGN`
+  in floating, aligned, fixed and RAM sections, `ALIGN` offsets), 150 random
+  section layouts (with fragments, offsets and `DS ALIGN`) whose labels and banks
+  go in a fixed table, and 400 ROMX sections. Then each error code's line and
+  position.
 - `tests/run_build.sh` (DMG, CGB): runs `test_asm.py`, then in Gearboy opens a
   file in the editor and uses FILE > BUILD (message, matching `.gb`, page 12 and
   the editor view restored, timing), an error (line and cursor, no `.gb`), BUILD
@@ -243,18 +259,24 @@ two-line prelude and limits raised) worked through it as far as it could:
 | Paths over 48 characters | `INCBIN` of tilemaps (67) | done (127; the symbol is the last 79) |
 | Hundreds of files | 444 sources (2.0 MB), 675 `INCBIN` files (187 KB) | done: packed in PSRAM (about 5 MiB), read once |
 | Files over 64 KB | `player_data.asm` 200 KB, `Overworld.gbmap` 245 KB, `Mountains.gbmap` 122 KB | done: 32-bit positions |
-| More than 64 sections | over 255 | **to do**: the section table in PSRAM, 16-bit section numbers |
-| `DS ALIGN[n]` | `tile_anim.asm` | **to do**: an alignment offset in placement |
-| `SECTION FRAGMENT` | 13, C output (`_announcer.asm`) | **to do** |
-| `PUSHS`/`POPS` | 6 | **to do** |
+| More than 64 sections | 379 | done: 512, the table in PSRAM, 16-bit section numbers |
+| `DS ALIGN[n]` | `tile_anim.asm` | done |
+| `SECTION FRAGMENT` | 13, C output (`_announcer.asm`) | done |
+| `PUSHS`/`POPS` | 6 | done |
 | 32-bit values | `D24`, `D32` (item costs) | **to do** |
 | `-D` defines, `rgbfix` options | `_DEMO`, `LANG_EN`; `-jvcs -k 01 -l 0x33 -m 0x1B -p 255` | **to do**: a per-project setting |
-| Speed | ~1.8 MB read per pass | **to do**: about 30 minutes on DMG, 15 on GBC at today's rate |
+| Speed | ~1.8 MB read per pass | **to do**: 39 minutes on CGB in Gearboy (over an hour on DMG) |
 
-With files done, the probe (the PC harness on a scratch copy, the section limit
-raised and `DS ALIGN`, `SECTION FRAGMENT` and `PUSHS`/`POPS` patched out) reads
-1,041 files through pass 1 and links; pass 2 then trips on its byte-sized section
-count. What comes after the sections is still unknown.
+With sections done, the PC harness assembles an unmodified copy (only the two
+defines added at the top of `main.asm`) in both passes: a 512 KiB ROM, 12,634
+symbols. Against `rgbasm -D _DEMO -D LANG_EN` and `rgbfix -v -p 0` it differs in
+15 bytes, every one a value over 16 bits (`D24`/`D32` money, a ten-thousands
+table, the top bytes of big constants). In Gearboy (CGB), FILE > BUILD on the same
+copy writes a ROM identical to the PC harness's in 140,340 frames: 39 minutes, so
+DMG would be over an hour. That run found the one device-only difference: 70 of
+its paths start with `./`, and FatFs has no relative names (`FF_FS_RPATH` 0), so
+`OpenFile` drops a leading `./` (the PC harness now refuses `.` and `..` like
+FatFs does).
 
 ## Next steps
 
@@ -263,8 +285,12 @@ count. What comes after the sections is still unknown.
    small files; a cached backup compare (MODULES.md) or keeping the module
    installed across builds would help. For big sources, `Keyword` could index
    its tables by length, and comment lines could be skipped in assembly.
-3. **Language:** `CHARMAP`, `LOAD`, `UNION`, 32-bit values, anonymous labels,
-   `STRFMT`, a symbol listing to a file. Page 4 has the room.
+3. **Language:** 32-bit values (beisbol's last 15 bytes), `LOAD`, `UNION`,
+   anonymous labels, `STRFMT`, a symbol listing to a file. **Room first:** the
+   four pages have ~800 bytes left. A fifth page could stage at `$3CC0`/`$3CD0`
+   (free between the snapshot staging and `DATA_BLOCK`; `$3E00` and up broke the
+   cart), borrowing OS page 15, with `ModuleSwap` taking each page's blocks from a
+   table instead of `$20` steps.
 4. **Large sources:** assemble a large document from its file on the card.
 5. From the TODO: an export table of OS routines for user programs and a ROM0
    API (print, keys, files, exit), and the compiler.

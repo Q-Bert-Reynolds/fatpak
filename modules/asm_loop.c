@@ -61,10 +61,10 @@ unsigned int OpenFile(void) {
   Space();
   if (ch != '"') { Fail(ASM_ERR_SYNTAX); return 0; }
   Advance();
-  for (i = 0; ch != '"'; ++i) {
+  for (i = 0; ch != '"'; Advance()) {
     if (ch == 0 || ch == 10 || i == sizeof(path) - 1) { Fail(ASM_ERR_STRING); return 0; }
-    path[i] = ch;
-    Advance();
+    if (ch == '/' && i == 1 && path[0] == '.') { i = 0; continue; } // a leading "./": FatFs has no relative names
+    path[i++] = ch;
   }
   path[i] = 0;
   Advance();
