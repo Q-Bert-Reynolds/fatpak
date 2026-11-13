@@ -1,6 +1,7 @@
 # Code placement; feature ownership follows the source files.
 *: 5
-4: PutNumber PutNumber2 CopyName
+4: PutNumber2 CopyName
+ROM0: PutNumber # BuildProgress calls it while ASM.MOD has page 4
 14: PutNumber2
 15: CopyName
 10: PutText

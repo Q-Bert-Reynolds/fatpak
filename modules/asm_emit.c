@@ -5,7 +5,7 @@
 #include "lib/psram.h"
 
 // --- arithmetic without helpers
-static unsigned int Mul(unsigned int a, unsigned int b) {
+unsigned int Mul(unsigned int a, unsigned int b) {
   unsigned int r = 0;
   while (b) {
     if (b & 1) r += a;
@@ -14,7 +14,7 @@ static unsigned int Mul(unsigned int a, unsigned int b) {
   }
   return r;
 }
-static unsigned int Div(unsigned int a, unsigned int b, unsigned char remainder) {
+unsigned int Div(unsigned int a, unsigned int b, unsigned char remainder) {
   unsigned int q = 0, r = 0;
   unsigned char i;
   for (i = 0; i < 16; ++i) {

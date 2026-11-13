@@ -18,7 +18,7 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
 | `FILEINFO.MOD` | 3 | 2 | FILE > INFO, Select (`browser/info.c`) | 3,141 B + 43 B BSS |
 | `HELP.MOD` | 4 | 3 | HELP, F1 (`editor/help.c`) | 327 B + 34 B BSS |
 | `THEME.MOD` | 5 | 3 | SETTINGS > THEME (`ui/theme.c`) | 510 B |
-| `ASM.MOD` | 6 | 7 | FILE > BUILD, RUN (`editor/build.c`), [ASSEMBLER.md](ASSEMBLER.md) | wide, 4 pages: 7,149 + 7,104 + 7,396 + 7,232 B, 1,995 B BSS |
+| `ASM.MOD` | 6 | 8 | FILE > BUILD, RUN (`editor/build.c`), [ASSEMBLER.md](ASSEMBLER.md) | wide, 4 pages: 7,311 + 7,335 + 7,376 + 7,305 B, 2,000 B BSS |
 | `HEXVIEW.MOD` | 7 | 6 | Opening a binary file in the browser (`browser/viewer.c`) | 2,243 B + 221 B BSS |
 | `TILEVIEW.MOD` | 8 | 6 | Opening a `.tiles` file in the browser (`browser/viewer.c`) | 2,134 B + 383 B BSS |
 
@@ -241,6 +241,7 @@ entries. Entries are append-only; changing one's meaning needs a new entry.
 | `ModSelect(row, first, end)` | 6 | Highlights columns `first` to `end` (exclusive) of one text row, clearing the other text rows |
 | `ModTiles(row, tiles)` | 6 | `EditorDraw`, then `RenderRawRow`: `TB_COLS` 2bpp tiles (320 bytes) sent as they are to a text row's block, which keeps them until the row's text, selection or a box over it changes. GBC: BG palette 7 (four greys); DMG/SGB dark mode inverts them so they keep their shades. The host calls `EditorRedraw` after |
 | `ModLoad(path, load)` | 7 | `ModFile`'s search for a file of any size (below 16 MiB): a `ModuleLoad` `{block, blocks, size}` says where and how many blocks may be written; sets `size`. Returns 0, 1 if unreadable, 2 if it doesn't fit (nothing written). ASM.MOD's `INCLUDE` and `INCBIN` |
+| `ModProgress(text)` | 8 | Text in the busy box (a line at each `\n`, wrapped at 19), drawn only if 5 s (`render_frames`, counted by the LCD interrupt) have passed since the module started or last drew, so call it often. `0`: the host's own text (`module_progress`, set with `module_context`; ASM.MOD's is `BuildProgress`, ROM0). For a wide module the host holds its BSS at `MODULE_BSS_HELD`, brings the editor's buffers back, draws with VBlank on, and swaps both back (~30 frames on DMG, half on CGB) |
 
 Pointer rule: wrappers run with page 13 mapped, so they read module memory
 directly but copy it into host memory (`buffer` or the stack) before calling

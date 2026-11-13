@@ -168,7 +168,8 @@ def main():
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '7.o', str(ROOT / 'modules/asm_sect.c')])
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '8.o', str(ROOT / 'modules/asm_pushs.c')])
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '9.o', str(ROOT / 'modules/asm_align.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c')] + [str(HOST) + suffix + '.o' for suffix in ('', '2', '3', '4', '5', '6', '7', '8', '9')])
+    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '10.o', str(ROOT / 'modules/asm_progress.c')])
+    run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c')] + [str(HOST) + suffix + '.o' for suffix in ('', '2', '3', '4', '5', '6', '7', '8', '9', '10')])
     failed = 0
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)

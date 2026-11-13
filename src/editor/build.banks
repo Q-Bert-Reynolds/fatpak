@@ -1,1 +1,3 @@
 *: 13
+# ModProgress(0) calls it while ASM.MOD has pages 13, 12, 5 and 4
+ROM0: BuildProgress

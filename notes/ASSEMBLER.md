@@ -142,23 +142,32 @@ earlier in pass 2 (a mark bit per symbol), so include guards work.
   inside the large-file add buffer, which is unused while a text-buffer document
   is open.
 - **Pages.** A four-page wide module ([MODULES.md](MODULES.md)):
-  `modules/asm.c` with `asm_pushs.c` (page 13: the stream, words, expressions,
-  word tables, a `ModuleMain` that calls `Main`; `PUSHS`/`POPS`),
-  `modules/asm_emit.c` with `asm_loop.c` (page 12: arithmetic, symbol table,
+  `modules/asm.c` with `asm_progress.c` (page 13: the stream, words, expressions,
+  word tables, a `ModuleMain` that calls `Main`; progress), `modules/asm_emit.c`
+  with `asm_loop.c` and `asm_pushs.c` (page 12: arithmetic, symbol table,
   relocation, instruction encoders, image fill and header; `FOR`, opening files,
-  `INCLUDE`, `INCBIN`), `modules/asm_line.c` with `asm_sect.c` (page 5: lines,
-  operands, directives, `IF`/`REPT`/`MACRO`, the error report; sections and
-  `Link`) and `modules/asm_str.c` with `asm_main.c` and `asm_align.c` (page 4:
-  `EQUS`, string functions, `{}`, charmaps; the passes; `DS ALIGN`'s arithmetic).
+  `INCLUDE`, `INCBIN`; `PUSHS`/`POPS`), `modules/asm_line.c` with `asm_sect.c`
+  (page 5: lines, operands, directives, `IF`/`REPT`/`MACRO`, the error report;
+  sections and `Link`) and `modules/asm_str.c` with `asm_main.c` and
+  `asm_align.c` (page 4: `EQUS`, string functions, `{}`, charmaps; the passes;
+  closing a section, `DS ALIGN`'s arithmetic).
   Calls between pages cost a far call each; pointers never cross: each page's
   constants are read by its own code; `modules/asm_shared.h` lists what is shared
   (globals are WRAMX BSS, readable from all four). **The module is nearly full:**
-  free bytes are page 13 ~275, 12 ~320, 5 ~28, 4 ~190 (with `jr` for every jump
+  free bytes are page 13 ~110, 12 ~90, 5 ~50, 4 ~120 (with `jr` for every jump
   in range, `modules/peephole_jr.def`).
-- **Host** (`src/editor/build.c`, page 13, `FileWriteImage` and `fs_ReadFile`
+- **Host** (`src/editor/build.c`, page 13, `FileWriteImage` and `fs_LoadFile`
   in `fatfs.c`): saves, runs the module with an `AsmContext` (length in; line,
-  position, file, blocks, symbols back), shows `errors[]`, writes the blocks with
-  `f_write` straight from the window, then `LaunchGame` for RUN.
+  position, file, blocks, symbols back), shows the result in a box, writes the
+  blocks with `f_write` straight from the window, then `LaunchGame` for RUN.
+- **Progress:** every 64 lines (and as each pass starts) `Progress`
+  (`asm_progress.c`) puts the pass, a count and where it is (`Report`: file and
+  line) in the context and calls `ModProgress(0)`. The host draws at most every
+  5 s, so a build under 5 s never pays for it, and its `BuildProgress` (ROM0)
+  writes the box: `Pass 1: 45k lines` (pass 1 can't know the total), `Pass 2:
+  47%` (of pass 1's lines), the file's name and `line n`. A draw costs about 30
+  frames on DMG (the buffers swapped four times and the box's rows drawn again),
+  ~10% of a long build there and ~5% on CGB.
 - **No SDCC helpers:** `*` `/` `%` are shift loops; numbers scale by shifts.
 - `tests/asm_host.c` builds the same three files for the PC with 16-bit ints
   (`-Dint=short`), a 16 MiB PSRAM array and includes from the source's folder,

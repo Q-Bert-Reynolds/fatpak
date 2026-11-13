@@ -9,6 +9,8 @@ typedef struct {
   unsigned int symbols; // out: labels, constants, macros and includes defined
   unsigned int file;   // out: 0 the document, else the included file's symbol
   char name[65];       // out: then its name, without folders (FS_NAME_SIZE)
+  unsigned char pass;  // progress (ModProgress(0), while it runs): the pass, file, name and line above,
+  unsigned int progress; // and pass 1's lines in thousands or pass 2's percent
 } AsmContext;
 
 // ModuleMain's result (module_status), 0 when the image is complete

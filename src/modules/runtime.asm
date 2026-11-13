@@ -17,6 +17,8 @@ ASSERT MODULE_STAGE4 == MODULE_STAGE + $60 && MODULE_BACKUP4 == MODULE_BACKUP + 
 ASSERT NAME_HISTORY_BLOCK + 16 <= MODULE_BSS_BACKUP
 ASSERT MODULE_FAIL_BLOCK < MODULE_STAGE && MODULE_BACKUP4 + MODULE_SECTORS <= $3E00;nothing of ours at $3E00 and up
 ASSERT MODULE_BSS_BACKUP + MODULE_BSS_SIZE / 512 <= MODULE_FAIL_BLOCK
+ASSERT MODULE_FAIL_BLOCK < MODULE_BSS_HELD && MODULE_BSS_HELD + MODULE_BSS_SIZE / 512 <= MODULE_STAGE
+ASSERT HIGH(MODULE_BSS_HELD) == HIGH(MODULE_BSS_BACKUP)
 ASSERT HIGH(MODULE_STAGE) == HIGH(MODULE_BACKUP4 + MODULE_SECTORS - 1)
 ASSERT MODULE_BSS_SIZE % 512 == 0 && LOW(MODULE_BSS) == 0
 ASSERT MODULE_TABLE + 3 * MODULE_SLOTS <= $8000
@@ -88,17 +90,25 @@ _ModuleSwap::
   jp ModuleSwapEnd
 
 ; A = 0 saves the BSS region (MODULE_BSS) to MODULE_BSS_BACKUP and zeroes it for the
-; module, 2 restores it. Returns A=0 when the copy read back.
+; module, 2 restores it; + 4 for MODULE_BSS_HELD instead (ModProgress holds the module's
+; BSS there while the editor's buffers draw). Returns A=0 when the copy read back.
 _ModuleSwapRAM::
-  or 16;so a failure reads 16 (save) or 18 (restore), apart from the pages
+  or 16;so a failure reads 16 (save) or 18 (restore), 20 or 22 held, apart from the pages
   ld [module_operation], a
   call ModuleSwapBegin
   ei
   ld hl, MODULE_BSS
   ST_HL_VAR module_pointer
 .loop
+  ld a, [module_operation]
+  and 4
+  ld a, LOW(MODULE_BSS_BACKUP)
+  jr z, .base
+  ld a, LOW(MODULE_BSS_HELD)
+.base
+  ld b, a
   ld a, [module_sector]
-  add LOW(MODULE_BSS_BACKUP)
+  add b
   ld b, a
   ld a, HIGH(MODULE_BSS_BACKUP)
   ld [EDX_BLOCK+1], a;high byte first, then low, like the stock OS: the low byte write is what switches the window

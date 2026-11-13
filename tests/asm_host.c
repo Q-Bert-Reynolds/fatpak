@@ -44,6 +44,14 @@ static unsigned char Load(const char* name, unsigned n, ModuleLoad* load) { // t
 static unsigned files;
 // like the OS (src/modules/runtime.c): from the source's folder, then each folder above it,
 // then the base name in the source's folder
+static AsmContext* progress_context;
+void ModProgress(const char* text) { // ASM_PROGRESS=1 prints each one, as build.c's BuildProgress would
+  AsmContext* c = progress_context;
+  if (!getenv("ASM_PROGRESS")) return;
+  if (text) fprintf(stderr, "%s\n", text);
+  else fprintf(stderr, "Pass %d: %d%s|%s|line %d\n", c->pass, c->progress, c->pass == 1 ? "k lines" : "%",
+               c->file ? c->name : "(the document)", c->line);
+}
 unsigned char ModLoad(const char* path, ModuleLoad* load) {
   unsigned n = strlen(source_dir), end = n;
   unsigned char result;
@@ -67,6 +75,7 @@ int main(int argc, char** argv) {
   c.length = (unsigned short)source_len;
   source = malloc(source_len + 1);
   fread(source, 1, source_len, f); fclose(f);
+  progress_context = &c;
   status = ModuleMain(&c);
   printf("%u %u %u %u %u %u %s\n", status, c.line, c.pos, c.blocks, c.symbols, c.file, c.file ? c.name : "");
   if (!status && argc > 2) {

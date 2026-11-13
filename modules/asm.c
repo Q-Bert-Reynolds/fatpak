@@ -633,8 +633,11 @@ static unsigned char ScanLines(unsigned char mode) {
 }
 
 // [label[:[:]]] [statement] [; comment]: a global label needs its colon, a local one doesn't
+unsigned char line_tick; // Progress every 64 lines (the host draws every 5 s)
 void Line(void) {
-  Frame* f = TextFrame();
+  Frame* f;
+  if (!(++line_tick & 63)) Progress();
+  f = TextFrame();
   undefined = 0;
   f->line_pos = f->pos - 1;
   Space();

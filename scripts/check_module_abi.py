@@ -19,8 +19,8 @@ PAGE3 = utils.constants()['MODULE_PAGE3']
 PAGE4 = utils.constants()['MODULE_PAGE4']
 
 # Audited assembly: name -> what it can reach. Each must stay resident or save,
-# switch and restore the page itself. EditorDraw's plain-row path uses page 12;
-# rows are already lexed, so drawing never reaches KeywordLookup (page 13).
+# switch and restore the page itself. EditorDraw switches only to bank 1 (RenderRow,
+# the fonts' widths); rows are already lexed, so drawing never reaches KeywordLookup (page 13).
 ASM = {
     '_EditorDraw': ['RenderRow'],
     '_WaitFrame': ['UpdateInput', '_FooterTick'],
@@ -50,6 +50,9 @@ ASM = {
     '_sd_WriteSector': [],  # FatFs disk/memory helpers (ROM0)
     '_sd_Init': [],  # FatFs disk/memory helpers (ROM0)
     '_ModuleAPIFar': ['FarCallInline'], 'FarCallInline': [],  # ROM0
+    '_RestartDevice': [],  # ROM0: resets the cart and waits
+    '_ModuleSwapRAM': [],  # bank 1: its copy, compare and mem_Set (ROM0), RenderWaitDMA
+    '___sdcc_call_hl': ['_src_editor_build_c_BuildProgress'],  # ROM0; ModProgress(0)'s only function pointer
     # interrupt handlers
     'VBLInterrupt': ['gbdk_DMATransfer', 'LatchPad'],
     'LCDInterrupt': ['RenderLCDInterrupt'],  # via rLCDInterrupt; the editor's handler

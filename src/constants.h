@@ -78,6 +78,7 @@
 #define MODULE_BSS     0xD000u//tile_buffer: the editor's buffers, saved to PSRAM meanwhile (src/wram.asm)
 #define MODULE_BSS_SIZE 3072//6 blocks
 #define MODULE_BSS_BACKUP 0x3D68u//below the staging blocks: 0x3E00 and up broke the cart on hardware (2026-11-12)
+#define MODULE_BSS_HELD 0x3D70u//a wide module's BSS while ModProgress draws with the editor's buffers back
 #define MODULE_FAIL_BLOCK 0x3D6Eu//a restore that never read back, recorded before restarting (ShowModuleRestart)
 #define MODULE_SOURCE_CHUNK 128//bytes ModSource copies at most
 //ASM.MOD (modules/asm.c): inside the large-file add buffer, so only text-buffer documents assemble
@@ -89,7 +90,7 @@
 #define ASM_SECTION_BLOCK 0x1110u//the section table, 32 blocks (512 32-byte records)
 #define ASM_FILE_BLOCK   0x1130u//included and INCBIN files, packed whole from here
 #define ASM_FILE_END     0x3900u//ADD_MAX / 512: up to the add buffer's end
-#define MODULE_ABI     7//newest ABI the host provides, modules built for older ones still load
+#define MODULE_ABI     8//newest ABI the host provides, modules built for older ones still load
 #define MODULE_TABLE   0x7F00u//ABI jump table in resident bank 1, 3 bytes per entry
 #define MODULE_SLOTS   32//entries reserved for it
 #define MODULE_FORMAT  1//one page, BSS after the code

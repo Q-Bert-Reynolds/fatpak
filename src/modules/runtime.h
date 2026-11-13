@@ -11,6 +11,7 @@ void ShowModuleError(unsigned char result);
 void ShowModuleRestart(void); // at startup: a restore that failed before the last restart // for a nonzero RunModule result
 extern unsigned char module_busy, module_status;
 extern unsigned int module_entry;
+extern void (*module_progress)(char* text); // set with module_context: the text for ModProgress(0)
 extern void* module_context; // set just before RunModule, cleared after: passed to ModuleMain
 
 #endif

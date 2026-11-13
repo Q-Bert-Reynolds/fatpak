@@ -83,6 +83,11 @@ _SetWindowBlock::;de = PSRAM block the window at $BE00 shows
   ret
 
 
+;SDCC's call through a function pointer (hl). bank_split doesn't thunk pointers, so the
+;target must be mapped already: the only one is BuildProgress (src/editor/build.c), in ROM0
+___sdcc_call_hl::
+  jp hl
+
 ;C library functions FatFs uses (SDCC's string.h calls memcpy __memcpy), callers in any bank
 ;SDCC passes the first two args in de and bc and the third on the stack, which the callee pops
 

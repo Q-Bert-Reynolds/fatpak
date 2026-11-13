@@ -351,8 +351,11 @@ void Pass(unsigned char p) {
   run_n = 0;
   str_top = literal = bs_literal = 0;
   CharmapReset();
+  progress_units = 0;
+  Progress();
   Advance();
   while (ch && !error) Line();
+  if (p == 1) pass1_units = progress_units;
   if (!error && (if_depth || depth)) Fail(ASM_ERR_SYNTAX);
   CloseSection();
 }

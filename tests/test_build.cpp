@@ -114,16 +114,19 @@ struct Session {
         return text;
     }
     // FILE > BUILD (item 4) or RUN (5); returns the frames until the status row or the box shows text,
-    // writing: those spent in the "Writing..." box
-    unsigned writing;
+    // writing: those spent in the "Writing..." box, progress: the box's redraws meanwhile (ModProgress;
+    // its text can't be read here, the module's BSS is on it while it runs)
+    unsigned writing, progress;
     unsigned command(unsigned item, const char* until, unsigned limit = 4000) {
         pad(Start_Key); pad(A_Key);
         for (unsigned i = 0; i < item; ++i) pad(Down_Key);
         core.KeyPressed(A_Key); Frames(core, 4); core.KeyReleased(A_Key);
-        unsigned waited = 0; writing = 0;
+        unsigned waited = 0; writing = progress = 0;
+        unsigned generation = memory->Read(syms.at("_render_box_gen"));
         while (waited < limit && row(19).find(until) == std::string::npos && lines().find(until) == std::string::npos) {
             Frames(core, 1); ++waited;
             if (box() == "Writing...") ++writing;
+            if (memory->Read(syms.at("_render_box_gen")) != generation) { ++progress; generation = memory->Read(syms.at("_render_box_gen")); }
         }
         if (waited < limit) Frames(core, 10); // the rest of the row (DMG draws it over more than a frame)
         if (waited == limit) {
@@ -150,7 +153,7 @@ static void Build(const char* image, const char* symbols, const char* data, cons
     Check(s.box().empty(), "a key closes the result box");
     Check(s.row(0).find("; Hello: a checkerboard.") == 0 && s.row(18).find("Hello.asm") != std::string::npos, "the editor view survives the wide module");
     Check(Read(s.root + "/Hello.gb") == Read(expected), "Hello.gb matches rgbasm, rgblink and rgbfix");
-    printf("%s BUILD: %u frames from the keypress to the message, %u of them writing the ROM\n", color ? "CGB" : "DMG", frames, s.writing);
+    printf("%s BUILD: %u frames from the keypress to the message, %u of them writing the ROM, %u box updates\n", color ? "CGB" : "DMG", frames, s.writing, s.progress);
 }
 
 static void Errors(const char* image, const char* symbols, const char* data, bool color) {
@@ -232,9 +235,10 @@ static void Library(const char* image, const char* symbols, const char* data, co
               {{"memory1.asm", memory1}, {"hardware.inc", Text(src + "/hardware.inc")}});
     unsigned frames = s.command(4, "Built ", 40000);
     Check(frames < 40000, "gbdk.asm builds");
+    Check(s.progress >= frames / 300 - 2, "the box shows progress every 5 s");
     Check(Read(s.root + "/gbdk.gb") == Read(expected), "gbdk.gb matches RGBDS");
     s.pad(A_Key);
-    printf("%s gbdk.asm with memory1.asm and hardware.inc: %u frames\n", color ? "CGB" : "DMG", frames);
+    printf("%s gbdk.asm with memory1.asm and hardware.inc: %u frames, %u box updates\n", color ? "CGB" : "DMG", frames, s.progress);
 }
 
 int main(int argc, char** argv) {

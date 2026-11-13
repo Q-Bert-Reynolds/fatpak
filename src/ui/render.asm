@@ -103,6 +103,7 @@ _render_box_x:: DB
 _render_box_w:: DB;pixels, including the border
 _render_box_sel:: DB;selected row of the box
 _render_box_gen:: DB;changed for each new box, so blocks drawn with an old one are drawn again
+_render_frames:: DW;counted at each frame's VBlank line by the LCD interrupt (it stays on while a wide module runs)
 _render_box_text:: DW
 render_box_line: DB
 render_box_count: DB
@@ -491,6 +492,12 @@ RenderLCDInterrupt::
   ret
 
 .vblank
+  ld hl, _render_frames
+  inc [hl]
+  jr nz, .counted
+  inc hl
+  inc [hl]
+.counted
   ld a, [_render_pending]
   cp a, 1
   jr nz, .animate

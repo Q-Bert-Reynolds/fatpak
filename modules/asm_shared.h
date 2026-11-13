@@ -60,6 +60,10 @@ void Reserve(unsigned int bytes, unsigned char fill);
 void Instruction(unsigned char m);
 void Fill(void);
 void Header(void);
+void Progress(void); // the box shows where the pass is (asm_pushs.c)
+unsigned int Mul(unsigned int a, unsigned int b); // asm_emit.c: no SDCC helpers in modules
+unsigned int Div(unsigned int a, unsigned int b, unsigned char remainder);
+extern unsigned int progress_units, pass1_units;
 
 #define SYM_LABEL 0
 #define SYM_EQU   1

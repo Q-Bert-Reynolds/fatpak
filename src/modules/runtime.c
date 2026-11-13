@@ -53,6 +53,9 @@ static void Unrecoverable(void) {
   RestartDevice();
 }
 
+#define PROGRESS_FRAMES 300 // ModProgress draws at most every 5 s: each costs about 30 frames on DMG
+static unsigned int progress_at; // render_frames when the module started or ModProgress last drew
+static unsigned char module_ie; // RunModule: the interrupts outside the module (a wide one runs with the LCD's only)
 static unsigned char file_level; // ModFile/ModLoad: the folder level (characters of file_dir) that last found one, 0xFF none yet
 unsigned char RunModule(const char* path, unsigned char id) {
   unsigned char result, pages = 0, buffers = 0, i, ie; // pages backed up (each is restored), the buffers saved
@@ -77,7 +80,8 @@ unsigned char RunModule(const char* path, unsigned char id) {
     if (!result) {
       // A wide module can't draw or read input, so only the LCD interrupt (the screen's
       // layout) stays on: no VBlank (sprite DMA, pad latch) and no keyboard
-      ie = INTERRUPT_ENABLE;
+      module_ie = ie = INTERRUPT_ENABLE;
+      progress_at = render_frames;
       if (module_wide) INTERRUPT_ENABLE = ie & IEF_LCD_ONLY;
       module_status = ModuleEnter();
       INTERRUPT_ENABLE = ie;
@@ -89,6 +93,7 @@ unsigned char RunModule(const char* path, unsigned char id) {
     SetWindowBlock(window);
   }
   module_context = 0;
+  module_progress = 0;
   module_busy = 0;
   return result;
 }
@@ -322,4 +327,31 @@ void ModuleAPITiles(unsigned char row, const unsigned char* tiles) {
   if (row >= tb_rows) return;
   EditorDraw(); // the row's text first, so drawing it later doesn't cover the tiles
   RenderRawRow(render_text_top + row, tiles);
+}
+
+// ABI 8: text in the busy box (a line at each '\n', wrapped at 19 characters), if 5 s have passed
+// since the module started or last drew (call it often: the rest return at once); 0 for
+// the host's own text from the module's context (module_progress). A wide module's BSS is on the
+// editor's buffers: it's held in PSRAM while they come back to draw it.
+void (*module_progress)(char* text); // RunModule's caller sets it for ModProgress(0)
+void ModuleAPIProgress(const char* text) {
+  if ((unsigned int)(render_frames - progress_at) < PROGRESS_FRAMES) return; // a build that ends soon never draws
+  if (text) Marshal(text, 80);
+  else if (module_progress) module_progress((char*)buffer); // before the swap: the context may be in the BSS
+  else return;
+  if (module_wide) {
+    if (ModuleSwapRAM(4)) return; // not held: nothing drawn, the module goes on
+    if (ModuleSwapRAM(2)) { // the buffers didn't come back: the module's BSS does
+      if (ModuleSwapRAM(6)) Unrecoverable();
+      return;
+    }
+    INTERRUPT_ENABLE = module_ie; // drawing waits for VBlank
+  }
+  OpenBox(BoxText(0, (char*)buffer));
+  EditorDraw();
+  if (module_wide) {
+    INTERRUPT_ENABLE = module_ie & IEF_LCD_ONLY;
+    if (ModuleSwapRAM(0) || ModuleSwapRAM(6)) Unrecoverable(); // never run on state that didn't come back
+  }
+  progress_at = render_frames;
 }

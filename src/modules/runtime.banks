@@ -1,4 +1,4 @@
 # Every API wrapper and the orchestration must remain mapped during replacement.
 *: FIXED
 # The include search (ModFile, ModLoad): FIXED and the OS pages are full; ROM0 is always mapped
-ROM0: FileSearch FileTry
+ROM0: FileSearch FileTry ModuleAPIProgress

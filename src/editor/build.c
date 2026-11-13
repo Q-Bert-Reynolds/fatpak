@@ -31,6 +31,18 @@ static void OutputPath(char* path) {
   *PutText(dot ? dot : p, ".gb") = 0;
 }
 
+// ASM.MOD's ModProgress(0) text: the pass and how far it is, then the file and line it's on
+// (in ROM0, and only calling what's outside the module's pages)
+static void BuildProgress(char* text) {
+  const AsmContext* c = module_context;
+  char* end = PutNumber(PutText(text, c->pass == 1 ? "Pass 1: " : "Pass 2: "), c->progress);
+  end = PutText(end, c->pass == 1 ? "k lines" : "%");
+  *end++ = '\n';
+  end = ToLatin1(end, c->file ? c->name : file_name, 19);
+  *end++ = '\n';
+  *PutNumber(PutText(end, "line "), c->line) = 0;
+}
+
 void BuildFile(unsigned char run) {
   AsmContext context;
   char path[PATH_SIZE + FS_NAME_SIZE], text[FS_NAME_SIZE + 32], *end;
@@ -42,6 +54,7 @@ void BuildFile(unsigned char run) {
   ShowBusy("Assembling...");
   context.length = tb_Length();
   module_context = &context;
+  module_progress = BuildProgress;
   result = RUN_MODULE(ASM);
   HideBox();
   if (result) { ShowModuleError(result); return; }

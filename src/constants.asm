@@ -75,6 +75,7 @@ DEF MODULE_BACKUP4 EQU $3DF0
 DEF MODULE_BSS     EQU $D000;tile_buffer: the editor's buffers, saved to PSRAM meanwhile (src/wram.asm)
 DEF MODULE_BSS_SIZE EQU 3072;6 blocks
 DEF MODULE_BSS_BACKUP EQU $3D68;below the staging blocks: $3E00 and up broke the cart on hardware (2026-11-12)
+DEF MODULE_BSS_HELD EQU $3D70;a wide module's BSS while ModProgress draws with the editor's buffers back
 DEF MODULE_FAIL_BLOCK EQU $3D6E;a restore that never read back, recorded before restarting (ShowModuleRestart)
 DEF MODULE_SOURCE_CHUNK EQU 128;bytes ModSource copies at most
 ;ASM.MOD (modules/asm.c): inside the large-file add buffer, so only text-buffer documents assemble
@@ -86,7 +87,7 @@ DEF ASM_CHARMAP_BLOCK EQU $1080;names, 8 maps' heads, then a 60 KiB pool (129 bl
 DEF ASM_SECTION_BLOCK EQU $1110;the section table, 32 blocks (512 32-byte records)
 DEF ASM_FILE_BLOCK   EQU $1130;included and INCBIN files, packed whole from here
 DEF ASM_FILE_END     EQU $3900;ADD_MAX / 512: up to the add buffer's end
-DEF MODULE_ABI     EQU 7;newest ABI the host provides, modules built for older ones still load
+DEF MODULE_ABI     EQU 8;newest ABI the host provides, modules built for older ones still load
 DEF MODULE_TABLE   EQU $7F00;ABI jump table in resident bank 1, 3 bytes per entry
 DEF MODULE_SLOTS   EQU 32;entries reserved for it
 DEF MODULE_FORMAT  EQU 1;one page, BSS after the code

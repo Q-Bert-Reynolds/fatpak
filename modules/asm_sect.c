@@ -32,13 +32,6 @@ void SectCopy(unsigned int index, unsigned char store) {
   else do *s++ = *p++; while (--n);
 }
 
-void CloseSection(void) {
-  if (!in_section) return;
-  sec.fill = pc;
-  if (pass == 1) sec.size = pc - sec.start;
-  SectCopy(cur, 1);
-  in_section = 0;
-}
 void Enter(void) { // sec is open: pc goes on from its fill
   sec_rom = sec.type < 2;
   sec_bank = sec.bank;
