@@ -76,7 +76,7 @@ flowchart LR
 | `src/keyboard/` | PS/2 and iGKB drivers, keyboard-test host (`test.c`) |
 | `src/rtc/` | Calendar I2C, clock-dialog host, date validation, FAT timestamps, game RTC |
 | `src/modules/`, `modules/` | Overlay loader and module ABI wrappers; module sources and `abi.json` ([MODULES.md](MODULES.md)) |
-| `src/core.asm`, `gbdk.asm`, `memory1.asm`, `math.asm`, `strings.asm`, `far_call.asm` | Trampoline, VBlank waits, tile/sprite/memory copies, math, strings, `FarCall` |
+| `src/core.asm`, `gbdk.asm`, `memory1.asm`, `math.asm`, `strings.asm`, `far_call.asm` | Trampoline, VBlank waits, tile/sprite/memory copies, a multiply and 32-bit divide, `PutNumber` (decimal text), `FarCall` |
 | `src/input.*`, `interrupts.asm` | Joypad/keyboard input and repeat, interrupt vectors |
 | `src/charmap.asm`, `constants.asm`, `macros.asm`, `hardware.inc`, `wram.asm`, `sram.asm` | Charmap, constants, macros, registers, RAM layout |
 | `scripts/` | Python build tools: asset converters, `build.py` (constants header), `bank_split.py`, `module_build.py`, page/ABI checkers, `data_file.py`; run from the repo root (the Makefile does) |

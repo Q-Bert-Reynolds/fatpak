@@ -271,7 +271,8 @@ sector buffer, so a future file API must not share it with a pending string.
   literals marshaled; max-size page; open large document survives; stack guard;
   the wide fixture runs twice with zeroed BSS, page 12 and the WRAMX buffers
   come back byte-identical, the three-, four- and five-page fixtures bring
-  pages 5, 4 and 15 back too, and the malformed variants are rejected.
+  pages 5, 4 and 15 back too, and the malformed variants are rejected. Also
+  the OS's `PutNumber` (`strings.asm`) from 0 to 4,294,967,295.
 - `tests/run_build.sh`: ASM.MOD end to end ([ASSEMBLER.md](ASSEMBLER.md)).
 - `tests/run_browser_menu.sh` (DMG, CGB): KEYBOARD TEST, the clock's fields,
   selection and editing, and every info field for text, folder and game files

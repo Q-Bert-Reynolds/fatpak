@@ -54,6 +54,7 @@ ASM = {
     '_RestartDevice': [],  # ROM0: resets the cart and waits
     '_ModuleSwapRAM': [],  # bank 1: its copy, compare and mem_Set (ROM0), RenderWaitDMA
     '___sdcc_call_hl': ['_src_editor_build_c_BuildProgress'],  # ROM0; ModProgress(0)'s only function pointer
+    '_PutNumber': ['math_Divide32'], 'math_Divide32': [],  # ROM0 (strings.asm, math.asm)
     # interrupt handlers
     'VBLInterrupt': ['gbdk_DMATransfer', 'LatchPad'],
     'LCDInterrupt': ['RenderLCDInterrupt'],  # via rLCDInterrupt; the editor's handler

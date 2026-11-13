@@ -1,13 +1,5 @@
-; Arithmetic retained from math.asm by Nolan Baker.
-; Only the multiply RST/shift helper and division used by strings.asm are linked.
 IF !DEF(MATH_ASM)
 DEF MATH_ASM EQU 1
-
-MACRO rev_Check_math_asm
-  IF \1 > 1
-    WARN "Version \1 or later of 'math.asm' is required."
-  ENDC
-ENDM
 
 SECTION "math_Multiply RST", ROM0[$0020]
 math_Multiply:: ; hl = de * a where 0 <= a <= 255

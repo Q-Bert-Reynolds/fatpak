@@ -113,6 +113,17 @@ static void Modules(const char* image,const char* symbols,const char* data,const
     memory->Write(0xBD06,4);memory->Write(0xBD03,0x3D);memory->Write(0xBD02,0x9E);
     for(unsigned i=256;i<512;++i)Check(memory->Read(0xBE00+i)==0xA5,"last backup sector stays bounded");
     unsigned path=syms.at("_str_buffer");
+    // PutNumber (strings.asm): dest in de, n on the stack above the return address, the end in bc
+    for(unsigned long n:{0ul,7ul,10ul,65535ul,9999999ul,10000000ul,123456789ul,4294967295ul}){
+        call_stack-=8;
+        for(unsigned i=0;i<4;++i)memory->Write(call_stack+2+i,(n>>(8*i))&0xFF);
+        for(unsigned i=0;i<12;++i)memory->Write(path+i,'#');
+        Call(core,syms.at("_PutNumber"),path);
+        call_stack+=8;
+        std::string want=std::to_string(n),got;
+        for(unsigned i=0;i<want.size();++i)got+=char(memory->Read(path+i));
+        Check(got==want && call_bc==path+want.size() && memory->Read(path+want.size())=='#',"PutNumber writes every digit of 32 bits and returns their end");
+    }
     // Use existing WRAM path scratch rather than overwriting stack/document data.
     auto run=[&](const char* name,unsigned expected) {
         Text(memory,path,std::string("/")+name+".MOD");
@@ -202,7 +213,7 @@ static void Modules(const char* image,const char* symbols,const char* data,const
     for(unsigned i=0;i<4;++i)Check(memory->Read(position+i)==state[i],"module preserves document position");
     Check(Call(core,syms.at("_FileLoadWindow"))==0,"large document reads after module return");
     for(unsigned i=0;i<32;++i)Check(memory->Read(syms.at("stack_top")+i)==0xA5,"loader and SDK stay within host stack");
-    printf("%s modules: malformed files, ABI versions, context, BSS, repeated calls, pointer marshaling, full page restoration and open document passed\n",color?"CGB":"DMG");
+    printf("%s modules: malformed files, ABI versions, context, BSS, repeated calls, pointer marshaling, full page restoration, open document and PutNumber passed\n",color?"CGB":"DMG");
 }
 int main(int argc,char** argv) {
     Check(argc==5,"usage: modules GBCOS.BIN GBCOS.sym EDITOR.DAT fixtures");
