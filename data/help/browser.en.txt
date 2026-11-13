@@ -27,6 +27,6 @@ Folders include their contents
 Existing names are protected
 
 SETTINGS > CLOCK set time
-SETTINGS > KEYBOARD TEST
+SETTINGS > LANGUAGE
 HELP show browser controls
 RESTART full hardware reset

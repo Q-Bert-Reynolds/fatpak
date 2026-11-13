@@ -145,8 +145,9 @@ RAM instead when `$BD06` bit 1 is set).
 | --- | --- |
 | `$0000-$3bff` | Launched ROM (max 7.5 MiB) |
 | `$3c00-$3ca3` | State-file staging for Load |
+| `$3ca4-$3cbf` | The loaded language ([LANGUAGES.md](LANGUAGES.md)) |
 | `$3e2f` | Snapshot path and RAM-size metadata |
-| `$3e3f` | Pre-rendered filename header (offset `$20`) |
+| `$3e3f` | Pre-rendered filename header (offset `$20`), the menu's footer text (offset `$c0`) |
 | `$3e40-$3ee3` | Stock 82 KiB live snapshot |
 
 The two overlap deliberately: launch saves editor state to SD first. PSRAM is

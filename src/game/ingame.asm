@@ -11,6 +11,7 @@ DEF MENU_LCDC EQU LCDCF_ON | LCDCF_BG8000 | LCDCF_BGON
 DEF EDX_MAPPER EQU $BD07
 DEF EDX_SWITCH EQU $BD09;bit 1 resumes the game, bit 2 selects the OS without reset
 DEF menu_header EQU $BE20;160-byte 1bpp filename, prepared before launch
+DEF menu_footer EQU $BEC0;the footer's text in the language (LANG_MAX + 1 bytes), prepared before launch (InGameLanguage)
 
 SECTION "In-Game Entry", ROM0[$0670]
 InGameEntry::
@@ -516,8 +517,12 @@ PAGE LAUNCH_PAGE
 ;Initial menu drawing runs with the LCD off, after snapshotting the game's RAM.
 ;Use the shared 2bpp encoder for icons, then add the cached clock on the right.
 MenuFooterGraphics:
+  ld a, HIGH(MENU_BLOCK)
+  ld [EDX_BLOCK+1], a
+  ld a, LOW(MENU_BLOCK)
+  ld [EDX_BLOCK], a
   ld a, 5
-  ld de, MenuFooterText
+  ld de, menu_footer
   call RenderMenuText
   ld a, [menu_cgb]
   ld [render_highlight], a
@@ -531,9 +536,6 @@ MenuFooterGraphics:
   ld bc, TB_WIDTH*2
   call mem_Copy
   jr MenuClockGraphics
-MenuFooterText:
-  DB "<BTN_A> Select  <BTN_B> Resume", 0
-
 MenuClockGraphics:
   ld a, [_footer_x]
   ld de, _footer_time
@@ -629,3 +631,84 @@ RenderMenuText:;a = left inset, de = Latin-1 text, returns its 1bpp row in rende
 .done
   ret
 END_PAGE
+
+SECTION "In-Game Language", ROM0
+; Before a launch (lang_count and str_text are the game's after it): the loaded language's
+; footer at menu_footer, and its labels' and error line's tiles (LANG_MENU) over page 9's English
+; ones if the image has this build's layout. C: void InGameLanguage(void)
+_InGameLanguage::
+  ld de, S_INGAME_FOOTER
+  call _Str;"" without a language
+  ld a, [EDX_CONFIG]
+  push af
+  and a, ~2
+  ld [EDX_CONFIG], a
+  ld a, [EDX_BLOCK]
+  push af
+  ld a, [EDX_BLOCK+1]
+  push af
+  ldh a, [loaded_bank]
+  push af
+  ld a, HIGH(MENU_BLOCK)
+  ld [EDX_BLOCK+1], a
+  ld a, LOW(MENU_BLOCK)
+  ld [EDX_BLOCK], a
+  ld hl, _str_text
+  ld de, menu_footer
+  ld bc, LANG_MAX + 1
+  call mem_Copy
+  ldh a, [_lang_count]
+  ld b, a
+  ldh a, [_lang_count+1]
+  or a, b
+  jr z, .done
+  ld a, HIGH(LANG_BLOCK)
+  ld [EDX_BLOCK+1], a
+  ld a, LOW(LANG_BLOCK)
+  ld [EDX_BLOCK], a
+  ld a, [EDX_WINDOW + 9];the image's menu bytes
+  cp a, LOW(MENU_TILES_SIZE + MENU_ERROR_SIZE)
+  jr nz, .done
+  ld a, [EDX_WINDOW + 10]
+  cp a, HIGH(MENU_TILES_SIZE + MENU_ERROR_SIZE)
+  jr nz, .done
+  ld a, MENU_GRAPHICS_PAGE
+  SET_BANK
+  ld a, LOW(LANG_BLOCK + LANG_MENU)
+  ld [EDX_BLOCK], a
+  ld hl, EDX_WINDOW
+  ld de, MenuTiles
+  ld bc, MENU_TILES_SIZE
+  call .copy
+  ld de, MenuErrorTiles
+  ld bc, MENU_ERROR_SIZE
+  call .copy
+.done
+  pop af
+  SET_BANK
+  pop af
+  ld [EDX_BLOCK+1], a;high byte first, then low: the low byte write switches the window
+  pop af
+  ld [EDX_BLOCK], a
+  pop af
+  ld [EDX_CONFIG], a
+  ret
+;bc bytes from the window at hl (on into the next block at its end) to de
+.copy
+  ld a, h
+  cp a, HIGH(EDX_WINDOW) + 2
+  jr nz, .byte
+  ld a, [EDX_BLOCK]
+  inc a
+  ld [EDX_BLOCK], a
+  ld h, HIGH(EDX_WINDOW)
+.byte
+  ld a, [hli]
+  ld [de], a
+  inc de
+  dec bc
+  ld a, b
+  or a, c
+  jr nz, .copy
+  ret
+ASSERT MENU_TILES_SIZE + MENU_ERROR_SIZE <= 2 * 512 && LOW(LANG_BLOCK + LANG_MENU) + 1 <= $FF

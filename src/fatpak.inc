@@ -8,6 +8,7 @@ INCLUDE "src/math.asm"
 
 INCLUDE "src/charmap.asm"
 INCLUDE "src/constants.asm"
+INCLUDE "src/strings.inc";S_* (scripts/strings.py)
 INCLUDE "src/macros.asm"
 INCLUDE "src/strings.asm";after constants.asm and macros.asm: LANG_*, EDX_*
 INCLUDE "src/pages.asm"

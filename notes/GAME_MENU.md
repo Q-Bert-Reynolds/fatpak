@@ -12,6 +12,14 @@ CPU copies in the editor's VWF: filename header, border, highlight and a control
 footer with the clock. `ingame_menu.py` builds the static pixels. The filename
 header is pre-rendered at launch into PSRAM `$3e3f`, offset `$20`.
 
+The text is in the UI's language ([LANGUAGES.md](LANGUAGES.md)). `ingame_menu.py`
+draws every language's labels and error line in a box as wide as the widest
+needs, so only the pixels differ: English's are in page 9, the others' in their
+language image (`LANG_MENU`). At launch `InGameLanguage` (ROM0, before the game
+owns HRAM) copies the loaded language's over page 9's, if the image has this
+build's size, and its footer text to `$3e3f` offset `$c0`, which the menu renders
+at run time like the clock.
+
 ## Capture and restore
 
 Entry at `$0670` follows stock GBCOS v1.06: push AF/BC/DE/HL on the game's stack,

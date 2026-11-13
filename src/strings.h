@@ -4,8 +4,8 @@
 // PutStr(dest, id) and Str(id) (src/strings.asm), ModString in modules; S_PART(id, n) is the
 // text after its nth {}, up to the next
 #define S_PART(id, n) ((id) | ((n) << 12))
-#define STR_COUNT 192
-#define STR_HASH 0xB9C7u
+#define STR_COUNT 198
+#define STR_HASH 0xF507u
 #define LANGUAGES 2
 #define LANG_CODES "ENES" // 2 characters each: /GBCSYS/LANG/<code>.DAT
 #define S_MENU_FILE 0 // FILE
@@ -200,4 +200,10 @@
 #define S_KB_UNUSED4 189 //
 #define S_KB_TIMEOUT 190 // timeout
 #define S_TILE_N 191 // Tile
+#define S_INGAME_RESUME 192 // Resume game
+#define S_INGAME_SAVE 193 // Save state
+#define S_INGAME_LOAD 194 // Load state
+#define S_INGAME_RETURN 195 // Return to OS
+#define S_INGAME_ERROR 196 // State / SD error
+#define S_INGAME_FOOTER 197 // <A> Select  <B> Resume
 #endif

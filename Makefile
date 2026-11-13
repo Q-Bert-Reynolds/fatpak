@@ -38,7 +38,7 @@ $(MODULE_HEADERS): $(MODULE_INPUTS)
 	$(PYTHON) scripts/module_build.py --headers
 
 # The UI's strings: S_* ids for C and modules, bin/LANG/*.DAT (English also goes in EDITOR.DAT)
-STRINGS_INPUTS = data/strings/strings.csv $(wildcard data/help/*.txt) scripts/strings.py $(SRC_DIR)/constants.asm $(SRC_DIR)/ui/icons.h
+STRINGS_INPUTS = data/strings/strings.csv $(wildcard data/help/*.txt) scripts/strings.py scripts/ingame_menu.py $(SRC_DIR)/constants.asm $(SRC_DIR)/ui/icons.h
 $(SRC_DIR)/strings.h: $(STRINGS_INPUTS)
 	$(PYTHON) scripts/strings.py
 

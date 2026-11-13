@@ -46,7 +46,8 @@
 #define LANG_BLOCK         0x3CA4u
 #define LANG_BLOCKS        28
 #define LANG_HELP          1//the two help screens, in DATA_HELP's layout
-#define LANG_TABLE         5//the strings: an offset per string (from here), then the strings
+#define LANG_MENU          5//the in-game menu's tiles and error line (scripts/ingame_menu.py), 2 blocks
+#define LANG_TABLE         7//the strings: an offset per string (from here), then the strings
 #define LANG_VERSION       1
 #define LANG_MAX           47//characters a string may have (str_text holds one)
 #define WIN_SIZE           0xC000u//the part of a large file in the text buffer (src/fatfs/fatfs.c)

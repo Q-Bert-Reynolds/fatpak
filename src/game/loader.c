@@ -82,6 +82,7 @@ void LaunchGame(const char* path) {
   basename = path;
   for (scan = path; *scan; ++scan) if (*scan == '/') basename = scan + 1;
   *ToLatin1(text, basename, sizeof(text) - 1) = 0;
+  InGameLanguage(); // the menu's text and tiles in the language
   InGameHeader(text);
   GameLaunch();
 }

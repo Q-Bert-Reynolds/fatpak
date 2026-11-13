@@ -27,6 +27,6 @@ Carpetas: con su contenido
 No se sobrescriben nombres
 
 AJUSTES > RELOJ fija la hora
-AJUSTES > IDIOMA el idioma
+AJUSTES > IDIOMA
 AYUDA controles del explorador
 REINICIAR reinicio completo

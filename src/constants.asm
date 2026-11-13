@@ -43,7 +43,8 @@ DEF NAME_HISTORY_BLOCK EQU DATA_BLOCK+DATA_BLOCKS;16 scratch blocks, separate fr
 DEF LANG_BLOCK         EQU $3CA4
 DEF LANG_BLOCKS        EQU 28
 DEF LANG_HELP          EQU 1;the two help screens, in DATA_HELP's layout
-DEF LANG_TABLE         EQU 5;the strings: an offset per string (from here), then the strings
+DEF LANG_MENU          EQU 5;the in-game menu's tiles and error line (scripts/ingame_menu.py), 2 blocks
+DEF LANG_TABLE         EQU 7;the strings: an offset per string (from here), then the strings
 DEF LANG_VERSION       EQU 1
 DEF LANG_MAX           EQU 47;characters a string may have (str_text holds one)
 DEF WIN_SIZE           EQU $C000;the part of a large file in the text buffer (src/fatfs/fatfs.c)

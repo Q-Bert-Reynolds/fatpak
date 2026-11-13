@@ -34,8 +34,12 @@ cell falls back to English.
 | `row` | a text row in a module | 39 characters |
 
 Every string is at most `LANG_MAX` (47) characters, `Str`'s buffer. Help screens
-are `data/help/<name>.txt` (English) and `data/help/<name>.<lang>.txt`: 32 lines,
-under 32 bytes and 152 pixels each.
+are `data/help/<name>.<lang>.txt` (`editor`, `browser`; English's for a language
+without one): 32 lines, under 32 bytes and 152 pixels each.
+
+The in-game menu's `INGAME_*` strings are drawn at build time
+(`scripts/ingame_menu.py`): every language's labels in one box as wide as the
+widest needs, and the error line clear of the clock ([GAME_MENU.md](GAME_MENU.md)).
 
 A new language is a new CSV column (its two-letter code as the header), its help
 files, and a row in the `LANG_*` run whose text is the language's own name in
@@ -45,10 +49,11 @@ every column. `make assemble` writes `bin/LANG/<CODE>.DAT` and copies them to
 ## How it works
 
 `scripts/strings.py` writes `src/strings.h` (ids, `STR_HASH` of the key list,
-`LANG_CODES`) and one image per language: a header block (`FPKL`,
-`LANG_VERSION`, the hash, the string count), the two help screens (4 blocks, in
-`DATA_HELP`'s layout), then an offset per string and the strings, 0-terminated,
-each `{}` a `$1F`. English is also appended to `EDITOR.DAT`, after its
+`LANG_CODES`), `src/strings.inc` (the ids for assembly) and one image per
+language: a header block (`FPKL`, `LANG_VERSION`, the hash, the string count, the
+in-game menu's bytes), the two help screens (4 blocks, in `DATA_HELP`'s layout),
+the in-game menu's tiles and error line (`LANG_MENU`, 2 blocks), then an offset
+per string and the strings, 0-terminated, each `{}` a `$1F`. English is also appended to `EDITOR.DAT`, after its
 `DATA_BLOCKS`.
 
 At boot, after `EDITOR.DAT`, `LoadLanguage` (`src/app/language.c`) copies the
@@ -77,8 +82,5 @@ lost about 380 bytes, mostly to `PutStr` and the language code.
 
 ## Not translated yet
 
-- The in-game menu (`scripts/ingame_menu.py` draws its labels into tiles at build
-  time): per-language tiles in the language image, copied before a game starts.
-- The keyboard test's PS/2 error names are short words; the error names of
-  ASM.MOD's results are translated, the assembler's own text (none) isn't needed.
+- The boot's `Loading...` and `NO EDITOR.DAT` (shown before or without the strings).
 - Dates and the clock keep their format.

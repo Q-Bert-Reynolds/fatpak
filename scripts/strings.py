@@ -3,9 +3,12 @@ key, kind, comment, then a column per language (en first, the fallback). Writes 
 (S_<key> ids, in CSV order, so a menu's items are consecutive ids) and bin/LANG/<CODE>.DAT, the
 image a language loads into PSRAM at LANG_BLOCK:
 
-  block 0             "FPKL", LANG_VERSION, the key list's hash (2 bytes), the string count (2 bytes)
-  LANG_HELP (4)       the editor's and browser's help, 32 lines of 32 bytes each (data/help/*.txt;
-                      data/help/<name>.<lang>.txt for another language)
+  block 0             "FPKL", LANG_VERSION, the key list's hash (2 bytes), the string count (2 bytes),
+                      the in-game menu's bytes (2 bytes)
+  LANG_HELP (4)       the editor's and browser's help, 32 lines of 32 bytes each
+                      (data/help/<name>.<lang>.txt, English's if a language has none)
+  LANG_MENU (2)       the in-game menu's tiles and error line (scripts/ingame_menu.py), which
+                      InGameLanguage copies over English's before a game starts
   LANG_TABLE...       an offset per string from the table's start (2 bytes each), then the strings:
                       Latin-1, 0 ends one, PART_SEPARATOR stands for each {} (PutStr's pieces)
 
@@ -96,8 +99,8 @@ def help_screens(language):
     tokens, vwf = buttons(), widths()
     for context, name in enumerate(('editor', 'browser')):
         path = ROOT / f'data/help/{name}.{language}.txt'
-        if language == 'en' or not path.exists():
-            path = ROOT / f'data/help/{name}.txt'
+        if not path.exists():
+            path = ROOT / f'data/help/{name}.en.txt'
         lines = path.read_text(encoding='utf8').splitlines()
         assert len(lines) == 32, f'{path.name} must have 32 lines'
         for i, line in enumerate(lines):
@@ -135,8 +138,12 @@ def image(language):
     out[4] = c['LANG_VERSION']
     out[5:7] = key_hash(strings).to_bytes(2, 'little')
     out[7:9] = len(strings).to_bytes(2, 'little')
-    assert c['LANG_HELP'] == 1 and c['LANG_TABLE'] == 5
+    import ingame_menu
+    menu = ingame_menu.language_tiles(language)
+    out[9:11] = len(menu).to_bytes(2, 'little')
+    assert c['LANG_HELP'] == 1 and c['LANG_MENU'] == 5 and c['LANG_TABLE'] == 7 and len(menu) <= 2 * BLOCK
     out += help_screens(language)
+    out += menu + bytes(2 * BLOCK - len(menu))
     out += table
     out += bytes(-len(out) % BLOCK)
     assert len(out) // BLOCK <= c['LANG_BLOCKS'], f'{language}: {len(out) // BLOCK} blocks, LANG_BLOCKS is {c["LANG_BLOCKS"]}'
@@ -159,13 +166,19 @@ def header(languages, strings):
     return '\n'.join(lines) + '\n'
 
 
+def asm_header(strings):
+    lines = ['; Generated from data/strings/strings.csv by scripts/strings.py: S_* for PutStr and Str']
+    lines += [f'DEF S_{key} EQU {i}' for i, (key, _, _) in enumerate(strings)]
+    return '\n'.join(lines) + '\n'
+
+
 def main():
     languages, strings = load()
     assert len(strings) < 4096
-    path = ROOT / 'src/strings.h'
-    text = header(languages, strings)
-    if not path.exists() or path.read_text() != text:  # rewritten only when it changes: every C file includes it
-        path.write_text(text)
+    for path, text in ((ROOT / 'src/strings.h', header(languages, strings)),
+                       (ROOT / 'src/strings.inc', asm_header(strings))):
+        if not path.exists() or path.read_text() != text:  # rewritten only when it changes: every C file includes it
+            path.write_text(text)
     out = ROOT / 'bin/LANG'
     out.mkdir(parents=True, exist_ok=True)
     for language in languages:

@@ -1,7 +1,7 @@
 # Priority
 
 - Assembler: build beisbolgb on the device ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): per-project defines and rgbfix options, and speed (42 min CGB in Gearboy, over an hour on DMG).
-- Languages ([LANGUAGES.md](notes/LANGUAGES.md)): the in-game menu (tiles drawn at build time), hand-touch the generated accented letters (À-ÿ) in every font PNG; `ui_font.png` and the heading fonts' capitals have no accent yet (the letters fill the top row), more languages.
+- Languages ([LANGUAGES.md](notes/LANGUAGES.md)): hand-touch the generated accented letters (À-ÿ) in every font PNG; `ui_font.png` and the heading fonts' capitals have no accent yet (the letters fill the top row), more languages.
 - move keyboard handlers into module, select keyboard type from settings
 
 # Rendering

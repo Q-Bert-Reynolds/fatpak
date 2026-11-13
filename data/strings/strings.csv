@@ -191,3 +191,9 @@ KB_UNUSED3,row,,,
 KB_UNUSED4,row,,,
 KB_TIMEOUT,row,,timeout,tiempo
 TILE_N,bar,tile viewer footer: the tile's number follows,Tile ,Tile 
+INGAME_RESUME,item,in-game menu (scripts/ingame_menu.py draws them at build time): these 4,Resume game,Seguir jugando
+INGAME_SAVE,item,,Save state,Guardar estado
+INGAME_LOAD,item,,Load state,Cargar estado
+INGAME_RETURN,item,,Return to OS,Volver al OS
+INGAME_ERROR,bar,in-game menu: a save state that failed,State / SD error,Error de estado/SD
+INGAME_FOOTER,bar,in-game menu footer,<A> Select  <B> Resume,<A> Elegir  <B> Seguir

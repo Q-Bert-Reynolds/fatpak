@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include "../src/constants.h" // DATA_BLOCKS
 #include <fstream>
 #include <iterator>
 #include <map>
@@ -76,12 +77,13 @@ static std::vector<u8> Game(bool color)
     for (unsigned i = 0x134; i < 0x14D; ++i) rom[0x14D] = rom[0x14D] - rom[i] - 1;
     return rom;
 }
-static void MenuClock(GearboyCore& core, const std::map<std::string,unsigned>& syms, bool color, bool icons = true)
+static void MenuClock(GearboyCore& core, const std::map<std::string,unsigned>& syms, bool color, bool icons = true,
+                      const std::string& hint = "\001 Select  \002 Resume")
 {
     auto memory=core.GetMemory();
     if (icons) {
         u8 hint_pixels[8][112]={};unsigned hint_x=5;
-        for(unsigned char c : std::string("\001 Select  \002 Resume")) {
+        for(unsigned char c : hint) {
             for(unsigned y=0;y<8;++y)for(unsigned bit=0;bit<8 && hint_x+bit<112;++bit) {
                 bool ink=memory->Read(syms.at("FontVWFGlyphs")+c*8+y)&(128>>bit);
                 unsigned pixel=ink?3:0;
@@ -174,6 +176,8 @@ static void Run(const char* image, const char* symbols, const char* data, bool c
     mkdir((sys + "/SNAP").c_str(), 0700);
     Write(root + "/StateTest.gbc", Game(color));
     Write(sys + "/EDITOR.DAT", Read(data));
+    std::string bin = std::string(data).substr(0, std::string(data).find_last_of('/'));
+    mkdir((sys + "/LANG").c_str(), 0700); Write(sys + "/LANG/ES.DAT", Read(bin + "/LANG/ES.DAT"));
     Write(sys + "/SAVE/StateTest.srm", std::vector<u8>(32768, 0xA7));
     GearboyCore core; core.Init(); core.SetEverdriveFolder(folder);
     Check(core.LoadROM(image, false), "load OS");
@@ -196,6 +200,10 @@ static void Run(const char* image, const char* symbols, const char* data, bool c
         // This direct launch bypasses Browse; record the view used by a real launch.
         memory->Write(0xC200, 0);
         Check(!Call(core, syms.at("_FileSession"), 0xC200), "remember browser before launch");
+        // LaunchGame's InGameLanguage: English the first time, Spanish the second
+        SetText(memory, launch ? "/GBCSYS/LANG/ES.DAT" : "/GBCSYS/EDITOR.DAT");
+        Check(!Call(core, syms.at("_FileLoadLanguage"), 0xC200, launch ? 0 : DATA_BLOCKS), "load the language");
+        Call(core, syms.at("_InGameLanguage"));
         memory->Write(0xBD08, 6);
         core.GetProcessor()->GetState()->PC->SetValue(syms.at("_GameLaunch"));
         Frames(core, 180);
@@ -206,7 +214,7 @@ static void Run(const char* image, const char* symbols, const char* data, bool c
         auto os=Read(image);
         for(unsigned address : {0u,0x2000u,0x2100u,0x3000u,0x4000u,0x6000u})
             Check(memory->Read(address)==os[address],"menu restores resident bytes changed by mapper writes");
-        MenuClock(core,syms,color);
+        MenuClock(core,syms,color,true,launch?"\001 Elegir  \002 Seguir":"\001 Select  \002 Resume");
         if (!launch) {
             key(Down_Key); key(Down_Key); key(A_Key,180);
             Check(!core.CanPressEverdriveButton(),"unavailable Load state leaves menu open");

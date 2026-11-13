@@ -69,19 +69,8 @@ def main(out_path):
     table = bytes(b >> shift for b in range(256)) + bytes((b << (8 - shift)) & 255 for b in range(256))
     put(data, c["DATA_SHIFTS"] + shift - 1, table, BLOCK)
   put(data, c["DATA_WIDTHS"], db_bytes("img/fonts/styled_widths.asm", "VWFBoldWidths"), BLOCK)
-  buttons = {token: chr(int(code)) for token, code in
-             re.findall(r'charmap "(<BTN_[A-Z]+>)", (\d+)', open("src/charmap.asm", encoding="utf8").read())}
-  for context, name in enumerate(("editor", "browser")):
-    lines = open(f"data/help/{name}.txt", encoding="utf8").read().splitlines()
-    assert len(lines) == 32, f"{name} help must have 32 lines"
-    for i, line in enumerate(lines):
-      for token, char in buttons.items():
-        line = line.replace(token, char)
-      encoded = line.encode("latin1")
-      assert len(encoded) < 32, f"help line too long: {line}"
-      offset = (c["DATA_HELP"] + context * 2) * BLOCK + i * 32
-      data[offset:offset + len(encoded)] = encoded
   import strings
+  put(data, c["DATA_HELP"], strings.help_screens("en"), 4 * BLOCK)  # also in the language image (LANG_HELP)
   data += strings.image("en")  # English, copied to LANG_BLOCK at boot (scripts/strings.py)
   with open(out_path, "wb") as file:
     file.write(data)
