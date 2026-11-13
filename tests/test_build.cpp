@@ -165,6 +165,12 @@ static void Errors(const char* image, const char* symbols, const char* data, boo
     Check(s.word("_cursor") == bad.find(" jp") && s.word("_cursor") == s.word("_anchor"), "the cursor moves to the line");
     s.pad(A_Key);
     Check(access((s.root + "/Bad.gb").c_str(), F_OK) != 0, "no ROM is written for a failed build");
+    // the assembly arithmetic (Apply, page 12) reports through Fail (page 13)
+    Session d(image, symbols, data, color, "Div.asm", "SECTION \"x\", ROM0[$150]\n db 7 / 2\n db 5 % (2 - 2)\n");
+    d.command(4, "Line 3");
+    if (d.lines() != "Div.asm|Line 3|DIVIDE BY ZERO") fprintf(stderr, "box: \"%s\"\n", d.lines().c_str());
+    Check(d.lines() == "Div.asm|Line 3|DIVIDE BY ZERO", "a division by zero in the assembly arithmetic is an error");
+    d.pad(A_Key);
     printf("%s build errors passed\n", color ? "CGB" : "DMG");
 }
 
@@ -249,7 +255,7 @@ int main(int argc, char** argv) {
         NotAssembly(argv[1], argv[2], argv[3], color);
         Run(argv[1], argv[2], argv[3], argv[4], argv[5], color);
         std::string work = std::string(argv[7]).substr(0, std::string(argv[7]).find_last_of('/'));
-        for (const char* name : {"features", "strings", "loops", "charmap", "sections"}) Sample(argv[1], argv[2], argv[3], argv[6], work, name, color);
+        for (const char* name : {"features", "strings", "loops", "charmap", "sections", "values"}) Sample(argv[1], argv[2], argv[3], argv[6], work, name, color);
         IncludeError(argv[1], argv[2], argv[3], color);
         Library(argv[1], argv[2], argv[3], argv[8], argv[9], color);
     }

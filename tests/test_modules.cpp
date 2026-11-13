@@ -83,7 +83,7 @@ static void Modules(const char* image,const char* symbols,const char* data,const
     Write(root+"/GBCSYS/EDITOR.DAT",Read(data));
     // Each malformed file has a distinct path: the emulator's FAT image is a
     // snapshot of the folder when mounted.
-    const char* names[]={"valid","magic","version","abi","id","page","address","entry","length","bss","reserved","crc","short","trailing","empty","abizero","abinew","context","max","wide","widepage","widelength","widebss","wide3","widepage3","widelength3","wide4","widepage4"};
+    const char* names[]={"valid","magic","version","abi","id","page","address","entry","length","bss","reserved","crc","short","trailing","empty","abizero","abinew","context","max","wide","widepage","widelength","widebss","wide3","widepage3","widelength3","wide4","widepage4","wide5","widepage5"};
     for(const char* name:names)Write(root+"/"+name+".MOD",Read(std::string(fixtures)+"/"+name+".MOD"));
     std::vector<u8> large(70000,'z');for(unsigned i=63;i<large.size();i+=64)large[i]='\n';
     Write(root+"/Large.txt",large);
@@ -160,6 +160,12 @@ static void Modules(const char* image,const char* symbols,const char* data,const
     Check(memory->Read(syms.at("_module_status"))==0x44,"four-page module calls across all its pages");
     Check(Page(memory,4)==original4 && Page(memory,5)==original5 && Page(memory,12)==original12,"fourth borrowed page restored");
     run("widepage4",invalid);
+    // five pages: 13 -> 15 -> 4 -> 5 -> 12 and back; page 15 (the keyboard handlers) comes back too
+    auto original15=Page(memory,15);
+    run("wide5",0);
+    Check(memory->Read(syms.at("_module_status"))==0x45,"five-page module calls across all its pages");
+    Check(Page(memory,15)==original15 && Page(memory,4)==original4 && Page(memory,12)==original12,"fifth borrowed page restored");
+    run("widepage5",invalid);
     memory->Write(syms.at("_module_context"),0x34);memory->Write(syms.at("_module_context")+1,0x12);
     run("context",0);
     Check(memory->Read(syms.at("_module_status"))==0x34,"module receives module_context in DE");

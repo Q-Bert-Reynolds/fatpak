@@ -20,6 +20,16 @@ extern unsigned char run_n;
 
 #define NAME_MAX 79
 
+// Values are 32 bits and signed, like RGBDS's (EQU and = constants, expressions, FOR, {d:}
+// formats); addresses, sizes and operands stay 16. A constant's high word is its symbol's extra.
+#ifdef HOST_TEST
+typedef signed Val __attribute__((mode(SI))); // the PC harness builds with -Dint=short
+typedef unsigned UVal __attribute__((mode(SI)));
+#else
+typedef long Val;
+typedef unsigned long UVal;
+#endif
+
 // asm.c
 extern AsmContext* context;
 extern unsigned char ch; // the character being looked at, 0 past the end
@@ -49,9 +59,9 @@ extern unsigned char in_section, sec_rom, sec_bank, rom_used;
 extern unsigned int pc, sec_last;
 unsigned char Find(void);
 void Add(unsigned char kind, unsigned int value, unsigned char bank);
-void SetValue(unsigned int value);
+void SetValue(unsigned int value, unsigned int extra);
 void Mark(void);
-unsigned int Apply(unsigned char o, unsigned int a, unsigned int b);
+Val Apply(unsigned char o, Val a, Val b);
 void Emit(unsigned char b);
 void Emit16(unsigned int v);
 void Emit8(unsigned int v);
@@ -61,13 +71,13 @@ void Instruction(unsigned char m);
 void Fill(void);
 void Header(void);
 void Progress(void); // the box shows where the pass is (asm_pushs.c)
-unsigned int Mul(unsigned int a, unsigned int b); // asm_emit.c: no SDCC helpers in modules
-unsigned int Div(unsigned int a, unsigned int b, unsigned char remainder);
+UVal Div(UVal a, UVal b); // asm_emit.c, unsigned (no SDCC helpers in modules): the quotient; the remainder in div_rem
+extern UVal div_rem;
 extern unsigned int progress_units, pass1_units;
 
 #define SYM_LABEL 0
-#define SYM_EQU   1
-#define SYM_VAR   2
+#define SYM_EQU   1 // value: the low word, extra: the high word
+#define SYM_VAR   2 // the same
 #define SYM_MACRO 3 // value, bank: the body's address (bits 0-15, 16-23), extra: its length
 #define SYM_INCLUDE 4 // name: the path, value: its first block, bank and extra: its size (bits 16-23, 0-15)
 #define SYM_STRING 5 // EQUS: value: heap offset, extra: length
@@ -101,7 +111,8 @@ extern unsigned int progress_units, pass1_units;
 #define D_POPC 32
 #define D_PUSHS 33
 #define D_POPS 34
-#define DIRECTIVES 35 // the supported ones
+#define D_DL 35
+#define DIRECTIVES 36 // the supported ones
 #define T_MNEMONICS 0
 #define T_DIRECTIVES 1
 #define T_REGISTERS 2
@@ -134,7 +145,8 @@ typedef struct {
   unsigned int line; // in the file, from 1
   unsigned int file; // the INCLUDE symbol of the file it's in (0: the document), or FILE_EXPANSION
   unsigned int first_line; // a repeat body's, for rewinding
-  unsigned int for_unit, for_step; // FOR: its variable's symbol unit (0 for REPT) and step
+  unsigned int for_unit; // FOR: its variable's symbol unit (0 for REPT)
+  Val for_step; // and step
   unsigned int id; // \@
   unsigned char args, nargs; // a macro's arguments in args[], 0-ended each
 } Frame;
@@ -193,14 +205,14 @@ void ReadIdent(void);
 void SaveName(void);
 void LoadName(void);
 unsigned char Char(void);
-unsigned int Eval(void);
-unsigned int Constant(void);
+Val Eval(void);
+Val Constant(void);
 unsigned char FindDotted(void); // asm_emit.c
 unsigned char* Entry(unsigned int unit);
 
 // asm_str.c: string symbols on a heap in PSRAM, string expressions, {} interpolation
 #define STR_SIZE 256
-#define FMT_SIZE 24
+#define FMT_SIZE 36 // a 32-bit value in binary, its sign and %
 #define SRC_FMT 0xFD // fmt_text
 extern char str[], fmt_text[]; // sized in asm_str.c (asm_nostr.c leaves them tiny)
 extern unsigned int str_top, heap_top;
@@ -224,12 +236,12 @@ unsigned char Scan(unsigned char mode); // asm.c: skips lines to the directive t
 void Line(void);
 void Label(void); // asm_line.c
 void Statement(void);
-void DefineValue(unsigned char kind, unsigned int v); // name gets v
-void Repeat(unsigned int n, unsigned int unit, unsigned int step); // the body after this line n times
+void DefineValue(unsigned char kind, Val v); // name gets v
+void Repeat(unsigned int n, unsigned int unit, Val step); // the body after this line n times
 unsigned int OpenFile(void); // INCLUDE and INCBIN's "path": its symbol, 0 if it failed; sets file_at, file_size
 extern Pos file_at, file_size;
 extern unsigned int file_top; // the next free block from ASM_FILE_BLOCK
-void StepVar(unsigned int unit, unsigned int step); // asm_emit.c: FOR's variable moves on
+void StepVar(unsigned int unit, Val step); // asm_emit.c: FOR's variable moves on
 void For(void); // asm_str.c
 void Incbin(void);
 void Include(void); // asm_loop.c

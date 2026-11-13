@@ -11,7 +11,8 @@ unsigned char Comma(void) {
 
 // FOR name, [start,] stop[, step]: REPT with name = start, start + step, ... while short of stop
 void For(void) {
-  unsigned int a = 0, b, step = 1, n = 0;
+  Val a = 0, b, step = 1;
+  unsigned int n = 0;
   Space();
   ReadIdent();
   if (!ident_len) { Fail(ASM_ERR_SYNTAX); return; }
@@ -24,8 +25,8 @@ void For(void) {
     if (Comma()) step = Constant();
   }
   if (!step) { Fail(ASM_ERR_DIVIDE); return; }
-  if (step & 0x8000) { if ((int)a > (int)b) n = Apply('/', a - b - step - 1, -step); }
-  else if ((int)a < (int)b) n = Apply('/', b - a + step - 1, step);
+  if (step < 0) { if (a > b) n = Div((UVal)a - b - step - 1, 0 - (UVal)step); }
+  else if (a < b) n = Div((UVal)b - a + step - 1, step);
   DefineValue(SYM_VAR, a);
   if (!error) Repeat(n, found, step);
 }

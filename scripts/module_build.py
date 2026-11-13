@@ -4,7 +4,7 @@
 usage: python3 scripts/module_build.py [--headers]
 
 modules/abi.json lists the resident ABI, modules/modules.json the modules: "sources" go in
-the borrowed page; a module with "sources2" (and maybe "sources3", "sources4") is wide
+the borrowed page; a module with "sources2" (and maybe "sources3" up to "sources5") is wide
 (MODULE_FORMAT_WIDE): those go in a second (third) page, calls between the pages pass
 through ModFar thunks, and its BSS lives in the editor's WRAMX buffers (MODULE_BSS). Pointers must not cross pages: a page's constant data
 is only read by its own code. Memory layout, versions and header offsets come from src/constants.asm.
@@ -33,10 +33,11 @@ SDCC = ['sdcc', '-msm83', '--asm=rgbds', '--opt-code-size', '--dataseg', 'WRAM0'
         '--no-peep', '--peep-file', str(PEEPHOLE), '--disable-warning', '218', '-S']
 
 
-def package(payload, entry, module_id, bss_offset, bss_size, abi=1, payload2=None, payload3=None, payload4=None):
-    """The .MOD bytes. payload2 (the second page's code, with payload3 and payload4 more) makes
+def package(payload, entry, module_id, bss_offset, bss_size, abi=1, payload2=None, payload3=None, payload4=None,
+            payload5=None):
+    """The .MOD bytes. payload2 (the second page's code, with payload3 up to payload5 more) makes
     a wide module: bss_offset is then unused (0) and bss_size counts WRAMX bytes at MODULE_BSS."""
-    extra = [payload2, payload3, payload4]
+    extra = [payload2, payload3, payload4, payload5]
     while extra and extra[-1] is None:
         extra.pop()
     if None in extra:
@@ -186,21 +187,21 @@ def thunked(code, remote, suffix=''):
     return out
 
 
-PAGES = ('MODULE_PAGE', 'MODULE_PAGE2', 'MODULE_PAGE3', 'MODULE_PAGE4')
-SUFFIXES = ('', 'B', 'C', 'D')  # labels of each page's LOAD block
+PAGES = ('MODULE_PAGE', 'MODULE_PAGE2', 'MODULE_PAGE3', 'MODULE_PAGE4', 'MODULE_PAGE5')
+SUFFIXES = ('', 'B', 'C', 'D', 'E')  # labels of each page's LOAD block
 
 
-def assembly(raws, allowed, raws2=None, raws3=None, raws4=None):
+def assembly(raws, allowed, raws2=None, raws3=None, raws4=None, raws5=None):
     """Link-ready source for one module from its SDCC outputs; also returns the SDK names used.
 
     Everything goes in one LOAD block at the borrowed page: code and literals, then BSS.
-    A wide module (raws2, maybe raws3, raws4) gets a LOAD block per further page and its BSS
+    A wide module (raws2, maybe raws3 up to raws5) gets a LOAD block per further page and its BSS
     in WRAMX. Rejects initialized data, duplicate symbols and any import outside the SDK,
     including SDCC's arithmetic helpers.
     """
     if isinstance(raws, str):
         raws = [raws]
-    groups = [raws, raws2, raws3, raws4]
+    groups = [raws, raws2, raws3, raws4, raws5]
     while groups[-1] is None:
         groups.pop()
     if None in groups:
@@ -228,7 +229,7 @@ def assembly(raws, allowed, raws2=None, raws3=None, raws4=None):
             pages[index] = thunked(pages[index], {name: page for name, page in homes.items() if name not in own},
                                    '' if index == 0 else str(index + 1))  # each page has its own thunks
     referenced = references(sum(pages, []) + bss)
-    unknown = referenced - defined - set(allowed) - {name + '__far' + n for name in defined for n in ('', '2', '3', '4')}
+    unknown = referenced - defined - set(allowed) - {name + '__far' + n for name in defined for n in ('', '2', '3', '4', '5')}
     if unknown:
         raise ValueError('non-SDK imports: ' + ', '.join(sorted(unknown)))
     page = C['MODULE_PAGE']
@@ -293,7 +294,7 @@ def build_module(module, versions):
     name = module['name']
     work = OUTPUT / name
     work.mkdir(parents=True, exist_ok=True)
-    keys = ['sources', 'sources2', 'sources3', 'sources4']
+    keys = ['sources', 'sources2', 'sources3', 'sources4', 'sources5']
     groups = [compile_sources(work, module[key]) if key in module else None for key in keys]
     wide = groups[1] is not None
     text, used = assembly(*groups[:1], versions, *groups[1:])

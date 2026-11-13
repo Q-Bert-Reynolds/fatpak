@@ -1,6 +1,7 @@
 # Priority
 
-- Assembler: build beisbolgb on the device ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): 32-bit values (the last 15 bytes; needs room: a fifth module page), per-project defines and rgbfix options, and speed (39 min CGB in Gearboy, over an hour on DMG).
+- Assembler: build beisbolgb on the device ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): per-project defines and rgbfix options, and speed (42 min CGB in Gearboy, over an hour on DMG).
+- All OS strings should be loaded from a .BIN file with a lookup table. Support multiple languages.
 
 # Rendering
 
@@ -56,5 +57,4 @@
 - Small-C style compiler matching SDCC's calling convention, multi-pass via SD temp files
 - Document real differences of other X-series carts rather than assuming X7 SD/RTC/button behavior.
 - Ports to other cartridges need a loader, SD access and a new memory layout; the PSRAM window is assumed everywhere.
-- All strings should be loaded from a .BIN file with a lookup table. Support multiple languages.
 - SGB: use the whole GB screen for text with header/footer in the border, or go fullscreen ([SGB.md](SGB.md)); SNES mouse.

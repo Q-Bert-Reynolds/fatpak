@@ -18,7 +18,7 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
 | `FILEINFO.MOD` | 3 | 2 | FILE > INFO, Select (`browser/info.c`) | 3,141 B + 43 B BSS |
 | `HELP.MOD` | 4 | 3 | HELP, F1 (`editor/help.c`) | 327 B + 34 B BSS |
 | `THEME.MOD` | 5 | 3 | SETTINGS > THEME (`ui/theme.c`) | 510 B |
-| `ASM.MOD` | 6 | 8 | FILE > BUILD, RUN (`editor/build.c`), [ASSEMBLER.md](ASSEMBLER.md) | wide, 4 pages: 7,311 + 7,335 + 7,376 + 7,305 B, 2,000 B BSS |
+| `ASM.MOD` | 6 | 8 | FILE > BUILD, RUN (`editor/build.c`), [ASSEMBLER.md](ASSEMBLER.md) | wide, 5 pages: 7,100 + 5,947 + 6,493 + 6,907 + 4,476 B, 2,060 B BSS |
 | `HEXVIEW.MOD` | 7 | 6 | Opening a binary file in the browser (`browser/viewer.c`) | 2,243 B + 221 B BSS |
 | `TILEVIEW.MOD` | 8 | 6 | Opening a `.tiles` file in the browser (`browser/viewer.c`) | 2,134 B + 383 B BSS |
 
@@ -36,7 +36,8 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
   SDCC arithmetic helpers, or host pointers into module memory after return.
 - **Wide modules** (`MODULE_FORMAT_WIDE`, `"sources2"` in `modules.json`) also
   borrow **page 12** (`MODULE_PAGE2`), with `"sources3"` **page 5** too
-  (`MODULE_PAGE3`), with `"sources4"` **page 4** (`MODULE_PAGE4`), and keep
+  (`MODULE_PAGE3`), with `"sources4"` **page 4** (`MODULE_PAGE4`), with
+  `"sources5"` **page 15** (`MODULE_PAGE5`, the keyboard handlers), and keep
   their BSS in the editor's WRAMX
   buffers (`MODULE_BSS`, `$D000`, 3,072 bytes: `tile_buffer` to the lexer
   state), saved to PSRAM meanwhile. Calls between pages go through
@@ -46,10 +47,11 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
   mapped when it would be read. Nothing in pages 12, 5 or 4 may run meanwhile
   either (page 12: `BeginView`, `NameChar`, `ShowGameProgress`, `fs_GameCopy`, the
   game RTC and registry; page 5: most of the editor, browser and `JoinPath`; page
-  4: snapshots, `HandleFileKey`), and nothing may draw, since `tile_buffer` is the
+  4: snapshots, `HandleFileKey`; page 15: `ProcessKeyCodes` and the PS/2 and
+  iGKB handlers), and nothing may draw, since `tile_buffer` is the
   module's BSS: the checker keeps the entries a wide module uses
-  (`build/modules/wide.txt`) out of all four pages. Of the other pages only 15
-  is also clear of the file-reading path; 6-11 and 14 hold FatFs or its callers.
+  (`build/modules/wide.txt`) out of all five pages. No other page can be
+  borrowed: 6-11 and 14 hold FatFs or its callers.
   One audited exception: FatFs reaches `get_fattime` (page 12) only when creating
   or writing a file, and `ModFile` and `ModLoad` only read, so the wide walk doesn't follow it.
 - Host pattern: show a busy box, set `module_context` if the module needs input,
@@ -102,9 +104,9 @@ the entries the module actually references, so a module that sticks to older
 entries runs on older hosts.
 
 A wide module gets a `LOAD` block for page 12 from its `sources2` (and page 5
-from `sources3`, page 4 from `sources4`), a
+from `sources3`, page 4 from `sources4`, page 15 from `sources5`), a
 `WRAMX[$D000]` section for every source's BSS, and `_X__far` thunks (`call
-_ModFar`, `DB page`, `DW _X`; `__far2`/`__far3` in the later pages) appended to
+_ModFar`, `DB page`, `DW _X`; `__far2` to `__far5` in the later pages) appended to
 whichever page calls `_X` in another; `call`/`jp` lines are rewritten to them and any other cross-page symbol
 reference fails the build. `ModuleMain` must be in the first page.
 
@@ -131,7 +133,8 @@ reference fails the build. `ModuleMain` must be in the first page.
 | 24 | 2 | Its payload length, after the second's; zero without a third page |
 | 26 | 1 | Wide with four pages: fourth page (4); otherwise zero |
 | 27 | 2 | Its payload length, after the third's |
-| 29 | 3 | Zero |
+| 29 | 1 | Wide with five pages: fifth page (15); otherwise zero |
+| 30 | 2 | Its payload length, after the fourth's |
 
 The extra pages are 3-byte records (page, length) from offset 20, used in order:
 a record after an unused one must be zero.
@@ -150,6 +153,7 @@ BSS size counts WRAMX bytes (≤ `MODULE_BSS_SIZE`).
 | `$3da0-$3dae`, `$3db0-$3dbe` | `MODULE_STAGE2`, `MODULE_BACKUP2`: the same for page 12 (wide modules) |
 | `$3dc0-$3dce`, `$3dd0-$3dde` | `MODULE_STAGE3`, `MODULE_BACKUP3`: the same for page 5 |
 | `$3de0-$3dee`, `$3df0-$3dfe` | `MODULE_STAGE4`, `MODULE_BACKUP4`: the same for page 4 |
+| `$3cc0-$3cce`, `$3cd0-$3cde` | `MODULE_STAGE5`, `MODULE_BACKUP5`: the same for page 15, below `DATA_BLOCK` past the snapshot staging (`$3c00-$3ca3`); `ModuleSwap` reads each page's blocks from `ModuleStages` |
 | `$3d68-$3d6d` | `MODULE_BSS_BACKUP`: the editor's WRAMX buffers while a wide module runs |
 | `$3d6e` | `MODULE_FAIL_BLOCK`: a failed restore, shown after the restart |
 
@@ -183,7 +187,8 @@ below `$8000`. Copies never touch the final sector's upper 256 bytes.
 
 Every block copy is retried twice before it counts as failed; the first failure's
 operation and block go to `module_fail` (operations: 0-2 page 13, 4-6 page 12,
-8-10 page 5, 12-14 page 4, 16/18 the WRAMX buffers' save/restore). A restore
+8-10 page 5, 12-14 page 4, 16-18 page 15, 32/34 the WRAMX buffers' save/restore, 36/38
+the module's BSS held for `ModProgress`). A restore
 that still fails writes `MF`, operation, block to PSRAM block `MODULE_FAIL_BLOCK`
 (`$3d6e`) before
 `RestartDevice`; startup shows it once as RESTORE FAILED op:block
@@ -194,7 +199,7 @@ some copies read back wrong once and right the next time. Gearboy can't
 reproduce it.
 
 `RunModule` backs up and installs page by page: `ModuleSwap(n << 2)` and
-`(n << 2 | 1)` for page n (0 is page 13, then 12, 5, 4), then for a wide module
+`(n << 2 | 1)` for page n (0 is page 13, then 12, 5, 4, 15), then for a wide module
 `ModuleSwapRAM(0)`, which saves the WRAMX region to PSRAM and zeroes it; after the
 run `ModuleSwapRAM(2)` and `ModuleSwap(n << 2 | 2)` from the last page down put
 them back, page 13 after `HideBox`. Each step that fails to read back restores only what was
@@ -256,16 +261,17 @@ sector buffer, so a future file API must not share it with a pending string.
   pointers rejected); writes fixtures (every header field corrupted, short,
   trailing, empty, ABI 0 and too new, context echo, max size, a wide module that
   calls across its pages and checks its BSS, a three-page one (13 to 5 to 12 and
-  back), a four-page one (13 to 4 to 5 to 12), and wide headers with a bad
-  second, third or fourth page, length or BSS size).
+  back), a four-page one (13 to 4 to 5 to 12), a five-page one (13 to 15 to 4 to 5 to
+  12), and wide headers with a bad second, third, fourth or fifth page, length
+  or BSS size).
 - `tests/run_modules.sh` (DMG, CGB): swaps read back and preserve mapping, IE and
   window; byte-identical page restore; nested call rejected; missing, malformed
   and wrong-ABI files rejected with the page untouched; an ABI 1 module runs;
   `module_context` arrives in `de` and is cleared; `module_status`; BSS zeroed;
   literals marshaled; max-size page; open large document survives; stack guard;
   the wide fixture runs twice with zeroed BSS, page 12 and the WRAMX buffers
-  come back byte-identical, the three- and four-page fixtures bring pages 5 and
-  4 back too, and the malformed variants are rejected.
+  come back byte-identical, the three-, four- and five-page fixtures bring
+  pages 5, 4 and 15 back too, and the malformed variants are rejected.
 - `tests/run_build.sh`: ASM.MOD end to end ([ASSEMBLER.md](ASSEMBLER.md)).
 - `tests/run_browser_menu.sh` (DMG, CGB): KEYBOARD TEST, the clock's fields,
   selection and editing, and every info field for text, folder and game files

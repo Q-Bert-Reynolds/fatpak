@@ -98,7 +98,7 @@ unsigned char RunModule(const char* path, unsigned char id) {
   return result;
 }
 
-// text and the failed copy as operation:block (ModuleSwap's operation, 6 for the WRAMX buffers)
+// text and the failed copy as operation:block (ModuleSwap's operation, 32 and up for ModuleSwapRAM's)
 static void ShowFailure(const char* text) {
   char line[28], *end;
   unsigned char op = ((unsigned char*)&module_fail)[0];

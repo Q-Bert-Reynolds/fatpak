@@ -6,7 +6,7 @@
 // --- operands (the variables are in asm.c)
 static void ParseOp(unsigned char i) {
   unsigned char kind = K_IMM, reg = 0;
-  unsigned int v = 0;
+  Val v = 0;
   Space();
   if (ch == '[') {
     Advance();
@@ -76,11 +76,12 @@ static unsigned int if_active, if_taken; // bit per open IF level
 static unsigned char if_depth;
 static unsigned int rs; // RSSET/RB counter
 
-void DefineValue(unsigned char kind, unsigned int v) { // name gets v
+void DefineValue(unsigned char kind, Val v) { // name gets v
   LoadName();
   if (error) return;
+  sym_extra = (unsigned int)((UVal)v >> 16);
   if (Find()) {
-    if (kind == SYM_VAR || pass == 2) SetValue(v);
+    if (kind == SYM_VAR || pass == 2) SetValue((unsigned int)v, (unsigned int)((UVal)v >> 16));
     else Fail(ASM_ERR_DUPLICATE);
     if (pass == 2) Mark();
   }
@@ -99,8 +100,8 @@ void Label(void) { // ident
   else Fail(ASM_ERR_PHASE);
   if (!local) scope = found;
 }
-static void Data(unsigned char word) { // db, dw
-  unsigned int v;
+static void Data(unsigned char word) { // db, dw, dl: 0, 1, 3
+  Val v;
   Space();
   if (AtEnd()) { Reserve(word + 1, 0); return; }
   while (!error) {
@@ -114,7 +115,11 @@ static void Data(unsigned char word) { // db, dw
     }
     else {
       v = Eval();
-      if (word) Emit16(v); else Emit8(v);
+      if (!word) Emit8(v);
+      else {
+        Emit16(v);
+        if (word == 3) Emit16((unsigned int)((UVal)v >> 16));
+      }
     }
     Space();
     if (ch != ',') break;
@@ -169,7 +174,7 @@ static void If(void) {
   if (Eval()) if_active |= if_taken |= bit;
   else { ToEnd(); IfSkip(); }
 }
-void Repeat(unsigned int n, unsigned int unit, unsigned int step) {
+void Repeat(unsigned int n, unsigned int unit, Val step) {
   unsigned int start_line;
   Pos start;
   Frame* f;
@@ -254,7 +259,7 @@ static void Shift(void) { // the enclosing macro drops its first argument
 // the word in ident starts a statement
 void Statement(void) {
   unsigned char m = Keyword(T_MNEMONICS), d, k;
-  unsigned int v;
+  Val v;
   if (m != 0xFF) { Operands(); Instruction(m); return; }
   d = Keyword(T_DIRECTIVES);
   switch (d) {
@@ -262,6 +267,7 @@ void Statement(void) {
     case D_PUSHS: PushS(); break;
     case D_POPS: PopS(); break;
     case D_DB: case D_DB + 1: Data(d - D_DB); break;
+    case D_DL: Data(3); break;
     case D_DS: Ds(); break;
     case D_DEF: case D_REDEF: // def name equ|=|rb|rw|rl ..., redef name = expr
       Space();

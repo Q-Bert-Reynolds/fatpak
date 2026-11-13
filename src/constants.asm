@@ -66,12 +66,15 @@ DEF MODULE_BACKUP  EQU $3D90;PSRAM: the borrowed OS page, 15 blocks
 DEF MODULE_PAGE2   EQU 12
 DEF MODULE_PAGE3   EQU 5
 DEF MODULE_PAGE4   EQU 4
-DEF MODULE_STAGE2  EQU $3DA0;MODULE_STAGE + $20 per page: ModuleSwap adds $20 for the second, $40 for the third
+DEF MODULE_PAGE5   EQU 15;the keyboard handlers: nothing a wide module calls reaches them (check_module_abi.py)
+DEF MODULE_STAGE2  EQU $3DA0;each page's blocks are in ModuleStages (runtime.asm): $20 apart up to the fourth
 DEF MODULE_BACKUP2 EQU $3DB0
 DEF MODULE_STAGE3  EQU $3DC0
 DEF MODULE_BACKUP3 EQU $3DD0
 DEF MODULE_STAGE4  EQU $3DE0
 DEF MODULE_BACKUP4 EQU $3DF0
+DEF MODULE_STAGE5  EQU $3CC0;the fifth below DATA_BLOCK, past the snapshot staging ($3C00, $A4 blocks)
+DEF MODULE_BACKUP5 EQU $3CD0
 DEF MODULE_BSS     EQU $D000;tile_buffer: the editor's buffers, saved to PSRAM meanwhile (src/wram.asm)
 DEF MODULE_BSS_SIZE EQU 3072;6 blocks
 DEF MODULE_BSS_BACKUP EQU $3D68;below the staging blocks: $3E00 and up broke the cart on hardware (2026-11-12)
@@ -109,8 +112,10 @@ DEF MODULE_H_PAGE3    EQU 23;a third page and its bytes, which follow the second
 DEF MODULE_H_LENGTH3  EQU 24
 DEF MODULE_H_PAGE4    EQU 26;and a fourth: each extra page is a 3-byte record (page, length) from MODULE_H_PAGE2
 DEF MODULE_H_LENGTH4  EQU 27
-DEF MODULE_H_RESERVED EQU 29;zero up to MODULE_HEADER
-DEF MODULE_PAGES_MAX EQU 4
+DEF MODULE_H_PAGE5    EQU 29;and a fifth, which ends the header
+DEF MODULE_H_LENGTH5  EQU 30
+DEF MODULE_H_RESERVED EQU 32;zero up to MODULE_HEADER
+DEF MODULE_PAGES_MAX EQU 5
 DEF MODULE_ERR_ABI    EQU 20;RunModule results past FatFs's FRESULT codes
 DEF MODULE_ERR_VERIFY EQU 21;a page copy didn't read back
 

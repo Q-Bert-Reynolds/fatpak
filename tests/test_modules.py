@@ -35,7 +35,7 @@ def fixtures():
     for name,offset in [('magic',0),('version',C['MODULE_H_FORMAT']),('abi',C['MODULE_H_ABI']),
                         ('id',C['MODULE_H_ID']),('page',C['MODULE_H_PAGE']),('address',C['MODULE_H_ADDRESS']+1),
                         ('entry',C['MODULE_H_ENTRY']+1),('length',C['MODULE_H_LENGTH']+1),
-                        ('bss',C['MODULE_H_BSS']+1),('reserved',C['MODULE_H_RESERVED']),('crc',C['MODULE_H_CRC'])]:
+                        ('bss',C['MODULE_H_BSS']+1),('reserved',C['MODULE_H_PAGE5']),('crc',C['MODULE_H_CRC'])]:
         value=bytearray(valid);value[offset]^=0x80;variants[name]=value
     for name,abi in [('abizero',0),('abinew',C['MODULE_ABI']+1)]:
         value=bytearray(valid);value[C['MODULE_H_ABI']]=abi;variants[name]=value
@@ -66,6 +66,11 @@ def fixtures():
     call4=bytes([0xCD,0x06,0xA0,0xC9,0,0,0xCD,far&255,far>>8,C['MODULE_PAGE4'],0x00,0xA0])
     variants['wide4']=package(call4,0,1,0,1,C['MODULE_ABI'],second,third,fourth)
     value=bytearray(variants['wide4']);value[C['MODULE_H_PAGE4']]^=1;variants['widepage4']=value
+    # Five pages: 13 -> 15 -> 4 -> 5 -> 12 and back, 1 more on the way back from 15.
+    fifth=bytes([0xCD,0x05,0xA0,0x3C,0xC9, 0xCD,far&255,far>>8,C['MODULE_PAGE4'],0x00,0xA0])
+    call5=bytes([0xCD,0x06,0xA0,0xC9,0,0,0xCD,far&255,far>>8,C['MODULE_PAGE5'],0x00,0xA0])
+    variants['wide5']=package(call5,0,1,0,1,C['MODULE_ABI'],second,third,fourth,fifth)
+    value=bytearray(variants['wide5']);value[C['MODULE_H_PAGE5']]^=1;variants['widepage5']=value
     for name,value in variants.items(): (out/(name+'.MOD')).write_bytes(value)
     rejected(package,b'\xC9',0,1,5,0,1,b'\xC9')
     rejected(package,b'\xC9',0,1,0,C['MODULE_BSS_SIZE']+1,1,b'\xC9')

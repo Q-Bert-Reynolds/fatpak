@@ -1580,7 +1580,7 @@ unsigned char fs_LoadModule(const char* path, unsigned char id) {
   DWORD total;
   UINT saved_block = *(volatile UINT*)0xBD02;
   BYTE saved_config = *(volatile BYTE*)0xBD06;
-  static const BYTE extra_pages[MODULE_PAGES_MAX - 1] = {MODULE_PAGE2, MODULE_PAGE3, MODULE_PAGE4};
+  static const BYTE extra_pages[MODULE_PAGES_MAX - 1] = {MODULE_PAGE2, MODULE_PAGE3, MODULE_PAGE4, MODULE_PAGE5};
   result = f_open(&module, path, FA_READ);
   if (result) goto restore;
   result = f_read(&module, header, sizeof(header), &done);
@@ -1634,7 +1634,7 @@ unsigned char fs_LoadModule(const char* path, unsigned char id) {
         if (done != size) { result = FR_INVALID_OBJECT; goto close; }
         crc = ModuleCRC(buffer, size, crc);
       }
-      SetWindowBlock(MODULE_STAGE + (page << 5) + (offset >> 9));
+      SetWindowBlock((page == 4 ? MODULE_STAGE5 : MODULE_STAGE + (page << 5)) + (offset >> 9));
       memcpy(WINDOW, buffer, sector_size);
       offset += sector_size;
     }

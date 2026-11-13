@@ -17,6 +17,7 @@ PAGE = utils.constants()['MODULE_PAGE']
 PAGE2 = utils.constants()['MODULE_PAGE2']  # wide modules borrow it too (module_build.py writes which entries they use)
 PAGE3 = utils.constants()['MODULE_PAGE3']
 PAGE4 = utils.constants()['MODULE_PAGE4']
+PAGE5 = utils.constants()['MODULE_PAGE5']  # the keyboard handlers ('ProcessKeyCodes' and its tables)
 
 # Audited assembly: name -> what it can reach. Each must stay resident or save,
 # switch and restore the page itself. EditorDraw switches only to bank 1 (RenderRow,
@@ -116,8 +117,8 @@ def check(sources, symbol_path):
     visited = walk(['_ModuleAPI' + name for name, *_ in abi['entries']] + INTERRUPTS, {str(PAGE)})
     wide = Path('build/modules/wide.txt')
     wide = wide.read_text().split() if wide.exists() else []
-    walk(wide + INTERRUPTS, {str(PAGE), str(PAGE2), str(PAGE3), str(PAGE4)}, WIDE_UNREACHED)
-    print(f'module ABI: {len(visited)} reachable functions, no page-{PAGE} imports; {len(wide)} wide entries clear of pages {PAGE2}, {PAGE3} and {PAGE4}')
+    walk(wide + INTERRUPTS, {str(PAGE), str(PAGE2), str(PAGE3), str(PAGE4), str(PAGE5)}, WIDE_UNREACHED)
+    print(f'module ABI: {len(visited)} reachable functions, no page-{PAGE} imports; {len(wide)} wide entries clear of pages {PAGE2}, {PAGE3}, {PAGE4} and {PAGE5}')
 
 
 if __name__ == '__main__':

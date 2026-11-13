@@ -19,7 +19,7 @@ static const char mnemonics[] = // Instruction's order
 static const char directives[] = // the supported ones first, in D_* order
   "\007section\002db\002dw\002ds\003def\005redef\006export\006global\007include\002if\004elif\004else\004endc"
   "\005macro\004endm\004rept\004endr\007rsreset\005rsset\004warn\005print\007println\004fail\006assert\005purge\005shift"
-  "\006incbin\003for\007charmap\012newcharmap\012setcharmap\005pushc\004popc\005pushs\004pops"
+  "\006incbin\003for\007charmap\012newcharmap\012setcharmap\005pushc\004popc\005pushs\004pops\002dl"
   "\004load\004endl\005union\005nextu\004endu\003opt\005pusho\004popo\005align\004equs";
 static const char registers[] = "\001b\001c\001d\001e\001h\001l\001a\002bc\002de\002hl\002sp\002af\002nz\001z\002nc";
 static const char brackets[] = "\002hl\003hli\003hld\002bc\002de\001c";
@@ -210,7 +210,7 @@ static void PushId(void) { // \@: _ and the innermost macro or repeat's number
   while (m > frames && m->kind != F_MACRO && m->kind != F_REPT) --m;
   id = m->id;
   idtext[i] = 0;
-  do { idtext[--i] = '0' + Apply('%', id, 10); id = Apply('/', id, 10); } while (id); // no SDCC helpers
+  do { id = (unsigned int)Div(id, 10); idtext[--i] = '0' + (unsigned char)div_rem; } while (id); // no SDCC helpers
   idtext[--i] = '_';
   Push(F_ARG, SRC_ID, i, 7);
 }
@@ -403,17 +403,84 @@ unsigned char pending; // ident holds the expression's first word already
 unsigned char bracket, mem_c; // inside [ ]: "c" means the register
 static unsigned char op, op_level; // the binary operator read ahead
 
-static unsigned int Binary(unsigned char min);
+static Val Binary(unsigned char min);
 
-// v * base for 2, 8, 10 and 16, without the general multiply (asm_emit.c)
-static unsigned int Scale(unsigned int v, unsigned char base) {
-  if (base == 10) return (v << 3) + (v << 1);
-  while (base > 1) { v <<= 1; base >>= 1; }
-  return v;
+// a number being read: num = num * base + d (base 2, 8, 10 or 16), assembly on the device
+// like Keyword; and the 32-bit value Lookup returns
+static union { Val v; UVal u; unsigned int w[2]; } num;
+#ifdef HOST_TEST
+static void Digit(unsigned char base, unsigned char d) { num.u = num.u * base + d; }
+#else
+static void Digit(unsigned char base, unsigned char d) __naked {
+  base; d;
+  __asm
+	ld	b, a
+	ld	c, e
+	cp	a, 10
+	jr	nz, .power
+	call	.double
+	ld	hl, _num
+	ld	a, [hl+]
+	ld	e, a
+	ld	a, [hl+]
+	ld	d, a
+	ld	a, [hl+]
+	ld	h, [hl]
+	ld	l, a
+	push	hl
+	push	de
+	call	.double
+	call	.double
+	pop	de
+	pop	hl
+	ld	a, [_num]
+	add	a, e
+	ld	[_num], a
+	ld	a, [_num+1]
+	adc	a, d
+	ld	[_num+1], a
+	ld	a, [_num+2]
+	adc	a, l
+	ld	[_num+2], a
+	ld	a, [_num+3]
+	adc	a, h
+	ld	[_num+3], a
+	jr	.add
+.power:
+	srl	b
+	jr	z, .add
+	call	.double
+	jr	.power
+.add:
+	ld	hl, _num
+	ld	a, [hl]
+	add	a, c
+	ld	[hl+], a
+	ret	nc
+	inc	[hl]
+	ret	nz
+	inc	hl
+	inc	[hl]
+	ret	nz
+	inc	hl
+	inc	[hl]
+	ret
+.double:
+	ld	hl, _num
+	sla	[hl]
+	inc	hl
+	rl	[hl]
+	inc	hl
+	rl	[hl]
+	inc	hl
+	rl	[hl]
+	ret
+  __endasm;
 }
-static unsigned int Digits(unsigned char base) {
-  unsigned int v = 0;
+#endif
+static UVal Digits(unsigned char base) {
   unsigned char d, any = 0;
+  num.u = 0;
   while (1) {
     d = ch;
     if (d == '_') { Advance(); continue; }
@@ -421,22 +488,25 @@ static unsigned int Digits(unsigned char base) {
     else if ((d | 0x20) >= 'a' && (d | 0x20) <= 'f') d = (d | 0x20) - 'a' + 10;
     else break;
     if (d >= base) break;
-    v = Scale(v, base) + d;
+    Digit(base, d);
     any = 1;
     Advance();
   }
   if (!any) Fail(ASM_ERR_SYNTAX);
-  return v;
+  return num.u;
 }
-// decimal, or a fixed-point literal like 1.25 as 8.8 (RGBDS: 16.16; the values compare alike)
-static unsigned int Number(void) {
-  unsigned int v = Digits(10), f, scale = 1;
+// decimal, or a fixed-point literal like 1.25 as 16.16, the fraction rounded (to 7 digits)
+static UVal Number(void) {
+  UVal v = Digits(10), f;
+  unsigned char n;
   if (ch != '.') return v;
   Advance();
   if (!IsDigit(ch)) { Fail(ASM_ERR_SYNTAX); return 0; }
-  for (f = 0; IsDigit(ch) && scale < 1000; Advance()) { f = Scale(f, 10) + ch - '0'; scale = Scale(scale, 10); }
-  while (IsDigit(ch)) Advance();
-  return (v << 8) | Apply('/', (f << 8) + (scale >> 1), scale);
+  for (num.u = 0, n = 0; IsDigit(ch); Advance()) if (n < 7) { Digit(10, ch - '0'); ++n; }
+  f = num.u;
+  for (num.u = 1; n; --n) Digit(10, 0); // 10^n
+  for (n = 0; n < 2; ++n) { v = v << 8 | Div(f << 8, num.u); f = div_rem; } // f / 10^n, 8 bits at a time
+  return v + (f << 1 >= num.u);
 }
 unsigned char Char(void) { // a character of a string or literal, quotes end it
   unsigned char c = ch;
@@ -453,14 +523,18 @@ unsigned char Char(void) { // a character of a string or literal, quotes end it
   Fail(ASM_ERR_STRING);
   return 0;
 }
-static unsigned int Lookup(void) { // ident's value, 0 and undefined when it has none yet
-  if (FindDotted()) return sym_value;
+static Val Lookup(void) { // ident's value, 0 and undefined when it has none yet
+  if (FindDotted()) {
+    num.w[0] = sym_value;
+    num.w[1] = sym_kind == SYM_EQU || sym_kind == SYM_VAR ? sym_extra : 0;
+    return num.v;
+  }
   sym_kind = 0xFF;
   if (pass == 2) Fail(ASM_ERR_SYMBOL);
   undefined = 1;
   return 0;
 }
-static unsigned int Primary(void);
+static Val Primary(void);
 // a string symbol's text replaces the name just read: the character after the name (in ch)
 // goes back to be read again after the text
 void Expand(void) {
@@ -470,8 +544,8 @@ void Expand(void) {
   Push(F_TEXT, SRC_TEXT, start, start + sym_extra)->file = FILE_EXPANSION;
   Advance();
 }
-static unsigned int Symbol(void) { // ident is a name, a function or the register c
-  unsigned int v;
+static Val Symbol(void) { // ident is a name, a function or the register c
+  Val v;
   unsigned char k = Keyword(T_FUNCTIONS);
   if (k >= 5 && k != 0xFF) return StrNumber(k); // STRLEN, STRCMP, STRFIND, STRRFIND
   if (k == 4) { // _NARG: the enclosing macro's argument count
@@ -495,7 +569,8 @@ static unsigned int Symbol(void) { // ident is a name, a function or the registe
       }
       else {
         v = Binary(1);
-        if (k) v &= 0xFF; else v >>= 8;
+        if (!k) v >>= 8;
+        v &= 0xFF;
       }
       Expect(')');
       return v;
@@ -507,8 +582,8 @@ static unsigned int Symbol(void) { // ident is a name, a function or the registe
   Expand(); // its text takes the name's place
   return Primary();
 }
-static unsigned int Primary(void) {
-  unsigned int v;
+static Val Primary(void) {
+  Val v;
   unsigned char c;
   if (pending) { pending = 0; return Symbol(); }
   Space();
@@ -519,7 +594,7 @@ static unsigned int Primary(void) {
     Expect(')');
     return v;
   }
-  if (c == '-') { Advance(); return -Primary(); }
+  if (c == '-') { Advance(); return 0 - (UVal)Primary(); }
   if (c == '+') { Advance(); return Primary(); }
   if (c == '~') { Advance(); return ~Primary(); }
   if (c == '!') { Advance(); return !Primary(); }
@@ -533,40 +608,27 @@ static unsigned int Primary(void) {
   Fail(ASM_ERR_SYNTAX);
   return 0;
 }
-// the binary operator at ch into op (0 if none): || && == != < > <= >= + - & | ^ << >> * / %
+// the binary operator at ch into op (0 if none): || && == != < > <= >= + - & | ^ << >> * / %,
+// the two-character ones as a letter; op_level is its precedence (the number before it)
+static const char op_starts[] = "|&=!<>+-*/%^";
+static const char op_pairs[] = "||L&&A==E!=N<<s>>r<=l>=g";
+static const char op_levels[] = "\1L\2A\3ENlg<>\4+-\5&|^\6sr\7*/%";
 static void ReadOp(void) {
-  unsigned char c, n;
+  unsigned char c, i;
   Space();
   c = ch;
   op = 0;
-  if (c == '|' || c == '&' || c == '=' || c == '!' || c == '<' || c == '>') {
-    Advance();
-    n = ch;
-    if (n == c && c != '!') {
-      Advance();
-      op = c == '|' ? 'L' : c == '&' ? 'A' : c == '=' ? 'E' : c == '<' ? 's' : 'r';
-    }
-    else if (n == '=' && (c == '!' || c == '<' || c == '>')) {
-      Advance();
-      op = c == '!' ? 'N' : c == '<' ? 'l' : 'g';
-    }
-    else if (c == '=' || c == '!') { Fail(ASM_ERR_SYNTAX); return; }
-    else op = c;
-  }
-  else if (c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '^') { Advance(); op = c; }
-  else return;
-  switch (op) {
-    case 'L': op_level = 1; break;
-    case 'A': op_level = 2; break;
-    case 'E': case 'N': case '<': case '>': case 'l': case 'g': op_level = 3; break;
-    case '+': case '-': op_level = 4; break;
-    case '&': case '|': case '^': op_level = 5; break;
-    case 's': case 'r': op_level = 6; break;
-    default: op_level = 7;
-  }
+  if (c < '!' || c == ',' || c == ')' || c == ']') return; // most expressions end here
+  for (i = 0; op_starts[i] != c; ++i) if (!op_starts[i]) return;
+  Advance();
+  for (i = 0; op_pairs[i]; i += 3)
+    if (op_pairs[i] == c && op_pairs[i + 1] == ch) { Advance(); c = op_pairs[i + 2]; break; }
+  if (c == '=' || c == '!') { Fail(ASM_ERR_SYNTAX); return; }
+  op = c;
+  for (i = 0; op_levels[i] != c; ++i) if (op_levels[i] < 8) op_level = op_levels[i];
 }
-static unsigned int Binary(unsigned char min) {
-  unsigned int left = Primary(), right;
+static Val Binary(unsigned char min) {
+  Val left = Primary(), right;
   unsigned char o, level;
   while (1) {
     if (!op) ReadOp();
@@ -578,12 +640,12 @@ static unsigned int Binary(unsigned char min) {
     left = Apply(o, left, right);
   }
 }
-unsigned int Eval(void) {
+Val Eval(void) {
   op = 0;
   return Binary(1);
 }
-unsigned int Constant(void) { // an expression that must be known in pass 1: sizes, addresses
-  unsigned int v = Eval();
+Val Constant(void) { // an expression that must be known in pass 1: sizes, addresses
+  Val v = Eval();
   if (undefined) Fail(ASM_ERR_FORWARD);
   return v;
 }

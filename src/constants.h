@@ -69,12 +69,15 @@
 #define MODULE_PAGE2   12
 #define MODULE_PAGE3   5
 #define MODULE_PAGE4   4
-#define MODULE_STAGE2  0x3DA0u//MODULE_STAGE + 0x20 per page: ModuleSwap adds 0x20 for the second, 0x40 for the third
+#define MODULE_PAGE5   15//the keyboard handlers: nothing a wide module calls reaches them (check_module_abi.py)
+#define MODULE_STAGE2  0x3DA0u//each page's blocks are in ModuleStages (runtime.asm): 0x20 apart up to the fourth
 #define MODULE_BACKUP2 0x3DB0u
 #define MODULE_STAGE3  0x3DC0u
 #define MODULE_BACKUP3 0x3DD0u
 #define MODULE_STAGE4  0x3DE0u
 #define MODULE_BACKUP4 0x3DF0u
+#define MODULE_STAGE5  0x3CC0u//the fifth below DATA_BLOCK, past the snapshot staging (0x3C00, 0xA4 blocks)
+#define MODULE_BACKUP5 0x3CD0u
 #define MODULE_BSS     0xD000u//tile_buffer: the editor's buffers, saved to PSRAM meanwhile (src/wram.asm)
 #define MODULE_BSS_SIZE 3072//6 blocks
 #define MODULE_BSS_BACKUP 0x3D68u//below the staging blocks: 0x3E00 and up broke the cart on hardware (2026-11-12)
@@ -112,8 +115,10 @@
 #define MODULE_H_LENGTH3  24
 #define MODULE_H_PAGE4    26//and a fourth: each extra page is a 3-byte record (page, length) from MODULE_H_PAGE2
 #define MODULE_H_LENGTH4  27
-#define MODULE_H_RESERVED 29//zero up to MODULE_HEADER
-#define MODULE_PAGES_MAX 4
+#define MODULE_H_PAGE5    29//and a fifth, which ends the header
+#define MODULE_H_LENGTH5  30
+#define MODULE_H_RESERVED 32//zero up to MODULE_HEADER
+#define MODULE_PAGES_MAX 5
 #define MODULE_ERR_ABI    20//RunModule results past FatFs's FRESULT codes
 #define MODULE_ERR_VERIFY 21//a page copy didn't read back
 

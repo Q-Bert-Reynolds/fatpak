@@ -146,9 +146,7 @@ void DefineString(unsigned int start) {
   sym_extra = n;
   if (Find()) {
     if (sym_kind != SYM_STRING || (pass == 1 && !redef)) { Fail(ASM_ERR_DUPLICATE); return; }
-    SetValue(heap_top);
-    Entry(found)[8] = (unsigned char)n;
-    Entry(found)[9] = (unsigned char)(n >> 8);
+    SetValue(heap_top, n);
   }
   else Add(pass == 2 ? SYM_STRING | SYM_SEEN : SYM_STRING, heap_top, 0);
   if (pass == 2) Mark();
@@ -162,9 +160,9 @@ static char word[NAME_MAX + 1];
 static unsigned char word_len;
 void Interpolate(void) {
   unsigned char spec[NAME_MAX + 8], n = 0, colon = 0, i, type = 0, hash = 0, zero = 0, width = 0, base, d, neg = 0;
-  unsigned int v;
+  UVal v;
   Pos at;
-  char digits[17];
+  char digits[33];
   Advance();
   while (ch != '}') {
     if (!ch || ch == 10 || n == sizeof(spec) - 1) { Fail(ASM_ERR_SYNTAX); return; }
@@ -194,14 +192,15 @@ void Interpolate(void) {
     return;
   }
   v = sym_value;
+  if (sym_kind == SYM_EQU || sym_kind == SYM_VAR) v |= (UVal)sym_extra << 16;
   if (!colon) { type = 'X'; hash = 1; }
   base = type == 'b' ? 2 : type == 'o' ? 8 : type == 'x' || type == 'X' ? 16 : 10;
-  if (type == 'd' && (v & 0x8000)) { neg = 1; v = -v; }
+  if (type == 'd' && (v >> 31)) { neg = 1; v = 0 - v; }
   n = 0;
   do {
-    d = (unsigned char)Apply('%', v, base);
+    v = Div(v, base);
+    d = (unsigned char)div_rem;
     digits[n++] = d < 10 ? '0' + d : (type == 'x' ? 'a' : 'A') + d - 10;
-    v = Apply('/', v, base);
   } while (v);
   hash = hash && base != 10;
   i = 0;

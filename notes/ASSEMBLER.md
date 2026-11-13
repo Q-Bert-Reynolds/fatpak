@@ -66,13 +66,19 @@ assemble byte-identical to RGBDS, unmodified (`memory1.asm` calls
 | `CHARMAP "string", value, ...`, `NEWCHARMAP name[, base]`, `SETCHARMAP name`, `PUSHC`, `POPC` | strings in `DB` and character literals go through the current map: the longest entry at each position, unmapped characters as themselves; `'x'` must be one entry of one byte; 8 maps, 60 KiB of entries; `\{` `\}` are literal braces |
 | `ASSERT expr[, msg]`, `FAIL` | ASSERT is checked in pass 2 |
 | `EXPORT`, `GLOBAL`, `WARN`, `PRINT`, `PRINTLN` | accepted and ignored |
-| Expressions | `+ - * / % & \| ^ << >> == != < > <= >= && \|\| ! ~`, unary `-`, parentheses, `@`, `HIGH()`, `LOW()`, `BANK(label or @)`, `DEF(name)`, `_NARG`, `__RGBDS_MAJOR__` etc., `$hex %bin &oct 123 'c'`, fixed point `1.5` (8.8), `_` separators |
+| Expressions | `+ - * / % & \| ^ << >> == != < > <= >= && \|\| ! ~`, unary `-`, parentheses, `@`, `HIGH()`, `LOW()`, `BANK(label or @)`, `DEF(name)`, `_NARG`, `__RGBDS_MAJOR__` etc., `$hex %bin &oct 123 'c'`, fixed point `1.5` (16.16), `_` separators |
 
-Values are 16 bits (RGBDS uses 32), so `/`, `%`, `>>` and comparisons act on
-16-bit signed values; 8-bit operands accept -128..255. `ldh` takes `$FF00-$FFFF`
-or `0-$FF`. Mnemonics and directives are case-insensitive, names case-sensitive.
-Fixed-point literals are 8.8 (RGBDS: 16.16), which compares and shifts alike for
-small values. Nesting: 10 frames (includes, macros, repeats and arguments
+Values are 32 bits and signed, as in RGBDS: `/` rounds toward minus infinity,
+`%` takes the divisor's sign, `>>` is arithmetic, a shift of 32 or more leaves 0
+(or -1) and a negative one goes the other way. `DL` writes 4 bytes. `EQU` and `=`
+constants keep all 32 bits (the high word in the symbol's `extra`); labels,
+addresses, sizes and instruction operands are 16 bits, and an operand keeps the
+value's low bits (RGBDS warns where it differs). 8-bit operands accept -128..255.
+`ldh` takes `$FF00-$FFFF` or `0-$FF`. Mnemonics and directives are
+case-insensitive, names case-sensitive. Fixed-point literals are 16.16, the
+fraction rounded from up to 7 digits (RGBDS reads more; they differ only in
+rare last bits). `+=` and the other compound assignments, `**` and `>>>` aren't
+read yet. Nesting: 10 frames (includes, macros, repeats and arguments
 together), 256 bytes of macro arguments in flight.
 
 Not supported, with the NOT SUPPORTED error: `LOAD`, `UNION`, `CHARLEN`,
@@ -141,21 +147,27 @@ earlier in pass 2 (a mark bit per symbol), so include guards work.
   block from the bank and address. Image, symbols, heap, charmaps and files are
   inside the large-file add buffer, which is unused while a text-buffer document
   is open.
-- **Pages.** A four-page wide module ([MODULES.md](MODULES.md)):
-  `modules/asm.c` with `asm_progress.c` (page 13: the stream, words, expressions,
-  word tables, a `ModuleMain` that calls `Main`; progress), `modules/asm_emit.c`
-  with `asm_loop.c` and `asm_pushs.c` (page 12: arithmetic, symbol table,
-  relocation, instruction encoders, image fill and header; `FOR`, opening files,
-  `INCLUDE`, `INCBIN`; `PUSHS`/`POPS`), `modules/asm_line.c` with `asm_sect.c`
+- **Pages.** A five-page wide module ([MODULES.md](MODULES.md)):
+  `modules/asm.c` (page 13: the stream, words, expressions, word tables, a
+  `ModuleMain` that calls `Main`), `modules/asm_emit.c` with `asm_pushs.c`
+  (page 12: 32-bit arithmetic, symbol table, relocation, instruction encoders,
+  image fill and header; `PUSHS`/`POPS`), `modules/asm_line.c` with `asm_loop.c`
   (page 5: lines, operands, directives, `IF`/`REPT`/`MACRO`, the error report;
-  sections and `Link`) and `modules/asm_str.c` with `asm_main.c` and
-  `asm_align.c` (page 4: `EQUS`, string functions, `{}`, charmaps; the passes;
-  closing a section, `DS ALIGN`'s arithmetic).
+  `FOR`, opening files, `INCLUDE`, `INCBIN`), `modules/asm_str.c` with
+  `asm_align.c` (page 4: `EQUS`, string functions, `{}`, charmaps; closing a
+  section, `DS ALIGN`'s arithmetic) and `modules/asm_sect.c` with `asm_main.c`
+  and `asm_progress.c` (page 15: sections and `Link`; the passes; progress).
   Calls between pages cost a far call each; pointers never cross: each page's
   constants are read by its own code; `modules/asm_shared.h` lists what is shared
-  (globals are WRAMX BSS, readable from all four). **The module is nearly full:**
-  free bytes are page 13 ~110, 12 ~90, 5 ~50, 4 ~120 (with `jr` for every jump
-  in range, `modules/peephole_jr.def`).
+  (globals are WRAMX BSS, readable from all five). Free bytes: page 13 ~320,
+  12 ~1,480, 5 ~930, 4 ~520, 15 ~2,950 (with `jr` for every jump in range,
+  `modules/peephole_jr.def`).
+- **32-bit arithmetic** is hand-written assembly on the device: SDCC's `long`
+  code took `Apply` alone to 1.6 KB. `Apply` (every binary operator) and `Div`
+  (unsigned, for `FOR` counts and `{}` digits) work on two 4-byte registers in
+  `asm_emit.c`; `Digit` (`num * base + d`, for every digit read) is in `asm.c`.
+  The C beside each is the PC harness's, which `test_asm.py` checks against
+  RGBDS; `values.asm` runs both in Gearboy.
 - **Host** (`src/editor/build.c`, page 13, `FileWriteImage` and `fs_LoadFile`
   in `fatfs.c`): saves, runs the module with an `AsmContext` (length in; line,
   position, file, blocks, symbols back), shows the result in a box, writes the
@@ -225,7 +237,18 @@ assembly on the device because every character or statement goes through them:
 current chunk or PSRAM block; anything that moves the window or the frame stack
 drops it, and `{`, line feeds and macro backslashes take the C path) and
 `Keyword`. With fewer far calls they took `gbdk.asm` from 7,397 frames to 2,766
-with three pages; the fourth page and `EQUS` cost ~290 more.
+with three pages; the fourth page and `EQUS` cost ~290 more. With five pages
+and 32-bit values it's 3,425 on DMG and 1,625 on CGB: `Mul` stops when the
+multiplier runs out and `Div` skips the dividend's zero top bytes, without which
+578 `Apply` calls cost 6% of the build.
+
+An instruction profile of that build (Gearboy stepped one instruction at a time,
+PCs mapped through `GBCOS.sym` and the module's `module.sym`), 28M instructions:
+`Advance` 15%, `Keyword` 7.5%, `AdvanceSlow` 7%; far calls 8% (33,000, nearly all
+from `asm_line.c` on page 5 to the lexer on page 13: `Space`, `Keyword`, `Line`,
+`ReadIdent`, `IsStart`, `AtEnd`); loading and checking the five pages 13%
+(`mem_Copy`, `ModuleCompare`, `ModuleCRC`); `Header`'s checksum 3.5%; `Find`
+2.8%.
 
 ## Tests
 
@@ -238,15 +261,19 @@ with three pages; the fourth page and `EQUS` cost ~290 more.
   built from a string and `PURGE`; `loops.asm`, `FOR` (nested, negative step,
   none) and `INCBIN`; `hello.asm`), FatPak's `math.asm`, `memory1.asm` and
   `gbdk.asm`; `sections.asm` (`FRAGMENT`, `PUSHS`/`POPS` with scopes, `DS ALIGN`
-  in floating, aligned, fixed and RAM sections, `ALIGN` offsets), 150 random
+  in floating, aligned, fixed and RAM sections, `ALIGN` offsets); `values.asm`
+  (32-bit constants, `DL`, beisbol's `D24`/`D32`, signed `/` `%` and shifts at
+  their edges, comparisons, 16.16 literals, `FOR` past 16 bits, `{}` formats of
+  32-bit values), 150 random
   section layouts (with fragments, offsets and `DS ALIGN`) whose labels and banks
   go in a fixed table, and 400 ROMX sections. Then each error code's line and
   position.
 - `tests/run_build.sh` (DMG, CGB): runs `test_asm.py`, then in Gearboy opens a
   file in the editor and uses FILE > BUILD (message, matching `.gb`, page 12 and
   the editor view restored, timing), an error (line and cursor, no `.gb`), BUILD
-  on a `.txt`, FILE > RUN up to `GameLaunch`, `features.asm`, `strings.asm` and
-  `loops.asm` with the `lib/` folder matching RGBDS, an error inside an included
+  on a `.txt`, FILE > RUN up to `GameLaunch`, `features.asm`, `strings.asm`,
+  `loops.asm`, `charmap.asm`, `sections.asm` and `values.asm` (the assembly
+  arithmetic) with the `lib/` folder matching RGBDS, an error inside an included
   file, and `gbdk.asm` with `memory1.asm` and `hardware.inc` unmodified.
 
 ## beisbolgb
@@ -272,17 +299,17 @@ two-line prelude and limits raised) worked through it as far as it could:
 | `DS ALIGN[n]` | `tile_anim.asm` | done |
 | `SECTION FRAGMENT` | 13, C output (`_announcer.asm`) | done |
 | `PUSHS`/`POPS` | 6 | done |
-| 32-bit values | `D24`, `D32` (item costs) | **to do** |
+| 32-bit values | `D24`, `D32` (item costs) | done |
 | `-D` defines, `rgbfix` options | `_DEMO`, `LANG_EN`; `-jvcs -k 01 -l 0x33 -m 0x1B -p 255` | **to do**: a per-project setting |
 | Speed | ~1.8 MB read per pass | **to do**: 39 minutes on CGB in Gearboy (over an hour on DMG) |
 
-With sections done, the PC harness assembles an unmodified copy (only the two
-defines added at the top of `main.asm`) in both passes: a 512 KiB ROM, 12,634
-symbols. Against `rgbasm -D _DEMO -D LANG_EN` and `rgbfix -v -p 0` it differs in
-15 bytes, every one a value over 16 bits (`D24`/`D32` money, a ten-thousands
-table, the top bytes of big constants). In Gearboy (CGB), FILE > BUILD on the same
-copy writes a ROM identical to the PC harness's in 140,340 frames: 39 minutes, so
-DMG would be over an hour. That run found the one device-only difference: 70 of
+With sections and 32-bit values done, the PC harness assembles an unmodified
+copy (only the two defines added at the top of `main.asm`) in both passes: a
+512 KiB ROM, 12,634 symbols, byte for byte what `rgbasm -D _DEMO -D LANG_EN` and
+`rgbfix -v -p 0` make. In Gearboy (CGB), FILE > BUILD on the same
+copy writes a ROM identical to RGBDS's in 149,220 frames: 42 minutes with the
+progress box and 32-bit values (140,340 without either), so DMG would be over an
+hour. The first such run found the one device-only difference: 70 of
 its paths start with `./`, and FatFs has no relative names (`FF_FS_RPATH` 0), so
 `OpenFile` drops a leading `./` (the PC harness now refuses `.` and `..` like
 FatFs does).
@@ -290,16 +317,14 @@ FatFs does).
 ## Next steps
 
 1. **Hardware pass** for `EQUS`, `FOR` and `INCBIN` with the `Asm` folder.
-2. **Speed:** four module loads and swaps are now the biggest fixed cost for
-   small files; a cached backup compare (MODULES.md) or keeping the module
-   installed across builds would help. For big sources, `Keyword` could index
-   its tables by length, and comment lines could be skipped in assembly.
-3. **Language:** 32-bit values (beisbol's last 15 bytes), `LOAD`, `UNION`,
-   anonymous labels, `STRFMT`, a symbol listing to a file. **Room first:** the
-   four pages have ~800 bytes left. A fifth page could stage at `$3CC0`/`$3CD0`
-   (free between the snapshot staging and `DATA_BLOCK`; `$3E00` and up broke the
-   cart), borrowing OS page 15, with `ModuleSwap` taking each page's blocks from a
-   table instead of `$20` steps.
+2. **Speed** (the profile above): five module loads and swaps are the biggest
+   fixed cost for small files; a cached backup compare (MODULES.md) or keeping
+   the module installed across builds would help. For big sources: the far
+   calls from `asm_line.c` to the lexer (moving `Statement`'s hot path next to
+   it, or the lexer helpers it calls most into page 5 too), `Keyword` indexing
+   its tables by length, comment lines skipped in assembly.
+3. **Language:** compound assignment (`+=` ...), `**`, `>>>`, `LOAD`, `UNION`,
+   anonymous labels, `STRFMT`, a symbol listing to a file. Page 15 is the last
+   OS page a wide module can borrow (every other one holds FatFs or its callers),
+   so further room has to come from smaller code.
 4. **Large sources:** assemble a large document from its file on the card.
-5. From the TODO: an export table of OS routines for user programs and a ROM0
-   API (print, keys, files, exit), and the compiler.

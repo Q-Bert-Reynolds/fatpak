@@ -11,9 +11,11 @@ ASSERT ADD_BLOCK + (ADD_MAX + 511) / 512 <= DATA_BLOCK
 ASSERT $3C00 + $A4 <= DATA_BLOCK
 ASSERT NAME_HISTORY_BLOCK + 16 <= MODULE_STAGE
 ASSERT MODULE_STAGE + MODULE_SECTORS <= MODULE_BACKUP
-ASSERT MODULE_STAGE2 == MODULE_STAGE + $20 && MODULE_BACKUP2 == MODULE_BACKUP + $20
+ASSERT MODULE_STAGE2 == MODULE_STAGE + $20 && MODULE_BACKUP2 == MODULE_BACKUP + $20;fs_LoadModule's steps
 ASSERT MODULE_STAGE3 == MODULE_STAGE + $40 && MODULE_BACKUP3 == MODULE_BACKUP + $40
 ASSERT MODULE_STAGE4 == MODULE_STAGE + $60 && MODULE_BACKUP4 == MODULE_BACKUP + $60
+ASSERT MODULE_BACKUP5 == MODULE_STAGE5 + $10 && LOW(MODULE_STAGE5) + $1F <= $FF;ModuleSwap: the backup $10 up, no carry
+ASSERT $3C00 + $A4 <= MODULE_STAGE5 && MODULE_BACKUP5 + MODULE_SECTORS <= DATA_BLOCK
 ASSERT NAME_HISTORY_BLOCK + 16 <= MODULE_BSS_BACKUP
 ASSERT MODULE_FAIL_BLOCK < MODULE_STAGE && MODULE_BACKUP4 + MODULE_SECTORS <= $3E00;nothing of ours at $3E00 and up
 ASSERT MODULE_BSS_BACKUP + MODULE_BSS_SIZE / 512 <= MODULE_FAIL_BLOCK
@@ -29,29 +31,36 @@ module_sector: DB
 module_pointer: DW
 module_mismatch: DB
 module_tries: DB
+module_stage: DW;ModuleSwap: the page's first staging block
 _module_fail:: DW;the first block that never read back: operation, sector (ShowModuleError)
 _module_context:: DW;passed to the module's ModuleMain, 0 if its host gives none
 
 FIXED "Module loader"
 ; A = 0 backup (page to MODULE_BACKUP), 1 install (MODULE_STAGE to page),
-; 2 restore (MODULE_BACKUP to page); + 4 for the second page (MODULE_PAGE2, the
-; blocks $20 higher), + 8 for the third (MODULE_PAGE3, $40 higher), + 12 for the fourth
-; (MODULE_PAGE4, $60 higher). Each block is compared after it's copied.
+; 2 restore (MODULE_BACKUP to page); + 4 for the second page (MODULE_PAGE2), + 8 for the
+; third, 12 the fourth, 16 the fifth: ModulePages and ModuleStages have each one's page and
+; blocks, the backup $10 above the stage. Each block is compared after it's copied.
 ; Returns A=0 when everything read back, nonzero on a mismatch.
 ; Only resident LCD handling runs during transfer; no HDMA is initiated here.
 _ModuleSwap::
   ld [module_operation], a
   call ModuleSwapBegin
-  and 12
+  and 28
   rrca
   rrca
-  add LOW(ModulePages)
-  ld l, a
-  adc HIGH(ModulePages)
-  sub l
-  ld h, a
+  ld e, a
+  ld d, 0
+  ld hl, ModulePages
+  add hl, de
   ld a, [hl]
   SET_BANK
+  ld hl, ModuleStages
+  add hl, de
+  add hl, de
+  ld a, [hl+]
+  ld [module_stage], a
+  ld a, [hl]
+  ld [module_stage+1], a
   ei
   ld hl, $A000
   ST_HL_VAR module_pointer
@@ -59,22 +68,17 @@ _ModuleSwap::
   ld a, [module_operation]
   and 3
   cp 1
-  ld a, LOW(MODULE_BACKUP)
-  jr nz, .block
-  ld a, LOW(MODULE_STAGE)
+  ld b, 0
+  jr z, .block
+  ld b, $10;the backup
 .block
-  ld b, a
-  ld a, [module_operation]
-  and 12
-  add a, a
-  add a, a
-  add a, a;$20 per page after the first
+  ld a, [module_stage]
   add b
   ld b, a
   ld a, [module_sector]
   add b
   ld b, a
-  ld a, HIGH(MODULE_STAGE)
+  ld a, [module_stage+1]
   ld [EDX_BLOCK+1], a;high byte first, then low, like the stock OS: the low byte write is what switches the window
   ld a, b
   ld [EDX_BLOCK], a
@@ -93,7 +97,7 @@ _ModuleSwap::
 ; module, 2 restores it; + 4 for MODULE_BSS_HELD instead (ModProgress holds the module's
 ; BSS there while the editor's buffers draw). Returns A=0 when the copy read back.
 _ModuleSwapRAM::
-  or 16;so a failure reads 16 (save) or 18 (restore), 20 or 22 held, apart from the pages
+  or 32;so a failure reads 32 (save) or 34 (restore), 36 or 38 held, apart from the pages
   ld [module_operation], a
   call ModuleSwapBegin
   ei
@@ -308,7 +312,8 @@ _ModuleEnter::
 .enter
   jp hl
 
-ModulePages: DB MODULE_PAGE, MODULE_PAGE2, MODULE_PAGE3, MODULE_PAGE4
+ModulePages: DB MODULE_PAGE, MODULE_PAGE2, MODULE_PAGE3, MODULE_PAGE4, MODULE_PAGE5
+ModuleStages: DW MODULE_STAGE, MODULE_STAGE2, MODULE_STAGE3, MODULE_STAGE4, MODULE_STAGE5
 
 ;a wide module's thunks: call _ModFar, DB page, DW target (module_build.py), like bank_split's
 _ModuleAPIFar::
