@@ -1,6 +1,7 @@
 # Priority
 
 - Assembler: build beisbolgb on the device ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): >255 sections (16-bit section numbers, table in PSRAM), `DS ALIGN`, `SECTION FRAGMENT`, `PUSHS`/`POPS`, 32-bit values, per-project defines and rgbfix options, and speed (~30 min DMG at today's rate).
+- show assembly results in box instead of footer
 
 # Rendering
 
@@ -33,6 +34,8 @@
 
 # File Browser
 
+- press A to open file from file info screen
+- open games in hex editor
 - sort by name (needs names in memory), new folder, delete.
 - Move FatFs helpers out of ROM0 behind far calls.
 - 8 MiB ROMs: snapshot staging at `$3c00` caps ROMs at 7.5 MiB; find another place to stage.

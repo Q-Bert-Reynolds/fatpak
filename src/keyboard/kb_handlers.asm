@@ -8,7 +8,6 @@
 ;KBHandleEscape
 
 ;simulates on screen keyboard actions
-;_c = caps, _x,_y = char pos
 MACRO EDITOR_KEY ;\1 = key, jumps to KBHandleEditorKey in editor mode
   ld a, [kb_mode]
   cp a, KB_MODE_EDITOR

@@ -7,31 +7,6 @@ _data_loaded:: DB;the data file is in PSRAM (DATA_BLOCK)
 sgb_from_window:: DB;_sgb_VRAMTransfer's source is PSRAM blocks
 _swap_dirty:: DB;the text, clipboard or settings changed since the swap file was written
 
-;drawing
-sprite_props:: DB
-sprite_offset:: DB
-sprite_flags:: DB ;0 = skip
-sprite_skip_id:: DB
-sprite_first_tile:: DB
-
-;temp vars
-_a:: DB
-_b:: DB
-_c:: DB
-_d:: DB
-_i:: DB
-_j:: DB
-_k:: DB
-_l:: DB
-_s:: DB
-_t:: DB
-_u:: DB
-_v:: DB
-_w:: DW
-_x:: DW
-_y:: DW
-_z:: DW
-
 SECTION "Stack", WRAM0
 stack_top: DS STACK_SIZE
 stack_bottom:

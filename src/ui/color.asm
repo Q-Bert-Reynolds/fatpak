@@ -2,7 +2,7 @@
 ; color.asm
 ;
 ; Everything here is in a ROMX section, other banks reach it with TRAMPOLINE or by adding
-; code to it with SECTION FRAGMENT "Color", ROMX (fade.asm and the editor's palettes do)
+; code to it with SECTION FRAGMENT "Color", ROMX (like the editor's palettes)
 ;
 ; SGB + GBC
 ;   SetPalettesIndirect             hl = palettes in PAL_SET (SGB) fromat
