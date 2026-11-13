@@ -17,14 +17,14 @@
 #define FR_DENIED        7
 #define FR_NO_FILESYSTEM 13
 
-// shows a list of ITEM_SIZE strings in a box over the text (under title, 0 = none, wrapped like
+// shows count strings from items in a box over the text (under title, 0 = none, wrapped like
 // BoxText) with item selected highlighted, returns the chosen index, BACK or CANCEL
-unsigned char Choose(const char* title, const char* items, unsigned char count, unsigned char selected) {
+unsigned char Choose(const char* title, unsigned int items, unsigned char count, unsigned char selected) {
   unsigned char i, key, first = title ? BoxText(0, title) : 0;
   char* line = RowAddress(BOX_LINE) + first * BOX_STRIDE;
-  for (i = 0; i < count; ++i, line += BOX_STRIDE, items += ITEM_SIZE) {
+  for (i = 0; i < count; ++i, line += BOX_STRIDE) {
     line[0] = ' ';
-    CopyName(line + 1, items);
+    PutStr(line + 1, items + i);
   }
   EditorShowCursor(0);
   if (osk_shown) OSKShow(0);
@@ -80,19 +80,13 @@ void ShowBox(const char* text) {
   dirty = 1;
 }
 
-void ShowError(unsigned char result, const char* denied) {
-  char text[12] = "SD ERROR ";
-  if (result == FR_NOT_READY) ShowMessage("NO SD CARD");
-  else if (result == FR_NO_FILESYSTEM) ShowMessage("NO FAT VOLUME");
-  else if (result == FR_DENIED) ShowMessage(denied);
+void ShowError(unsigned char result, unsigned int denied) {
+  char text[LANG_MAX + 4];
+  if (result == FR_NOT_READY) ShowMessage(Str(S_NO_SD_CARD));
+  else if (result == FR_NO_FILESYSTEM) ShowMessage(Str(S_NO_FAT_VOLUME));
+  else if (result == FR_DENIED) ShowMessage(Str(denied));
   else {
-    text[9] = '0';
-    while (result >= 10) {
-      ++text[9];
-      result -= 10;
-    }
-    text[10] = '0' + result;
-    text[11] = 0;
+    PutStr(PutNumber(PutStr(text, S_PART(S_SD_ERROR_N, 0)), result), S_PART(S_SD_ERROR_N, 1));
     ShowMessage(text);
   }
 }

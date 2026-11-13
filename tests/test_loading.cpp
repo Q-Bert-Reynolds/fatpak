@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <sys/stat.h>
+#include "../src/constants.h" // DATA_WIDTHS
 #include <unistd.h>
 #include "GearboyCore.h"
 #include "Memory.h"
@@ -293,7 +294,7 @@ static void LookupTables(GearboyCore& core, const std::map<std::string,unsigned>
         for (unsigned c = 0; c < 256; ++c) {
             cpu->BC->SetValue(0xA500|c); cpu->HL->SetValue(0x1234);
             unsigned width = Call(core, syms.at("StyledWidth"), 0x7777, 5);
-            unsigned expected = cached ? assets[assets.size()-512+c] : memory->Read(syms.at("FontVWFWidths")+c);
+            unsigned expected = cached ? assets[DATA_WIDTHS*512+c] : memory->Read(syms.at("FontVWFWidths")+c);
             Check(width == expected, "cached/fallback bold width");
             Check(cpu->BC->GetValue() == (0xA500|c) && cpu->DE->GetValue() == 0x7777 && cpu->HL->GetValue() == 0x1234, "width lookup preserves registers");
             Check(memory->Read(0xBD02) == 0x14 && memory->Read(0xBD03) == 0x3C, "width lookup preserves PSRAM selection");

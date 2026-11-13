@@ -107,7 +107,7 @@ static void Show(void) {
   unsigned char y;
   Fetch(current, tile, 16);
   for (y = 0; y < 8; ++y) ZoomRow(y);
-  if (count <= 4096) end = PutText(end, "Tile ");
+  if (count <= 4096) end = ModString(end, S_TILE_N);
   end = PutNumber(end, current);
   *end++ = '/';
   end = PutNumber(end, count);

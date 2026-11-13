@@ -38,10 +38,6 @@ static unsigned char list_result; // FRESULT of listing the folder or reading an
 static unsigned char list_kinds[LIST_ROWS]; // file browser rows
 static unsigned char clipboard_cut;
 
-static const char browser_items[][ITEM_SIZE] = {"FILE", "EDIT", "SETTINGS", "HELP", "RESTART"};
-static const char file_items[][ITEM_SIZE] = {"OPEN", "OPEN AS", "INFO", "RENAME", "DELETE"};
-static const char open_items[][ITEM_SIZE] = {"TEXT", "HEX", "TILES"};
-static const char edit_items[][ITEM_SIZE] = {"CUT", "COPY", "PASTE"};
 
 // lists the folder at path (".." below the root, folders, then files), returns the index of the folder
 // named find in it (find can be 0) or 0, list_result is set if the folder can't be read
@@ -99,7 +95,7 @@ static void ListBars(const char* path) {
   char text[TB_STRIDE];
   PutPath(text, path, 30);
   DrawRow(HEADER_LINE, 1, text);
-  DrawRow(STATUS_LINE, 1, ICON_A "Open " ICON_SELECT "Info " ICON_START "Menu");
+  DrawRow(STATUS_LINE, 1, Str(S_BROWSER_HINT));
 }
 
 // new path in the file name bar and a Loading... box over the list, with row's folder added to path
@@ -123,37 +119,35 @@ static void ListLoading(const char* path, unsigned char row) {
   }
   DrawRow(HEADER_LINE, 1, end);
   DrawRow(STATUS_LINE, 1, "");
-  ShowBusy("Loading...");
+  ShowBusy(Str(S_LOADING));
 }
 
-// shows text in the status bar until a key is pressed
-static void ListMessage(const char* text) {
+// shows a string in the status bar until a key is pressed
+static void ListMessage(unsigned int text) {
   HideBox();
-  DrawRow(STATUS_LINE, 1, text);
+  DrawRow(STATUS_LINE, 1, Str(text));
   EditorDraw();
   WaitDismiss();
 }
 
 static void BrowserError(unsigned char result) {
   if (!result) return;
-  if (result == 8) ListMessage("Name already exists");
-  else if (result == 7) ListMessage("Can't paste here");
-  else if (result == 6) ListMessage("Invalid name/path");
-  else ListMessage("SD operation failed");
+  if (result == 8) ListMessage(S_NAME_EXISTS);
+  else if (result == 7) ListMessage(S_CANT_PASTE);
+  else if (result == 6) ListMessage(S_INVALID_NAME);
+  else ListMessage(S_SD_FAILED);
 }
 
 // FILE > DELETE: asks first, path is the selection's
 static void DeleteSelected(const char* path) {
-  char title[FS_NAME_SIZE + 8];
-  char* end = ToLatin1(PutText(title, "DELETE "), entry.name, FS_NAME_SIZE - 1);
+  char title[FS_NAME_SIZE + LANG_MAX];
   unsigned char result;
-  end[0] = '?';
-  end[1] = 0;
-  if (Choose(title, no_yes_items[0], 2, 0) != 1) return;
-  ShowBusy("Deleting...");
+  PutStr(ToLatin1(PutStr(title, S_PART(S_DELETE_TITLE, 0)), entry.name, FS_NAME_SIZE - 1), S_PART(S_DELETE_TITLE, 1));
+  if (Choose(title, S_NO, 2, 0) != 1) return;
+  ShowBusy(Str(S_DELETING));
   result = FileDelete(path);
-  if (result == FR_DENIED) ListMessage(entry.dir ? "Folder isn't empty" : "File is read only");
-  else if (result == FR_LOCKED) ListMessage("File is open");
+  if (result == FR_DENIED) ListMessage(entry.dir ? S_FOLDER_NOT_EMPTY : S_READ_ONLY);
+  else if (result == FR_LOCKED) ListMessage(S_FILE_IS_OPEN);
   else BrowserError(result);
 }
 
@@ -165,7 +159,7 @@ static unsigned char BrowserMenu(char* path, char* clipboard, unsigned char info
   const char* name;
   while (path[length]) ++length;
   if (!info) while (1) {
-    menu = Choose(0, browser_items[0], 5, menu);
+    menu = Choose(0, S_BMENU_FILE, 5, menu);
     if (menu >= BACK) return 0;
     if (menu == 4) {
       if (doc_large) {
@@ -175,7 +169,7 @@ static unsigned char BrowserMenu(char* path, char* clipboard, unsigned char info
         modified = 0;
       }
       SettingsSave();
-      ShowBusy("Restarting...");
+      ShowBusy(Str(S_RESTARTING));
       result = FileSaveSwap();
       if (!result) RestartDevice();
       BrowserError(result);
@@ -187,23 +181,23 @@ static unsigned char BrowserMenu(char* path, char* clipboard, unsigned char info
       return 0;
     }
     item = 0;
-    while ((item = Choose(0, menu ? edit_items[0] : file_items[0], menu ? 3 : 5, item)) == 1 && !menu &&
-           (view = Choose(0, open_items[0], 3, 0)) == BACK); // OPEN AS's B goes back to FILE
+    while ((item = Choose(0, menu ? S_BEDIT_CUT : S_FILE_OPEN, menu ? 3 : 5, item)) == 1 && !menu &&
+           (view = Choose(0, S_VIEW_TEXT, 3, 0)) == BACK); // OPEN AS's B goes back to FILE
     if (item == BACK) continue;
     if (item == CANCEL || view == CANCEL) return 0;
     break;
   }
   if (menu && item == 2) {
-    if (!clipboard[0]) { ListMessage("Clipboard empty"); return 0; }
+    if (!clipboard[0]) { ListMessage(S_CLIPBOARD_EMPTY); return 0; }
     name = clipboard;
     for (item = 0; clipboard[item]; ++item) if (clipboard[item] == '/') name = clipboard + item + 1;
     if (!JoinPath(path + length, "", name, FS_NAME_SIZE + 1)) return 0;
-    ShowBusy(clipboard_cut ? "Moving..." : "Copying...");
+    ShowBusy(Str(clipboard_cut ? S_MOVING : S_COPYING));
     result = clipboard_cut ? FileRename(clipboard, path) : FileCopy(clipboard, path);
     if (!result && clipboard_cut) clipboard[0] = 0;
   }
   else {
-    if (!entry.name[0]) { ListMessage("Select file/folder"); return 0; }
+    if (!entry.name[0]) { ListMessage(S_SELECT_FILE); return 0; }
     if (!menu) {
       if (item < 2) return ACTION_OPEN + (item ? view + 1 : VIEW_AUTO);
       if (item == 3) return ACTION_RENAME;
@@ -242,9 +236,9 @@ static void RenameSelected(char* path, unsigned int selected) {
   if (ListEntry(path, selected) != 0xFF) {
     while (path[length]) ++length;
     JoinPath(path + length, "", entry.name, FS_NAME_SIZE + 1);
-    result = AskName(entry.name, 0);
+    result = AskName(entry.name, NO_PROMPT);
     if (result == 1) {
-      ShowBusy("Renaming...");
+      ShowBusy(Str(S_RENAMING));
       BrowserError(FileRenameName(path, entry.name));
     }
     path[length] = 0;
@@ -276,7 +270,7 @@ unsigned char Browse(void) {
   NoHighlight();
   ListLoading(path, 0xFF);
   if ((result = FileMount())) {
-    ShowError(result, "");
+    ShowError(result, S_SD_FAILED);
     selected = LIST_ALL; // skips the list
   }
   else ListFolder(path, 0);
@@ -292,7 +286,7 @@ unsigned char Browse(void) {
     }
     if (list_result) {
       if (!path[0]) { // can't read the card
-        ShowError(list_result, "");
+        ShowError(list_result, S_SD_FAILED);
         break;
       }
       path[0] = 0; // folder is gone, back to the root
@@ -321,7 +315,7 @@ unsigned char Browse(void) {
     else if (key == KEY_END && list_count) selected = list_count - 1;
     else if ((key == KEY_ENTER || key == KEY_RIGHT) && list_count && list_kinds[row] != KIND_UP) {
       if (list_kinds[row] == KIND_FOLDER) ListLoading(path, row);
-      else ShowBusy("Loading...");
+      else ShowBusy(Str(S_LOADING));
       if (ListEntry(path, selected) == 0xFF) continue; // its full name
       for (length = 0; path[length]; ++length);
       if (entry.dir) {
@@ -331,7 +325,7 @@ unsigned char Browse(void) {
         }
         else {
           path[length] = 0;
-          ListMessage("Path is too long");
+          ListMessage(S_PATH_TOO_LONG);
         }
       }
       else {

@@ -218,6 +218,9 @@ static void InstallModules(const std::string& root,const char* data)
         Write(root+"/GBCSYS/MODULES/"+name,module);++count;
     }
     closedir(dir);Check(count>=5,"every built module installed");
+    std::string lang=bin.substr(0,bin.size()-8)+"LANG/"; // bin/LANG: the languages, like make assemble's card
+    mkdir((root+"/GBCSYS/LANG").c_str(),0700);
+    for(const char* name:{"EN.DAT","ES.DAT"})Write(root+"/GBCSYS/LANG/"+name,Read(lang+name));
 }
 
 static void UI(const char* image,const char* symbols,const char* data,bool color) {
@@ -285,11 +288,12 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     menu();pad(Down_Key);pad(A_Key);pad(Down_Key);pad(Down_Key);pad(A_Key); // Paste
     Check(Read(root+"/GBCSYS/a")==std::vector<u8>({'h','i','\n'}),"browser clipboard pastes in another directory");
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
-    Check(byte("_render_box_rows")==5,"browser has three settings");
+    Check(byte("_render_box_rows")==6,"browser has four settings");
     Check(Text(memory,syms.at("tile_buffer")+20*40)==" THEME","theme is a browser setting");
-    Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" CLOCK","clock is a browser setting");
-    Check(Text(memory,syms.at("tile_buffer")+20*40+40)==" KEYBOARD TEST","keyboard test is a browser setting");
-    pad(Down_Key);pad(A_Key);Frames(core,120); // clock settings
+    Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" LANGUAGE","language is a browser setting");
+    Check(Text(memory,syms.at("tile_buffer")+20*40+40)==" CLOCK","clock is a browser setting");
+    Check(Text(memory,syms.at("tile_buffer")+20*40+60)==" KEYBOARD TEST","keyboard test is a browser setting");
+    pad(Down_Key);pad(Down_Key);pad(A_Key);Frames(core,120); // clock settings
     Check(row(19).find("\201 Edit \001Set \002Back")!=std::string::npos,"clock footer uses direction and action icons");
     auto field=[&](unsigned line){return Text(memory,syms.at("tile_buffer")+20*40+line*20);};
     Check(field(0).find(" Year 20")==0 && field(5).find(" Second ")==0 && byte("_render_box_rows")==8,"clock module lists six fields in a box");
@@ -297,8 +301,19 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     std::string month=field(1);pad(Down_Key);Check(byte("_render_box_sel")==2,"down selects the month");
     pad(Right_Key);Check(field(1)!=month && field(1).find(" Month ")==0,"right adjusts the selected field");
     pad(B_Key);Check(byte("_render_box_top")==255,"B exits clock settings as advertised");
+    // SETTINGS > LANGUAGE: Spanish from /GBCSYS/LANG/ES.DAT, then English again
+    menu();pad(Down_Key);pad(Down_Key);pad(A_Key);pad(Down_Key);pad(A_Key);
+    Check(Text(memory,syms.at("tile_buffer")+20*40)==" ENGLISH" && Text(memory,syms.at("tile_buffer")+20*40+20)==" ESPA\xD1OL","LANGUAGE lists each language in its own");
+    pad(Down_Key);pad(A_Key);Frames(core,120);
+    Check(byte("_language")==1 && row(19).find("Abrir")!=std::string::npos,"Spanish browser footer");
+    pad(Start_Key);Check(Text(memory,syms.at("tile_buffer")+20*40)==" ARCHIVO" && Text(memory,syms.at("tile_buffer")+20*40+80)==" REINICIAR","Spanish browser menu");
+    pad(Down_Key);pad(Down_Key);pad(A_Key);
+    Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" IDIOMA","Spanish settings");
+    pad(Down_Key);pad(A_Key);Check(byte("_render_box_sel")==2,"LANGUAGE starts on the current one");
+    pad(Up_Key);pad(A_Key);Frames(core,120);
+    Check(byte("_language")==0 && row(19).find("Open")!=std::string::npos,"back to English");
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
-    pad(Down_Key);pad(Down_Key);pad(A_Key);Frames(core,180);Check(row(0)=="KEYBOARD TEST","browser settings launches keyboard test");pad(B_Key);
+    pad(Down_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);Frames(core,180);Check(row(0)=="KEYBOARD TEST","browser settings launches keyboard test");pad(B_Key);
     Check(byte("_render_text")==0 && byte("_tb_rows")==16 && byte("_bars")==1,"settings restore browser layout");
     menu();pad(Down_Key);pad(Down_Key);pad(Down_Key);pad(A_Key); // HELP.MOD: wait for its page
     for(unsigned waited=0;row(18).find("FILE BROWSER")==std::string::npos && waited<300;++waited)Frames(core,1);
@@ -313,10 +328,11 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     Check(byte("_render_text")==0 && row(18)==" /","B, Backspace and Left stay in browser at root");
     key(0x76); // Escape still returns to the editor
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
-    Check(byte("_render_box_rows")==5,"editor has three settings");
+    Check(byte("_render_box_rows")==6,"editor has four settings");
     Check(Text(memory,syms.at("tile_buffer")+20*40)==" LINE WRAP","line wrap is an editor setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" FULL SCREEN","full screen is an editor setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40+40)==" THEME","theme is an editor setting");
+    Check(Text(memory,syms.at("tile_buffer")+20*40+60)==" LANGUAGE","language is an editor setting");
     pad(B_Key);pad(Down_Key);pad(A_Key); // HELP.MOD: wait for its page
     for(unsigned waited=0;row(18).find("TEXT EDITOR")==std::string::npos && waited<300;++waited)Frames(core,1);
     Frames(core,150);

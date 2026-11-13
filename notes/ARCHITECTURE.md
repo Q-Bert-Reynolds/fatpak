@@ -29,20 +29,20 @@ flowchart LR
     png[img/*.png] -->|img2rgbds.py| imgasm[img/**/*.asm, .tiles, .tilemap]
     fontpng[ui_font.png, fonts/*.png] -->|fonts.py| fontasm[img/fonts/font_*.asm]
     border[default_sgb_border.png] -->|sgb_border.py| borderasm[default_sgb_border.asm]
-    csv[data/strings/*.csv] -->|translate.py| strasm[data/strings/*.LANG.asm]
     consts[src/constants.asm] -->|build.py| consth[src/constants.h]
   end
+  csv[data/strings/strings.csv, data/help/*.txt] -->|strings.py| strh[src/strings.h] & lang[bin/LANG/*.DAT]
   subgraph c["C (per file)"]
     cfile[src/*/name.c] -->|sdcc| raw[build/c/src/*/name.asm]
     raw -->|bank_split.py + .banks| casm[build/asm/src/*/name.asm]
     raw -->|bank_split.py| calls[build/c_calls.asm + c_modules.inc]
   end
   main[src/main.asm] -->|rgbasm| obj[build/main.o]
-  imgasm & fontasm & borderasm & strasm & casm & calls --> main
+  imgasm & fontasm & borderasm & casm & calls --> main
   menu[ingame_menu.py] --> menugfx[build/ingame_menu.asm] --> main
   obj -->|pages.link, rgblink, check_pages.py, rgbfix| rom[bin/GBCOS.gbc + .sym]
   rom --> os[bin/GBCOS.BIN]
-  fontasm & borderasm -->|data_file.py| data[bin/EDITOR.DAT]
+  fontasm & borderasm & lang -->|data_file.py| data[bin/EDITOR.DAT]
 ```
 
 - **One assembly unit.** `src/main.asm` includes `src/fatpak.inc`, which lists
@@ -50,7 +50,7 @@ flowchart LR
   is the one amalgamation). `pages.link` places resident code and page fragments;
   `check_pages.py` verifies and prints page usage.
 - **Generated assets are committed** (`img/**/*.asm`, `*.tiles`,
-  `data/strings/*.asm`, `src/constants.h`, the ROM); generated C assembly lives
+  `src/constants.h`, `src/strings.h`, the ROM); generated C assembly lives
   only in `build/`.
 - **Targets:** `all` (clean, assets, assemble, run), `assemble`, `code`
   (assemble + run), `assets`, `run`, `clean`.

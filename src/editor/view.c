@@ -201,22 +201,23 @@ static unsigned int CursorColumn(void) {
 // file name (* = unsaved changes) and line and column, or how many chars are selected
 void UpdateBars(void) {
   char text[TB_STRIDE];
-  char* end = file_name[0] ? ToLatin1(text, file_name, TB_STRIDE - 3) : PutText(text, "Untitled");
+  char* end = file_name[0] ? ToLatin1(text, file_name, TB_STRIDE - 3) : PutStr(text, S_UNTITLED);
   if (modified) *end++ = '*';
   *end = 0;
   DrawRow(HEADER_LINE, 1, text);
   if (tb_found_row == 0xFF) return; // cursor isn't on screen
   if (GetSelection()) {
-    end = PutNumber(text, sel_end - sel_start);
-    end = PutText(end, " selected");
+    end = PutStr(text, S_PART(S_SELECTED, 0));
+    end = PutNumber(end, sel_end - sel_start);
+    end = PutStr(end, S_PART(S_SELECTED, 1));
   }
   else {
-    end = PutText(text, "Line ");
+    end = PutStr(text, S_PART(S_LINE_COL, 0));
     if (!doc_large) end = PutNumber(end, CursorLine());
     else if (lines_known) end = PutNumber(end, CursorLine() + win_lines);
     else *end++ = '?';
-    end = PutText(end, ", Col ");
-    end = PutNumber(end, CursorColumn());
+    end = PutStr(end, S_PART(S_LINE_COL, 1));
+    end = PutStr(PutNumber(end, CursorColumn()), S_PART(S_LINE_COL, 2));
   }
   *end = 0;
   DrawRow(STATUS_LINE, 1, text);

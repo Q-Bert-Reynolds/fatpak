@@ -40,6 +40,7 @@ extern unsigned int fs_found; // index of the folder it was asked to find, 0xFFF
 extern unsigned char FileLoad(const char* path); // FRESULT, replaces the text buffer
 extern unsigned char FileSave(const char* path); // FRESULT
 extern unsigned char FileLoadData(const char* path); // FRESULT, copies the data file to PSRAM
+extern unsigned char FileLoadLanguage(const char* path, unsigned char first); // FRESULT: a language to LANG_BLOCK from that block
 extern unsigned char FileSaveSwap(void); // FRESULT, the text, clipboard and settings
 extern unsigned char FileLoadSwap(void); // FRESULT, restores them if PSRAM lost them
 extern unsigned char FileWriteImage(const char* path, unsigned int blocks); // FRESULT, the assembled ROM (ASM_IMAGE_BLOCK, 512-byte blocks) to a file

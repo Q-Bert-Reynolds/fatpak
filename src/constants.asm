@@ -38,6 +38,14 @@ DEF DATA_WIDTHS        EQU 84;VWF bold widths, 256 bytes
 DEF DATA_BLOCKS        EQU 85
 DEF DATA_VERSION       EQU 5;block 0 starts with "EDITOR.DAT" and this
 DEF NAME_HISTORY_BLOCK EQU DATA_BLOCK+DATA_BLOCKS;16 scratch blocks, separate from document undo
+;the language: the UI's strings and help (scripts/strings.py), from EDITOR.DAT's tail or /GBCSYS/LANG/xx.DAT,
+;in PSRAM between the snapshot staging and MODULE_STAGE5
+DEF LANG_BLOCK         EQU $3CA4
+DEF LANG_BLOCKS        EQU 28
+DEF LANG_HELP          EQU 1;the two help screens, in DATA_HELP's layout
+DEF LANG_TABLE         EQU 5;the strings: an offset per string (from here), then the strings
+DEF LANG_VERSION       EQU 1
+DEF LANG_MAX           EQU 47;characters a string may have (str_text holds one)
 DEF WIN_SIZE           EQU $C000;the part of a large file in the text buffer (src/fatfs/fatfs.c)
 DEF WIN_CHUNKS         EQU WIN_SIZE/512+1;sector boundaries in it
 DEF MAX_PIECES         EQU 96;a large file's piece table (src/fatfs/fatfs.c)
@@ -90,7 +98,7 @@ DEF ASM_CHARMAP_BLOCK EQU $1080;names, 8 maps' heads, then a 60 KiB pool (129 bl
 DEF ASM_SECTION_BLOCK EQU $1110;the section table, 32 blocks (512 32-byte records)
 DEF ASM_FILE_BLOCK   EQU $1130;included and INCBIN files, packed whole from here
 DEF ASM_FILE_END     EQU $3900;ADD_MAX / 512: up to the add buffer's end
-DEF MODULE_ABI     EQU 8;newest ABI the host provides, modules built for older ones still load
+DEF MODULE_ABI     EQU 9;newest ABI the host provides, modules built for older ones still load
 DEF MODULE_TABLE   EQU $7F00;ABI jump table in resident bank 1, 3 bytes per entry
 DEF MODULE_SLOTS   EQU 32;entries reserved for it
 DEF MODULE_FORMAT  EQU 1;one page, BSS after the code

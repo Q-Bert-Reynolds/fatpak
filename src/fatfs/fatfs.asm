@@ -32,6 +32,7 @@ _FileListEntry:: BANKED_C _fs_ListEntry
 _FileLoad::      BANKED_C _fs_Load
 _FileSave::      BANKED_C _fs_Save
 _FileLoadData::  BANKED_C _fs_LoadData
+_FileLoadLanguage:: BANKED_C _fs_LoadLanguage
 _FileSaveSwap::  BANKED_C _fs_SaveSwap
 _FileLoadSwap::  BANKED_C _fs_LoadSwap
 _FileWriteImage:: BANKED_C _fs_WriteImage

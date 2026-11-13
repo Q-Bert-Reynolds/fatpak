@@ -6,7 +6,7 @@
 #define HELP_ROWS (TB_ROWS - 2)
 #define HELP_LINES 32
 
-static char line[33];
+static char line[LANG_MAX + 1]; // a help record, or the footer
 static unsigned char base; // the context's first record
 
 // Without EDITOR.DAT the rows are empty, as before.
@@ -21,7 +21,8 @@ unsigned char ModuleMain(const unsigned char* browser) {
   base = *browser ? HELP_LINES : 0;
   ModHideBox(); // the host's loading box
   Record(HEADER_LINE, 0);
-  ModText(STATUS_LINE, 1, ICON_UD "Scroll " ICON_B "Exit");
+  ModString(line, S_HELP_HINT);
+  ModText(STATUS_LINE, 1, line);
   for (row = 0; row < HELP_ROWS; ++row) Record(row, row + 1);
   while (1) {
     key = ModKey();

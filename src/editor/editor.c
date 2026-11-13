@@ -17,6 +17,7 @@
 #include "../ui/dialogs.h"
 #include "../ui/render.h"
 #include "../ui/screen.h"
+#include "../ui/text.h"
 
 #define CURSOR_BLINK     30
 #define SWAP_DELAY       120 // frames without input before writing the swap file (OS mode)
@@ -128,7 +129,7 @@ static void DeleteSelection(void) {
 unsigned char Copy(void) {
   if (!GetSelection()) return 0;
   if (tb_Copy(sel_start, sel_end - sel_start)) return 1;
-  ShowMessage("TOO BIG TO COPY");
+  ShowMessage(Str(S_TOO_BIG_TO_COPY));
   return 0;
 }
 
@@ -137,7 +138,7 @@ void Paste(void) {
   if (!length) return;
   if (GetSelection()) room += sel_end - sel_start;
   if (length > room) {
-    ShowMessage("TEXT FULL");
+    ShowMessage(Str(S_TEXT_FULL));
     return;
   }
   undo_join = GetSelection();

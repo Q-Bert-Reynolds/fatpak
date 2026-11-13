@@ -62,9 +62,9 @@ with Pillow.
     make all        # assets, OS image and modules, then run
     make assemble   # just the OS image and modules
 
-Pick a language with `make assemble LANGUAGE=ES` (EN, ES, FR, IT, PT, DE or JA).
+The language (English or Spanish) is a setting: SETTINGS > LANGUAGE ([Languages](notes/LANGUAGES.md)).
 
-Copy `bin/GBCOS.BIN`, `bin/EDITOR.DAT` and `bin/MODULES/` to `/GBCSYS/` on the SD card
+Copy `bin/GBCOS.BIN`, `bin/EDITOR.DAT`, `bin/MODULES/` and `bin/LANG/` to `/GBCSYS/` on the SD card
 (`make assemble` does this when the card is mounted at `/media/qbertreynolds/GAMEBOY`).
 
 Tests and the emulator setup are in [Architecture](notes/ARCHITECTURE.md#testing-and-debugging).

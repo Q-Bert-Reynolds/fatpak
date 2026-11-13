@@ -41,6 +41,14 @@
 #define DATA_BLOCKS        85
 #define DATA_VERSION       5//block 0 starts with "EDITOR.DAT" and this
 #define NAME_HISTORY_BLOCK DATA_BLOCK+DATA_BLOCKS//16 scratch blocks, separate from document undo
+//the language: the UI's strings and help (scripts/strings.py), from EDITOR.DAT's tail or /GBCSYS/LANG/xx.DAT,
+//in PSRAM between the snapshot staging and MODULE_STAGE5
+#define LANG_BLOCK         0x3CA4u
+#define LANG_BLOCKS        28
+#define LANG_HELP          1//the two help screens, in DATA_HELP's layout
+#define LANG_TABLE         5//the strings: an offset per string (from here), then the strings
+#define LANG_VERSION       1
+#define LANG_MAX           47//characters a string may have (str_text holds one)
 #define WIN_SIZE           0xC000u//the part of a large file in the text buffer (src/fatfs/fatfs.c)
 #define WIN_CHUNKS         WIN_SIZE/512+1//sector boundaries in it
 #define MAX_PIECES         96//a large file's piece table (src/fatfs/fatfs.c)
@@ -93,7 +101,7 @@
 #define ASM_SECTION_BLOCK 0x1110u//the section table, 32 blocks (512 32-byte records)
 #define ASM_FILE_BLOCK   0x1130u//included and INCBIN files, packed whole from here
 #define ASM_FILE_END     0x3900u//ADD_MAX / 512: up to the add buffer's end
-#define MODULE_ABI     8//newest ABI the host provides, modules built for older ones still load
+#define MODULE_ABI     9//newest ABI the host provides, modules built for older ones still load
 #define MODULE_TABLE   0x7F00u//ABI jump table in resident bank 1, 3 bytes per entry
 #define MODULE_SLOTS   32//entries reserved for it
 #define MODULE_FORMAT  1//one page, BSS after the code

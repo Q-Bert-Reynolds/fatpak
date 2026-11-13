@@ -4,16 +4,14 @@
 #include "../src/ui/icons.h"
 #include "lib/text.h"
 
-static const char hint[] = ICON_A "Toggle " ICON_B "Back";
 
 unsigned char ModuleMain(void) {
   unsigned char key, dark = ModTheme(0xFF), changed = 0;
   char lines[BOX_STRIDE], *end;
-  ModText(STATUS_LINE, 1, hint);
+  ModText(STATUS_LINE, 1, Str(S_THEME_HINT));
   while (1) {
-    end = PutText(lines, " Dark mode  ");
-    end = PutText(end, dark ? "On " : "Off");
-    *end = 0;
+    end = ModString(PutText(lines, " "), S_PART(S_THEME_DARK, 0));
+    ModString(ModString(end, dark ? S_ON : S_OFF), S_PART(S_THEME_DARK, 1));
     ModMenu(lines, 1, 0);
     while (!(key = ModKey()));
     if (key == KEY_ESCAPE || key == KEY_MENU || key == KEY_BACKSPACE) break;

@@ -105,6 +105,7 @@ def sdk(output=OUTPUT):
     declarations = ['/* Generated from modules/abi.json by module_build.py. SDCC SM83 ABI. */',
                     '#ifndef FATPAK_MODULE_SDK_H', '#define FATPAK_MODULE_SDK_H',
                     '#include "../../src/constants.h"', '#include "../../src/pad.h"',
+                    '#include "../../src/strings.h" // S_* ids for ModString',
                     'typedef struct { unsigned char type, write, bytes, errors; } ModuleKeyboard;',
                     'typedef struct { unsigned char year, month, day, hour, minute, second; } ModuleClock;',
                     'typedef struct { unsigned int block, blocks; unsigned long size; } ModuleLoad; // ModLoad: in, in, out']

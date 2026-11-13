@@ -1,6 +1,7 @@
 // Startup services and initial screen selection.
 #include "main.h"
 #include "dialogs.h"
+#include "language.h"
 #include "../editor/document.h"
 #include "../editor/editor.h"
 #include "../editor/state.h"
@@ -12,9 +13,11 @@
 #include "../ui/dialogs.h"
 #include "../ui/render.h"
 #include "../ui/screen.h"
+#include "../ui/text.h"
 #include "../ui/theme.h"
 
-extern const char loading_text[]; // shared with the game loader
+static const char loading_text[] = "Loading..."; // before the strings are loaded
+static const char no_data[] = "NO EDITOR.DAT"; // without it there are no strings
 static const char startup_name[] = "FatPak";
 
 void AppMain(void) {
@@ -37,7 +40,9 @@ void AppMain(void) {
   tb_Load();
   EditorInit();
   ThemeApply();
-  if (backup_skipped) ShowMessage("SAVE NOT BACKED UP");
+  if (LoadLanguage()) ShowMessage(Str(S_LANGUAGE_MISSING)); // the setting's, now that it's known
+  if (!lang_count) ShowMessage(no_data);
+  if (backup_skipped) ShowMessage(Str(S_SAVE_NOT_BACKED_UP));
   ShowModuleRestart();
   session_open = modified; // legacy swap without a session: keep recoverable edits
   FileSession(0, 255);

@@ -1,5 +1,4 @@
-LANGUAGE  = EN#EN ES FR IT PT DE JA
-DEFINES   = -D LANG_$(LANGUAGE)
+DEFINES   =
 
 GAME_NAME = GBCOS
 ROM_NAME  = $(GAME_NAME).BIN
@@ -38,7 +37,12 @@ MODULE_INPUTS  = scripts/module_build.py scripts/utils.py modules/abi.json modul
 $(MODULE_HEADERS): $(MODULE_INPUTS)
 	$(PYTHON) scripts/module_build.py --headers
 
-$(BUILD_DIR)/c/%.asm: %.c $(C_HEADERS) $(C_LIBS) $(MODULE_HEADERS) $(wildcard modules/*.h)
+# The UI's strings: S_* ids for C and modules, bin/LANG/*.DAT (English also goes in EDITOR.DAT)
+STRINGS_INPUTS = data/strings/strings.csv $(wildcard data/help/*.txt) scripts/strings.py $(SRC_DIR)/constants.asm $(SRC_DIR)/ui/icons.h
+$(SRC_DIR)/strings.h: $(STRINGS_INPUTS)
+	$(PYTHON) scripts/strings.py
+
+$(BUILD_DIR)/c/%.asm: %.c $(C_HEADERS) $(SRC_DIR)/strings.h $(C_LIBS) $(MODULE_HEADERS) $(wildcard modules/*.h)
 	@mkdir -p $(dir $@)
 	sdcc $< -msm83 --asm=rgbds --opt-code-size --dataseg WRAM0 --no-peep --peep-file peephole.def $(DEFINES) --disable-warning 218 -S -o $@
 	@sed -i 's/^\t\.byte /\tDB /' $@ # SDCC writes long constants as .byte
@@ -46,7 +50,8 @@ $(BUILD_DIR)/c/%.asm: %.c $(C_HEADERS) $(C_LIBS) $(MODULE_HEADERS) $(wildcard mo
 $(SRC_DIR)/constants.h: $(SRC_DIR)/constants.asm scripts/build.py
 	$(PYTHON) scripts/build.py
 
-modules: $(SRC_DIR)/constants.h $(MODULE_HEADERS)
+modules: $(SRC_DIR)/constants.h $(SRC_DIR)/strings.h $(MODULE_HEADERS)
+	$(PYTHON) scripts/strings.py
 	$(PYTHON) scripts/module_build.py
 
 assemble: modules $(C_RAW)
@@ -65,11 +70,12 @@ endif
 	@if mountpoint -q "$(SD_MOUNT)"; then \
 		cp $(BIN_DIR)/GBCOS.BIN "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
 		cp $(BIN_DIR)/EDITOR.DAT "$(SD_MOUNT)/GBCSYS/EDITOR.DAT" && \
-		mkdir -p "$(SD_MOUNT)/GBCSYS/MODULES" && \
+		mkdir -p "$(SD_MOUNT)/GBCSYS/MODULES" "$(SD_MOUNT)/GBCSYS/LANG" && \
 		cp $(BIN_DIR)/MODULES/*.MOD "$(SD_MOUNT)/GBCSYS/MODULES/" && \
+		cp $(BIN_DIR)/LANG/*.DAT "$(SD_MOUNT)/GBCSYS/LANG/" && \
 		sync -f "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
 		sync -f "$(SD_MOUNT)/GBCSYS/EDITOR.DAT" && \
-		echo "Copied GBCOS.BIN, EDITOR.DAT and modules to mounted GAMEBOY card"; \
+		echo "Copied GBCOS.BIN, EDITOR.DAT, modules and languages to mounted GAMEBOY card"; \
 	fi
 
 run:
@@ -91,7 +97,6 @@ assets:
 	$(PYTHON) scripts/fonts.py
 	$(PYTHON) scripts/keywords.py
 	$(PYTHON) scripts/sgb_border.py
-	$(PYTHON) scripts/translate.py 
 
 clean:
 	@rm -rf $(BUILD_DIR)

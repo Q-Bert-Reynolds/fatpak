@@ -55,6 +55,7 @@ ASM = {
     '_ModuleSwapRAM': [],  # bank 1: its copy, compare and mem_Set (ROM0), RenderWaitDMA
     '___sdcc_call_hl': ['_src_editor_build_c_BuildProgress'],  # ROM0; ModProgress(0)'s only function pointer
     '_PutNumber': ['math_Divide32'], 'math_Divide32': [],  # ROM0 (strings.asm, math.asm)
+    '_PutStr': ['StrAt'], 'StrAt': [], '_Str': ['_PutStr'],  # ROM0 (strings.asm): the language in PSRAM
     # interrupt handlers
     'VBLInterrupt': ['gbdk_DMATransfer', 'LatchPad'],
     'LCDInterrupt': ['RenderLCDInterrupt'],  # via rLCDInterrupt; the editor's handler

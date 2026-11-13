@@ -8,6 +8,7 @@
 #include "lib/ffunicode.c"
 #include "../constants.h"
 #include "../browser/paths.h"
+#include "../strings.h"
 
 typedef char check_name_size[FS_NAME_SIZE == FF_LFN_BUF + 1 ? 1 : -1];
 
@@ -424,14 +425,14 @@ unsigned char fs_Load(const char* path) {
 extern void SetWindowBlock(unsigned int block); // src/fatfs/fatfs.asm
 
 // copies the data file (data_file.py) to PSRAM from DATA_BLOCK, returns an FRESULT
-// (FR_INVALID_OBJECT if it's the wrong size or version)
+// (FR_INVALID_OBJECT if it's too short or the wrong version). English follows it (fs_LoadLanguage)
 unsigned char fs_LoadData(const char* path) {
   UINT count;
   unsigned int block = DATA_BLOCK;
   FRESULT result = fs_Mount();
   if (!result) result = Open(path, FA_READ);
   if (result) return result;
-  if (f_size(&file) != DATA_BLOCKS * 512UL) result = FR_INVALID_OBJECT;
+  if (f_size(&file) < DATA_BLOCKS * 512UL) result = FR_INVALID_OBJECT;
   while (!result && block != DATA_BLOCK + DATA_BLOCKS) {
     SetWindowBlock(block++);
     result = f_read(&file, WINDOW, 512, &count);
@@ -439,6 +440,36 @@ unsigned char fs_LoadData(const char* path) {
   f_close(&file);
   SetWindowBlock(DATA_BLOCK);
   if (!result && (memcmp(WINDOW, "EDITOR.DAT", 10) || WINDOW[10] != DATA_VERSION)) result = FR_INVALID_OBJECT;
+  SetWindowBlock(TB_PSRAM_HIGH << 8);
+  return result;
+}
+
+extern unsigned int lang_count; // src/strings.asm
+// copies a language (scripts/strings.py) from block first of the file to PSRAM at LANG_BLOCK and
+// sets lang_count, returns an FRESULT: FR_INVALID_OBJECT if it isn't one for these strings (nothing
+// is changed then). If it fails after that lang_count is 0, and the caller loads another
+unsigned char fs_LoadLanguage(const char* path, unsigned char first) {
+  UINT count, strings;
+  unsigned char block;
+  FRESULT result = fs_Mount();
+  if (!result) result = Open(path, FA_READ);
+  if (result) return result;
+  result = f_lseek(&file, (DWORD)first << 9);
+  if (!result) result = f_read(&file, buffer, 512, &count);
+  if (!result && (count != 512 || memcmp(buffer, "FPKL", 4) || buffer[4] != LANG_VERSION ||
+                  ld_16(buffer + 5) != STR_HASH)) result = FR_INVALID_OBJECT;
+  if (!result) {
+    strings = ld_16(buffer + 7);
+    lang_count = 0;
+    SetWindowBlock(LANG_BLOCK);
+    memcpy(WINDOW, buffer, 512);
+    for (block = 1; !result && block < LANG_BLOCKS && count == 512; ++block) {
+      SetWindowBlock(LANG_BLOCK + block);
+      result = f_read(&file, WINDOW, 512, &count);
+    }
+    if (!result) lang_count = strings;
+  }
+  f_close(&file);
   SetWindowBlock(TB_PSRAM_HIGH << 8);
   return result;
 }

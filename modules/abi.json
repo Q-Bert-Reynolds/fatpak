@@ -27,6 +27,7 @@
     ["Select", "void", "unsigned char row, unsigned char first, unsigned char end", 6],
     ["Tiles", "void", "unsigned char row, const unsigned char* tiles", 6],
     ["Load", "unsigned char", "const char* path, ModuleLoad* load", 7],
-    ["Progress", "void", "const char* text", 8]
+    ["Progress", "void", "const char* text", 8],
+    ["String", "char*", "char* dest, unsigned int id", 9]
   ]
 }

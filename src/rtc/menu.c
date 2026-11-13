@@ -4,10 +4,11 @@
 #include "../editor/state.h"
 #include "../modules/runtime.h"
 #include "../ui/dialogs.h"
+#include "../ui/text.h"
 
 void ClockSetup(void) {
   unsigned char result;
-  ShowBusy("Loading..."); // the module's menu box replaces it
+  ShowBusy(Str(S_LOADING)); // the module's menu box replaces it
   result = RUN_MODULE(CLOCK);
   HideBox();
   if (result) ShowModuleError(result);

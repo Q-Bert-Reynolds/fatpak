@@ -25,13 +25,8 @@ MACRO GAME_NAME
   DB "TEXT EDITOR",0,0,0,0
 ENDM
 
-MACRO CART_DEST
-IF DEF(LANG_JA)
-  DB CART_DEST_JAPANESE
-ELSE
+MACRO CART_DEST;the UI's language is a setting (notes/LANGUAGES.md), not the build's
   DB CART_DEST_NON_JAPANESE
-ENDC
-
 ENDM
 
 ;EverDrive X OS mode (the image is /GBCSYS/GBCOS.BIN): the 128KB image is RAM, $0000-$7FFF is

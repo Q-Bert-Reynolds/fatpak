@@ -81,6 +81,8 @@ def main(out_path):
       assert len(encoded) < 32, f"help line too long: {line}"
       offset = (c["DATA_HELP"] + context * 2) * BLOCK + i * 32
       data[offset:offset + len(encoded)] = encoded
+  import strings
+  data += strings.image("en")  # English, copied to LANG_BLOCK at boot (scripts/strings.py)
   with open(out_path, "wb") as file:
     file.write(data)
   print(f"data_file.py: {out_path} {len(data)} bytes")

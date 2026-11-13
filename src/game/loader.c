@@ -11,8 +11,6 @@
 #include "../ui/render.h"
 #include "../ui/text.h"
 
-const char loading_text[] = "Loading...";
-static const char preparing_text[] = "Preparing game...";
 
 // a .gb or .gbc file
 unsigned char IsGame(const char* name) {
@@ -23,11 +21,9 @@ unsigned char IsGame(const char* name) {
 
 // Updates only the loading box: its size stays fixed while the numbers change.
 static void ShowGameProgress(char* text) {
-  char* end = PutText(text, "Loading ");
-  end = PutNumber(end, game_block >> 1);
-  *end++ = '/';
-  end = PutText(PutNumber(end, game_blocks >> 1), " KB");
-  *end = 0;
+  char* end = PutStr(text, S_PART(S_LOADING_KB, 0));
+  end = PutStr(PutNumber(end, game_block >> 1), S_PART(S_LOADING_KB, 1));
+  PutStr(PutNumber(end, game_blocks >> 1), S_PART(S_LOADING_KB, 2));
   CopyName(render_box_text, text);
   ++render_box_gen;
   EditorDraw();
@@ -48,18 +44,20 @@ void LaunchGame(const char* path) {
     SettingsSave();
   }
   render_cpu_copy = 1; // keep CGB layout/palettes, draw loading tiles without HDMA
-  ShowBusy(loading_text);
+  ShowBusy(Str(S_LOADING));
   if ((result = FileSaveSwap())) {
     render_cpu_copy = 0;
     HideBox();
-    ShowError(result, "DISK FULL");
+    ShowError(result, S_DISK_FULL);
     return;
   }
   result = FileGameOpen(path);
   if (!result) {
     GameLoadingBegin();
     // Four-digit KB counts cover every supported ROM; 8 is a widest digit.
-    render_box_w = RenderTextWidth("Loading 8888/8888 KB") + BOX_PADDING;
+    PutStr(PutText(PutStr(PutText(PutStr(text, S_PART(S_LOADING_KB, 0)), "8888"), S_PART(S_LOADING_KB, 1)), "8888"),
+           S_PART(S_LOADING_KB, 2));
+    render_box_w = RenderTextWidth(text) + BOX_PADDING;
     render_box_x = (TB_WIDTH - render_box_w) >> 1;
     ShowGameProgress(text);
     while (!result && game_block != game_blocks) {
@@ -67,7 +65,7 @@ void LaunchGame(const char* path) {
       if (!result) ShowGameProgress(text);
     }
     if (!result) {
-      CopyName(render_box_text, preparing_text);
+      PutStr(render_box_text, S_PREPARING_GAME);
       ++render_box_gen;
       EditorDraw();
       result = FileGameFinish(path);
@@ -77,7 +75,7 @@ void LaunchGame(const char* path) {
   if (result) {
     render_cpu_copy = 0;
     HideBox();
-    ShowError(result, "TOO BIG");
+    ShowError(result, S_TOO_BIG);
     Reboot(); // PSRAM's text may be overwritten, booting restores it from the swap file
   }
   // Preserve the basename as pixels before game RAM replaces the editor state.

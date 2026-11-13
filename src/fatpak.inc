@@ -3,13 +3,13 @@ DEF FATPAK_INC EQU 1
 
 INCLUDE "src/hardware.inc"
 INCLUDE "src/memory1.asm"
-INCLUDE "src/strings.asm"
 INCLUDE "src/gbdk.asm"
 INCLUDE "src/math.asm"
 
 INCLUDE "src/charmap.asm"
 INCLUDE "src/constants.asm"
 INCLUDE "src/macros.asm"
+INCLUDE "src/strings.asm";after constants.asm and macros.asm: LANG_*, EDX_*
 INCLUDE "src/pages.asm"
 INCLUDE "src/far_call.asm"
 INCLUDE "src/keyboard/keyboard.asm"

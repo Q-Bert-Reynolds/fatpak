@@ -99,13 +99,12 @@ unsigned char RunModule(const char* path, unsigned char id) {
 }
 
 // text and the failed copy as operation:block (ModuleSwap's operation, 32 and up for ModuleSwapRAM's)
-static void ShowFailure(const char* text) {
-  char line[28], *end;
+static void ShowFailure(unsigned int text) {
+  char line[LANG_MAX + 8], *end;
   unsigned char op = ((unsigned char*)&module_fail)[0];
-  end = PutText(line, text);
-  end = PutNumber(end, op);
-  *end++ = ':';
-  *PutNumber(end, ((unsigned char*)&module_fail)[1]) = 0;
+  end = PutStr(line, S_PART(text, 0));
+  end = PutStr(PutNumber(end, op), S_PART(text, 1));
+  PutStr(PutNumber(end, ((unsigned char*)&module_fail)[1]), S_PART(text, 2));
   ShowMessage(line);
 }
 // after a restart for a restore that never read back: says so once (main.c)
@@ -121,15 +120,15 @@ void ShowModuleRestart(void) {
     w[0] = 0;
   }
   SetWindowBlock(saved);
-  if (found) ShowFailure("RESTORE FAILED ");
+  if (found) ShowFailure(S_RESTORE_FAILED);
 }
 
 void ShowModuleError(unsigned char result) {
-  if (result == FR_NO_FILE || result == FR_NO_PATH) ShowMessage("MODULE MISSING");
-  else if (result == FR_INVALID_OBJECT) ShowMessage("MODULE DAMAGED");
-  else if (result == MODULE_ERR_ABI) ShowMessage("MODULE NEEDS NEWER OS");
-  else if (result == MODULE_ERR_VERIFY) ShowFailure("MODULE LOAD FAILED ");
-  else ShowError(result, "MODULE MISSING");
+  if (result == FR_NO_FILE || result == FR_NO_PATH) ShowMessage(Str(S_MODULE_MISSING));
+  else if (result == FR_INVALID_OBJECT) ShowMessage(Str(S_MODULE_DAMAGED));
+  else if (result == MODULE_ERR_ABI) ShowMessage(Str(S_MODULE_NEWER_OS));
+  else if (result == MODULE_ERR_VERIFY) ShowFailure(S_MODULE_LOAD_FAILED);
+  else ShowError(result, S_MODULE_MISSING);
 }
 
 // Copy while the module is still mapped; paged render functions must never see
@@ -207,13 +206,21 @@ unsigned char ModuleAPIClockSet(const ModuleClock* clock) {
 
 // ABI 3
 // Bytes of EDITOR.DAT (offset from its first block); 1 if it isn't loaded or the range is outside it.
+// DATA_HELP's blocks come from the loaded language's help (LANG_HELP) instead.
+#define HELP_START (DATA_HELP * 512u)
+#define HELP_END ((DATA_HELP + 4) * 512u)
 unsigned char ModuleAPIData(unsigned int offset, char* dest, unsigned char length) {
-  unsigned int saved = WINDOW_BLOCK, block = 0xFFFF, at;
+  unsigned int saved = WINDOW_BLOCK, block = 0xFFFF, at, base = DATA_BLOCK;
   unsigned char i;
   if (!data_loaded || offset > DATA_BLOCKS * 512u - length) return 1;
+  if (offset >= HELP_START && offset < HELP_END && lang_count) {
+    if (offset > HELP_END - length) return 1;
+    offset -= HELP_START;
+    base = LANG_BLOCK + LANG_HELP;
+  }
   for (i = 0; i < length; ++i) {
     at = offset + i;
-    if ((at >> 9) != block) SetWindowBlock(DATA_BLOCK + (block = at >> 9));
+    if ((at >> 9) != block) SetWindowBlock(base + (block = at >> 9));
     dest[i] = WINDOW[at & 511];
   }
   SetWindowBlock(saved);
@@ -355,3 +362,7 @@ void ModuleAPIProgress(const char* text) {
   }
   progress_at = render_frames;
 }
+
+// ABI 9
+// string id (or an S_PART piece) of the loaded language at dest, and a 0; returns the 0's address
+char* ModuleAPIString(char* dest, unsigned int id) { return PutStr(dest, id); }

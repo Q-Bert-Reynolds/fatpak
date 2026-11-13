@@ -1,0 +1,32 @@
+EDITOR DE TEXTO
+
+ <BTN_SELECT> mostrar/ocultar teclado
+ <BTN_START> mostrar menú
+
+Teclado oculto
+ <BTN_DPAD> mover el cursor
+ <BTN_A>+<BTN_DPAD> seleccionar texto
+ <BTN_B>+<BTN_UD> página arriba/abajo
+ <BTN_B>+<BTN_LR> inicio/fin
+
+Teclado visible
+ <BTN_A> escribir la tecla
+ <BTN_B> borrar
+
+Teclado por puerto link
+ F1 ayuda
+ F5 compilar y ejecutar .asm
+ F7 compilar .asm a .gb
+ F11 pantalla completa
+ Ctrl+O explorador de archivos
+ Ctrl+S guardar
+ Ctrl+N documento nuevo
+ Ctrl+A seleccionar todo
+ Ctrl+X/C/V cortar/copiar/pegar
+ Ctrl+Z deshacer
+ Ctrl+Y / Ctrl+Shift+Z rehacer
+ Shift + flechas seleccionar
+ Ctrl+Izq/Der palabra
+ Ctrl+Arriba/Abajo desplazar
+ Ctrl+Inicio/Fin principio/fin
+ Alt+Z ajuste de línea

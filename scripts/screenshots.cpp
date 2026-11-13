@@ -3,6 +3,7 @@
 // usage: screenshots GBCOS.BIN GBCOS.sym EDITOR.DAT MODULES_DIR repo_root out_dir
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <functional>
 #include <iterator>
@@ -53,6 +54,8 @@ static std::string Card() {
             Write(root + "/GBCSYS/MODULES/" + name, Read(std::string(modules) + "/" + name));
     }
     closedir(dir);
+    mkdir((root + "/GBCSYS/LANG").c_str(), 0700); // bin/LANG beside bin/MODULES
+    for (const char* name : {"EN.DAT", "ES.DAT"}) Write(root + "/GBCSYS/LANG/" + name, Read(std::string(modules) + "/../LANG/" + name));
     mkdir((root + "/Games").c_str(), 0700); mkdir((root + "/Notes").c_str(), 0700);
     Write(root + "/Welcome.md",
         "# FatPak\n"
@@ -94,6 +97,9 @@ static std::string Card() {
     return root;
 }
 
+// FATPAK_SHOTS_LANG=es: in Spanish (SETTINGS > LANGUAGE), the files end in _es
+static bool Spanish() { const char* lang = getenv("FATPAK_SHOTS_LANG"); return lang && !strcmp(lang, "es"); }
+
 struct Shot {
     GearboyCore core; Memory* memory; std::map<std::string, unsigned> syms; bool color, dark;
     Shot(bool color, bool dark) : color(color), dark(dark) {
@@ -103,6 +109,10 @@ struct Shot {
         if (dark) { // browser START > SETTINGS > THEME, A turns dark mode on
             Pad(Start_Key); Pad(Down_Key); Pad(Down_Key); Pad(A_Key); Pad(A_Key, 180); Pad(A_Key); Pad(B_Key, 120);
             if (memory->Read(syms.at("_theme")) != 1) Fail("dark mode");
+        }
+        if (Spanish()) { // START > SETTINGS > LANGUAGE > ESPAÑOL
+            Pad(Start_Key); Pad(Down_Key); Pad(Down_Key); Pad(A_Key); Pad(Down_Key); Pad(A_Key); Pad(Down_Key); Pad(A_Key, 180);
+            if (memory->Read(syms.at("_language")) != 1) Fail("Spanish");
         }
     }
     void Frames(unsigned count) {
@@ -132,7 +142,7 @@ struct Shot {
     void Open(const std::string& name, unsigned wait = 240) { Select(name); Pad(A_Key, wait); }
     void Save(const std::string& name) {
         Frames(30);
-        std::string path = std::string(out) + "/" + name + (color ? "_gbc" : "_dmg") + (dark ? "_dark" : "") + ".ppm";
+        std::string path = std::string(out) + "/" + name + (color ? "_gbc" : "_dmg") + (dark ? "_dark" : "") + (Spanish() ? "_es" : "") + ".ppm";
         FILE* f = fopen(path.c_str(), "wb"); if (!f) Fail("write screenshot");
         fprintf(f, "P6 160 144 255\n");
         for (unsigned i = 0; i < 160 * 144; ++i) {

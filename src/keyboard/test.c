@@ -6,6 +6,7 @@
 #include "../ui/screen.h"
 #include "../ui/dialogs.h"
 #include "../app/dialogs.h"
+#include "../ui/text.h"
 
 void KeyboardTest(void) {
   unsigned char old_font = font, result;
@@ -14,7 +15,7 @@ void KeyboardTest(void) {
   render_text = 0;
   BeginFullScreen();
   ClearScreen();
-  ShowBusy("Loading");
+  ShowBusy(Str(S_LOADING));
   result = RUN_MODULE(KEYTEST);
   HideBox();
   if (result) ShowModuleError(result);

@@ -9,7 +9,7 @@
 #include "../ui/dialogs.h"
 #include "../ui/render.h"
 #include "../ui/screen.h"
-#include "../ui/icons.h"
+#include "../ui/text.h"
 #include "../../modules/info.h"
 
 static char line[FS_NAME_SIZE];
@@ -24,12 +24,12 @@ unsigned char ShowFileInfo(const char* path, const FileEntry* entry) {
   context.result = context.open = 0;
   details.game = !entry->dir && IsGame(entry->name);
   details.status = 0;
-  ShowBusy("Reading info..."); // stays up until the module draws its page
+  ShowBusy(Str(S_READING_INFO)); // stays up until the module draws its page
   if (!entry->dir) context.result = FileInspect(path, &details);
   BeginView(1);
   *ToLatin1(line, entry->name, FS_NAME_SIZE - 1) = 0;
   DrawRow(HEADER_LINE, 1, line);
-  DrawRow(STATUS_LINE, 1, ICON_A "Open " ICON_B "Exit");
+  DrawRow(STATUS_LINE, 1, Str(S_INFO_HINT));
   module_context = &context;
   if ((result = RUN_MODULE(FILEINFO))) ShowModuleError(result);
   return context.open;

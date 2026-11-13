@@ -1,3 +1,4 @@
+#include "../../build/modules/sdk.h"
 #include "text.h"
 
 static const unsigned long tens[] = {1000000000UL, 100000000UL, 10000000UL, 1000000UL,
@@ -31,4 +32,10 @@ char* PutHex(char* dest, unsigned char n) {
   digit = n & 15;
   *dest++ = digit < 10 ? '0' + digit : 'A' - 10 + digit;
   return dest;
+}
+
+static char str_buffer[LANG_MAX + 1];
+const char* Str(unsigned int id) {
+  ModString(str_buffer, id);
+  return str_buffer;
 }

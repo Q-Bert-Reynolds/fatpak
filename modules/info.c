@@ -4,7 +4,6 @@
 #include "lib/text.h"
 #include "info.h"
 
-static const char* const types[] = {"Plain Text", "Markdown", "C source", "Assembly"};
 static char line[TB_STRIDE + 1];
 static const InfoContext* context;
 
@@ -31,13 +30,14 @@ static char* PutSize(char* dest, unsigned long size) {
   return dest;
 }
 
-static char* Field(const char* label) { return PutText(line, label); }
+// rows of a label and its value, both strings (S_*)
+static char* Field(unsigned int label) { return ModString(line, label); }
 static void Row(unsigned char row, char* end) { *end = 0; ModText(row, 1, line); }
-static void Value(unsigned char row, const char* label, const char* value) { Row(row, PutText(Field(label), value)); }
-static void SizeRow(unsigned char row, const char* label, unsigned long size) { Row(row, PutSize(Field(label), size)); }
-static void DateRow(unsigned char row, const char* label, unsigned int date, unsigned int time) {
+static void Value(unsigned char row, unsigned int label, unsigned int value) { Row(row, ModString(Field(label), value)); }
+static void SizeRow(unsigned char row, unsigned int label, unsigned long size) { Row(row, PutSize(Field(label), size)); }
+static void DateRow(unsigned char row, unsigned int label, unsigned int date, unsigned int time) {
   char* p = Field(label);
-  if (!date) p = PutText(p, "--");
+  if (!date) p = ModString(p, S_NONE);
   else {
     p = PutNumber(p, 1980 + (date >> 9));
     *p++ = '-';
@@ -57,33 +57,33 @@ static void DateRow(unsigned char row, const char* label, unsigned int date, uns
 // Header offsets and checksum: https://gbdev.io/pandocs/The_Cartridge_Header.html
 static void GameInfo(const unsigned char* h) {
   unsigned char i, c, mapper = h[19];
-  char* p = Field("Title: ");
+  char* p = Field(S_INFO_TITLE);
   for (i = 0; i < (h[15] & 0x80 ? 15 : 16) && h[i]; ++i) {
     c = h[i];
     *p++ = c >= 32 && c < 127 ? c : '?';
   }
   Row(7, p);
-  Value(8, "Platform: ", !(h[15] & 0x80) ? "Game Boy" : h[15] & 0x40 ? "Color only" : "GB / Color");
-  Value(9, "Super GB: ", h[18] == 3 ? "Yes" : "No");
-  p = Field("Mapper: ");
+  Value(8, S_INFO_PLATFORM, !(h[15] & 0x80) ? S_GB_ONLY : h[15] & 0x40 ? S_GB_COLOR_ONLY : S_GB_BOTH);
+  Value(9, S_INFO_SGB, h[18] == 3 ? S_INFO_YES : S_INFO_NO);
+  p = Field(S_INFO_MAPPER);
   if (mapper >= 1 && mapper <= 3) p = PutText(p, "MBC1");
   else if (mapper == 5 || mapper == 6) p = PutText(p, "MBC2");
   else if (mapper >= 15 && mapper <= 19) p = PutText(p, "MBC3");
   else if (mapper >= 25 && mapper <= 30) p = PutText(p, "MBC5");
   else if (mapper == 0 || mapper == 8 || mapper == 9) p = PutText(p, "ROM");
-  else { p = PutText(p, "type "); p = PutNumber(p, mapper); }
+  else { p = ModString(p, S_MAPPER_TYPE); p = PutNumber(p, mapper); }
   Row(10, p);
-  if (h[20] <= 8) SizeRow(11, "ROM: ", 32768UL << h[20]);
-  else Value(11, "ROM: ", "Unknown");
-  if (mapper == 5 || mapper == 6) Value(12, "RAM: ", "512 x 4 bits");
+  if (h[20] <= 8) SizeRow(11, S_INFO_ROM, 32768UL << h[20]);
+  else Value(11, S_INFO_ROM, S_UNKNOWN);
+  if (mapper == 5 || mapper == 6) Value(12, S_INFO_RAM, S_RAM_MBC2);
   else {
     c = h[21];
-    if (c == 1 || c > 5) Value(12, "RAM: ", "Unknown");
-    else SizeRow(12, "RAM: ", c == 2 ? 8192UL : c == 3 ? 32768UL : c == 4 ? 131072UL : c == 5 ? 65536UL : 0);
+    if (c == 1 || c > 5) Value(12, S_INFO_RAM, S_UNKNOWN);
+    else SizeRow(12, S_INFO_RAM, c == 2 ? 8192UL : c == 3 ? 32768UL : c == 4 ? 131072UL : c == 5 ? 65536UL : 0);
   }
-  Value(13, "Region: ", h[22] == 0 ? "Japan" : h[22] == 1 ? "Overseas" : "Unknown");
-  Row(14, PutNumber(Field("Revision: "), h[24]));
-  Value(15, "Header checksum: ", context->details->status == 1 ? "OK" : "Bad");
+  Value(13, S_INFO_REGION, h[22] == 0 ? S_JAPAN : h[22] == 1 ? S_OVERSEAS : S_UNKNOWN);
+  Row(14, PutNumber(Field(S_INFO_REVISION), h[24]));
+  Value(15, S_INFO_CHECKSUM, context->details->status == 1 ? S_CHECK_OK : S_CHECK_BAD);
 }
 
 unsigned char ModuleMain(InfoContext* info) {
@@ -93,23 +93,24 @@ unsigned char ModuleMain(InfoContext* info) {
   context = info;
   ModHideBox(); // the host's "Reading info..." box
   for (row = 0; row < TB_ROWS - 2; ++row) ModText(row, 0, "");
-  Value(0, "Type: ", entry->dir ? "Folder" : details->game ? "Game Boy ROM" : details->status == 2 ? "Binary" : types[info->language & 3]);
-  if (entry->dir) Value(1, "Size: ", "--");
-  else SizeRow(1, "Size: ", entry->size);
-  DateRow(3, "Created: ", entry->cdate, entry->ctime);
-  DateRow(4, "Accessed: ", entry->adate, 0xFFFF);
-  DateRow(5, "Modified: ", entry->date, entry->time);
-  if (info->result) Value(7, "Read: ", "SD error");
+  Value(0, S_INFO_TYPE, entry->dir ? S_TYPE_FOLDER : details->game ? S_TYPE_GAME : details->status == 2 ? S_TYPE_BINARY :
+        S_TYPE_TEXT + (info->language & 3));
+  if (entry->dir) Value(1, S_INFO_SIZE, S_NONE);
+  else SizeRow(1, S_INFO_SIZE, entry->size);
+  DateRow(3, S_INFO_CREATED, entry->cdate, entry->ctime);
+  DateRow(4, S_INFO_ACCESSED, entry->adate, 0xFFFF);
+  DateRow(5, S_INFO_MODIFIED, entry->date, entry->time);
+  if (info->result) Value(7, S_INFO_READ, S_SD_ERROR_LOWER);
   else if (details->game) {
     if (details->status) GameInfo(details->header);
-    else Value(7, "Header: ", "Too short");
+    else Value(7, S_INFO_HEADER, S_TOO_SHORT);
   }
   else if (!entry->dir) {
     if (details->status == 1) {
-      Row(7, PutNumber(Field("Words: "), details->words));
-      Row(8, PutNumber(Field("Lines: "), details->lines));
+      Row(7, PutNumber(Field(S_INFO_WORDS), details->words));
+      Row(8, PutNumber(Field(S_INFO_LINES), details->lines));
     }
-    else Value(7, "Counts: ", details->status == 2 ? "Binary file" : "Skipped (>32KB)");
+    else Value(7, S_INFO_COUNTS, details->status == 2 ? S_BINARY_FILE : S_SKIPPED);
   }
   do { key = ModKey(); } while (key != KEY_BACKSPACE && key != KEY_ESCAPE && key != KEY_ENTER);
   info->open = key == KEY_ENTER;

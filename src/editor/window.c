@@ -7,6 +7,7 @@
 #include "view.h"
 #include "../fatfs/file_api.h"
 #include "../ui/dialogs.h"
+#include "../ui/text.h"
 
 #define WIN_MARGIN 0x2000 // the window moves when the cursor is this close to an edge that isn't the file's
 #define NO_MARK 0xFFFFFFFF
@@ -14,13 +15,13 @@
 // an edited window goes into the document before it moves, returns 0 if it can't (then it doesn't move)
 static unsigned char Commit(void) {
   if (FileCommitWindow()) return 1;
-  ShowMessage("TOO MANY EDITS, SAVE FIRST");
+  ShowMessage(Str(S_TOO_MANY_EDITS));
   return 0;
 }
 
 // loads the window from win_start, the undo history was for the old one
 static void LoadWindow(void) {
-  if (FileLoadWindow()) ShowMessage("SD ERROR");
+  if (FileLoadWindow()) ShowMessage(Str(S_SD_ERROR));
   UndoClear(modified);
   Uncount(0);
   dirty = 1;

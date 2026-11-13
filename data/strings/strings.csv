@@ -1,0 +1,193 @@
+key,kind,comment,en,es
+MENU_FILE,item,editor menu: these 5 in order,FILE,ARCHIVO
+MENU_EDIT,item,,EDIT,EDITAR
+MENU_SETTINGS,item,,SETTINGS,AJUSTES
+MENU_HELP,item,,HELP,AYUDA
+MENU_CLOSE,item,,CLOSE,CERRAR
+BMENU_FILE,item,browser menu: these 5 in order,FILE,ARCHIVO
+BMENU_EDIT,item,,EDIT,EDITAR
+BMENU_SETTINGS,item,,SETTINGS,AJUSTES
+BMENU_HELP,item,,HELP,AYUDA
+BMENU_RESTART,item,,RESTART,REINICIAR
+SUB_OPEN,item,"editor FILE, EDIT and SETTINGS submenus: these 18 in order",OPEN,ABRIR
+SUB_SAVE,item,,SAVE,GUARDAR
+SUB_SAVE_AS,item,,SAVE AS,GUARDAR COMO
+SUB_NEW,item,,NEW,NUEVO
+SUB_BUILD,item,,BUILD,COMPILAR
+SUB_RUN,item,,RUN,EJECUTAR
+SUB_UNDO,item,,UNDO,DESHACER
+SUB_REDO,item,,REDO,REHACER
+SUB_CUT,item,,CUT,CORTAR
+SUB_COPY,item,,COPY,COPIAR
+SUB_PASTE,item,,PASTE,PEGAR
+SUB_SELECT_ALL,item,,SELECT ALL,SELECCIONAR TODO
+SUB_LINE_WRAP,item,editor SETTINGS: these 4,LINE WRAP,AJUSTE DE LÍNEA
+SUB_FULL_SCREEN,item,,FULL SCREEN,PANTALLA COMPLETA
+SUB_THEME,item,browser SETTINGS: these 4,THEME,TEMA
+SUB_LANGUAGE,item,,LANGUAGE,IDIOMA
+SUB_CLOCK,item,,CLOCK,RELOJ
+SUB_KEYBOARD_TEST,item,,KEYBOARD TEST,PRUEBA DE TECLADO
+FILE_OPEN,item,browser FILE: these 5 in order,OPEN,ABRIR
+FILE_OPEN_AS,item,,OPEN AS,ABRIR COMO
+FILE_INFO,item,,INFO,INFORMACIÓN
+FILE_RENAME,item,,RENAME,RENOMBRAR
+FILE_DELETE,item,,DELETE,ELIMINAR
+VIEW_TEXT,item,OPEN AS: these 3 in order,TEXT,TEXTO
+VIEW_HEX,item,,HEX,HEX
+VIEW_TILES,item,,TILES,TILES
+BEDIT_CUT,item,browser EDIT: these 3 in order,CUT,CORTAR
+BEDIT_COPY,item,,COPY,COPIAR
+BEDIT_PASTE,item,,PASTE,PEGAR
+NO,item,these 2 in order,NO,NO
+YES,item,,YES,SÍ
+LANG_EN,item,"LANGUAGE: one per language, in the CSV's column order, each in its own language",ENGLISH,ENGLISH
+LANG_ES,item,,ESPAÑOL,ESPAÑOL
+DISCARD_CHANGES,box,box title,DISCARD CHANGES?,¿DESCARTAR CAMBIOS?
+DELETE_TITLE,box,box title: the file's name,DELETE {}?,¿ELIMINAR {}?
+NO_SD_CARD,bar,status bar messages,NO SD CARD,SIN TARJETA SD
+NO_FAT_VOLUME,bar,,NO FAT VOLUME,SIN VOLUMEN FAT
+SD_ERROR_N,bar,an FRESULT number,SD ERROR {},ERROR SD {}
+SD_ERROR,bar,,SD ERROR,ERROR SD
+DISK_FULL,bar,,DISK FULL,DISCO LLENO
+TOO_BIG,bar,,TOO BIG,DEMASIADO GRANDE
+SAVED,bar,,SAVED,GUARDADO
+SAVE_NOT_BACKED_UP,bar,a game's save RAM,SAVE NOT BACKED UP,PARTIDA SIN RESPALDO
+NOT_ASM_FILE,bar,,NOT AN ASM FILE,NO ES UN ARCHIVO ASM
+FILE_TOO_BIG,bar,,FILE TOO BIG,ARCHIVO MUY GRANDE
+TOO_BIG_TO_COPY,bar,,TOO BIG TO COPY,NO SE PUEDE COPIAR
+TEXT_FULL,bar,,TEXT FULL,TEXTO LLENO
+TOO_MANY_EDITS,bar,,TOO MANY EDITS: SAVE,DEMASIADOS CAMBIOS
+MODULE_MISSING,bar,,MODULE MISSING,FALTA UN MÓDULO
+MODULE_DAMAGED,bar,,MODULE DAMAGED,MÓDULO DAÑADO
+MODULE_NEWER_OS,bar,,MODULE NEEDS NEW OS,MÓDULO PIDE OS NUEVO
+RESTORE_FAILED,bar,the failed copy's operation and block,RESTORE FAILED {}:{},RESTAURACIÓN FALLÓ {}:{}
+MODULE_LOAD_FAILED,bar,,MODULE LOAD FAILED {}:{},CARGA FALLÓ {}:{}
+NAME_EXISTS,bar,browser messages,Name already exists,El nombre ya existe
+CANT_PASTE,bar,,Can't paste here,No se puede pegar aquí
+INVALID_NAME,bar,,Invalid name/path,Nombre/ruta no válido
+SD_FAILED,bar,,SD operation failed,Falló la operación SD
+FOLDER_NOT_EMPTY,bar,,Folder isn't empty,Carpeta no vacía
+READ_ONLY,bar,,File is read only,Archivo de solo lectura
+FILE_IS_OPEN,bar,,File is open,El archivo está abierto
+CLIPBOARD_EMPTY,bar,,Clipboard empty,Portapapeles vacío
+SELECT_FILE,bar,,Select file/folder,Elige archivo/carpeta
+PATH_TOO_LONG,bar,,Path is too long,Ruta demasiado larga
+LANGUAGE_MISSING,bar,/GBCSYS/LANG/xx.DAT couldn't be loaded,Language file missing,Falta el idioma
+BROWSER_HINT,bar,browser footer,<A>Open <SELECT>Info <START>Menu,<A>Abrir <SELECT>Info <START>Menú
+INFO_HINT,bar,file info footer,<A>Open <B>Exit,<A>Abrir <B>Salir
+LOADING,box,busy boxes,Loading...,Cargando...
+DELETING,box,,Deleting...,Eliminando...
+RESTARTING,box,,Restarting...,Reiniciando...
+MOVING,box,,Moving...,Moviendo...
+COPYING,box,,Copying...,Copiando...
+RENAMING,box,,Renaming...,Renombrando...
+READING_INFO,box,,Reading info...,Leyendo info...
+ASSEMBLING,box,,Assembling...,Ensamblando...
+WRITING,box,,Writing...,Escribiendo...
+SAVING,box,,Saving...,Guardando...
+PREPARING_GAME,box,,Preparing game...,Preparando juego...
+LOADING_KB,box,"a game: KB copied and its size, up to 8888/8888",Loading {}/{} KB,Cargando {}/{} KB
+BUILD_PASS1,box,build progress: thousands of lines,Pass 1: {}k lines,Paso 1: {}k líneas
+BUILD_PASS2,box,build progress: percent,Pass 2: {}%,Paso 2: {}%
+BUILD_AT_LINE,box,build progress: the line in the file named above,line {},línea {}
+BUILD_LINE,box,build error: the line in the file named above,Line {},Línea {}
+BUILD_DONE,box,"the ROM's size, under its name",Built {} KB,Compilado: {} KB
+ERR_SYNTAX,box,build errors: these 23 in ASM_ERR_* order,SYNTAX ERROR,ERROR DE SINTAXIS
+ERR_SYMBOL,box,,UNKNOWN SYMBOL,SÍMBOLO DESCONOCIDO
+ERR_DUPLICATE,box,,ALREADY DEFINED,YA DEFINIDO
+ERR_RANGE,box,,VALUE TOO BIG,VALOR MUY GRANDE
+ERR_JR,box,,JR TOO FAR,JR DEMASIADO LEJOS
+ERR_OPERAND,box,,BAD OPERAND,OPERANDO ERRÓNEO
+ERR_SECTION,box,,NO SECTION,SIN SECCIÓN
+ERR_FULL,box,,SECTION FULL,SECCIÓN LLENA
+ERR_FORWARD,box,,NOT YET DEFINED,AÚN NO DEFINIDO
+ERR_UNSUPPORTED,box,,NOT SUPPORTED,NO ADMITIDO
+ERR_NAME,box,,NAME TOO LONG,NOMBRE MUY LARGO
+ERR_DIVIDE,box,,DIVIDE BY ZERO,DIVISIÓN POR CERO
+ERR_MNEMONIC,box,,BAD INSTRUCTION,INSTRUCCIÓN ERRÓNEA
+ERR_PHASE,box,,PHASE ERROR,ERROR DE FASE
+ERR_STRING,box,,BAD STRING,CADENA ERRÓNEA
+ERR_SCOPE,box,,NO GLOBAL LABEL,SIN ETIQUETA GLOBAL
+ERR_SYMBOLS,box,,TOO MANY SYMBOLS,DEMASIADOS SÍMBOLOS
+ERR_EMPTY,box,,NO CODE,SIN CÓDIGO
+ERR_BANK,box,,BAD BANK,BANCO ERRÓNEO
+ERR_ASSERT,box,,ASSERT FAILED,ASSERT FALLIDO
+ERR_FILE,box,,NO SUCH FILE,ARCHIVO INEXISTENTE
+ERR_NESTING,box,,TOO DEEP,ANIDACIÓN EXCESIVA
+ERR_OVERLAP,box,,SECTIONS OVERLAP,SECCIONES SOLAPADAS
+UNTITLED,bar,the header without a file name,Untitled,Sin título
+SELECTED,bar,status bar: characters selected,{} selected,{} seleccionados
+LINE_COL,bar,status bar,"Line {}, Col {}","Línea {}, Col {}"
+SAVE_AS,bar,"the name prompt in the header, the name follows",Save as ,Guardar como 
+IN_FOLDER,bar,"the name prompt's footer, the folder follows",in ,en 
+CLOCK_YEAR,item,CLOCK: these 6 in order,Year,Año
+CLOCK_MONTH,item,,Month,Mes
+CLOCK_DAY,item,,Day,Día
+CLOCK_HOUR,item,,Hour,Hora
+CLOCK_MINUTE,item,,Minute,Minuto
+CLOCK_SECOND,item,,Second,Segundo
+CLOCK_HINT,bar,,<LR> Edit <A>Set <B>Back,<LR> Editar <A>Fijar <B>Atrás
+CLOCK_INVALID,bar,,Invalid date or no clock,Fecha inválida/sin reloj
+HELP_HINT,bar,,<UD>Scroll <B>Exit,<UD>Desplazar <B>Salir
+THEME_HINT,bar,,<A>Toggle <B>Back,<A>Cambiar <B>Atrás
+THEME_DARK,item,ON or OFF follows,Dark mode  {},Modo oscuro  {}
+ON,item,these 2 in order: the same width,On ,Sí
+OFF,item,,Off,No
+INFO_TYPE,row,"file info: labels, the value follows",Type: ,Tipo: 
+INFO_SIZE,row,,Size: ,Tamaño: 
+INFO_CREATED,row,,Created: ,Creado: 
+INFO_ACCESSED,row,,Accessed: ,Accedido: 
+INFO_MODIFIED,row,,Modified: ,Modificado: 
+INFO_READ,row,,Read: ,Lectura: 
+INFO_HEADER,row,,Header: ,Cabecera: 
+INFO_WORDS,row,,Words: ,Palabras: 
+INFO_LINES,row,,Lines: ,Líneas: 
+INFO_COUNTS,row,,Counts: ,Recuento: 
+INFO_TITLE,row,,Title: ,Título: 
+INFO_PLATFORM,row,,Platform: ,Plataforma: 
+INFO_SGB,row,,Super GB: ,Super GB: 
+INFO_MAPPER,row,,Mapper: ,Mapper: 
+INFO_ROM,row,,ROM: ,ROM: 
+INFO_RAM,row,,RAM: ,RAM: 
+INFO_REGION,row,,Region: ,Región: 
+INFO_REVISION,row,,Revision: ,Revisión: 
+INFO_CHECKSUM,row,,Header checksum: ,Suma de cabecera: 
+TYPE_TEXT,row,file types: these 4 in order,Plain Text,Texto
+TYPE_MARKDOWN,row,,Markdown,Markdown
+TYPE_C,row,,C source,Código C
+TYPE_ASM,row,,Assembly,Ensamblador
+TYPE_FOLDER,row,,Folder,Carpeta
+TYPE_GAME,row,,Game Boy ROM,ROM de Game Boy
+TYPE_BINARY,row,,Binary,Binario
+SD_ERROR_LOWER,row,,SD error,Error de SD
+TOO_SHORT,row,,Too short,Demasiado corto
+BINARY_FILE,row,,Binary file,Archivo binario
+SKIPPED,row,,Skipped (>32KB),Omitido (>32KB)
+GB_ONLY,row,,Game Boy,Game Boy
+INFO_YES,row,Super GB: these 2 in order,Yes,Sí
+INFO_NO,row,,No,No
+NONE,row,no size or date,--,--
+RAM_MBC2,row,MBC2's built-in RAM,512 x 4 bits,512 x 4 bits
+GB_COLOR_ONLY,row,,Color only,Solo Color
+GB_BOTH,row,,GB / Color,GB / Color
+UNKNOWN,row,,Unknown,Desconocido
+JAPAN,row,,Japan,Japón
+OVERSEAS,row,,Overseas,Extranjero
+CHECK_OK,row,,OK,Bien
+CHECK_BAD,row,,Bad,Mal
+MAPPER_TYPE,row,an unknown mapper's number follows,type ,tipo 
+KB_TITLE,row,keyboard test,KEYBOARD TEST,PRUEBA DE TECLADO
+KB_PS2,row,,Found at boot: PS/2,Detectado al inicio: PS/2
+KB_IGKB,row,,Found at boot: iGKB,Detectado al inicio: iGKB
+KB_NONE,row,,"Found at boot: none, listening anyway",Sin teclado al inicio; escuchando
+KB_CODES,row,,Scan codes (newest last):,Códigos (el último abajo):
+KB_BACK,row,,<B>/<START> Back,<B>/<START> Atrás
+KB_BYTES,row,,Bytes {}   with errors {},Bytes {}   con errores {}
+KB_KEY,row,"the key's code (and character), then the modifiers",Key {}   modifiers {},Tecla {}   modificadores {}
+KB_FINISH,row,"PS/2 errors: these 6 in bit order, empty ones unused",finish,fin
+KB_PARITY,row,,parity,paridad
+KB_START,row,,start,inicio
+KB_UNUSED3,row,,,
+KB_UNUSED4,row,,,
+KB_TIMEOUT,row,,timeout,tiempo
+TILE_N,bar,tile viewer footer: the tile's number follows,Tile ,Tile 

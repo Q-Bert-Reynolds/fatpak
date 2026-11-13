@@ -1,7 +1,8 @@
 # Priority
 
 - Assembler: build beisbolgb on the device ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): per-project defines and rgbfix options, and speed (42 min CGB in Gearboy, over an hour on DMG).
-- All OS strings should be loaded from a .BIN file with a lookup table. Support multiple languages.
+- Languages ([LANGUAGES.md](notes/LANGUAGES.md)): the in-game menu (tiles drawn at build time), hand-drawn Á É Í Ó Ú Ñ Ü in `vwf_font.png`, more languages.
+- move keyboard handlers into module, select keyboard type from settings
 
 # Rendering
 

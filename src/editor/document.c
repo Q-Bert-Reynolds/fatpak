@@ -1,6 +1,7 @@
 // Text document names, syntax mode, open, save and discard prompts.
 #include "document.h"
 #include "../app/dialogs.h"
+#include "../ui/text.h"
 #include "../browser/browser.h"
 #include "../browser/paths.h"
 #include "editor.h"
@@ -22,13 +23,12 @@ char file_dir[PATH_SIZE]; // its folder, "" = root, new text is saved here too
 
 #define NAME_CHARS     (FS_NAME_SIZE - 1)
 
-const char no_yes_items[][ITEM_SIZE] = {"NO", "YES"}; // shared with the browser's DELETE
 static const char * const lang_exts[] = { "md", "c", "h", "asm", "inc", "s" };
 static const unsigned char lang_ids[] = { LANG_MD, LANG_C, LANG_C, LANG_ASM, LANG_ASM, LANG_ASM };
 
 // returns 1 if there are no unsaved changes or the user wants to lose them
 unsigned char CanDiscard(void) {
-  return !modified || Choose("DISCARD CHANGES?", no_yes_items[0], 2, 0) == 1;
+  return !modified || Choose(Str(S_DISCARD_CHANGES), S_NO, 2, 0) == 1;
 }
 
 unsigned char FileLanguage(const char* name) {
@@ -107,7 +107,7 @@ void LoadDocument(char* path, unsigned char folder_length, const FileEntry* entr
   path[folder_length] = 0;
   if (result) {
     file_name[0] = 0; // the text buffer only has part of it, don't save over the file
-    ShowError(result, "TOO BIG");
+    ShowError(result, S_TOO_BIG);
   }
   else {
     CopyName(file_dir, path);
@@ -120,21 +120,21 @@ void SaveFile(unsigned char ask) {
   unsigned char result;
   if (ask || !file_name[0]) {
     Render();
-    if (!AskName(file_name, "Save as ")) return;
+    if (!AskName(file_name, S_SAVE_AS)) return;
     SetLang();
   }
   JoinPath(path, file_dir, file_name, (unsigned char)(PATH_SIZE + FS_NAME_SIZE));
-  ShowBusy("Saving...");
+  ShowBusy(Str(S_SAVING));
   result = FileMount();
   if (!result) result = doc_large ? FileSaveLarge(path) : FileSave(path);
   HideBox();
   FileSession(file_dir, 1);
   SettingsSave(); // save as may have changed the name
   if (result) {
-    ShowError(result, "DISK FULL");
+    ShowError(result, S_DISK_FULL);
     return;
   }
   modified = 0;
   UndoSaved();
-  ShowMessage("SAVED");
+  ShowMessage(Str(S_SAVED));
 }

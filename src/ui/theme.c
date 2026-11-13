@@ -5,10 +5,11 @@
 #include "../fatfs/file_api.h"
 #include "../modules/runtime.h"
 #include "dialogs.h"
+#include "../ui/text.h"
 
 void ThemeSetup(void) {
   unsigned char result;
-  ShowBusy("Loading..."); // the module's menu box replaces it
+  ShowBusy(Str(S_LOADING)); // the module's menu box replaces it
   result = RUN_MODULE(THEME);
   HideBox();
   if (result) ShowModuleError(result);

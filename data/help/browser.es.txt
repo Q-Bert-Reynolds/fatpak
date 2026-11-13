@@ -1,0 +1,32 @@
+EXPLORADOR DE ARCHIVOS
+
+<BTN_DPAD> elegir archivo/carpeta
+<BTN_A> / <BTN_RIGHT> abrir selección
+<BTN_B> / <BTN_LEFT> carpeta superior
+Esc volver al editor
+<BTN_START> menú del explorador
+<BTN_SELECT> info del archivo
+.tiles: tiles; binario: hex
+
+ARCHIVO > ABRIR igual que <BTN_A>
+ARCHIVO > ABRIR COMO tipo
+ARCHIVO > INFORMACIÓN detalles
+<BTN_A> en la info lo abre
+ARCHIVO > RENOMBRAR
+ARCHIVO > ELIMINAR archivo
+Renombrar abre el teclado
+<BTN_A> escribe, <BTN_B> borra/sale
+Intro acepta, Esc cancela
+Ctrl+Z / Ctrl+Y historial
+
+EDITAR > CORTAR para mover
+EDITAR > COPIAR para copiar
+Ve a la carpeta de destino
+EDITAR > PEGAR lo deja aquí
+Carpetas: con su contenido
+No se sobrescriben nombres
+
+AJUSTES > RELOJ fija la hora
+AJUSTES > IDIOMA el idioma
+AYUDA controles del explorador
+REINICIAR reinicio completo

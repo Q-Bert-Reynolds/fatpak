@@ -28,13 +28,13 @@ static unsigned char NameChar(unsigned char c) {
   return c != '/' && c != 0x5C && c != ':' && c != '*' && c != '?' && c != '"' && c != '<' && c != '>' && c != '|';
 }
 
-// A null prompt edits name_row in the browser; other callers use the header.
+// NO_PROMPT edits name_row in the browser; other callers use the header, after the prompt string.
 // Returns 0 on cancel, 1 after editing, 2 when accepting an unchanged name.
-unsigned char AskName(char* value, const char* prompt) {
+unsigned char AskName(char* value, unsigned int prompt) {
   char name[FS_NAME_SIZE], text[TB_STRIDE + 1];
   char* end;
   unsigned int event;
-  unsigned char length, bytes, i, key, current = 0, first = 0, last = 0, changed = 0;
+  unsigned char length, bytes, fit, i, key, current = 0, first = 0, last = 0, changed = 0;
   length = (unsigned char)(ToLatin1(name, value, FS_NAME_SIZE - 1) - name);
   name[length] = 0;
   NameHistory(name, 0);
@@ -42,15 +42,17 @@ unsigned char AskName(char* value, const char* prompt) {
   NoHighlight();
   while (1) {
     for (length = bytes = 0; name[length]; ++length) bytes += (unsigned char)name[length] >= 0x80 ? 2 : 1;
-    end = prompt ? PutText(text, prompt) : text;
-    for (i = length > 31 ? length - 31 : 0; i < length; ++i) *end++ = name[i];
+    end = prompt != NO_PROMPT ? PutStr(text, prompt) : text;
+    fit = (unsigned char)(TB_STRIDE - 2 - (end - text)); // the name's last characters that fit, and the _
+    if (fit > 31) fit = 31;
+    for (i = length > fit ? length - fit : 0; i < length; ++i) *end++ = name[i];
     *end++ = '_';
     *end = 0;
-    if (!prompt) DrawRow(name_row, 1, text);
+    if (prompt == NO_PROMPT) DrawRow(name_row, 1, text);
     else {
       DrawRow(bars ? HEADER_LINE : 0, bars, text);
       if (bars && render_text) {
-        PutPath(PutText(text, "in "), file_dir, 28);
+        PutPath(PutStr(text, S_IN_FOLDER), file_dir, 28);
         DrawRow(STATUS_LINE, 1, text);
       }
     }
