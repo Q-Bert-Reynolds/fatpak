@@ -6,7 +6,7 @@
     {"name": "FILEINFO", "id": 3, "sources": ["info.c", "lib/text.c"]},
     {"name": "HELP", "id": 4, "sources": ["help.c"]},
     {"name": "THEME", "id": 5, "sources": ["theme.c", "lib/text.c"]},
-    {"name": "ASM", "id": 6, "sources": ["asm.c"], "sources2": ["asm_emit.c", "asm_pushs.c"], "sources3": ["asm_line.c", "asm_loop.c"], "sources4": ["asm_str.c", "asm_align.c"], "sources5": ["asm_sect.c", "asm_main.c", "asm_progress.c"]},
+    {"name": "ASM", "id": 6, "sources": ["asm.c"], "sources2": ["asm_emit.c", "asm_pushs.c", "asm_main.c"], "sources3": ["asm_line.c", "asm_loop.c"], "sources4": ["asm_str.c", "asm_align.c"], "sources5": ["asm_sect.c", "asm_progress.c", "asm_proj.c"]},
     {"name": "HEXVIEW", "id": 7, "sources": ["hexview.c", "lib/text.c"]},
     {"name": "TILEVIEW", "id": 8, "sources": ["tileview.c", "lib/text.c"]}
   ]

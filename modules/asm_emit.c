@@ -852,10 +852,23 @@ static const unsigned char logo[48] = {
   0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E};
 
 // logo, ROM size, header and global checksums (rgbfix -v): the image is the last word
+// project.gbp's rgbfix options: the bytes each sets, after the title, game ID and licensee
+static const unsigned char fix_at[7] = {0x4A, 0x43, 0x46, 0x4B, 0x47, 0x49, 0x4C};
 void Header(void) {
   unsigned int block, blocks = context->blocks, sum = 0, i;
-  unsigned char x = 0, code = 0;
+  unsigned char x = 0, code = 0, n;
+  if (fix.given & 0x80) { // -p: past the last bank, up to the power of two (Fill left it 0)
+    for (block = (unsigned int)(max_bank + 1) << 5; block < blocks; ++block) {
+      Window(ASM_IMAGE_BLOCK + block);
+      for (i = 0; i < 512; ++i) WINDOW[i] = fix.bytes[7];
+    }
+  }
   Window(ASM_IMAGE_BLOCK);
+  n = fix.id_n ? 11 : fix.given & 2 ? 15 : 16; // the title's room, as rgbfix truncates it
+  for (i = 0; i < fix.title_n && i < n; ++i) WINDOW[0x134 + i] = fix.title[i];
+  for (i = 0; i < fix.id_n; ++i) WINDOW[0x13F + i] = fix.id[i];
+  for (i = 0; i < fix.licensee_n; ++i) WINDOW[0x144 + i] = fix.licensee[i];
+  for (i = 0; i < 7; ++i) if (fix.given & (1 << i)) WINDOW[0x100 + fix_at[i]] = fix.bytes[i];
   for (i = 0; i < 48; ++i) WINDOW[0x104 + i] = logo[i];
   for (i = blocks >> 7; i; i >>= 1) ++code;
   WINDOW[0x148] = code;

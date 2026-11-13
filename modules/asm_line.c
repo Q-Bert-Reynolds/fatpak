@@ -345,9 +345,9 @@ void Pass(unsigned char p) {
   depth = 0;
   frames[0].kind = F_TEXT;
   frames[0].source = SRC_TEXT;
-  frames[0].file = 0;
-  frames[0].pos = 0;
-  frames[0].end = context->length;
+  frames[0].file = main_file; // project.gbp's main, or the document
+  frames[0].pos = main_file ? main_at : 0;
+  frames[0].end = main_file ? main_end : context->length;
   frames[0].line = 1;
   chunk_n = 0;
   arg_top = if_depth = 0;
@@ -372,10 +372,13 @@ void Report(unsigned int file, unsigned int line, Pos at) {
   c->file = file;
   c->line = line;
   c->pos = (unsigned int)at;
+  c->base = 0;
   if (!file) return;
   e = Entry(file);
   n = e[10];
-  for (i = 0; i < n; ++i) if (e[11 + i] == '/') from = i + 1;
-  for (i = 0; from < n && i < sizeof(c->name) - 1; ++i) c->name[i] = e[11 + from++];
+  if (n > sizeof(c->name) - 1) from = n - (sizeof(c->name) - 1); // the path's end
+  for (i = 0; from < n; ++i) {
+    if ((c->name[i] = e[11 + from++]) == '/') c->base = i + 1;
+  }
   c->name[i] = 0;
 }

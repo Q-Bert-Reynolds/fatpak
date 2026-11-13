@@ -8,10 +8,18 @@ typedef struct {
   unsigned int blocks; // out: the ROM image's size in 512-byte blocks from ASM_IMAGE_BLOCK
   unsigned int symbols; // out: labels, constants, macros and includes defined
   unsigned int file;   // out: 0 the document, else the included file's symbol
-  char name[65];       // out: then its name, without folders (FS_NAME_SIZE)
+  char name[65];       // out: then its path as written (the last 64 characters; FS_NAME_SIZE), or after a
+                       // project build, the ROM's path from the project's folder
+  unsigned char base;  // out: name + base is the file's name without folders
+  unsigned char kind;  // in: ASM_DOC if the document is assembly; out: ASM_PROJECT too if project.gbp built it
   unsigned char pass;  // progress (ModProgress(0), while it runs): the pass, file, name and line above,
   unsigned int progress; // and pass 1's lines in thousands or pass 2's percent
 } AsmContext;
+
+#define ASM_DOC     1
+#define ASM_PROJECT 2
+#define ASM_PROJECT_FILE "project.gbp" // BUILD's project: the nearest one in the document's folder or above
+#define ASM_NOT_ASM 0xFF // module_status: no project, and the document isn't assembly
 
 // ModuleMain's result (module_status), 0 when the image is complete
 #define ASM_ERR_SYNTAX      1

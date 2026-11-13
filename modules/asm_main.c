@@ -23,7 +23,12 @@ unsigned char Main(void) {
   Builtin(version_minor, 0);
   Builtin(version_patch, 1);
   nsects = 0;
-  Pass(1);
+  main_file = 0;
+  fix.given = fix.title_n = fix.licensee_n = fix.id_n = 0;
+  output[0] = 0;
+  if (Project()) context->kind |= ASM_PROJECT;
+  else if (!(context->kind & ASM_DOC)) return ASM_NOT_ASM;
+  if (!error) Pass(1);
   if (!error && !rom_used) Fail(ASM_ERR_EMPTY);
   if (!error && (i = Link()) != NO_SECT) { // reported at the section that doesn't fit
     SectCopy(i, 0);
@@ -45,5 +50,6 @@ unsigned char Main(void) {
   for (f = &frames[depth], i = 0; f > frames && (f->kind == F_MACRO || f->kind == F_ARG || f->file == FILE_EXPANSION); --f)
     if (f->kind == F_MACRO) i = 1;
   Report(f->file, f->line - i, f->file ? frames[0].line_pos : f->line_pos);
+  if (!error && main_file) for (i = 0; (context->name[i] = output[i]) != 0; ++i);
   return error;
 }

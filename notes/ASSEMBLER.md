@@ -39,6 +39,32 @@ assemble byte-identical to RGBDS, unmodified (`memory1.asm` calls
   included file may end without a line feed.
 - `INCBIN` finds files the same way; it and `INCLUDE` share the 16 slots, and
   a file used twice is read once.
+- **Projects.** A `project.gbp` in the document's folder or any folder above it
+  (the nearest wins) makes BUILD and RUN build the project instead, from any
+  file in it (a `.md` too), and from `project.gbp` itself:
+
+  ```
+  ; beisbol, as its Makefile builds it
+  main   src/main.asm
+  output beisbol.gb
+  rgbasm -D _DEMO -D LANG_EN
+  rgbfix -jvcs -k 01 -l 0x33 -m 0x1B -p 255
+  ```
+
+  `main` and `output` are paths from the project's folder; `output` defaults to
+  main's path as `.gb`. Includes are tried from the project's folder first, as
+  `rgbasm` resolves them when a Makefile runs it there. The `rgbasm` and `rgbfix`
+  lines take those tools' options: `-D NAME[=VALUE]` (an `EQUS`, `"1"` without a
+  value) and `-W...` (ignored); `-v -j -c -C -s` and `-k -l -m -n -p -r -t -i`,
+  with the value in the same word or the next, numbers as `$1B`, `0x1B`, `0b11`
+  or decimal (`-m` takes numbers, not MBC names). The logo, ROM size and
+  checksums are always fixed. Anything else is NOT SUPPORTED at its line, `;`
+  starts a comment, a word may be quoted, and the keywords are case-insensitive.
+  An error goes in the box with its file and line; the cursor moves to it when
+  it's in the open document (`project.gbp` included), and stays otherwise.
+  `.gbp` files are highlighted like assembly with their four words as
+  directives. Without a project, BUILD on anything but assembly says NOT AN ASM
+  FILE (after the module looked for one).
 - Samples: `tests/asm/` (`hello.asm`, `features.asm`, `strings.asm`,
   `loops.asm`, with `lib/`). The card's `Asm` folder has those plus `math.asm`,
   `gbdk.asm`, `memory1.asm` and `hardware.inc`.
@@ -147,20 +173,28 @@ earlier in pass 2 (a mark bit per symbol), so include guards work.
   block from the bank and address. Image, symbols, heap, charmaps and files are
   inside the large-file add buffer, which is unused while a text-buffer document
   is open.
+- **Projects** (`modules/asm_proj.c`): `Main` loads `project.gbp` through the
+  host's search (the first file found sets `file_level`, the folder later
+  searches try first and `BuildFile` takes the project's folder from), reads it
+  as a frame with the lexer's own helpers, loads main as an included file that
+  becomes frame 0 of both passes, defines the `-D` strings before them, and
+  `Header` applies the `rgbfix` bytes. The context reports the error file's path
+  as written (`name`, with `base` at its file name) and, on success, the output.
 - **Pages.** A five-page wide module ([MODULES.md](MODULES.md)):
   `modules/asm.c` (page 13: the stream, words, expressions, word tables, a
-  `ModuleMain` that calls `Main`), `modules/asm_emit.c` with `asm_pushs.c`
-  (page 12: 32-bit arithmetic, symbol table, relocation, instruction encoders,
-  image fill and header; `PUSHS`/`POPS`), `modules/asm_line.c` with `asm_loop.c`
+  `ModuleMain` that calls `Main`), `modules/asm_emit.c` with `asm_pushs.c` and
+  `asm_main.c` (page 12: 32-bit arithmetic, symbol table, relocation, instruction
+  encoders, image fill and header; `PUSHS`/`POPS`; the passes), `modules/asm_line.c` with `asm_loop.c`
   (page 5: lines, operands, directives, `IF`/`REPT`/`MACRO`, the error report;
   `FOR`, opening files, `INCLUDE`, `INCBIN`), `modules/asm_str.c` with
   `asm_align.c` (page 4: `EQUS`, string functions, `{}`, charmaps; closing a
-  section, `DS ALIGN`'s arithmetic) and `modules/asm_sect.c` with `asm_main.c`
-  and `asm_progress.c` (page 15: sections and `Link`; the passes; progress).
+  section, `DS ALIGN`'s arithmetic) and `modules/asm_sect.c` with
+  `asm_progress.c` and `asm_proj.c` (page 15: sections and `Link`; progress;
+  `project.gbp`).
   Calls between pages cost a far call each; pointers never cross: each page's
   constants are read by its own code; `modules/asm_shared.h` lists what is shared
   (globals are WRAMX BSS, readable from all five). Free bytes: page 13 ~320,
-  12 ~1,480, 5 ~930, 4 ~520, 15 ~2,950 (with `jr` for every jump in range,
+  12 ~170, 5 ~800, 4 ~520, 15 ~1,000 (with `jr` for every jump in range,
   `modules/peephole_jr.def`).
 - **32-bit arithmetic** is hand-written assembly on the device: SDCC's `long`
   code took `Apply` alone to 1.6 KB. `Apply` (every binary operator) and `Div`
@@ -264,7 +298,9 @@ from `asm_line.c` on page 5 to the lexer on page 13: `Space`, `Keyword`, `Line`,
   in floating, aligned, fixed and RAM sections, `ALIGN` offsets); `values.asm`
   (32-bit constants, `DL`, beisbol's `D24`/`D32`, signed `/` `%` and shifts at
   their edges, comparisons, 16.16 literals, `FOR` past 16 bits, `{}` formats of
-  32-bit values), 150 random
+  32-bit values); projects (`project.gbp` with defines and rgbfix options,
+  built from a markdown file two folders down, against `rgbasm`/`rgbfix` with
+  the same options; ten errors at their lines), 150 random
   section layouts (with fragments, offsets and `DS ALIGN`) whose labels and banks
   go in a fixed table, and 400 ROMX sections. Then each error code's line and
   position.
@@ -273,7 +309,10 @@ from `asm_line.c` on page 5 to the lexer on page 13: `Space`, `Keyword`, `Line`,
   the editor view restored, timing), an error (line and cursor, no `.gb`), BUILD
   on a `.txt`, FILE > RUN up to `GameLaunch`, `features.asm`, `strings.asm`,
   `loops.asm`, `charmap.asm`, `sections.asm` and `values.asm` (the assembly
-  arithmetic) with the `lib/` folder matching RGBDS, an error inside an included
+  arithmetic) with the `lib/` folder matching RGBDS, `tests/asm/project` built
+  from a markdown file (its ROM as `rgbasm`/`rgbfix` make it with the same
+  options), errors in an included open document and in `project.gbp` (box,
+  cursor), its highlighting, an error inside an included
   file, and `gbdk.asm` with `memory1.asm` and `hardware.inc` unmodified.
 
 ## beisbolgb
@@ -300,10 +339,13 @@ two-line prelude and limits raised) worked through it as far as it could:
 | `SECTION FRAGMENT` | 13, C output (`_announcer.asm`) | done |
 | `PUSHS`/`POPS` | 6 | done |
 | 32-bit values | `D24`, `D32` (item costs) | done |
-| `-D` defines, `rgbfix` options | `_DEMO`, `LANG_EN`; `-jvcs -k 01 -l 0x33 -m 0x1B -p 255` | **to do**: a per-project setting |
-| Speed | ~1.8 MB read per pass | **to do**: 39 minutes on CGB in Gearboy (over an hour on DMG) |
+| `-D` defines, `rgbfix` options | `_DEMO`, `LANG_EN`; `-jvcs -k 01 -l 0x33 -m 0x1B -p 255` | done: `project.gbp` |
+| Speed | ~1.8 MB read per pass | **to do**: 42 minutes on CGB in Gearboy (over an hour on DMG) |
 
-With sections and 32-bit values done, the PC harness assembles an unmodified
+With a `project.gbp` (the one under Using it) beside an unmodified copy, the
+PC harness builds it from any file in it byte for byte as the Makefile's `rgbasm`
+and `rgbfix` do. Before that, with sections and 32-bit values done, the PC
+harness assembled an unmodified
 copy (only the two defines added at the top of `main.asm`) in both passes: a
 512 KiB ROM, 12,634 symbols, byte for byte what `rgbasm -D _DEMO -D LANG_EN` and
 `rgbfix -v -p 0` make. In Gearboy (CGB), FILE > BUILD on the same

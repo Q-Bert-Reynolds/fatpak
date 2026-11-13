@@ -1,0 +1,2 @@
+DEF Root EQU 1
+DEF Other EQU 2

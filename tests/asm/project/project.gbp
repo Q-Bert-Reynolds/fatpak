@@ -1,0 +1,5 @@
+; FILE > BUILD from any file in this folder or below builds lib/main.asm (tests/run_build.sh)
+main   lib/main.asm
+output game.gb
+rgbasm -D _DEMO -D LANG=3
+rgbfix -jvcs -k 01 -l 0x33 -m 0x1B -p 255 -t PROJECT

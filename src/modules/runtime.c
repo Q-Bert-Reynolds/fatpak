@@ -56,7 +56,8 @@ static void Unrecoverable(void) {
 #define PROGRESS_FRAMES 300 // ModProgress draws at most every 5 s: each costs about 30 frames on DMG
 static unsigned int progress_at; // render_frames when the module started or ModProgress last drew
 static unsigned char module_ie; // RunModule: the interrupts outside the module (a wide one runs with the LCD's only)
-static unsigned char file_level; // ModFile/ModLoad: the folder level (characters of file_dir) that last found one, 0xFF none yet
+unsigned char file_level; // ModFile/ModLoad: the folder level (characters of file_dir) that found the first one
+// (ASM.MOD's project.gbp: BuildFile reads it after), tried first; 0xFF none yet
 unsigned char RunModule(const char* path, unsigned char id) {
   unsigned char result, pages = 0, buffers = 0, i, ie; // pages backed up (each is restored), the buffers saved
   unsigned int window = WINDOW_BLOCK; // modules may move it
@@ -271,7 +272,10 @@ static unsigned char FileSearch(const char* path, ModuleLoad* load) {
   end = n;
   if (file_level <= end && (result = FileTry(file_level, path, load)) != 1) return result;
   while (1) {
-    if (n != file_level && (result = FileTry(n, path, load)) != 1) { file_level = n; return result; }
+    if (n != file_level && (result = FileTry(n, path, load)) != 1) {
+      if (file_level == 0xFF) file_level = n;
+      return result;
+    }
     if (!n) break;
     while (n && file_dir[--n] != '/'); // up a folder
   }

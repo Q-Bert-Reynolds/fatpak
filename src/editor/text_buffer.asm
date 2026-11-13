@@ -1540,7 +1540,7 @@ TBLexCode:
   ld a, [_tb_lang]
   cp a, LANG_ASM
   ld a, c
-  jr z, .asm
+  jr nc, .asm;project files lex as asm
   cp a, '#'
   jr nz, .notHash
   bit CODE_BLANK, d
@@ -1606,7 +1606,7 @@ TBLexCode:
   jr nz, .startWord
   ld a, [_tb_lang]
   cp a, LANG_ASM
-  jr nz, .startWord
+  jr c, .startWord
   bit CODE_LINE, d;asm labels start at column 0, or are local (.label) and start the line
   jr nz, .label
   bit CODE_BLANK, d
@@ -1651,7 +1651,7 @@ TBIsCodeWord:
   ret z
   ld a, [_tb_lang]
   cp a, LANG_ASM
-  jr nz, .no
+  jr c, .no
   ld a, c
   cp a, '.'
   scf
@@ -1696,7 +1696,7 @@ TBPeekWord:
     ld a, [_tb_lang]
     cp a, LANG_ASM
     ld a, c
-    jr nz, .store
+    jr c, .store
     cp a, 'A'
     jr c, .store
     cp a, 'Z'+1
@@ -2796,6 +2796,8 @@ KeywordLookup:;returns the style << 4 of tb_word ([tb_word_len] chars) in a, 0 i
   cp a, LANG_ASM
   ld hl, KeywordsAsm
   jr z, .table
+  ld hl, KeywordsProject
+  jr nc, .entry;project.gbp's few words are one list
   ld hl, KeywordsC
 .table
   ld a, [tb_word]

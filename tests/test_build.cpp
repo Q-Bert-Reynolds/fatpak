@@ -86,6 +86,7 @@ struct Session {
         memory = core.GetMemory(); syms = Symbols(symbols); tiles = syms.at("tile_buffer");
         pad(Down_Key); if (!includes.empty()) pad(Down_Key);
         pad(A_Key); Frames(core, 60); // GBCSYS, lib, then the file
+        if (row(18).find(name) == std::string::npos) for (unsigned r = 0; r < 20; ++r) fprintf(stderr, "%2u|%s\n", r, row(r).c_str());
         Check(row(18).find(name) != std::string::npos, "source opens in the editor");
     }
     void pad(Gameboy_Keys key) { core.KeyPressed(key); Frames(core, 4); core.KeyReleased(key); Frames(core, 70); }
@@ -247,8 +248,47 @@ static void Library(const char* image, const char* symbols, const char* data, co
     printf("%s gbdk.asm with memory1.asm and hardware.inc: %u frames, %u box updates\n", color ? "CGB" : "DMG", frames, s.progress);
 }
 
+// project.gbp (tests/asm/project): BUILD from any file builds its main with its rgbasm and rgbfix
+// options; an error goes to its line when it's in the open document
+static void Project(const char* image, const char* symbols, const char* data, const std::string& dir, const char* expected, bool color) {
+    std::string project = Text(dir + "/project.gbp"), root = Text(dir + "/Base.asm");
+    std::map<std::string, std::string> lib = {{"main.asm", Text(dir + "/lib/main.asm")}, {"part.asm", Text(dir + "/lib/part.asm")}};
+    {
+        Session s(image, symbols, data, color, "About.md", "# not assembly\n", lib, {{"project.gbp", project}, {"Base.asm", root}});
+        unsigned frames = s.command(4, "Built ");
+        if (s.lines() != "game.gb|Built 32 KB") fprintf(stderr, "box: \"%s\"\n", s.lines().c_str());
+        Check(s.lines() == "game.gb|Built 32 KB", "BUILD in a markdown file builds the project");
+        Check(Read(s.root + "/game.gb") == Read(expected), "the project's ROM matches rgbasm and rgbfix with its options");
+        s.pad(A_Key);
+        printf("%s project.gbp builds from About.md: %u frames\n", color ? "CGB" : "DMG", frames);
+    }
+    {
+        const std::string bad = root + "DEF Bad EQU Later\n"; // line 3, in the open document
+        Session s(image, symbols, data, color, "Base.asm", bad, lib, {{"project.gbp", project}});
+        s.command(4, "Line 3");
+        if (s.lines() != "Base.asm|Line 3|NOT YET DEFINED") fprintf(stderr, "box: \"%s\"\n", s.lines().c_str());
+        Check(s.lines() == "Base.asm|Line 3|NOT YET DEFINED", "a project's error names the included file");
+        Check(s.word("_cursor") == bad.find("DEF Bad"), "the cursor goes to the line in the open document");
+        s.pad(A_Key);
+    }
+    {
+        const std::string bad = "main lib/main.asm\nrgbfix -x\n";
+        Session s(image, symbols, data, color, "project.gbp", bad, lib); // it fails before any pass reads Base.asm
+        unsigned attrs = s.syms.at("tile_attrs"); // "main" is a keyword (STYLE_PREPROC), its path isn't
+        if (s.memory->Read(attrs) >> 4 != 13) fprintf(stderr, "styles %02x %02x\n", s.memory->Read(attrs), s.memory->Read(attrs + 5));
+        Check(s.memory->Read(attrs) >> 4 == 13 && s.memory->Read(attrs + 5) >> 4 != 13, "project.gbp's words are highlighted");
+        s.command(4, "Line 2");
+        if (s.lines() != "project.gbp|Line 2|NOT SUPPORTED") fprintf(stderr, "box: \"%s\"\n", s.lines().c_str());
+        Check(s.lines() == "project.gbp|Line 2|NOT SUPPORTED", "an error in project.gbp is reported at its line");
+        Check(s.word("_cursor") == bad.find("rgbfix"), "the cursor goes to project.gbp's line");
+        Check(access((s.root + "/lib/main.gb").c_str(), F_OK) != 0, "no ROM is written");
+        s.pad(A_Key);
+    }
+    printf("%s project errors passed\n", color ? "CGB" : "DMG");
+}
+
 int main(int argc, char** argv) {
-    Check(argc == 10, "usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT hello.asm hello.gb tests/asm features.gb src gbdk.gb");
+    Check(argc == 11, "usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT hello.asm hello.gb tests/asm features.gb src gbdk.gb project.gb");
     for (int color = 0; color < 2; ++color) {
         Build(argv[1], argv[2], argv[3], argv[4], argv[5], color);
         Errors(argv[1], argv[2], argv[3], color);
@@ -258,5 +298,6 @@ int main(int argc, char** argv) {
         for (const char* name : {"features", "strings", "loops", "charmap", "sections", "values"}) Sample(argv[1], argv[2], argv[3], argv[6], work, name, color);
         IncludeError(argv[1], argv[2], argv[3], color);
         Library(argv[1], argv[2], argv[3], argv[8], argv[9], color);
+        Project(argv[1], argv[2], argv[3], argv[6] + std::string("/project"), argv[10], color);
     }
 }

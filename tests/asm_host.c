@@ -52,14 +52,17 @@ void ModProgress(const char* text) { // ASM_PROGRESS=1 prints each one, as build
   else fprintf(stderr, "Pass %d: %d%s|%s|line %d\n", c->pass, c->progress, c->pass == 1 ? "k lines" : "%",
                c->file ? c->name : "(the document)", c->line);
 }
+static int first_level = -1; // the folder that found the first file (project.gbp's): searched first, like the OS
 unsigned char ModLoad(const char* path, ModuleLoad* load) {
   unsigned n = strlen(source_dir), end = n;
-  unsigned char result;
+  unsigned char result = 1;
   const char* base = strrchr(path, '/');
-  while ((result = Load(path, n, load)) == 1 && n) {
+  if (first_level >= 0) result = Load(path, first_level, load);
+  while (result == 1 && (result = Load(path, n, load)) == 1 && n) {
     --n; // past the folder's own slash, to the one before it
     while (n && source_dir[n - 1] != '/') --n;
   }
+  if (!result && first_level < 0) first_level = n;
   if (result == 1 && base) result = Load(base + 1, end, load);
   if (getenv("ASM_HOST_FILES")) fprintf(stderr, "%u %s (%lu bytes at block %u)\n", ++files, path, load->size, load->block);
   return result;
@@ -73,11 +76,13 @@ int main(int argc, char** argv) {
   { const char* slash = strrchr(argv[1], '/'); if (slash) snprintf(source_dir, sizeof(source_dir), "%.*s", (int)(slash - argv[1] + 1), argv[1]); }
   fseek(f, 0, SEEK_END); source_len = ftell(f); fseek(f, 0, SEEK_SET);
   c.length = (unsigned short)source_len;
+  c.kind = strstr(argv[1], ".asm") || strstr(argv[1], ".inc") ? ASM_DOC : 0;
   source = malloc(source_len + 1);
   fread(source, 1, source_len, f); fclose(f);
   progress_context = &c;
   status = ModuleMain(&c);
-  printf("%u %u %u %u %u %u %s\n", status, c.line, c.pos, c.blocks, c.symbols, c.file, c.file ? c.name : "");
+  printf("%u %u %u %u %u %u %s\n", status, c.line, c.pos, c.blocks, c.symbols, c.file,
+         c.kind & ASM_PROJECT && !status ? c.name : c.file ? c.name + c.base : "");
   if (!status && argc > 2) {
     f = fopen(argv[2], "wb");
     fwrite(psram + 0x0400ul * 512, 512, c.blocks, f);

@@ -164,6 +164,7 @@
 #define LANG_MD      1
 #define LANG_C       2//.c, .h
 #define LANG_ASM     3//.asm, .inc, .s (RGBDS)
+#define LANG_PROJECT 4//project.gbp: FILE > BUILD's project (modules/asm_proj.c), lexed as asm
 #define PATH_SIZE    128//the open file's folder (file_dir)
 #define FS_NAME_SIZE 65//src/fatfs/file_api.h
 

@@ -23,8 +23,8 @@ char file_dir[PATH_SIZE]; // its folder, "" = root, new text is saved here too
 
 #define NAME_CHARS     (FS_NAME_SIZE - 1)
 
-static const char * const lang_exts[] = { "md", "c", "h", "asm", "inc", "s" };
-static const unsigned char lang_ids[] = { LANG_MD, LANG_C, LANG_C, LANG_ASM, LANG_ASM, LANG_ASM };
+static const char * const lang_exts[] = { "md", "c", "h", "asm", "inc", "s", "gbp" };
+static const unsigned char lang_ids[] = { LANG_MD, LANG_C, LANG_C, LANG_ASM, LANG_ASM, LANG_ASM, LANG_PROJECT };
 
 // returns 1 if there are no unsaved changes or the user wants to lose them
 unsigned char CanDiscard(void) {
@@ -44,7 +44,7 @@ unsigned char FileLanguage(const char* name) {
 
 void SetLang(void) {
   unsigned char i, lang = FileLanguage(file_name);
-  font = lang == LANG_C || lang == LANG_ASM ? FONT_FIXED : FONT_VWF;
+  font = lang >= LANG_C ? FONT_FIXED : FONT_VWF; // code, asm and project.gbp
   if (lang == tb_lang) return;
   tb_lang = lang;
   tb_ResetChecks();

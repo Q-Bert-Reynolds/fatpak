@@ -239,6 +239,20 @@ void Statement(void);
 void DefineValue(unsigned char kind, Val v); // name gets v
 void Repeat(unsigned int n, unsigned int unit, Val step); // the body after this line n times
 unsigned int OpenFile(void); // INCLUDE and INCBIN's "path": its symbol, 0 if it failed; sets file_at, file_size
+// asm_proj.c: project.gbp
+typedef struct {
+  char title[16], licensee[2], id[4]; // rgbfix -t, -k, -i: only their own characters are written
+  unsigned char title_n, licensee_n, id_n;
+  unsigned char bytes[8]; // -j $14A, -c/-C $143, -s $146, -l $14B, -m $147, -r $149, -n $14C, -p the padding
+  unsigned char given; // a bit for each of bytes[]
+} Fix;
+extern Fix fix;
+extern char output[65]; // the ROM's path from the project's folder
+extern unsigned int main_file; // main's symbol, 0 to assemble the document
+extern Pos main_at, main_end;
+unsigned char Project(void);
+unsigned int LoadPath(void); // the same for path[], 0 with file_error if it can't be read
+extern unsigned char file_error;
 extern Pos file_at, file_size;
 extern unsigned int file_top; // the next free block from ASM_FILE_BLOCK
 void StepVar(unsigned int unit, Val step); // asm_emit.c: FOR's variable moves on

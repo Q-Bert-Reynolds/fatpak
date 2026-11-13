@@ -1,0 +1,1 @@
+DEF Part EQU $42

@@ -1,7 +1,6 @@
 # Priority
 
-- Assembler: build beisbolgb on the device ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): per-project defines and rgbfix options, and speed (42 min CGB in Gearboy, over an hour on DMG).
-- move keyboard handlers into module, select keyboard type from settings
+- Assembler: build beisbolgb on the device faster ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): 42 min CGB in Gearboy, over an hour on DMG.
 
 # Rendering
 

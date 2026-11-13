@@ -348,3 +348,10 @@ KeywordsAsm26:
   DB 1, STYLE_TYPE << 4, "z"
   DB 0
 KeywordsAsmNone: DB 0
+
+KeywordsProject:
+  DB 4, STYLE_PREPROC << 4, "main"
+  DB 6, STYLE_PREPROC << 4, "output"
+  DB 6, STYLE_PREPROC << 4, "rgbasm"
+  DB 6, STYLE_PREPROC << 4, "rgbfix"
+  DB 0

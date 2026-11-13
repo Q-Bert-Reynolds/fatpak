@@ -56,28 +56,21 @@ void Incbin(void) {
 
 Pos file_at, file_size;
 unsigned int file_top;
-unsigned int OpenFile(void) {
-  unsigned char i;
+unsigned char file_error;
+// path[], read whole into PSRAM once (in pass 1): its symbol (the path's last NAME_MAX
+// characters; its first block and size), and file_at, file_size. 0 if it can't be, with
+// file_error ASM_ERR_FILE or ASM_ERR_FULL.
+unsigned int LoadPath(void) {
+  unsigned char i = 0;
   ModuleLoad load;
-  Space();
-  if (ch != '"') { Fail(ASM_ERR_SYNTAX); return 0; }
-  Advance();
-  for (i = 0; ch != '"'; Advance()) {
-    if (ch == 0 || ch == 10 || i == sizeof(path) - 1) { Fail(ASM_ERR_STRING); return 0; }
-    if (ch == '/' && i == 1 && path[0] == '.') { i = 0; continue; } // a leading "./": FatFs has no relative names
-    path[i++] = ch;
-  }
-  path[i] = 0;
-  Advance();
-  // the path (its last NAME_MAX characters) is its symbol: its first block and size. Each
-  // file is read once, in pass 1.
+  while (path[i]) ++i;
   i = i > NAME_MAX ? i - NAME_MAX : 0;
   for (ident_len = 0; (ident[ident_len] = path[i++]) != 0; ++ident_len);
   if (!Find()) {
     load.block = file_top;
     load.blocks = ASM_FILE_END - file_top;
     i = ModLoad(path, &load);
-    if (i) { Fail(i == 1 ? ASM_ERR_FILE : ASM_ERR_FULL); return 0; }
+    if (i) { file_error = i == 1 ? ASM_ERR_FILE : ASM_ERR_FULL; return 0; }
     sym_value = file_top;
     sym_bank = (unsigned char)(load.size >> 16);
     sym_extra = (unsigned int)load.size;
@@ -88,6 +81,23 @@ unsigned int OpenFile(void) {
   file_at = ADDRESS(sym_value);
   file_size = sym_extra | (Pos)sym_bank << 16;
   return found;
+}
+// INCLUDE and INCBIN's "path"
+unsigned int OpenFile(void) {
+  unsigned char i;
+  unsigned int file;
+  Space();
+  if (ch != '"') { Fail(ASM_ERR_SYNTAX); return 0; }
+  Advance();
+  for (i = 0; ch != '"'; Advance()) {
+    if (ch == 0 || ch == 10 || i == sizeof(path) - 1) { Fail(ASM_ERR_STRING); return 0; }
+    if (ch == '/' && i == 1 && path[0] == '.') { i = 0; continue; } // a leading "./": FatFs has no relative names
+    path[i++] = ch;
+  }
+  path[i] = 0;
+  Advance();
+  if (!(file = LoadPath()) && !error) Fail(file_error);
+  return file;
 }
 void Include(void) {
   unsigned int file = OpenFile();

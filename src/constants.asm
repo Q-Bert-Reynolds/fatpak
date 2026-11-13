@@ -161,6 +161,7 @@ DEF LANG_PLAIN   EQU 0;how text is styled, from the file name's extension
 DEF LANG_MD      EQU 1
 DEF LANG_C       EQU 2;.c, .h
 DEF LANG_ASM     EQU 3;.asm, .inc, .s (RGBDS)
+DEF LANG_PROJECT EQU 4;project.gbp: FILE > BUILD's project (modules/asm_proj.c), lexed as asm
 DEF PATH_SIZE    EQU 128;the open file's folder (file_dir)
 DEF FS_NAME_SIZE EQU 65;src/fatfs/file_api.h
 

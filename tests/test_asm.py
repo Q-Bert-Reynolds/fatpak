@@ -169,7 +169,8 @@ def main():
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '8.o', str(ROOT / 'modules/asm_pushs.c')])
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '9.o', str(ROOT / 'modules/asm_align.c')])
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '10.o', str(ROOT / 'modules/asm_progress.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c')] + [str(HOST) + suffix + '.o' for suffix in ('', '2', '3', '4', '5', '6', '7', '8', '9', '10')])
+    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '11.o', str(ROOT / 'modules/asm_proj.c')])
+    run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c')] + [str(HOST) + suffix + '.o' for suffix in ('', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11')])
     failed = 0
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
@@ -210,6 +211,7 @@ def main():
         failed += large(work)
         failed += sections(work)
         failed += many(work)
+        failed += projects(work)
         for source, name, line in ERRORS:
             status, got, pos, _ = ours(source, work)
             if name is None:
@@ -221,6 +223,80 @@ def main():
                 print(f'error case {name!r}: pos {pos} is not the start of line {line}'); failed += 1
     print('asm: ' + ('%d FAILED' % failed if failed else 'all cases match RGBDS'))
     sys.exit(1 if failed else 0)
+
+PROJECT_MAIN = """INCLUDE "src/part.asm"
+SECTION "head", ROM0[$100]
+  nop
+  jp Start
+  ds $4C, 0
+SECTION "main", ROM0[$150]
+Start:
+  ld a, LANG
+IF DEF(_DEMO)
+  db STRLEN("{_DEMO}"), Part
+ELSE
+  db Part
+ENDC
+SECTION "far", ROMX, BANK[2]
+  db "far"
+"""
+# project.gbp: BUILD from any file below it assembles main with the defines, and fixes the
+# header as rgbfix would with the same options
+PROJECTS = [ # project.gbp, rgbasm options, rgbfix options, output
+    ('; beisbol\'s\nmain src/main.asm\noutput game.gb\nrgbasm -D _DEMO -D LANG=3\nrgbfix -jvcs -k 01 -l 0x33 -m 0x1B -p 255\n',
+     ['-D', '_DEMO', '-D', 'LANG=3'], ['-jvcs', '-k', '01', '-l', '0x33', '-m', '0x1B', '-p', '255'], 'game.gb'),
+    ('MAIN "src/main.asm" ; quoted, upper case\nRGBASM -DLANG=$22 -Wno-obsolete\nrgbfix -C -t ABCDEFGHIJKLMNOPQ -i GAME -r 2 -n 1 -p0x10 -m $1B\n',
+     ['-DLANG=$22'], ['-C', '-t', 'ABCDEFGHIJKLMNOPQ', '-i', 'GAME', '-r', '2', '-n', '1', '-p', '0x10', '-m', '0x1B'], 'src/main.gb'),
+    ('main src/main.asm\nrgbasm -D LANG=1 -D _DEMO=yes\nrgbfix -c -t "MY GAME TITLE IS LONG" -k X -m 0b11\n',
+     ['-D', 'LANG=1', '-D', '_DEMO=yes'], ['-c', '-t', 'MY GAME TITLE IS LONG', '-k', 'X', '-m', '0b11', '-p', '0'], 'src/main.gb'),
+]
+PROJECT_ERRORS = [ # project.gbp, error, line
+    ('main src/main.asm\nrgbfix -x\n', 'UNSUPPORTED', 2),
+    ('main src/main.asm\nrgbasm -o x.o\n', 'UNSUPPORTED', 2),
+    ('main src/nothere.asm\n', 'FILE', 1),
+    ('output a.gb\n', 'FILE', None),
+    ('main src/main.asm\nrgbfix -l 300\n', 'RANGE', 2),
+    ('main src/main.asm\nrgbfix -m MBC5+RAM\n', 'UNSUPPORTED', 2),
+    ('main src/main.asm\nrgbfix -t\n', 'SYNTAX', 2),
+    ('build src/main.asm\n', 'UNSUPPORTED', 1),
+    ('main src/main.asm\nrgbasm D_DEMO\n', 'SYNTAX', 2),
+    ('main src/bad.asm\n', 'SYMBOL', 3),
+]
+def projects(work):
+    failed = 0
+    root = work / 'proj'
+    (root / 'src').mkdir(parents=True, exist_ok=True)
+    (root / 'notes').mkdir(exist_ok=True)
+    (root / 'src/main.asm').write_text(PROJECT_MAIN)
+    (root / 'src/part.asm').write_text('DEF Part EQU $42\n')
+    (root / 'src/bad.asm').write_text('SECTION "a", ROM0\n nop\n jp Nowhere\n')
+    (root / 'notes/readme.md').write_text('# not assembly\n')
+    for number, (project, asm_options, fix, output) in enumerate(PROJECTS):
+        (root / 'project.gbp').write_text(project)
+        # from a markdown file two folders down: the project builds all the same
+        out = run([str(HOST), str(root / 'notes/readme.md'), str(work / 'ours.gb')]).stdout.split()
+        if out[0] != '0' or out[6] != output:
+            print(f'project {number}: FAIL {NAMES.get(int(out[0]), out[0])} line {out[1]} {out[6:]}'); failed += 1; continue
+        run(['rgbasm'] + asm_options + ['-o', str(work / 'p.o'), 'src/main.asm'], cwd=root)
+        run(['rgblink', '-o', str(work / 'p.gb'), str(work / 'p.o')])
+        done = subprocess.run(['rgbfix', '-v'] + fix + [str(work / 'p.gb')], capture_output=True, text=True)
+        mine, expected = (work / 'ours.gb').read_bytes(), (work / 'p.gb').read_bytes()
+        if done.returncode or mine != expected:
+            diffs = [i for i in range(min(len(mine), len(expected))) if mine[i] != expected[i]]
+            print(f'project {number}: FAIL sizes {len(mine)} {len(expected)}, differences at {[hex(i) for i in diffs[:8]]}'); failed += 1
+        else:
+            print(f'project {number}: {len(mine)} bytes match, {output}')
+    for project, name, line in PROJECT_ERRORS:
+        (root / 'project.gbp').write_text(project)
+        out = run([str(HOST), str(root / 'src/part.asm'), str(work / 'ours.gb')]).stdout.split()
+        want = 'bad.asm' if name == 'SYMBOL' else 'project.gbp'
+        if int(out[0]) != CODES[name] or (line and int(out[1]) != line) or out[6:] != [want]:
+            print(f'project error {project!r}: got {NAMES.get(int(out[0]), out[0])} line {out[1]} {out[6:]}'); failed += 1
+    (root / 'project.gbp').unlink()
+    out = run([str(HOST), str(root / 'notes/readme.md'), str(work / 'ours.gb')]).stdout.split()
+    if out[0] != '255': print(f'no project, not assembly: FAIL got {out[0]}'); failed += 1
+    print(f'projects: {len(PROJECTS)} builds and {len(PROJECT_ERRORS)} errors checked')
+    return failed
 
 if __name__ == '__main__':
     main()

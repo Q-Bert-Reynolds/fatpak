@@ -27,8 +27,11 @@ cp "$fatpak_root/src/gbdk.asm" "$fatpak_root/src/hardware.inc" "$fatpak_root/src
 (cd "$work/lib" && rgbasm -o "$work/gbdk.o" src/gbdk.asm)
 rgblink -o "$work/gbdk.gb" "$work/gbdk.o"
 rgbfix -v -p 0 "$work/gbdk.gb"
+(cd "$fatpak_root/tests/asm/project" && rgbasm -D _DEMO -D LANG=3 -o "$work/project.o" lib/main.asm)
+rgblink -o "$work/project.gb" "$work/project.o"
+rgbfix -jvcs -k 01 -l 0x33 -m 0x1B -p 255 -t PROJECT "$work/project.gb"
 cd "$fatpak_root"
 python3 tests/test_asm.py
 "$work/test" "$fatpak_root/bin/GBCOS.BIN" "$fatpak_root/bin/GBCOS.sym" \
     "$fatpak_root/bin/EDITOR.DAT" "$fatpak_root/tests/asm/hello.asm" "$work/hello.gb" \
-    "$fatpak_root/tests/asm" "$work/features.gb" "$fatpak_root/src" "$work/gbdk.gb"
+    "$fatpak_root/tests/asm" "$work/features.gb" "$fatpak_root/src" "$work/gbdk.gb" "$work/project.gb"
