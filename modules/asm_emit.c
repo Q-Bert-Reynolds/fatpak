@@ -632,6 +632,7 @@ void Relocate(void) {
   unsigned int unit;
   unsigned char h = 0, *e;
   do {
+    Phase(3);
     for (unit = *SymHead(h); unit; unit = e[0] | (e[1] << 8)) {
       e = Entry(unit);
       if ((e[6] & 0x7F) != SYM_LABEL) continue;
@@ -841,6 +842,7 @@ void Instruction(unsigned char m) {
 void Fill(void) {
   unsigned int block, i;
   for (block = 0; block < context->blocks; ++block) {
+    if (!(block & 63)) Phase(4);
     Window(ASM_IMAGE_BLOCK + block);
     for (i = 0; i < 512; ++i) WINDOW[i] = 0;
   }
@@ -876,6 +878,7 @@ void Header(void) {
   WINDOW[0x14D] = x;
   WINDOW[0x14E] = WINDOW[0x14F] = 0;
   for (block = 0; block < blocks; ++block) {
+    if (!(block & 63)) Phase(4);
     Window(ASM_IMAGE_BLOCK + block);
     for (i = 0; i < 512; ++i) sum += WINDOW[i];
   }

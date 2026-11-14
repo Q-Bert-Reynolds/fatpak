@@ -4,8 +4,8 @@
 // PutStr(dest, id) and Str(id) (src/strings.asm), ModString in modules; S_PART(id, n) is the
 // text after its nth {}, up to the next
 #define S_PART(id, n) ((id) | ((n) << 12))
-#define STR_COUNT 197
-#define STR_HASH 0x7113u
+#define STR_COUNT 201
+#define STR_HASH 0xF70Bu
 #define LANGUAGES 2
 #define LANG_CODES "ENES" // 2 characters each: /GBCSYS/LANG/<code>.DAT
 #define S_MENU_FILE 0 // FILE
@@ -205,4 +205,8 @@
 #define S_INGAME_RETURN 194 // Return to OS
 #define S_INGAME_ERROR 195 // State / SD error
 #define S_INGAME_FOOTER 196 // <A> Select  <B> Resume
+#define S_MODULE_COPY_FAILED 197 // COPY FAILED {}:{}
+#define S_BUILD_LOADING 198 // loading
+#define S_BUILD_LINKING 199 // Placing sections
+#define S_BUILD_FINISHING 200 // Finishing
 #endif

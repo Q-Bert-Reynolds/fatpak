@@ -98,8 +98,9 @@ DEF ASM_HEAP_BLOCK   EQU $1000;the EQUS heap, 128 blocks (64 KiB)
 DEF ASM_CHARMAP_BLOCK EQU $1080;names, 8 maps' heads, then a 60 KiB pool (129 blocks)
 DEF ASM_SECTION_BLOCK EQU $1110;the section table, 32 blocks (512 32-byte records)
 DEF ASM_FILE_BLOCK   EQU $1130;included and INCBIN files, packed whole from here
-DEF ASM_FILE_END     EQU $3900;ADD_MAX / 512: up to the add buffer's end
-DEF MODULE_ABI     EQU 9;newest ABI the host provides, modules built for older ones still load
+DEF ASM_FILE_END     EQU $38FE;then the build log
+DEF ASM_LOG_BLOCK    EQU $38FE;build.log's text, 2 blocks (up to ADD_MAX / 512)
+DEF MODULE_ABI     EQU 10;newest ABI the host provides, modules built for older ones still load
 DEF MODULE_TABLE   EQU $7F00;ABI jump table in resident bank 1, 3 bytes per entry
 DEF MODULE_SLOTS   EQU 32;entries reserved for it
 DEF MODULE_FORMAT  EQU 1;one page, BSS after the code
@@ -127,6 +128,11 @@ DEF MODULE_H_RESERVED EQU 32;zero up to MODULE_HEADER
 DEF MODULE_PAGES_MAX EQU 5
 DEF MODULE_ERR_ABI    EQU 20;RunModule results past FatFs's FRESULT codes
 DEF MODULE_ERR_VERIFY EQU 21;a page copy didn't read back
+DEF MODULE_ERR_COPY   EQU 22;a copy failed while the module ran (ModProgress), which stopped it
+DEF MODULE_STAT_SECONDS EQU 0;ModStat: seconds since the module started (60 frames each)
+DEF MODULE_STAT_LOAD_SECONDS EQU 1;of them, finding and reading files (ModFile, ModLoad)
+DEF MODULE_STAT_FILES EQU 2;files read
+DEF MODULE_STAT_RETRIES EQU 3;PSRAM block copies that read back wrong and were copied again
 
 ;fonts
 DEF FONT_MONO EQU 0

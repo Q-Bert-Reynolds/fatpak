@@ -35,6 +35,11 @@ module_stage: DW;ModuleSwap: the page's first staging block
 _module_fail:: DW;the first block that never read back: operation, sector (ShowModuleError)
 _module_context:: DW;passed to the module's ModuleMain, 0 if its host gives none
 
+SECTION "Module run state", WRAMX;WRAM0 is full; placed outside the editor's buffers a wide module's BSS takes
+_module_retries:: DW;block copies that read back wrong and were made again, since RunModule cleared it
+module_sp: DW;ModuleEnter's stack, for ModuleAbort
+module_depth: DB;and the far calls under it
+
 FIXED "Module loader"
 ; A = 0 backup (page to MODULE_BACKUP), 1 install (MODULE_STAGE to page),
 ; 2 restore (MODULE_BACKUP to page); + 4 for the second page (MODULE_PAGE2), + 8 for the
@@ -165,7 +170,7 @@ ModuleSwapBegin:
 ;copies bc bytes between [module_pointer] and the window (the window is the destination for
 ;operation 0), compares them, advances module_pointer and the sector, returns it in a
 ModuleSwapBlock:
-  ld a, 3;tries: a block that reads back wrong is copied again
+  ld a, 8;tries: a block that reads back wrong is copied again (hardware has needed a second)
   ld [module_tries], a
 .again
   LD_HL_VAR module_pointer;source: the page when backing up
@@ -188,6 +193,12 @@ ModuleSwapBlock:
   call ModuleCompare
   pop bc
   jr z, .next
+  ld hl, _module_retries
+  inc [hl]
+  jr nz, .counted
+  inc hl
+  inc [hl]
+.counted
   ld hl, module_tries
   dec [hl]
   jr nz, .again
@@ -303,7 +314,11 @@ _ModuleEnter::
   ld d, h
   ld e, l
   LD_HL_VAR _module_entry
+  ld a, [far_depth]
+  ld [module_depth], a
+  ld [module_sp], sp
   call .enter
+.back
   ld h, a
   pop af
   SET_BANK
@@ -311,6 +326,17 @@ _ModuleEnter::
   ret
 .enter
   jp hl
+
+; a = the module's result: back out of it to ModuleEnter's caller, from anywhere inside it
+; (a host function it called, however deep), as if it had returned
+_ModuleAbort::
+  ld b, a
+  LD_HL_VAR module_sp
+  ld sp, hl
+  ld a, [module_depth]
+  ld [far_depth], a
+  ld a, b
+  jr _ModuleEnter.back
 
 ModulePages: DB MODULE_PAGE, MODULE_PAGE2, MODULE_PAGE3, MODULE_PAGE4, MODULE_PAGE5
 ModuleStages: DW MODULE_STAGE, MODULE_STAGE2, MODULE_STAGE3, MODULE_STAGE4, MODULE_STAGE5

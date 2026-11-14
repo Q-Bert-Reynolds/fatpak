@@ -1,6 +1,10 @@
 # Priority
 
 - Assembler: build beisbolgb on the device faster ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): 42 min CGB in Gearboy, over an hour on DMG.
+  - Stage 1, a build cache (`project.gbc`): files' sizes and dates checked a folder at a time, unchanged ones read from one packed file; nothing changed and the ROM there: "up to date". Saves most of the 11 minutes `build.log` shows for the card.
+  - Stage 2, translation units and a linker (LINK.MOD): beisbol split into units that are reassembled only when their files change.
+  - `INCBIN` emits a byte at a time through `Emit` (72 KB took ~30 s of a pass on DMG): copy whole runs a block at a time.
+  - The symbol table's 256 hash chains (`Find` is 16% of pass 2).
 
 # Rendering
 

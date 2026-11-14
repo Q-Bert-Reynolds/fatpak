@@ -251,6 +251,13 @@ extern char output[65]; // the ROM's path from the project's folder
 extern unsigned int main_file; // main's symbol, 0 to assemble the document
 extern Pos main_at, main_end;
 unsigned char Project(void);
+// asm_log.c: build.log
+#define LOG_STEPS 4 // pass 1, placing sections, pass 2, finishing
+#define ASM_LOG_BLOCKS 2
+extern unsigned int log_marks[LOG_STEPS + 1]; // seconds
+extern unsigned char log_steps;
+void Log(void);
+void Phase(unsigned char p); // 3 placing sections, 4 finishing: the box says so
 unsigned int LoadPath(void); // the same for path[], 0 with file_error if it can't be read
 extern unsigned char file_error;
 extern Pos file_at, file_size;

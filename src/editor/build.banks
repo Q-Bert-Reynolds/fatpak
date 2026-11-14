@@ -1,5 +1,6 @@
 *: 13
 # ModProgress(0) calls it while ASM.MOD has pages 13, 12, 5, 4 and 15
-ROM0: BuildProgress
+FIXED: BuildProgress PutTime
+ROM0: FolderPath
 # after the module, with the editor's pages back
 15: ErrorCursor

@@ -34,6 +34,8 @@ extern unsigned char module_wide; // fs_LoadModule: a wide module's pages after 
 extern unsigned int tb_read_pos; // src/editor/text_buffer.asm
 extern unsigned int tb_Read(unsigned char* buffer, unsigned int size); // from tb_read_pos, returns bytes copied
 extern unsigned char ModuleEnter(void);
+extern void ModuleAbort(unsigned char status); // runtime.asm: back out of the module, ModuleEnter returns status
+extern unsigned int module_retries; // runtime.asm: block copies made again since RunModule started
 extern unsigned char buffer[512]; // synchronous scratch; no module file services
 extern void SetWindowBlock(unsigned int block);
 #define WINDOW_BLOCK (*(volatile unsigned int*)0xBD02)
@@ -58,12 +60,31 @@ static unsigned int progress_at; // render_frames when the module started or Mod
 static unsigned char module_ie; // RunModule: the interrupts outside the module (a wide one runs with the LCD's only)
 unsigned char file_level; // ModFile/ModLoad: the folder level (characters of file_dir) that found the first one
 // (ASM.MOD's project.gbp: BuildFile reads it after), tried first; 0xFF none yet
+// ModStat's counts, from RunModule's start: frames (as render_frames moves, which wraps after 18
+// minutes: counted at least every ModProgress), those spent finding and reading files, the files
+unsigned long module_frames;
+static unsigned int frames_at;
+static unsigned long load_frames;
+static unsigned int load_files;
+const char* module_loading; // ModFile/ModLoad: the name of the file being read, for module_progress; else 0
+static unsigned char module_aborted; // ModProgress: a copy failed, the module was stopped (ModuleAbort)
+static unsigned char buffers_live; // and the editor's buffers stayed in WRAMX (their backup may be partial)
+static void CountFrames(void) {
+  module_frames += (unsigned int)(render_frames - frames_at);
+  frames_at = render_frames;
+}
 unsigned char RunModule(const char* path, unsigned char id) {
   unsigned char result, pages = 0, buffers = 0, i, ie; // pages backed up (each is restored), the buffers saved
   unsigned int window = WINDOW_BLOCK; // modules may move it
   if (module_busy) return FR_LOCKED;
   module_busy = 1;
   module_fail = 0;
+  module_retries = 0;
+  module_frames = load_frames = 0;
+  frames_at = render_frames;
+  load_files = 0;
+  module_aborted = buffers_live = 0;
+  module_loading = 0;
   file_level = 0xFF;
   result = fs_LoadModule(path, id);
   if (!result) {
@@ -86,8 +107,9 @@ unsigned char RunModule(const char* path, unsigned char id) {
       if (module_wide) INTERRUPT_ENABLE = ie & IEF_LCD_ONLY;
       module_status = ModuleEnter();
       INTERRUPT_ENABLE = ie;
+      if (module_aborted) result = MODULE_ERR_COPY;
     }
-    if (buffers && ModuleSwapRAM(2)) Unrecoverable(); // never run on state that didn't come back
+    if (buffers && !buffers_live && ModuleSwapRAM(2)) Unrecoverable(); // never run on state that didn't come back
     while (pages > 1) if (ModuleSwap(--pages << 2 | 2)) Unrecoverable();
     HideBox(); // remove any modal state before restoring the page
     if (pages && ModuleSwap(2)) Unrecoverable();
@@ -129,6 +151,7 @@ void ShowModuleError(unsigned char result) {
   else if (result == FR_INVALID_OBJECT) ShowMessage(Str(S_MODULE_DAMAGED));
   else if (result == MODULE_ERR_ABI) ShowMessage(Str(S_MODULE_NEWER_OS));
   else if (result == MODULE_ERR_VERIFY) ShowFailure(S_MODULE_LOAD_FAILED);
+  else if (result == MODULE_ERR_COPY) ShowFailure(S_MODULE_COPY_FAILED);
   else ShowError(result, S_MODULE_MISSING);
 }
 
@@ -256,14 +279,31 @@ unsigned char ModuleAPISource(unsigned int pos, char* dest) {
 // its base name in the document's folder. A build's files mostly resolve from one folder, so
 // the one that worked last is tried first.
 // FileTry and FileSearch: 0 read, 1 not there or unreadable, 2 too big
+// The path goes in buffer's upper half, not on the stack: a progress draw from inside the read
+// (fs_LoadFile) is the deepest the stack gets, and with the path on it, it ran past stack_top into
+// module_wide. The draw's text uses buffer's first 80 bytes; FatFs doesn't use buffer (FF_FS_TINY).
+#define FILE_PATH ((char*)buffer + 256)
+typedef char file_path_fits[PATH_SIZE + FS_NAME_SIZE <= 256 ? 1 : -1];
 static unsigned char FileTry(unsigned char n, const char* name, ModuleLoad* load) { // file_dir's first n characters, "/", name
-  char full[PATH_SIZE + FS_NAME_SIZE]; // name is in the module's WRAMX BSS, readable throughout
+  char* full = FILE_PATH; // name is in the module's WRAMX BSS, readable throughout
   unsigned char i;
+  unsigned long start;
   for (i = 0; i < n; ++i) full[i] = file_dir[i];
   full[i++] = '/';
-  while (*name) { if (i == sizeof(full) - 1) return 1; full[i++] = *name++; }
+  module_loading = full + i; // the progress box names it (full is the host's: the module's BSS may be swapped out)
+  while (*name) {
+    if (i == PATH_SIZE + FS_NAME_SIZE - 1) { module_loading = 0; return 1; }
+    if ((full[i++] = *name++) == '/') module_loading = full + i;
+  }
   full[i] = 0;
-  return FileLoadFile(full, load);
+  CountFrames();
+  start = module_frames;
+  i = FileLoadFile(full, load); // its search and read time count, found or not
+  CountFrames();
+  load_frames += module_frames - start;
+  if (!i) ++load_files;
+  module_loading = 0;
+  return i;
 }
 static unsigned char FileSearch(const char* path, ModuleLoad* load) {
   const char *base = path, *p;
@@ -345,7 +385,14 @@ void ModuleAPITiles(unsigned char row, const unsigned char* tiles) {
 // the host's own text from the module's context (module_progress). A wide module's BSS is on the
 // editor's buffers: it's held in PSRAM while they come back to draw it.
 void (*module_progress)(char* text); // RunModule's caller sets it for ModProgress(0)
+static void Abort(void) {
+  module_aborted = 1;
+  ModuleAbort(0);
+}
+// A copy that fails here stops the module (ModuleAbort): restarting the device instead has left
+// the screen frozen on hardware. Also called between the sectors of ModFile and ModLoad's reads.
 void ModuleAPIProgress(const char* text) {
+  CountFrames();
   if ((unsigned int)(render_frames - progress_at) < PROGRESS_FRAMES) return; // a build that ends soon never draws
   if (text) Marshal(text, 80);
   else if (module_progress) module_progress((char*)buffer); // before the swap: the context may be in the BSS
@@ -353,7 +400,7 @@ void ModuleAPIProgress(const char* text) {
   if (module_wide) {
     if (ModuleSwapRAM(4)) return; // not held: nothing drawn, the module goes on
     if (ModuleSwapRAM(2)) { // the buffers didn't come back: the module's BSS does
-      if (ModuleSwapRAM(6)) Unrecoverable();
+      if (ModuleSwapRAM(6)) Abort(); // nor that: the buffers' backup is whole
       return;
     }
     INTERRUPT_ENABLE = module_ie; // drawing waits for VBlank
@@ -362,9 +409,28 @@ void ModuleAPIProgress(const char* text) {
   EditorDraw();
   if (module_wide) {
     INTERRUPT_ENABLE = module_ie & IEF_LCD_ONLY;
-    if (ModuleSwapRAM(0) || ModuleSwapRAM(6)) Unrecoverable(); // never run on state that didn't come back
+    if (ModuleSwapRAM(0)) { // the buffers stay where they are
+      buffers_live = 1;
+      Abort();
+    }
+    if (ModuleSwapRAM(6)) Abort(); // never run on state that didn't come back
   }
   progress_at = render_frames;
+}
+
+// ABI 10: ModStat (MODULE_STAT_*)
+static unsigned int Seconds(unsigned long frames) { // 60 a second: the Game Boy's 59.7 makes it 0.5% slow
+  unsigned int seconds = 0;
+  for (; frames >= 3600; frames -= 3600) seconds += 60;
+  for (; (unsigned int)frames >= 60; frames -= 60) ++seconds;
+  return seconds;
+}
+unsigned long ModuleAPIStat(unsigned char which) {
+  CountFrames();
+  if (which == MODULE_STAT_SECONDS) return Seconds(module_frames);
+  if (which == MODULE_STAT_LOAD_SECONDS) return Seconds(load_frames);
+  if (which == MODULE_STAT_FILES) return load_files;
+  return module_retries;
 }
 
 // ABI 9

@@ -28,6 +28,7 @@
     ["Tiles", "void", "unsigned char row, const unsigned char* tiles", 6],
     ["Load", "unsigned char", "const char* path, ModuleLoad* load", 7],
     ["Progress", "void", "const char* text", 8],
-    ["String", "char*", "char* dest, unsigned int id", 9]
+    ["String", "char*", "char* dest, unsigned int id", 9],
+    ["Stat", "unsigned long", "unsigned char which", 10]
   ]
 }

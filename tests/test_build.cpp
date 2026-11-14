@@ -244,8 +244,82 @@ static void Library(const char* image, const char* symbols, const char* data, co
     Check(frames < 40000, "gbdk.asm builds");
     Check(s.progress >= frames / 300 - 2, "the box shows progress every 5 s");
     Check(Read(s.root + "/gbdk.gb") == Read(expected), "gbdk.gb matches RGBDS");
+    // build.log beside it: each step's time, and a total that agrees with the frames counted here
+    std::string log = Text(s.root + "/build.log");
+    unsigned minutes = 0, seconds = 0; size_t at = log.find("total");
+    if (at != std::string::npos) sscanf(log.c_str() + at + 5, "%u:%u", &minutes, &seconds);
+    int total = minutes * 60 + seconds, expected_s = frames / 60;
+    if (log.find("the document") != 0 || log.find("\npass 1 ") == std::string::npos || log.find("\n  card ") == std::string::npos ||
+        log.find("\npass 2 ") == std::string::npos || log.find("\nfinishing ") == std::string::npos || log.find("built 32 KB") == std::string::npos ||
+        total < expected_s - 10 || total > expected_s) fprintf(stderr, "build.log (%u frames):\n%s", frames, log.c_str());
+    Check(log.find("\npass 2 ") != std::string::npos && log.find("built 32 KB") != std::string::npos, "build.log has each step");
+    Check(total >= expected_s - 10 && total <= expected_s, "build.log's total matches the build's time (less saving, loading the module and writing)");
     s.pad(A_Key);
     printf("%s gbdk.asm with memory1.asm and hardware.inc: %u frames, %u box updates\n", color ? "CGB" : "DMG", frames, s.progress);
+}
+
+// A PSRAM copy that fails while the progress box is drawn (ModuleSwapRAM operation op: 32 saves the
+// editor's buffers after drawing, 38 brings the module's BSS back) stops the build with COPY FAILED
+// op:block, and the editor carries on with its text, instead of restarting the device (which froze a
+// GBA SP). Every ModuleCompare of that copy returns "different", from the second draw on.
+static void CopyFailure(const char* image, const char* symbols, const char* data, const std::string& src, unsigned op, bool color) {
+    Session s(image, symbols, data, color, "gbdk.asm", Text(src + "/gbdk.asm"), {},
+              {{"memory1.asm", Text(src + "/memory1.asm")}, {"hardware.inc", Text(src + "/hardware.inc")}});
+    std::string first = s.row(0);
+    unsigned compare = s.syms.at("ModuleCompare"), operation = s.syms.at("module_operation"), gen = s.syms.at("_render_box_gen");
+    s.pad(Start_Key); s.pad(A_Key); for (unsigned i = 0; i < 4; ++i) s.pad(Down_Key);
+    s.core.KeyPressed(A_Key); Frames(s.core, 4); s.core.KeyReleased(A_Key);
+    auto cpu = s.core.GetProcessor()->GetState();
+    unsigned gen0 = s.memory->Read(gen), failed = 0, frames = 0;
+    s16 audio[AUDIO_BUFFER_SIZE]; int n;
+    while (frames < 6000 && s.row(19).find("COPY FAILED") == std::string::npos) {
+        unsigned ticks = 0;
+        if (s.core.RunCycle(frame.data(), ticks)) { s.core.EndFrame(audio, &n); ++frames; }
+        if (cpu->PC->GetValue() == compare && s.memory->Read(0xBD08) && s.memory->Read(operation) == op &&
+            (unsigned)((s.memory->Read(gen) - gen0) & 0xFF) >= 2 && failed < 1000) { // ret nz
+            unsigned sp = cpu->SP->GetValue();
+            cpu->PC->SetValue(s.memory->Read(sp) | s.memory->Read(sp + 1) << 8);
+            cpu->SP->SetValue(sp + 2);
+            cpu->AF->SetLow(cpu->AF->GetLow() & 0x7F);
+            ++failed;
+        }
+    }
+    Frames(s.core, 10);
+    std::string want = "COPY FAILED " + std::to_string(op) + ":0"; // in the status bar
+    if (s.row(19).find(want) == std::string::npos) {
+        fprintf(stderr, "op %u: box \"%s\" after %u failed compares, %u frames, pc %04x page %u busy %u\n", op, s.lines().c_str(), failed, frames,
+                cpu->PC->GetValue(), s.memory->Read(0xBD08), s.memory->Read(s.syms.at("_module_busy")));
+        for (unsigned r = 0; r < 20; ++r) fprintf(stderr, "%2u|%s\n", r, s.row(r).c_str());
+    }
+    Check(s.row(19).find(want) != std::string::npos, "a failed copy in the progress draw stops the build with its message");
+    Check(access((s.root + "/gbdk.gb").c_str(), F_OK) != 0, "no ROM is written");
+    if (s.row(0) != first) fprintf(stderr, "op %u: row 0 \"%s\"\n", op, s.row(0).c_str());
+    Check(s.row(0) == first && s.row(18).find("gbdk.asm") != std::string::npos, "the editor's text and bars come back");
+    unsigned before = s.word("_cursor");
+    s.pad(Right_Key); s.pad(Right_Key);
+    if (s.word("_cursor") != before + 1) fprintf(stderr, "cursor %u then %u\n", before, s.word("_cursor"));
+    Check(s.word("_cursor") == before + 1 || s.word("_cursor") == before + 2, "the editor still takes keys"); // the first may only clear the message
+    printf("%s a failed copy (operation %u) during a build stops it: %u frames\n", color ? "CGB" : "DMG", op, frames);
+}
+
+// Reads long enough that the progress box is drawn between their sectors (ModLoad's ticks): the
+// deepest the stack gets. With the include path on the stack it ran past stack_top into
+// module_wide, and the next draw went over the module's BSS (NO SECTION). The stack below what
+// the editor uses is filled first: some of it must be untouched after.
+static void LongReads(const char* image, const char* symbols, const char* data, const std::string& dir, bool color) {
+    std::map<std::string, std::string> lib;
+    for (unsigned i = 0; i < 3; ++i) lib["huge" + std::to_string(i) + ".bin"] = Text(dir + "/lib/huge" + std::to_string(i) + ".bin");
+    Session s(image, symbols, data, color, "Huge.asm", Text(dir + "/Huge.asm"), lib);
+    unsigned top = s.syms.at("stack_top"), sp = s.core.GetProcessor()->GetState()->SP->GetValue();
+    for (unsigned a = top; a < sp - 64; ++a) s.memory->Write(a, 0xA5);
+    unsigned frames = s.command(4, "Built ", 8000);
+    unsigned low = top; while (low < sp && s.memory->Read(low) == 0xA5) ++low;
+    if (s.lines() != "Huge.gb|Built 32 KB") fprintf(stderr, "box: \"%s\"\n", s.lines().c_str());
+    Check(s.lines() == "Huge.gb|Built 32 KB" && Read(s.root + "/Huge.gb") == Read(dir + "/../huge.gb"), "long reads with the box drawn between their sectors build like RGBDS");
+    Check(s.progress >= 2, "the box was drawn while files were read");
+    Check(low >= top + 64, "the stack keeps 64 bytes from stack_top");
+    s.pad(A_Key);
+    printf("%s 600 KB of INCBIN files: %u frames, %u box updates, the stack %u bytes from its end\n", color ? "CGB" : "DMG", frames, s.progress, low - top);
 }
 
 // project.gbp (tests/asm/project): BUILD from any file builds its main with its rgbasm and rgbfix
@@ -259,6 +333,7 @@ static void Project(const char* image, const char* symbols, const char* data, co
         if (s.lines() != "game.gb|Built 32 KB") fprintf(stderr, "box: \"%s\"\n", s.lines().c_str());
         Check(s.lines() == "game.gb|Built 32 KB", "BUILD in a markdown file builds the project");
         Check(Read(s.root + "/game.gb") == Read(expected), "the project's ROM matches rgbasm and rgbfix with its options");
+        Check(Text(s.root + "/build.log").find("game.gb from project.gbp\n") == 0, "build.log goes beside project.gbp");
         s.pad(A_Key);
         printf("%s project.gbp builds from About.md: %u frames\n", color ? "CGB" : "DMG", frames);
     }
@@ -269,6 +344,7 @@ static void Project(const char* image, const char* symbols, const char* data, co
         if (s.lines() != "Base.asm|Line 3|NOT YET DEFINED") fprintf(stderr, "box: \"%s\"\n", s.lines().c_str());
         Check(s.lines() == "Base.asm|Line 3|NOT YET DEFINED", "a project's error names the included file");
         Check(s.word("_cursor") == bad.find("DEF Bad"), "the cursor goes to the line in the open document");
+        Check(Text(s.root + "/build.log").find("stopped: Base.asm line 3: NOT YET DEFINED") != std::string::npos, "build.log says where and why it stopped");
         s.pad(A_Key);
     }
     {
@@ -288,7 +364,7 @@ static void Project(const char* image, const char* symbols, const char* data, co
 }
 
 int main(int argc, char** argv) {
-    Check(argc == 11, "usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT hello.asm hello.gb tests/asm features.gb src gbdk.gb project.gb");
+    Check(argc == 12, "usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT hello.asm hello.gb tests/asm features.gb src gbdk.gb project.gb huge-folder");
     for (int color = 0; color < 2; ++color) {
         Build(argv[1], argv[2], argv[3], argv[4], argv[5], color);
         Errors(argv[1], argv[2], argv[3], color);
@@ -299,5 +375,7 @@ int main(int argc, char** argv) {
         IncludeError(argv[1], argv[2], argv[3], color);
         Library(argv[1], argv[2], argv[3], argv[8], argv[9], color);
         Project(argv[1], argv[2], argv[3], argv[6] + std::string("/project"), argv[10], color);
+        for (unsigned op : {32u, 38u}) CopyFailure(argv[1], argv[2], argv[3], argv[8], op, color);
+        LongReads(argv[1], argv[2], argv[3], argv[11], color);
     }
 }

@@ -53,6 +53,7 @@ ASM = {
     '_ModuleAPIFar': ['FarCallInline'], 'FarCallInline': [],  # ROM0
     '_RestartDevice': [],  # ROM0: resets the cart and waits
     '_ModuleSwapRAM': [],  # bank 1: its copy, compare and mem_Set (ROM0), RenderWaitDMA
+    '_ModuleAbort': [],  # bank 1: restores ModuleEnter's stack and far-call depth, returns from it
     '___sdcc_call_hl': ['_src_editor_build_c_BuildProgress'],  # ROM0; ModProgress(0)'s only function pointer
     '_PutNumber': ['math_Divide32'], 'math_Divide32': [],  # ROM0 (strings.asm, math.asm)
     '_PutStr': ['StrAt'], 'StrAt': [], '_Str': ['_PutStr'],  # ROM0 (strings.asm): the language in PSRAM

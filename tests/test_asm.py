@@ -145,7 +145,7 @@ def large_files(folder):
     (folder / 'lib').mkdir(exist_ok=True)
     (folder / 'lib' / 'big.inc').write_text(filler + 'MACRO far_away\n db \\1, \\1 + 1\nENDM\nFarLabel:\nREPT 3\n db $AA\nENDR\n far_away 7\n')
     (folder / 'lib' / 'big.bin').write_bytes(bytes(i * 7 & 255 for i in range(70000)))
-    return 'SECTION "a", ROM0[$150]\nINCLUDE "lib/big.inc"\n far_away 9\n dw FarLabel\n INCBIN "lib/big.bin", 1000, 16\n INCBIN "lib/big.bin", 65530, 12\n' # (offsets past 64 KiB need 32-bit values)
+    return 'SECTION "a", ROM0[$150]\nINCLUDE "lib/big.inc"\n far_away 9\n dw FarLabel\n INCBIN "lib/big.bin", 1000, 16\n INCBIN "lib/big.bin", 65530, 12\n INCBIN "lib/big.bin", 69000, 8\n' # offsets past 64 KiB
 
 def large(work):
     source = large_files(work)
@@ -170,7 +170,8 @@ def main():
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '9.o', str(ROOT / 'modules/asm_align.c')])
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '10.o', str(ROOT / 'modules/asm_progress.c')])
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '11.o', str(ROOT / 'modules/asm_proj.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c')] + [str(HOST) + suffix + '.o' for suffix in ('', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11')])
+    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '12.o', str(ROOT / 'modules/asm_log.c')])
+    run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c')] + [str(HOST) + suffix + '.o' for suffix in ('', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12')])
     failed = 0
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)

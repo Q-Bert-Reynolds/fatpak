@@ -18,15 +18,23 @@
 // ASM_ERR_*'s names are the strings from S_ERR_SYNTAX, shown on their own line in the result box
 typedef char error_names_match[S_ERR_OVERLAP - S_ERR_SYNTAX + 1 == ASM_ERR_COUNT ? 1 : -1];
 
-// the ROM's path: a project's output from project.gbp's folder (file_level characters of
-// file_dir), or the document's path with its extension replaced by .gb
+// path: name in the folder of file_dir's first n characters (project.gbp's: file_level), or with
+// n 0xFF, in file_dir
+static void FolderPath(char* path, unsigned char n, const char* name) {
+  char cut = 0;
+  if (n != 0xFF) {
+    cut = file_dir[n];
+    file_dir[n] = 0;
+  }
+  JoinPath(path, file_dir, name, (unsigned char)(PATH_SIZE + FS_NAME_SIZE));
+  if (n != 0xFF) file_dir[n] = cut;
+}
+// the ROM's path: a project's output from project.gbp's folder, or the document's path with
+// its extension replaced by .gb
 static void OutputPath(char* path, const AsmContext* c) {
-  char *dot = 0, *p, cut;
+  char *dot = 0, *p;
   if (c->kind & ASM_PROJECT) {
-    cut = file_dir[file_level];
-    file_dir[file_level] = 0;
-    JoinPath(path, file_dir, c->name, (unsigned char)(PATH_SIZE + FS_NAME_SIZE));
-    file_dir[file_level] = cut;
+    FolderPath(path, file_level, c->name);
     return;
   }
   JoinPath(path, file_dir, file_name, (unsigned char)(PATH_SIZE + FS_NAME_SIZE - 3));
@@ -58,16 +66,38 @@ static void ErrorCursor(const AsmContext* c, char* doc) {
   dirty = 1;
 }
 
-// ASM.MOD's ModProgress(0) text: the pass and how far it is, then the file and line it's on
-// (in ROM0, and only calling what's outside the module's pages)
+// minutes:seconds of frames (60 a second; the Game Boy's 59.7 makes it 0.5% slow)
+static char* PutTime(char* end, unsigned long frames) {
+  unsigned int minutes = 0;
+  unsigned char tens = 0;
+  for (; frames >= 3600; frames -= 3600) ++minutes;
+  for (; (unsigned int)frames >= 600; frames -= 600) ++tens; // no SDCC helpers in the OS either
+  end = PutNumber(end, minutes);
+  *end++ = ':';
+  *end++ = '0' + tens;
+  *end++ = '0' + (unsigned char)((unsigned int)frames / 60);
+  *end = 0;
+  return end;
+}
+// ASM.MOD's ModProgress(0) text: the pass and how far it is, the file and line it's on (or the
+// file being read from the card), and the time since BUILD; after pass 1 and 2, what it's doing.
+// The time moves at every redraw, every 5 s while the build is working: if it stops, so has the
+// build. (FIXED, and only calling what's outside the module's pages.)
 static void BuildProgress(char* text) {
   const AsmContext* c = module_context;
   unsigned int pass = c->pass == 1 ? S_BUILD_PASS1 : S_BUILD_PASS2;
-  char* end = PutStr(PutNumber(PutStr(text, S_PART(pass, 0)), c->progress), S_PART(pass, 1));
+  char* end;
+  if (c->pass > 2) end = PutStr(text, c->pass == 3 ? S_BUILD_LINKING : S_BUILD_FINISHING);
+  else {
+    end = PutStr(PutNumber(PutStr(text, S_PART(pass, 0)), c->progress), S_PART(pass, 1));
+    *end++ = '\n';
+    end = ToLatin1(end, module_loading ? module_loading : c->file ? c->name + c->base : file_name, 19);
+    *end++ = '\n';
+    if (module_loading) end = PutStr(end, S_BUILD_LOADING);
+    else end = PutStr(PutNumber(PutStr(end, S_PART(S_BUILD_AT_LINE, 0)), c->line), S_PART(S_BUILD_AT_LINE, 1));
+  }
   *end++ = '\n';
-  end = ToLatin1(end, c->file ? c->name + c->base : file_name, 19);
-  *end++ = '\n';
-  PutStr(PutNumber(PutStr(end, S_PART(S_BUILD_AT_LINE, 0)), c->line), S_PART(S_BUILD_AT_LINE, 1));
+  PutTime(end, module_frames);
 }
 
 void BuildFile(unsigned char run) {
@@ -81,12 +111,17 @@ void BuildFile(unsigned char run) {
   ShowBusy(Str(S_ASSEMBLING));
   context.length = tb_Length();
   context.kind = tb_lang == LANG_ASM ? ASM_DOC : 0; // anything builds under a project.gbp
+  context.log_bytes = 0;
   module_context = &context;
   module_progress = BuildProgress;
   result = RUN_MODULE(ASM);
   HideBox();
   if (result) { ShowModuleError(result); return; }
   if (module_status == ASM_NOT_ASM) { ShowMessage(Str(S_NOT_ASM_FILE)); return; }
+  if (context.log_bytes) { // build.log beside the project or the document: its own failure isn't reported
+    FolderPath(path, context.kind & ASM_PROJECT ? file_level : 0xFF, "build.log");
+    FileWriteImage(path, 0x8000 | context.log_bytes);
+  }
   if (module_status) { // the file, line and error in a box; the cursor goes to the line, or to the INCLUDE of the file
     end = ToLatin1(text, context.file ? context.name + context.base : file_name, FS_NAME_SIZE - 1);
     *end++ = '\n';

@@ -33,17 +33,16 @@ void For(void) {
 
 // INCBIN "file"[, start[, length]]: its bytes, from the file read whole into PSRAM
 void Incbin(void) {
-  Pos at, end;
-  unsigned int n;
+  Pos at, end, n; // start and length can pass 64 KiB
   if (!OpenFile()) return;
   at = file_at;
   end = at + file_size;
   if (Comma()) {
-    n = Constant();
+    n = (Pos)Constant();
     if (n > file_size) { Fail(ASM_ERR_RANGE); return; }
     at += n;
     if (Comma()) {
-      n = Constant();
+      n = (Pos)Constant();
       if (n > end - at) { Fail(ASM_ERR_RANGE); return; }
       end = at + n;
     }

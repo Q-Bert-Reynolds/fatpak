@@ -12,6 +12,7 @@ typedef struct {
                        // project build, the ROM's path from the project's folder
   unsigned char base;  // out: name + base is the file's name without folders
   unsigned char kind;  // in: ASM_DOC if the document is assembly; out: ASM_PROJECT too if project.gbp built it
+  unsigned int log_bytes; // out: build.log's text at ASM_LOG_BLOCK (0: none)
   unsigned char pass;  // progress (ModProgress(0), while it runs): the pass, file, name and line above,
   unsigned int progress; // and pass 1's lines in thousands or pass 2's percent
 } AsmContext;

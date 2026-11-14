@@ -152,6 +152,7 @@ unsigned int Link(void) {
     SectCopy(i, 1);
   }
   for (n = 0; n < nsects; ++n) {
+    Phase(3);
     best = NO_SECT;
     for (i = 0; i < nsects; ++i) { // the first left (sec holds the best so far)
       p = (Sect*)SectAt(i);

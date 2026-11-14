@@ -20,6 +20,10 @@ extern unsigned char sd_Init(void);
 extern unsigned char sd_ReadSector(unsigned char* buffer);
 extern unsigned char sd_WriteSector(const unsigned char* buffer);
 
+// src/modules/runtime.c: a module's file reads tick its progress box
+extern unsigned char module_busy;
+extern void ModuleAPIProgress(const char* text);
+
 // src/editor/text_buffer.asm
 extern void tb_Clear(void);
 extern unsigned int tb_read_pos;
@@ -1182,6 +1186,7 @@ BYTE fs_LoadFile(const char* path, FileLoadArea* load) {
   count = (UINT)((size + 511) >> 9);
   if (size >= 0x1000000 || count > load->blocks) result = 2;
   for (n = 0; !result && n < count; ++n) {
+    if (!(n & 7) && module_busy) ModuleAPIProgress(0); // the build's box keeps up with a long file
     SetWindowBlock(load->block + n);
     if (f_read(&save_file, WINDOW, 512, &done)) result = 1;
   }
@@ -1202,14 +1207,22 @@ UINT fs_ViewRead(UINT count) {
   return done;
 }
 void fs_ViewClose(void) { f_close(&save_file); }
-// ASM.MOD's ROM image (ASM_IMAGE_BLOCK, blocks of 512) to a file, replacing it
+// ASM.MOD's ROM image (ASM_IMAGE_BLOCK, blocks of 512) to a file, replacing it; with bit 15 set,
+// blocks is the bytes of build.log's text (ASM_LOG_BLOCK)
 unsigned char fs_WriteImage(const char* path, UINT blocks) {
-  UINT n, done; FRESULT result, closed;
+  UINT n, done, block = ASM_IMAGE_BLOCK, last = 512, size; FRESULT result, closed;
+  if (blocks & 0x8000) {
+    block = ASM_LOG_BLOCK;
+    last = blocks & 0x7FFF;
+    blocks = (last + 511) >> 9;
+    last -= (blocks - 1) << 9;
+  }
   if ((result = fs_Mount()) || (result = f_open(&save_file, path, FA_WRITE | FA_CREATE_ALWAYS))) return result;
   for (n = 0; !result && n < blocks; ++n) {
-    SetWindowBlock(ASM_IMAGE_BLOCK + n);
-    result = f_write(&save_file, WINDOW, 512, &done);
-    if (!result && done != 512) result = FR_DENIED;
+    size = n + 1 == blocks ? last : 512;
+    SetWindowBlock(block + n);
+    result = f_write(&save_file, WINDOW, size, &done);
+    if (!result && done != size) result = FR_DENIED;
   }
   SetWindowBlock(TB_PSRAM_HIGH << 8);
   closed = f_close(&save_file); return result ? result : closed;

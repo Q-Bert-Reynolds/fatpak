@@ -20,3 +20,9 @@ void Progress(void) {
   ModProgress(0);
   run_n = 0; // the window moved
 }
+// a step between or after the passes: the box says which, between its own steps
+void Phase(unsigned char p) {
+  context->pass = p;
+  ModProgress(0);
+  run_n = 0; // the window may have moved
+}

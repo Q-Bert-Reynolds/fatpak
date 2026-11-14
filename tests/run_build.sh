@@ -30,8 +30,23 @@ rgbfix -v -p 0 "$work/gbdk.gb"
 (cd "$fatpak_root/tests/asm/project" && rgbasm -D _DEMO -D LANG=3 -o "$work/project.o" lib/main.asm)
 rgblink -o "$work/project.gb" "$work/project.o"
 rgbfix -jvcs -k 01 -l 0x33 -m 0x1B -p 255 -t PROJECT "$work/project.gb"
+# three 200 KB INCBIN files: reads long enough that the progress box is drawn in the middle of them
+mkdir -p "$work/huge/lib"
+python3 - "$work/huge" <<'PY'
+import random, sys
+r, folder = random.Random(3), sys.argv[1]
+src = ['SECTION "a", ROMX', 'Before: db 1']
+for i in range(3):
+    open(f'{folder}/lib/huge{i}.bin', 'wb').write(bytes(r.randrange(256) for _ in range(200000)))
+    src += [f'Huge{i}: INCBIN "lib/huge{i}.bin", 150000, 100', f'After{i}: db 2', f'SECTION "b{i}", ROMX', f'Start{i}: db 3']
+src += ['SECTION "t", ROM0[$150]'] + [f' dw Huge{i}, After{i}, Start{i}' for i in range(3)]
+open(f'{folder}/Huge.asm', 'w').write('\n'.join(src) + '\n')
+PY
+(cd "$work/huge" && rgbasm -o "$work/huge.o" Huge.asm)
+rgblink -o "$work/huge.gb" "$work/huge.o"
+rgbfix -v -p 0 "$work/huge.gb"
 cd "$fatpak_root"
 python3 tests/test_asm.py
 "$work/test" "$fatpak_root/bin/GBCOS.BIN" "$fatpak_root/bin/GBCOS.sym" \
     "$fatpak_root/bin/EDITOR.DAT" "$fatpak_root/tests/asm/hello.asm" "$work/hello.gb" \
-    "$fatpak_root/tests/asm" "$work/features.gb" "$fatpak_root/src" "$work/gbdk.gb" "$work/project.gb"
+    "$fatpak_root/tests/asm" "$work/features.gb" "$fatpak_root/src" "$work/gbdk.gb" "$work/project.gb" "$work/huge"

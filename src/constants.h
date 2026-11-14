@@ -101,8 +101,9 @@
 #define ASM_CHARMAP_BLOCK 0x1080u//names, 8 maps' heads, then a 60 KiB pool (129 blocks)
 #define ASM_SECTION_BLOCK 0x1110u//the section table, 32 blocks (512 32-byte records)
 #define ASM_FILE_BLOCK   0x1130u//included and INCBIN files, packed whole from here
-#define ASM_FILE_END     0x3900u//ADD_MAX / 512: up to the add buffer's end
-#define MODULE_ABI     9//newest ABI the host provides, modules built for older ones still load
+#define ASM_FILE_END     0x38FEu//then the build log
+#define ASM_LOG_BLOCK    0x38FEu//build.log's text, 2 blocks (up to ADD_MAX / 512)
+#define MODULE_ABI     10//newest ABI the host provides, modules built for older ones still load
 #define MODULE_TABLE   0x7F00u//ABI jump table in resident bank 1, 3 bytes per entry
 #define MODULE_SLOTS   32//entries reserved for it
 #define MODULE_FORMAT  1//one page, BSS after the code
@@ -130,6 +131,11 @@
 #define MODULE_PAGES_MAX 5
 #define MODULE_ERR_ABI    20//RunModule results past FatFs's FRESULT codes
 #define MODULE_ERR_VERIFY 21//a page copy didn't read back
+#define MODULE_ERR_COPY   22//a copy failed while the module ran (ModProgress), which stopped it
+#define MODULE_STAT_SECONDS 0//ModStat: seconds since the module started (60 frames each)
+#define MODULE_STAT_LOAD_SECONDS 1//of them, finding and reading files (ModFile, ModLoad)
+#define MODULE_STAT_FILES 2//files read
+#define MODULE_STAT_RETRIES 3//PSRAM block copies that read back wrong and were copied again
 
 //fonts
 #define FONT_MONO 0

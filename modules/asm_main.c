@@ -9,11 +9,15 @@ static void Builtin(const char* word, unsigned int value) {
   for (ident_len = 0; (ident[ident_len] = word[ident_len]) != 0; ++ident_len);
   Add(SYM_EQU | SYM_SEEN, value, 0); // defined before both passes
 }
+static void Step(void) { log_marks[++log_steps] = (unsigned int)ModStat(MODULE_STAT_SECONDS); }
 unsigned char Main(void) {
   unsigned int blocks, i;
-  unsigned char *h;
+  unsigned char *h, placed = 1;
   Frame* f;
+  log_steps = 0;
+  log_marks[0] = (unsigned int)ModStat(MODULE_STAT_SECONDS);
   context->symbols = 0;
+  context->log_bytes = 0;
   Window(ASM_SYMBOL_BLOCK); // its first block is the hash heads
   for (h = WINDOW, i = 0; i < 512; ++i) *h++ = 0;
   next_unit = 64; // after them (unit 0 means "none")
@@ -28,28 +32,39 @@ unsigned char Main(void) {
   output[0] = 0;
   if (Project()) context->kind |= ASM_PROJECT;
   else if (!(context->kind & ASM_DOC)) return ASM_NOT_ASM;
-  if (!error) Pass(1);
+  if (!error) {
+    Pass(1);
+    Step();
+  }
   if (!error && !rom_used) Fail(ASM_ERR_EMPTY);
   if (!error && (i = Link()) != NO_SECT) { // reported at the section that doesn't fit
     SectCopy(i, 0);
     error = sec.flags & SECT_ADDRESS ? ASM_ERR_OVERLAP : ASM_ERR_FULL;
     Report(sec.file, sec.line, sec.pos);
-    return error;
+    placed = 0;
   }
   if (!error) {
     Relocate();
+    Step();
     for (blocks = 64; blocks < (unsigned int)(max_bank + 1) << 5; blocks <<= 1);
     context->blocks = blocks;
     Fill();
     Pass(2);
+    Step();
   }
-  if (!error) Header();
+  if (!error) {
+    Header();
+    Step();
+  }
   // an error in a macro body is reported at its invocation (whose line feed was already
   // counted); one in a repeat at the body line
   // (expansions of string symbols and {} report the line they're on)
-  for (f = &frames[depth], i = 0; f > frames && (f->kind == F_MACRO || f->kind == F_ARG || f->file == FILE_EXPANSION); --f)
-    if (f->kind == F_MACRO) i = 1;
-  Report(f->file, f->line - i, f->file ? frames[0].line_pos : f->line_pos);
+  if (placed) {
+    for (f = &frames[depth], i = 0; f > frames && (f->kind == F_MACRO || f->kind == F_ARG || f->file == FILE_EXPANSION); --f)
+      if (f->kind == F_MACRO) i = 1;
+    Report(f->file, f->line - i, f->file ? frames[0].line_pos : f->line_pos);
+  }
+  Log();
   if (!error && main_file) for (i = 0; (context->name[i] = output[i]) != 0; ++i);
   return error;
 }

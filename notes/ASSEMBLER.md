@@ -209,11 +209,36 @@ earlier in pass 2 (a mark bit per symbol), so include guards work.
 - **Progress:** every 64 lines (and as each pass starts) `Progress`
   (`asm_progress.c`) puts the pass, a count and where it is (`Report`: file and
   line) in the context and calls `ModProgress(0)`. The host draws at most every
-  5 s, so a build under 5 s never pays for it, and its `BuildProgress` (ROM0)
+  5 s, so a build under 5 s never pays for it, and its `BuildProgress` (bank 1)
   writes the box: `Pass 1: 45k lines` (pass 1 can't know the total), `Pass 2:
-  47%` (of pass 1's lines), the file's name and `line n`. A draw costs about 30
-  frames on DMG (the buffers swapped four times and the box's rows drawn again),
-  ~10% of a long build there and ~5% on CGB.
+  47%` (of pass 1's lines), the file's name and `line n`, and the time since
+  BUILD (`m:ss`). While a file is found and read the host draws too, between its
+  sectors, with the file's name and `loading`; after pass 1 (`Link`,
+  `Relocate`) and pass 2 (`Fill`, `Header`) `Phase` shows `Placing sections` and
+  `Finishing`. So the time moves every 5 s whatever the build is doing: if it
+  stops, so has the build. A draw between sectors is the deepest the OS stack
+  gets (module, `ModLoad`, `FileSearch`, `FileTry`, `fs_LoadFile`,
+  `ModuleAPIProgress`, `EditorDraw`, `RenderRow`): `FileTry`'s path is in
+  `buffer`'s upper half, not on the stack, which with it ran past `stack_top` into
+  `module_wide` (the next draw then went over the module's BSS). A full beisbol
+  build leaves 117 bytes of the stack unused; `run_build.sh` checks 64 stay. A draw costs about 30 frames on DMG (the buffers
+  swapped four times and the box's rows drawn again), ~10% of a long build there
+  and ~5% on CGB.
+- **A failed copy stops the build.** If a draw's copies don't read back (8 tries
+  a block), `ModuleAbort` backs out of the module to `RunModule` (its stack and
+  far-call depth from `ModuleEnter`) and BUILD says `COPY FAILED op:block` in the
+  status bar, with the editor's text intact (left in place if its backup is the
+  copy that failed). Before, that restarted the device, and a beisbol build on a
+  GBA SP stayed frozen on its progress box for most of an hour (2026-11-13;
+  Gearboy builds it through, so the cause is unconfirmed).
+- **build.log** (`asm_log.c`): written beside `project.gbp`, or the document,
+  after every build that ran (not after `COPY FAILED`): the output, each step's
+  time (pass 1 with the card's share and files, placing sections, pass 2,
+  finishing; lines approximate, to 64), the total, PSRAM copies retried, and
+  `built n KB` or `stopped: file line n: ERROR`. Times come from `ModStat`
+  (seconds counted by the host from `render_frames`, 60 a second: 0.5% slow); the
+  text goes to `ASM_LOG_BLOCK` and the host writes `context.log_bytes` of it with
+  `FileWriteImage` (bit 15 of its count).
 - **No SDCC helpers:** `*` `/` `%` are shift loops; numbers scale by shifts.
 - `tests/asm_host.c` builds the same three files for the PC with 16-bit ints
   (`-Dint=short`), a 16 MiB PSRAM array and includes from the source's folder,
@@ -355,6 +380,20 @@ hour. The first such run found the one device-only difference: 70 of
 its paths start with `./`, and FatFs has no relative names (`FF_FS_RPATH` 0), so
 `OpenFile` drops a leading `./` (the PC harness now refuses `.` and `..` like
 FatFs does).
+
+Its `build.log` from Gearboy (CGB), 2026-11-13:
+
+```
+beisbol.gb from project.gbp
+pass 1      24:54   ~24576 lines
+  card      11:05   1043 files found and read
+sections     0:33   292
+pass 2      15:57   ~24576 lines
+finishing    0:27
+total       41:51
+PSRAM copies retried: 0
+built 512 KB
+```
 
 ## Next steps
 

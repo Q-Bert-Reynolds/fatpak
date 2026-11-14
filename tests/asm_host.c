@@ -5,6 +5,7 @@
 #include <string.h>
 #define int short // the module is built with 16-bit ints, like SDCC
 #include "../modules/asm.h"
+#include "../src/constants.h"
 #undef int
 
 static unsigned char psram[16 << 20];
@@ -53,6 +54,8 @@ void ModProgress(const char* text) { // ASM_PROGRESS=1 prints each one, as build
                c->file ? c->name : "(the document)", c->line);
 }
 static int first_level = -1; // the folder that found the first file (project.gbp's): searched first, like the OS
+unsigned long ModStat(unsigned char which) { (void)which; return 0; } // no clock here: build.log's times are 0:00
+char* ModString(char* dest, unsigned short id) { return dest + sprintf(dest, "error %u", id); }
 unsigned char ModLoad(const char* path, ModuleLoad* load) {
   unsigned n = strlen(source_dir), end = n;
   unsigned char result = 1;
@@ -83,6 +86,7 @@ int main(int argc, char** argv) {
   status = ModuleMain(&c);
   printf("%u %u %u %u %u %u %s\n", status, c.line, c.pos, c.blocks, c.symbols, c.file,
          c.kind & ASM_PROJECT && !status ? c.name : c.file ? c.name + c.base : "");
+  if (getenv("ASM_LOG")) fwrite(psram + (unsigned long)ASM_LOG_BLOCK * 512, 1, c.log_bytes, stderr); // build.log
   if (!status && argc > 2) {
     f = fopen(argv[2], "wb");
     fwrite(psram + 0x0400ul * 512, 512, c.blocks, f);

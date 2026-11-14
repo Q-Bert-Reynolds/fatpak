@@ -43,7 +43,7 @@ extern unsigned char FileLoadData(const char* path); // FRESULT, copies the data
 extern unsigned char FileLoadLanguage(const char* path, unsigned char first); // FRESULT: a language to LANG_BLOCK from that block
 extern unsigned char FileSaveSwap(void); // FRESULT, the text, clipboard and settings
 extern unsigned char FileLoadSwap(void); // FRESULT, restores them if PSRAM lost them
-extern unsigned char FileWriteImage(const char* path, unsigned int blocks); // FRESULT, the assembled ROM (ASM_IMAGE_BLOCK, 512-byte blocks) to a file
+extern unsigned char FileWriteImage(const char* path, unsigned int blocks); // FRESULT, the assembled ROM (ASM_IMAGE_BLOCK, 512-byte blocks) to a file; bit 15: blocks is build.log's bytes (ASM_LOG_BLOCK)
 extern unsigned char FileLoadFile(const char* path, void* load); // a ModuleLoad (sdk.h): the file into PSRAM from load->block, at most load->blocks; sets load->size, 0 ok, 1 unreadable, 2 too big
 // HEXVIEW.MOD's file, read only in save_file (nothing else uses it while a module runs)
 extern unsigned char FileViewOpen(const char* path); // FRESULT, sets view_size

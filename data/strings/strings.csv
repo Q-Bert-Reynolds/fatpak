@@ -196,3 +196,7 @@ INGAME_LOAD,item,,Load state,Cargar estado
 INGAME_RETURN,item,,Return to OS,Volver al OS
 INGAME_ERROR,bar,in-game menu: a save state that failed,State / SD error,Error de estado/SD
 INGAME_FOOTER,bar,in-game menu footer,<A> Select  <B> Resume,<A> Elegir  <B> Seguir
+MODULE_COPY_FAILED,bar,"a PSRAM copy that failed while a module ran (operation:block), which stopped it; the clock covers past 19 characters",COPY FAILED {}:{},COPIA FALLÓ {}:{}
+BUILD_LOADING,box,build progress: the file named above is being read from the card,loading,leyendo
+BUILD_LINKING,box,build progress: after pass 1,Placing sections,Colocando secciones
+BUILD_FINISHING,box,build progress: after pass 2,Finishing,Terminando

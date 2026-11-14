@@ -11,7 +11,7 @@ INCLUDE "src/fatpak.inc"
 ;   FileLoadData                de = path, OS mode: copies the data file to PSRAM, returns FRESULT in a
 ;   FileSaveSwap                OS mode: writes the text, clipboard and settings to the swap file, returns FRESULT in a
 ;   FileLoadSwap                OS mode: restores them at boot if PSRAM lost them, returns FRESULT in a
-;   FileWriteImage              de = path, bc = blocks: writes the assembled ROM image from PSRAM, returns FRESULT in a
+;   FileWriteImage              de = path, bc = blocks: writes the assembled ROM image from PSRAM (bit 15: build.log's bytes), returns FRESULT in a
 ;   FileLoadFile                de = path, bc = ModuleLoad*: copies the file to PSRAM from its block, at most its blocks; sets its size, returns 0, 1 can't open/read, 2 too big
 ;   FileViewOpen                de = path, opens it read only for HEXVIEW.MOD (sets view_size), returns FRESULT in a
 ;   FileViewRead                de = count (at most 512), reads from view_pos into buffer, returns the bytes read in bc
