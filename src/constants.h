@@ -101,8 +101,10 @@
 #define ASM_CHARMAP_BLOCK 0x1080u//names, 8 maps' heads, then a 60 KiB pool (129 blocks)
 #define ASM_SECTION_BLOCK 0x1110u//the section table, 32 blocks (512 32-byte records)
 #define ASM_FILE_BLOCK   0x1130u//included and INCBIN files, packed whole from here
-#define ASM_FILE_END     0x38FEu//then the build log
-#define ASM_LOG_BLOCK    0x38FEu//build.log's text, 2 blocks (up to ADD_MAX / 512)
+#define ASM_FILE_END     0x387Eu//then build.cache's new index, and the build log
+#define ASM_CACHE_BLOCK  0x387Eu//build.cache: where pass 1 found each file, 128 blocks (modules/asm_cache.c)
+#define ASM_CACHE_BLOCKS 128
+#define ASM_LOG_BLOCK    0x38FEu//build.log's text, 2 blocks (up to ADD_MAX / 512)// in pass 1, the cache's directory and FAT sectors
 #define MODULE_ABI     10//newest ABI the host provides, modules built for older ones still load
 #define MODULE_TABLE   0x7F00u//ABI jump table in resident bank 1, 3 bytes per entry
 #define MODULE_SLOTS   32//entries reserved for it
@@ -133,9 +135,10 @@
 #define MODULE_ERR_VERIFY 21//a page copy didn't read back
 #define MODULE_ERR_COPY   22//a copy failed while the module ran (ModProgress), which stopped it
 #define MODULE_STAT_SECONDS 0//ModStat: seconds since the module started (60 frames each)
-#define MODULE_STAT_LOAD_SECONDS 1//of them, finding and reading files (ModFile, ModLoad)
-#define MODULE_STAT_FILES 2//files read
+#define MODULE_STAT_FRAMES 1//the frames since the module started, their low 16 bits: to time a short step
 #define MODULE_STAT_RETRIES 3//PSRAM block copies that read back wrong and were copied again
+#define MODULE_STAT_FS 4//the address of FatFs's volume (FATFS), to read only
+#define MODULE_STAT_FILE 5//and of the file ModFile and ModLoad last opened (FIL: its directory entry's sector and place)
 
 //fonts
 #define FONT_MONO 0

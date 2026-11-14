@@ -62,6 +62,15 @@ assemble byte-identical to RGBDS, unmodified (`memory1.asm` calls
   starts a comment, a word may be quoted, and the keywords are case-insensitive.
   An error goes in the box with its file and line; the cursor moves to it when
   it's in the open document (`project.gbp` included), and stays otherwise.
+  A project build also writes **`build.cache`** beside `project.gbp` (after a
+  build that worked) and reads it at the next: where each file's directory entry
+  was found (its sector, place and 8.3 name). A file whose entry still has that
+  name is read straight from its clusters, without FatFs searching its folder
+  (most of the card's time); anything else is searched for as before, so a
+  moved, renamed or new file is found, and an edited one reads as it is now (the
+  entry has its size and first cluster). `build.log`'s card line says how many
+  went through it. Delete `build.cache` to start over; one written for another
+  card or volume isn't used.
   `.gbp` files are highlighted like assembly with their four words as
   directives. Without a project, BUILD on anything but assembly says NOT AN ASM
   FILE (after the module looked for one).
@@ -180,6 +189,19 @@ earlier in pass 2 (a mark bit per symbol), so include guards work.
   becomes frame 0 of both passes, defines the `-D` strings before them, and
   `Header` applies the `rgbfix` bytes. The context reports the error file's path
   as written (`name`, with `base` at its file name) and, on success, the output.
+- **build.cache** (`asm_cache.c`, `asm_cstart.c`, `asm_cread.c`, `asm_cbytes.c`;
+  split to fit the pages): `CacheStart` (in `Project`, before main) reads the
+  last cache file and makes each record a `SYM_CACHED` symbol named as the
+  file's `SYM_INCLUDE` one; `LoadPath` reads a file with such a symbol through
+  `CacheRead` (`ModSector` for its directory sector, the name compared, then its
+  clusters and FAT, in `ASM_LOG_BLOCK`'s two blocks as scratch) and turns the
+  symbol into the include. A file the search found is recorded from FatFs's
+  `FIL` (`dir_sect`, `dir_ptr`; `ModStat` gives the `FATFS` and `FIL` addresses).
+  The new index is built at `ASM_CACHE_BLOCK` (128 blocks) and the host writes it
+  when the build worked. FAT16 and FAT32, clusters under 256 sectors. The 32-bit
+  sector and cluster numbers are 4-byte arrays worked in assembly: in SDCC's C
+  the cache was 3.7 KB, here it's about 1.8 KB. Making room also moved `FOR`'s
+  count, `Progress`'s percent and the 16.16 fraction into `Apply` calls.
 - **Pages.** A five-page wide module ([MODULES.md](MODULES.md)):
   `modules/asm.c` (page 13: the stream, words, expressions, word tables, a
   `ModuleMain` that calls `Main`), `modules/asm_emit.c` with `asm_pushs.c` and
@@ -193,8 +215,8 @@ earlier in pass 2 (a mark bit per symbol), so include guards work.
   `project.gbp`).
   Calls between pages cost a far call each; pointers never cross: each page's
   constants are read by its own code; `modules/asm_shared.h` lists what is shared
-  (globals are WRAMX BSS, readable from all five). Free bytes: page 13 ~320,
-  12 ~170, 5 ~800, 4 ~520, 15 ~1,000 (with `jr` for every jump in range,
+  (globals are WRAMX BSS, readable from all five). Free bytes: page 13 ~37,
+  12 ~4, 5 ~24, 4 ~34, 15 ~40: **the module is full** (with `jr` for every jump in range,
   `modules/peephole_jr.def`).
 - **32-bit arithmetic** is hand-written assembly on the device: SDCC's `long`
   code took `Apply` alone to 1.6 KB. `Apply` (every binary operator) and `Div`

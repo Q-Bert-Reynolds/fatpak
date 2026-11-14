@@ -41,22 +41,22 @@ static unsigned char ProjWord(char* dest) {
 
 // rgbfix's numbers: $hex, 0xhex, 0bbinary or decimal, up to 255
 static unsigned char ProjByte(const char* s) {
-  unsigned int v = 0;
   unsigned char base = 10, d;
   if (*s == '$') { base = 16; ++s; }
   else if (s[0] == '0' && (s[1] | 0x20) == 'x') { base = 16; s += 2; }
   else if (s[0] == '0' && (s[1] | 0x20) == 'b') { base = 2; s += 2; }
   if (!*s) Fail(ASM_ERR_SYNTAX);
+  num.u = 0;
   for (; *s && !error; ++s) {
     d = *s;
     if (d >= '0' && d <= '9') d -= '0';
     else if ((d | 0x20) >= 'a' && (d | 0x20) <= 'f') d = (d | 0x20) - 'a' + 10;
     else d = 0xFF;
     if (d >= base) Fail(d == 0xFF && base == 10 ? ASM_ERR_UNSUPPORTED : ASM_ERR_SYNTAX); // MBC names
-    v = (base == 16 ? v << 4 : base == 2 ? v << 1 : (v << 3) + (v << 1)) + d; // no SDCC helpers
-    if (v > 255) Fail(ASM_ERR_RANGE);
+    Digit(base, d); // the lexer's (assembly)
+    if (num.w[1] || num.w[0] > 255) Fail(ASM_ERR_RANGE);
   }
-  return (unsigned char)v;
+  return (unsigned char)num.w[0];
 }
 
 // -D NAME[=VALUE]: an EQUS defined before both passes, like rgbasm's
@@ -138,7 +138,6 @@ static unsigned char ProjWhich(void) {
 unsigned char Project(void) {
   unsigned char i, k;
   unsigned int file;
-  char *dot;
   for (i = 0; (path[i] = proj_name[i]) != 0; ++i);
   if (!(file = LoadPath())) return 0;
   depth = 0;
@@ -146,13 +145,13 @@ unsigned char Project(void) {
   frames[0].source = SRC_TEXT;
   frames[0].file = file;
   frames[0].pos = file_at;
-  frames[0].end = file_at + file_size;
+  frames[0].end = file_end;
   frames[0].line = 1;
+  CacheStart(); // before main: it reads through build.cache too
   run_n = 0;
   ++literal; // no {} in it
   Advance();
   while (ch && !error) {
-    frames[0].line_pos = frames[0].pos - 1;
     Space();
     if (IsStart(ch)) {
       ReadIdent();
@@ -161,7 +160,7 @@ unsigned char Project(void) {
         ProjWord(path);
         if (!error && !(main_file = LoadPath())) Fail(file_error);
         main_at = file_at;
-        main_end = file_at + file_size;
+        main_end = file_end;
       }
       else if (k == 1) ProjWord(output);
       else if (k != 0xFF) ProjOptions(k - 2);
@@ -176,10 +175,12 @@ unsigned char Project(void) {
   if (!error && !main_file) Fail(ASM_ERR_FILE); // no main line: at the file's end
   if (error) return 1;
   if (!output[0]) { // main's path (still in path), as .gb
-    for (i = 0, dot = 0; path[i]; ++i) if (path[i] == '.') dot = output + i; else if (path[i] == '/') dot = 0;
-    for (i = 0; path[i] && i < sizeof(output) - 4; ++i) output[i] = path[i];
-    if (!dot || dot >= output + i) dot = output + i;
-    for (i = 0; (dot[i] = proj_gb[i]) != 0; ++i);
+    for (i = 0, k = 0xFF; path[i] && i < sizeof(output) - 4; ++i) {
+      if ((output[i] = path[i]) == '.') k = i;
+      else if (path[i] == '/') k = 0xFF;
+    }
+    if (k == 0xFF) k = i;
+    for (i = 0; (output[k + i] = proj_gb[i]) != 0; ++i);
   }
   return 1;
 }

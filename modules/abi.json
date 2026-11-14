@@ -29,6 +29,7 @@
     ["Load", "unsigned char", "const char* path, ModuleLoad* load", 7],
     ["Progress", "void", "const char* text", 8],
     ["String", "char*", "char* dest, unsigned int id", 9],
-    ["Stat", "unsigned long", "unsigned char which", 10]
+    ["Stat", "unsigned long", "unsigned char which", 10],
+    ["Sector", "unsigned char", "unsigned long sector, unsigned int block", 10]
   ]
 }

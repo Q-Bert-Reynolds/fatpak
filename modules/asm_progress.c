@@ -10,9 +10,9 @@ void Progress(void) {
   Frame* f = &frames[depth];
   while (f > frames && (f->kind == F_MACRO || f->kind == F_ARG || f->file == FILE_EXPANSION)) --f; // like the error report
   Report(f->file, f->line, 0);
-  if (pass == 1) part = Div((UVal)part << 3, 125); // x 64 / 1000
+  if (pass == 1) part = (unsigned int)Apply('/', Apply('*', part, 8), 125); // x 64 / 1000 (Apply: assembly)
   else {
-    part = Div(((UVal)part << 6) + ((UVal)part << 5) + ((UVal)part << 2), pass1_units); // x 100
+    part = (unsigned int)Apply('/', Apply('*', part, 100), pass1_units);
     if (part > 99) part = 99;
   }
   context->pass = pass;

@@ -18,7 +18,7 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
 | `FILEINFO.MOD` | 3 | 9 | FILE > INFO, Select (`browser/info.c`) | 2,745 B + 91 B BSS |
 | `HELP.MOD` | 4 | 9 | HELP, F1 (`editor/help.c`) | 305 B + 49 B BSS |
 | `THEME.MOD` | 5 | 9 | SETTINGS > THEME (`ui/theme.c`) | 514 B + 48 B BSS |
-| `ASM.MOD` | 6 | 8 | FILE > BUILD, RUN (`editor/build.c`), [ASSEMBLER.md](ASSEMBLER.md) | wide, 5 pages: 7,100 + 7,248 + 6,623 + 6,907 + 6,406 B, 2,330 B BSS |
+| `ASM.MOD` | 6 | 8 | FILE > BUILD, RUN (`editor/build.c`), [ASSEMBLER.md](ASSEMBLER.md) | wide, 5 pages: 7,387 + 7,403 + 7,400 + 7,390 + 7,384 B, 2,418 B BSS (full) |
 | `HEXVIEW.MOD` | 7 | 9 | Opening a binary file in the browser (`browser/viewer.c`) | 2,216 B + 269 B BSS |
 | `TILEVIEW.MOD` | 8 | 9 | Opening a `.tiles` file in the browser (`browser/viewer.c`) | 2,097 B + 431 B BSS |
 
@@ -250,7 +250,8 @@ entries. Entries are append-only; changing one's meaning needs a new entry.
 | `ModTiles(row, tiles)` | 6 | `EditorDraw`, then `RenderRawRow`: `TB_COLS` 2bpp tiles (320 bytes) sent as they are to a text row's block, which keeps them until the row's text, selection or a box over it changes. GBC: BG palette 7 (four greys); DMG/SGB dark mode inverts them so they keep their shades. The host calls `EditorRedraw` after |
 | `ModLoad(path, load)` | 7 | `ModFile`'s search for a file of any size (below 16 MiB): a `ModuleLoad` `{block, blocks, size}` says where and how many blocks may be written; sets `size`. Returns 0, 1 if unreadable, 2 if it doesn't fit (nothing written). ASM.MOD's `INCLUDE` and `INCBIN` |
 | `ModProgress(text)` | 8 | Text in the busy box (a line at each `\n`, wrapped at 19), drawn only if 5 s (`render_frames`, counted by the LCD interrupt) have passed since the module started or last drew, so call it often. `0`: the host's own text (`module_progress`, set with `module_context`; ASM.MOD's is `BuildProgress`, ROM0). For a wide module the host holds its BSS at `MODULE_BSS_HELD`, brings the editor's buffers back, draws with VBlank on, and swaps both back (~30 frames on DMG, half on CGB) |
-| `ModStat(which)` | 10 | Counts since the module started: `MODULE_STAT_SECONDS` (60 frames each, counted from `render_frames` at every `ModProgress` and `ModStat`), `MODULE_STAT_LOAD_SECONDS` (of them, finding and reading files for `ModFile`/`ModLoad`, which also draw `ModProgress(0)` between sectors with `module_loading` set to the file's name), `MODULE_STAT_FILES` (read), `MODULE_STAT_RETRIES` (PSRAM block copies made again) |
+| `ModStat(which)` | 10 | `MODULE_STAT_SECONDS` since the module started (60 frames each, counted from `render_frames` at every `ModProgress` and `ModStat`), `MODULE_STAT_FRAMES` (their low 16 bits, to time a short step), `MODULE_STAT_RETRIES` (PSRAM block copies made again), `MODULE_STAT_FS` and `MODULE_STAT_FILE` (the addresses of FatFs's `FATFS` and of the `FIL` `ModFile`/`ModLoad` last opened, to read only). `ModFile`/`ModLoad` also draw `ModProgress(0)` between sectors, with `module_loading` set to the file's name |
+| `ModSector(sector, block)` | 10 | One card sector into PSRAM block `block` (`sd_ReadSector` into the window); 0 if read. ASM.MOD's `build.cache` reads files by their clusters with it |
 | `ModString(dest, id)` | 9 | String `id` (`S_*` from `src/strings.h`, or an `S_PART` piece) of the loaded language at `dest` and a 0; returns the 0's address ([LANGUAGES.md](LANGUAGES.md)) |
 
 Pointer rule: wrappers run with page 13 mapped, so they read module memory

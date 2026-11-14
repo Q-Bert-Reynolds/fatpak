@@ -1208,10 +1208,14 @@ UINT fs_ViewRead(UINT count) {
 }
 void fs_ViewClose(void) { f_close(&save_file); }
 // ASM.MOD's ROM image (ASM_IMAGE_BLOCK, blocks of 512) to a file, replacing it; with bit 15 set,
-// blocks is the bytes of build.log's text (ASM_LOG_BLOCK)
+// blocks is the bytes of build.log's text (ASM_LOG_BLOCK), with bit 14 build.cache's blocks
 unsigned char fs_WriteImage(const char* path, UINT blocks) {
   UINT n, done, block = ASM_IMAGE_BLOCK, last = 512, size; FRESULT result, closed;
-  if (blocks & 0x8000) {
+  if (blocks & 0x4000) {
+    block = ASM_CACHE_BLOCK;
+    blocks &= 0x3FFF;
+  }
+  else if (blocks & 0x8000) {
     block = ASM_LOG_BLOCK;
     last = blocks & 0x7FFF;
     blocks = (last + 511) >> 9;

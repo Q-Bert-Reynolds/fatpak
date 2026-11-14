@@ -36,6 +36,9 @@ extern unsigned int tb_Read(unsigned char* buffer, unsigned int size); // from t
 extern unsigned char ModuleEnter(void);
 extern void ModuleAbort(unsigned char status); // runtime.asm: back out of the module, ModuleEnter returns status
 extern unsigned int module_retries; // runtime.asm: block copies made again since RunModule started
+extern unsigned char fs, save_file; // src/fatfs/fatfs.c: FatFs's volume and the loader's file (ModStat gives their addresses)
+extern unsigned long sd_sector; // src/fatfs/sd.asm
+extern unsigned char sd_ReadSector(unsigned char* buffer);
 extern unsigned char buffer[512]; // synchronous scratch; no module file services
 extern void SetWindowBlock(unsigned int block);
 #define WINDOW_BLOCK (*(volatile unsigned int*)0xBD02)
@@ -64,8 +67,6 @@ unsigned char file_level; // ModFile/ModLoad: the folder level (characters of fi
 // minutes: counted at least every ModProgress), those spent finding and reading files, the files
 unsigned long module_frames;
 static unsigned int frames_at;
-static unsigned long load_frames;
-static unsigned int load_files;
 const char* module_loading; // ModFile/ModLoad: the name of the file being read, for module_progress; else 0
 static unsigned char module_aborted; // ModProgress: a copy failed, the module was stopped (ModuleAbort)
 static unsigned char buffers_live; // and the editor's buffers stayed in WRAMX (their backup may be partial)
@@ -80,9 +81,8 @@ unsigned char RunModule(const char* path, unsigned char id) {
   module_busy = 1;
   module_fail = 0;
   module_retries = 0;
-  module_frames = load_frames = 0;
+  module_frames = 0;
   frames_at = render_frames;
-  load_files = 0;
   module_aborted = buffers_live = 0;
   module_loading = 0;
   file_level = 0xFF;
@@ -287,7 +287,6 @@ typedef char file_path_fits[PATH_SIZE + FS_NAME_SIZE <= 256 ? 1 : -1];
 static unsigned char FileTry(unsigned char n, const char* name, ModuleLoad* load) { // file_dir's first n characters, "/", name
   char* full = FILE_PATH; // name is in the module's WRAMX BSS, readable throughout
   unsigned char i;
-  unsigned long start;
   for (i = 0; i < n; ++i) full[i] = file_dir[i];
   full[i++] = '/';
   module_loading = full + i; // the progress box names it (full is the host's: the module's BSS may be swapped out)
@@ -296,12 +295,7 @@ static unsigned char FileTry(unsigned char n, const char* name, ModuleLoad* load
     if ((full[i++] = *name++) == '/') module_loading = full + i;
   }
   full[i] = 0;
-  CountFrames();
-  start = module_frames;
-  i = FileLoadFile(full, load); // its search and read time count, found or not
-  CountFrames();
-  load_frames += module_frames - start;
-  if (!i) ++load_files;
+  i = FileLoadFile(full, load);
   module_loading = 0;
   return i;
 }
@@ -428,9 +422,21 @@ static unsigned int Seconds(unsigned long frames) { // 60 a second: the Game Boy
 unsigned long ModuleAPIStat(unsigned char which) {
   CountFrames();
   if (which == MODULE_STAT_SECONDS) return Seconds(module_frames);
-  if (which == MODULE_STAT_LOAD_SECONDS) return Seconds(load_frames);
-  if (which == MODULE_STAT_FILES) return load_files;
+  if (which == MODULE_STAT_FRAMES) return module_frames;
+  if (which == MODULE_STAT_FS) return (unsigned int)&fs;
+  if (which == MODULE_STAT_FILE) return (unsigned int)&save_file;
   return module_retries;
+}
+// ABI 10: ModSector, a card sector into PSRAM block (ASM.MOD's build.cache reads files by their
+// clusters); 0 if it was read
+unsigned char ModuleAPISector(unsigned long sector, unsigned int block) {
+  unsigned int window = WINDOW_BLOCK;
+  unsigned char result;
+  SetWindowBlock(block);
+  sd_sector = sector;
+  result = sd_ReadSector((unsigned char*)WINDOW);
+  SetWindowBlock(window);
+  return result;
 }
 
 // ABI 9

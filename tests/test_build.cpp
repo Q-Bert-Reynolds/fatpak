@@ -334,8 +334,32 @@ static void Project(const char* image, const char* symbols, const char* data, co
         Check(s.lines() == "game.gb|Built 32 KB", "BUILD in a markdown file builds the project");
         Check(Read(s.root + "/game.gb") == Read(expected), "the project's ROM matches rgbasm and rgbfix with its options");
         Check(Text(s.root + "/build.log").find("game.gb from project.gbp\n") == 0, "build.log goes beside project.gbp");
+        Check(Read(s.root + "/build.cache").size() >= 512, "build.cache goes beside project.gbp");
         s.pad(A_Key);
-        printf("%s project.gbp builds from About.md: %u frames\n", color ? "CGB" : "DMG", frames);
+        unsigned again = s.command(4, "Built ");
+        std::string log = Text(s.root + "/build.log");
+        if (log.find(", 3 through build.cache") == std::string::npos) fprintf(stderr, "build.log:\n%s", log.c_str());
+        Check(log.find(", 3 through build.cache") != std::string::npos, "the next build reads main.asm, part.asm and Base.asm through build.cache");
+        Check(Read(s.root + "/game.gb") == Read(expected), "the same ROM through build.cache");
+        s.pad(A_Key);
+        printf("%s project.gbp builds from About.md: %u frames, again %u through build.cache\n", color ? "CGB" : "DMG", frames, again);
+    }
+    {
+        // an edit after build.cache is written: the build reads the file as it is now
+        Session s(image, symbols, data, color, "Base.asm", root, lib, {{"project.gbp", project}});
+        s.command(4, "Built ");
+        s.pad(A_Key);
+        auto key = [&](u8 code) { s.core.QueuePS2KeyboardScanCode(code); Frames(s.core, 4); s.core.QueuePS2KeyboardScanCode(0xF0); s.core.QueuePS2KeyboardScanCode(code); Frames(s.core, 160); };
+        key(0x22); key(0x5A); // "x" and a line feed before the first line
+        s.command(4, "SAVED"); // BUILD saves the edit first; its message waits for a key, then the build goes on
+        s.pad(B_Key);
+        for (unsigned f = 0; f < 6000 && s.lines().find("INSTRUCTION") == std::string::npos; ++f) Frames(s.core, 1);
+        std::string log = Text(s.root + "/build.log");
+        if (s.lines() != "Base.asm|Line 1|BAD INSTRUCTION" || log.find(", 3 through build.cache") == std::string::npos)
+            fprintf(stderr, "box: \"%s\"\n%s", s.lines().c_str(), log.c_str());
+        Check(s.lines() == "Base.asm|Line 1|BAD INSTRUCTION", "a file edited since build.cache is read as it is");
+        Check(log.find(", 3 through build.cache") != std::string::npos, "through its cached entry, which the save kept");
+        s.pad(A_Key);
     }
     {
         const std::string bad = root + "DEF Bad EQU Later\n"; // line 3, in the open document

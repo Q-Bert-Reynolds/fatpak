@@ -171,7 +171,10 @@ def main():
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '10.o', str(ROOT / 'modules/asm_progress.c')])
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '11.o', str(ROOT / 'modules/asm_proj.c')])
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '12.o', str(ROOT / 'modules/asm_log.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c')] + [str(HOST) + suffix + '.o' for suffix in ('', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12')])
+    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '13.o', str(ROOT / 'modules/asm_cache.c')])
+    for n, name in ((14, 'asm_cstart.c'), (15, 'asm_cread.c'), (16, 'asm_cbytes.c')):
+        run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + f'{n}.o', str(ROOT / 'modules' / name)])
+    run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c')] + [str(HOST) + suffix + '.o' for suffix in ('', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16')])
     failed = 0
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)

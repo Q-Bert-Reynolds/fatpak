@@ -3,4 +3,4 @@
 FIXED: BuildProgress PutTime
 ROM0: FolderPath
 # after the module, with the editor's pages back
-15: ErrorCursor
+15: ErrorCursor WriteOutputs

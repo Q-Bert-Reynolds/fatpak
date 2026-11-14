@@ -82,6 +82,7 @@ extern unsigned int progress_units, pass1_units;
 #define SYM_INCLUDE 4 // name: the path, value: its first block, bank and extra: its size (bits 16-23, 0-15)
 #define SYM_STRING 5 // EQUS: value: heap offset, extra: length
 #define SYM_SECTION 6 // name: '"' and the section's name, value: its index
+#define SYM_CACHED 7 // build.cache: name: a file's, as SYM_INCLUDE's; value: its record in the last cache file (asm_cache.c)
 #define SYM_SEEN 0x80 // with the kind: defined this pass (see Mark)
 
 // shared by asm.c and asm_line.c
@@ -250,7 +251,16 @@ extern Fix fix;
 extern char output[65]; // the ROM's path from the project's folder
 extern unsigned int main_file; // main's symbol, 0 to assemble the document
 extern Pos main_at, main_end;
+typedef union { Val v; UVal u; unsigned int w[2]; } Num;
+extern Num num; // asm.c: a number being read
+void Digit(unsigned char base, unsigned char d); // num = num * base + d (2, 8, 10, 16)
 unsigned char Project(void);
+// asm_cache.c: build.cache
+extern unsigned int cache_n, cache_files, files_read;
+extern unsigned char card_frames[4]; // 32 bits
+void CacheStart(void); // after project.gbp
+unsigned char CacheLoad(ModuleLoad* load, unsigned int record); // ModLoad(path, load), through the cache record (0: none) when it can
+void CacheEnd(void);
 // asm_log.c: build.log
 #define LOG_STEPS 4 // pass 1, placing sections, pass 2, finishing
 #define ASM_LOG_BLOCKS 2
@@ -260,7 +270,7 @@ void Log(void);
 void Phase(unsigned char p); // 3 placing sections, 4 finishing: the box says so
 unsigned int LoadPath(void); // the same for path[], 0 with file_error if it can't be read
 extern unsigned char file_error;
-extern Pos file_at, file_size;
+extern Pos file_at, file_size, file_end; // and file_at + file_size
 extern unsigned int file_top; // the next free block from ASM_FILE_BLOCK
 void StepVar(unsigned int unit, Val step); // asm_emit.c: FOR's variable moves on
 void For(void); // asm_str.c

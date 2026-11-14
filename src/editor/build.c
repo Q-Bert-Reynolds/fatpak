@@ -79,6 +79,19 @@ static char* PutTime(char* end, unsigned long frames) {
   *end = 0;
   return end;
 }
+// build.log beside the project or the document, and build.cache beside project.gbp after a build
+// that worked; their own failures aren't reported
+static void WriteOutputs(const AsmContext* c, char* path) {
+  if (c->log_bytes) {
+    FolderPath(path, c->kind & ASM_PROJECT ? file_level : 0xFF, "build.log");
+    FileWriteImage(path, c->log_bytes);
+  }
+  if (c->cache_blocks) {
+    FolderPath(path, file_level, "build.cache");
+    FileWriteImage(path, c->cache_blocks);
+  }
+}
+
 // ASM.MOD's ModProgress(0) text: the pass and how far it is, the file and line it's on (or the
 // file being read from the card), and the time since BUILD; after pass 1 and 2, what it's doing.
 // The time moves at every redraw, every 5 s while the build is working: if it stops, so has the
@@ -111,17 +124,14 @@ void BuildFile(unsigned char run) {
   ShowBusy(Str(S_ASSEMBLING));
   context.length = tb_Length();
   context.kind = tb_lang == LANG_ASM ? ASM_DOC : 0; // anything builds under a project.gbp
-  context.log_bytes = 0;
+  context.log_bytes = context.cache_blocks = 0;
   module_context = &context;
   module_progress = BuildProgress;
   result = RUN_MODULE(ASM);
   HideBox();
   if (result) { ShowModuleError(result); return; }
   if (module_status == ASM_NOT_ASM) { ShowMessage(Str(S_NOT_ASM_FILE)); return; }
-  if (context.log_bytes) { // build.log beside the project or the document: its own failure isn't reported
-    FolderPath(path, context.kind & ASM_PROJECT ? file_level : 0xFF, "build.log");
-    FileWriteImage(path, 0x8000 | context.log_bytes);
-  }
+  WriteOutputs(&context, path);
   if (module_status) { // the file, line and error in a box; the cursor goes to the line, or to the INCLUDE of the file
     end = ToLatin1(text, context.file ? context.name + context.base : file_name, FS_NAME_SIZE - 1);
     *end++ = '\n';

@@ -17,7 +17,10 @@ unsigned char Main(void) {
   log_steps = 0;
   log_marks[0] = (unsigned int)ModStat(MODULE_STAT_SECONDS);
   context->symbols = 0;
-  context->log_bytes = 0;
+  context->log_bytes = context->cache_blocks = 0;
+  cache_n = 0xFFFF; // none until CacheStart
+  cache_files = files_read = 0;
+  card_frames[0] = card_frames[1] = card_frames[2] = card_frames[3] = 0;
   Window(ASM_SYMBOL_BLOCK); // its first block is the hash heads
   for (h = WINDOW, i = 0; i < 512; ++i) *h++ = 0;
   next_unit = 64; // after them (unit 0 means "none")
@@ -64,6 +67,7 @@ unsigned char Main(void) {
       if (f->kind == F_MACRO) i = 1;
     Report(f->file, f->line - i, f->file ? frames[0].line_pos : f->line_pos);
   }
+  CacheEnd();
   Log();
   if (!error && main_file) for (i = 0; (context->name[i] = output[i]) != 0; ++i);
   return error;

@@ -407,11 +407,11 @@ static Val Binary(unsigned char min);
 
 // a number being read: num = num * base + d (base 2, 8, 10 or 16), assembly on the device
 // like Keyword; and the 32-bit value Lookup returns
-static union { Val v; UVal u; unsigned int w[2]; } num;
+Num num;
 #ifdef HOST_TEST
-static void Digit(unsigned char base, unsigned char d) { num.u = num.u * base + d; }
+void Digit(unsigned char base, unsigned char d) { num.u = num.u * base + d; }
 #else
-static void Digit(unsigned char base, unsigned char d) __naked {
+void Digit(unsigned char base, unsigned char d) __naked {
   base; d;
   __asm
 	ld	b, a
@@ -505,8 +505,11 @@ static UVal Number(void) {
   for (num.u = 0, n = 0; IsDigit(ch); Advance()) if (n < 7) { Digit(10, ch - '0'); ++n; }
   f = num.u;
   for (num.u = 1; n; --n) Digit(10, 0); // 10^n
-  for (n = 0; n < 2; ++n) { v = v << 8 | Div(f << 8, num.u); f = div_rem; } // f / 10^n, 8 bits at a time
-  return v + (f << 1 >= num.u);
+  for (n = 0; n < 2; ++n) { // f / 10^n, 8 bits at a time (Apply and Div: assembly)
+    v = Apply('|', Apply('s', v, 8), Div(Apply('s', f, 8), num.u));
+    f = div_rem;
+  }
+  return Apply('+', v, Apply('g', Apply('s', f, 1), num.u));
 }
 unsigned char Char(void) { // a character of a string or literal, quotes end it
   unsigned char c = ch;

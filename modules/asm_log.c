@@ -4,7 +4,7 @@
 //
 //   beisbol.gb from project.gbp
 //   pass 1       24:03   ~34816 lines
-//     card        9:12   1108 files found and read
+//     card        9:12   1108 files found and read, 1100 through build.cache
 //   sections      0:12   379
 //   pass 2       16:02
 //   finishing     0:05
@@ -66,9 +66,11 @@ void Log(void) {
     LogChar('\n');
     if (i == 0) {
       LogText("  card    ");
-      LogTime(Stat(MODULE_STAT_LOAD_SECONDS));
-      LogNumber(Stat(MODULE_STAT_FILES));
-      LogText(" files found and read\n");
+      LogTime((unsigned int)Div(*(unsigned long*)card_frames, 60));
+      LogNumber(files_read);
+      LogText(" files found and read, ");
+      LogNumber(cache_files);
+      LogText(" through build.cache\n");
     }
   }
   LogText("total     ");
@@ -91,5 +93,5 @@ void Log(void) {
     LogText(" KB");
   }
   LogChar('\n');
-  context->log_bytes = log_n;
+  context->log_bytes = log_n | 0x8000; // FileWriteImage's count
 }
