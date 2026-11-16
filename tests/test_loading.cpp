@@ -364,6 +364,35 @@ static void Loading(const char* image, const char* symbols, const char* data, bo
     if (!color) NoDMGSpeedSwitch(core, syms);
     printf("%s startup bars/clock/loading, loading/error speed preservation and DMG speed guard passed\n", color ? "CGB" : "DMG");
 }
+// Exercise the shared upload: wide modules and the explicit override use CPU copies.
+static void UploadPolicy(const char* image, const char* symbols) {
+    GearboyCore core; core.Init(); Check(core.LoadROM(image, false), "upload OS");
+    auto syms = Symbols(symbols); auto memory = core.GetMemory();
+    memory->Write(0xFFFF, 0); memory->Write(0xFF40, 0x91);
+    memory->Write(0x2000, 1);
+    memory->Write(syms.at("loaded_bank"), 1);
+    for (unsigned mode = 0; mode < 6; ++mode) {
+        memory->Write(syms.at("_render_cpu_copy"), mode == 5);
+        memory->Write(syms.at("_render_text"), mode != 1);
+        memory->Write(syms.at("_render_box_top"), mode == 2 ? 7 : 0xFF);
+        memory->Write(syms.at("_module_busy"), mode >= 3);
+        memory->Write(syms.at("_module_wide"), mode == 4);
+        memory->Write(syms.at("render_block"), 0);
+        for (unsigned i = 0; i < TB_WIDTH*2; ++i)
+            memory->Write(syms.at("render_dma_buffer") + i, u8(i*73 + mode));
+        Call(core, syms.at("RenderRowUpload"));
+        Check(memory->IsHDMAEnabled() == (mode < 4), "editor/browser/dialog/small module retain HDMA; wide module/override use CPU");
+        if (mode < 4) Call(core, syms.at("RenderWaitDMA"));
+        unsigned table = syms.at("BlockTileAddressGBC");
+        unsigned dest = memory->Read(table) | memory->Read(table+1)<<8;
+        // VRAM reads must occur outside the PPU's transfer period.
+        memory->Write(0xFF40, 0);
+        for (unsigned i = 0; i < TB_WIDTH*2; ++i)
+            Check(memory->Read(dest+i) == u8(i*73 + mode), "each upload mode copies the complete row");
+        memory->Write(0xFF40, 0x91);
+    }
+    puts("CGB editor/browser/dialog/small module HDMA and wide module/override CPU uploads passed");
+}
 static void Copies(const char* image, const char* symbols) {
     GearboyCore core; core.Init(); Check(core.LoadROM(image, true), "copy OS");
     auto syms = Symbols(symbols); auto memory = core.GetMemory(); auto cpu = core.GetProcessor()->GetState();
@@ -382,6 +411,7 @@ static void Copies(const char* image, const char* symbols) {
 }
 int main(int argc, char** argv) {
     Check(argc == 4, "usage: test ROM SYM DATA");
+    UploadPolicy(argv[1], argv[2]);
     Copies(argv[1], argv[2]);
     ROMTransferTest(argv[1], argv[2]);
     Loading(argv[1], argv[2], argv[3], false);

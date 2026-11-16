@@ -267,14 +267,21 @@ static void CopyFailure(const char* image, const char* symbols, const char* data
               {{"memory1.asm", Text(src + "/memory1.asm")}, {"hardware.inc", Text(src + "/hardware.inc")}});
     std::string first = s.row(0);
     unsigned compare = s.syms.at("ModuleCompare"), operation = s.syms.at("module_operation"), gen = s.syms.at("_render_box_gen");
+    unsigned upload = s.syms.at("RenderRowUpload"), busy = s.syms.at("_module_busy"), copy = s.syms.at("_render_cpu_copy");
     s.pad(Start_Key); s.pad(A_Key); for (unsigned i = 0; i < 4; ++i) s.pad(Down_Key);
     s.core.KeyPressed(A_Key); Frames(s.core, 4); s.core.KeyReleased(A_Key);
     auto cpu = s.core.GetProcessor()->GetState();
-    unsigned gen0 = s.memory->Read(gen), failed = 0, frames = 0;
+    unsigned gen0 = s.memory->Read(gen), failed = 0, frames = 0, synchronous = 0;
     s16 audio[AUDIO_BUFFER_SIZE]; int n;
     while (frames < 6000 && s.row(19).find("COPY FAILED") == std::string::npos) {
         unsigned ticks = 0;
         if (s.core.RunCycle(frame.data(), ticks)) { s.core.EndFrame(audio, &n); ++frames; }
+        if (color && s.memory->Read(busy))
+            Check(!s.memory->IsHDMAEnabled(), "HDMA stays disabled throughout module execution");
+        if (color && cpu->PC->GetValue() == upload && s.memory->Read(busy)) {
+            Check(s.memory->Read(copy) == 0, "module progress needs no temporary CPU override");
+            ++synchronous;
+        }
         if (cpu->PC->GetValue() == compare && s.memory->Read(0xBD08) && s.memory->Read(operation) == op &&
             (unsigned)((s.memory->Read(gen) - gen0) & 0xFF) >= 2 && failed < 1000) { // ret nz
             unsigned sp = cpu->SP->GetValue();
@@ -285,6 +292,8 @@ static void CopyFailure(const char* image, const char* symbols, const char* data
         }
     }
     Frames(s.core, 10);
+    if (color) Check(synchronous > 0, "progress exercised the CGB upload path");
+    Check(s.memory->Read(copy) == 0, "progress restores the caller's upload mode");
     std::string want = "COPY FAILED " + std::to_string(op) + ":0"; // in the status bar
     if (s.row(19).find(want) == std::string::npos) {
         fprintf(stderr, "op %u: box \"%s\" after %u failed compares, %u frames, pc %04x page %u busy %u\n", op, s.lines().c_str(), failed, frames,
@@ -320,6 +329,73 @@ static void LongReads(const char* image, const char* symbols, const char* data, 
     Check(low >= top + 64, "the stack keeps 64 bytes from stack_top");
     s.pad(A_Key);
     printf("%s 600 KB of INCBIN files: %u frames, %u box updates, the stack %u bytes from its end\n", color ? "CGB" : "DMG", frames, s.progress, low - top);
+}
+
+// SDCC's spilled >>8 truncated conversion duplicated a byte: a 22 KB include
+// consumed about 5 MB of sectors. The next file then overlapped OS backups.
+static void FileAllocation(const char* image, const char* symbols, const char* data, bool color) {
+    std::map<std::string, std::string> includes;
+    std::string source = "SECTION \"test\", ROM0[$150]\n";
+    for (unsigned i = 0; i < 4; ++i) {
+        std::string name = "part" + std::to_string(i) + ".asm";
+        source += "INCLUDE \"lib/" + name + "\"\n";
+        includes[name] = "db " + std::to_string(i + 1) + "\n;" + std::string(22493, 'x') + "\n";
+    }
+    Session s(image, symbols, data, color, "Allocation.asm", source, includes);
+    unsigned frames = s.command(4, "Built ", 8000);
+    Check(s.lines() == "Allocation.gb|Built 32 KB", "several includes fit their actual PSRAM allocation");
+    auto rom = Read(s.root + "/Allocation.gb");
+    Check(rom.size() == 32768, "allocation build writes a complete ROM");
+    for (unsigned i = 0; i < 4; ++i)
+        Check(rom[0x150 + i] == i + 1, "each included file contributes its own byte");
+    printf("%s four 22 KB source includes use bounded PSRAM: %u frames\n", color ? "CGB" : "DMG", frames);
+}
+
+static void CheckPanic(Session& s, const std::string& code) {
+    Check(s.core.GetProcessor()->GetState()->PC->GetValue() == s.syms.at("_ModulePanic.stopped"), "fatal module failure stops in resident diagnostic code");
+    Check(s.memory->Read(0xFF40) == 0x91, "fatal module failure leaves the LCD on");
+    s.memory->Write(0xFF4F, 0);
+    std::string text;
+    for (unsigned i = 0; i < 12; ++i) text += char(s.memory->Read(0x9905 + i));
+    Check(text == "MODULE " + code, "fatal module failure displays its operation and block");
+    bool ink = false;
+    for (unsigned i = 1; i < 160 * 144; ++i) if (frame[i] != frame[0]) ink = true;
+    Check(ink, "the diagnostic text is visible in the rendered frame");
+}
+
+static void FatalRestore(const char* image, const char* symbols, const char* data, bool color) {
+    Session s(image, symbols, data, color, "Panic.asm", "SECTION \"x\", ROM0[$150]\n nop\n");
+    s.pad(Start_Key); s.pad(A_Key); for (unsigned i = 0; i < 4; ++i) s.pad(Down_Key);
+    s.core.KeyPressed(A_Key); Frames(s.core, 4); s.core.KeyReleased(A_Key);
+    auto cpu = s.core.GetProcessor()->GetState();
+    unsigned compare = s.syms.at("ModuleCompare"), operation = s.syms.at("module_operation");
+    unsigned stopped = s.syms.at("_ModulePanic.stopped"), failed = 0, frames = 0;
+    s16 audio[AUDIO_BUFFER_SIZE]; int n;
+    while (frames < 4000 && cpu->PC->GetValue() != stopped) {
+        unsigned ticks = 0;
+        if (s.core.RunCycle(frame.data(), ticks)) { s.core.EndFrame(audio, &n); ++frames; }
+        if (cpu->PC->GetValue() == compare && s.memory->Read(operation) == 2) {
+            unsigned sp = cpu->SP->GetValue();
+            cpu->PC->SetValue(s.memory->Read(sp) | s.memory->Read(sp + 1) << 8);
+            cpu->SP->SetValue(sp + 2);
+            cpu->AF->SetLow(cpu->AF->GetLow() & 0x7F);
+            ++failed;
+        }
+    }
+    Frames(s.core, 6); // allow the LCD-enable blank frames to finish
+    Check(failed >= 8, "injected a permanent final page restore failure");
+    CheckPanic(s, "02:00");
+    // RST $38 must also work with all borrowed code and buffers destroyed.
+    for (unsigned page : {13u, 12u, 5u, 4u, 15u}) {
+        s.memory->Write(0xBD08, page);
+        for (unsigned a = 0xA000; a < 0xBD00; ++a) s.memory->Write(a, 0xFF);
+    }
+    for (unsigned a = 0xD000; a < 0xDC00; ++a) s.memory->Write(a, 0xFF);
+    s.memory->Write(s.syms.at("_module_busy"), 1);
+    cpu->PC->SetValue(0x38);
+    Frames(s.core, 6);
+    CheckPanic(s, "FE:00");
+    printf("%s fatal restore and module crash vector leave a resident error screen\n", color ? "CGB" : "DMG");
 }
 
 // project.gbp (tests/asm/project): BUILD from any file builds its main with its rgbasm and rgbfix
@@ -401,5 +477,7 @@ int main(int argc, char** argv) {
         Project(argv[1], argv[2], argv[3], argv[6] + std::string("/project"), argv[10], color);
         for (unsigned op : {32u, 38u}) CopyFailure(argv[1], argv[2], argv[3], argv[8], op, color);
         LongReads(argv[1], argv[2], argv[3], argv[11], color);
+        FileAllocation(argv[1], argv[2], argv[3], color);
+        FatalRestore(argv[1], argv[2], argv[3], color);
     }
 }

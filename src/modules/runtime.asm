@@ -348,3 +348,96 @@ _ModuleAPIFar::
   jp FarCallInline
 
 INCLUDE "build/modules/table.inc"
+
+; A fatal restore cannot safely use the editor or any borrowed page. Draw with
+; the resident font and direct VRAM writes instead, preserving the failure code.
+SECTION "Module panic", ROM0
+ModuleCrash::
+  ld a, [_module_busy]
+  and a
+  jp z, Main
+  ld a, $FE;RST $38 while running a module
+  ld [_module_fail], a
+  xor a
+  ld [_module_fail+1], a
+_ModulePanic::
+  di
+  call RenderWaitDMA
+  call gbdk_DisplayOff
+  xor a
+  ldh [rVBK], a
+  ldh [rSCX], a
+  ldh [rSCY], a
+  ld hl, FontVWFGlyphs
+  ld de, $8000
+  ld bc, 256*8
+.font
+  ld a, [hli]
+  ld [de], a
+  inc de
+  ld [de], a
+  inc de
+  dec bc
+  ld a, b
+  or c
+  jr nz, .font
+  ld hl, $9800
+  ld bc, 1024
+  ld a, ' '
+  call mem_Set
+  ld a, 1;CGB map attributes: bank 0 and palette 0 for every cell
+  ldh [rVBK], a
+  ld hl, $9800
+  ld bc, 1024
+  xor a
+  call mem_Set
+  ldh [rVBK], a
+  ld a, $80;CGB palette 0: white background, black ink
+  ldh [rBCPS], a
+  ld c, LOW(rBCPD)
+  ld a, $FF
+  ldh [c], a
+  ld a, $7F
+  ldh [c], a
+  xor a
+REPT 6
+  ldh [c], a
+ENDR
+  ld hl, $9905
+  ld de, .text
+  ld b, 7
+.textLoop
+  ld a, [de]
+  inc de
+  ld [hli], a
+  dec b
+  jr nz, .textLoop
+.code
+  ld a, [_module_fail]
+  call .hex
+  ld a, ':'
+  ld [hli], a
+  ld a, [_module_fail+1]
+  call .hex
+  ld a, $E4
+  ldh [rBGP], a
+  ld a, $91;LCD, unsigned tiles, BG; no window or sprites
+  ldh [rLCDC], a
+.stopped
+  jr .stopped
+.hex
+  push af
+  swap a
+  call .digit
+  pop af
+.digit
+  and $0F
+  add a, '0'
+  cp a, '9'+1
+  jr c, .store
+  add a, 'A'-'9'-1
+.store
+  ld [hli], a
+  ret
+.text
+  DB "MODULE "

@@ -1415,7 +1415,7 @@ ENDR
   ei
   jr .next
 
-;GBC: writes the row's palettes, then uses CPU copies when requested or starts an HBlank DMA, which runs
+;GBC: wide modules use CPU copies; otherwise HBlank DMA runs
 ;while the CPU carries on (VBK stays on the block's bank until it's done, see RenderWaitDMA)
 RenderRowDMA:
   call RenderWritePalettes
@@ -1438,6 +1438,13 @@ RenderRowUpload:;GBC: render_dma_buffer to render_block, attributes already writ
   ld a, [_render_cpu_copy]
   and a
   jp nz, RenderCopyTiles
+  ld a, [_module_busy]
+  and a
+  jr z, .dma
+  ld a, [_module_wide]
+  and a
+  jp nz, RenderCopyTiles
+.dma
   ld a, HIGH(render_dma_buffer)
   ldh [rHDMA1], a
   ld a, LOW(render_dma_buffer)

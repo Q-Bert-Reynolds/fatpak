@@ -61,6 +61,32 @@ void Incbin(void) {
 
 Pos file_at, file_size, file_end;
 unsigned int file_top;
+// Round the size up to sectors. SDCC's spilled BLOCK(size + 511) duplicated
+// byte 1 into byte 2 while narrowing >>8, inflating allocations into OS backups.
+static unsigned int FileBlocks(Pos size)
+#ifndef HOST_TEST
+__naked
+#endif
+{
+#ifdef HOST_TEST
+  return (unsigned int)((size + 511) >> 9);
+#else
+  size; // DEBC in, BC out; files and the rounded size are below 16 MiB
+  __asm
+	ld	a, c
+	add	a, $FF
+	ld	a, b
+	adc	a, 1
+	ld	c, a
+	ld	a, e
+	adc	a, 0
+	ld	b, a
+	srl	b
+	rr	c
+	ret
+  __endasm;
+#endif
+}
 unsigned char file_error;
 // path[], read whole into PSRAM once (in pass 1): its symbol (the path's last NAME_MAX
 // characters; its first block and size), and file_at, file_size. 0 if it can't be, with
@@ -87,7 +113,7 @@ unsigned int LoadPath(void) {
     }
     else Add(SYM_INCLUDE, sym_value, sym_bank);
     if (error) return 0;
-    file_top += BLOCK(load.size + 511);
+    file_top += FileBlocks(load.size);
   }
   file_at = ADDRESS(sym_value);
   file_size = sym_extra | (Pos)sym_bank << 16;

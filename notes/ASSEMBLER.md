@@ -165,6 +165,17 @@ earlier in pass 2 (a mark bit per symbol), so include guards work.
   nesting. `{` starts interpolation in `Advance` itself (not while skipping or
   in comments), which pushes the text as a frame; a string symbol's expansion is
   a frame too, after putting back the character read past its name.
+Source allocation uses `FileBlocks`'s explicit device arithmetic for
+`(size + 511) / 512`. SDCC miscompiled the earlier
+`(unsigned int)((size + 511) >> 8) >> 1` when spilling its intermediate: it
+copied byte 1 over byte 2, then used the duplicated byte for the result.
+Files consumed far too many sectors, eventually overwriting reserved PSRAM and
+wrapping the allocator. Beisbol reproduced this in Gearboy at about 35 seconds:
+`ps2_keys.asm` advanced the cursor from `$F18D` to `$001B`; the next include,
+`ps2_interrupt.asm`, was read as document address `$003600`, producing SYNTAX
+ERROR at line 1, byte 0. The host C build did not exhibit the compiler bug.
+The device regression includes several 22 KB files to exercise that overflow.
+
 - **String symbols** go on a heap in PSRAM (`ASM_HEAP_BLOCK`, 64 KiB)
   that never shrinks during a build, so a macro defined from a string keeps its
   body; the symbol's value is its offset, extra its length. String expressions

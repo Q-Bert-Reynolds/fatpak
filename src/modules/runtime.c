@@ -36,6 +36,7 @@ extern unsigned int tb_Read(unsigned char* buffer, unsigned int size); // from t
 extern unsigned char ModuleEnter(void);
 extern void ModuleAbort(unsigned char status); // runtime.asm: back out of the module, ModuleEnter returns status
 extern unsigned int module_retries; // runtime.asm: block copies made again since RunModule started
+extern void ModulePanic(void); // resident error screen; never returns to damaged module state
 extern unsigned char fs, save_file; // src/fatfs/fatfs.c: FatFs's volume and the loader's file (ModStat gives their addresses)
 extern unsigned long sd_sector; // src/fatfs/sd.asm
 extern unsigned char sd_ReadSector(unsigned char* buffer);
@@ -48,14 +49,14 @@ extern void SetWindowBlock(unsigned int block);
 
 // Wide modules (MODULE_FORMAT_WIDE) also take MODULE_PAGE2, maybe MODULE_PAGE3, and the
 // editor's WRAMX buffers, which come back before HideBox needs them.
-// a restore that never read back: recorded in PSRAM (it survives the cartridge reset), then restart
+// A restore that never read back: record it in PSRAM, then stop on a resident error screen.
 static void Unrecoverable(void) {
   SetWindowBlock(MODULE_FAIL_BLOCK);
   ((unsigned char*)WINDOW)[0] = 'M';
   ((unsigned char*)WINDOW)[1] = 'F';
   ((unsigned char*)WINDOW)[2] = ((unsigned char*)&module_fail)[0];
   ((unsigned char*)WINDOW)[3] = ((unsigned char*)&module_fail)[1];
-  RestartDevice();
+  ModulePanic();
 }
 
 #define PROGRESS_FRAMES 300 // ModProgress draws at most every 5 s: each costs about 30 frames on DMG
@@ -400,7 +401,7 @@ void ModuleAPIProgress(const char* text) {
     INTERRUPT_ENABLE = module_ie; // drawing waits for VBlank
   }
   OpenBox(BoxText(0, (char*)buffer));
-  EditorDraw();
+  EditorDraw(); // the renderer uses CPU copies throughout wide module execution
   if (module_wide) {
     INTERRUPT_ENABLE = module_ie & IEF_LCD_ONLY;
     if (ModuleSwapRAM(0)) { // the buffers stay where they are

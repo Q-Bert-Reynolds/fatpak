@@ -185,8 +185,8 @@ below `$8000`. Copies never touch the final sector's upper 256 bytes.
    to page 13.
 4. `HideBox`, then `ModuleSwap(2)` restores the page. If the backup or install
    doesn't read back, the module never runs and the page is restored; if the
-   restore doesn't read back, `RestartDevice`. The window block is put back to
-   what it was before the call.
+   restore doesn't read back, stop on the resident panic screen. The window block
+   is put back to what it was before the call.
 
 Every block copy is made up to 8 times before it counts as failed (`module_retries`
 counts the extra ones; `ModStat`); a copy that fails while `ModProgress` draws
@@ -196,13 +196,16 @@ operation and block go to `module_fail` (operations: 0-2 page 13, 4-6 page 12,
 8-10 page 5, 12-14 page 4, 16-18 page 15, 32/34 the WRAMX buffers' save/restore, 36/38
 the module's BSS held for `ModProgress`). A restore
 that still fails writes `MF`, operation, block to PSRAM block `MODULE_FAIL_BLOCK`
-(`$3d6e`) before
-`RestartDevice`; startup shows it once as RESTORE FAILED op:block
+(`$3d6e`), then stops on a resident `MODULE hh:hh` screen (operation and block
+in hexadecimal). It draws directly from the resident font without editor buffers
+or borrowed pages; reset is required. A module reaching RST `$38` shows
+`MODULE FE:00` instead of silently restarting the OS. If the failure marker
+survives a reset, startup also shows RESTORE FAILED op:block
 (`ShowModuleRestart`). Page and buffer copies have failed on hardware since the
 third page was added (2026-11-11): BUILD restarted the device, larger sources
-gave MODULE LOAD FAILED. With the retries everything has built and run since, so
-some copies read back wrong once and right the next time. Gearboy can't
-reproduce it.
+gave MODULE LOAD FAILED. Some copies read back wrong once and right the next
+time. Gearboy does not reproduce the spontaneous hardware failures; the tests
+inject permanent failures to exercise recovery and the resident error screen.
 
 `RunModule` backs up and installs page by page: `ModuleSwap(n << 2)` and
 `(n << 2 | 1)` for page n (0 is page 13, then 12, 5, 4, 15), then for a wide module
@@ -262,6 +265,11 @@ directly but copy it into host memory (`buffer` or the stack) before calling
 anything paged, and copy results back after. `buffer` is the 512-byte FatFs
 sector buffer, so a future file API must not share it with a pending string.
 `module_context` and anything it points to must be host WRAM.
+
+The renderer uses synchronous CPU tile uploads throughout wide module execution,
+including assembler progress and its buffer exchange. Editor, browser and small
+module screens retain HDMA. The launch/warm-return CPU override still takes
+precedence.
 
 ## Tests
 

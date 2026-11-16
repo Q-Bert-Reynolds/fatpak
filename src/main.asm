@@ -1,7 +1,7 @@
 INCLUDE "src/fatpak.inc"
 
 SECTION "Crash Handler RST", ROM0[$0038]
-  jp Main
+  jp ModuleCrash
 
 SECTION "Header", ROM0[$0100]
 Entry:
