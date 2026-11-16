@@ -18,24 +18,15 @@ INCLUDE "src/memory1.asm"
 ;   sgb_SetBorder
 ;     Sets the Super Game Boy border.
 ;     Input: a = bank, hl = tiles, de = tile map
-;   sgb_PlaySound
-;     Plays a preset sound effect on the SNES
-;     Input: a = sound A, b = sound B, c = attributes
 ;   sgb_SetPal
 ;     Directly sets 2 SNES palettes. Packet can only be codes 0-3.
 ;     Input: a = packet header, bc = paletteA, de = paletteB
-;   sgb_SetBlock
-;     Indirectly sets inside of screen block to palette b, border to palette c.
-;     Input: bc = palette indices, de = xy, hl = wh
 ;   sgb_VRAMTransfer
 ;     Copies data to GB VRAM then to SNES.
 ;     Input: de = packet, hl = graphical data
 ;   sgb_PacketTransfer
 ;     Transfers data to SNES.
 ;     Input: hl = packet address
-;   sgb_CopyToWRAM
-;     Copies data to SNES WRAM using either DATA_SND or DATA_TRN
-;     Input: a = SNES bank, bc = byte count, de = SNES address, hl = src data
 
 
 DEF SGB_CODE_PAL01    EQU $00 ;Set SGB Palette 0,1 Data
@@ -405,33 +396,6 @@ sgb_CopyWindow:;hl = first block, de = destination, copies 8 blocks (4KB)
   ld [EDX_BLOCK], a
   ret
 
-sgb_PlaySound:: ;a = sound A, b = sound B, c = attributes
-  push bc
-  push af
-  ldh a, [sys_info]
-  and a, SYS_INFO_SGB
-  jr z, .isSGB
-  pop af
-  pop bc
-  ret
-.isSGB
-  ld hl, cmd_buffer
-  ld a, ($08<<3)+1
-  ld [hli], a
-  pop af;sound a
-  ld [hli], a
-  pop bc
-  ld a, b
-  ld [hli], a
-  ld a, c
-  ld [hli], a
-  xor a
-  ld bc, 11
-  call mem_Set
-  ld hl, cmd_buffer
-  call _sgb_PacketTransfer
-  ret
-
 sgb_SetPal:: ;a = packet header, bc = paletteA, de = paletteB
   ld hl, cmd_buffer
   ld [hli], a
@@ -464,58 +428,6 @@ sgb_SetPal:: ;a = packet header, bc = paletteA, de = paletteB
 
 ; Indirectly sets inside of screen block to palette b, border to palette c.
 ; Input: bc = palettes, de = xy, hl = wh
-sgb_SetBlock::
-  ldh a, [sys_info]
-  and a, SYS_INFO_SGB
-  ret z
-
-  push hl;wh
-  push de;xy
-  push bc;palettes
-
-  ld hl, cmd_buffer
-
-  ld a, ($4 << 3) + 1;ATTR_BLK
-  ld [hli], a
-
-  ld a, 1;num blocks
-  ld [hli], a
-
-  ld a, %011;control code
-  ld [hli], a
-
-  pop bc;palettes
-  sla c
-  sla c
-  ld a, b
-  add a, c;palA + palB<<2
-  sla c
-  sla c
-  add a, c;palA + palB<<2 + palB<<4
-  ld [hli], a
-
-  pop de;xy
-  pop bc;wh
-
-  ld a, d
-  ld [hli], a;x
-  add a, b;x+w
-  ld d, a;x+w
-
-  ld a, e
-  ld [hli], a;y
-  add a, c;y+h
-  ld e, a;y+h
-
-  ld a, d;x+w
-  ld [hli], a
-
-  ld a, e;y+h
-  ld [hl], a
-  
-  ld hl, cmd_buffer
-  jp _sgb_PacketTransfer
-
 ; Copies data from GB VRAM to SNES RAM
 ; input: DE = Packet data
 ;        HL = Graphical data address
@@ -594,6 +506,11 @@ sgb_PacketTransfer::
   and a, SYS_INFO_SGB
   ret z
 _sgb_PacketTransfer:
+  ld c, 1
+  jr sgb_PacketTransferFast.begin
+sgb_PacketTransferFast::
+  ld c, 0; mailbox ack: the next NMI/BIOS command acknowledges delivery
+.begin
   ld a, [hl]
   and %00000111               ; The three lower bits indicate the number of packets to send
   ret z                       ; We return if there are no packets to send
@@ -640,6 +557,9 @@ _sgb_PacketTransfer:
     ld a, P1F_4 | P1F_5
     ldh [rP1], a               ; P14 = HIGH and P15 = HIGH between pulses
 
+    ld a, c
+    and a
+    jr z, .packetDone
     ; 280048 clock cycles are consumed (66.768646240234375 milliseconds) at 4.194304 mhz | 24 cycles
     ld de, 7000               ; 12 cycles
 .wait24Cycles
@@ -651,33 +571,33 @@ _sgb_PacketTransfer:
       or e                    ; 4 cycles
       jr nz, .wait24Cycles    ; 12 cycles if jumps, 8 if not
 
+  .packetDone
     pop bc
     dec b
     jr nz, .sendPacketsLoop       ; We jump while there are packets left to be sent
   ret
 
-sgb_CopyToWRAM::;a = SNES bank, bc = byte count, de = SNES address, hl = src data
-  ld [cmd_buffer+3], a;SNES bank
-  ld a, d
-  ld [cmd_buffer+1], a;SNES address low
-  ld a, e
-  ld [cmd_buffer+2], a;SNES address high
-  ld a, b
-  and a
-  jr nz, .useDataTransfer
-  ld a, c
-  cp a, 11
-  jr nc, .useDataTransfer
-.useDataSend
-  ld [cmd_buffer+4], a;byte count
-  ld a, SGB_CODE_DATA_SND
-  ld [cmd_buffer], a
-  ld de, cmd_buffer+5
-  call mem_Copy
-  ld hl, cmd_buffer
-  jp _sgb_PacketTransfer
-.useDataTransfer
-  ld a, SGB_CODE_DATA_TRN
-  ld [cmd_buffer], a
-  ld de, cmd_buffer
-  jp _sgb_VRAMTransfer
+; Stop the SNES bridge before replacing its GB driver or handing off a game.
+KBDriverStop::
+  ld a, [kb_type]
+  cp KB_TYPE_SNES_MOUSE
+  ret nz
+  di
+  ld hl, SNESStopPacket
+  call sgb_PacketTransfer
+  ld hl, SNESPingPacket
+  call sgb_PacketTransfer
+  reti
+SNESStopPacket:
+  DB $79, 0, 8, 0, 3, $4c
+  DW $1803; fixed Stop jump in src/sgb/mouse.s
+  DS 8
+SNESPingPacket:
+  DB $c9, 1
+  DS 14
+
+SGBInputSync::
+  ld a, [kb_type]
+  cp KB_TYPE_SNES_MOUSE
+  ret nz
+INCLUDE "src/sgb/mouse_select.asm"

@@ -55,6 +55,8 @@ ENDM
 
 UpdateInput::;https://gbdev.io/pandocs/Joypad_Input.html
   PUSH_ALL
+  di
+  call SGBInputSync
 
   ;copy button_state to last_button_state
   ldh a, [button_state]
@@ -82,6 +84,7 @@ ENDR
   cpl ;flip bits so 1 means pressed
   ldh [button_state], a
 
+  ei
   ;read keyboard
   TRAMPOLINE ProcessKeyCodes
   ldh a, [kb_button_state]
@@ -117,6 +120,7 @@ WaitPadUpOrFrames::; a = frames
   ret
 
 LatchPad::;called from VBlank, ORs newly pressed buttons into pad_latch
+  call SGBInputSync
   ld hl, rP1
   ld a, [hl]
   and a, P1F_GET_NONE

@@ -7,14 +7,15 @@ PAGE LAUNCH_PAGE
 ;code. The boot path supplies the game's initial registers; there is no timed jump
 ;to $0100 or synthesized device ID.
 _GameLaunch::
+  call KBDriverStop
   di
   call gbdk_CPUSlow;normal speed like the EverDrive OS's launch
   xor a;CPUSlow restores IE; stock leaves it disabled before the reset request
   ldh [rIE], a
   ld a, AUDENA_ON;stock explicitly powers audio on before handing off to the cart
   ldh [rAUDENA], a
-  ld a, 1;keep the stock OS compatibility flags consistent with the launch
-  ld [os_game_launched], a
+  ld hl, os_game_launched;zero until this committed launch
+  inc [hl]
   ld a, [_game_ram_mask]
   and a
   jr z, .noRam
@@ -85,6 +86,7 @@ LaunchStubEnd:
 SECTION "Reboot", ROM0
 
 _Reboot::;starts the OS again (after a failed game load, the text comes back from the swap file)
+  call KBDriverStop
   di
   ld a, FIRST_PAGE
   ld [EDX_PAGE], a
@@ -93,6 +95,7 @@ _Reboot::;starts the OS again (after a failed game load, the text comes back fro
 SECTION "Device Restart", ROM0
 
 _RestartDevice::;the browser's full reset; SD services have unlocked the cart registers
+  call KBDriverStop
   di
   ld a, $10
   ld [EDX_CONFIG], a

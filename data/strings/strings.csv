@@ -204,4 +204,5 @@ BUILD_FINISHING,box,build progress: after pass 2,Finishing,Terminando
 DRIVER_NONE,item,keyboard driver choices in order,NONE,NINGUNO
 DRIVER_PS2,item,,PS/2 KEYBOARD,TECLADO PS/2
 DRIVER_IGKB,item,,iGKB USB,iGKB USB
+DRIVER_SNES_MOUSE,item,,SNES MOUSE,RATÓN SNES
 KB_PAUSED,row,,PAUSED (A resumes),PAUSA (A continúa)

@@ -97,3 +97,6 @@ node_modules
 
 # Linked keyboard driver intermediates
 /build/drivers/
+
+# Standalone Mesen SNES mouse integration harness
+/build/snes_mouse.gb

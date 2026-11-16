@@ -26,7 +26,7 @@ unsigned char ModuleMain(void* context) {
   limit = boot >= 2 ? RAW_BYTES : TEST_CODES;
   ModListen();
   ModRow(0, Str(S_KB_TITLE));
-  ModRow(1, Str(S_DRIVER_NONE + (boot == 3 ? 2 : boot < 3 ? boot : 0)));
+  ModRow(1, Str(boot == 4 ? S_DRIVER_SNES_MOUSE : S_DRIVER_NONE + (boot == 3 ? 2 : boot < 3 ? boot : 0)));
   ModRow(4, Str(S_KB_CODES));
   ModRow(TB_ROWS - 1, Str(S_KB_BACK));
   while (1) {

@@ -11,6 +11,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "gearboy.h"
+#include "SGB.h"
+#include "Input.h"
 
 bool g_mcp_stdio_mode = true;
 static std::vector<u16> frame(256 * 224);
@@ -72,7 +74,7 @@ struct Session {
     // one source file on a fresh card, opened in the editor; includes go in a "lib" folder
     // (listed after GBCSYS, before the file)
     Session(const char* image, const char* symbols, const char* data, bool color, const char* name, const std::string& source,
-            const std::map<std::string, std::string>& includes = {}, const std::map<std::string, std::string>& beside = {}, unsigned bad_driver = 0) {
+            const std::map<std::string, std::string>& includes = {}, const std::map<std::string, std::string>& beside = {}, unsigned bad_driver = 0, bool snes = false) {
         char folder[] = "/tmp/fatpak-build-XXXXXX"; Check(mkdtemp(folder), "build SD");
         root = folder; mkdir((root + "/GBCSYS").c_str(), 0700);
         Write(root + "/GBCSYS/EDITOR.DAT", Read(data)); InstallModules(root, data);
@@ -82,13 +84,13 @@ struct Session {
         for (auto& file : beside) Write(root + "/" + file.first, std::vector<u8>(file.second.begin(), file.second.end()));
         mkdir((root + "/GBCSYS/DRIVERS").c_str(), 0700);
         std::string driver_bin = std::string(data).substr(0, std::string(data).find_last_of('/')) + "/DRIVERS/";
-        for (const char* driver : {"PS2.DRV", "IGKB.DRV"}) {
+        for (const char* driver : {"PS2.DRV", "IGKB.DRV", "SGBMOUSE.DRV"}) {
             auto payload = Read(driver_bin + driver);
             if (!strcmp(driver,"IGKB.DRV") && bad_driver) payload[bad_driver == 1 ? 532 : 14] ^= 1;
             Write(root + "/GBCSYS/DRIVERS/" + driver, payload);
         }
-        core.Init(); core.SetEverdriveFolder(folder);
-        Check(core.LoadROM(image, !color), "build OS"); Frames(core, 600);
+        core.Init(); core.SetEverdriveFolder(folder); core.SetForceSGB(snes);
+        Check(core.LoadROM(image, !color && !snes), "build OS"); Frames(core, 600);
         memory = core.GetMemory(); syms = Symbols(symbols); tiles = syms.at("tile_buffer");
         pad(Down_Key); if (!includes.empty()) pad(Down_Key);
         pad(A_Key); Frames(core, 60); // GBCSYS, lib, then the file
@@ -153,10 +155,14 @@ static void SelectMenu(Session& s, unsigned type) {
     s.pad(Start_Key); s.pad(Down_Key); s.pad(Down_Key); s.pad(A_Key);
     for (unsigned i=0;i<5;++i) s.pad(Down_Key);
     s.pad(A_Key); Frames(s.core,30);
-    Check(s.memory->Read(s.syms.at("_render_box_rows"))==6,"keyboard submenu has NONE, PS/2, iGKB and TEST");
+    unsigned count = (s.memory->Read(s.syms.at("sys_info")) & 1) ? 5 : 4;
+    Check(s.memory->Read(s.syms.at("_render_box_rows"))==count+2,"keyboard submenu has the available drivers and TEST");
     unsigned selected=s.memory->Read(s.syms.at("_kb_driver"));
-    for (unsigned i=0;i<((type+4-selected)%4);++i) s.pad(Down_Key);
-    s.pad(A_Key); Frames(s.core,240);
+    if (selected == 4) selected=3;
+    unsigned target=type==4 ? 3 : type;
+    for (unsigned i=0;i<((target+count-selected)%count);++i) s.pad(Down_Key);
+    s.pad(A_Key); Frames(s.core,type==4 ? 600 : 240);
+
  }
 static void Select(Session& s,unsigned type) {
     SelectMenu(s,type);
@@ -167,6 +173,20 @@ static void Select(Session& s,unsigned type) {
 }
 static unsigned Byte(Session& s, const char* name) { return s.memory->Read(s.syms.at(name)); }
 static void Mouse(Session& s, unsigned x, unsigned y, unsigned buttons, unsigned frames=8) {
+    if (Byte(s,"_kb_type")==4) {
+        unsigned flags=((Byte(s,"igkb_packet")+8)&0x78)|(buttons<<1)|1;
+        const unsigned bytes[]={flags,x,y};
+        for (unsigned p=1;p<4;++p) {
+            s.core.GetInput()->KeyReleased((Gameboy_Keys)255,p);
+            s.core.GetInput()->KeyPressed((Gameboy_Keys)(255 ^ bytes[p-1]),p);
+        }
+        // Model the SNES FIFO: a report stays published until the GB consumes
+        // it, including a short click while browser navigation is drawing.
+        for (unsigned wait=0;Byte(s,"igkb_packet")!=flags && wait<200;++wait) Frames(s.core,1);
+        Check(Byte(s,"igkb_packet")==flags,"GB consumes queued SNES report");
+        Frames(s.core,frames);
+        return;
+    }
     Check(s.core.QueueIGKBMouse(int(x)-int(Byte(s,"_mouse_x")), int(y)-int(Byte(s,"_mouse_y")), buttons),"queue mouse report");
     Frames(s.core,frames);
 }
@@ -178,11 +198,22 @@ static void Click(Session& s, unsigned x, unsigned y, unsigned buttons=1) {
 static void LegacyMouse(Session& s) {
     s.memory->Write(s.syms.at("_kb_type"),3); Frames(s.core,4);
 }
-static void MouseUI(const char* image, const char* symbols, const char* data, bool color) {
+static void MouseUI(const char* image, const char* symbols, const char* data, bool color, bool snes = false) {
     std::map<std::string,std::string> extra;
     for(unsigned n=1;n<=15;++n) { char name[16]; snprintf(name,sizeof(name),"Z%02u.txt",n); extra[name]="far row\n"; }
-    Session s(image,symbols,data,color,"Mouse.txt","abc\ndef\n",{},extra);
-    s.core.SetIGKBMode(1); Select(s,2); LegacyMouse(s);
+    Session s(image,symbols,data,color,"Mouse.txt","abc\ndef\n",{},extra,0,snes);
+    if (snes) {
+        Select(s,4);
+        // Gearboy has no SNES CPU. Inject the mailbox's four-controller mode
+        // and bytes here; run_snes_mouse.sh independently tests the real bridge.
+        u8 packet[16]={0x89,3};
+        SGB* sgb=s.core.GetSGB(); sgb->WriteJOYP(0); sgb->WriteJOYP(0x30);
+        for (u8 b:packet) for(unsigned bit=0;bit<8;++bit) {
+            sgb->WriteJOYP((b&(1<<bit)) ? 0x10 : 0x20); sgb->WriteJOYP(0x30);
+        }
+        sgb->WriteJOYP(0x20); sgb->WriteJOYP(0x30);
+        Check(sgb->GetPlayerCount()==4,"test mailbox enabled");
+    } else { s.core.SetIGKBMode(1); Select(s,2); LegacyMouse(s); }
     unsigned oam=s.syms.at("oam_buffer")+8;
     Check(!s.memory->Read(oam),"pointer stays hidden before the first mouse report");
     Mouse(s,6,8,0);
@@ -190,6 +221,10 @@ static void MouseUI(const char* image, const char* symbols, const char* data, bo
     std::string bin=std::string(data).substr(0,std::string(data).find_last_of('/'));
     auto font=Read(bin+"/../img/ui_font.tiles");
     for(unsigned n=0;n<16;++n) Check(s.memory->Read(0x8000+122*16+n)==font[26*16+n],"pointer pixels come from UI font tile 26");
+    if(snes) {
+        unsigned raw=s.syms.at("_kb_scan_code_buffer");
+        Check(Byte(s,"_kb_buffer_write")==4 && s.memory->Read(raw)==0 && s.memory->Read(raw+2)==6 && s.memory->Read(raw+3)==8,"SNES diagnostic capture retains a complete mailbox report");
+    }
     Frames(s.core,125); Check(!s.memory->Read(oam),"inactive pointer times out");
     Click(s,6,8);
     unsigned anchor=s.word("_cursor");
@@ -230,6 +265,7 @@ static void MouseUI(const char* image, const char* symbols, const char* data, bo
     s.pad(Start_Key); s.pad(A_Key); s.pad(A_Key); Frames(s.core,80);
     Click(s,12,8+2); Frames(s.core,80); // start on row 1
     Click(s,12,15*8+8+2); Click(s,12,15*8+8+2); Frames(s.core,400);
+    if(!Byte(s,"_render_text") || s.row(18).find("Z14.txt")==std::string::npos) fprintf(stderr,"far row footer%s text%u nav%u target%u action%u double%u packet%02x flags%02x xy%u,%u\n",s.row(18).c_str(),Byte(s,"_render_text"),Byte(s,"igkb_nav"),Byte(s,"igkb_target"),Byte(s,"igkb_action"),Byte(s,"igkb_double"),Byte(s,"igkb_packet"),Byte(s,"igkb_flags"),Byte(s,"_mouse_x"),Byte(s,"_mouse_y"));
     Check(Byte(s,"_render_text") && s.row(18).find("Z14.txt")!=std::string::npos,"double click waits for all fifteen row moves before opening the target");
     s.pad(Select_Key); s.pad(A_Key); s.pad(Select_Key);
     Check(Byte(s,"_modified"),"make a real edit before testing a titled confirmation");
@@ -242,7 +278,14 @@ static void MouseUI(const char* image, const char* symbols, const char* data, bo
     Check(Byte(s,"_render_box_sel")==selected_before && Byte(s,"_render_box_top")!=255,"hovering or clicking a menu title does not select an action");
     Click(s,x,(top+Byte(s,"_render_box_first"))*8+2); Frames(s.core,80);
     Check(Byte(s,"_render_box_top")==255 && Byte(s,"_modified"),"clicking No closes the confirmation and keeps the edited document");
-    printf("%s pointer tile/timeout, editor click/drag, menu hover/actions/dismissal and browser clicks passed\n",color?"CGB":"DMG"); fflush(stdout);
+    if(snes) {
+        GearboyCore cold; cold.Init(); cold.SetForceSGB(true); cold.SetEverdriveFolder(s.root.c_str());
+        Check(cold.LoadROM(image,false),"cold SGB OS"); Frames(cold,1400);
+        Check(cold.GetMemory()->Read(s.syms.at("_kb_type"))==4 && cold.GetMemory()->Read(s.syms.at("_kb_driver"))==4,"cold SGB boot restores the saved SNES driver");
+        Select(s,1);
+        Check(Byte(s,"_kb_type")==1,"switching from SNES mouse restores PS/2");
+    }
+    printf("%s pointer tile/timeout, editor click/drag, menu hover/actions/dismissal and browser clicks passed\n",snes?"SGB mailbox":color?"CGB":"DMG"); fflush(stdout);
 }
 static void CaptureUI(const char* image, const char* symbols, const char* data, bool color) {
     Session s(image,symbols,data,color,"Capture.txt","safe\n");
@@ -269,6 +312,7 @@ static void CaptureUI(const char* image, const char* symbols, const char* data, 
 }
 int main(int argc,char** argv) {
     Check(argc==4 || (argc==5 && !strcmp(argv[4],"mouse")),"usage: test ROM SYM DATA [mouse]");
+    MouseUI(argv[1],argv[2],argv[3],false,true);
     for(unsigned color=0;color<2;++color) {
         MouseUI(argv[1],argv[2],argv[3],color);
         CaptureUI(argv[1],argv[2],argv[3],color);
@@ -279,7 +323,7 @@ int main(int argc,char** argv) {
         Select(s,2);
         auto active=Page(s.memory,15);
         Check(before!=active,"selection replaces the driver payload");
-        Check(std::vector<u8>(before.begin()+0x580,before.end())==std::vector<u8>(active.begin()+0x580,active.end()),"the rest of page 15 stays intact");
+        Check(std::vector<u8>(before.begin()+0x550,before.end())==std::vector<u8>(active.begin()+0x550,active.end()),"the rest of page 15 stays intact");
         Check(!s.core.IsPS2KeyboardEnabled() && s.core.GetIGKBMode()==1,"serial devices are exclusive");
         Check(s.core.QueueIGKBKey(4,false) && s.core.QueueIGKBKey(4,true) && s.core.QueueIGKBKey(0x1E,false),"queue manufacturer key bytes");
         Frames(s.core,180);

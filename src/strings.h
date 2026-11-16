@@ -4,8 +4,8 @@
 // PutStr(dest, id) and Str(id) (src/strings.asm), ModString in modules; S_PART(id, n) is the
 // text after its nth {}, up to the next
 #define S_PART(id, n) ((id) | ((n) << 12))
-#define STR_COUNT 206
-#define STR_HASH 0xD89Eu
+#define STR_COUNT 207
+#define STR_HASH 0xFE6Au
 #define LANGUAGES 2
 #define LANG_CODES "ENES" // 2 characters each: /GBCSYS/LANG/<code>.DAT
 #define S_MENU_FILE 0 // FILE
@@ -213,5 +213,6 @@
 #define S_DRIVER_NONE 202 // NONE
 #define S_DRIVER_PS2 203 // PS/2 KEYBOARD
 #define S_DRIVER_IGKB 204 // iGKB USB
-#define S_KB_PAUSED 205 // PAUSED (A resumes)
+#define S_DRIVER_SNES_MOUSE 205 // SNES MOUSE
+#define S_KB_PAUSED 206 // PAUSED (A resumes)
 #endif

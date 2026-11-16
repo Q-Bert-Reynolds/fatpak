@@ -5,7 +5,8 @@ DEF KB_TYPE_NONE EQU 0
 DEF KB_TYPE_PS2  EQU 1
 DEF KB_TYPE_IGKB EQU 2
 DEF KB_TYPE_MOUSE EQU 3;legacy experimental mouse protocol, not a menu choice
-DEF KB_DRIVER_SIZE EQU $580
+DEF KB_TYPE_SNES_MOUSE EQU 4
+DEF KB_DRIVER_SIZE EQU $550
 
 ;kb_mode
 DEF KB_MODE_NONE    EQU 0
@@ -116,7 +117,7 @@ ProcessKeyCodes::
 KeyboardDriverEnd::
 
 ; Called through ModDriver, while its module is in page 13. This code stays
-; outside the replaced slot. The last block is only 384 bytes.
+; outside the replaced slot. The last block is only 336 bytes.
 KBDriverInstall::
   bit 7, a
   jr nz, .init
@@ -134,6 +135,16 @@ KBDriverInstall::
   ld hl, EDX_WINDOW
   jp mem_Copy
 .query
+  cp $42
+  jr nz, .info
+  di
+  ld hl, EDX_WINDOW
+  call sgb_PacketTransfer
+  reti
+.info
+  ld bc, sys_info
+  cp $43
+  ret z
   ld bc, kb_type
   cp $40
   ret z
@@ -141,12 +152,12 @@ KBDriverInstall::
   ret
 .init
   push af
-  and 3
+  and 7
   call KeyboardDriverInit
   pop af
   bit 6, a
   ret z
-  and 3
+  and 7
   ld [_kb_driver], a
   call _SettingsSave
   ld a, [_doc_large]
@@ -154,6 +165,9 @@ KBDriverInstall::
   ret nz
   jp _FileSaveSwap
 KeyboardDriverInit::
+  push af
+  call KBDriverStop
+  pop af
   ld [kb_type], a
   push af
   xor a
@@ -176,6 +190,8 @@ KeyboardDriverInit::
   ld [oam_buffer+8], a
   pop af
   and a
+  ret z
+  cp KB_TYPE_SNES_MOUSE
   ret z
   cp KB_TYPE_PS2
   ld a, SCF_START

@@ -55,20 +55,22 @@ menu button combo (Select+Start by default) opens Resume, Save state, Load state
 See [EverDrive compatibility](notes/EVERDRIVE.md).
 
 **Super Game Boy.** FatPak detects SGB hardware and uploads its border from `EDITOR.DAT`.
+A gamepad in SNES port 1 and mouse in port 2 work with **SETTINGS > KEYBOARD > SNES MOUSE**
+([setup and testing](notes/KEYBOARD.md#snes-mouse-super-game-boy)).
 In the sibling Gearboy build, select **Emulator > Force Super Game Boy**, then reset or reload
 `GBCOS.BIN`. Automatic selection prefers GBC mode for this dual-compatible ROM.
 
 # Building
 
-Needs [RGBDS](https://rgbds.gbdev.io/) 1.0, [SDCC](https://sdcc.sourceforge.net/) 4.2 and Python 3
-with Pillow.
+Needs [RGBDS](https://rgbds.gbdev.io/) 1.0, [SDCC](https://sdcc.sourceforge.net/) 4.2, Python 3
+with Pillow, and cc65 (ca65/ld65 for the SNES mouse bridge).
 
     make all        # assets, OS image and modules, then run
     make assemble   # just the OS image and modules
 
 The language (English or Spanish) is a setting: SETTINGS > LANGUAGE ([Languages](notes/LANGUAGES.md)).
 
-Copy `bin/GBCOS.BIN`, `bin/EDITOR.DAT`, `bin/MODULES/` and `bin/LANG/` to `/GBCSYS/` on the SD card
+Copy `bin/GBCOS.BIN`, `bin/EDITOR.DAT`, `bin/MODULES/`, `bin/LANG/` and `bin/DRIVERS/` to `/GBCSYS/` on the SD card
 (`make assemble` does this when the card is mounted at `/media/qbertreynolds/GAMEBOY`).
 
 Tests and the emulator setup are in [Architecture](notes/ARCHITECTURE.md#testing-and-debugging).
