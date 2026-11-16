@@ -493,6 +493,10 @@ strings are marshaled).
   assembler (`run_build.sh`, which first runs `tests/test_asm.py`, the PC
   comparison against RGBDS).
 - `make -C ../Gearboy/tests everdrive` runs Gearboy's EverDrive component tests.
+- `bash tests/run_sgb.sh` checks forced SGB startup, palette/border LCD payloads,
+  preservation of VRAM and scroll registers, and every browser/menu pixel against
+  its assigned tiles. `run_ingame_return.sh` also covers SGB launch and warm return.
+  These require the sibling Gearboy core with `SetForceSGB` support.
 - Gearboy over MCP (`--mcp-stdio`/`--mcp-http`, `--headless`) has a per-function
   cycle profiler.
 - Renderer/text-buffer changes: compare incremental updates with a full redraw

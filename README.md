@@ -54,6 +54,10 @@ F7 builds, F11 toggles full screen, Alt+Z toggles line wrap.
 menu button combo (Select+Start by default) opens Resume, Save state, Load state and Return to OS.
 See [EverDrive compatibility](notes/EVERDRIVE.md).
 
+**Super Game Boy.** FatPak detects SGB hardware and uploads its border from `EDITOR.DAT`.
+In the sibling Gearboy build, select **Emulator > Force Super Game Boy**, then reset or reload
+`GBCOS.BIN`. Automatic selection prefers GBC mode for this dual-compatible ROM.
+
 # Building
 
 Needs [RGBDS](https://rgbds.gbdev.io/) 1.0, [SDCC](https://sdcc.sourceforge.net/) 4.2 and Python 3

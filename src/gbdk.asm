@@ -333,7 +333,10 @@ gbdk_DisplayOff::
   ldh a, [rLCDC]
   add a
   ret nc
-  LCD_WAIT_VRAM  
+.waitVBL
+  ldh a, [rLY]
+  cp a, SCRN_Y
+  jr c, .waitVBL
   ldh a, [rLCDC]
   and %01111111
   ldh [rLCDC], A

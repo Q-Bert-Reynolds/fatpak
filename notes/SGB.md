@@ -7,6 +7,14 @@ application on a Super Game Boy. **(verify)** marks documented hardware facts
 Today's SGB mode (DMG renderer plus `src/ui/sgb.asm`: `MLT_REQ` detection,
 palettes, border from `EDITOR.DAT`, `sgb_CopyToWRAM`) stays as the **fallback**.
 
+The current border uploader preserves `$8800-$9FFF` in snapshot staging
+(`$3C00-$3C0B`, twelve PSRAM blocks) during startup. Interrupts stay masked while
+the LCD displays the transfer payload; the original tiles, maps, scroll registers
+and LCDC are restored before the screen is unmasked. The staging blocks are free
+at this point, after the save backup and before any module or snapshot operation.
+`gbdk_DisplayOff` waits for VBlank before disabling the LCD, as required by
+[Pan Docs](https://gbdev.io/pandocs/LCDC.html#lcdc7--lcd-enable).
+
 ## Goals
 
 - On an SGB, the editor, browser, menus and dialogs fill the 256x224 SNES screen.

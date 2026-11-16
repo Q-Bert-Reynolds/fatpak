@@ -207,6 +207,8 @@ sgb_Init::
   or a, SYS_INFO_SGB
   ldh [sys_info], a
   di
+  xor a;WRAM has not been initialized yet (including on a warm return)
+  ld [sgb_from_window], a
   DISPLAY_OFF
   call sgb_SendInitPackets
 
@@ -302,8 +304,19 @@ sgb_SetDefaultBorder::;from the data file, if it loaded
   and a
   ret z
   di
+  ; The border upload borrows the live renderer's tiles and map. Keep them in
+  ; snapshot staging (unused during startup), with every interrupt masked: the
+  ; raster handler would otherwise change LCDC during the transfer picture.
+  ldh a, [rIE]
+  push af
+  xor a
+  ldh [rIE], a
+  ldh a, [rLCDC]
+  push af
   ld hl, sgb_MaskEnFreeze
   call _sgb_PacketTransfer
+  DISPLAY_OFF
+  call sgb_SwapDisplay
   ld de, sgb_ChrTrn1
   ld hl, DATA_BLOCK + DATA_BORDER_TILES
   call sgb_WindowTransfer
@@ -313,9 +326,49 @@ sgb_SetDefaultBorder::;from the data file, if it loaded
   ld de, sgb_PctTrn
   ld hl, DATA_BLOCK + DATA_BORDER_MAP
   call sgb_WindowTransfer
+  call sgb_SwapDisplay
+  pop af
+  ldh [rLCDC], a
   ld hl, sgb_MaskEnCancel
   call _sgb_PacketTransfer
+  pop af
+  ldh [rIE], a
   reti
+
+; LCD off. Swap $8800-$9FFF with 12 blocks at $3C00 (snapshot staging).
+; Swapping twice restores all tile/map bytes without using the UI's WRAM.
+sgb_SwapDisplay:
+  ld a, [EDX_BLOCK]
+  push af
+  ld a, [EDX_BLOCK+1]
+  push af
+  ld a, $3C
+  ld [EDX_BLOCK+1], a
+  ld hl, $8800
+  xor a
+.block
+  ld [EDX_BLOCK], a
+  push af
+  ld de, EDX_WINDOW
+.byte
+    ld b, [hl]
+    ld a, [de]
+    ld [hli], a
+    ld a, b
+    ld [de], a
+    inc de
+    ld a, d
+    cp a, HIGH(EDX_WINDOW+512)
+    jr nz, .byte
+  pop af
+  inc a
+  cp a, 12
+  jr c, .block
+  pop af
+  ld [EDX_BLOCK+1], a
+  pop af
+  ld [EDX_BLOCK], a
+  ret
 
 sgb_WindowTransfer:;de = packet, hl = first of 8 PSRAM blocks, _sgb_VRAMTransfer from the window
   ld a, 1
@@ -523,12 +576,13 @@ _sgb_VRAMTransfer:
   call _sgb_PacketTransfer    ; We send the packet that will produce the transfer
 
   ;restore screen state
+  DISPLAY_OFF
   pop af
   ldh [rBGP], a
   pop af
-  ldh [rSCX], a
-  pop af
   ldh [rSCY], a
+  pop af
+  ldh [rSCX], a
   pop af
   ldh [rLCDC], a
   reti

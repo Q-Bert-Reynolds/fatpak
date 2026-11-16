@@ -57,6 +57,8 @@ static unsigned Call(GearboyCore& core, unsigned address, unsigned argument = 0,
         unsigned ticks = 0; core.RunCycle(frame.data(), ticks);
         if (i % 3000 == 2999) { s16 audio[AUDIO_BUFFER_SIZE]; int n = 0; core.EndFrame(audio, &n); }
     }
+    if (cpu->PC->GetValue() != 0x7FFF)
+        fprintf(stderr, "routine %04x stopped at %04x\n", address, cpu->PC->GetValue());
     Check(cpu->PC->GetValue() == 0x7FFF, "OS routine returns");
     return cpu->AF->GetValue() >> 8;
 }
@@ -166,7 +168,7 @@ static void CancelledHDMATest(const char* image, const char* symbols)
     Check(cpu->PC->GetValue() == 0x7FFF, "HDMA wait ends when the transfer is cancelled");
     puts("Cancelled HDMA status, display commit and active-transfer waits passed");
 }
-static void Run(const char* image, const char* symbols, const char* data, bool color)
+static void Run(const char* image, const char* symbols, const char* data, bool color, bool sgb = false)
 {
     char folder[] = "/tmp/fatpak-return-XXXXXX";
     Check(mkdtemp(folder), "temporary SD folder");
@@ -174,13 +176,19 @@ static void Run(const char* image, const char* symbols, const char* data, bool c
     mkdir(sys.c_str(), 0700);
     mkdir((sys + "/SAVE").c_str(), 0700);
     mkdir((sys + "/SNAP").c_str(), 0700);
-    Write(root + "/StateTest.gbc", Game(color));
+    auto game = Game(color);
+    if (sgb) {
+        game[0x146] = 3; game[0x14B] = 0x33; game[0x14D] = 0;
+        for (unsigned i = 0x134; i < 0x14D; ++i) game[0x14D] -= game[i] + 1;
+    }
+    Write(root + "/StateTest.gbc", game);
     Write(sys + "/EDITOR.DAT", Read(data));
     std::string bin = std::string(data).substr(0, std::string(data).find_last_of('/'));
     mkdir((sys + "/LANG").c_str(), 0700); Write(sys + "/LANG/ES.DAT", Read(bin + "/LANG/ES.DAT"));
     Write(sys + "/SAVE/StateTest.srm", std::vector<u8>(32768, 0xA7));
-    GearboyCore core; core.Init(); core.SetEverdriveFolder(folder);
+    GearboyCore core; core.Init(); core.SetForceSGB(sgb); core.SetEverdriveFolder(folder);
     Check(core.LoadROM(image, false), "load OS");
+    if (sgb) Frames(core, 500); // initialize the live SGB renderer before direct file API calls
     auto syms = Symbols(symbols); auto memory = core.GetMemory();
     auto word = [&](const char* name) {
         unsigned a = syms.at(name); return memory->Read(a) | memory->Read(a+1) << 8;
@@ -208,6 +216,7 @@ static void Run(const char* image, const char* symbols, const char* data, bool c
         core.GetProcessor()->GetState()->PC->SetValue(syms.at("_GameLaunch"));
         Frames(core, 180);
         Check(core.CanPressEverdriveButton(), "launch game, including after returning to OS");
+        if (sgb) Check(core.IsSGB() && !core.IsCGB(), "launch keeps forced SGB hardware");
         memory->Write(0, 0x0A); memory->Write(0xA000, 0x5A + launch);
         core.PressEverdriveButton(); Frames(core,300);
         Check(!core.CanPressEverdriveButton(), "open menu");
@@ -256,6 +265,8 @@ static void Run(const char* image, const char* symbols, const char* data, bool c
             if (word("_src_browser_browser_c_list_count") == 2) break;
         }
         Check(!core.CanPressEverdriveButton(), "leave game mapping");
+        if (sgb) Check(core.IsSGB() && memory->Read(syms.at("sys_info")) == 1,
+                       "warm return detects the same SGB hardware");
         Check(memory->Read(syms.at("_render_cpu_copy")) == 1,
               "warm return keeps the renderer on CPU tile copies");
         Check(memory->Read(syms.at("_data_loaded")) == 1, "OS startup loads editor data");
@@ -275,7 +286,7 @@ static void Run(const char* image, const char* symbols, const char* data, bool c
                          "warm OS rendering never starts another HDMA transfer");
     }
     printf("%s menu Resume, Save state, repeated Return to OS and save backup passed (%s)\n",
-           color ? "CGB" : "DMG", folder);
+           sgb ? "SGB" : color ? "CGB" : "DMG", folder);
 }
 int main(int argc, char** argv)
 {
@@ -283,4 +294,5 @@ int main(int argc, char** argv)
     CancelledHDMATest(argv[1], argv[2]);
     Run(argv[1], argv[2], argv[3], false);
     Run(argv[1], argv[2], argv[3], true);
+    Run(argv[1], argv[2], argv[3], false, true);
 }
