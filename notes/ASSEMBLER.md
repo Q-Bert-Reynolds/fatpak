@@ -26,6 +26,10 @@ assemble byte-identical to RGBDS, unmodified (`memory1.asm` calls
   document's `INCLUDE` line that led there. An error
   in a macro is reported where the macro was used. The first error stops the
   build.
+  `build.log` also records `macro <n>` for the innermost macro body's line
+  (its first body line is 1), and `byte <n>` for the decimal character code at
+  the first parser failure (10 is a line feed, 0 is end of input). These help
+  locate a hardware-only failure hidden behind a macro's call site.
 - Success shows BUILT and the ROM size. RUN then launches like a game:
   the editor's text and settings go to the swap file first and come back when
   the game returns or at the next boot.

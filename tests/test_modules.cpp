@@ -48,6 +48,7 @@ static void Frames(GearboyCore& core, unsigned count)
 }
 static unsigned call_stack;
 static unsigned call_bc;
+static unsigned corrupt_stage_copy, corrupt_stage_buffer, corrupt_stage_return, staging_faults, staging_skip;
 static unsigned Call(GearboyCore& core, unsigned address, unsigned argument = 0, u8 a = 0, unsigned bc = 0)
 {
     auto cpu = core.GetProcessor()->GetState(); auto memory = core.GetMemory();
@@ -55,6 +56,21 @@ static unsigned Call(GearboyCore& core, unsigned address, unsigned argument = 0,
     cpu->BC->SetValue(bc); cpu->DE->SetValue(argument); cpu->AF->SetValue(a << 8); cpu->PC->SetValue(address);
     for (unsigned i = 0; i < 80000000 && cpu->PC->GetValue() != 0x7FFF; ++i)
     {
+        // Damage a byte after the WRAM-to-PSRAM staging copy, leaving the file and
+        // its WRAM read buffer valid. Checking only the read buffer misses this.
+        if (corrupt_stage_copy && cpu->PC->GetValue() == corrupt_stage_copy &&
+            cpu->DE->GetValue() == 0xBE00 && cpu->BC->GetValue() == corrupt_stage_buffer) {
+            if (staging_skip) --staging_skip;
+            else {
+                unsigned sp = cpu->SP->GetValue();
+                corrupt_stage_return = memory->Read(sp) | memory->Read(sp + 1) << 8;
+            }
+        }
+        if (corrupt_stage_return && cpu->PC->GetValue() == corrupt_stage_return) {
+            memory->Write(0xBE00, memory->Read(0xBE00) ^ 1);
+            corrupt_stage_copy = corrupt_stage_return = 0;
+            ++staging_faults;
+        }
         unsigned ticks = 0; core.RunCycle(frame.data(), ticks);
         if (i % 3000 == 2999) { s16 audio[AUDIO_BUFFER_SIZE]; int n = 0; core.EndFrame(audio, &n); }
     }
@@ -146,6 +162,22 @@ static void Modules(const char* image,const char* symbols,const char* data,const
     run("missing",4);
     for(unsigned i=1;i<15;++i)run(names[i],std::string(names[i])=="abi"?abi:invalid);
     run("abizero",abi);run("abinew",abi);
+    auto staging_fault = [&](const char* name, unsigned skip) {
+        std::vector<std::vector<u8>> pages;
+        for (unsigned page : {13u, 12u, 5u, 4u, 15u}) pages.push_back(Page(memory, page));
+        corrupt_stage_copy = syms.at("___memcpy");
+        corrupt_stage_buffer = syms.at("_buffer");
+        staging_faults = 0;
+        staging_skip = skip;
+        run(name,invalid);
+        Check(staging_faults == 1, "a corrupted PSRAM staging copy is rejected before installation");
+        unsigned i = 0;
+        for (unsigned page : {13u, 12u, 5u, 4u, 15u})
+            Check(Page(memory, page) == pages[i++], "staging failure leaves every OS page intact");
+    };
+    staging_fault("valid",0);
+    staging_fault("max",14); // the last, 256-byte sector
+    staging_fault("wide5",60); // page 15, in its separate staging range
     run("valid",0);run("valid",0);run("max",0);
     Check(memory->Read(syms.at("_module_status"))==0,"module result kept in module_status");
     // wide: both pages and the WRAMX buffers come back; the BSS is zeroed for every run

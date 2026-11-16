@@ -262,6 +262,7 @@ ENDR
 ;CRC-16/CCITT (polynomial $1021, as Python's binascii.crc_hqx), a byte at a time without a table:
 ;x = high ^ byte, x ^= x >> 4, crc = crc << 8 ^ x << 12 ^ x << 5 ^ x
 ;de = data, bc = count > 0, stack: crc; returns bc = crc and removes its stack argument
+SECTION "Module checksum", ROM0;leave room in bank 1 for staging validation
 _ModuleCRC::
   ld hl, sp+2
   ld a, [hl+]
@@ -305,6 +306,7 @@ _ModuleCRC::
   jp hl
 
 ;calls [_module_entry] with de = [_module_context], returns its A
+FIXED "Module loader"
 _ModuleEnter::
   ldh a, [loaded_bank]
   push af

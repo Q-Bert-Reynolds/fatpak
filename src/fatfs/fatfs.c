@@ -1680,10 +1680,12 @@ unsigned char fs_LoadModule(const char* path, unsigned char id) {
         result = f_read(&module, buffer, size, &done);
         if (result) goto close;
         if (done != size) { result = FR_INVALID_OBJECT; goto close; }
-        crc = ModuleCRC(buffer, size, crc);
       }
       SetWindowBlock((page == 4 ? MODULE_STAGE5 : MODULE_STAGE + (page << 5)) + (offset >> 9));
       memcpy(WINDOW, buffer, sector_size);
+      // Validate the bytes that will actually be installed. A correct card read
+      // does not prove the subsequent PSRAM write kept the module intact.
+      if (size) crc = ModuleCRC(WINDOW, size, crc);
       offset += sector_size;
     }
   }

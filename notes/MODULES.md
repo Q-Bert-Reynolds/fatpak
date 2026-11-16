@@ -170,8 +170,11 @@ below `$8000`. Copies never touch the final sector's upper 256 bytes.
 
 1. `fs_LoadModule` opens the file with a private `FIL` (an open large document is
    untouched), validates the header, reads 512 bytes at a time into `buffer`
-   with `ModuleCRC` (assembly, ~180 cycles/byte), zero-pads to the full page and
-   copies to staging. Window block and `$BD06` are restored on every exit.
+   and zero-pads to the full page, copies to PSRAM staging, then checks the
+   staged payload with `ModuleCRC` (assembly, ~180 cycles/byte). The checksum
+   covers what will be installed, including corruption during staging writes;
+   a mismatch rejects the module before any OS page is replaced. Window block
+   and `$BD06` are restored on every exit.
 2. `ModuleSwap(0)` backs up page 13, `ModuleSwap(1)` installs staging. Every
    block is compared after it's copied (`ModuleCompare`, ~32 cycles/byte). Both
    wait for HDMA, allow only STAT during the copy, and restore IE/IF,
@@ -273,6 +276,8 @@ sector buffer, so a future file API must not share it with a pending string.
 - `tests/run_modules.sh` (DMG, CGB): swaps read back and preserve mapping, IE and
   window; byte-identical page restore; nested call rejected; missing, malformed
   and wrong-ABI files rejected with the page untouched; an ABI 1 module runs;
+  injected staging corruption rejected before installation (first sector, last
+  256-byte sector, fifth page), with every OS page intact;
   `module_context` arrives in `de` and is cleared; `module_status`; BSS zeroed;
   literals marshaled; max-size page; open large document survives; stack guard;
   the wide fixture runs twice with zeroed BSS, page 12 and the WRAMX buffers

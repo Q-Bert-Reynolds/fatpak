@@ -150,7 +150,7 @@ unsigned int unique; // the last \@
 char path[128];
 static unsigned int* lf_line; // the line count of the frame a line feed in ch came from
 unsigned char ch;
-unsigned char error, pass;
+unsigned char error, pass, error_ch;
 
 // a byte of a source
 static unsigned char Raw(unsigned char source, Pos at) {
@@ -364,7 +364,7 @@ void AdvanceSlow(void) {
 }
 // the first error ends the statement and the pass: everything after looks like the end
 void Fail(unsigned char code) {
-  if (!error) error = code;
+  if (!error) { error = code; error_ch = ch; }
   ch = 0;
 }
 void Space(void) { while (ch == ' ' || ch == '\t' || ch == '\r') Advance(); }

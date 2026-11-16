@@ -33,7 +33,7 @@ typedef unsigned long UVal;
 // asm.c
 extern AsmContext* context;
 extern unsigned char ch; // the character being looked at, 0 past the end
-extern unsigned char error, pass;
+extern unsigned char error, pass, error_ch; // error_ch: the byte at the first failure, before Fail clears ch
 extern unsigned int line, line_pos, pos;
 extern unsigned char at, count;
 extern char ident[NAME_MAX + 1], name[NAME_MAX + 1];

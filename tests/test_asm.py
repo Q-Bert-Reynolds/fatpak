@@ -1,7 +1,7 @@
 """ASM.MOD against RGBDS: builds modules/asm.c for the PC (tests/asm_host.c), assembles each
 tests/asm/*.asm with both and compares the ROMs byte for byte; then checks error reporting.
 usage: python3 tests/test_asm.py"""
-import subprocess, sys, tempfile
+import os, subprocess, sys, tempfile
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'scripts'))
 
@@ -157,6 +157,17 @@ def large(work):
     print(f'large files: {len(image)} bytes match')
     return 0
 
+def macro_log(work):
+    source = ('MACRO inner\n nop\n ld a, [1\nENDM\n'
+              'MACRO outer\n inner\nENDM\nSECTION "a", ROM0\n outer\n')
+    status, line, pos, _ = ours(source, work)
+    log = run([str(HOST), str(work / 'in.asm')], env={**os.environ, 'ASM_LOG': '1'}).stderr
+    if status != CODES['SYNTAX'] or line != 9 or 'macro 2\n' not in log or 'byte 10' not in log:
+        print(f'macro log: FAIL status {status}, line {line}\n{log}')
+        return 1
+    print('macro log: call site, innermost body line and failing byte checked')
+    return 0
+
 def main():
     # the module's ints are 16 bits on SDCC: build it that way here too
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '.o', str(ROOT / 'modules/asm.c')])
@@ -216,6 +227,7 @@ def main():
         failed += sections(work)
         failed += many(work)
         failed += projects(work)
+        failed += macro_log(work)
         for source, name, line in ERRORS:
             status, got, pos, _ = ours(source, work)
             if name is None:

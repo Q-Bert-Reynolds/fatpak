@@ -18,12 +18,51 @@ unsigned char log_steps; // steps finished
 static unsigned int log_n;
 static const char* const log_names[LOG_STEPS] = {"pass 1    ", "sections  ", "pass 2    ", "finishing "};
 
+#ifdef HOST_TEST
 static void LogChar(char c) {
   if (log_n == ASM_LOG_BLOCKS * 512) return;
   Window(ASM_LOG_BLOCK + (log_n >> 9));
   WINDOW[log_n & 511] = c;
   ++log_n;
 }
+#else
+// Keep the logger small: the fifth page is shared with section placement and the cache.
+typedef char log_window_layout[ASM_LOG_BLOCK == 0x38FE && ASM_LOG_BLOCKS == 2 ? 1 : -1];
+static void LogChar(char c) __naked {
+  c;
+  __asm
+	ld	c, a
+	ld	hl, _log_n
+	ld	e, [hl]
+	inc	hl
+	ld	a, [hl]
+	cp	a, 4
+	ret	nc
+	ld	d, a
+	srl	a
+	add	a, $FE
+	ld	b, a
+	ld	a, $38
+	ld	[$BD03], a
+	ld	a, b
+	ld	[$BD02], a
+	xor	a, a
+	ld	[_run_n], a
+	ld	a, d
+	and	a, 1
+	add	a, $BE
+	ld	h, a
+	ld	l, e
+	ld	[hl], c
+	ld	hl, _log_n
+	inc	[hl]
+	ret	nz
+	inc	hl
+	inc	[hl]
+	ret
+  __endasm;
+}
+#endif
 static void LogText(const char* s) { while (*s) LogChar(*s++); }
 static void LogNumber(unsigned int v) {
   char digits[5];
@@ -50,6 +89,7 @@ static unsigned int Stat(unsigned char which) { return (unsigned int)ModStat(whi
 
 void Log(void) {
   unsigned char i;
+  Frame* f;
   char text[LANG_MAX + 1];
   log_n = 0;
   LogText(main_file ? (const char*)output : "the document");
@@ -86,6 +126,15 @@ void Log(void) {
     LogText(": ");
     ModString(text, S_ERR_SYNTAX + error - 1);
     LogText(text);
+    // The editor reports a macro's call site. Keep its body position too: a hardware
+    // failure inside a large macro otherwise gives no clue which statement failed.
+    f = TextFrame();
+    if (f->kind == F_MACRO) {
+      LogText("\nmacro ");
+      LogNumber(f->line);
+    }
+    LogText("\nbyte ");
+    LogNumber(error_ch);
   }
   else {
     LogText("built ");
