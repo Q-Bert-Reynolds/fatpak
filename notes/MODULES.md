@@ -337,3 +337,8 @@ The busy box stays up throughout, so nothing looks frozen.
    BSS in PSRAM through accessors, or keeping a module installed between runs.
 - **Later:** a module discovery UI; reuse for `SGB.DAT`'s GB backend
    ([SGB.md](SGB.md)); file writes for modules (listings).
+
+Keyboard setup and diagnostics share KEYTEST.MOD (ABI 11). Setup validates and
+loads the selected driver into the separate page-15 slot through ModDriver; see
+[KEYBOARD.md](KEYBOARD.md). Wide modules back up and restore that active payload
+as part of page 15.

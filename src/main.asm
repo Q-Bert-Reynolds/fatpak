@@ -148,6 +148,8 @@ MainStart:
   ld a, IEF_VBLANK | IEF_SERIAL
   ldh [rIE], a
   ei
+  ld a, KB_TYPE_PS2
+  ld [_kb_driver], a
   TRAMPOLINE DetectKeyboard
 
 .start

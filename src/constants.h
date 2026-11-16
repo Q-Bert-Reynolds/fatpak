@@ -105,7 +105,7 @@
 #define ASM_CACHE_BLOCK  0x387Eu//build.cache: where pass 1 found each file, 128 blocks (modules/asm_cache.c)
 #define ASM_CACHE_BLOCKS 128
 #define ASM_LOG_BLOCK    0x38FEu//build.log's text, 2 blocks (up to ADD_MAX / 512)// in pass 1, the cache's directory and FAT sectors
-#define MODULE_ABI     10//newest ABI the host provides, modules built for older ones still load
+#define MODULE_ABI     11//newest ABI the host provides, modules built for older ones still load
 #define MODULE_TABLE   0x7F00u//ABI jump table in resident bank 1, 3 bytes per entry
 #define MODULE_SLOTS   32//entries reserved for it
 #define MODULE_FORMAT  1//one page, BSS after the code

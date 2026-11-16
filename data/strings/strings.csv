@@ -27,6 +27,7 @@ SUB_THEME,item,browser SETTINGS: these 4,THEME,TEMA
 SUB_LANGUAGE,item,,LANGUAGE,IDIOMA
 SUB_CLOCK,item,,CLOCK,RELOJ
 SUB_KEYBOARD_TEST,item,,KEYBOARD TEST,PRUEBA DE TECLADO
+SUB_KEYBOARD,item,,KEYBOARD / MOUSE,TECLADO / RATÓN
 FILE_OPEN,item,browser FILE: these 5 in order,OPEN,ABRIR
 FILE_OPEN_AS,item,,OPEN AS,ABRIR COMO
 FILE_INFO,item,,INFO,INFORMACIÓN
@@ -200,3 +201,7 @@ MODULE_COPY_FAILED,bar,"a PSRAM copy that failed while a module ran (operation:b
 BUILD_LOADING,box,build progress: the file named above is being read from the card,loading,leyendo
 BUILD_LINKING,box,build progress: after pass 1,Placing sections,Colocando secciones
 BUILD_FINISHING,box,build progress: after pass 2,Finishing,Terminando
+DRIVER_NONE,item,keyboard driver choices in order,NONE,NINGUNO
+DRIVER_PS2,item,,PS/2 KEYBOARD,TECLADO PS/2
+DRIVER_IGKB,item,,iGKB KEYBOARD,TECLADO iGKB
+DRIVER_MOUSE,item,,iGKB MOUSE,RATÓN iGKB

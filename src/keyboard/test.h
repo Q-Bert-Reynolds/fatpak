@@ -4,5 +4,6 @@
 #include "../constants.h"
 
 void KeyboardTest(void);
+void KeyboardSetup(unsigned char menu);
 
 #endif

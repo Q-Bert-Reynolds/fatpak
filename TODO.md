@@ -52,7 +52,7 @@
 # Peripherals
 
 - Re-detect a PS/2 keyboard plugged in after boot.
-- iGKB (keys, mouse, pad): needs Gearboy emulation first; the old untested handlers are in git history (removed 2026-11-13). Add it, and WorkBoy, as alternative drivers in a page-15 slot copied at boot from a setting.
+- WorkBoy and iGKB gamepad support as additional drivers; keyboard and mouse drivers now use the selectable page-15 slot ([KEYBOARD.md](notes/KEYBOARD.md)).
 - WorkBoy keyboard; Game Boy Printer output.
 - Test PS/2 input on LSDJ.
 

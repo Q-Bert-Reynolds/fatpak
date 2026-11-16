@@ -94,3 +94,6 @@ node_modules
 
 # tests/test_asm.py's PC build of the assembler module
 /build/asm_host*
+
+# Linked keyboard driver intermediates
+/build/drivers/

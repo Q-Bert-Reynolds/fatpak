@@ -1,5 +1,7 @@
 // Startup services and initial screen selection.
 #include "main.h"
+#include "../keyboard/keyboard.h"
+#include "../keyboard/test.h"
 #include "dialogs.h"
 #include "language.h"
 #include "../editor/document.h"
@@ -41,6 +43,7 @@ void AppMain(void) {
   EditorInit();
   ThemeApply();
   if (LoadLanguage()) ShowMessage(Str(S_LANGUAGE_MISSING)); // the setting's, now that it's known
+  if (kb_driver != 1) KeyboardSetup(0);
   if (!lang_count) ShowMessage(no_data);
   if (backup_skipped) ShowMessage(Str(S_SAVE_NOT_BACKED_UP));
   ShowModuleRestart();

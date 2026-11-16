@@ -20,7 +20,7 @@ static const unsigned char submenu_starts[] = {0, 6, 12};
 
 // Shared by the editor and browser; B returns to their enclosing menu.
 unsigned char PreferencesMenu(unsigned char browser) {
-  unsigned char item = Choose(0, browser ? S_SUB_THEME : S_SUB_LINE_WRAP, 4, 0);
+  unsigned char item = Choose(0, browser ? S_SUB_THEME : S_SUB_LINE_WRAP, browser ? 5 : 7, 0);
   if (item >= BACK) return item;
   if (browser) item += 2; // THEME, LANGUAGE, CLOCK, KEYBOARD TEST
   if (!item) ToggleWrap();
@@ -28,7 +28,8 @@ unsigned char PreferencesMenu(unsigned char browser) {
   else if (item == 2) ThemeSetup();
   else if (item == 3) LanguageSetup();
   else if (item == 4) ClockSetup();
-  else KeyboardTest();
+  else if (item == 5) KeyboardTest();
+  else KeyboardSetup(1);
   return item;
 }
 

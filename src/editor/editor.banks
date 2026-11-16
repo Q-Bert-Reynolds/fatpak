@@ -2,3 +2,5 @@
 *: 5
 6: GetSelection DeleteSelection Copy Paste UndoRedo SelectAll Cut HandleCtrlKey ToggleWrap
 4: Edited
+
+4: ClearSelection

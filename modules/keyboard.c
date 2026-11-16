@@ -9,18 +9,20 @@
 // SETTINGS > KEYBOARD TEST: the PS/2 interrupt's bytes (hex, bits, errors, counted from here, up to 255) and
 // the keys they make, listening
 // even if no keyboard was found at boot (it keeps listening afterwards)
-unsigned char ModuleMain(void) {
+unsigned char KeyboardDriverMenu(void* menu);
+unsigned char ModuleMain(void* context) {
   ModuleKeyboard state;
   unsigned char codes[TEST_CODES], errors[TEST_CODES], read, count = 0, boot;
   unsigned char row, i, bit, bytes, errors_seen;
   unsigned int event;
   char text[TB_STRIDE], *end;
+  if (context) return KeyboardDriverMenu((void*)((unsigned int)context - 1));
   ModHideBox();
   ModKeyboard(&state);
   read = state.write; boot = state.type; bytes = state.bytes; errors_seen = state.errors;
   ModListen();
   ModRow(0, Str(S_KB_TITLE));
-  ModRow(1, Str(boot ? S_KB_PS2 : S_KB_NONE));
+  ModRow(1, Str(S_DRIVER_NONE + (boot < 4 ? boot : 0)));
   ModRow(4, Str(S_KB_CODES));
   ModRow(TB_ROWS - 1, Str(S_KB_BACK));
   while (1) {

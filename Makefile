@@ -66,12 +66,14 @@ assemble: modules $(C_RAW)
 ifneq ($(ROM_FILE),$(BIN_DIR)/GBCOS.BIN)
 	cp $(ROM_FILE) $(BIN_DIR)/GBCOS.BIN
 endif
+	$(PYTHON) scripts/keyboard_drivers.py
 	$(PYTHON) scripts/data_file.py $(BIN_DIR)/EDITOR.DAT
 	@if mountpoint -q "$(SD_MOUNT)"; then \
 		cp $(BIN_DIR)/GBCOS.BIN "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
 		cp $(BIN_DIR)/EDITOR.DAT "$(SD_MOUNT)/GBCSYS/EDITOR.DAT" && \
-		mkdir -p "$(SD_MOUNT)/GBCSYS/MODULES" "$(SD_MOUNT)/GBCSYS/LANG" && \
+		mkdir -p "$(SD_MOUNT)/GBCSYS/MODULES" "$(SD_MOUNT)/GBCSYS/LANG" "$(SD_MOUNT)/GBCSYS/DRIVERS" && \
 		cp $(BIN_DIR)/MODULES/*.MOD "$(SD_MOUNT)/GBCSYS/MODULES/" && \
+		cp $(BIN_DIR)/DRIVERS/*.DRV "$(SD_MOUNT)/GBCSYS/DRIVERS/" && \
 		cp $(BIN_DIR)/LANG/*.DAT "$(SD_MOUNT)/GBCSYS/LANG/" && \
 		sync -f "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
 		sync -f "$(SD_MOUNT)/GBCSYS/EDITOR.DAT" && \

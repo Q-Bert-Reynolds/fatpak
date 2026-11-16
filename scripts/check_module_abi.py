@@ -23,6 +23,11 @@ PAGE5 = utils.constants()['MODULE_PAGE5']  # the keyboard handlers ('ProcessKeyC
 # switch and restore the page itself. EditorDraw switches only to bank 1 (RenderRow,
 # the fonts' widths); rows are already lexed, so drawing never reaches KeywordLookup (page 13).
 ASM = {
+    '_ModuleAPIDriver': ['KBDriverInstall'],
+    'KBDriverInstall': ['KeyboardDriverInit', 'mem_Copy', '_SettingsSave', '_FileSaveSwap'],
+    'KeyboardDriverInit': [], 'mem_Copy': [],
+    '_tb_ClipLength': [], '_tb_Length': [], '_ByteSum': [],
+    '_FileSaveSwap': ['_fs_SaveSwap'],
     '_EditorDraw': ['RenderRow'],
     '_WaitFrame': ['UpdateInput', '_FooterTick'],
     '_FooterTick': ['_footer_Tick'],

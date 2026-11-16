@@ -102,7 +102,7 @@ DEF ASM_FILE_END     EQU $387E;then build.cache's new index, and the build log
 DEF ASM_CACHE_BLOCK  EQU $387E;build.cache: where pass 1 found each file, 128 blocks (modules/asm_cache.c)
 DEF ASM_CACHE_BLOCKS EQU 128
 DEF ASM_LOG_BLOCK    EQU $38FE;build.log's text, 2 blocks (up to ADD_MAX / 512); in pass 1, the cache's directory and FAT sectors
-DEF MODULE_ABI     EQU 10;newest ABI the host provides, modules built for older ones still load
+DEF MODULE_ABI     EQU 11;newest ABI the host provides, modules built for older ones still load
 DEF MODULE_TABLE   EQU $7F00;ABI jump table in resident bank 1, 3 bytes per entry
 DEF MODULE_SLOTS   EQU 32;entries reserved for it
 DEF MODULE_FORMAT  EQU 1;one page, BSS after the code

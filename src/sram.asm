@@ -1,5 +1,5 @@
 ;text buffer, see src/editor/text_buffer.asm
-DEF SETTINGS_SIZE EQU 6+PATH_SIZE+FS_NAME_SIZE;SettingsTable
+DEF SETTINGS_SIZE EQU 7+PATH_SIZE+FS_NAME_SIZE;SettingsTable
 ;PSRAM through the window: the text buffer and undo log are blocks (see constants.asm),
 ;this is PSRAM block MAIN_SRAM_BANK and the clipboard's text starts at offset $100 of it (TB_CLIP_SIZE)
 DEF sram_tb_signature EQU TB_BASE
@@ -17,7 +17,7 @@ _language:: DB;the UI's language: its column in data/strings/strings.csv, 0 Engl
 
 SECTION "Settings Code", ROM0
 
-SettingsSignature: DB "SET4";SET1 had the font, SET2 is SET3 without the theme, SET3 is SET4 without the language
+SettingsSignature: DB "SET5";SET1 had the font, SET2 is SET3 without the theme, SET3 is SET4 without the language
 
 MACRO SETTING ;\1 = C variable, \2 = size
   DW \1
@@ -33,6 +33,7 @@ SettingsTable:
   SETTING _file_name, FS_NAME_SIZE
   SETTING _theme, 1;SET3: keep new settings last, so older tables are a prefix
   SETTING _language, 1;SET4
+  SETTING _kb_driver, 1;SET5
   DW 0
 
 ;C functions (src/editor/settings.h)
@@ -118,12 +119,20 @@ _SettingsLoad::
   jr z, .load
   cp a, '2'
   jr z, .load
+  cp a, '4'
+  jr z, .load
   cp a, '3'
   jr nz, .never
 .load
   push af
   ld a, 1
   call SettingsCopy
+  pop af
+  cp a, '5'
+  jr z, .loaded
+  push af
+  ld a, 1
+  ld [_kb_driver], a
   pop af
   cp a, '4'
   jr z, .loaded

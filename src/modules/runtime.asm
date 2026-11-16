@@ -441,3 +441,8 @@ ENDR
   ret
 .text
   DB "MODULE "
+
+SECTION "Keyboard driver API", ROM0
+_ModuleAPIDriver::
+  TRAMPOLINE KBDriverInstall
+  ret

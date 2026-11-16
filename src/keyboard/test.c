@@ -8,6 +8,8 @@
 #include "../app/dialogs.h"
 #include "../ui/text.h"
 
+static const char keyboard_module[] = MODULE_KEYTEST_PATH;
+
 void KeyboardTest(void) {
   unsigned char old_font = font, result;
   font = FONT_VWF;
@@ -16,11 +18,19 @@ void KeyboardTest(void) {
   BeginFullScreen();
   ClearScreen();
   ShowBusy(Str(S_LOADING));
-  result = RUN_MODULE(KEYTEST);
+  result = RunModule(keyboard_module, MODULE_KEYTEST);
   HideBox();
   if (result) ShowModuleError(result);
   font = old_font;
   SetFont(font);
   render_text = 1;
   EndFullScreen();
+}
+
+void KeyboardSetup(unsigned char menu) {
+  unsigned char result;
+  ++menu;
+  module_context = (void*)(unsigned int)menu;
+  result = RunModule(keyboard_module, MODULE_KEYTEST);
+  if (result) ShowModuleError(result);
 }

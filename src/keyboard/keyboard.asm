@@ -3,6 +3,9 @@ INCLUDE "src/keyboard/ps2_keys.asm";PS/2 keys codes
 ;kb_type
 DEF KB_TYPE_NONE EQU 0
 DEF KB_TYPE_PS2  EQU 1
+DEF KB_TYPE_IGKB EQU 2
+DEF KB_TYPE_MOUSE EQU 3
+DEF KB_DRIVER_SIZE EQU $580
 
 ;kb_mode
 DEF KB_MODE_NONE    EQU 0
@@ -51,6 +54,7 @@ kb_modifiers:: DB ;FSCAUPNL - (F)unction, (S)hift, (C)trl, (A)lt, S(U)per, Ca(P)
 kb_flags:: DB;xxxxxxER - (E)xtended key flag, (R)elease key flag
 _kb_type::
 kb_type:: DB
+_kb_driver:: DB;persisted choice; immediately follows kb_type (driver ABI 11)
 kb_mode:: DB
 kb_event_buffer:: DS KB_EVENT_COUNT*2;key, modifiers
 kb_event_write:: DB
@@ -96,117 +100,101 @@ KBPopEvent::;returns key in c (KEY_NONE if queue is empty), modifiers in b
   ld b, [hl]
   ret
 
-_KBListen::;listens for a PS/2 keyboard even if DetectKeyboard found none (the keyboard test), in ROM0 so C in any page can call it
-  ld a, KB_TYPE_PS2
-  ld [kb_type], a
-  xor a
-  ldh [rSB], a
-  ld a, SCF_START
-  ldh [rSC], a;bits come in on the keyboard's clock
+_KBListen::;selected drivers start themselves; diagnostics must not change the selection
   ret
 
-  KEYBOARD_SECTION;the keyboard test adds to it (src/tests/test.asm)
-INCLUDE "src/keyboard/kb_jump_table.asm"
-INCLUDE "src/keyboard/kb_handlers.asm"
-INCLUDE "src/keyboard/ps2_ascii_keymaps.asm"
-INCLUDE "src/keyboard/ps2_handlers.asm"
-
+  KEYBOARD_SECTION
+KeyboardDriverStart::
 DetectKeyboard::
+  jp KeyboardDriverInit
+ProcessKeyCodes::
+  jp PS2Process
+  INCLUDE "src/keyboard/driver_common.asm"
+  INCLUDE "src/keyboard/driver_ps2.asm"
+  ASSERT @ - KeyboardDriverStart <= KB_DRIVER_SIZE
+  DS KB_DRIVER_SIZE - (@ - KeyboardDriverStart), 0
+KeyboardDriverEnd::
+
+; Called through ModDriver, while its module is in page 13. This code stays
+; outside the replaced slot. The last block is only 384 bytes.
+KBDriverInstall::
+  bit 7, a
+  jr nz, .init
+  cp 3
+  jr nc, .query
+  add a, a
+  add a, HIGH(KeyboardDriverStart)
+  ld d, a
+  ld e, 0
+  ld bc, 512
+  cp HIGH(KeyboardDriverStart)+4
+  jr nz, .copy
+  ld bc, KB_DRIVER_SIZE-1024
+.copy
+  ld hl, EDX_WINDOW
+  jp mem_Copy
+.query
+  ld bc, kb_type
+  cp $40
+  ret z
+  ld bc, KeyboardDriverInit
+  ret
+.init
+  push af
+  and 3
+  call KeyboardDriverInit
+  pop af
+  bit 6, a
+  ret z
+  and 3
+  ld [_kb_driver], a
+  call _SettingsSave
+  ld a, [_doc_large]
+  and a
+  ret nz
+  jp _FileSaveSwap
+KeyboardDriverInit::
+  ld [kb_type], a
+  push af
   xor a
-  ld [kb_button_state], a
-  ld a, KB_TYPE_PS2
-  ld [kb_type], a;assume PS2 keyboard connected
+  ldh [rSC], a
+  ld hl, kb_buffer_write
+  ld [hli], a
+  ld [hl], a
+  ld hl, kb_event_write
+  ld [hli], a
+  ld [hl], a
+  ld hl, kb_modifiers
+  ld [hli], a
+  ld [hl], a
+  ld [kb_held_key], a
+  ldh [kb_button_state], a
+  ld hl, _mouse_buttons
+  ld [hli], a
+  ld [hl], a
+  ld [igkb_packet], a
+  ld [oam_buffer+8], a
+  pop af
+  and a
+  ret z
+  cp KB_TYPE_PS2
+  ld a, SCF_START
+  jr z, .start
+  or SCF_SOURCE
+.start
+  push af
   xor a
   ldh [rSB], a
-  ld a, SCF_START | SCF_SOURCE
-  ldh [rSC], a ;ask for byte using gb clock
-  ld de, 5
-  call gbdk_Delay
-  ld a, [kb_error]
-  cp a, PS2_ERROR_TIMEOUT | PS2_ERROR_PARITY_BIT | PS2_ERROR_FINISH_BIT
-  jr nz, .usePS2Clock;if magic error code not received, PS2 connected
-  ld a, KB_TYPE_NONE
-  ld [kb_type], a
-  ret
-.usePS2Clock
-  ld a, SCF_START
-  ldh [rSC], a;ask for bits using keyboard clock 
-  ret
-
-SetKeyboardMode::;a = mode
-  ld b, a
-  ld a, [kb_mode]
-  cp a, b
-  ret z
-.clearFlags
-  xor a
-  ld [kb_flags], a
-  ld [kb_button_state], a
-  ld [kb_held_key], a
-.setMode
-  ld a, b
-  ld [kb_mode], a
-  ret
-
-;queues the held arrow key again at the d-pad's rate (the keyboard's own repeats are dropped, see PS2HoldArrowKey)
-KBRepeatHeldKey:
-  ld a, [kb_held_key]
-  and a
-  ret z
-  ld hl, kb_repeat_timer
-  dec [hl]
-  ret nz
-  ld [hl], PAD_REPEAT_RATE
-  push af
-  call KBHandleArrowKey
   pop af
-  ld [kb_held_key], a;queueing a key clears it
+  ldh [rSC], a
   ret
 
-ProcessKeyCodes::
-  ld a, [kb_mode]
-  and a
-  ret z;exit early if KB_MODE_NONE
-  ld a, [kb_type]
-  cp a, KB_TYPE_PS2
-  ret nz;no keyboard
-  call ProcessPS2KeyCodes
-  jr KBRepeatHeldKey
-
-ProcessPS2KeyCodes:
-  ld a, [kb_buffer_write]
-  ld b, a;b = write index
-  ld a, [kb_buffer_read]
-  ld d, 0
-  ld e, a;de = read index
-  cp a, b
-  ret z;if read == write, done
-
-.loop
-    ld hl, kb_error_buffer
-    add hl, de;[hl] = current error
-    ld a, [hl];error code
-    and a;check for errors
-    jr nz, .incrementReadIndex;if errors found, don't process keycode
-
-  .processKeyCode
-    ld hl, kb_scan_code_buffer
-    add hl, de;[hl] = current scan code
-    ld a, [hli];scan code
-    push de;store read index
-    push bc;store write index
-    call PS2HandleKeycode
-    pop bc;restore write index
-    pop de;restore read index
-
-  .incrementReadIndex
-    ld a, e
-    inc a
-    and a, KB_SCAN_CODE_COUNT-1
-    ld e, a;de = read index
-    ld [kb_buffer_read], a
-
-  .checkDone
-    cp a, b;if read == write, done
-    jp nz, .loop
-  ret
+SECTION "Mouse driver state", WRAMX
+_mouse_x:: DB
+_mouse_y:: DB
+_mouse_buttons:: DB
+igkb_ready:: DB
+igkb_packet:: DB
+igkb_flags:: DB
+igkb_dx:: DB
+igkb_budget:: DB

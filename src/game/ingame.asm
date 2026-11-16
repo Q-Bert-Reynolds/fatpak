@@ -486,18 +486,16 @@ ENDR
 END_PAGE
 SECTION "Menu footer dispatch", ROM0
 MenuLoadFooter:
-  ld a, LAUNCH_PAGE
-  SET_BANK
-  call MenuFooterGraphics
-  ld a, INGAME_PAGE
-  SET_BANK
-  ret
+  ld hl, MenuFooterGraphics
+  jp MenuLoadGraphic
 
 FIXED "Menu clock dispatch"
 MenuLoadClock:
+  ld hl, MenuClockGraphics
+MenuLoadGraphic:
   ld a, LAUNCH_PAGE
   SET_BANK
-  call MenuClockGraphics
+  call ___sdcc_call_hl
   ld a, INGAME_PAGE
   SET_BANK
   ret
