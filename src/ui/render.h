@@ -22,6 +22,7 @@ extern unsigned char render_box_top; // menu box over the text: screen row, 0xFF
 extern unsigned char render_box_rows;
 extern unsigned char render_box_x; // pixels
 extern unsigned char render_box_w;
+extern unsigned char render_box_first; // first selectable row, after any title
 extern unsigned char render_box_sel; // highlighted line
 extern unsigned char render_box_gen; // change for each new box
 extern char* render_box_text; // BOX_STRIDE chars per line

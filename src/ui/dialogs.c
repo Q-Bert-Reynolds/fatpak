@@ -33,6 +33,7 @@ void OpenBox(unsigned char lines) {
   render_box_x = (TB_WIDTH - render_box_w) >> 1;
   render_box_rows = lines + 2; // half rows above and below
   render_box_top = (TB_ROWS - render_box_rows) >> 1;
+  render_box_first = 1;
   render_box_sel = 0xFF;
   ++render_box_gen;
 }

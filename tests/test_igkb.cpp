@@ -164,9 +164,85 @@ static void Select(Session& s,unsigned type) {
     Check(s.memory->Read(s.syms.at("_kb_driver"))==type,"selected driver is saved");
     Check(!s.memory->Read(s.syms.at("_module_busy")),"setup module returns");
 }
+static unsigned Byte(Session& s, const char* name) { return s.memory->Read(s.syms.at(name)); }
+static void Mouse(Session& s, unsigned x, unsigned y, unsigned buttons, unsigned frames=8) {
+    Check(s.core.QueueIGKBMouse(int(x)-int(Byte(s,"_mouse_x")), int(y)-int(Byte(s,"_mouse_y")), buttons),"queue mouse report");
+    Frames(s.core,frames);
+}
+static void Click(Session& s, unsigned x, unsigned y, unsigned buttons=1) {
+    Mouse(s,x,y,buttons,4); Mouse(s,x,y,0,4);
+}
+static void MouseUI(const char* image, const char* symbols, const char* data, bool color) {
+    std::map<std::string,std::string> extra;
+    for(unsigned n=1;n<=15;++n) { char name[16]; snprintf(name,sizeof(name),"Z%02u.txt",n); extra[name]="far row\n"; }
+    Session s(image,symbols,data,color,"Mouse.txt","abc\ndef\n",{},extra);
+    s.core.SetIGKBMode(2); Select(s,3);
+    unsigned oam=s.syms.at("oam_buffer")+8;
+    Check(!s.memory->Read(oam),"pointer stays hidden before the first mouse report");
+    Mouse(s,6,8,0);
+    Check(s.memory->Read(oam)==24 && s.memory->Read(oam+1)==14 && s.memory->Read(oam+2)==122,"first mouse input shows a separate pointer sprite");
+    std::string bin=std::string(data).substr(0,std::string(data).find_last_of('/'));
+    auto font=Read(bin+"/../img/ui_font.tiles");
+    for(unsigned n=0;n<16;++n) Check(s.memory->Read(0x8000+122*16+n)==font[26*16+n],"pointer pixels come from UI font tile 26");
+    Frames(s.core,125); Check(!s.memory->Read(oam),"inactive pointer times out");
+    Click(s,6,8);
+    unsigned anchor=s.word("_cursor");
+    Check(!Byte(s,"_selecting"),"editor click positions the cursor without a selection");
+    Mouse(s,6,8,1); Mouse(s,24,8,1);
+    Check(Byte(s,"_selecting") && s.word("_cursor")!=anchor && s.word("_anchor")==anchor,"drag keeps its click anchor and selects text");
+    Mouse(s,24,8,0);
+    Click(s,24,8,2);
+    Check(!s.lines().empty(),"editor right click opens the menu");
+    unsigned x=Byte(s,"_render_box_x")+5, top=Byte(s,"_render_box_top");
+    Mouse(s,x,(top+3)*8+2,0,100);
+    if(Byte(s,"_render_box_sel")!=3) fprintf(stderr,"hover sel%u first%u x%u y%u top%u nowtop%u target%u nav%u action%u box%u busy%u lines%s\n",Byte(s,"_render_box_sel"),Byte(s,"_render_box_first"),Byte(s,"_mouse_x"),Byte(s,"_mouse_y"),top,Byte(s,"_render_box_top"),Byte(s,"igkb_target"),Byte(s,"igkb_nav"),Byte(s,"igkb_action"),Byte(s,"igkb_box"),Byte(s,"_module_busy"),s.lines().c_str());
+    Check(Byte(s,"_render_box_sel")==3,"menu hover highlights its item");
+    Click(s,x,(top+3)*8+2); Frames(s.core,20);
+    Check(s.lines().find("LINE WRAP")!=std::string::npos,"clicking the hovered Settings item performs the action");
+    Click(s,0,0); Frames(s.core,20);
+    Check(Byte(s,"_render_box_top")==255,"clicking outside closes the menu");
+    s.pad(Start_Key); s.pad(A_Key); s.pad(A_Key); Frames(s.core,80);
+    Check(!Byte(s,"_render_text") && Byte(s,"_render_box_top")==255,"open the browser for mouse row tests");
+    auto selected=[&](){for(unsigned r=1;r<=16;++r) if(s.memory->Read(s.syms.at("_render_sel")+r*2+1)==255)return r;return 0u;};
+    unsigned initial=selected();
+    Mouse(s,12,8+2,0,20);
+    Check(selected()==initial,"browser hover does not change the selected row");
+    Click(s,12,8+2); Frames(s.core,8);
+    Check(selected()==1 && s.row(18)==" /","single click selects a folder without opening it");
+    Click(s,12,8+2); Frames(s.core,80);
+    Check(s.row(18).find("GBCSYS")!=std::string::npos,"double click opens the selected folder");
+    s.pad(B_Key); Frames(s.core,40);
+    Click(s,12,16+2,2); Frames(s.core,30);
+    Check(!s.lines().empty(),"browser right click opens its menu");
+    Click(s,0,0); Frames(s.core,40);
+    Check(selected()==2 && s.row(18)==" /","right click selects the row before opening the menu");
+    // Let the earlier click window expire; the first press still must not open.
+    Frames(s.core,30); Click(s,12,16+2); Frames(s.core,8);
+    Check(!Byte(s,"_render_text"),"single file click selects without opening");
+    Click(s,12,16+2); Frames(s.core,100);
+    Check(Byte(s,"_render_text") && s.row(18).find("Mouse.txt")!=std::string::npos,"double click opens a file in the editor");
+    s.pad(Start_Key); s.pad(A_Key); s.pad(A_Key); Frames(s.core,80);
+    Click(s,12,8+2); Frames(s.core,80); // start on row 1
+    Click(s,12,15*8+8+2); Click(s,12,15*8+8+2); Frames(s.core,400);
+    Check(Byte(s,"_render_text") && s.row(18).find("Z14.txt")!=std::string::npos,"double click waits for all fifteen row moves before opening the target");
+    s.pad(Select_Key); s.pad(A_Key); s.pad(Select_Key);
+    Check(Byte(s,"_modified"),"make a real edit before testing a titled confirmation");
+    s.pad(Start_Key); s.pad(A_Key);
+    s.pad(Down_Key); s.pad(Down_Key); s.pad(Down_Key); s.pad(A_Key);
+    Check(s.lines().find("DISCARD CHANGES?")!=std::string::npos && Byte(s,"_render_box_first")>1,"confirmation exposes its first selectable row");
+    top=Byte(s,"_render_box_top"); x=Byte(s,"_render_box_x")+5;
+    unsigned selected_before=Byte(s,"_render_box_sel");
+    Mouse(s,x,(top+1)*8+2,0,80); Click(s,x,(top+1)*8+2); Frames(s.core,40);
+    Check(Byte(s,"_render_box_sel")==selected_before && Byte(s,"_render_box_top")!=255,"hovering or clicking a menu title does not select an action");
+    Click(s,x,(top+Byte(s,"_render_box_first"))*8+2); Frames(s.core,80);
+    Check(Byte(s,"_render_box_top")==255 && Byte(s,"_modified"),"clicking No closes the confirmation and keeps the edited document");
+    printf("%s pointer tile/timeout, editor click/drag, menu hover/actions/dismissal and browser clicks passed\n",color?"CGB":"DMG"); fflush(stdout);
+}
 int main(int argc,char** argv) {
-    Check(argc==4,"usage: test ROM SYM DATA");
+    Check(argc==4 || (argc==5 && !strcmp(argv[4],"mouse")),"usage: test ROM SYM DATA [mouse]");
     for(unsigned color=0;color<2;++color) {
+        MouseUI(argv[1],argv[2],argv[3],color);
+        if(argc==5) continue;
         Session s(argv[1],argv[2],argv[3],color,"Typing.txt","abc\ndef\n");
         auto before=Page(s.memory,15);
         s.core.SetIGKBMode(1);
@@ -202,7 +278,7 @@ int main(int argc,char** argv) {
         unsigned cursor=s.word("_cursor");
         s.core.SetIGKBMode(1); s.core.QueueIGKBKey(4,false); Frames(s.core,80);
         Check(s.word("_cursor")==cursor,"NONE stops peripheral input");
-        Select(s,1); s.core.SetPS2KeyboardEnabled(true);
+        s.core.SetPS2KeyboardEnabled(true); Select(s,1);
         unsigned insert = s.word("_cursor");
         if (s.memory->Read(s.syms.at("_selecting"))) insert = std::min(insert,s.word("_anchor"));
         s.core.QueuePS2KeyboardScanCode(0x1C); Frames(s.core,100);

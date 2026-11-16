@@ -91,6 +91,7 @@ SettingsCopy:
 _SettingsSave::
   ld a, 1;the swap file needs writing (src/editor/editor.c)
   ld [_swap_dirty], a
+  ld [EDX_BLOCK+1], a;settings are in $01F0, even after a driver/data window read
   ENABLE_RAM_MBC5
   SWITCH_RAM_MBC5 MAIN_SRAM_BANK
   ld hl, SettingsSignature

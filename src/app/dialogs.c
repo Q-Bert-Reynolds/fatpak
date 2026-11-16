@@ -27,8 +27,9 @@ unsigned char Choose(const char* title, unsigned int items, unsigned char count,
     PutStr(line + 1, items + i);
   }
   EditorShowCursor(0);
-  if (osk_shown) OSKShow(0);
+  OSKShow(0);
   OpenBox(count + first);
+  render_box_first = first + 1;
   while (1) {
     render_box_sel = selected + first + 1;
     EditorDraw();

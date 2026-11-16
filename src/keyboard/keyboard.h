@@ -7,7 +7,7 @@ extern unsigned char KBPeekKey(void); // next event's key without popping it (KE
 extern unsigned int KBPopEvent(void); // key in low byte (KEY_NONE if empty), modifiers in high byte
 extern void KBListen(void); // keep the selected driver listening (diagnostics never switches drivers)
 extern unsigned char kb_driver; // saved selection: none, PS/2, iGKB keyboard, iGKB mouse
-extern unsigned char kb_type; // KB_TYPE_* in src/keyboard/keyboard.asm: 0 none, 1 PS/2
+extern unsigned char kb_type; // KB_TYPE_* in src/keyboard/keyboard.asm: 0 none, 1 PS/2, 2 iGKB keyboard, 3 iGKB mouse
 extern unsigned char kb_scan_code_buffer[64]; // the PS/2 interrupt's last scan codes (KB_SCAN_CODE_COUNT)
 extern unsigned char kb_error_buffer[64]; // and their PS2_ERROR_* bits
 extern unsigned char kb_buffer_write; // next one it writes

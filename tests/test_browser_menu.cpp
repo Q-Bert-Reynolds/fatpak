@@ -288,7 +288,7 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     menu();pad(Down_Key);pad(A_Key);pad(Down_Key);pad(Down_Key);pad(A_Key); // Paste
     Check(Read(root+"/GBCSYS/a")==std::vector<u8>({'h','i','\n'}),"browser clipboard pastes in another directory");
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
-    Check(byte("_render_box_rows")==6,"browser has four settings");
+    Check(byte("_render_box_rows")==7,"browser has five settings");
     Check(Text(memory,syms.at("tile_buffer")+20*40)==" THEME","theme is a browser setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" LANGUAGE","language is a browser setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40+40)==" CLOCK","clock is a browser setting");
@@ -328,7 +328,7 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     Check(byte("_render_text")==0 && row(18)==" /","B, Backspace and Left stay in browser at root");
     key(0x76); // Escape still returns to the editor
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
-    Check(byte("_render_box_rows")==6,"editor has four settings");
+    Check(byte("_render_box_rows")==9,"editor has seven settings");
     Check(Text(memory,syms.at("tile_buffer")+20*40)==" LINE WRAP","line wrap is an editor setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" FULL SCREEN","full screen is an editor setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40+40)==" THEME","theme is an editor setting");
@@ -512,7 +512,7 @@ static void Theme(const char* image,const char* symbols,const char* data,bool co
         auto line=[&](){return Text(memory,syms.at("tile_buffer")+20*40);};
         Check(light(core),"light theme by default");
         pad(Start_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);
-        Check(line()==" THEME" && memory->Read(syms.at("_render_box_rows"))==5,"theme is the browser's first setting");
+        Check(line()==" THEME" && memory->Read(syms.at("_render_box_rows"))==7,"theme is the browser's first setting");
         pad(A_Key);Frames(core,120);
         Check(line()==" Dark mode  Off","theme module shows the dark mode toggle");
         pad(A_Key);

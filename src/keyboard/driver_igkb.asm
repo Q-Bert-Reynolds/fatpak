@@ -1,3 +1,7 @@
+DEF IGKB_POINTER_TILE EQU 122
+DEF IGKB_POINTER_TIMEOUT EQU 120; two seconds at 60 Hz
+DEF IGKB_DOUBLE_TIMEOUT EQU 24; 400 ms between presses
+
 INCLUDE "src/keyboard/igkb_handlers.asm"
 
 ; Poll once per frame without a delay or an interrupt-side bank switch.
@@ -11,13 +15,24 @@ IGKBProcess::
   jr nz, .read
   ld a, [igkb_ready]
   and a
-  jr nz, .read
+  jr nz, .mouseFrame
   inc a
   ld [igkb_ready], a
   ld a, 80
   ld [_mouse_x], a
   ld a, 72
   ld [_mouse_y], a
+  xor a
+  ld [igkb_timeout], a
+  ld [igkb_double], a
+  ld [igkb_nav], a
+  ld [igkb_action], a
+  ld a, [_render_frames]
+  ld [igkb_tick], a
+  ld a, [_render_frames+1]
+  ld [igkb_tick+1], a
+.mouseFrame
+  call IGKBMouseFrame
 .read
   ldh a, [rSC]
   bit 7, a
@@ -126,8 +141,18 @@ IGKBMouseByte:
   ld c, a; newly pressed buttons
   ld a, b
   ld [_mouse_buttons], a
-  ; Sprite 2 uses the editor's I-beam tile and palette. It is separate
-  ; from the insertion cursor (sprite 0) and on-screen keyboard (sprite 1) and hidden when changing driver.
+  push bc
+  ; Tile 122 is in the unused gap between the DMG text blocks. It is
+  ; also free in GBC bank 0, and does not borrow either existing sprite tile.
+  xor a
+  ldh [rVBK], a
+  ld hl, IGKBPointerTile
+  ld de, _VRAM8000 + IGKB_POINTER_TILE*16
+  ld bc, 16
+  call mem_CopyVRAM
+  pop bc
+  ld a, IGKB_POINTER_TIMEOUT
+  ld [igkb_timeout], a
   ld hl, oam_buffer+8
   ld a, [_mouse_y]
   add 16
@@ -135,13 +160,10 @@ IGKBMouseByte:
   ld a, [_mouse_x]
   add 8
   ld [hli], a
-  ld [hl], 0
+  ld [hl], IGKB_POINTER_TILE
   inc hl
-  ld [hl], OAMF_PAL1
-  push bc
-  call IGKBMouseAction
-  pop bc
-  ret
+  ld [hl], 0; palette 0: independent of insertion cursor inversion
+  jp IGKBMouseAction
 
 .x
   ld a, b
@@ -170,21 +192,64 @@ IGKBMouseByte:
   ld a, 255
   ret
 
-; Mouse reports drive editor hit testing, and hover/navigation in boxes and
-; browser lists. Keep these routines in the replaceable slot, not resident C.
+; Age visibility and the double-click window once per displayed frame.
+IGKBMouseFrame:
+  di
+  ld a, [_render_frames]
+  ld e, a
+  ld a, [_render_frames+1]
+  ld d, a
+  ei
+  ld hl, igkb_tick
+  ld a, e
+  sub [hl]
+  ld b, a
+  ld [hl], e
+  inc hl
+  ld a, d
+  sbc [hl]
+  ld [hl], d
+  and a
+  ld a, 255
+  jr nz, .elapsed
+  ld a, b
+.elapsed
+  ld b, a
+  ld hl, igkb_double
+  call .age
+  ld hl, igkb_timeout
+  call .age
+  ld a, [hl]
+  and a
+  jr nz, .service
+  ld [oam_buffer+8], a
+  jr .service
+.age
+  ld a, [hl]
+  sub b
+  jr nc, .store
+  xor a
+.store
+  ld [hl], a
+  ret
+.service
+  jp IGKBMouseNavigate
+
+; New reports schedule navigation; the frame service waits for each event
+; to be consumed before issuing the next, then confirms the requested row.
 IGKBMouseAction:
-  bit 1, c
-  ld a, KEY_ESCAPE
-  jp nz, KBHandleEditorKey
   ld a, [_render_box_top]
   cp $FF
   jr nz, .menu
-  ld a, [_render_text]
-  and a
-  jr z, .browser
   ld a, [_module_busy]
   and a
   ret nz
+  ld a, [_render_text]
+  and a
+  jp z, .browser
+  bit 1, c
+  ld a, KEY_MENU
+  jp nz, KBHandleEditorKey
   ld a, [_mouse_buttons]
   bit 0, a
   ret z
@@ -197,7 +262,7 @@ IGKBMouseAction:
   ld hl, _tb_rows
   cp [hl]
   ret nc
-  push bc; new button edges
+  push bc
   ld hl, _mouse_x
   ld e, [hl]
   call _PosAtX__far
@@ -226,16 +291,20 @@ IGKBMouseAction:
   ld [_redraw], a
   ret
 .menu
-  ld a, [_render_box_sel]
-  cp $FF
-  jr z, .buttons; message box, not a menu
-  ld b, a; selected row, including upper padding
+  ld [igkb_box], a
+  ld a, c
+  and 3
+  jr nz, .hit
+  ld a, [igkb_action]
+  and a
+  ret nz
+.hit
   ld a, [_mouse_x]
   ld hl, _render_box_x
   sub [hl]
   ld hl, _render_box_w
   cp [hl]
-  ret nc
+  jr nc, .outside
   ld a, [_mouse_y]
   srl a
   srl a
@@ -243,14 +312,46 @@ IGKBMouseAction:
   ld hl, _render_box_top
   sub [hl]
   and a
-  ret z
+  jr z, .outside
   ld hl, _render_box_rows
   inc a
   cp [hl]
-  ret nc
-  dec a; target row
-  jr .navigate
+  jr nc, .outside
+  dec a
+  ld [igkb_target], a
+  ld a, [_render_box_sel]
+  cp $FF
+  jr z, .confirm; message boxes have no selection
+  ld a, [igkb_target]
+  ld hl, _render_box_first
+  cp [hl]
+  ret c
+  bit 0, c
+  ld a, KEY_ENTER
+  jr nz, .schedule
+  ; Releases must not erase a click still waiting for its navigation.
+  ld a, [igkb_action]
+  and a
+  ret nz
+  xor a
+  jr .schedule
+.confirm
+  bit 0, c
+  ld a, KEY_ENTER
+  jp nz, KBHandleEditorKey
+  ret
+.outside
+  bit 0, c
+  ret z
+  xor a
+  ld [igkb_nav], a
+  ld [igkb_action], a
+  ld a, KEY_ESCAPE
+  jp KBHandleEditorKey
 .browser
+  ld a, c
+  and 3
+  ret z; hovering leaves the browser selection alone
   ld a, [_mouse_y]
   srl a
   srl a
@@ -259,7 +360,80 @@ IGKBMouseAction:
   ret z
   cp 17
   ret nc
-  ld d, a; target list row
+  ld [igkb_target], a
+  ; Browser text rows are stored at row-1; an empty row has no name.
+  dec a
+  ld l, a
+  ld h, 0
+  add hl, hl
+  add hl, hl
+  add hl, hl
+  ld d, h
+  ld e, l
+  add hl, hl
+  add hl, hl
+  add hl, de; row * 40 (TB_STRIDE)
+  ld de, tile_buffer+1
+  add hl, de
+  ld a, [hl]
+  and a
+  ret z
+  cp ' '
+  ret z
+  ld a, $FF
+  ld [igkb_box], a
+  bit 1, c
+  jr z, .left
+  xor a
+  ld [igkb_double], a
+  ld a, KEY_MENU
+  jr .schedule
+.left
+  ld a, [igkb_target]
+  ld hl, igkb_last_row
+  cp [hl]
+  ld [hl], a
+  jr nz, .first
+  ld a, [igkb_double]
+  and a
+  jr z, .first
+  xor a
+  ld [igkb_double], a
+  ld a, KEY_ENTER
+  jr .schedule
+.first
+  ld a, IGKB_DOUBLE_TIMEOUT
+  ld [igkb_double], a
+  xor a; single click only selects
+.schedule
+  ld [igkb_action], a
+  ld a, 1
+  ld [igkb_nav], a
+  jp IGKBMouseNavigate
+
+IGKBMouseNavigate:
+  ld a, [igkb_nav]
+  and a
+  ret z
+  ld a, [kb_event_read]
+  ld hl, kb_event_write
+  cp [hl]
+  ret nz
+  ld a, [igkb_box]
+  ld hl, _render_box_top
+  cp [hl]
+  jr nz, .cancel; the menu changed before navigation completed
+  cp $FF
+  jr z, .browser
+  ld a, [_render_box_sel]
+  jr .target
+.browser
+  ld a, [_render_text]
+  and a
+  jr nz, .cancel
+  ld a, [_module_busy]
+  and a
+  jr nz, .cancel
   ld b, 1
   ld hl, _render_sel+3
 .find
@@ -271,34 +445,31 @@ IGKBMouseAction:
   ld a, b
   cp 17
   jr c, .find
-  ret
+  jr .cancel
 .found
-  ld a, d
-.navigate
-  sub b
-  jr z, .buttons
-  ld b, KEY_DOWN
-  jr nc, .count
-  cpl
-  inc a
-  ld b, KEY_UP
-.count
-  cp KB_EVENT_COUNT-2
-  jr c, .queue
-  ld a, KB_EVENT_COUNT-2
-.queue
-  ld d, a
-.next
-  push bc
-  push de
   ld a, b
-  call KBHandleEditorKey
-  pop de
-  pop bc
-  dec d
-  jr nz, .next
-.buttons
-  bit 0, c
-  ld a, KEY_ENTER
+.target
+  ld hl, igkb_target
+  cp [hl]
+  jr z, .done
+  ld a, KEY_UP
+  jp nc, KBHandleEditorKey
+  ld a, KEY_DOWN
+  jp KBHandleEditorKey
+.done
+  xor a
+  ld [igkb_nav], a
+  ld hl, igkb_action
+  ld a, [hl]
+  ld [hl], 0
+  and a
   jp nz, KBHandleEditorKey
   ret
+.cancel
+  xor a
+  ld [igkb_nav], a
+  ld [igkb_action], a
+  ret
+
+IGKBPointerTile:
+  INCBIN "img/ui_font.tiles", 26*16, 16

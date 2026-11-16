@@ -8,6 +8,7 @@
 ;blocks use tiles both modes share, so a switch can happen anywhere in them (the PS/2 interrupt
 ;can delay it).
 ;   blocks 0-5    tiles 2-121     $8000 mode only (tiles 0 and 1 are sprites)
+;   tile 122      mouse pointer (sprites 0 and 1 retain tiles 0 and 1)
 ;   blocks 6-8    tiles 128-187   either mode
 ;   blocks 9-14   tiles 256-375   $8800 mode only
 ;   blocks 15-17  tiles 188-247   either mode

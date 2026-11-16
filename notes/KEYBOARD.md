@@ -18,11 +18,21 @@ movement and left/right buttons are sent only over the displayed viewport;
 leaving it releases held buttons. Movement is scaled to emulated pixels,
 including SGB output, and pending hover motion is coalesced.
 
-FatPak shows an I-beam mouse pointer, separate from the insertion cursor and
-the on-screen keyboard. Left click places the text cursor; dragging selects
-text. Mouse hover navigates menu and browser rows, left click confirms, and
-right click opens or closes the application menu. Mouse reports are processed
-in bursts of three bytes so a complete report can be handled in one frame.
+FatPak uses tile 26 of `img/ui_font.png` for its mouse pointer, separate from
+both the insertion cursor and the on-screen keyboard. It appears on the first
+complete mouse report and hides after two seconds without input. Its tile is
+copied into the unused VRAM bank-0 tile 122, outside the text renderer's blocks.
+
+In the browser, one left click selects a row; a second left click on that row
+within 400 ms opens its file or folder. Right click selects the row and opens
+the menu. Hovering alone leaves the browser selection unchanged. In the editor,
+left click positions the cursor, dragging selects text from that click, and
+right click opens the menu. Menu hover highlights an item, left click performs
+it, and clicking outside closes the menu. Title lines are excluded from menu
+hit testing. Navigation waits for each queued event to be consumed before
+confirming an action, including clicks several rows from the current selection.
+Mouse reports are processed in bursts of three bytes so a complete report can
+be handled in one frame.
 
 ## Wire formats
 
@@ -74,3 +84,8 @@ internal serial clock and are polled by the loaded driver.
 typing, drag selection, button releases, large movement bytes, driver swaps,
 cold-boot persistence and rejection of corrupt or foreign-build drivers.
 Gearboy's `make -C tests igkb` checks the wire encoding and queue behavior.
+
+`tests/run_igkb.sh` exercises driver selection, serial keyboard input, mouse UI,
+PS/2 return, cold boot, and damaged/mismatched driver rejection on DMG and CGB.
+Use `tests/run_igkb.sh mouse` for only the pointer and mouse interaction checks,
+including distant browser rows and titled confirmations.

@@ -15,4 +15,4 @@ trap 'rm -f "$test_binary"' EXIT
     "$gearboy_root/platforms/shared/desktop/trace_logger_formatter.o" \
     -latomic -o "$test_binary"
 "$test_binary" "$fatpak_root/bin/GBCOS.BIN" "$fatpak_root/bin/GBCOS.sym" \
-    "$fatpak_root/bin/EDITOR.DAT"
+    "$fatpak_root/bin/EDITOR.DAT" "$@"

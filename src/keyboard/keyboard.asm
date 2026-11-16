@@ -198,3 +198,13 @@ igkb_packet:: DB
 igkb_flags:: DB
 igkb_dx:: DB
 igkb_budget:: DB
+; Mouse-only state is reset lazily after KeyboardDriverInit clears igkb_ready.
+igkb_tick:: DW
+igkb_timeout:: DB
+igkb_double:: DB
+igkb_last_row:: DB
+igkb_nav:: DB
+igkb_target:: DB
+igkb_action:: DB
+igkb_box:: DB
+_render_box_first:: DB;shared menu hit-test limit (WRAMX)
