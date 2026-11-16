@@ -4,7 +4,8 @@ DEF IGKB_DOUBLE_TIMEOUT EQU 24; 400 ms between presses
 
 INCLUDE "src/keyboard/igkb_handlers.asm"
 
-; Poll once per frame without a delay or an interrupt-side bank switch.
+; Poll at most three bytes per frame, using the existing byte decoder.
+; Raw capture does not depend on knowing keyboard/mouse packet boundaries.
 IGKBProcess::
   ld a, 3
   ld [igkb_budget], a
@@ -46,12 +47,7 @@ IGKBProcess::
   pop af
   and a
   ret z
-  cp $FF
-  jr nz, .byte
-  ld a, [kb_type]
-  cp KB_TYPE_MOUSE
-  ret nz
-  ld a, $FF; magnitude 127 is valid mouse data
+  ; Capture every nonzero byte, including $FF, before decoding.
 .byte
   push af
   ld a, [kb_buffer_write]
@@ -75,9 +71,14 @@ IGKBProcess::
   inc [hl]
   ld a, [kb_type]
   cp KB_TYPE_MOUSE
+  jr z, .mouse
   ld a, b
-  jp nz, IGKBHandleCode
+  call IGKBHandleCode
+  jr .budget
+.mouse
+  ld a, b
   call IGKBMouseByte
+.budget
   ld hl, igkb_budget
   dec [hl]
   ret z

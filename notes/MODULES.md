@@ -13,7 +13,7 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
 
 | Module | ID | ABI | Host | Size |
 | --- | --- | --- | --- | --- |
-| `KEYTEST.MOD` | 1 | 9 | SETTINGS > KEYBOARD TEST (`keyboard/test.c`) | 1,117 B + 48 B BSS |
+| `KEYTEST.MOD` | 1 | 9 | SETTINGS > KEYBOARD > TEST (`keyboard/test.c`) | 1,117 B + 48 B BSS |
 | `CLOCK.MOD` | 2 | 9 | SETTINGS > CLOCK (`rtc/menu.c`) | 906 B + 48 B BSS |
 | `FILEINFO.MOD` | 3 | 9 | FILE > INFO, Select (`browser/info.c`) | 2,745 B + 91 B BSS |
 | `HELP.MOD` | 4 | 9 | HELP, F1 (`editor/help.c`) | 305 B + 49 B BSS |

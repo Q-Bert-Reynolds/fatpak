@@ -4,7 +4,7 @@ INCLUDE "src/keyboard/ps2_keys.asm";PS/2 keys codes
 DEF KB_TYPE_NONE EQU 0
 DEF KB_TYPE_PS2  EQU 1
 DEF KB_TYPE_IGKB EQU 2
-DEF KB_TYPE_MOUSE EQU 3
+DEF KB_TYPE_MOUSE EQU 3;legacy experimental mouse protocol, not a menu choice
 DEF KB_DRIVER_SIZE EQU $580
 
 ;kb_mode

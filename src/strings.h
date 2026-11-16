@@ -5,7 +5,7 @@
 // text after its nth {}, up to the next
 #define S_PART(id, n) ((id) | ((n) << 12))
 #define STR_COUNT 206
-#define STR_HASH 0xD320u
+#define STR_HASH 0xD89Eu
 #define LANGUAGES 2
 #define LANG_CODES "ENES" // 2 characters each: /GBCSYS/LANG/<code>.DAT
 #define S_MENU_FILE 0 // FILE
@@ -35,8 +35,8 @@
 #define S_SUB_THEME 24 // THEME
 #define S_SUB_LANGUAGE 25 // LANGUAGE
 #define S_SUB_CLOCK 26 // CLOCK
-#define S_SUB_KEYBOARD_TEST 27 // KEYBOARD TEST
-#define S_SUB_KEYBOARD 28 // KEYBOARD / MOUSE
+#define S_SUB_KEYBOARD 27 // KEYBOARD
+#define S_SUB_KEYBOARD_TEST 28 // TEST
 #define S_FILE_OPEN 29 // OPEN
 #define S_FILE_OPEN_AS 30 // OPEN AS
 #define S_FILE_INFO 31 // INFO
@@ -189,8 +189,8 @@
 #define S_KB_TITLE 178 // KEYBOARD TEST
 #define S_KB_PS2 179 // Found at boot: PS/2
 #define S_KB_NONE 180 // Found at boot: none, listening anyway
-#define S_KB_CODES 181 // Scan codes (newest last):
-#define S_KB_BACK 182 // <B>/<START> Back
+#define S_KB_CODES 181 // Raw bytes (newest last):
+#define S_KB_BACK 182 // <A> Pause  <B> Back
 #define S_KB_BYTES 183 // Bytes {}   with errors {}
 #define S_KB_KEY 184 // Key {}   modifiers {}
 #define S_KB_FINISH 185 // finish
@@ -212,6 +212,6 @@
 #define S_BUILD_FINISHING 201 // Finishing
 #define S_DRIVER_NONE 202 // NONE
 #define S_DRIVER_PS2 203 // PS/2 KEYBOARD
-#define S_DRIVER_IGKB 204 // iGKB KEYBOARD
-#define S_DRIVER_MOUSE 205 // iGKB MOUSE
+#define S_DRIVER_IGKB 204 // iGKB USB
+#define S_KB_PAUSED 205 // PAUSED (A resumes)
 #endif

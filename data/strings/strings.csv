@@ -21,13 +21,13 @@ SUB_CUT,item,,CUT,CORTAR
 SUB_COPY,item,,COPY,COPIAR
 SUB_PASTE,item,,PASTE,PEGAR
 SUB_SELECT_ALL,item,,SELECT ALL,SELECCIONAR TODO
-SUB_LINE_WRAP,item,editor SETTINGS: these 4,LINE WRAP,AJUSTE DE LÍNEA
+SUB_LINE_WRAP,item,editor SETTINGS: these 6,LINE WRAP,AJUSTE DE LÍNEA
 SUB_FULL_SCREEN,item,,FULL SCREEN,PANTALLA COMPLETA
 SUB_THEME,item,browser SETTINGS: these 4,THEME,TEMA
 SUB_LANGUAGE,item,,LANGUAGE,IDIOMA
 SUB_CLOCK,item,,CLOCK,RELOJ
-SUB_KEYBOARD_TEST,item,,KEYBOARD TEST,PRUEBA DE TECLADO
-SUB_KEYBOARD,item,,KEYBOARD / MOUSE,TECLADO / RATÓN
+SUB_KEYBOARD,item,,KEYBOARD,TECLADO
+SUB_KEYBOARD_TEST,item,keyboard submenu,TEST,PRUEBA
 FILE_OPEN,item,browser FILE: these 5 in order,OPEN,ABRIR
 FILE_OPEN_AS,item,,OPEN AS,ABRIR COMO
 FILE_INFO,item,,INFO,INFORMACIÓN
@@ -180,8 +180,8 @@ MAPPER_TYPE,row,an unknown mapper's number follows,type ,tipo
 KB_TITLE,row,keyboard test,KEYBOARD TEST,PRUEBA DE TECLADO
 KB_PS2,row,,Found at boot: PS/2,Detectado al inicio: PS/2
 KB_NONE,row,,"Found at boot: none, listening anyway",Sin teclado al inicio; escuchando
-KB_CODES,row,,Scan codes (newest last):,Códigos (el último abajo):
-KB_BACK,row,,<B>/<START> Back,<B>/<START> Atrás
+KB_CODES,row,,Raw bytes (newest last):,Bytes (el último abajo):
+KB_BACK,row,,<A> Pause  <B> Back,<A> Pausa  <B> Atrás
 KB_BYTES,row,,Bytes {}   with errors {},Bytes {}   con errores {}
 KB_KEY,row,"the key's code (and character), then the modifiers",Key {}   modifiers {},Tecla {}   modificadores {}
 KB_FINISH,row,"PS/2 errors: these 6 in bit order, empty ones unused",finish,fin
@@ -203,5 +203,5 @@ BUILD_LINKING,box,build progress: after pass 1,Placing sections,Colocando seccio
 BUILD_FINISHING,box,build progress: after pass 2,Finishing,Terminando
 DRIVER_NONE,item,keyboard driver choices in order,NONE,NINGUNO
 DRIVER_PS2,item,,PS/2 KEYBOARD,TECLADO PS/2
-DRIVER_IGKB,item,,iGKB KEYBOARD,TECLADO iGKB
-DRIVER_MOUSE,item,,iGKB MOUSE,RATÓN iGKB
+DRIVER_IGKB,item,,iGKB USB,iGKB USB
+KB_PAUSED,row,,PAUSED (A resumes),PAUSA (A continúa)

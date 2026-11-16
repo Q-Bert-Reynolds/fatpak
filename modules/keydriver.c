@@ -41,9 +41,11 @@ static unsigned char Load(unsigned char type) {
 unsigned char KeyboardDriverMenu(void* menu) {
   unsigned char type = *((unsigned char*)ModDriver(0x40) + 1), key, i;
   char lines[4 * BOX_STRIDE];
-  if (type > 3) type = 1;
+  if (type == 3) type = 2; // migrate the former mouse-only choice
+  if (type > 2) type = 1;
   if (menu) {
-    for (i = 0; i < 4; ++i) ModString(lines + i*BOX_STRIDE, S_DRIVER_NONE + i);
+    for (i = 0; i < 3; ++i) ModString(lines + i*BOX_STRIDE, S_DRIVER_NONE + i);
+    ModString(lines + 3*BOX_STRIDE, S_SUB_KEYBOARD_TEST);
     while (1) {
       ModMenu(lines, 4, type);
       while (!(key = ModKey()));
@@ -53,6 +55,7 @@ unsigned char KeyboardDriverMenu(void* menu) {
       if (key == KEY_ENTER) break;
     }
   }
+  if (type == 3) { ModHideBox(); return 2; } // host opens the full-screen test
   if (type && Load(type)) { ModBox(Str(S_MODULE_DAMAGED)); while (!ModKey()); ModHideBox(); return 1; }
   ModDriver((menu ? 0xC0 : 0x80) | type);
   ModHideBox();

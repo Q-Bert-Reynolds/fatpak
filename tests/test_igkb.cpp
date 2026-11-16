@@ -151,10 +151,11 @@ struct Session {
 
 static void SelectMenu(Session& s, unsigned type) {
     s.pad(Start_Key); s.pad(Down_Key); s.pad(Down_Key); s.pad(A_Key);
-    for (unsigned i=0;i<6;++i) s.pad(Down_Key);
+    for (unsigned i=0;i<5;++i) s.pad(Down_Key);
     s.pad(A_Key); Frames(s.core,30);
+    Check(s.memory->Read(s.syms.at("_render_box_rows"))==6,"keyboard submenu has NONE, PS/2, iGKB and TEST");
     unsigned selected=s.memory->Read(s.syms.at("_kb_driver"));
-    for (unsigned i=0;i<((type-selected)&3);++i) s.pad(Down_Key);
+    for (unsigned i=0;i<((type+4-selected)%4);++i) s.pad(Down_Key);
     s.pad(A_Key); Frames(s.core,240);
  }
 static void Select(Session& s,unsigned type) {
@@ -172,11 +173,16 @@ static void Mouse(Session& s, unsigned x, unsigned y, unsigned buttons, unsigned
 static void Click(Session& s, unsigned x, unsigned y, unsigned buttons=1) {
     Mouse(s,x,y,buttons,4); Mouse(s,x,y,0,4);
 }
+// Exercise the existing experimental mouse UI independently of the hardware
+// protocol investigation. Type 3 remains an internal legacy mode, not a menu item.
+static void LegacyMouse(Session& s) {
+    s.memory->Write(s.syms.at("_kb_type"),3); Frames(s.core,4);
+}
 static void MouseUI(const char* image, const char* symbols, const char* data, bool color) {
     std::map<std::string,std::string> extra;
     for(unsigned n=1;n<=15;++n) { char name[16]; snprintf(name,sizeof(name),"Z%02u.txt",n); extra[name]="far row\n"; }
     Session s(image,symbols,data,color,"Mouse.txt","abc\ndef\n",{},extra);
-    s.core.SetIGKBMode(2); Select(s,3);
+    s.core.SetIGKBMode(1); Select(s,2); LegacyMouse(s);
     unsigned oam=s.syms.at("oam_buffer")+8;
     Check(!s.memory->Read(oam),"pointer stays hidden before the first mouse report");
     Mouse(s,6,8,0);
@@ -238,10 +244,34 @@ static void MouseUI(const char* image, const char* symbols, const char* data, bo
     Check(Byte(s,"_render_box_top")==255 && Byte(s,"_modified"),"clicking No closes the confirmation and keeps the edited document");
     printf("%s pointer tile/timeout, editor click/drag, menu hover/actions/dismissal and browser clicks passed\n",color?"CGB":"DMG"); fflush(stdout);
 }
+static void CaptureUI(const char* image, const char* symbols, const char* data, bool color) {
+    Session s(image,symbols,data,color,"Capture.txt","safe\n");
+    s.core.SetIGKBMode(1); Select(s,2);
+    s.pad(Start_Key); s.pad(Down_Key); s.pad(Down_Key); s.pad(A_Key);
+    for(unsigned n=0;n<5;++n) s.pad(Down_Key);
+    s.pad(A_Key);
+    Check(s.lines().find("TEST")!=std::string::npos,"TEST is inside the keyboard submenu");
+    s.pad(Down_Key); s.pad(A_Key); Frames(s.core,100); // iGKB is selected; TEST follows it
+    Check(s.row(0)=="KEYBOARD TEST" && s.row(1)=="iGKB USB","diagnostics identifies the combined adapter");
+    Check(s.core.QueueIGKBKey(4,false) && s.core.QueueIGKBMouse(1,127,1) && s.core.QueueIGKBKey(0x28,false),"queue interleaved keyboard and mouse reports");
+    Frames(s.core,180);
+    auto dump=[&](){std::string text;for(unsigned row=5;row<16;++row)text+=s.row(row)+"|";return text;};
+    if(dump().find("61 71 81 FF")==std::string::npos) fprintf(stderr,"capture: %s\n",dump().c_str());
+    Check(dump().find("61 71 81 FF")!=std::string::npos && dump().find("85")!=std::string::npos,"raw view retains keyboard, mouse header, coordinates and FF without conversion");
+    s.pad(A_Key); Check(s.row(4).find("PAUSED")!=std::string::npos,"A pauses packet display");
+    std::string frozen=dump();
+    s.core.QueueIGKBMouse(-1,2,0); Frames(s.core,100);
+    Check(dump()==frozen,"packet rows remain frozen while paused");
+    s.pad(A_Key); Frames(s.core,100);
+    Check(dump()!=frozen && dump().find("85 60 81 82")!=std::string::npos,"resume shows bytes captured while paused");
+    s.pad(B_Key); Check(!Byte(s,"_module_busy") && Byte(s,"_kb_type")==2 && Byte(s,"_kb_driver")==2 && Byte(s,"_render_text")==1 && Byte(s,"_tb_rows")==16,"TEST preserves the selected driver and restores the editor layout");
+    printf("%s combined iGKB raw capture, FF, pause/resume and return passed\n",color?"CGB":"DMG"); fflush(stdout);
+}
 int main(int argc,char** argv) {
     Check(argc==4 || (argc==5 && !strcmp(argv[4],"mouse")),"usage: test ROM SYM DATA [mouse]");
     for(unsigned color=0;color<2;++color) {
         MouseUI(argv[1],argv[2],argv[3],color);
+        CaptureUI(argv[1],argv[2],argv[3],color);
         if(argc==5) continue;
         Session s(argv[1],argv[2],argv[3],color,"Typing.txt","abc\ndef\n");
         auto before=Page(s.memory,15);
@@ -259,7 +289,7 @@ int main(int argc,char** argv) {
         Check(s.word("_cursor")==2,"iGKB backspace deletes once");
         s.core.QueueIGKBKey(0x7F,false); Frames(s.core,50);
         Check(s.word("_cursor")==2,"unknown adapter bytes are bounded");
-        s.core.SetIGKBMode(2); Select(s,3);
+        LegacyMouse(s);
         Check(s.core.QueueIGKBMouse(-74,-64,1),"queue mouse move and click"); Frames(s.core,100);
         Check(s.memory->Read(s.syms.at("_mouse_x"))==6 && s.memory->Read(s.syms.at("_mouse_y"))==8,"mouse signs and pixel coordinates decode");
         unsigned anchor=s.word("_cursor");
@@ -284,10 +314,10 @@ int main(int argc,char** argv) {
         s.core.QueuePS2KeyboardScanCode(0x1C); Frames(s.core,100);
         if(s.word("_cursor")!=insert+1) fprintf(stderr,"PS2 cursor%u expected%u type%u SC%02x bytes%u row%s\n",s.word("_cursor"),insert+1,s.memory->Read(s.syms.at("_kb_type")),s.memory->Read(0xFF02),s.memory->Read(s.syms.at("_kb_interrupt_count")),s.row(0).c_str());
         Check(s.word("_cursor")==insert+1,"PS/2 works after swapping back from USB");
-        s.core.SetIGKBMode(2); Select(s,3);
-        GearboyCore cold; cold.Init(); cold.SetEverdriveFolder(s.root.c_str()); cold.SetIGKBMode(2);
+        s.core.SetIGKBMode(1); Select(s,2);
+        GearboyCore cold; cold.Init(); cold.SetEverdriveFolder(s.root.c_str()); cold.SetIGKBMode(1);
         Check(cold.LoadROM(argv[1],!color),"cold boot selected driver"); Frames(cold,1000);
-        Check(cold.GetMemory()->Read(s.syms.at("_kb_type"))==3 && cold.GetMemory()->Read(s.syms.at("_kb_driver"))==3,"cold boot restores selected driver from settings and loads its payload");
+        Check(cold.GetMemory()->Read(s.syms.at("_kb_type"))==2 && cold.GetMemory()->Read(s.syms.at("_kb_driver"))==2,"cold boot restores selected driver from settings and loads its payload");
         printf("%s driver switching, iGKB typing, mouse click/drag, PS/2 return and saved selection passed\n",color?"CGB":"DMG"); fflush(stdout);
         for(unsigned bad=1;bad<=2;++bad) {
             Session rejected(argv[1],argv[2],argv[3],color,"Reject.txt","safe\n",{}, {},bad);
