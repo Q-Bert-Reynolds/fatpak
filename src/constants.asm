@@ -209,6 +209,7 @@ DEF KEY_MENU      EQU $89;file menu (Escape, on screen keyboard)
 DEF KEY_UNDO      EQU $8A
 DEF KEY_REDO      EQU $8B
 DEF KEY_INFO      EQU $8C;Select in the file browser
+DEF KEY_MOUSE_ROW EQU $A0; browser rows 0..15, direct selection events ($A0..$AF)
 DEF KEY_F1        EQU $90;function keys are KEY_F1 + n - 1
 DEF KEY_F2        EQU $91
 DEF KEY_F3        EQU $92

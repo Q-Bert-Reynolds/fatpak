@@ -1,6 +1,7 @@
 ; Read the SNES bridge mailbox. B/E = before/after commit, C = X, D = Y.
 SNESMouseRead:
-  di; VBlank's LatchPad must not switch players in the middle of this read
+  call SGBInputBegin; protect P1 without missing the LCD's raster interrupts
+  push af
   call SNESMouseSelectOne
   call .next
   call .read
@@ -18,8 +19,8 @@ SNESMouseRead:
   call .next
   call .next
   call .next
-  ei
-  ret
+  pop af
+  jp SGBInputEnd
 .next
   ld a, $10
   ldh [rP1], a

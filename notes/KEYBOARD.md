@@ -110,12 +110,17 @@ The selection persists across boots. TEST shows four-byte reports: zero,
 commit/buttons, X, Y. Coordinates cover the GB viewport (160 by 144 pixels).
 The pointer remains hidden until motion or a button transition, then uses the
 same browser/editor/menu handlers and two-second timeout as the experimental
-mouse path.
+mouse path. Browser clicks select the target row directly; double-click and
+right-click actions wait for that selection to be drawn.
 
 `src/sgb/mouse.s` is assembled with cc65's ca65/ld65. SGBMOUSE.DRV includes
 both the GB driver and CRC-covered DATA_SND packets uploading the SNES code to
 $001800. The BIOS's $0800 command hook installs a private NMI handler and
-restores the hook's RTS. The normal BIOS H/V IRQ display path remains active.
+restores the hook's RTS. MASK_EN freezes the SGB picture for the bulk upload
+and releases it after installation. During uploads, acknowledgements and
+mailbox reads, the GB keeps its LCD STAT raster interrupts enabled while
+masking VBlank, whose controller polling would otherwise interfere with P1.
+The normal BIOS H/V IRQ display path remains active.
 The handler waits for automatic controller polling, checks the port-2 mouse
 signature and clocks the remaining 16 motion bits. It clamps the coordinates
 and publishes them through ICD2 controller bytes 2–4, leaving controller 1 to
@@ -135,7 +140,8 @@ single-controller mode. Failed game loads leave the bridge running.
 
 `tests/run_snes_mouse.sh` runs a plain GB harness against the actual SGB1 BIOS
 and SNES mouse emulation in Mesen. It exercises the production uploader and P1
-reader, signed motion, buttons, clamping, pad 1, queued clicks while the GB is busy, and uninstall. It requires
+reader with LCD interrupts active, signed motion, buttons, clamping, pad 1,
+queued clicks while the GB is busy, and uninstall. It requires
 `make assemble`, cc65, RGBDS, .NET and the sibling MesenCE build. Override
 MESEN_DLL, SGB_BIOS and SGB_BOOT for other locations; defaults use the files in
 Downloads. Firmware is copied only to a temporary test directory. The harness
@@ -143,6 +149,7 @@ is also built as `build/snes_mouse.gb`.
 
 Gearboy's UI regression injects the three mailbox bytes into its controller
 ports because that emulator has no SNES CPU; it checks the actual loaded GB
-driver and FatPak UI separately. It does not execute the SNES bridge. The real
+driver and FatPak UI separately, including the upload freeze, continued LCD
+raster updates, and direct browser selection. It does not execute the SNES bridge. The real
 BIOS test currently covers the supplied SGB1 ROM; physical SGB and SGB2 testing
 remain necessary.

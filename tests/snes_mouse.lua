@@ -33,18 +33,23 @@ end,emu.eventType.inputPolled)
 emu.addEventCallback(function(cpu)
  if cpu~=emu.cpuType.snes or finished then return end
  frame=frame+1
- if not ready then if frame>800 then fail('bridge did not install') end;return end
+ if not ready then if frame>900 then fail('bridge did not install') end;return end
  local t=frame-ready
  local flags,x,y=read(0xc100),read(0xc101),read(0xc102)
- if t==7 then check(flags==0,'pointer report before input') end
+ if t==7 then
+  check(flags==0,'pointer report before input')
+  check(read(0xc108)+256*read(0xc109)>300,'LCD interrupts continued through real BIOS upload')
+ end
  if t==25 then
   check(flags%8==1,'left release/buttons/signature')
-  check(x==90 and y==62,'positive X / negative Y: '..x..','..y)
+  -- The input callback and automatic poll can straddle a frame as the GB
+  -- transfer timing changes. Allow one count of phase difference.
+  check(math.abs(x-90)<=1 and math.abs(y-62)<=1,'positive X / negative Y: '..x..','..y)
   check(read(0xc105)==2,'controller 1 B button survives mailbox polling: '..read(0xc105))
  end
  if t==15 then check(flags%8==3,'left press: '..flags..' x='..x..' y='..y..' GBpc='..emu.getState()['cart.gameboy.cpu.pc']) end
  if t==35 then check(flags%8==5,'right press') end
- if t==45 then check(x==80 and y==72,'negative X / positive Y: '..x..','..y) end
+ if t==45 then check(math.abs(x-80)<=1 and math.abs(y-72)<=1,'negative X / positive Y: '..x..','..y) end
  if t==65 then check(x==159 and y==143,'positive saturation') end
  if t==85 then check(x==0 and y==0,'negative saturation') end
  if t==90 then

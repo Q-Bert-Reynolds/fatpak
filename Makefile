@@ -77,7 +77,7 @@ endif
 		cp $(BIN_DIR)/LANG/*.DAT "$(SD_MOUNT)/GBCSYS/LANG/" && \
 		sync -f "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
 		sync -f "$(SD_MOUNT)/GBCSYS/EDITOR.DAT" && \
-		echo "Copied GBCOS.BIN, EDITOR.DAT, modules and languages to mounted GAMEBOY card"; \
+		echo "Copied GBCOS.BIN, EDITOR.DAT, modules, drivers, and languages to mounted GAMEBOY card"; \
 	fi
 
 run:

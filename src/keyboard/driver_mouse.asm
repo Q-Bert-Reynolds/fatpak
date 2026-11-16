@@ -151,8 +151,8 @@ IGKBMouseFrame:
 .service
   jp IGKBMouseNavigate
 
-; New reports schedule navigation; the frame service waits for each event
-; to be consumed before issuing the next, then confirms the requested row.
+; Browser reports select a row in one event. Menu navigation waits for
+; consumption and confirms the requested row before performing an action.
 IGKBMouseAction:
   ld a, [_render_box_top]
   cp $FF
@@ -363,7 +363,11 @@ IGKBMouseNavigate:
   jr c, .find
   jr .cancel
 .found
-  ld a, b
+  ld a, [igkb_target]
+  cp b
+  jr z, .done
+  add KEY_MOUSE_ROW-1
+  jp KBHandleEditorKey
 .target
   ld hl, igkb_target
   cp [hl]

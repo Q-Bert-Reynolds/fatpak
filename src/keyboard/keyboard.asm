@@ -137,10 +137,12 @@ KBDriverInstall::
 .query
   cp $42
   jr nz, .info
-  di
+  call SGBInputBegin
+  push af
   ld hl, EDX_WINDOW
   call sgb_PacketTransfer
-  reti
+  pop af
+  jp SGBInputEnd
 .info
   ld bc, sys_info
   cp $43

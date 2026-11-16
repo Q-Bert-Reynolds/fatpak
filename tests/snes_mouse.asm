@@ -1,6 +1,9 @@
 INCLUDE "src/hardware.inc"
 ; Plain 32 KiB ROM: test the production SNES bridge and P1 reader in Mesen.
 INCLUDE "build/drivers/mouse_stop.inc"
+; Exercise real BIOS packet decoding with LCD interrupts stretching P1 pulses.
+SECTION "LCD vector", ROM0[$48]
+  jp Raster
 SECTION "Header", ROM0[$100]
   nop
   jp Main
@@ -12,11 +15,20 @@ Main:
   xor a
   ldh [$FFFF],a
   ld hl,$C100
-  ld b,8
+  ld b,10
 .clear
   ld [hli],a
   dec b
   jr nz,.clear
+  ld a,$91
+  ldh [rLCDC],a
+  xor a
+  ldh [rLYC],a
+  ld a,STATF_LYC
+  ldh [rSTAT],a
+  ld a,IEF_STAT
+  ldh [rIE],a
+  ei
   ; Allow the SGB intro to finish before the first meaningful command.
   ld b,8
 .settle
@@ -92,8 +104,34 @@ ENDR
   cpl
   ld [$C105],a
   jr .loop
+Raster:
+  push af
+  push bc
+  push hl
+  ld hl,$C108
+  inc [hl]
+  jr nz,.counted
+  inc hl
+  inc [hl]
+.counted
+  ldh a,[rLYC]
+  add 8
+  cp 144
+  jr c,.next
+  xor a
+.next
+  ldh [rLYC],a
+  ld b,20
+.wait
+  dec b
+  jr nz,.wait
+  pop hl
+  pop bc
+  pop af
+  reti
 INCLUDE "src/sgb/mouse_input.asm"
 INCLUDE "src/sgb/mouse_select.asm"
+INCLUDE "src/sgb/input_irq.asm"
 ; Same wire timing as the host's _sgb_PacketTransfer.
 Send:
   ld c,1
@@ -101,7 +139,8 @@ Send:
 FastSend:
   ld c,0
 SendBegin:
-  di
+  call SGBInputBegin
+  push af
   xor a
   ldh [$FF00],a
   ld a,$30
@@ -131,7 +170,7 @@ SendBegin:
   ldh [$FF00],a
   ld a,c
   and a
-  ret z
+  jr z,.done
   ld de,7000
 .wait
   nop
@@ -141,7 +180,9 @@ SendBegin:
   ld a,d
   or e
   jr nz,.wait
-  ret
+.done
+  pop af
+  jp SGBInputEnd
 AckPacket: DB $79,$f0,$1f,0,1,1
   DS 10
 Ping: DB $c9,1

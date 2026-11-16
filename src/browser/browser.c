@@ -37,6 +37,8 @@ static unsigned int list_count; // file browser entries, with .. below the root
 static unsigned char list_result; // FRESULT of listing the folder or reading an entry
 static unsigned char list_kinds[LIST_ROWS]; // file browser rows
 static unsigned char clipboard_cut;
+// Keep the active viewport out of Browse's deep filesystem stack.
+static unsigned int selected, first;
 
 
 // lists the folder at path (".." below the root, folders, then files), returns the index of the folder
@@ -253,9 +255,10 @@ unsigned char Browse(void) {
   char path[PATH_SIZE + FS_NAME_SIZE]; // folder, and the file's path when opening it
   char name[FS_NAME_SIZE];
   char clipboard[PATH_SIZE + FS_NAME_SIZE];
-  unsigned int selected = 0, first = 0, drawn = LIST_ALL;
+  unsigned int drawn = LIST_ALL;
   unsigned char key, result, row, opened = 0, editor_font = font, length, editor_osk = osk_shown;
   unsigned char action = 0, view; // a menu's OPEN runs as A on the selection
+  selected = first = 0;
   clipboard[0] = 0;
   CopyName(path, file_dir);
   font = FONT_VWF;
@@ -307,7 +310,8 @@ unsigned char Browse(void) {
       action = 0;
     }
     else while (!(key = MenuKey()));
-    if (key == KEY_UP && selected) --selected;
+    if (key >= KEY_MOUSE_ROW) selected = first + (unsigned char)(key - KEY_MOUSE_ROW);
+    else if (key == KEY_UP && selected) --selected;
     else if (key == KEY_DOWN && selected + 1 < list_count) ++selected;
     else if (key == KEY_PAGE_UP) selected = selected > LIST_ROWS ? selected - LIST_ROWS : 0;
     else if (key == KEY_PAGE_DOWN && list_count) selected = selected + LIST_ROWS < list_count ? selected + LIST_ROWS : list_count - 1;

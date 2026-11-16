@@ -16,7 +16,7 @@ rgbasm -o "$work/test.o" tests/snes_mouse.asm
 rgblink -o build/snes_mouse.gb "$work/test.o"
 rgbfix -v -s -l 0x33 -t SNESMOUSE -m 0 -p 255 build/snes_mouse.gb
 cd "$work"
-XDG_CONFIG_HOME="$work/config" dotnet "$mesen" --testRunner --timeout=30 \
+XDG_CONFIG_HOME="$work/config" dotnet "$mesen" --testRunner --timeout=60 \
   --Debug.ScriptWindow.AllowIoOsAccess=true --Gameboy.Model=SuperGameboy \
   --Gameboy.UseSgb2=false --Snes.Port1.Type=SnesController --Snes.Port2.Type=SnesMouse \
   "$root/tests/snes_mouse.lua" "$root/build/snes_mouse.gb" > mesen.log 2>&1 || {

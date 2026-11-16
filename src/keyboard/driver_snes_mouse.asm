@@ -60,13 +60,15 @@ SNESMouseProcess:
 .ack
   push bc
   push de
-  di
+  call SGBInputBegin
+  push af
   ld hl, SNESMouseAck
   call sgb_PacketTransferFast
   call SNESMouseSelectOne
+  pop af
   pop de
   pop bc
-  reti
+  jp SGBInputEnd
 .capture
   push bc
   push af

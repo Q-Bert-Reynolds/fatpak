@@ -582,12 +582,14 @@ KBDriverStop::
   ld a, [kb_type]
   cp KB_TYPE_SNES_MOUSE
   ret nz
-  di
+  call SGBInputBegin
+  push af
   ld hl, SNESStopPacket
   call sgb_PacketTransfer
   ld hl, SNESPingPacket
   call sgb_PacketTransfer
-  reti
+  pop af
+  jp SGBInputEnd
 SNESStopPacket:
   DB $79, 0, 8, 0, 3, $4c
   DW $1803; fixed Stop jump in src/sgb/mouse.s
@@ -601,3 +603,5 @@ SGBInputSync::
   cp KB_TYPE_SNES_MOUSE
   ret nz
 INCLUDE "src/sgb/mouse_select.asm"
+
+INCLUDE "src/sgb/input_irq.asm"

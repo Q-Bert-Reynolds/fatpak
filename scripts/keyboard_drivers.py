@@ -20,7 +20,7 @@ def build():
                     ['driver_common.asm', 'driver_igkb.asm', 'driver_mouse.asm', 'driver_snes_mouse.asm', 'igkb_handlers.asm'])
     defined = set(re.findall(r'^([A-Za-z_][\w]*):', own, re.M))
     imports = ['DEF %s EQU $%04X' % (name, value) for name, value in symbols.items()
-               if re.match(r'^(kb_|sys_info$|sgb_PacketTransfer$|sgb_PacketTransferFast$|SNESMouseSelectOne$|_mouse_|igkb_|KeyboardDriverInit$|oam_buffer$|_render_|_module_busy$|_PosAtX__far$|_cursor$|_anchor$|_selecting$|_redraw$|_moved$|_tb_rows$|tile_buffer$|mem_CopyVRAM$)', name) and '.' not in name and name not in defined]
+               if re.match(r'^(kb_|sys_info$|sgb_PacketTransfer$|sgb_PacketTransferFast$|SNESMouseSelectOne$|SGBInputBegin$|SGBInputEnd$|_mouse_|igkb_|KeyboardDriverInit$|oam_buffer$|_render_|_module_busy$|_PosAtX__far$|_cursor$|_anchor$|_selecting$|_redraw$|_moved$|_tb_rows$|tile_buffer$|mem_CopyVRAM$)', name) and '.' not in name and name not in defined]
     config = (ROOT / 'src/keyboard/keyboard.asm').read_text().split('SECTION', 1)[0]
     config = '\n'.join(line for line in config.splitlines() if line.startswith('DEF '))
     prelude = '''INCLUDE "src/hardware.inc"
@@ -51,12 +51,12 @@ ENDL
     (work/'snes.asm').write_text(assembly)
     subprocess.run(['rgbasm', '-o', str(work/'snes.o'), str(work/'snes.asm')], cwd=ROOT, check=True)
     subprocess.run(['rgblink', '-o', str(work/'snes.bin'), str(work/'snes.o')], cwd=ROOT, check=True)
-    packets = []
+    packets = [bytes([0xb9, 1]) + bytes(14)] # freeze the SGB picture during bootstrap
     snes = (work/'mouse.bin').read_bytes()
     for offset in range(0, len(snes), 11):
         data = snes[offset:offset+11]
         packets.append(bytes([0x79, (0x1800+offset)&255, (0x1800+offset)>>8, 0, len(data)]) + data.ljust(11,b'\0'))
-    packets += [bytes([0x79,0,8,0,3,0x4c,0,0x18]) + bytes(8), bytes([0xc9,1]) + bytes(14)]
+    packets += [bytes([0x79,0,8,0,3,0x4c,0,0x18]) + bytes(8), bytes([0xc9,1]) + bytes(14), bytes([0xb9,0]) + bytes(14)]
     assert len(packets) <= 64, 'SNES upload exceeds driver staging limit'
     (work/'mouse.packets').write_bytes(b''.join(packets))
     images = [('PS2', 1, (ROOT/'bin/GBCOS.BIN').read_bytes()[15*8192:15*8192+size]),

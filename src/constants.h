@@ -212,6 +212,7 @@
 #define KEY_UNDO      0x8A
 #define KEY_REDO      0x8B
 #define KEY_INFO      0x8C//Select in the file browser
+#define KEY_MOUSE_ROW 0xA0// browser rows 0..15, direct selection events (0xA0..0xAF)
 #define KEY_F1        0x90//function keys are KEY_F1 + n - 1
 #define KEY_F2        0x91
 #define KEY_F3        0x92

@@ -161,7 +161,22 @@ static void SelectMenu(Session& s, unsigned type) {
     if (selected == 4) selected=3;
     unsigned target=type==4 ? 3 : type;
     for (unsigned i=0;i<((target+count-selected)%count);++i) s.pad(Down_Key);
-    s.pad(A_Key); Frames(s.core,type==4 ? 600 : 240);
+    if(type==4) {
+        s.core.KeyPressed(A_Key); Frames(s.core,4); s.core.KeyReleased(A_Key);
+        unsigned frozen=0, ticks=0;
+        for(unsigned n=0;n<700;++n) {
+            bool freeze=s.core.GetSGB()->GetMaskMode()==SGB::MaskFreeze;
+            unsigned before=s.word("_render_frames");
+            Frames(s.core,1);
+            if(freeze && s.core.GetSGB()->GetMaskMode()==SGB::MaskFreeze) {
+                ++frozen;
+                ticks += (s.word("_render_frames")-before)&65535;
+            }
+        }
+        Check(frozen>100,"SGB picture is frozen throughout the bulk mouse upload");
+        Check(ticks+3>=frozen,"LCD raster interrupts continue during the frozen upload");
+        Check(s.core.GetSGB()->GetMaskMode()==SGB::MaskDisabled,"mouse upload unfreezes the SGB picture");
+    } else { s.pad(A_Key); Frames(s.core,240); }
 
  }
 static void Select(Session& s,unsigned type) {
@@ -264,9 +279,28 @@ static void MouseUI(const char* image, const char* symbols, const char* data, bo
     Check(Byte(s,"_render_text") && s.row(18).find("Mouse.txt")!=std::string::npos,"double click opens a file in the editor");
     s.pad(Start_Key); s.pad(A_Key); s.pad(A_Key); Frames(s.core,80);
     Click(s,12,8+2); Frames(s.core,80); // start on row 1
-    Click(s,12,15*8+8+2); Click(s,12,15*8+8+2); Frames(s.core,400);
-    if(!Byte(s,"_render_text") || s.row(18).find("Z14.txt")==std::string::npos) fprintf(stderr,"far row footer%s text%u nav%u target%u action%u double%u packet%02x flags%02x xy%u,%u\n",s.row(18).c_str(),Byte(s,"_render_text"),Byte(s,"igkb_nav"),Byte(s,"igkb_target"),Byte(s,"igkb_action"),Byte(s,"igkb_double"),Byte(s,"igkb_packet"),Byte(s,"igkb_flags"),Byte(s,"_mouse_x"),Byte(s,"_mouse_y"));
-    Check(Byte(s,"_render_text") && s.row(18).find("Z14.txt")!=std::string::npos,"double click waits for all fifteen row moves before opening the target");
+    unsigned row_before=selected();
+    // Watch every displayed selection while the click is delivered. A row jump
+    // must never highlight any intermediate entry, even if drawing takes time.
+    auto jump=[&](unsigned buttons) {
+        if(snes) {
+            unsigned flags=((Byte(s,"igkb_packet")+8)&0x78)|(buttons<<1)|1;
+            const unsigned bytes[]={flags,12,130};
+            for(unsigned p=1;p<4;++p) {
+                s.core.GetInput()->KeyReleased((Gameboy_Keys)255,p);
+                s.core.GetInput()->KeyPressed((Gameboy_Keys)(255^bytes[p-1]),p);
+            }
+        } else Check(s.core.QueueIGKBMouse(12-int(Byte(s,"_mouse_x")),130-int(Byte(s,"_mouse_y")),buttons),"queue far-row click");
+        for(unsigned n=0;n<12;++n) {
+            Frames(s.core,1);
+            Check(selected()==0 || selected()==row_before || selected()==16,"browser jumps directly to the clicked row without intermediate highlights");
+        }
+    };
+    jump(1); jump(0);
+    Check(selected()==16 && !Byte(s,"_render_text"),"single far-row click selects directly without opening");
+    Frames(s.core,30); // begin a fresh double-click window
+    Click(s,12,130); Click(s,12,130); Frames(s.core,100);
+    Check(Byte(s,"_render_text") && s.row(18).find("Z14.txt")!=std::string::npos,"double click opens the directly selected target");
     s.pad(Select_Key); s.pad(A_Key); s.pad(Select_Key);
     Check(Byte(s,"_modified"),"make a real edit before testing a titled confirmation");
     s.pad(Start_Key); s.pad(A_Key);
