@@ -136,7 +136,7 @@ Masks: .byte $80,$40,$20,$10,8,4,2,1
 .import _Capture
 
 .export _BlitGlyph
-.import Fonts,_glyph_offset,_glyph_x,_glyph_color,_glyph_icon
+.import Fonts,_glyph_offset,_glyph_x,_glyph_color,_glyph_icon,_glyph_right
 .a8
 .i8
 _BlitGlyph:
@@ -226,9 +226,15 @@ _BlitGlyph:
  asl $1111
  iny
  ; clip at the right edge; glyph_x has no high byte unless off screen.
+ rep #$20
+.a16
  tya
+ and #255
  clc
  adc _glyph_x
+ cmp _glyph_right
+ sep #$20
+.a8
  bcs @rowDone
  cpy #8
  bcc @bit

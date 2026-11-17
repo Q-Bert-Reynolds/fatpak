@@ -10,6 +10,7 @@
 #include "../ui/dialogs.h"
 #include "../ui/render.h"
 #include "../ui/text.h"
+#include "../sgb/client.h"
 
 
 // a .gb or .gbc file
@@ -24,8 +25,9 @@ static void ShowGameProgress(char* text) {
   char* end = PutStr(text, S_PART(S_LOADING_KB, 0));
   end = PutStr(PutNumber(end, game_block >> 1), S_PART(S_LOADING_KB, 1));
   PutStr(PutNumber(end, game_blocks >> 1), S_PART(S_LOADING_KB, 2));
-  CopyName(render_box_text, text);
+  BoxText(0, text);
   ++render_box_gen;
+  SGBProgress(game_block, game_blocks);
   EditorDraw();
 }
 
@@ -35,6 +37,10 @@ void LaunchGame(const char* path) {
   unsigned char result;
   char text[MAX_ROW_STRIDE];
   const char *basename, *scan;
+  if (sys_info & SYS_INFO_SGBFS) {
+    ShowBox("GAME LAUNCH NEEDS GB MODE");
+    return; // Phase 10 must establish BIOS/reset handoff before arming the cart.
+  }
   if (doc_large) {
     if (!CanDiscard()) return;
     FileCloseLarge();
@@ -65,7 +71,7 @@ void LaunchGame(const char* path) {
       if (!result) ShowGameProgress(text);
     }
     if (!result) {
-      PutStr(render_box_text, S_PREPARING_GAME);
+      BoxText(0, Str(S_PREPARING_GAME));
       ++render_box_gen;
       EditorDraw();
       result = FileGameFinish(path);

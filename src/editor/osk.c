@@ -42,14 +42,14 @@ static void PickOSKBlocks(void) {
   top = tb_row_starts[shift];
 }
 
-static void ToggleOSK(void) {
+void OSKToggle(void) {
   osk_shown = !osk_shown;
   if (osk_shown) PickOSKBlocks();
   SetRows();
 }
 
 void OpenKeyboard(void) {
-  if (!osk_shown) ToggleOSK();
+  if (!osk_shown) OSKToggle();
 }
 
 #define SHIFT_DOUBLE_TAP 30 // frames: a second shift tap this soon locks capitals
@@ -74,7 +74,7 @@ static void PressShift(void) {
   }
 }
 
-static unsigned char PressOSKKey(void) {
+unsigned char OSKPress(void) {
   unsigned char key;
   if (osk_y == OSK_ROWS - 1) {
     if (osk_x == 0) PressShift();
@@ -91,7 +91,7 @@ static unsigned char PressOSKKey(void) {
   return key;
 }
 
-static void MoveOSKSelection(unsigned char held) {
+void OSKMove(unsigned char held) {
   if (held & PADF_UP) osk_y = osk_y ? osk_y - 1 : OSK_ROWS - 1;
   else if (held & PADF_DOWN) osk_y = osk_y == OSK_ROWS - 1 ? 0 : osk_y + 1;
   if (held & PADF_LEFT) osk_x = osk_x ? osk_x - 1 : OSK_COLS - 1;
@@ -104,14 +104,14 @@ unsigned char PadKey(void) {
   unsigned char held;
   pad_mods = 0;
   if (shift_timer) --shift_timer; // once per frame: the editor and AskName call this every frame
-  if (pressed & PADF_SELECT) ToggleOSK();
+  if (pressed & PADF_SELECT) OSKToggle();
   if (pressed & PADF_START) return KEY_MENU;
   
   held = DpadRepeat(pressed);
   if (osk_shown) {
-    if (pressed & PADF_A) return PressOSKKey();
+    if (pressed & PADF_A) return OSKPress();
     if (pressed & PADF_B) return KEY_BACKSPACE;
-    MoveOSKSelection(held);
+    OSKMove(held);
     return KEY_NONE;
   }
 

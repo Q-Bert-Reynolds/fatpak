@@ -12,6 +12,8 @@ void ClearRaster(void);
 void EncodeRow(void);
 void BlitGlyph(void);
 void PpuInit(void);
+void OverlayInit(void);
+void __fastcall__ PresentOverlay(u8 row);
 void __fastcall__ PresentRow(u8 slot);
 void PresentPalette(void);
 void PresentCursor(void);

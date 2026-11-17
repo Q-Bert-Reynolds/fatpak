@@ -222,6 +222,22 @@ Main:
  ld hl,CurrentPage
  inc [hl]
  ld a,[hl]
+IF DEF(UI_REPLAY)
+ cp 102
+ jr c,.noPause
+ ld a,[Frame]
+ ld b,a
+.pause
+ push bc
+ call Poll
+ pop bc
+ ld a,[Frame]
+ sub b
+ cp 200
+ jr c,.pause
+.noPause
+ ld a,[CurrentPage]
+ENDC
  cp PAGE_COUNT
  jr c,.send
  ld a,6

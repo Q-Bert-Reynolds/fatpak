@@ -17,13 +17,15 @@ def audit():
             totals[row['region']]=totals.get(row['region'],0)+int(row['bytes'])
     assert totals['WRAMX']<=4096
     assert totals['WRAM0_RENDER_UNION']<=sections['Render Vars']
+    assert totals['HRAM']==sections['Fullscreen transport']
     result={'wramx_planned':totals['WRAMX'],'wramx_free':4096-totals['WRAMX'],
             'render_union_current':sections['Render Vars'],
             'render_union_planned':totals['WRAM0_RENDER_UNION'],
             'render_union_free':sections['Render Vars']-totals['WRAM0_RENDER_UNION'],
             'fixed_render_candidate':sections['Render'],
             'rom0_renderer':sections['Render ROM0'],
-            'geometry_vars':sections.get('Geometry Vars',0)}
+            'geometry_vars':sections.get('Geometry Vars',0),
+            'transport_hram_current':sections['Fullscreen transport']}
     path=ROOT/'build/sgb';path.mkdir(parents=True,exist_ok=True)
     (path/'budget.json').write_text(json.dumps(result,indent=2)+'\n')
     print(json.dumps(result))

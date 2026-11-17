@@ -17,6 +17,8 @@ void ClearRaster(void){memset(raster,0,sizeof(raster));memset(shade,0,sizeof(sha
 void EncodeRow(void){}
 void BlitGlyph(void){}
 void PpuInit(void){}
+void OverlayInit(void){}
+void PresentOverlay(u8 row){(void)row;}
 void PresentRow(u8 slot){(void)slot;}
 void PresentPalette(void){}
 void PresentCursor(void){}
@@ -54,6 +56,15 @@ int main(int argc,char **argv){
  enqueue(1,'Q',0);memset(test_status,0,16);test_status[0]=83;test_status[1]=1;test_status[4]=mailbox[0];
  events();assert(qcount==2 && mailbox[1]==5);
  n=crc(test_status,14);test_status[14]=n;test_status[15]=n>>8;events();assert(qcount==1 && mailbox[1]==1 && mailbox[2]=='Q');
+ /* Boxes, OSK and progress change overlay state without dirtying base rows. */
+ {const u8 ui[]={6,5,0,11,120,0,5,4,7,6,0,1,1,3,'O','N','E',8,1,0,1,10,2,0,0,12,12,1,0,1,13,8,0,1,0,0,0,2,0,0,0};
+  memset(dirty,0,28);assert(commands(ui,sizeof(ui),0));assert(commands(ui,sizeof(ui),1));
+  assert(box_x==11 && box_rows==4 && box_hi==1 && box_lines[1].n==3 && osk_key==12 && busy);
+  assert(progress_width()==128);
+  for(n=0;n<28;++n)assert(!dirty[n]);
+  {const u8 close[]={6,5,0,0,0,0,0,0};assert(commands(close,sizeof(close),1));}
+  assert(!box_width);for(n=0;n<28;++n)assert(!dirty[n]);
+ }
  printf("PASS: production SNES parser/model: atomic rejection, CRC, sequence, duplicate, %u frontend pages, held mailbox\n",count);
  return 0;
 }

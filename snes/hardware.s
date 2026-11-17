@@ -481,7 +481,11 @@ _PpuInit:
 _WaitBlank:
  jsr _Capture
  lda f:$004212
- bpl _WaitBlank
+ bmi _WaitBlank
+@next:
+ jsr _Capture
+ lda f:$004212
+ bpl @next
  rts
 
 ; Wait for VBlank while servicing ICD2, then DMA one 1KiB ring row.
@@ -489,10 +493,7 @@ _WaitBlank:
 .i8
 _PresentRow:
  sta $100D
-@wait:
- jsr _Capture
- lda f:$004212
- bpl @wait
+ jsr _WaitBlank
  lda #$80
  sta f:$002115
  rep #$20
@@ -543,6 +544,12 @@ _PresentPalette:
  lda _palette+6
  sta f:$002122
  lda _palette+7
+ sta f:$002122
+ lda #113
+ sta f:$002121
+ lda _palette
+ sta f:$002122
+ lda _palette+1
  sta f:$002122
  lda #145
  sta f:$002121

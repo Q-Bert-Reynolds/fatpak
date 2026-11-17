@@ -39,7 +39,7 @@ static void Fallback(const char* image,const std::map<std::string,unsigned>& sym
 int main(int n,char** v){
     Check(n==6,"arguments: OS symbols EDITOR.DAT SGB.DAT SGBBOOT.MOD");
     char dir[]="/tmp/fatpak-client-XXXXXX";Check(mkdtemp(dir),"SD");std::string root(dir);mkdir((root+"/GBCSYS").c_str(),0700);mkdir((root+"/GBCSYS/MODULES").c_str(),0700);
-    Write(root+"/GBCSYS/EDITOR.DAT",Read(v[3]));Write(root+"/GBCSYS/SGB.DAT",Read(v[4]));Write(root+"/GBCSYS/MODULES/SGBBOOT.MOD",Read(v[5]));
+    Write(root+"/GBCSYS/EDITOR.DAT",Read(v[3]));Write(root+"/GBCSYS/SGB.DAT",Read(v[4]));Write(root+"/GBCSYS/MODULES/SGBBOOT.MOD",Read(v[5]));Write(root+"/GBCSYS/MODULES/HELP.MOD",Read("bin/MODULES/HELP.MOD"));Write(root+"/GBCSYS/MODULES/KEYTEST.MOD",Read("bin/MODULES/KEYTEST.MOD"));
     std::string text="int counter = 1;\n// a comment\n";for(unsigned i=2;i<82;++i)text+="int line"+std::to_string(i)+" = 1;\n";Write(root+"/sample.c",std::vector<u8>(text.begin(),text.end()));
     auto syms=Symbols(v[2]);GearboyCore core;core.Init();core.SetForceSGB(true);core.SetEverdriveFolder(dir);
     core.GetSGB()->GetFatPakHost()->Configure(FatPakSGBHost::TerminalV1);Check(core.LoadROM(v[1],false),"load OS");
@@ -73,5 +73,44 @@ int main(int n,char** v){
     Check(!m->Read(syms.at("fs_fault")),"no transport timeout");
     Check(h->WritePPM("build/sgb/client-reference.ppm"),"reference image");
     puts("SGB client bootstrap/browser/open/type/save/scroll/selection passed");
+    std::vector<u8> body(26*64);
+    for(unsigned i=0;i<body.size();++i)body[i]=m->Read(0xD000+i);
+    key(0x89);Frames(core,180);
+    Check(h->GetModel().boxWidth>0 && h->GetModel().boxRows>=5,"file menu uses BOX overlay");
+    bool label=false;for(const auto& r:h->GetModel().boxLines){std::string s(r.chars.begin(),r.chars.end());label|=s.find("SETTINGS")!=std::string::npos;}
+    Check(label,"BOX_LINE carries actual menu labels");
+    for(unsigned i=0;i<body.size();++i)Check(m->Read(0xD000+i)==body[i],"menu storage preserves every visible text row");
+    unsigned hi=h->GetModel().boxHi;key(0x83);Check(h->GetModel().boxHi!=hi,"BOX_HI follows selection");
+    Check(h->WritePPM("build/sgb/client-menu.ppm"),"menu reference image");
+    key(27);Frames(core,180);Check(!h->GetModel().boxWidth,"closing a menu clears only its overlay");
+    Check(!m->Read(syms.at("fs_fault")),"menu operations retain transport");
+    key(0x90);Frames(core,300);
+    {const auto& title=h->GetModel().bars[0].chars;Check(std::string(title.begin(),title.end()).find("TEXT EDITOR")!=std::string::npos,"help module maps its title to the wide bar");}
+    for(unsigned r=17;r<27;++r)for(auto c:h->GetModel().rows[r].chars)Check(c==32,"unused wide help rows do not retain document text");
+    key(27);Frames(core,300);Check(Contains(h,"line30"),"return from help restores document rows");
+    Check(!m->Read(syms.at("fs_fault")),"help module retains transport");
+    key(0x8D);Frames(core,180);
+    if(m->Read(syms.at("fs_fault"))){
+      std::vector<u8> page(1920);for(unsigned i=0;i<page.size();++i)page[i]=m->ReadCGBLCDRAM(0x8000+i,false);Write("build/sgb/osk-rejected.page",page);
+      printf("OSK rejected good=%u bad=%u error=%s seq=%u pending=%u\n",h->Good(),h->Bad(),h->LastError().c_str(),m->Read(syms.at("fs_seq")),m->Read(syms.at("fs_pending")));
+    }
+    Check(h->GetModel().oskRows==5,"terminal X action opens the OSK");
+    key(0x9F);Frames(core,60);Check(h->GetModel().oskKey==1,"terminal pad action moves the OSK highlight");
+    key(0x8E);Frames(core,180);Check(Contains(h,"i2t"),"terminal A action types the selected OSK key");
+    key(0x8D);Frames(core,180);Check(!h->GetModel().oskRows,"terminal X action closes the OSK");
+    Check(!m->Read(syms.at("fs_fault")),"OSK operations retain transport");
+    m->Write(syms.at("fs_progress_loaded"),50);m->Write(syms.at("fs_progress_total"),200);
+    Frames(core,180);Check(h->GetModel().loaded==25 && h->GetModel().total==100,"GB progress emitter converts sectors to counted KiB");
+    m->Write(syms.at("fs_progress_loaded"),0);m->Write(syms.at("fs_progress_total"),0);
+    Frames(core,180);Check(!h->GetModel().total,"GB progress emitter clears the progress bar");
+    key(0x89);key(0x83);key(0x83);key(10); // SETTINGS
+    for(unsigned i=0;i<5;++i)key(0x83);
+    key(10);Frames(core,300); // KEYBOARD driver module
+    bool test_item=false,snes_item=false;
+    for(const auto& r:h->GetModel().boxLines){std::string s(r.chars.begin(),r.chars.end());test_item|=s.find("TEST")!=std::string::npos;snes_item|=s.find("SNES")!=std::string::npos;}
+    Check(test_item && !snes_item,"fullscreen keyboard menu retains TEST and hides the BIOS-only SNES mouse bridge");
+    key(27);Frames(core,180);Check(!m->Read(syms.at("_module_busy")),"keyboard menu returns to the document");
+    Check(!m->Read(syms.at("fs_fault")),"keyboard menu retains transport");
+    puts("SGB overlay menu labels/highlight/close, storage, help/return, OSK and progress passed");
     for(unsigned mode=0;mode<3;++mode)Fallback(v[1],syms,v[3],v[5],Read(v[4]),mode);
 }

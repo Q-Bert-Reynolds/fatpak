@@ -166,6 +166,7 @@ static void Marshal(const char* text, unsigned char limit) {
 
 unsigned char ModuleAPIVersion(void) { return MODULE_ABI; }
 void ModuleAPIRow(unsigned char row, const char* text) {
+  if (row == TB_ROWS - 1) row = screen_rows - 1;
   if (row >= screen_rows) return;
   Marshal(text, screen_stride);
   if (row == screen_rows - 1) FooterDraw(row, 0, (char*)buffer);
@@ -204,6 +205,8 @@ unsigned char ModuleAPIClock(ModuleClock* clock) {
 
 // ABI 2
 void ModuleAPIText(unsigned char row, unsigned char col, const char* text) {
+  if (row == TB_ROWS) row = HEADER_LINE;
+  else if (row == TB_ROWS + 1) row = STATUS_LINE;
   if (row > STATUS_LINE || col >= screen_stride) return; // text rows and both bars
   Marshal(text, screen_stride);
   DrawRow(row, col, (char*)buffer);
@@ -214,11 +217,14 @@ unsigned char ModuleAPIKey(void) {
 }
 // count lines of BOX_STRIDE chars, selected 0xFF for no highlight
 void ModuleAPIMenu(const char* lines, unsigned char count, unsigned char selected) {
-  char* dest = RowAddress(BOX_LINE);
-  unsigned int i, size;
+  char* dest;
+  unsigned char row, col;
   if (count > MENU_LINES) count = MENU_LINES;
-  size = (unsigned int)count * BOX_STRIDE;
-  for (i = 0; i < size; ++i) dest[i] = lines[i];
+  for (row = 0; row < count; ++row) {
+    dest = BoxLine(row);
+    for (col = 0; col < BOX_STRIDE; ++col) dest[col] = *lines++;
+    BoxCommit(row);
+  }
   OpenBox(count);
   render_box_sel = selected < count ? selected + 1 : 0xFF;
 }
@@ -371,6 +377,7 @@ void ModuleAPISelect(unsigned char row, unsigned char first, unsigned char end) 
 // until it changes; the host calls EditorRedraw after (RenderRawRow)
 void ModuleAPITiles(unsigned char row, const unsigned char* tiles) {
   if (row >= tb_rows) return;
+  if (screen_rows != TB_ROWS) { DrawRow(row, 0, "RAW TILES: USE GB MODE"); return; }
   EditorDraw(); // the row's text first, so drawing it later doesn't cover the tiles
   RenderRawRow(render_text_top + row, tiles);
 }

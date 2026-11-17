@@ -60,7 +60,7 @@ unsigned char AskName(char* value, unsigned int prompt) {
     do {
       WaitFrame();
       event = KBPopEvent();
-      key = (unsigned char)event;
+      key = SGBOSKKey((unsigned char)event);
       if (event & ((unsigned int)KB_MOD_CTRL << 8)) {
         if (key == 'z' || key == 'Z') key = event & ((unsigned int)KB_MOD_SHIFT << 8) ? KEY_REDO : KEY_UNDO;
         else key = key == 'y' || key == 'Y' ? KEY_REDO : 0;

@@ -50,7 +50,7 @@ static unsigned char Load(unsigned char type) {
 unsigned char KeyboardDriverMenu(void* menu) {
   unsigned char type = *((unsigned char*)ModDriver(0x40) + 1), key, i;
   char lines[5 * BOX_STRIDE];
-  unsigned char has_sgb = *(unsigned char*)ModDriver(0x43) & 1;
+  unsigned char has_sgb = (*(unsigned char*)ModDriver(0x43) & 5) == 1; // BIOS-only bridge is unavailable after fullscreen takeover
   if (type == 3) type = 2; // migrate the former mouse-only choice
   if (type == 4) type = has_sgb ? 3 : 0;
   else if (type > 2) type = 1;

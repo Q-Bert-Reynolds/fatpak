@@ -1,6 +1,6 @@
 # Super Game Boy fullscreen mode (plan)
 
-Status: **Phase 0a passed on hardware; Phases 1–6 pass their software exit
+Status: **Phase 0a passed on hardware; Phases 1–6 and the Phase 8 text UI pass their software exit
 checks. Phase 6 runs the real SNES kernel in Mesen and matches the recorded
 frontend golden pixel for pixel. Phase 7 hardware integration is still pending.**
 The Phase 0b hardware ACK stall and the complete EverDrive launch/return cycle
@@ -399,7 +399,7 @@ features it tests. Each phase has an exit check.
 | 5 | **GB backend: text** | Bootstrap + fallback, transport, `ROW`/`SCROLL`/`LAYOUT`/`CURSOR`, mailbox → key events | **Passed:** actual OS bootstrap/browser/open/type/save/scroll/selection through LCD v1; missing/corrupt files and HELLO timeout restore GB state |
 | 6 | **SNES core** | boot, icd2 capture, proto, model, raster (styles/colors), BG1 ring + smooth scroll, cursor sprite, debug overlay | **Passed in Mesen:** real BIOS upload, 102 recorded frontend pages and all 57,344 PPU pixels match the golden; native parser/model negative checks pass |
 | 7 | **Integration on hardware** | Real FatPak OS + `SGB.DAT` on SGB1/SGB2 | Edit and save a `.c` and a `.md` file with highlighting using the pad |
-| 8 | **Overlay UI** | Bars, menus (`BOX`), dialogs, browser, help, OSK, loading boxes and progress on BG3 | Every screen in the app reachable and correct; menu open/close redraws no text rows |
+| 8 | **Overlay UI** | Bars, menus (`BOX`), dialogs, browser, help, OSK, loading boxes and progress on BG3 | **Software checks pass:** GB menu/help/OSK paths and 111-page Mesen UI replay; exact PPU goldens and no BG1 redraw. Raw tile graphics and game launch need GB mode; hardware pending |
 | 9 | **Full controls + mouse** | Complete button map, repeat, pad 2; mouse detect/pointer/sensitivity; `editor/mouse.c` hit testing (also usable on GB later) | Scripted tests in both emulators; mouse checklist on hardware |
 | 10 | **Launch & return** | Implement what 0c proved; `LAUNCH` command; re-bootstrap on warm return | Launch → play → cart menu → return to OS, on hardware, 3 games (DMG-only, SGB-enhanced, CGB-dual) |
 | 11 | **Polish** | Raster speed, finer smooth scroll, SGB1 clock divider experiment (verify EverDrive SPI timing), theme command, docs (README controls, ARCHITECTURE, TODO) | — |
@@ -575,12 +575,17 @@ cover that interaction.
 Phase 2 reduced WRAM0 `Render Vars` from 305 to **241 bytes** by moving GB-only
 caches into WRAMX, while expanding its shared row/selection arrays to 28 entries.
 `Geometry Vars` adds 14 shared bytes outside that section. The whole OS still
-has one free WRAM0 byte. The revised fullscreen replacement cap is 160 bytes
-of render metadata/selection/box state, a 64-byte control queue and **16 bytes**
-of transport state: **240 bytes, leaving 1** in `Render Vars`. Transport code
-must prove this tighter cap in Phase 5; the queue/transport replacement is not
-implemented yet. Preserve geometry helpers and fields used by content/layout
-code; union only state whose mode is dead.
+has one free WRAM0 byte. The earlier fullscreen feasibility cap was 160 bytes of render metadata,
+a 64-byte control queue and 16 bytes of transport state (240 total). The actual
+implementation keeps the 241-byte shared render section intact: Phase 5 used
+51 free HRAM bytes, and Phase 8 grows that to **67**, leaving **33 HRAM bytes**.
+It uses the existing GB keyboard-event queue; the 64-entry outbound control/input
+queue lives on the SNES. The spreadsheet retains the provisional render-union
+cap and now separately audits the actual HRAM allocation. WRAMX still has 14
+free bytes, and the original WRAM0 constraints are unchanged. The final Phase 8
+link has 7 bytes free in fixed bank 1 and 49 in ROM0; new resident code needs
+placement changes, not an assumption of spare space. Preserve geometry helpers
+and fields used by content/layout code; union only state whose mode is dead.
 
 **ROM choice:** install the GB backend as an overlay of the always-mapped
 fixed renderer, currently 4677 bytes at `$4000–$5244`. It contains pixel code
@@ -897,3 +902,64 @@ reported 40 overwritten rows during the full run; later captures/retries recover
 them without losing a transaction. This is not a zero-loss performance claim.
 The remaining latency margin needs attention in performance work and hardware
 checks, especially when input and filesystem operations overlap.
+
+### Phase 7: integration package; hardware exit pending
+
+The normal assemble target now produces real `bin/SGB.DAT` and includes it in
+the existing mounted-card copy, paired with this OS build and `SGBBOOT.MOD`.
+[The hardware checklist](SGB_HARDWARE.md) records the SGB1/SGB2 cold-boot,
+C/Markdown edit/save and diagnostics needed to close this phase. Hardware is
+unavailable for this work, so **Phase 7 is prepared, not passed**. Phase 8 can be
+implemented/tested at the protocol seam while those results remain pending.
+
+### Phase 8: overlay UI
+
+The GB terminal emits BAR, BOX/BOX_LINE/BOX_HI, OSK, BUSY and PROGRESS alongside
+its base-row stream. Menu text no longer aliases visible wide rows: one protected
+PSRAM sector at $3BA0 holds 19 fixed-stride lines, with one line staged through
+`wide_scratch`. Window mapping is restored after every read/write. The ordinary
+GB path still uses its original menu buffer. Module title/status selectors are
+translated from the legacy 18/19 row numbers, and their footer remains at the
+bottom of the active geometry; legacy module bodies keep their existing grid,
+with the extra rows cleared rather than retaining document text. The BIOS-only
+SNES mouse bridge is hidden in the keyboard menu after fullscreen takeover;
+physical keyboard choices and TEST remain available.
+
+SNES UI model rows are separate from document rows. BG3 draws the 2bpp UI above
+BG1; a high-priority BG2 mask supplies opaque paper beneath it, so all four UI
+colors remain available despite BG3 color zero being transparent. BG2 uses
+mask tiles $C800–$C9FF and a map at $F000; BG3 retains tiles $8000–$BFFF and
+map $E800. The two clipped edge masks preserve boxes at arbitrary pixel x/width.
+Bars, menu highlights, keyboard, busy indicator and progress update these layers;
+closing a menu clears the overlay without rebuilding the document's tiles.
+Palette updates include the paper mask. All uploads now wait for the start of
+VBlank, avoiding partially written maps when a render finishes late in VBlank.
+
+The GB remains authoritative for OSK layout, selection, shift/symbol state and
+key actions. Basic SNES X toggles it; d-pad/A while it is open are queued terminal
+key actions, consumed by the normal editor/name-input loop. They never mutate
+editor/OSK state from inside an ACK wait. The pointer and complete pad bindings,
+chords, repeat and both-port mouse support remain Phase 9. The keyboard selection
+uses the normal highlight color. The private footer marker positions the clock
+instead of drawing as a glyph.
+
+`make test-sgb-client` covers actual OS menu text/highlight/close, preserved wide
+row bytes, help/module return, OSK open/navigation/typing/close, numeric progress,
+and the existing bootstrap/open/edit/save/scroll/selection/fallback checks.
+Opening the mono-font keyboard exposed an 8-bit width-counter overflow at
+248+8 pixels; the encoder now rejects carry before accepting another glyph.
+
+`make test-sgb-ui` runs the real SNES kernel in Mesen, starting with the 102
+recorded frontend transactions and adding nine UI transactions. It checks an
+unaligned box, changed selection, close/reopen, OSK, both bars, busy/progress and
+a dark palette. **All 57,344 final PPU pixels match the independently generated
+font-based golden; closing the menu restores every original pixel. BG1's 32 KiB
+and draw count remain unchanged through all nine UI transactions.** The last
+run's longest ACK was 112 SNES frames; capture losses were retried, not hidden.
+This does not replace the pending SGB1/SGB2 checks in Phase 7.
+
+Limits retained deliberately: fullscreen game launch is blocked until Phase 10
+establishes the reset/BIOS handoff. Raw tile viewer graphics cannot be represented
+by the v1 text protocol; that module shows a GB-mode notice rather than calling
+renderer code replaced by the terminal. These two paths need GB mode today.
+Post-takeover timeout recovery remains as described in Phase 5.

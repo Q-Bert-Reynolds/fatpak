@@ -6,6 +6,8 @@
 #define BOX_PADDING      9 // 4 pixels each side of the text, and the border
 #define BOX_LINE         (TB_ROWS + 2) // menu box text in tile_buffer rows from here, BOX_STRIDE chars per line
 
+char* BoxLine(unsigned char line); // one staged line; valid until the next box/staging access
+void BoxCommit(unsigned char line);
 void WaitDismiss(void);
 unsigned char BoxText(unsigned char line, const char* text);
 void OpenBox(unsigned char lines);

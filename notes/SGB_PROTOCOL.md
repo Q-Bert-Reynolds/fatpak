@@ -174,8 +174,9 @@ is not accepted in v1; automatic launch can be added after that work is proven.
 
 ## SGB.DAT container
 
-The reference codec packs/validates this format; it does not yet emit an
-installed `bin/SGB.DAT` because the overlay loader and terminal do not exist.
+The reference codec packs/validates this format. The normal build now emits
+`bin/SGB.DAT` containing the production SNES kernel/fonts and the host-bound
+GB renderer overlay (Phases 4–8).
 
 | Offset | Size | Meaning |
 | --- | --- | --- |

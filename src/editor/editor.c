@@ -284,7 +284,8 @@ void Editor(void) {
     }
     WaitFrame();
     while ((key = (unsigned char)(event = KBPopEvent()))) {
-      if (!HandleFileKey(key, (unsigned char)(event >> 8))) HandleKey(key, (unsigned char)(event >> 8));
+      key = SGBOSKKey(key);
+      if (key && !HandleFileKey(key, (unsigned char)(event >> 8))) HandleKey(key, (unsigned char)(event >> 8));
       if (doc_large) Slide(); // before the next key, which could reach the window's end
       if (dirty || edited) break; // text changed, rows need rendering before more keys
       if (moved) { // keeps tb_found_row current for the next key

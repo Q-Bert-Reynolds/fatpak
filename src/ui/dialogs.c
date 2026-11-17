@@ -5,6 +5,7 @@
 #include "render.h"
 #include "screen.h"
 #include "text.h"
+#include "../sgb/client.h"
 
 // waits for a key or button to dismiss a message, a typed key (not escape or enter) stays queued
 // so it still does what it does
@@ -22,13 +23,15 @@ void WaitDismiss(void) {
 
 // centers a box over the screen for the lines in the BOX_LINE rows, nothing highlighted
 void OpenBox(unsigned char lines) {
-  char* line = RowAddress(BOX_LINE);
+  char* line;
   unsigned char i, width, widest = 0;
-  for (i = 0; i < lines; ++i, line += BOX_STRIDE) {
+  if (lines > 19) lines = 19;
+  for (i = 0; i < lines; ++i) {
+    line = BoxLine(i);
     width = RenderTextWidth(line);
     if (width > widest) widest = width;
   }
-  render_box_text = RowAddress(BOX_LINE);
+  render_box_text = BoxLine(0);
   render_box_w = widest + BOX_PADDING;
   render_box_x = (screen_width - render_box_w) >> 1;
   render_box_rows = lines + 2; // half rows above and below
@@ -41,15 +44,16 @@ void OpenBox(unsigned char lines) {
 // copies text into the box's lines from line on, starting a line at each '\n' and after every
 // BOX_STRIDE - 1 characters, returns the line after its last
 unsigned char BoxText(unsigned char line, const char* text) {
-  char* dest = RowAddress(BOX_LINE) + line * BOX_STRIDE;
+  char* dest = BoxLine(line);
   unsigned char n = 0;
   for (;; ++text) {
     if (!*text || *text == '\n' || n == BOX_STRIDE - 1) {
       dest[n] = 0;
-      dest += BOX_STRIDE;
+      BoxCommit(line);
       ++line;
       n = 0;
-      if (!*text) return line;
+      if (!*text || line == 19) return line;
+      dest = BoxLine(line);
       if (*text == '\n') continue;
     }
     dest[n++] = *text;
@@ -58,11 +62,12 @@ unsigned char BoxText(unsigned char line, const char* text) {
 
 // a box with text (Loading..., Saving...), drawn right away, before the work it's waiting for
 void ShowBusy(const char* text) {
-  CopyName(RowAddress(BOX_LINE), text);
+  BoxText(0, text);
   OpenBox(1);
   EditorDraw();
 }
 
 void HideBox(void) {
+  SGBProgress(0, 0);
   render_box_top = 0xFF;
 }

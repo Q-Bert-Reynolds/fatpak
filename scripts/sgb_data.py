@@ -27,9 +27,9 @@ def client():
     # The long-lived draw/VBlank paths never call a borrowed OS page.
     code=(ROOT/'src/sgb/display.asm').read_text()
     internal=set(re.findall(r'^(Fs\w+):',code,re.M))
-    branches=set(re.findall(r'^\s*(?:call|jp)\s+(?:(?:n?[zc]),\s*)?(\w+)',code,re.M|re.I))
+    branches=set(re.findall(r'^\s*(?:call|jp)\s+(?:(?:n?[zc]),\s*)?([A-Za-z_]\w*)(?=\s*(?:;[^\n]*)?$)',code,re.M|re.I))
     allowed={'mem_Set','RenderLineStyled','RenderRowAddress','_GeometryWide','_Layout__far',
-             'Trampoline','UpdateInputReturn','VBLContinue'}
+             'Trampoline','UpdateInputReturn','VBLContinue','_BoxLine'}
     unknown=branches-internal-allowed
     if unknown: raise ValueError('unaudited terminal imports: '+str(sorted(unknown)))
     if values['ProcessKeyCodes']<0xA000:

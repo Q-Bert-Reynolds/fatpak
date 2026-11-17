@@ -24,7 +24,7 @@ C_LIBS    = $(wildcard $(SRC_DIR)/*/lib/*.c) $(wildcard $(SRC_DIR)/*/lib/*.h)
 # Preserve raw output: page placement and cross-module call resolution run together.
 C_RAW     = $(patsubst %.c,$(BUILD_DIR)/c/%.asm,$(C_SOURCES))
 
-.PHONY: sgb-kernel test-sgb-kernel test-sgb-client test-overlays test-sgb-host test-geometry all code modules assemble run assets clean sgb-hello test-sgb-hello sgb-bench test-sgb-bench test-sgb-bench-timeout sgb-handoff test-sgb-handoff sgb-protocol test-sgb-protocol sgb-budget
+.PHONY: test-sgb-ui sgb-kernel test-sgb-kernel test-sgb-client test-overlays test-sgb-host test-geometry all code modules assemble run assets clean sgb-hello test-sgb-hello sgb-bench test-sgb-bench test-sgb-bench-timeout sgb-handoff test-sgb-handoff sgb-protocol test-sgb-protocol sgb-budget
 
 all: clean assets assemble run
 
@@ -35,6 +35,9 @@ sgb-kernel:
 
 test-sgb-kernel:
 	bash tests/run_sgb_kernel.sh
+
+test-sgb-ui:
+	SGB_KERNEL_UI=1 bash tests/run_sgb_kernel.sh
 
 test-sgb-client:
 	bash tests/run_sgb_client.sh
@@ -119,17 +122,20 @@ ifneq ($(ROM_FILE),$(BIN_DIR)/GBCOS.BIN)
 endif
 	$(PYTHON) scripts/keyboard_drivers.py
 	$(PYTHON) scripts/data_file.py $(BIN_DIR)/EDITOR.DAT
-	$(PYTHON) scripts/sgb_data.py
+	$(PYTHON) scripts/sgb_kernel.py
+	$(PYTHON) scripts/sgb_data.py --snes $(BUILD_DIR)/sgb/program.bin --fonts $(BUILD_DIR)/sgb/fonts.bin
 	@if mountpoint -q "$(SD_MOUNT)"; then \
 		cp $(BIN_DIR)/GBCOS.BIN "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
 		cp $(BIN_DIR)/EDITOR.DAT "$(SD_MOUNT)/GBCSYS/EDITOR.DAT" && \
+		cp $(BIN_DIR)/SGB.DAT "$(SD_MOUNT)/GBCSYS/SGB.DAT" && \
 		mkdir -p "$(SD_MOUNT)/GBCSYS/MODULES" "$(SD_MOUNT)/GBCSYS/LANG" "$(SD_MOUNT)/GBCSYS/DRIVERS" && \
 		cp $(BIN_DIR)/MODULES/*.MOD "$(SD_MOUNT)/GBCSYS/MODULES/" && \
 		cp $(BIN_DIR)/DRIVERS/*.DRV "$(SD_MOUNT)/GBCSYS/DRIVERS/" && \
 		cp $(BIN_DIR)/LANG/*.DAT "$(SD_MOUNT)/GBCSYS/LANG/" && \
 		sync -f "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
 		sync -f "$(SD_MOUNT)/GBCSYS/EDITOR.DAT" && \
-		echo "Copied GBCOS.BIN, EDITOR.DAT, modules, drivers, and languages to mounted GAMEBOY card"; \
+		sync -f "$(SD_MOUNT)/GBCSYS/SGB.DAT" && \
+		echo "Copied GBCOS.BIN, EDITOR.DAT, SGB.DAT, modules, drivers, and languages to mounted GAMEBOY card"; \
 	fi
 
 run:

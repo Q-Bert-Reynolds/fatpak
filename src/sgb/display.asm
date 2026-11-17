@@ -266,6 +266,10 @@ FsDraw:
   ldh [fs_row], a
   cp 28
   jr c, .row
+  call FsUI
+  ldh a, [fs_pending]
+  and a
+  ret nz
   call FsCursor
   call FsFlush
   ldh a, [fs_pending]
@@ -356,6 +360,7 @@ FsEncodeRow:
   ld b, a
   ldh a, [fs_x]
   add b
+  jr c, .counted
   cp 249
   jr nc, .counted
   ldh [fs_x], a
@@ -433,6 +438,15 @@ FsEncodeRow:
   ld [hl], d
   dec hl
   ld [hl], e
+  ld a, [_bars]
+  and a
+  jr z, .textRow
+  ldh a, [fs_row]
+  and a
+  jp z, FsBar
+  cp 27
+  jp z, FsBar
+.textRow
   ldh a, [fs_count]
   ld c, a
   add a
@@ -556,6 +570,15 @@ FsAttrIndex:
   ld a, [hl]
   jr .return
 .plain
+  ldh a, [fs_chars]
+  ld l, a
+  ldh a, [fs_chars+1]
+  ld h, a
+  add hl, bc
+  ld a, [hl]
+  cp FOOTER_MARKER
+  ld a, 1
+  jr z, .return
   ldh a, [fs_font]
   cp 1
   ld a, 8
@@ -642,7 +665,7 @@ SECTION "Terminal tail", ROMX[FontVWFWidths+256], BANK[1]
 FsInit:
   xor a
   ld hl, fs_ready
-  ld bc, fs_tick_frame-fs_ready+1
+  ld bc, fs_state_end-fs_ready
   call mem_Set
   ldh [rIE], a
   ldh [rSTAT], a
@@ -753,6 +776,8 @@ FsInput:
   ldh a, [fs_fault]
   and a
   jr nz, .keyboard
+  call FsBegin
+  call FsUI
   ld hl, oam_buffer
   ld de, fs_cursor
   ld b, 2
@@ -779,9 +804,9 @@ FsInput:
   ld [de], a
   ld a, c
   and a
-  jr z, .keyboard
-  call FsBegin
+  jr z, .flush
   call FsCursor
+.flush
   call FsFlush
 .keyboard
   ; Physical PS/2/iGKB can continue supplying the normal event queue.
@@ -988,4 +1013,278 @@ ENDR
   swap a
   or e
   ret
+
+
+FsBar:
+  ldh a, [fs_count]
+  add 3
+  ld c, a
+  ld b, 0
+  ld a, SGBFS_CMD_BAR
+  call FsTLV
+  ldh a, [fs_row]
+  and a
+  ld a, 0
+  jr z, .which
+  inc a
+.which
+  call FsByte
+  ldh a, [fs_font]
+  call FsByte
+  ldh a, [fs_count]
+  call FsByte
+  ld b, a
+  ldh a, [fs_chars]
+  ld l, a
+  ldh a, [fs_chars+1]
+  ld h, a
+  ld a, b
+  and a
+  ret z
+.loop
+  ld a, [hli]
+  call FsByte
+  dec b
+  jr nz, .loop
+  ret
+FsUI:
+  ; Reserve the entire largest UI update; BOX lines never split a TLV.
+  ldh a, [fs_write+1]
+  cp $85
+  jr c, .room
+  call FsFlush
+  ldh a, [fs_pending]
+  and a
+  ret nz
+.room
+  ldh a, [fs_force]
+  and a
+  jr nz, .box
+  ld a, [_render_box_top]
+  ld b, a
+  ldh a, [fs_box_top]
+  cp b
+  jr nz, .box
+  ld a, [_render_box_gen]
+  ld b, a
+  ldh a, [fs_box_gen]
+  cp b
+  jp z, .highlight
+.box
+  ld a, SGBFS_CMD_BOX
+  ld bc, 5
+  call FsTLV
+  ld a, [_render_box_top]
+  cp $FF
+  jr nz, .open
+  ld b, 5
+.close
+  xor a
+  call FsByte
+  dec b
+  jr nz, .close
+  jp .rememberBox
+.open
+  ld a, [_render_box_x]
+  call FsByte
+  ld a, [_render_box_w]
+  call FsByte
+  xor a
+  call FsByte
+  ld a, [_render_box_top]
+  call FsByte
+  ld a, [_render_box_rows]
+  call FsByte
+  xor a
+  ldh [fs_box_line], a
+.lines
+  ldh a, [fs_box_line]
+  and a
+  jr z, .empty
+  ld b, a
+  ld a, [_render_box_rows]
+  dec a
+  cp b
+  jr z, .empty
+  ld a, b
+  dec a
+  call _BoxLine
+  ld h, b
+  ld l, c
+  ld b, 0
+.count
+  ld a, [hli]
+  and a
+  jr z, .counted
+  inc b
+  ld a, b
+  cp BOX_STRIDE-1
+  jr c, .count
+.counted
+  push bc
+  ld a, b
+  add 3
+  ld c, a
+  ld b, 0
+  ld a, SGBFS_CMD_BOX_LINE
+  call FsTLV
+  ldh a, [fs_box_line]
+  call FsByte
+  ld a, 1
+  call FsByte
+  pop bc
+  ld a, b
+  call FsByte
+  ld hl, wide_scratch
+  and a
+  jr z, .next
+.chars
+  ld a, [hli]
+  call FsByte
+  dec b
+  jr nz, .chars
+  jr .next
+.empty
+  ld a, SGBFS_CMD_BOX_LINE
+  ld bc, 3
+  call FsTLV
+  ldh a, [fs_box_line]
+  call FsByte
+  ld a, 1
+  call FsByte
+  xor a
+  call FsByte
+.next
+  ldh a, [fs_box_line]
+  inc a
+  ldh [fs_box_line], a
+  ld b, a
+  ld a, [_render_box_rows]
+  cp b
+  jp nz, .lines
+.rememberBox
+  ld a, [_render_box_top]
+  ldh [fs_box_top], a
+  ld a, [_render_box_gen]
+  ldh [fs_box_gen], a
+  ld a, $FE
+  ldh [fs_box_sel], a
+.highlight
+  ld a, [_render_box_top]
+  cp $FF
+  jr z, .osk
+  ld a, [_render_box_sel]
+  ld b, a
+  ldh a, [fs_box_sel]
+  cp b
+  jr z, .osk
+  ld a, b
+  ldh [fs_box_sel], a
+  push af
+  ld a, SGBFS_CMD_BOX_HI
+  ld bc, 1
+  call FsTLV
+  pop af
+  call FsByte
+.osk
+  ld a, [oam_buffer+4]
+  and a
+  ld a, $FF
+  jr z, .key
+  ld a, [_osk_y]
+  ld b, a
+  add a
+  add a
+  add b
+  add a
+  ld b, a
+  ld a, [_osk_x]
+  add b
+.key
+  ld c, a
+  ldh a, [fs_force]
+  and a
+  jr nz, .oskChanged
+  ldh a, [fs_osk_key]
+  cp c
+  jr nz, .oskChanged
+  ld a, [_osk_layer]
+  ld b, a
+  ldh a, [fs_osk_layer]
+  cp b
+  jr z, .busyState
+.oskChanged
+  ld a, c
+  ldh [fs_osk_key], a
+  ld a, [_osk_layer]
+  ldh [fs_osk_layer], a
+  ld a, SGBFS_CMD_OSK
+  ld bc, 2
+  call FsTLV
+  ldh a, [fs_osk_layer]
+  call FsByte
+  ldh a, [fs_osk_key]
+  call FsByte
+.busyState
+  ld a, [_module_busy]
+  ld b, a
+  ldh a, [fs_busy]
+  cp b
+  jr z, .progress
+  ld a, b
+  ldh [fs_busy], a
+  and a
+  ld a, 0
+  jr z, .busy
+  inc a
+.busy
+  push af
+  ld a, SGBFS_CMD_BUSY
+  ld bc, 1
+  call FsTLV
+  pop af
+  call FsByte
+.progress
+  ld hl, fs_progress_loaded
+  ld de, fs_progress_sent
+  ld b, 4
+.compareProgress
+  ld a, [de]
+  cp [hl]
+  jr nz, .sendProgress
+  inc hl
+  inc de
+  dec b
+  jr nz, .compareProgress
+  ret
+.sendProgress
+  ld hl, fs_progress_loaded
+  ld de, fs_progress_sent
+  ld b, 4
+.rememberProgress
+  ld a, [hli]
+  ld [de], a
+  inc de
+  dec b
+  jr nz, .rememberProgress
+  ld a, SGBFS_CMD_PROGRESS
+  ld bc, 8
+  call FsTLV
+  ld hl, fs_progress_loaded
+  call FsKiB
+  ld hl, fs_progress_total
+  jp FsKiB
+FsKiB:
+  inc hl
+  ld a, [hld]
+  srl a
+  ld b, a
+  ld a, [hl]
+  rra
+  call FsByte
+  ld a, b
+  call FsByte
+  xor a
+  call FsByte
+  jp FsByte
 ASSERT @ <= _RenderOverlayEnd, "terminal exceeds audited renderer interval"

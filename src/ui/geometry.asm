@@ -171,3 +171,87 @@ DrawRow:
   jp hl
 
 END_PAGE
+
+; Menu lines live in protected PSRAM in wide mode, rather than aliasing visible
+; text rows. Only one line is staged at a time; every access restores the window.
+FIXED "Box row storage"
+_BoxLine:: ; A=line -> BC/HL=20-byte editable line; call BoxCommit after writing
+  push af
+  ld a, [_screen_rows]
+  cp TB_ROWS
+  jr z, .gb
+  pop af
+  call BoxMap
+  push de
+  ld de, wide_scratch
+  ld b, BOX_STRIDE
+.read
+  ld a, [hli]
+  ld [de], a
+  inc de
+  dec b
+  jr nz, .read
+  pop de
+  call _SetWindowBlock
+  ld hl, wide_scratch
+  ld bc, wide_scratch
+  ret
+.gb
+  pop af
+  call BoxOffset
+  ld de, tile_buffer+(TB_ROWS+2)*TB_STRIDE
+  add hl, de
+  ld b, h
+  ld c, l
+  ret
+_BoxCommit:: ; A=line, wide_scratch contains the complete fixed-stride line
+  push af
+  ld a, [_screen_rows]
+  cp TB_ROWS
+  jr nz, .wide
+  pop af
+  ret
+.wide
+  pop af
+  call BoxMap
+  push de
+  ld de, wide_scratch
+  ld b, BOX_STRIDE
+.write
+  ld a, [de]
+  inc de
+  ld [hli], a
+  dec b
+  jr nz, .write
+  dec hl
+  ld [hl], 0 ; strings cannot cross their fixed stride
+  pop de
+  jp _SetWindowBlock
+BoxOffset:
+  cp 19
+  jr c, .bounded
+  ld a, 18
+.bounded
+  ld l, a
+  ld h, 0
+  add hl, hl
+  add hl, hl
+  ld d, h
+  ld e, l
+  add hl, hl
+  add hl, hl
+  add hl, de
+  ret
+BoxMap:
+  call BoxOffset
+  ld a, [EDX_BLOCK]
+  ld c, a
+  ld a, [EDX_BLOCK+1]
+  ld b, a
+  ld de, SGB_BOX_BLOCK
+  call _SetWindowBlock
+  ld de, TB_BASE
+  add hl, de
+  ld d, b
+  ld e, c
+  ret

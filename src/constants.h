@@ -58,6 +58,7 @@
 #define SGB_FILE_BLOCK     0x3B00u
 #define SGB_FILE_BLOCKS    0x90
 #define OVERLAY_BACKUP     0x3B90u
+#define SGB_BOX_BLOCK      0x3BA0u//one protected sector: 19 menu lines, independent of wide rows
 #define ADD_MAX            0x6E0000//stop before the persistent fullscreen image
 #define TB_SIZE      (TB_BANK_SIZE*TB_BANKS)
 #define TB_CLIP_OFFSET 0x0100u//the clipboard's text in PSRAM blocks 240-255 (src/sram.asm)
@@ -218,6 +219,12 @@
 #define KEY_UNDO      0x8A
 #define KEY_REDO      0x8B
 #define KEY_INFO      0x8C//Select in the file browser
+#define KEY_OSK       0x8D//terminal input: toggle the on-screen keyboard
+#define KEY_OSK_PRESS 0x8E
+#define KEY_OSK_UP    0x9C
+#define KEY_OSK_DOWN  0x9D
+#define KEY_OSK_LEFT  0x9E
+#define KEY_OSK_RIGHT 0x9F
 #define KEY_MOUSE_ROW 0xA0// browser rows 0..15, direct selection events (0xA0..0xAF)
 #define KEY_F1        0x90//function keys are KEY_F1 + n - 1
 #define KEY_F2        0x91

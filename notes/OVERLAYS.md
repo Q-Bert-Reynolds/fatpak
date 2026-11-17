@@ -37,7 +37,9 @@ CRC also covers padding and its directory/header. Phase 5 supplies the complete
 file loader and bootstrap; Phase 4 alone does not activate fullscreen rendering.
 
 Persistent allocation: `$3B00–$3B8F` stages SGB.DAT (72 KiB), `$3B90–$3B9F`
-holds the verified original renderer (up to 8 KiB). This stays below snapshot
+holds the verified original renderer (up to 8 KiB). Phase 8 reserves `$3BA0`
+for up to 19 fixed-stride menu lines (one sector); accesses restore the PSRAM
+window and stage one line in `wide_scratch`. This stays below snapshot
 staging at `$3C00` and avoids the `$3E00` hardware failure region. Large-file
 added text now ends at `$3B00`: its cap is `$6E0000` instead of `$720000`
 (256 KiB reserved). Assembler caches/images remain below the new boundary.

@@ -57,6 +57,8 @@ static void events(void) {
   mailbox[0]=event_seq;memcpy(mailbox+1,queue[qhead],3);PublishMailbox();active_event=1;
  }
 }
+static void ui_all(void){memset(overlay_dirty,1,28);}
+static void ui_box(void){u8 y;for(y=0;y<box_rows;++y)overlay_dirty[box_top+y]=1;}
 /* Shadow only the state needed by validators, never the 8 KiB model. */
 static u8 commands(const u8 *p,u16 n,u8 apply) {
  u16 at=0,len,w,i,k,width; const u8 *b; u8 op,r,shadow_rows=text_rows,shadow_box=box_rows;
@@ -105,7 +107,9 @@ static u8 commands(const u8 *p,u16 n,u8 apply) {
   case 4:
    if(len!=4 || b[0]>=28 || !b[1] || b[1]>28 || b[2]>3 || (b[3] && b[3]!=5) ||
       (u16)b[0]+b[1]+b[3]+!!(b[2]&2)>28)return 0;
-   shadow_rows=b[1];if(apply){top=b[0];text_rows=b[1];bars=b[2];osk_rows=b[3];dirty[0]=dirty[27]=1;}break;
+   shadow_rows=b[1];if(apply && (top!=b[0] || text_rows!=b[1] || bars!=b[2] || osk_rows!=b[3])){
+    top=b[0];text_rows=b[1];bars=b[2];osk_rows=b[3];ui_all();
+   }break;
   case 5:
    if(len!=3 || b[0]>=28 || b[2]>2)return 0;
    if(apply){cursor_row=b[0];cursor_x=b[1];cursor_look=b[2];cursor_dirty=1;}break;
@@ -114,29 +118,32 @@ static u8 commands(const u8 *p,u16 n,u8 apply) {
    w=word(b+1);
    if(!w){if(b[0]||b[1]||b[2]||b[3]||b[4])return 0;}
    else if(w<8 || b[0]+w>256 || !b[4] || (u16)b[3]+b[4]>28)return 0;
-   shadow_box=b[4];if(apply){box_x=b[0];box_width=w;box_top=b[3];box_rows=b[4];box_hi=255;
-    memset(box_lines,0,sizeof(box_lines));memset(overlay_dirty,1,28);}break;
+   shadow_box=b[4];if(apply){
+    ui_box();box_x=b[0];box_width=w;box_top=b[3];box_rows=b[4];box_hi=255;
+    for(i=0;i<28;++i){memset(box_lines+i,0,sizeof(Row));Capture();}ui_box();
+   }break;
   case 7:case 9:
    if(len<3 || b[1]>6 || b[2]>64 || len!=3u+b[2] || b[0]>=(op==7?shadow_box:2))return 0;
    if(apply){out=op==7?box_lines+b[0]:bar_lines+b[0];memset(out,0,sizeof(Row));
-    out->font=b[1];out->n=b[2];memcpy(out->chars,b+3,b[2]);memset(overlay_dirty,1,28);}break;
+    out->font=b[1];out->n=b[2];memcpy(out->chars,b+3,b[2]);
+    overlay_dirty[op==7?box_top+b[0]:b[0]?27:0]=1;}break;
   case 8:
    if(len!=1 || (b[0]!=255 && b[0]>=shadow_box))return 0;
-   if(apply){box_hi=b[0];memset(overlay_dirty,1,28);}break;
+   if(apply && box_hi!=b[0]){if(box_hi<box_rows)overlay_dirty[box_top+box_hi]=1;box_hi=b[0];if(box_hi<box_rows)overlay_dirty[box_top+box_hi]=1;}break;
   case 10:
    if(len!=2 || b[0]>3 || (b[1]>=50 && b[1]!=255))return 0;
-   if(apply){osk_layer=b[0];osk_key=b[1];memset(overlay_dirty,1,28);}break;
+   if(apply && (osk_layer!=b[0] || osk_key!=b[1])){osk_layer=b[0];osk_key=b[1];for(i=0;i<osk_rows;++i)overlay_dirty[top+text_rows+i]=1;}break;
   case 11:
    if(len<4 || !b[1] || b[1]>16 || b[0]+b[1]>16 || len!=2u+2u*b[1])return 0;
    for(i=0;i<b[1];++i)if(b[3+i*2]&128)return 0;
    if(apply){for(i=0;i<b[1];++i)palette[b[0]+i]=word(b+2+i*2);palette_dirty=1;}break;
   case 12:
    if(len!=1 || b[0]>1)return 0;
-   if(apply)busy=b[0];
+   if(apply && busy!=b[0]){busy=b[0];overlay_dirty[0]=1;}
    break;
   case 13:
    if(len!=8 || dword(b)>dword(b+4))return 0;
-   if(apply){loaded=dword(b);total=dword(b+4);}break;
+   if(apply){loaded=dword(b);total=dword(b+4);overlay_dirty[27]=1;}break;
   /* Launch is intentionally held for Phase 10, never arm a cartridge here. */
   case 14:return 0;
   case 15:case 16:
@@ -162,11 +169,19 @@ static void page(u8 slot) {
  commands(p+3,n,1);last_page[slot]=seq;expected=next(seq);++good_pages;enqueue(6,slot,seq);
 }
 /* Shade planes retain overlapping italic glyphs, dim and syntax accents. */
-u16 glyph_offset,glyph_x,glyph_icon;u8 glyph_color;
+u16 glyph_offset,glyph_x,glyph_icon,glyph_right;u8 glyph_color;
 static void glyphs(const Row *row,u16 left,u16 right) {
- u16 x=left;u8 i,c,f,style,color; signed char icon;
+ u16 x=left;u8 i,c,f,style,color,j,k; signed char icon;
  for(i=0;i<row->n && x<right;++i) {
-  c=row->chars[i];style=row->flags?row->attrs[i]>>4:0;f=row->font;
+  c=row->chars[i];
+  if(!row->flags && c==127){
+   while(i+1<row->n && row->chars[i+1]==127)++i;
+   x=252;
+   k=row->n;while(k>i+1 && row->chars[k-1]==' ')--k;
+   for(j=i+1;j<k;++j){x-=FontByte(FONT_WIDTHS+(u16)row->font*256+row->chars[j]);Capture();}
+   continue;
+  }
+  style=row->flags?row->attrs[i]>>4:0;f=row->font;
   if(f<3) {
    if(style==5)f=2;
    else if(style==1||style==3||style==7||style==13||style==2)
@@ -177,7 +192,7 @@ static void glyphs(const Row *row,u16 left,u16 right) {
   else if(style==6||style==7||style==9||style==10)color=4;
   else if(style==12)color=6;else if(style==13||style==14)color=7;
   icon=c>=1&&c<=8?c-1:c>=129&&c<=131?c-121:-1;
-  glyph_offset=(u16)f*2048+(u16)c*8;glyph_x=x;glyph_color=color;
+  glyph_offset=(u16)f*2048+(u16)c*8;glyph_x=x;glyph_right=right;glyph_color=color;
   glyph_icon=(!row->flags && icon>=0)?FONT_ICONS+(u16)icon*64:65535u;
   BlitGlyph();
   x+=row->flags?(row->attrs[i]&15):FontByte(FONT_WIDTHS+(u16)row->font*256+c);
@@ -186,8 +201,8 @@ static void glyphs(const Row *row,u16 left,u16 right) {
 u16 pixel_start=256,pixel_end=256;
 static void pixels(const Row *row,u16 left,u16 right,u8 selected) {
  (void)left;(void)right;
- pixel_start=selected?0:row->start==row->end?256:8u+row->start;
- pixel_end=selected?256:row->start==row->end?256:row->end==255?256:8u+row->end;
+ pixel_start=selected?left:row->start==row->end?256:8u+row->start;
+ pixel_end=selected?right:row->start==row->end?256:row->end==255?256:8u+row->end;
  EncodeRow();
 }
 static void hex4(u8 *p,u16 v) {
@@ -196,8 +211,7 @@ static void hex4(u8 *p,u16 v) {
 }
 static void draw(u8 row) {
  Row debug;const Row *source=rows+row;
- if(row==0 && (bars&1))source=bar_lines;
- if(row==27 && (bars&2))source=bar_lines+1;
+
  if(row==27 && debug_enabled){
   memset(&debug,0,sizeof(debug));debug.font=2;debug.n=44;
   memcpy(debug.chars,"SGB GOOD:0000 BAD:0000 MISS:0000 ROW:0000 Q:00",44);
@@ -206,6 +220,50 @@ static void draw(u8 row) {
  }
  ClearRaster();glyphs(source,8,256);pixels(source,8,256,0);
  PresentRow((row+ring_offset)&31);dirty[row]=0;++drawn_rows;
+}
+u16 ui_left,ui_right;
+static u16 progress_width(void){
+ u8 i;u16 result=0;u32 rem=loaded;
+ if(!total)return 0;
+ if(loaded==total)return 256;
+ for(i=0;i<8;++i){
+  result<<=1;
+  if(rem>=total-rem){rem-=total-rem;++result;}else rem+=rem;
+ }
+ return result;
+}
+static void draw_ui(u8 row){
+ static const u8 keys[3][41]={
+  "1234567890qwertyuiopasdfghjkl;zxcvbnm,./",
+  "!@#$%^&*()QWERTYUIOPASDFGHJKL:ZXCVBNM<>?",
+  "`~-_=+[]{}\\|'\"\241\277\341\351\355\363\372\361\374"};
+ static const u8 bottom[20]={29,' ','#',' ',31,' ','_','_','_','_','_','_','_','_',15,' ',16,' ',30,' '};
+ Row keyrow;u8 y,i,rel;u16 x,width;
+ ClearRaster();pixel_start=pixel_end=256;ui_left=ui_right=0;
+ if((row==0 && (bars&1)) || (row==27 && (bars&2))){
+  glyphs(bar_lines+(row?1:0),8,256);ui_right=256;
+ }
+ if(osk_rows && row>=top+text_rows && row<top+text_rows+osk_rows){
+  memset(&keyrow,0,sizeof(keyrow));keyrow.n=20;memset(keyrow.chars,' ',20);rel=row-top-text_rows;
+  if(rel<4)for(i=0;i<10;++i){y=rel*10+i;if(keys[osk_layer==3?1:osk_layer][y])keyrow.chars[i*2]=keys[osk_layer==3?1:osk_layer][y];}
+  else{memcpy(keyrow.chars,bottom,20);if(osk_layer==3)keyrow.chars[0]=25;}
+  glyphs(&keyrow,4,256);ui_left=4;ui_right=256;
+  if(osk_key!=255 && osk_key/10==rel){pixel_start=4+(osk_key%10)*16;pixel_end=pixel_start+8;}
+ }
+ if(box_width && row>=box_top && row<box_top+box_rows){
+  for(y=0;y<8;++y){memset(shade+(u16)y*256+box_x,0,box_width);Capture();}
+  glyphs(box_lines+(row-box_top),box_x,box_x+box_width);
+  if(!ui_right || box_x<ui_left)ui_left=box_x;
+  if(box_x+box_width>ui_right)ui_right=box_x+box_width;
+  if(row-box_top==box_hi){pixel_start=box_x;pixel_end=box_x+box_width;}
+  for(y=0;y<8;++y){shade[(u16)y*256+box_x]=1;shade[(u16)y*256+box_x+box_width-1]=1;}
+  if(row==box_top || row==box_top+box_rows-1){
+   y=row==box_top?0:7;for(x=box_x;x<box_x+box_width;++x)shade[(u16)y*256+x]=1;
+  }
+ }
+ if(row==0 && busy)for(y=0;y<4;++y)for(i=248;i<252;++i)shade[(u16)y*256+i]=1;
+ if(row==27 && total){width=progress_width();for(x=0;x<width;++x)shade[1792+x]=5;}
+ EncodeRow();PresentOverlay(row);overlay_dirty[row]=0;
 }
 static void pads(void) {
  u16 e;u8 key=0;
@@ -220,11 +278,16 @@ static void pads(void) {
  else if(e&0x0080)key=10;
  else if(e&0x8000)key=8;
  else if(e&0x1000)key=0x89;
+ else if(e&0x0040)key=0x8D; /* X: access the Phase 8 keyboard UI */
+ if(osk_rows && !box_width){
+  if(key>=0x80 && key<=0x83)key=key==0x82?0x9C:key==0x83?0x9D:key==0x80?0x9E:0x9F;
+  else if(key==10)key=0x8E;
+ }
  if(key && qcount<61)enqueue(1,key,0);
 }
 void main(void) {
  u16 frame=65535u;u8 slot;
- memset(dirty,1,28);enqueue(5,1,5);
+ OverlayInit();memset(dirty,1,28);ui_all();enqueue(5,1,5);
  for(;;) {
   Capture();events();
   if(capture_ready&1){capture_ready&=254;page(0);events();}
@@ -245,6 +308,7 @@ void main(void) {
   }
   slot=scan_row++;if(scan_row==28)scan_row=0;
   if(dirty[slot])draw(slot);
+  else if(overlay_dirty[slot])draw_ui(slot);
   if(palette_dirty || cursor_dirty) {
    WaitBlank();
    if(palette_dirty){PresentPalette();palette_dirty=0;}

@@ -22,8 +22,9 @@ def build():
     run('ca65','-o',str(WORK/'kernel.o'),str(WORK/'kernel.s'))
     run('ca65','-o',str(WORK/'hardware.o'),'snes/hardware.s')
     run('ca65','-o',str(WORK/'raster.o'),'snes/raster.s')
+    run('ca65','-o',str(WORK/'overlay.o'),'snes/overlay.s')
     run('ld65','-C','snes/kernel.cfg','-m',str(WORK/'kernel.map'),'-Ln',str(WORK/'kernel.lbl'),
-        '-o',str(WORK/'kernel.bin'),str(WORK/'hardware.o'),str(WORK/'kernel.o'),str(WORK/'raster.o'),'/usr/share/cc65/lib/none.lib')
+        '-o',str(WORK/'kernel.bin'),str(WORK/'hardware.o'),str(WORK/'kernel.o'),str(WORK/'raster.o'),str(WORK/'overlay.o'),'/usr/share/cc65/lib/none.lib')
     labels={name.lstrip('.'):int(at,16) for _,at,name in (line.split() for line in (WORK/'kernel.lbl').read_text().splitlines())}
     image=(WORK/'kernel.bin').read_bytes();split=labels['__FONTS_LOAD__']
     assert image[split:]==assets and len(image)<=65280

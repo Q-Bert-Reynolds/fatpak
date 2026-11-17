@@ -26,3 +26,86 @@ fs_status:: DS 16
 fs_deferred:: DB
 fs_ring:: DB
 fs_tick_frame:: DB
+fs_box_top:: DB
+fs_box_gen:: DB
+fs_box_sel:: DB
+fs_box_line:: DB
+fs_osk_layer:: DB
+fs_osk_key:: DB
+fs_osk_rows:: DB
+fs_busy:: DB
+fs_progress_loaded:: DS 2
+fs_progress_total:: DS 2
+fs_progress_sent:: DS 4
+fs_state_end::
+
+; Consume terminal pad actions in the ordinary editor/name-input context, never
+; while FsPoll is waiting inside a draw. This keeps the GB's OSK state authoritative.
+FIXED "Terminal OSK dispatch"
+_SGBOSKKey::
+  call FarCallInline
+  DB 10
+  DW SGBOSKKey
+DEF TERMINAL_UI_PAGE EQU 10
+PAGE TERMINAL_UI_PAGE
+SGBOSKKey:
+  cp KEY_OSK
+  jr z, .toggle
+  cp KEY_OSK_PRESS
+  jr z, .press
+  cp KEY_OSK_UP
+  ret c
+  cp KEY_OSK_RIGHT+1
+  ret nc
+  sub KEY_OSK_UP
+  ld c, a
+  ld b, 0
+  ld hl, .directions
+  add hl, bc
+  ld a, [_osk_shown]
+  and a
+  ret z
+  ld a, [hl]
+  call .moveCall
+  xor a
+  ret
+.toggle
+  call .toggleCall
+  call _EditorDraw
+  xor a
+  ret
+.press
+  ld a, [_osk_shown]
+  and a
+  ret z
+  call FarCallInline
+  DB 6
+  DW _OSKPress
+  ret
+.moveCall
+  call FarCallInline
+  DB 6
+  DW _OSKMove
+.toggleCall
+  call FarCallInline
+  DB 6
+  DW _OSKToggle
+.directions
+  DB PADF_UP, PADF_DOWN, PADF_LEFT, PADF_RIGHT
+ASSERT BANK(_OSKMove) == 6 && BANK(_OSKToggle) == 6 && BANK(_OSKPress) == 6
+END_PAGE
+
+SECTION "Terminal progress state", ROM0
+_SGBProgress:: ; DE/BC=loaded/total 512-byte sectors; publication is part of FsUI
+  ldh a, [sys_info]
+  bit 2, a
+  ret z
+  ld a, e
+  ldh [fs_progress_loaded], a
+  ld a, d
+  ldh [fs_progress_loaded+1], a
+  ld a, c
+  ldh [fs_progress_total], a
+  ld a, b
+  ldh [fs_progress_total+1], a
+  ret

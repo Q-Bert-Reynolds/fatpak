@@ -257,6 +257,7 @@ void BeginView(unsigned char show_bars) {
   tb_rows = screen_rows - (bars << 1);
   Layout();
   NoHighlight();
+  if (screen_rows != TB_ROWS) ClearScreen(); // legacy modules fill only their original body rows
   dirty = 1;
 }
 

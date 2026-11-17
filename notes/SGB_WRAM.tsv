@@ -17,3 +17,4 @@ WRAMX	overlay loader state	21	request, saved interval/CRC, entry, live flag
 WRAM0_RENDER_UNION	fullscreen render state	160	budget cap including 28-row metadata and selection; Geometry Vars stays separate
 WRAM0_RENDER_UNION	control queue	64	protocol constant
 WRAM0_RENDER_UNION	transport state	16	revised cap after Phase 2; implementation must prove it fits
+HRAM	fullscreen transport	67	Phase 8 actual allocation; includes UI caches and progress state

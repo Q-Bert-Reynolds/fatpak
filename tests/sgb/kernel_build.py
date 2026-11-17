@@ -2,7 +2,7 @@
 """Extract committed transactions from the Phase 5 LCD recording and replay
 through a plain MBC5 ROM. The SNES receives no emulator-injected responses."""
 from pathlib import Path
-import sys,struct,subprocess,gzip
+import sys,struct,subprocess,gzip,os
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'scripts'))
 import sgb_kernel,sgb_protocol as wire
 W=ROOT/'build/sgb'
@@ -39,9 +39,16 @@ def build():
     assert len(raw)%1920==0
     pages=[raw[i:i+1920] for i in range(0,len(raw),1920)]
     for page in pages:wire.decode_page(page)
+    (W/'replay-base.pages').write_bytes(b''.join(pages))
+    if os.environ.get('SGB_KERNEL_UI'):
+        import ui_fixture
+        pages+=ui_fixture.pages()
+        ui_fixture.golden(ROOT,W/'kernel-golden.png')
+    else:
+        (W/'kernel-golden.png').write_bytes((ROOT/'tests/sgb/fixtures/client.png').read_bytes())
     (W/'replay.pages').write_bytes(b''.join(pages));print(f'{len(pages)} frontend pages')
     image=(W/'kernel.bin').read_bytes();image=image.ljust((len(image)+4095)//4096*4096,b'\0');(W/'upload.bin').write_bytes(image)
-    source=(ROOT/'tests/sgb/kernel.asm').read_text()
+    source=('DEF UI_REPLAY EQU 1\n' if os.environ.get('SGB_KERNEL_UI') else '')+(ROOT/'tests/sgb/kernel.asm').read_text()
     source=source.replace('UPLOAD_COUNT',str(len(image)//4096)).replace('PAGE_COUNT',str(len(pages)))
     for off in range(0,len(image),16384):
         source+=f'\nSECTION "Upload{off}", ROMX[$4000],BANK[{1+off//16384}]\nINCBIN "build/sgb/upload.bin",{off},{min(16384,len(image)-off)}\n'

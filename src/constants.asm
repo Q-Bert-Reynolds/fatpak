@@ -55,6 +55,7 @@ DEF ADD_BLOCK          EQU $0400;text added to a large file, PSRAM 512KB up to t
 DEF SGB_FILE_BLOCK     EQU $3B00
 DEF SGB_FILE_BLOCKS    EQU $90
 DEF OVERLAY_BACKUP     EQU $3B90
+DEF SGB_BOX_BLOCK      EQU $3BA0;one protected sector: 19 menu lines, independent of wide rows
 DEF ADD_MAX            EQU $6E0000;stop before the persistent fullscreen image
 DEF TB_SIZE      EQU (TB_BANK_SIZE*TB_BANKS)
 DEF TB_CLIP_OFFSET EQU $0100;the clipboard's text in PSRAM blocks 240-255 (src/sram.asm)
@@ -215,6 +216,12 @@ DEF KEY_MENU      EQU $89;file menu (Escape, on screen keyboard)
 DEF KEY_UNDO      EQU $8A
 DEF KEY_REDO      EQU $8B
 DEF KEY_INFO      EQU $8C;Select in the file browser
+DEF KEY_OSK       EQU $8D;terminal input: toggle the on-screen keyboard
+DEF KEY_OSK_PRESS EQU $8E
+DEF KEY_OSK_UP    EQU $9C
+DEF KEY_OSK_DOWN  EQU $9D
+DEF KEY_OSK_LEFT  EQU $9E
+DEF KEY_OSK_RIGHT EQU $9F
 DEF KEY_MOUSE_ROW EQU $A0; browser rows 0..15, direct selection events ($A0..$AF)
 DEF KEY_F1        EQU $90;function keys are KEY_F1 + n - 1
 DEF KEY_F2        EQU $91

@@ -21,10 +21,12 @@
 // BoxText) with item selected highlighted, returns the chosen index, BACK or CANCEL
 unsigned char Choose(const char* title, unsigned int items, unsigned char count, unsigned char selected) {
   unsigned char i, key, first = title ? BoxText(0, title) : 0;
-  char* line = RowAddress(BOX_LINE) + first * BOX_STRIDE;
-  for (i = 0; i < count; ++i, line += BOX_STRIDE) {
+  char* line;
+  for (i = 0; i < count; ++i) {
+    line = BoxLine(first + i);
     line[0] = ' ';
     PutStr(line + 1, items + i);
+    BoxCommit(first + i);
   }
   EditorShowCursor(0);
   OSKShow(0);
