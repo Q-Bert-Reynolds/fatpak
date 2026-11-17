@@ -1,7 +1,8 @@
 # Super Game Boy fullscreen mode (plan)
 
-Status: **Phase 0a implemented and passing in Mesen; hardware check pending.**
-The fullscreen OS remains planned. **(verify)** marks documented hardware facts
+Status: **Phase 0a passed on hardware; Phases 0b/0c and the Phase 1 protocol
+pass in Mesen/unit tests. Phase 0d budgets are recorded below.** The fullscreen
+OS remains planned; additional hardware results are marked explicitly. **(verify)** marks documented hardware facts
 (fullsnes, Pan Docs) that Phase 0 must confirm. The existing SNES mouse bridge
 uses `DATA_SND` and a BIOS hook while leaving the GB picture visible; it is
 separate from the fullscreen takeover tested here.
@@ -117,7 +118,7 @@ flowchart LR
 | Text cursor sprite, mouse pointer | position/state | ✔ drawing |
 | Reading pads and mouse, key repeat, button → key translation | | ✔ |
 | Pointer movement, acceleration, clamping | | ✔ |
-| Return to the SGB BIOS before a game launch | asks | ✔ performs |
+| Launch/reset handshake | arms cart after acknowledgement | displays reset instruction |
 
 Hit testing is split as well. The SNES sends the pointer as **(screen row, pixel x)**
 and the GB resolves it with the data it already has: `PosAtX` for text rows, the
@@ -126,10 +127,12 @@ The SNES never needs the editor's layout.
 
 ## Wire protocol
 
-The protocol is defined once in `src/sgb/protocol.asm` (`DEF` constants). `build.py`
-already generates `constants.h` from asm and would also generate
-`snes/protocol.inc` (ca65) and a C++ header for the Gearboy test stub. Because all
-three sides come from the same file, the encodings cannot drift apart.
+The canonical v1 constants are in `src/sgb/protocol.asm`. `make sgb-protocol`
+generates `src/sgb/protocol.h`, `snes/protocol.inc` and
+`tests/sgb/protocol.hpp`. The complete wire tables, CRC, publication ordering,
+sequences, recovery limits and SGB.DAT layout are in
+[the Phase 1 specification](SGB_PROTOCOL.md). The following is a design overview;
+that specification governs the exact encodings.
 
 ### GB → SNES: double-buffered LCD pages
 
@@ -140,26 +143,28 @@ fullscreen mode:
 | --- | --- | --- |
 | 0-5 | 0-119 | **Page A**: 1,920 bytes |
 | 6-11 | 120-239 | **Page B**: 1,920 bytes |
-| 12 | 240-259 | **Status row**: heartbeat, busy flag, input-ack sequence. Written by the VBlank handler |
+| 12 | 240-255 | **Status row**: 16 tiles, heartbeat, busy flag, input-ack sequence and CRC. Written by the VBlank handler |
 | 13-17 | blank tile | unused |
 
-Tiles 240-259 cross 255, so the status row either takes its tiles from the `$8800`
-region with one LCDC switch per frame (the renderer already switches LCDC per
-line) or is cut to 16 tiles. This is decided in Phase 0.
+Phase 0b uses 16 status tiles. The last is blank, also used for the remaining
+columns and rows. Unsigned tile addressing fits everything into `$8000-$8FFF`,
+so fullscreen transport needs no LCDC raster switches.
 
-Page format: `[seq][len lo][len hi][commands …][checksum]`. The GB writes the payload
+Page format: `[seq][len lo][len hi][commands …][CRC16 lo][CRC16 hi]`. The GB writes the payload
 and checksum first and the `seq` byte **last**. The SNES captures both pages every
 frame and applies a page whose `seq` is newer than the last applied one and whose
 checksum matches. A capture that tears while the GB is writing fails the checksum
-and is retried on the next frame. The GB only refills a page after the status
-channel acknowledges that page's `seq`, which provides flow control. The map never
-changes, so there are no map writes and no mid-frame tricks beyond the LCDC switch.
+and is retried on the next frame. The GB only refills a page after the mailbox
+acknowledges that page's `seq`, which provides flow control. The map never
+changes, so there are no map writes and no mid-frame LCDC changes.
 
-Budget: the GB writes VRAM only in modes 0/1/2 (the SGB runs DMG-mode, with no
-HDMA). The DMG renderer moves about 320 bytes per row over 40 HBlanks, so expect
-**about 1-1.5 KB per frame**. Phase 0 measures the real figure.
+Measured baseline: the Phase 0b STAT-safe two-byte writer waits for modes 0/1
+and fits its stores into the following mode 2 if necessary, without HDMA. In
+Mesen it peaks at **641 bytes per GB frame**, averaging about **482 bytes per
+active writing frame**. This includes instrumentation; it is below the earlier
+1–1.5 KB estimate. Faster copying and CRC cost must be measured in the backend.
 
-Commands (first draft; Phase 1 fixes the encodings):
+Commands (overview; exact v1 payloads are in the linked specification):
 
 | Command | Payload | Notes |
 | --- | --- | --- |
@@ -173,7 +178,7 @@ Commands (first draft; Phase 1 fixes the encodings):
 | `OSK` | layer, selected key | The SNES draws the 5×10 keyboard from a key table it already has |
 | `PALETTE` | index, 15-bit colors | GBC colors are already BGR555, the SNES format |
 | `BUSY`, `PROGRESS` | on/off, loaded/total KB | Loading box |
-| `LAUNCH` | — | The SNES acknowledges, then returns to the BIOS (see Game launch) |
+| `LAUNCH` | RESET_REQUIRED | The SNES acknowledges, then displays the reset instruction (see Game launch) |
 | `HELLO` / `RESET` | protocol version | Handshake and full redraw |
 
 Big data never goes through a separate queue. The page writer serializes **dirty
@@ -188,14 +193,15 @@ The SNES sets the ICD2 to 4-player mode and writes 4 bytes. The GB reads all 4
 (8 nibble reads plus ID advances, about 200 cycles) once per frame in
 `UpdateInput`.
 
-- byte 0: event sequence number (writer updates bytes 1-3 first, byte 0 last; the GB reads byte 0 before and after and accepts only if both match)
+- byte 0: event sequence 1–127 with bit 7 busy. The writer marks busy before
+  updating bytes 1–3, then commits; the GB accepts only equal, nonbusy before/after reads
 - byte 1: event type
 - bytes 2-3: payload
 
 | Event | Payload | GB action |
 | --- | --- | --- |
 | `KEY` | key code, modifiers | Pushed into `kb_event_buffer` exactly like a PS/2 key (`KEY_*` codes from `constants.asm`) |
-| `MOUSE_DOWN` / `MOUSE_DRAG` / `MOUSE_UP` | screen row (5 bits) + button, pixel x | New mouse handler (below) |
+| `MOUSE_DOWN` / `MOUSE_DRAG` / `MOUSE_UP` / `MOUSE_MOVE` | screen row (5 bits) + button, pixel x | New mouse handler (below) |
 | `HELLO` / `ACK` | protocol version / page seq | Handshake; page flow control also arrives this way |
 
 The SNES keeps a ring of pending events and advances when the GB's status row
@@ -256,7 +262,7 @@ the GB renderer uses) are the first optimization.
 
 | Piece | Job |
 | --- | --- |
-| `sgb/boot.asm` | After `sgb_Init` detects an SGB: check `/GBCSYS/SGB.DAT` (already loaded into PSRAM next to `EDITOR.DAT`), upload the SNES blob with `sgb_CopyToWRAM` (4 KB `DATA_TRN` chunks, about 12 chunks, about 1-2 s), send `JUMP`, wait for `HELLO` in the mailbox with a timeout. On success set `SYS_INFO_SGBFS`; on failure keep today's SGB mode |
+| `sgb/boot.asm` | After `sgb_Init` detects an SGB: load and validate `/GBCSYS/SGB.DAT` into PSRAM next to `EDITOR.DAT`, upload the SNES blob with the Phase 0a DATA_TRN path (4 KB `DATA_TRN` chunks, about 12 chunks, about 1-2 s), send `JUMP`, wait for `HELLO` in the mailbox with a timeout. On success set `SYS_INFO_SGBFS`; on failure keep today's SGB mode |
 | `sgb/transport.asm` | Page writer (STAT-safe VRAM copies, the DMG loop pattern), status row in VBlank, mailbox reader |
 | `sgb/display.asm` | Backend that replaces `RenderRow`, `Layout`/`RenderStage`, `RenderBox`, `PlaceCursor`'s sprite write, `RenderSetPalettes`, `ShowBusy` and `ShowGameProgress` drawing. It turns them into protocol commands |
 | `sgb/input.asm` | Mailbox events → `kb_event_buffer`; mouse events → `HandleMouse` |
@@ -348,28 +354,20 @@ through the existing GB driver.
 
 ## Game launch, cart menu, return to OS
 
-This is the highest-risk area and is prototyped first (Phase 0c).
+Phase 0c selects the **manual SNES reset fallback for v1**. The GB loads the
+ROM while the SNES displays progress, exchanges `LAUNCH` / `LAUNCH_READY`
+(mode RESET_REQUIRED), then arms the stock `_GameLaunch` handoff. The SNES
+shows a reset instruction. A console reset permits a fresh BIOS/GB handshake.
+The full armed-cart sequence, cart menu and warm return remain Phase 10
+hardware checks; they have not been tested from the fullscreen terminal.
 
-1. The browser picks a ROM, and `LaunchGame` loads it with progress shown via
-   `PROGRESS`.
-2. The GB sends `LAUNCH`, the SNES acknowledges, and the GB does the stock
-   `_GameLaunch` handoff (`$BD07`, then wait for reset/boot).
-3. The SNES **returns control to the SGB BIOS** by jumping to its reset vector.
-   The BIOS reinitializes and resets the GB through the ICD2. The hypothesis is
-   that the EverDrive's armed launch then boots the game with the real SGB boot
-   handshake, so SGB games get their borders.
-4. The cart-button menu runs under the BIOS and stays GB-rendered, as today.
-5. Return to OS → `WarmMain` → SGB detected → the blob is uploaded again and
-   `JUMP` runs (about 1-2 s; the BIOS may have overwritten it).
-
-If step 3 fails (for example the GB reset returns to the EverDrive menu instead of
-the game), fallbacks in order:
-
-- Return to the BIOS **before** loading (the BIOS doesn't reset the GB on a plain
-  jump into its main loop, if that's possible), then load with the GB renderer.
-- Launch without SGB features.
-- Show "press SNES reset to start the game" (the EverDrive already boots an armed
-  game on reset).
+`handoff.gb` proves a non-destructive JUMP can return through a bank-0 RTS
+without resetting the GB, with BIOS commands, video and pad polling restored.
+It preserves the BIOS's PPU rather than replacing it. It therefore does not
+prove restoring the fullscreen renderer's replaced VRAM/CGRAM, nor an automatic
+BIOS reset with an armed EverDrive. Automatic BIOS-first launch remains deferred
+until those operations are verified. Returning to the OS must restore the host
+renderer overlay, reload/re-bootstrap the SNES image, and rebuild the display.
 
 ## Build order
 
@@ -378,11 +376,11 @@ features it tests. Each phase has an exit check.
 
 | # | Phase | Contents | Done when |
 | --- | --- | --- | --- |
-| 0a | **Hello SNES** | cc65 + Mesen 2 set up. `build/sgb/hello.gb` (a plain ROM, no EverDrive) uploads a 65816 stub with `DATA_TRN` + `JUMP`, and the SNES paints a color | **Mesen passes; hardware pending.** Requires fullscreen green when launched from FatPak |
-| 0b | **Channel bench** | Same ROM: the GB streams pages, the SNES counts good/torn pages; mailbox round trip; GB VRAM write rate | Measured bytes/frame, tear rate, latency; protocol constants updated |
-| 0c | **BIOS handoff** | After `JUMP`, return to the BIOS and launch a game via the EverDrive | A known SGB game boots with its border, or a fallback is chosen |
-| 0d | **Budgets** | WRAM spreadsheet, ROM plan (overlay or move tables), `$7F` load address check | Written into this doc |
-| 1 | **Protocol spec** | `src/sgb/protocol.asm` → `.h` / `.inc` / `.hpp` generation; encode/decode round-trip tests in Python | Unit tests pass |
+| 0a | **Hello SNES** | cc65 + Mesen 2 set up. `build/sgb/hello.gb` (a plain ROM, no EverDrive) uploads a 65816 stub with `DATA_TRN` + `JUMP`, and the SNES paints a color | **Passed in Mesen and on hardware:** user confirmed the whole TV was green |
+| 0b | **Channel bench** | Same ROM: the GB streams pages, the SNES counts good/torn pages; mailbox round trip; GB VRAM write rate | **Mesen passed:** 66 good pages, deliberate rejection/retry, zero missed rows; measurements below. Hardware pending |
+| 0c | **BIOS handoff** | After `JUMP`, return to the BIOS and launch a game via the EverDrive | **Fallback chosen:** manual SNES reset. Non-destructive BIOS return passes in Mesen; full cart cycle remains a hardware check |
+| 0d | **Budgets** | WRAM spreadsheet, ROM plan (overlay or move tables), `$7F` load address check | **Recorded:** spreadsheet + audited WRAM/ROM plan and bank $7F test below |
+| 1 | **Protocol spec** | `src/sgb/protocol.asm` → `.h` / `.inc` / `.hpp` generation; encode/decode round-trip tests in Python | **Passed:** reference codecs, generation freshness and all four language consumers |
 | 2 | **Geometry refactor** | Runtime row width/rows, stride-64 layout union, row-address table. No SGB code yet | **All existing Gearboy integration tests pass on DMG and CGB** with unchanged behavior |
 | 3 | **Gearboy SGB host stub** | See Testing. `JUMP`/`DATA_TRN` capture, page decoder, reference renderer, mailbox injection, MCP/test hooks | It decodes Phase 0b's bench ROM stream correctly |
 | 4 | **Overlay loader** | General overlay infrastructure (TODO item) loads the SGB backend page from `SGB.DAT` | A trivial overlay round-trips in tests |
@@ -428,18 +426,160 @@ MesenCE build and `~/Downloads/program.rom` / `sgb1.boot.rom`.
 from FatPak on the SGB. After a brief checkerboard, the whole visible SNES
 picture should become solid bright green, with no GB window or border.
 **Reset the SNES to leave this probe**: it intentionally owns the PPU forever;
-returning to the BIOS is Phase 0c. Report whether green fills the screen and
-which SGB revision was used. Until this succeeds, Phase 0a is not complete.
-Next is Phase 0b's LCD channel benchmark; no throughput, tear-rate or page
-protocol claims are established by the hello test.
+returning to the BIOS has a separate Phase 0c probe. **Hardware result
+(2026-11-16): user confirmed the entire TV was green.** SGB revision was not
+recorded. This completes 0a; the hello test alone establishes no throughput
+or page-protocol claims.
 
 GB diagnostics for the emulator/debugger: `$C100` is the phase (0 boot,
 1 SGB detected, 2 payload staged, 3 DATA_TRN sent, 4 JUMP sent, 5 reply received,
 `$E0` no SGB), and `$C101` is the last reply. The reset/launch/return sequence,
-SGB2 behavior, wider `$7F` memory ownership and the geometry/overlay budgets
-remain unverified. Command formats follow
+SGB2 behavior and the complete armed-game launch/return cycle remain
+unverified. Subsequent emulator measurements and budgets follow below. Command formats follow
 [Pan Docs system commands](https://eldred.fr/pandocs/SGB_Command_System.html);
 PPU setup follows [fullsnes](https://problemkaputt.de/fullsnes.htm).
+
+### Phase 0b: channel benchmark
+
+`make test-sgb-bench` builds `build/sgb/bench.gb` and runs it against the real
+SGB1 BIOS in Mesen. `make sgb-bench` builds only, ready to launch from FatPak.
+The TV shows hex counters; stage 4 means finished. Reset the SNES to exit.
+Artifacts include `bench.png`, `bench-result.txt` and `bench-metrics.json`.
+
+It alternates A/B through 32 acknowledged pages, publishes an intentionally bad
+checksum, waits for a NACK, repairs that same sequence and waits for ACK, then
+sends 32 pages without waiting for ACK and finishes with a drained, acknowledged
+page. It writes 67 × 1921 = 128,707 bytes (including each commit byte). The
+SNES polls `$6000`, DMAs 320 bytes from each completed buffer to WRAM through
+`$2180`, and validates 32 words per main-loop slice. Validation is abandoned
+if capture of the same page restarts. Numeric display updates run only while
+the GB is capturing unused tail rows, preserving the capture service budget.
+The GB uses a fixed map and only VBlank interrupts; there is no raster ISR.
+
+Reference Mesen run (default SGB1 clock setting):
+
+| Measurement | Result |
+| --- | --- |
+| Accepted unique page sequences | 66 |
+| Rejected captures | 4 (includes the injected checksum fault and stress) |
+| Missed transport rows after status synchronization | 0 |
+| GB bytes written | 128,707 |
+| Active writing frames | 267 |
+| Mean bytes / active frame | 482.05 |
+| Peak bytes / frame | 641 |
+| Maximum commit-to-ACK delay | 2 GB frames |
+
+Counter boundaries are 16-byte chunks, so frame attribution can shift by up to
+15 bytes. Active-frame rate excludes WRAM payload/checksum preparation, waiting
+for ACK, warmup and idle frames. The observed reject count depends on capture
+phase; it is **not a normal-operation error rate**. The test requires successful
+flow control and intentional rejection, not an exact stress reject count.
+This polling benchmark does not establish the final rasterizer/IRQ CPU budget.
+Its fixed-length header and additive word checksum are test-only; v1 uses the
+stronger CRC-16 format in SGB_PROTOCOL.md and still needs backend performance
+measurement. The status-row/map choice is now fixed in the canonical constants.
+
+Hardware counters for this probe remain unrecorded; 0a is the hardware-confirmed
+transport bootstrap. This does not block the explicitly requested Phase 1 spec.
+
+### Phase 0c: BIOS return probe and chosen fallback
+
+`make test-sgb-handoff` / `make sgb-handoff` produces `build/sgb/handoff.gb`.
+It uploads a non-destructive SNES stub that preserves registers, direct page,
+stack and PPU; holds the BIOS for 120 SNES VBlanks; then returns through an RTS
+at `$001800` in bank 0. GB code keeps running, changes its checkerboard and
+queues MASK_EN cancel. The Mesen test checks execution of the return trampoline,
+GB survival, resumed pad input, and that the new checkerboard becomes visible.
+This passes. It deliberately does not modify the PPU, so full display-state
+restoration is not claimed. No EverDrive mapper exists in this Mesen harness.
+
+The v1 launch mode is RESET_REQUIRED, with the complete armed-cart behavior
+still reserved for Phase 10 hardware testing. This is the explicit fallback
+choice permitted by 0c's exit condition; automatic launch is not marked proven.
+The probe restores a small diagnostic BIOS path, not the final fullscreen OS.
+
+### Phase 0d: measured baseline and allocation plan
+
+The spreadsheet is [SGB_WRAM.tsv](SGB_WRAM.tsv). `make sgb-budget` checks its
+sums against `build/main.map` and writes `build/sgb/budget.json` (build the OS
+first if that map is absent). Baseline: 1 free WRAM0 byte, 33 free WRAMX bytes,
+41 fragmented ROM0 bytes, and 0–24 bytes free per OS page. New state must replace
+renderer storage rather than add allocations beside it.
+
+| Proposed fullscreen WRAMX use | Bytes |
+| --- | ---: |
+| 28 × 64 characters | 1792 |
+| 28 × 64 width/style attributes | 1792 |
+| 29 lexer boundary states | 58 |
+| Two 28-entry row-address tables | 112 |
+| 28 row hashes | 56 |
+| Existing lexer scratch | 101 |
+| Existing string/name buffers | 80 |
+| String slots, mouse, palette and module state | 79 |
+| **Total / free out of 4096** | **4070 / 26** |
+
+Choose **stride 64**, with the fullscreen allocation in a union with today's
+GB buffers. This includes all 28 screen rows, not just 26 text rows. UI command
+serialization must reuse a bar/UI row or stream existing strings; there is no
+additional full-row scratch allocation. Underlying menu-covered text lives in
+the SNES model and is rescanned by the GB when needed. Font widths (256 bytes),
+FatFs state and the 1 KiB stack stay outside this union. Existing wide-module
+BSS save/restore still borrows its first 3072 bytes; geometry/module tests must
+cover that interaction.
+
+The current WRAM0 `Render Vars` section is 305 bytes. Budget its replacement as
+160 bytes of fullscreen geometry/selection/box state, a 64-byte control queue,
+and 32 bytes of transport state: **256 bytes, leaving 49**. This is an allocation
+cap for Phase 2/5, not an implemented layout. Preserve geometry helpers and all
+fields still used by content/layout code; union only state whose mode is dead.
+
+**ROM choice:** install the GB backend as an overlay of the always-mapped
+fixed renderer, currently 4677 bytes at `$4000–$5244`. It contains pixel code
+and font data, so Phase 4 must retain/replace shared metric helpers and provide
+stable entry stubs/relocations; the whole range is not blindly disposable.
+The 1257-byte ROM0 renderer also offers code to move out behind small dispatch
+entries. Keep boot/UI font fallback and metric semantics intact. Save the
+original interval in PSRAM and restore it before normal-mode recovery/launch.
+Do not put a long-lived display backend in page 13: modules borrow that page,
+and their progress callbacks must still draw. The file's overlay is bound to
+the host OS checksum/overlay ABI. The padded container page is not permission
+to overwrite beyond the audited fixed interval.
+
+**SNES allocation proposal (not the final linker script):**
+
+| WRAM range | Purpose |
+| --- | --- |
+| `$7E0000–$7E1FFF` | Direct page, stack, BIOS vector `$0000BB–BD` preserved |
+| `$7E2000–$7E3FFF` | Two capture generations for A/B plus status |
+| `$7E4000–$7E4FFF` | 28-row display model and row metadata |
+| `$7E5000–$7E5FFF` | Four 1 KiB row raster buffers |
+| `$7E6000–$7E63FF` | Input events, DMA queue and palettes |
+| `$7E6400–$7E6FFF` | Glyph/protocol/debug scratch |
+| `$7E7000–$7EFFFF` | Spare |
+| `$7F0000–$7FBFFF` | Up to 48 KiB program and fonts |
+| `$7FC000–$7FFFFF` | Spare |
+
+Hello proved loading/execution at `$7F0000` on hardware. The benchmark now also
+writes and reads a position-dependent 16-bit pattern throughout
+`$7F1000–$7FFFFF` before capture starts, excluding its loaded 4 KiB program.
+`RAM AUDIT=0000` indicates success; the Mesen test requires it. This checks
+addressing/storage while our SNES code owns the machine, not that a running
+BIOS would preserve overwritten WRAM. The proposed `$7E` allocations rely on
+the manual-reset launch policy; returning to the original BIOS with its WRAM
+intact would require a different preservation plan. SGB2 and hardware bank
+coverage beyond the hello block remain unrecorded.
+
+### Phase 1: executable specification
+
+[Protocol v1](SGB_PROTOCOL.md) fixes TLV commands, RLE attributes, CRC-16 pages,
+global page ordering, a busy-marked mailbox with hover events, status echo and
+launch policy. It also specifies the 32-byte SGB.DAT container with full-image
+CRC and host-bound renderer overlay metadata. `make test-sgb-protocol` passes:
+all command/event round trips, malformed/truncated/corrupt inputs, RLE bounds,
+sequence rollover/replay, status tears, container bounds/host mismatch, generated
+file freshness and compilation by RGBDS, ca65, C and C++. These are reference
+codecs and shared headers; no fullscreen app backend or installed SGB.DAT is
+claimed yet. Phase 2 geometry work is next.
 
 ## Testing
 

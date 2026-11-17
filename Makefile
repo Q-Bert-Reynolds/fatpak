@@ -24,7 +24,7 @@ C_LIBS    = $(wildcard $(SRC_DIR)/*/lib/*.c) $(wildcard $(SRC_DIR)/*/lib/*.h)
 # Preserve raw output: page placement and cross-module call resolution run together.
 C_RAW     = $(patsubst %.c,$(BUILD_DIR)/c/%.asm,$(C_SOURCES))
 
-.PHONY: all code modules assemble run assets clean sgb-hello test-sgb-hello
+.PHONY: all code modules assemble run assets clean sgb-hello test-sgb-hello sgb-bench test-sgb-bench sgb-handoff test-sgb-handoff sgb-protocol test-sgb-protocol sgb-budget
 
 all: clean assets assemble run
 
@@ -35,7 +35,29 @@ sgb-hello:
 	$(PYTHON) tests/sgb/build.py
 
 test-sgb-hello: sgb-hello
-	bash tests/sgb/run_hello.sh
+	bash tests/sgb/run.sh hello
+
+sgb-bench:
+	$(PYTHON) tests/sgb/build.py bench
+
+test-sgb-bench: sgb-bench
+	bash tests/sgb/run.sh bench
+
+sgb-handoff:
+	$(PYTHON) tests/sgb/build.py handoff
+
+test-sgb-handoff: sgb-handoff
+	bash tests/sgb/run.sh handoff
+
+sgb-protocol:
+	$(PYTHON) scripts/sgb_protocol.py
+
+test-sgb-protocol:
+	$(PYTHON) scripts/sgb_protocol.py --check
+	$(PYTHON) tests/test_sgb_protocol.py
+
+sgb-budget:
+	$(PYTHON) scripts/sgb_budget.py
 
 # Module SDK/host headers: scripts/module_build.py rewrites them only when their content changes.
 MODULE_HEADERS = $(BUILD_DIR)/modules/sdk.h $(BUILD_DIR)/modules/modules.h
@@ -61,7 +83,7 @@ modules: $(SRC_DIR)/constants.h $(SRC_DIR)/strings.h $(MODULE_HEADERS)
 	$(PYTHON) scripts/strings.py
 	$(PYTHON) scripts/module_build.py
 
-assemble: modules $(C_RAW)
+assemble: sgb-protocol modules $(C_RAW)
 	@mkdir -p $(BUILD_DIR) $(BIN_DIR)
 	$(PYTHON) scripts/bank_split.py --build-dir $(BUILD_DIR) $(C_SOURCES)
 	$(PYTHON) scripts/ingame_menu.py
@@ -102,6 +124,7 @@ assets:
 	@mkdir -p $(BIN_DIR)
 
 	$(PYTHON) scripts/build.py 
+	$(PYTHON) scripts/sgb_protocol.py
 	$(PYTHON) scripts/img2rgbds.py
 	$(PYTHON) scripts/fonts.py
 	$(PYTHON) scripts/keywords.py

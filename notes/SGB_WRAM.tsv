@@ -1,0 +1,17 @@
+region	item	bytes	basis
+WRAMX	characters	1792	28 rows * 64 bytes
+WRAMX	attributes	1792	28 rows * 64 bytes
+WRAMX	lexer row states	58	29 boundaries * 2 bytes
+WRAMX	character row addresses	56	28 * 2
+WRAMX	attribute row addresses	56	28 * 2
+WRAMX	row hashes	56	28 * 2
+WRAMX	lexer scratch	101	current tb_state through tb_check_state (inclusive)
+WRAMX	string buffer	64	preserved
+WRAMX	name buffer	16	preserved
+WRAMX	localized string slots	48	preserved
+WRAMX	mouse state	18	preserved budget; fullscreen replacement must fit
+WRAMX	palette scratch	8	preserved
+WRAMX	module state	5	preserved
+WRAM0_RENDER_UNION	fullscreen render state	160	budget cap including 28-row geometry and selection arrays
+WRAM0_RENDER_UNION	control queue	64	protocol constant
+WRAM0_RENDER_UNION	transport state	32	budget cap

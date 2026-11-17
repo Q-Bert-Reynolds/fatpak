@@ -1,7 +1,7 @@
-; Plain ROM: no EverDrive registers, OS pages, overlays or external data files.
+; Shared Phase 0 bootstrap: plain ROM, no EverDrive registers or OS files.
+; build.py supplies PROBE_ENTRY/PROBE_NMI/PROBE_NAME and the probe variant.
 INCLUDE "src/hardware.inc"
 INCLUDE "src/sgb/commands.asm"
-INCLUDE "build/sgb/hello.inc"
 
 DEF PHASE EQU $C100
 DEF REPLY EQU $C101
@@ -148,7 +148,13 @@ ENDR
   ld a, 5
   ld [PHASE], a
 .done
+IF DEF(SGB_BENCH)
+  jp Bench
+ELIF DEF(SGB_HANDOFF)
+  jp Handoff
+ELSE
   jr .done
+ENDC
 
 LCDOff:
   ldh a, [rLCDC]
@@ -174,10 +180,16 @@ Freeze: DB (SGB_CODE_MASK_EN << 3) | 1, 1
 Transfer: DB (SGB_CODE_DATA_TRN << 3) | 1, 0, 0, $7F
   DS 12
 Jump: DB (SGB_CODE_JUMP << 3) | 1
-  DW HELLO_ENTRY & $FFFF
-  DB HELLO_ENTRY >> 16
-  DW HELLO_NMI & $FFFF
-  DB HELLO_NMI >> 16
+  DW PROBE_ENTRY & $FFFF
+  DB PROBE_ENTRY >> 16
+  DW PROBE_NMI & $FFFF
+  DB PROBE_NMI >> 16
   DS 9
-Payload: INCBIN "build/sgb/hello.bin"
+Payload: INCBIN "build/sgb/{PROBE_NAME}.bin"
 ASSERT @-Payload == 4096
+IF DEF(SGB_BENCH)
+  INCLUDE "tests/sgb/bench.asm"
+ENDC
+IF DEF(SGB_HANDOFF)
+  INCLUDE "tests/sgb/handoff.asm"
+ENDC
