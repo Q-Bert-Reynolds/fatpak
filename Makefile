@@ -24,7 +24,7 @@ C_LIBS    = $(wildcard $(SRC_DIR)/*/lib/*.c) $(wildcard $(SRC_DIR)/*/lib/*.h)
 # Preserve raw output: page placement and cross-module call resolution run together.
 C_RAW     = $(patsubst %.c,$(BUILD_DIR)/c/%.asm,$(C_SOURCES))
 
-.PHONY: all code modules assemble run assets clean sgb-hello test-sgb-hello sgb-bench test-sgb-bench sgb-handoff test-sgb-handoff sgb-protocol test-sgb-protocol sgb-budget
+.PHONY: all code modules assemble run assets clean sgb-hello test-sgb-hello sgb-bench test-sgb-bench test-sgb-bench-timeout sgb-handoff test-sgb-handoff sgb-protocol test-sgb-protocol sgb-budget
 
 all: clean assets assemble run
 
@@ -42,6 +42,10 @@ sgb-bench:
 
 test-sgb-bench: sgb-bench
 	bash tests/sgb/run.sh bench
+
+test-sgb-bench-timeout: sgb-bench
+	SGB_BENCH_TIMEOUT=ack SGB_TEST_SCRIPT="$(CURDIR)/tests/sgb/bench_timeout.lua" bash tests/sgb/run.sh bench
+	SGB_BENCH_TIMEOUT=nack SGB_TEST_SCRIPT="$(CURDIR)/tests/sgb/bench_timeout.lua" bash tests/sgb/run.sh bench
 
 sgb-handoff:
 	$(PYTHON) tests/sgb/build.py handoff

@@ -124,7 +124,7 @@ Entry:
  lda #0
  sta $2119
  inx
- cpx #512
+ cpx #22*32
  bne @labels
  lda #0
  sta $2121
@@ -398,6 +398,10 @@ Validate:
 .a8
  lda #2
 @publish:
+ sta $1028
+ lda Seq
+ sta $1029
+ lda $1028
  pha
  lda Seq
  ora #$80
@@ -466,7 +470,26 @@ Nmi:
  and #$00ff
  ldx #$11b4
  jsr Hex
+ lda f:$7f2f10
+ xba
+ ldx #$11f4
+ jsr Hex
+ lda f:$7f2f12
+ and #$00ff
+ ldx #$1214
+ jsr Hex
+ lda f:$7f2f13
+ xba
+ ldx #$1234
+ jsr Hex
+ lda f:$7f2f15
+ xba
+ ldx #$1254
+ jsr Hex
 @noStatus:
+ lda $1028
+ ldx #$1274
+ jsr Hex
  lda $1026
  ldx #$11d4
  jsr Hex

@@ -15,6 +15,7 @@ emu.addEventCallback(function(cpu)
  if cpu~=emu.cpuType.snes or finished then return end
  frame=frame+1
  if gb(0xc100)==6 and not done then done=frame end
+ if gb(0xc100)==0xe1 then finish(false,'mailbox timeout stage='..gb(0xc130)..' tx='..gb(0xc132)..' rx='..gb(0xc134)..' flags='..gb(0xc135));return end
  if not done then
   if frame>1800 then finish(false,'bench timeout phase='..gb(0xc100)..' stage='..gb(0xc130)..' tx='..gb(0xc132)..' rx='..gb(0xc134)..' flags='..gb(0xc135)..' good='..word(sw,0x1002)..' bad='..word(sw,0x1004)) end
   return
@@ -27,6 +28,18 @@ emu.addEventCallback(function(cpu)
  -- The diagnostic shown on hardware must also reach DONE, not just the GB.
  if emu.read(2*0x1077,emu.memType.snesVideoRam)~=20 then
   finish(false,'SNES diagnostic did not display stage 4');return
+ end
+ -- Verify the final mailbox diagnostics, including the raw rejected-read view.
+ local function shown(address,expected)
+  for i=1,#expected do
+   if emu.read(2*(address+i-1),emu.memType.snesVideoRam)~=string.byte(expected,i)-32 then return false end
+  end
+  return true
+ end
+ if not shown(0x11f4,'4242') or not shown(0x1214,'0001') or
+    not shown(0x1234,'4242') or not shown(0x1254,'0001') or
+    not shown(0x1274,'4201') then
+  finish(false,'SNES mailbox diagnostics incorrect');return
  end
  local metrics=string.format('{"good":%d,"bad":%d,"missed_rows":%d,"gb_frames":%d,"bytes":%d,"active_frames":%d,"peak_bytes_per_frame":%d,"rtt_max_frames":%d}',good,bad,miss,word(gb,0xc110),total,active,peak,rtt)
  local out=assert(io.open('metrics.json','w'));out:write(metrics..'\n');out:close()

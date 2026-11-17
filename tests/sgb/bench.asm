@@ -17,6 +17,7 @@ DEF RejectCount EQU $C138
 DEF SentFrame EQU $C13A
 DEF Dest EQU $C13C
 DEF TestCount EQU $C13E
+DEF RawReply EQU $C140 ; B/E commit reads, C page, D flags
 DEF TxBuffer EQU $C200
 SECTION "Bench VBlank", ROM0[$40]
   jp BenchVBlank
@@ -25,7 +26,7 @@ Bench:
   di
   call LCDOff
   ld hl, $C110
-  ld b, $30
+  ld b, $40
   xor a
 .clear
   ld [hli], a
@@ -100,6 +101,11 @@ Bench:
   inc [hl]
   call BenchCopy
 .badWait
+  call BenchPoll
+  jr nc, .badRead
+  ld a, $E2
+  jp BenchTimeout
+.badRead
   call BenchRead
   ld a, [RxSeq]
   ld hl, TxSeq
@@ -255,6 +261,11 @@ BenchPrepare:
   ld [TxBuffer], a
   ret
 BenchAck:
+  call BenchPoll
+  jr nc, .read
+  ld a, $E1
+  jp BenchTimeout
+.read
   call BenchRead
   ld a, [RxSeq]
   ld hl, TxSeq
@@ -281,8 +292,35 @@ BenchAck:
   ret nc
   inc [hl]
   ret
+; Poll at most once per GB frame, with a bounded commit-to-reply wait.
+; Preserve the raw response even when the seqlock rejects it.
+BenchPoll:
+  ld b, 1
+  call BenchWait
+  ld a, [GBFrame]
+  ld hl, SentFrame
+  sub [hl]
+  cp 120
+  ccf
+  ret
+BenchTimeout:
+  ld [Stage], a
+  ld a, $E1
+  ld [PHASE], a
+.hold
+  halt
+  jr .hold
 BenchRead:
   call SNESMouseRead
+  ld hl, RawReply
+  ld a, b
+  ld [hli], a
+  ld a, e
+  ld [hli], a
+  ld a, c
+  ld [hli], a
+  ld a, d
+  ld [hli], a
   ld a, b
   cp e
   ret nz
@@ -381,7 +419,22 @@ BenchVBlank:
   ld [hli], a
   ld a, [RttMax]
   ld [hli], a
+  ld a, [TxSeq]
+  ld [hli], a
+  ld a, [RxSeq]
+  ld [hli], a
+  ld a, [RxFlags]
+  ld [hli], a
+  ld de, RawReply
+  ld b, 4
+.raw
+  ld a, [de]
+  inc de
+  ld [hli], a
+  dec b
+  jr nz, .raw
   xor a
+  ld [hli], a
   ld [FrameBytes], a
   ld [FrameBytes+1], a
   pop hl

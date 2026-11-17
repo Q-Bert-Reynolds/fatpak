@@ -18,7 +18,9 @@ def build(probe="hello"):
     if probe == 'bench':
         rows = ['', 'PHASE 0B LCD CHANNEL', '', 'STAGE', 'GOOD', 'BAD', 'MISSED',
                 'ROWS', 'GB FRAMES', 'BYTES LO', 'BYTES HI', 'ACTIVE', 'PEAK',
-                'RTT MAX', 'RAM AUDIT', 'RESET SNES TO EXIT']
+                'RTT MAX', 'RAM AUDIT', 'TX / RX', 'RX FLAGS',
+                'RAW B / E', 'RAW C / D', 'SNES SEQ / FLAG',
+                '4 DONE E1/E2 TIMEOUT', 'RESET SNES TO EXIT']
         (WORK / 'bench.screen').write_bytes(bytes(ord(c)-32 for row in rows
             for c in ('  ' + row).ljust(32)))
     run('ca65', '-o', str(WORK / f'{probe}.o'), f'tests/sgb/{probe}.s')

@@ -377,7 +377,7 @@ features it tests. Each phase has an exit check.
 | # | Phase | Contents | Done when |
 | --- | --- | --- | --- |
 | 0a | **Hello SNES** | cc65 + Mesen 2 set up. `build/sgb/hello.gb` (a plain ROM, no EverDrive) uploads a 65816 stub with `DATA_TRN` + `JUMP`, and the SNES paints a color | **Passed in Mesen and on hardware:** user confirmed the whole TV was green |
-| 0b | **Channel bench** | Same ROM: the GB streams pages, the SNES counts good/torn pages; mailbox round trip; GB VRAM write rate | **Mesen passed:** 66 good pages, deliberate rejection/retry, zero missed rows; measurements below. Hardware pending |
+| 0b | **Channel bench** | Same ROM: the GB streams pages, the SNES counts good/torn pages; mailbox round trip; GB VRAM write rate | **Mesen passed:** 66 good pages, deliberate rejection/retry, zero missed rows; measurements below. Hardware stalls waiting for the first reply; investigation below |
 | 0c | **BIOS handoff** | After `JUMP`, return to the BIOS and launch a game via the EverDrive | **Fallback chosen:** manual SNES reset. Non-destructive BIOS return passes in Mesen; full cart cycle remains a hardware check |
 | 0d | **Budgets** | WRAM spreadsheet, ROM plan (overlay or move tables), `$7F` load address check | **Recorded:** spreadsheet + audited WRAM/ROM plan and bank $7F test below |
 | 1 | **Protocol spec** | `src/sgb/protocol.asm` → `.h` / `.inc` / `.hpp` generation; encode/decode round-trip tests in Python | **Passed:** reference codecs, generation freshness and all four language consumers |
@@ -444,6 +444,11 @@ PPU setup follows [fullsnes](https://problemkaputt.de/fullsnes.htm).
 `make test-sgb-bench` builds `build/sgb/bench.gb` and runs it against the real
 SGB1 BIOS in Mesen. `make sgb-bench` builds only, ready to launch from FatPak.
 The TV shows hex counters; stage 4 means finished. Reset the SNES to exit.
+ACK/NACK polling now runs once per GB frame. An unanswered commit stops the
+sender after 120 GB frames: stage E1 means ACK timeout, E2 means NACK timeout.
+Counters continue updating so a live capture loop is distinguishable from a
+stopped GB sender. `make test-sgb-bench-timeout` suppresses each reply type in
+Mesen and verifies both timeout stages and their on-screen diagnostics.
 Artifacts include `bench.png`, `bench-result.txt` and `bench-metrics.json`.
 
 It alternates A/B through 32 acknowledged pages, publishes an intentionally bad
@@ -461,13 +466,13 @@ Reference Mesen run (default SGB1 clock setting):
 | Measurement | Result |
 | --- | --- |
 | Accepted unique page sequences | 66 |
-| Rejected captures | 4 (includes the injected checksum fault and stress) |
+| Rejected captures | 5 (includes the injected checksum fault and stress) |
 | Missed transport rows after status synchronization | 0 |
 | GB bytes written | 128,707 |
-| Active writing frames | 267 |
-| Mean bytes / active frame | 482.05 |
+| Active writing frames | 268 |
+| Mean bytes / active frame | 480.25 |
 | Peak bytes / frame | 641 |
-| Maximum commit-to-ACK delay | 2 GB frames |
+| Maximum commit-to-ACK delay | 3 GB frames |
 
 Counter boundaries are 16-byte chunks, so frame attribution can shift by up to
 15 bytes. Active-frame rate excludes WRAM payload/checksum preparation, waiting
@@ -479,8 +484,29 @@ Its fixed-length header and additive word checksum are test-only; v1 uses the
 stronger CRC-16 format in SGB_PROTOCOL.md and still needs backend performance
 measurement. The status-row/map choice is now fixed in the canonical constants.
 
-Hardware counters for this probe remain unrecorded; 0a is the hardware-confirmed
-transport bootstrap. This does not block the explicitly requested Phase 1 spec.
+Hardware report (2026-11-16): stage 1, good 1, bad 0, missed $0300,
+GB frames $9000, bytes low reported as $7801/high 0, active 4, peak $0280;
+rows wrapped $FFFF repeatedly. On a second run, GB frames reached $2000 with
+zero missed rows and the test still had not finished. These are stalled runs,
+not throughput results. One accepted page with only four active writing frames
+suggests the sender is waiting for its first ACK. The mailbox cause is not yet
+confirmed; zero missed rows alone does not establish a working round trip.
+
+The revised probe adds these fields (each pair shows the first byte on the left):
+
+| Field | Meaning | Expected after the first ACK |
+| --- | --- | --- |
+| TX / RX | GB sent sequence / last stable received sequence | 0101 |
+| RX FLAGS | Last stable received status | 0001 |
+| RAW B / E | Commit byte before / after reading the payload | 0101 |
+| RAW C / D | Raw page / status bytes, even if the commit check fails | 0101 |
+| SNES SEQ / FLAG | Last sequence / status published by the SNES | 0101 |
+
+Comparing the SNES publication against the raw GB reads distinguishes failed
+publication from controller selection/readback and seqlock rejection. The SNES
+field is a RAM copy of the values written, never a read of write-only ICD2
+registers. These added diagnostics and bounded waits pass in Mesen; hardware
+confirmation remains pending. Phase 1 is a protocol spec, not hardware approval.
 
 ### Phase 0c: BIOS return probe and chosen fallback
 
@@ -490,7 +516,12 @@ stack and PPU; holds the BIOS for 120 SNES VBlanks; then returns through an RTS
 at `$001800` in bank 0. GB code keeps running, changes its checkerboard and
 queues MASK_EN cancel. The Mesen test checks execution of the return trampoline,
 GB survival, resumed pad input, and that the new checkerboard becomes visible.
-This passes. It deliberately does not modify the PPU, so full display-state
+This passes in Mesen. On hardware, watch for the changed checkerboard to become
+visible automatically after about two seconds, **without resetting the SNES**.
+A reset and subsequent OS color-scheme toggle checks the normal reset path;
+it does not confirm the probe's BIOS return. The first hardware report is
+therefore inconclusive for non-destructive return.
+It deliberately does not modify the PPU, so full display-state
 restoration is not claimed. No EverDrive mapper exists in this Mesen harness.
 
 The v1 launch mode is RESET_REQUIRED, with the complete armed-cart behavior
