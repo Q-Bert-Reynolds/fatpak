@@ -2,10 +2,11 @@
 
 [Architecture](ARCHITECTURE.md) · [TODO](../TODO.md)
 
-A **module** is a separately linked `.MOD` file; the **overlay loader** swaps it
-into an OS page for one call and puts the page back. The model follows CP/M
-`.OVL` overlays ([LINK-80 Operator's Guide, Appendix E](https://www.bitsavers.org/pdf/digitalResearch/cpm/LINK-80_Operators_Guide_Dec80.pdf)):
-fixed load address and length, sharing memory with the host program.
+A **module** is a separately linked `.MOD` file; the **module loader** swaps it
+into borrowed OS pages for one call and puts those pages back when it returns.
+Modules have fixed load addresses and sizes and call OS services through the
+module ABI. The term **overlay** is reserved for persistent fixed-code
+replacements; see [Modules and overlays](OVERLAYS.md#modules-and-overlays).
 
 Status: eight modules pass in Gearboy (DMG and CGB). KEYTEST, CLOCK, FILEINFO and
 ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
@@ -335,8 +336,8 @@ The busy box stays up throughout, so nothing looks frozen.
    load and swap on DMG); a module can't draw while it runs. There is no fourth
    page to borrow and the BSS region can't grow (WRAMX is full): next would be
    BSS in PSRAM through accessors, or keeping a module installed between runs.
-- **Later:** a module discovery UI; reuse for `SGB.DAT`'s GB backend
-   ([SGB.md](SGB.md)); file writes for modules (listings).
+- **Later:** a module discovery UI; file writes for modules (listings).
+   `SGB.DAT`'s GB backend uses the separate [overlay loader](OVERLAYS.md).
 
 Keyboard setup and diagnostics share KEYTEST.MOD (ABI 11). Setup validates and
 loads the selected driver into the separate page-15 slot through ModDriver; see

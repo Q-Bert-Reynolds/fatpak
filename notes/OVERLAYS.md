@@ -1,5 +1,26 @@
 # Fixed-code overlays (Phase 4)
 
+## Modules and overlays
+
+Both mechanisms save original OS code and load replacement code into its memory.
+FatPak uses distinct names for their different contracts:
+
+| Term | Purpose | Placement | Lifetime | Compatibility |
+| --- | --- | --- | --- | --- |
+| **Module**, loaded by the **module loader** | Run a feature such as the assembler or keyboard test | Borrowed OS pages | One synchronous call; original pages are restored on return | Defined module ABI |
+| **Overlay**, installed by the **overlay loader** | Replace a resident OS subsystem, currently the SGB fullscreen renderer | An audited interval of fixed renderer code | Remains installed until explicitly restored | Exact OS build checksum plus overlay ABI and layout contract |
+
+Use **module** for `.MOD` files and their page-swapping runtime; use **overlay**
+for the fixed-code replacement mechanism described here. Module loading is
+documented in [MODULES.md](MODULES.md).
+
+For example, `SGBBOOT.MOD` is a module that installs the renderer overlay from
+`SGB.DAT` and uploads the SNES kernel and fonts. When that module returns, its
+borrowed OS pages are restored, while the renderer overlay remains active for
+SGB fullscreen mode. Other modules can run while the overlay is installed.
+
+## Installation and restoration
+
 The general loader installs one host-bound `OVL1` image into a subinterval of
 `_RenderOverlayStart.._RenderOverlayEnd`. Those linker symbols describe only the
 fixed renderer section, never the rest of resident bank 1 or a whole $1D00 page.

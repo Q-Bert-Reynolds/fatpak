@@ -75,7 +75,7 @@ flowchart LR
 | `src/fatfs/` | FatFs (`lib/`), SD/SPI (`sd.asm`), file API and game-file formats (`fatfs.c`) |
 | `src/keyboard/` | PS/2 driver, keyboard-test host (`test.c`) |
 | `src/rtc/` | Calendar I2C, clock-dialog host, date validation, FAT timestamps, game RTC |
-| `src/modules/`, `modules/` | Overlay loader and module ABI wrappers; module sources and `abi.json` ([MODULES.md](MODULES.md)) |
+| `src/modules/`, `modules/` | Module loader and module ABI wrappers; module sources and `abi.json` ([MODULES.md](MODULES.md)) |
 | `src/core.asm`, `gbdk.asm`, `memory1.asm`, `math.asm`, `strings.asm`, `far_call.asm` | Trampoline, VBlank waits, tile/sprite/memory copies, a multiply and 32-bit divide, `PutNumber` (decimal text), `FarCall` |
 | `src/input.*`, `interrupts.asm` | Joypad/keyboard input and repeat, interrupt vectors |
 | `src/charmap.asm`, `constants.asm`, `macros.asm`, `hardware.inc`, `wram.asm`, `sram.asm` | Charmap, constants, macros, registers, RAM layout |

@@ -1,4 +1,4 @@
-// Overlay loader and the resident wrappers behind the module ABI (notes/MODULES.md).
+// Module loader and the resident wrappers behind the module ABI (notes/MODULES.md).
 #include "runtime.h"
 #include "../app/dialogs.h"
 #include "../fatfs/file_api.h"

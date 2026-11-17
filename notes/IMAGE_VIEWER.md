@@ -6,7 +6,7 @@ This document details the architectural exploration and implementation plan for
 viewing PNG images in FatPak on DMG, CGB, and SGB hardware.
 
 It analyzes two architectural approaches:
-1. **In-OS Loadable Module (`.MOD`)**: Running as a Page 13 overlay within FatPak OS.
+1. **In-OS Loadable Module (`.MOD`)**: Running in borrowed OS page 13 within FatPak OS.
 2. **Standalone Viewer Game (`VIEWER.GBC`) via SRAM Injection**: Abusing the
    EverDrive cartridge SRAM loading system to pass image data from the SD card
    to a dedicated Game Boy Color application.

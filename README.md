@@ -80,7 +80,7 @@ Tests and the emulator setup are in [Architecture](notes/ARCHITECTURE.md#testing
 
 - [Architecture](notes/ARCHITECTURE.md): how it's built, memory, rendering, editor internals
 - [EverDrive compatibility](notes/EVERDRIVE.md): game files, saves and limits
-- [Modules](notes/MODULES.md): loadable `.MOD` overlays
+- [Modules](notes/MODULES.md): loadable `.MOD` features
 - [Assembler](notes/ASSEMBLER.md): the on-device RGBDS subset
 - [Fonts](notes/FONTS.md): font images and how they're converted
 - [In-game menu](notes/GAME_MENU.md): the cartridge menu, capture and restore
