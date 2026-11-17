@@ -7,7 +7,7 @@ typedef uint32_t u32;
 void Capture(void);
 void WaitBlank(void);
 void __fastcall__ Snapshot(u8 slot);
-u8 __fastcall__ FontByte(u16 offset);
+u8 __fastcall__ FontWidth(u16 font_char);
 void ClearRaster(void);
 void EncodeRow(void);
 void BlitGlyph(void);
@@ -19,6 +19,8 @@ void PresentPalette(void);
 void PresentCursor(void);
 void __fastcall__ SetScroll(u16 scroll);
 void PublishMailbox(void);
+u16 CRC16(void);
+u16 Clock(void);
 extern volatile u8 capture_ready, capture_last;
 extern volatile u16 capture_rows, capture_missed, tick;
 extern volatile u16 pad_held[2],pad_edges[2];
@@ -27,6 +29,8 @@ extern u16 palette[16];
 extern u8 cursor_row,cursor_x,cursor_look;
 #ifdef SNES_TEST
 extern u8 test_status[16],test_snapshot[1920];
+#define PAGE_A test_snapshot
+#define PAGE_B test_snapshot
 #define STATUS test_status
 #define SNAPSHOT test_snapshot
 #else
@@ -36,5 +40,5 @@ extern u8 test_status[16],test_snapshot[1920];
 #define SNAPSHOT ((const u8*)0xD100)
 #endif
 #define FONT_WIDTHS (13u*2048u)
-#define FONT_ICONS (FONT_WIDTHS+7u*256u)
+#define FONT_ICONS (FONT_WIDTHS+256u)
 #endif

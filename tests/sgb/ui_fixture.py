@@ -23,8 +23,22 @@ def pages():
         box(),command(11,bytes((0,16))+struct.pack('<16H',*DARK))]
     return [wire.page(103+i,p) for i,p in enumerate(vectors)]
 
-def golden(root,output):
+def base_golden(root,output):
+    # The frozen frontend picture predates left alignment and highlighted bars.
     source=Image.open(root/'tests/sgb/fixtures/client.png').convert('RGB')
+    image=Image.new('RGB',source.size,rgb(LIGHT[0]))
+    image.paste(source.crop((8,0,256,224)),(1,0))
+    # The frozen final row selects pixels [4,8). The inset moves ink only.
+    for y in range(208,216):
+        for x in range(256):
+            if image.getpixel((x,y)) in (rgb(LIGHT[0]),rgb(LIGHT[1])):
+                image.putpixel((x,y),rgb(LIGHT[1 if 4<=x<8 else 0]))
+    for row in (0,27):
+        image.paste(rgb(LIGHT[1]),(0,row*8,256,row*8+8))
+    image.save(output)
+
+def golden(root,output):
+    source=Image.open(output.parent/'kernel-base-golden.png').convert('RGB')
     colors={rgb(c):rgb(DARK[i]) for i,c in enumerate(LIGHT[:8])}
     image=Image.new('RGB',source.size);image.putdata([colors[c] for c in source.getdata()])
     pixels=image.load()
@@ -40,9 +54,9 @@ def golden(root,output):
                     if x+bit<right and bits&(128>>bit):pixels[x+bit,row*8+y]=rgb(DARK[3])
             x+=fonts[1][2048+code] if font else 8
             if x>=right:break
-    line(b'FATPAK FILES ',0,1);line(b'READY',27,1)
+    line(b'FATPAK FILES ',0,1,1,selected=True);line(b'READY',27,1,1,selected=True)
     clock=b'12:34pm';clock_x=252-sum(fonts[1][2048+c] for c in clock)
-    line(clock,27,1,clock_x)
+    line(clock,27,1,clock_x,selected=True)
     lower=b'1234567890qwertyuiopasdfghjkl;zxcvbnm,./'
     for row in range(5):
         text=bytearray(b' '*20)
@@ -61,5 +75,5 @@ def golden(root,output):
     for x in range(13,163):pixels[x,64]=pixels[x,111]=rgb(DARK[3])
     for y in range(4):
         for x in range(248,252):pixels[x,y]=rgb(DARK[3])
-    for x in range(64):pixels[x,223]=rgb(DARK[1])
+    for x in range(64):pixels[x,223]=rgb(DARK[3])
     image.save(output)

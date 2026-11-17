@@ -7,132 +7,181 @@
 .segment "CODE"
 _EncodeRow:
  php
- rep #$10
+ ; Mark selected shade pixels once; conversion then uses one 64-entry table.
+ ; Shade is scratch for this row and ClearRaster erases it before the next one.
+ rep #$30
+.a16
 .i16
+ lda _pixel_start
+ cmp _pixel_end
+ bcs @unselected
+ sta $1106
+ lda _pixel_end
+ sta $110A
+ ldy #8
+@selectRow:
+ ldx $1106
+@selectPixel:
+ sep #$20
+.a8
+ lda _shade,x
+ ora #32
+ sta _shade,x
+ rep #$20
+.a16
+ inx
+ cpx $110A
+ bcc @selectPixel
+ phy
+ sep #$30
+.a8
+.i8
+ jsr _Capture
+ rep #$30
+.a16
+.i16
+ ply
+ lda $1106
+ clc
+ adc #256
+ sta $1106
+ lda $110A
+ clc
+ adc #256
+ sta $110A
+ dey
+ bne @selectRow
+@unselected:
+ sep #$20
+.a8
  ldx #0
+ ldy #0
+ stz $1108
+ stz $1109
+@tile:
+ ; Empty tiles dominate browser/editor rows. Leave their cleared raster alone.
+ rep #$20
+.a16
+ lda _shade,x
+ ora _shade+2,x
+ ora _shade+4,x
+ ora _shade+6,x
+ beq @emptyTile
+ cmp #$2020
+ bne @inkTile
+ lda _shade,x
+ and _shade+2,x
+ and _shade+4,x
+ and _shade+6,x
+ cmp #$2020
+ bne @inkTile
+ sep #$20
+.a8
+ lda #$FF
+ sta _raster,y ; uniformly highlighted paper, all other planes remain zero
+ jmp @capturedTile
+@emptyTile:
+ sep #$20
+.a8
+ jmp @capturedTile
+@inkTile:
+ sep #$20
+.a8
+ lda #0
+ xba ; keep the hidden accumulator byte zero for the 16-bit table index
+ stz $1100
+ stz $1101
+ stz $1102
+ stz $1103
+ lda #8
+ sta $1104
 @pixel:
  lda _shade,x
- and #1
- beq @paper
- lda _shade,x
- and #2
- bne @dim
- lda _shade,x
+ phx
+ tax
+ lda f:$7F0000+ShadeColors,x
+ plx
+ ; Pack eight adjacent pixels directly into their four tile-plane bytes.
+ ; The raster address advances once per tile, rather than once per pixel.
  lsr
+ rol $1100
  lsr
- beq @ink
- sta $1100
- jsr Selected
- bcc @accent
+ rol $1101
+ lsr
+ rol $1102
+ lsr
+ rol $1103
+ inx
+ dec $1104
+ bne @pixel
  lda $1100
- cmp #1
- beq @accent
- bra @ink
-@accent:
- lda $1100
- bra @color
-@dim:
- lda #2
- bra @color
-@ink:
- lda #3
- bra @color
-@paper:
- jsr Selected
- lda #0
- bcc @color
- inc
-@color:
- sta $1101
- ; x = y*256 + screenX. Tile address = (screenX/8)*32 + y*2.
+ sta _raster,y
+ lda $1101
+ sta _raster+1,y
+ lda $1102
+ sta _raster+16,y
+ lda $1103
+ sta _raster+17,y
+ ; Full pixel loop already advanced X. Blank tiles advance it here instead.
+ bra @captureTile
+@capturedTile:
  rep #$20
 .a16
  txa
- and #$00F8
- asl
- asl
- sta $1102
- txa
- xba
- and #7
- asl
- ora $1102
- tay
- txa
- and #7
- sta $1104
+ clc
+ adc #8
+ tax
  sep #$20
 .a8
+@captureTile:
  phx
- ldx $1104
- lda f:$7F0000+Masks,x
- sta $1106
- plx
- lda $1101
- lsr
- bcc @p1
- lda _raster,y
- ora $1106
- sta _raster,y
-@p1:
- lda $1101
- and #2
- beq @p2
- lda _raster+1,y
- ora $1106
- sta _raster+1,y
-@p2:
- lda $1101
- and #4
- beq @p3
- lda _raster+16,y
- ora $1106
- sta _raster+16,y
-@p3:
- lda $1101
- and #8
- beq @next
- lda _raster+17,y
- ora $1106
- sta _raster+17,y
-@next:
- inx
- txa
- and #15
- bne @continue
- phx
+ phy
  sep #$10
 .i8
  jsr _Capture
  rep #$10
 .i16
+ ply
  plx
-@continue:
- cpx #2048
- bcs @done
- jmp @pixel
-@done:
- plp
- rts
-; Carry iff pixel X is in a half-open selection interval (both 16-bit).
-Selected:
  rep #$20
 .a16
  txa
  and #255
- cmp _pixel_start
- bcc @no
- cmp _pixel_end
- bcs @no
+ beq @nextRow
+ tya
+ clc
+ adc #32
+ tay
  sep #$20
 .a8
- sec
- rts
-@no:
+ jmp @tile
+@nextRow:
+ inc $1108
+ inc $1108
+ ldy $1108
  sep #$20
- clc
+.a8
+ cpx #2048
+ bcs @done
+ jmp @tile
+@done:
+ plp
  rts
-Masks: .byte $80,$40,$20,$10,8,4,2,1
+ShadeColors:
+ .repeat 64,I
+  .if !(I & 1)
+   .byte (I & 32) >> 5
+  .elseif I & 2
+   .byte 2
+  .elseif !(I & 28)
+   .byte 3
+  .elseif (I & 32) && ((I & 28) <> 4)
+   .byte 3
+  .else
+   .byte (I & 28) >> 2
+  .endif
+ .endrepeat
+
 .import _Capture
 
 .export _BlitGlyph
@@ -141,8 +190,42 @@ Masks: .byte $80,$40,$20,$10,8,4,2,1
 .i8
 _BlitGlyph:
  php
- lda #0
- sta $1110 ; y
+ rep #$20
+.a16
+ lda _glyph_right
+ sec
+ sbc _glyph_x
+ cmp #8
+ bcc @width
+ lda #8
+@width:
+ sep #$20
+.a8
+ sta $1116 ; clip once per glyph, not once per pixel
+ ; Normal glyphs share one compositing rule for all their occupied pixels.
+ lda #$FF
+ sta $1112 ; keep existing shade bits for normal/dim ink
+ lda _glyph_color
+ cmp #3
+ beq @normalInk
+ cmp #2
+ beq @dimInk
+ asl
+ asl
+ ora #1
+ sta $1113
+ lda #3
+ sta $1112 ; accented ink replaces the old accent, preserving ink/dim
+ bra @ready
+@normalInk:
+ lda #1
+ bra @mask
+@dimInk:
+ lda #3
+@mask:
+ sta $1113
+@ready:
+ stz $1110 ; y
 @row:
  rep #$30
 .a16
@@ -156,6 +239,13 @@ _BlitGlyph:
 .a8
  lda f:$7F0000+Fonts,x
  sta $1111 ; bitmap
+ lda _glyph_icon+1
+ cmp #$FF
+ bne @nonblank
+ lda $1111
+ bne @nonblank
+ jmp @rowDone
+@nonblank:
  rep #$20
 .a16
  lda $1110
@@ -170,15 +260,21 @@ _BlitGlyph:
 .a8
 .i8
  ldy #0
-@bit:
  lda _glyph_icon+1
  cmp #$FF
  bne @icon
- lda $1111
- and #$80
- beq @skip
- lda _glyph_color
- bra @composite
+@bitmap:
+ asl $1111
+ bcc @blankPixel
+ lda ($E2),y
+ and $1112
+ ora $1113
+ sta ($E2),y
+@blankPixel:
+ iny
+ cpy $1116
+ bcc @bitmap
+ bra @rowDone
 @icon:
  rep #$30
 .a16
@@ -203,10 +299,10 @@ _BlitGlyph:
 .i8
  beq @skip
 @composite:
- sta $1112
+ sta $1114
  lda ($E2),y
  ora #1
- ldx $1112
+ ldx $1114
  cpx #2
  bne @accent
  ora #2
@@ -225,19 +321,8 @@ _BlitGlyph:
 @skip:
  asl $1111
  iny
- ; clip at the right edge; glyph_x has no high byte unless off screen.
- rep #$20
-.a16
- tya
- and #255
- clc
- adc _glyph_x
- cmp _glyph_right
- sep #$20
-.a8
- bcs @rowDone
- cpy #8
- bcc @bit
+ cpy $1116
+ bcc @icon
 @rowDone:
  jsr _Capture
  inc $1110

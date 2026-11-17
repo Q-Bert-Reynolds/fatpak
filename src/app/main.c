@@ -12,6 +12,7 @@
 #include "../editor/undo.h"
 #include "../fatfs/file_api.h"
 #include "../modules/runtime.h"
+#include "../sgb/client.h"
 #include "../ui/dialogs.h"
 #include "../ui/render.h"
 #include "../ui/screen.h"
@@ -36,7 +37,7 @@ void AppMain(void) {
   FileBackupSave(); // back up game RAM before loading recovery or font data
   if (!FileLoadData("/GBCSYS/EDITOR.DAT")) {
     data_loaded = 1;
-    SGBSetDefaultBorder();
+    // SGBSetDefaultBorder();
   }
   FileLoadSwap(); // before recovering the gap layout
   tb_Load();
@@ -57,6 +58,7 @@ void AppMain(void) {
   SetLang();
   UndoClear(modified);
   HideBox();
+  SGBBegin();
   if (session_open) Refresh();
   else { // replace the loading view with the browser
     ClearScreen();

@@ -39,6 +39,12 @@ fs_progress_total:: DS 2
 fs_progress_sent:: DS 4
 fs_state_end::
 
+SECTION "Fullscreen log state", HRAM
+fs_log_size:: DW
+fs_log_tick:: DW
+fs_log_active:: DB ; 0 off, 2 bootstrap page recording, 1 ordinary input
+fs_log_dirty:: DB
+
 ; Consume terminal pad actions in the ordinary editor/name-input context, never
 ; while FsPoll is waiting inside a draw. This keeps the GB's OSK state authoritative.
 FIXED "Terminal OSK dispatch"

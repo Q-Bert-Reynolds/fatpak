@@ -142,7 +142,6 @@ MACRO PAL_RPI ;\1 = priority (0=user,1=game)
   DS 14
 ENDM
 
-;the border is in the data file (sgb_SetDefaultBorder)
   PAGE SGB_PAGE
 
 ; Initialization packets extracted from the official documentation

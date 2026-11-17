@@ -6,15 +6,22 @@
 
 volatile u8 capture_ready, capture_last;
 volatile u16 capture_rows,capture_missed,tick,pad_held[2],pad_edges[2];
+volatile u16 hw_frames;
+u16 perf_draw,perf_ui,perf_page,perf_mail,event_started;
+u16 trace_frame;
+u8 trace_field,screen_received;
 u8 raster[1024],shade[2048],mailbox[4];
 u16 palette[16]={0x6FBD,0x7F34,0x3A2E,0x0C42,0x6124,0x1093,0x50AF,0x0155};
 u8 cursor_row,cursor_x,cursor_look;
 typedef struct { u8 font,flags,start,end,n; u8 chars[64],attrs[64]; } Row;
 Row rows[28];
+u8 row_attrs[64];
 u8 dirty[28],top,text_rows=28,bars,osk_rows,ring_offset;
 u8 last_page[2],expected=1;
 u16 good_pages,bad_pages,drawn_rows;
 u8 queue[64][3],qhead,qcount,event_seq=1,active_event;
+u8 status_echo,status_page,status_valid;
+u16 status_frame;
 u8 palette_dirty,cursor_dirty,scan_row;
 u8 scroll_target,scroll_current=255,scroll_smooth,scroll_pending;
 u8 debug_enabled,debug_dirty;
@@ -28,17 +35,26 @@ u32 loaded,total;
 
 static u16 word(const u8 *p) { return p[0]|((u16)p[1]<<8); }
 static u32 dword(const u8 *p) { return word(p)|((u32)word(p+2)<<16); }
+#ifdef SNES_TEST
 static u16 crc(const u8 *p,u16 n) {
  u16 c=65535u; u8 j;
  while(n--) { c^=(u16)*p++<<8; for(j=0;j<8;++j)c=(c&0x8000)?(c<<1)^0x1021:c<<1; Capture(); }
  return c;
 }
+#else
+const u8 *crc_data;
+u16 crc_count;
+static u16 crc(const u8 *p,u16 n) {
+ crc_data=p;crc_count=n;return CRC16();
+}
+#endif
 static u8 next(u8 s) { return s==255?1:s+1; }
+static void peak(u16 *value,u16 start){u16 elapsed=Clock()-start;if(elapsed>*value)*value=elapsed;}
 static void enqueue(u8 type,u8 a,u8 b) {
  u8 at,i,place;
  if(qcount>=64)return;
  /* Keep the held event immutable; control replies go ahead of queued keys. */
- place=(type==1)?qcount:active_event;
+ place=(type==1 || type>=SGBFS_EVENT_DIAG_GOOD)?qcount:active_event;
  for(i=qcount;i>place;--i){
   memcpy(queue+((qhead+i)&63),queue+((qhead+i-1)&63),3);Capture();
  }
@@ -47,14 +63,16 @@ static void enqueue(u8 type,u8 a,u8 b) {
 static void events(void) {
  u8 status[16],i;
  for(i=0;i<16;++i)status[i]=STATUS[i];
- if(active_event && status[0]==83 && status[1]==1 && !(status[5]&254) &&
+ status_echo=status[4];status_page=status[6];status_frame=word(status+2);
+ status_valid=status[0]==83 && status[1]==1 && !(status[5]&254) &&
     !status[8]&&!status[9]&&!status[10]&&!status[11]&&!status[12]&&!status[13] &&
-    crc(status,14)==word(status+14) && status[4]==mailbox[0]) {
-  active_event=0;qhead=(qhead+1)&63;--qcount;
+    crc(status,14)==word(status+14);
+ if(active_event && status_valid && status_echo==mailbox[0]) {
+  peak(&perf_mail,event_started);active_event=0;qhead=(qhead+1)&63;--qcount;
   event_seq=event_seq==127?1:event_seq+1;
  }
  if(!active_event && qcount) {
-  mailbox[0]=event_seq;memcpy(mailbox+1,queue[qhead],3);PublishMailbox();active_event=1;
+  mailbox[0]=event_seq;memcpy(mailbox+1,queue[qhead],3);event_started=Clock();PublishMailbox();active_event=1;
  }
 }
 static void ui_all(void){memset(overlay_dirty,1,28);}
@@ -78,9 +96,12 @@ static u8 commands(const u8 *p,u16 n,u8 apply) {
    }
    if(k!=b[5] || width>248)return 0;
    if(apply) {
-    out=rows+b[0];out->font=b[1];out->flags=b[2];out->start=b[3];out->end=b[4];out->n=b[5];
-    memcpy(out->chars,b+7,b[5]);k=0;
-    for(i=7u+b[5];i<len;i+=2){memset(out->attrs+k,b[i+1],b[i]);k+=b[i];Capture();}
+    k=0;for(i=7u+b[5];i<len;i+=2){memset(row_attrs+k,b[i+1],b[i]);k+=b[i];Capture();}
+    out=rows+b[0];
+    if(out->font==b[1] && out->flags==b[2] && out->start==b[3] && out->end==b[4] && out->n==b[5] &&
+       !memcmp(out->chars,b+7,b[5]) && !memcmp(out->attrs,row_attrs,b[5]))break;
+    out->font=b[1];out->flags=b[2];out->start=b[3];out->end=b[4];out->n=b[5];
+    memcpy(out->chars,b+7,b[5]);memcpy(out->attrs,row_attrs,b[5]);
     dirty[b[0]]=1;
    } break;
   case 2:
@@ -112,7 +133,7 @@ static u8 commands(const u8 *p,u16 n,u8 apply) {
    }break;
   case 5:
    if(len!=3 || b[0]>=28 || b[2]>2)return 0;
-   if(apply){cursor_row=b[0];cursor_x=b[1];cursor_look=b[2];cursor_dirty=1;}break;
+   if(apply){cursor_row=b[0];cursor_x=b[1];cursor_look=b[2];cursor_dirty=1;screen_received=1;}break;
   case 6:
    if(len!=5)return 0;
    w=word(b+1);
@@ -158,6 +179,10 @@ static u8 commands(const u8 *p,u16 n,u8 apply) {
 }
 static void page(u8 slot) {
  u8 seq;u16 n;const u8 *p=SNAPSHOT;
+ /* Most capture notifications repeat an already-applied page (or empty B).
+    Avoid the 1920-byte copy, but recheck the copied sequence and full CRC below. */
+ seq=slot?PAGE_B[0]:PAGE_A[0];
+ if(!seq || seq==last_page[slot] || seq!=expected || qcount>61)return;
  Snapshot(slot);seq=p[0];if(!seq)return;
  if(seq==last_page[slot]) {
   /* An ACK already queued/held is sufficient, never fill the queue on retries. */
@@ -168,6 +193,7 @@ static void page(u8 slot) {
  if(crc(p,n+3)!=word(p+n+3) || !commands(p+3,n,0)){++bad_pages;return;}
  commands(p+3,n,1);last_page[slot]=seq;expected=next(seq);++good_pages;enqueue(6,slot,seq);
 }
+static void receive(u8 slot){u16 start=Clock();page(slot);peak(&perf_page,start);}
 /* Shade planes retain overlapping italic glyphs, dim and syntax accents. */
 u16 glyph_offset,glyph_x,glyph_icon,glyph_right;u8 glyph_color;
 static void glyphs(const Row *row,u16 left,u16 right) {
@@ -178,9 +204,11 @@ static void glyphs(const Row *row,u16 left,u16 right) {
    while(i+1<row->n && row->chars[i+1]==127)++i;
    x=252;
    k=row->n;while(k>i+1 && row->chars[k-1]==' ')--k;
-   for(j=i+1;j<k;++j){x-=FontByte(FONT_WIDTHS+(u16)row->font*256+row->chars[j]);Capture();}
+   for(j=i+1;j<k;++j){x-=FontWidth((u16)row->font*256+row->chars[j]);Capture();}
    continue;
   }
+  /* Every font's space bitmap is empty; selection is painted by EncodeRow. */
+  if(c==' '){x+=row->flags?(row->attrs[i]&15):FontWidth((u16)row->font*256+c);continue;}
   style=row->flags?row->attrs[i]>>4:0;f=row->font;
   if(f<3) {
    if(style==5)f=2;
@@ -195,14 +223,14 @@ static void glyphs(const Row *row,u16 left,u16 right) {
   glyph_offset=(u16)f*2048+(u16)c*8;glyph_x=x;glyph_right=right;glyph_color=color;
   glyph_icon=(!row->flags && icon>=0)?FONT_ICONS+(u16)icon*64:65535u;
   BlitGlyph();
-  x+=row->flags?(row->attrs[i]&15):FontByte(FONT_WIDTHS+(u16)row->font*256+c);
+  x+=row->flags?(row->attrs[i]&15):FontWidth((u16)row->font*256+c);
  }
 }
 u16 pixel_start=256,pixel_end=256;
 static void pixels(const Row *row,u16 left,u16 right,u8 selected) {
  (void)left;(void)right;
- pixel_start=selected?left:row->start==row->end?256:8u+row->start;
- pixel_end=selected?right:row->start==row->end?256:row->end==255?256:8u+row->end;
+ pixel_start=selected?left:row->start==row->end?256:row->start;
+ pixel_end=selected?right:row->start==row->end?256:row->end==255?256:row->end;
  EncodeRow();
 }
 static void hex4(u8 *p,u16 v) {
@@ -210,16 +238,10 @@ static void hex4(u8 *p,u16 v) {
  for(i=0;i<4;++i){p[3-i]=digits[v&15];v>>=4;}
 }
 static void draw(u8 row) {
- Row debug;const Row *source=rows+row;
-
- if(row==27 && debug_enabled){
-  memset(&debug,0,sizeof(debug));debug.font=2;debug.n=44;
-  memcpy(debug.chars,"SGB GOOD:0000 BAD:0000 MISS:0000 ROW:0000 Q:00",44);
-  hex4(debug.chars+9,good_pages);hex4(debug.chars+18,bad_pages);
-  hex4(debug.chars+28,capture_missed);hex4(debug.chars+37,capture_rows);source=&debug;
- }
- ClearRaster();glyphs(source,8,256);pixels(source,8,256,0);
- PresentRow((row+ring_offset)&31);dirty[row]=0;++drawn_rows;
+ u16 start=Clock();
+ const Row *source=rows+row;
+ ClearRaster();glyphs(source,source->font?1:0,source->font?249:248);pixels(source,0,256,0);
+ PresentRow((row+ring_offset)&31);dirty[row]=0;++drawn_rows;peak(&perf_draw,start);
 }
 u16 ui_left,ui_right;
 static u16 progress_width(void){
@@ -238,10 +260,11 @@ static void draw_ui(u8 row){
   "!@#$%^&*()QWERTYUIOPASDFGHJKL:ZXCVBNM<>?",
   "`~-_=+[]{}\\|'\"\241\277\341\351\355\363\372\361\374"};
  static const u8 bottom[20]={29,' ','#',' ',31,' ','_','_','_','_','_','_','_','_',15,' ',16,' ',30,' '};
- Row keyrow;u8 y,i,rel;u16 x,width;
+ Row keyrow;u8 y,i,rel;u16 x,width,start=Clock();
  ClearRaster();pixel_start=pixel_end=256;ui_left=ui_right=0;
  if((row==0 && (bars&1)) || (row==27 && (bars&2))){
-  glyphs(bar_lines+(row?1:0),8,256);ui_right=256;
+  glyphs(bar_lines+(row?1:0),bar_lines[row?1:0].font?1:0,256);ui_right=256;
+  pixel_start=0;pixel_end=256;
  }
  if(osk_rows && row>=top+text_rows && row<top+text_rows+osk_rows){
   memset(&keyrow,0,sizeof(keyrow));keyrow.n=20;memset(keyrow.chars,' ',20);rel=row-top-text_rows;
@@ -262,14 +285,45 @@ static void draw_ui(u8 row){
   }
  }
  if(row==0 && busy)for(y=0;y<4;++y)for(i=248;i<252;++i)shade[(u16)y*256+i]=1;
- if(row==27 && total){width=progress_width();for(x=0;x<width;++x)shade[1792+x]=5;}
- EncodeRow();PresentOverlay(row);overlay_dirty[row]=0;
+ if(row==27 && total){width=progress_width();for(x=0;x<width;++x)shade[1792+x]=1;}
+ /* Diagnostics must cover the status bar, which otherwise hides BG1 row 27. */
+ if(row>=25 && debug_enabled){
+  ClearRaster();memset(&keyrow,0,sizeof(keyrow));keyrow.font=2;
+  if(row==27){
+   keyrow.n=46;memcpy(keyrow.chars,"SGB GOOD:0000 BAD:0000 MISS:0000 ROW:0000 Q:00",46);
+   hex4(keyrow.chars+9,good_pages);hex4(keyrow.chars+18,bad_pages);
+   hex4(keyrow.chars+28,capture_missed);hex4(keyrow.chars+37,capture_rows);
+   keyrow.chars[44]="0123456789ABCDEF"[qcount>>4];keyrow.chars[45]="0123456789ABCDEF"[qcount&15];
+  }else if(row==26){
+   keyrow.n=48;memcpy(keyrow.chars,"DRAW:0000 UI:0000 PAGE:0000 MAIL:0000 FRAME:0000",48);
+   hex4(keyrow.chars+5,perf_draw);hex4(keyrow.chars+13,perf_ui);
+   hex4(keyrow.chars+23,perf_page);hex4(keyrow.chars+33,perf_mail);hex4(keyrow.chars+44,Clock());
+  }else{
+   keyrow.n=43;memcpy(keyrow.chars,"MB:0000/0000 E:00 GB:0000 P:00 V:00 NEXT:00",43);
+   hex4(keyrow.chars+3,((u16)mailbox[0]<<8)|mailbox[1]);
+   hex4(keyrow.chars+8,((u16)mailbox[2]<<8)|mailbox[3]);
+   keyrow.chars[15]="0123456789ABCDEF"[status_echo>>4];
+   keyrow.chars[16]="0123456789ABCDEF"[status_echo&15];
+   hex4(keyrow.chars+21,status_frame);
+   keyrow.chars[28]="0123456789ABCDEF"[status_page>>4];
+   keyrow.chars[29]="0123456789ABCDEF"[status_page&15];
+   keyrow.chars[34]=status_valid?'1':'0';
+   keyrow.chars[41]="0123456789ABCDEF"[expected>>4];
+   keyrow.chars[42]="0123456789ABCDEF"[expected&15];
+  }
+  glyphs(&keyrow,8,256);pixel_start=pixel_end=256;ui_left=0;ui_right=256;
+ }
+ /* ClearRaster already supplied transparent tiles for an empty UI row.
+    Still upload them and its empty mask to erase any previous overlay. */
+ if(ui_left!=ui_right || (row==0 && busy) || (row==27 && total))EncodeRow();
+ PresentOverlay(row);overlay_dirty[row]=0;peak(&perf_ui,start);
 }
 static void pads(void) {
  u16 e;u8 key=0;
- e=pad_edges[0]|pad_edges[1];pad_edges[0]=pad_edges[1]=0;
- if(((pad_held[0]|pad_held[1])&0x2030)==0x2030 && (e&0x2030)) {
-  debug_enabled^=1;dirty[27]=1;return;
+ /* Port 2 is reserved for the mouse: its buttons share gamepad bit positions. */
+ e=pad_edges[0];pad_edges[0]=pad_edges[1]=0;
+ if((pad_held[0]&0x2030)==0x2030 && (e&0x2030)) {
+  debug_enabled^=1;overlay_dirty[25]=overlay_dirty[26]=overlay_dirty[27]=1;return;
  }
  if(e&0x0800)key=0x82; /* up */
  else if(e&0x0400)key=0x83;
@@ -287,14 +341,34 @@ static void pads(void) {
 }
 void main(void) {
  u16 frame=65535u;u8 slot;
+ trace_field=4; /* Start with rendering cost, then finish the counter rotation. */
  OverlayInit();memset(dirty,1,28);ui_all();enqueue(5,1,5);
  for(;;) {
   Capture();events();
-  if(capture_ready&1){capture_ready&=254;page(0);events();}
-  if(capture_ready&2){capture_ready&=253;page(1);events();}
+  if(capture_ready&1){capture_ready&=254;receive(0);events();}
+  if(capture_ready&2){capture_ready&=253;receive(1);events();}
   if(frame!=tick){
-   frame=tick;pads();
-   if(debug_enabled && (u16)(tick-debug_frame)>=60){debug_frame=tick;dirty[27]=1;}
+   frame=tick;
+   /* A held event is immutable until its status echo. Reissue it once per
+      frame so a missed ICD2 commit cannot strand all later page ACKs. */
+   if(active_event)PublishMailbox();
+   pads();
+   /* Keep diagnostics out of startup. A single optional sample must not
+      occupy the mailbox until the first screen has been received and drawn. */
+   if(screen_received && drawn_rows>=28 && !qcount && (u16)(Clock()-trace_frame)>=120){
+    u16 value;
+    trace_frame=Clock();
+    switch(trace_field){
+     case 0:value=good_pages;break;case 1:value=bad_pages;break;
+     case 2:value=capture_missed;break;case 3:value=capture_rows;break;
+     case 4:value=perf_draw;break;case 5:value=perf_ui;break;
+     case 6:value=perf_page;break;case 7:value=perf_mail;break;
+     default:value=Clock();break;
+    }
+    enqueue(SGBFS_EVENT_DIAG_GOOD+trace_field,value,value>>8);
+    if(++trace_field==9)trace_field=0;
+   }
+   if(debug_enabled && (u16)(tick-debug_frame)>=60){debug_frame=tick;overlay_dirty[25]=overlay_dirty[26]=overlay_dirty[27]=1;}
    if(scroll_pending){
     u8 i,waiting=0;for(i=top;i<top+text_rows;++i)waiting|=dirty[i];
     if(!waiting){
@@ -306,6 +380,10 @@ void main(void) {
     }
    }
   }
+  /* A fault report must not wait behind the initial 28-row repaint. */
+  if(debug_enabled && overlay_dirty[27])draw_ui(27);
+  if(debug_enabled && overlay_dirty[26])draw_ui(26);
+  if(debug_enabled && overlay_dirty[25])draw_ui(25);
   slot=scan_row++;if(scan_row==28)scan_row=0;
   if(dirty[slot])draw(slot);
   else if(overlay_dirty[slot])draw_ui(slot);

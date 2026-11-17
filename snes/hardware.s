@@ -3,13 +3,13 @@
 .setcpu "65816"
 .export Entry, Nmi, Irq, _WaitBlank, Fonts
 .export __STARTUP__ : absolute = 1
-.export _Capture, _Snapshot, _FontByte, _ClearRaster, _PpuInit
+.export _Capture, _Snapshot, _FontWidth, _ClearRaster, _PpuInit
 .export _PresentRow, _PresentPalette, _PresentCursor, _SetScroll, _PublishMailbox
 .import _main, zerobss
 .importzp sp
 .import __RODATA_LOAD__, __RODATA_RUN__, __RODATA_SIZE__
 .import __DATA_LOAD__, __DATA_RUN__, __DATA_SIZE__
-.import _capture_ready, _capture_last, _capture_rows, _capture_missed, _tick
+.import _capture_ready, _capture_last, _capture_rows, _capture_missed, _tick, _hw_frames
 .import _pad_held, _pad_edges, _raster, _shade, _mailbox, _palette
 .import _cursor_row, _cursor_x, _cursor_look
 .segment "STARTUP"
@@ -72,17 +72,42 @@ Boot:
  jsr _PpuInit
  lda #$B1
  sta f:$006003
- lda #1
- sta f:$004200 ; automatic joypad polling, no NMI/IRQ/HDMA
+ lda #$81
+ sta f:$004200 ; automatic joypad polling and a counter-only NMI, no IRQ/HDMA
  jsr _main
 @stop:
  bra @stop
 Nmi:
+ rep #$20
+.a16
+ pha
+ sep #$20
+.a8
+ lda f:$004210
+ rep #$20
+.a16
+ lda f:$7E0000+_hw_frames
+ inc
+ sta f:$7E0000+_hw_frames
+ pla
  rti
+.a8
 Irq:
  rti
 
 .segment "CODE"
+.export _Clock
+_Clock:
+ rep #$20
+.a16
+ lda _hw_frames
+ sep #$20
+.a8
+ pha
+ xba
+ tax
+ pla
+ rts
 ; Capture is polled between bounded pieces of parsing/raster work. DMA reads
 ; completed ICD2 rows into $7E:C000..D03F, with no software/emulator replies.
 .a8
@@ -339,44 +364,66 @@ _Snapshot:
  rts
 .a8
 .i8
-_FontByte:
+_FontWidth:
+ ; AX = font in high byte, character in low byte. Only font 1 is variable.
+ cpx #1
+ beq @variable
+ cpx #2
+ beq @fixed
+ bcs @heading
+ lda #8
+ rts
+@fixed:
+ lda #4
+ rts
+@heading:
+ txa
+ eor #$FF
+ clc
+ adc #12 ; heading widths are 11-font (8, 7, 6, 5)
+ rts
+@variable:
  sta $E0
- stx $E1
+ stz $E1
  php
  rep #$10
 .i16
  ldx $E0
- lda f:$7F0000+Fonts,x
+ lda f:$7F0000+Fonts+13*2048,x
  plp
  rts
 
 .a8
 .i8
 _ClearRaster:
- lda #<_raster
- sta $E4
- lda #>_raster
- sta $E5
- lda #4
- sta $1118
- jsr ZeroPages
- lda #<_shade
- sta $E4
- lda #>_shade
- sta $E5
- lda #8
- sta $1118
-ZeroPages:
- ldy #0
- lda #0
-@byte:
- sta ($E4),y
- iny
- bne @byte
- inc $E5
+ .assert _shade = _raster+1024, lderror, "raster/shade must be contiguous"
+ php
+ rep #$30
+.a16
+.i16
+ ldx #0
+@chunk:
+ .repeat 16,I
+  stz _raster+I*2,x
+ .endrepeat
+ txa
+ clc
+ adc #32
+ tax
+ and #255
+ bne @chunk
+ phx
+ sep #$30
+.a8
+.i8
  jsr _Capture
- dec $1118
- bne ZeroPages
+ rep #$30
+.a16
+.i16
+ plx
+ cpx #3072
+ bcc @chunk
+ plp
  rts
 
 .a8
@@ -626,6 +673,84 @@ _PublishMailbox:
  lda _mailbox
  sta f:$006004
  rts
+
+; CRC-16/CCITT over crc_count bytes at crc_data. One native table lookup per
+; byte replaces the polynomial bit loop. Poll capture every eight bytes,
+; keeping each chunk below one ICD2 row and preserving the byte position.
+.export _CRC16
+.import _crc_data,_crc_count
+.a8
+.i8
+_CRC16:
+ php
+ rep #$30
+.a16
+.i16
+ lda _crc_data
+ sta $E0
+ lda #$FFFF
+ sta $1124
+ lda _crc_count
+ sta $1126
+ ldy #0
+@byte:
+ lda $1126
+ beq @done
+ lda $1124
+ xba
+ and #255
+ sep #$20
+.a8
+ eor ($E0),y
+ asl ; index bit 7 becomes carry; the remaining bits index the half table
+ rep #$20
+.a16
+ and #255
+ tax
+ lda $1124
+ xba
+ and #$FF00
+ eor f:$7F0000+CrcTable,x
+ bcc @crc
+ eor #$9188 ; linear CCITT contribution from index bit 7
+@crc:
+ sta $1124
+ iny
+ dec $1126
+ tya
+ and #7
+ bne @byte
+ phy
+ sep #$30
+.a8
+.i8
+ jsr _Capture
+ rep #$30
+.a16
+.i16
+ ply
+ bra @byte
+@done:
+ lda $1124
+ sep #$30
+.a8
+.i8
+ ldx $1125
+ plp
+ rts
+
+CrcTable:
+ .repeat 128,I
+  CrcValue .set I << 8
+  .repeat 8
+   .if CrcValue & $8000
+    CrcValue .set ((CrcValue << 1) ^ $1021) & $FFFF
+   .else
+    CrcValue .set (CrcValue << 1) & $FFFF
+   .endif
+  .endrepeat
+  .word CrcValue
+ .endrepeat
 
 .segment "FONTS"
 Fonts:

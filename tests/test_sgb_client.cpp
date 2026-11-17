@@ -19,18 +19,14 @@ static std::map<std::string,unsigned> Symbols(const char* p){std::map<std::strin
 static void Frames(GearboyCore& c,unsigned n){s16 a[AUDIO_BUFFER_SIZE];while(n--){int count=0;c.RunToVBlank(pixels.data(),a,&count);}}
 static std::string Text(Memory* m,unsigned at){std::string s;for(unsigned i=0;i<128 && m->Read(at+i);++i)s+=char(m->Read(at+i));return s;}
 static bool Contains(FatPakSGBHost* h,const std::string& text){for(const auto& r:h->GetModel().rows){std::string s(r.chars.begin(),r.chars.end());if(s.find(text)!=std::string::npos)return true;}return false;}
-static void EnterFullscreen(GearboyCore& c,const std::map<std::string,unsigned>& syms) {
+static void WaitForFullscreenStartup(GearboyCore& c,const std::map<std::string,unsigned>& syms) {
     auto m=c.GetMemory();
-    Check(!(m->Read(syms.at("sys_info"))&4) && m->Read(syms.at("_screen_rows"))==18,
-          "startup stays in BIOS mode with fullscreen data installed");
-    Check(!m->Read(syms.at("_overlay_live")) && !c.GetSGB()->GetFatPakHost()->Active(),
-          "startup does not install the overlay or upload the kernel");
-    auto pad=[&](Gameboy_Keys key){c.KeyPressed(key);Frames(c,4);c.KeyReleased(key);Frames(c,70);};
-    pad(Start_Key);pad(Down_Key);pad(Down_Key);pad(A_Key); // browser SETTINGS
-    Check(m->Read(syms.at("_render_box_rows"))==7,"SGB BIOS browser has five settings");
-    Check(Text(m,syms.at("tile_buffer")+20*40+80)==" SGB FULLSCREEN","explicit SGB fullscreen menu item");
-    pad(Up_Key);pad(A_Key); // last setting: SGB FULLSCREEN
-    Frames(c,2000);
+    for(unsigned i=0;i<4000;++i) {
+        Frames(c,1);
+        if(c.GetSGB()->GetFatPakHost()->Active() && m->Read(syms.at("_screen_rows"))==28)
+            Check(m->Read(syms.at("sys_info"))&4,
+                  "fullscreen owns VBlank before the initial wide redraw");
+    }
 }
 static void Fallback(const char* image,const std::map<std::string,unsigned>& syms,const char* data,const char* module,
                      const std::vector<u8>& file,unsigned mode) {
@@ -40,8 +36,8 @@ static void Fallback(const char* image,const std::map<std::string,unsigned>& sym
     if(mode) {auto b=file;if(mode==1)b.back()^=1;Write(root+"/GBCSYS/SGB.DAT",b);}
     GearboyCore c;c.Init();c.SetForceSGB(true);c.SetEverdriveFolder(dir);
     if(mode!=2)c.GetSGB()->GetFatPakHost()->Configure(FatPakSGBHost::TerminalV1);
-    Check(c.LoadROM(image,false),"fallback OS");Frames(c,1800);
-    EnterFullscreen(c,syms);
+    Check(c.LoadROM(image,false),"fallback OS");
+    WaitForFullscreenStartup(c,syms);
     auto m=c.GetMemory();
     Check(!(m->Read(syms.at("sys_info"))&4) && m->Read(syms.at("_screen_rows"))==18,"missing/corrupt/HELLO-timeout preserves GB geometry");
     Check(!m->Read(syms.at("_overlay_live")),"bootstrap rollback restores renderer");
@@ -59,8 +55,7 @@ int main(int n,char** v){
     core.GetSGB()->GetFatPakHost()->Configure(FatPakSGBHost::TerminalV1);Check(core.LoadROM(v[1],false),"load OS");
     Check(core.GetSGB()->GetFatPakHost()->SetRecording("build/sgb/client.fph"),"record real frontend LCD stream");
     auto h=core.GetSGB()->GetFatPakHost();auto m=core.GetMemory();
-    Frames(core,2000);
-    EnterFullscreen(core,syms);
+    WaitForFullscreenStartup(core,syms);
     printf("boot PC=%04x sys=%02x geometry=%u host=%d good=%u bad=%u error=%s fault=%u row=%u pending=%u ack=%u mailbox=%u/%u/%u/%u file=%s\n",
         core.GetProcessor()->GetState()->PC->GetValue(),m->Read(syms.at("sys_info")),m->Read(syms.at("_screen_rows")),h->Active(),h->Good(),h->Bad(),h->LastError().c_str(),
         m->Read(syms.at("fs_fault")),m->Read(syms.at("fs_row")),m->Read(syms.at("fs_pending")),m->Read(syms.at("fs_ack")),
@@ -69,14 +64,140 @@ int main(int n,char** v){
         std::vector<u8> page(1920);for(unsigned i=0;i<page.size();++i)page[i]=m->ReadCGBLCDRAM(0x8000+i,false);
         Write("build/sgb/client-rejected.page",page);
     }
-    Check(m->Read(syms.at("sys_info"))&4,"bootstrap activates fullscreen");
+    Check(m->Read(syms.at("sys_info"))&4,"startup activates fullscreen without menu input");
+    {
+        const auto file=Read(v[4]);
+        auto word32=[&](unsigned at){return unsigned(file[at])|(unsigned(file[at+1])<<8)|(unsigned(file[at+2])<<16)|(unsigned(file[at+3])<<24);};
+        unsigned count=word32(14)+word32(18),load=word32(8)&0xffffff;
+        const auto& ram=h->GetWRAM();
+        for(unsigned i=0;i<count;++i)Check(ram[load-0x7e0000+i]==file[32+i],"bootstrap upload preserves all bytes across cartridge windows");
+        for(unsigned i=count;i<((count+4095)&~4095u);++i)Check(!ram[load-0x7e0000+i],"bootstrap pads final DATA_TRN block with zeroes");
+        printf("SGB bootstrap upload verified: %u bytes plus final-block padding\n",count);
+    }
     Check(m->Read(syms.at("_screen_rows"))==28 && !m->Read(syms.at("fs_fault")),"wide geometry without transport fault");
     Check(h->Good()>1 && Contains(h,"sample.c"),"browser renders through v1 LCD pages");
+    if(!std::getenv("SGB_CLIENT_PERF")) {
+        // Exercise the resident wait with IE enabled but CPU IME disabled.
+        // A pending VBlank cannot run its handler in this calling context.
+        auto s=core.GetProcessor()->GetState();
+        auto client=Symbols("build/sgb/client.sym");
+        unsigned pc=s->PC->GetValue(),sp=s->SP->GetValue(),af=s->AF->GetValue(),
+            bc=s->BC->GetValue(),de=s->DE->GetValue(),hl=s->HL->GetValue();
+        bool ime=*s->IME,halt=*s->Halt;
+        unsigned ie=m->Read(0xffff),flags=m->Read(0xff0f),a=m->Read(0xc100),b=m->Read(0xc101),
+            stack0=m->Read((sp-2)&65535),stack1=m->Read((sp-1)&65535);
+        unsigned before=m->Read(syms.at("_render_frames"));
+        // Exercise the unrolled cache CRC with real SM83 instructions and varied seeds.
+        std::vector<u8> source;for(unsigned i=0;i<64;++i)source.push_back(m->Read(0xc140+i));
+        unsigned count=m->Read(syms.at("fs_count"));
+        for(unsigned sample=0;sample<16;++sample) {
+            unsigned expected=sample*0x1111u;
+            for(unsigned i=0;i<64;++i) {
+                u8 byte=u8((i*73u+sample*19u)^(i>>1));m->Write(0xc140+i,byte);
+                expected^=unsigned(byte)<<8;
+                for(unsigned bit=0;bit<8;++bit)expected=((expected<<1)^((expected&0x8000)?0x1021:0))&65535;
+            }
+            m->Write(0xc100,0x18);m->Write(0xc101,0xfe);
+            m->Write((sp-2)&65535,0);m->Write((sp-1)&65535,0xc1);
+            *s->IME=false;*s->Halt=false;
+            s->SP->SetValue((sp-2)&65535);s->PC->SetValue(client.at("FsHashRow"));
+            s->HL->SetValue(0xc140);s->DE->SetValue(sample*0x1111u);
+            Frames(core,1);
+            Check(s->DE->GetValue()==expected && s->HL->GetValue()==0xc180,
+                  "unrolled row CRC matches CCITT for all source bytes and preserves its position");
+        }
+        for(unsigned i=0;i<64;++i)m->Write(0xc140+i,source[i]);
+        m->Write(syms.at("fs_count"),count);
+        puts("SGB row cache CRC: real CPU matches independent CCITT for 16 seeds/rows");
+
+        m->Write(0xc100,0x18);m->Write(0xc101,0xfe); // return to a bounded test loop
+        m->Write((sp-2)&65535,0);m->Write((sp-1)&65535,0xc1);
+        before=m->Read(syms.at("_render_frames"));
+        m->Write(0xffff,1);*s->IME=false;*s->Halt=false;
+        s->SP->SetValue((sp-2)&65535);s->PC->SetValue(client.at("FsFrame"));
+        Frames(core,3);
+        Check(((m->Read(syms.at("_render_frames"))-before)&255)==1,
+            "frame wait publishes status with IE enabled and IME disabled");
+        Check(!*s->IME && m->Read(0xffff)==1,"frame wait preserves interrupt masking");
+        // Start a delayed frame handler at LY 143 so it covers all of VBlank.
+        // Foreground code must notice its counter update without seeing LY 144.
+        const unsigned delay_at=0xc120;
+        const u8 delay_code[]={0xf5,0x3e,0xff,0x3d,0x20,0xfd,0xf1,0xc3,
+            u8(client.at("FsTick")),u8(client.at("FsTick")>>8),
+            0x3e,1,0xea,0x31,0xc1,0x18,0xfe,0}; // return marker, then loop
+        std::vector<u8> saved_delay;
+        for(unsigned i=0;i<sizeof(delay_code);++i) {
+            saved_delay.push_back(m->Read(delay_at+i));m->Write(delay_at+i,delay_code[i]);
+        }
+        m->Write((sp-2)&65535,0x2a);m->Write((sp-1)&65535,0xc1);
+        s->SP->SetValue((sp-2)&65535);s->PC->SetValue(client.at("FsFrame"));
+        unsigned stat=m->Read(0xff41),lyc=m->Read(0xff45),
+            lcd_hi=m->Read(syms.at("rLCDInterrupt")),lcd_lo=m->Read(syms.at("rLCDInterrupt")+1);
+        m->Write(syms.at("rLCDInterrupt"),delay_at>>8);
+        m->Write(syms.at("rLCDInterrupt")+1,delay_at&255);
+        m->Write(0xff45,143);m->Write(0xff41,0x40);
+        m->Write(0xffff,2);m->Write(0xff0f,0);*s->IME=true;*s->Halt=false;
+        before=m->Read(syms.at("_render_frames"));
+        Frames(core,4);
+        Check(((m->Read(syms.at("_render_frames"))-before)&255)>=2 && m->Read(0xc131)==1,
+              "frame wait returns when interrupt consumes the entire VBlank");
+        m->Write(0xff41,stat);m->Write(0xff45,lyc);
+        m->Write(syms.at("rLCDInterrupt"),lcd_hi);m->Write(syms.at("rLCDInterrupt")+1,lcd_lo);
+        for(unsigned i=0;i<saved_delay.size();++i)m->Write(delay_at+i,saved_delay[i]);
+        m->Write(0xc100,a);m->Write(0xc101,b);
+        m->Write((sp-2)&65535,stack0);m->Write((sp-1)&65535,stack1);
+        s->PC->SetValue(pc);s->SP->SetValue(sp);s->AF->SetValue(af);
+        s->BC->SetValue(bc);s->DE->SetValue(de);s->HL->SetValue(hl);
+        m->Write(0xff0f,flags);m->Write(0xffff,ie);*s->IME=ime;*s->Halt=halt;
+        puts("SGB frame wait: masked IME, overlong VBlank handler and interrupt-state preservation passed");
+    }
+    {
+        auto frame=[&](){return unsigned(m->Read(syms.at("_render_frames"))) |
+            (unsigned(m->Read(syms.at("_render_frames")+1))<<8);};
+        // Isolate the VBlank clock from intentionally masked SD writes.
+        unsigned logging=m->Read(syms.at("fs_log_active"));
+        m->Write(syms.at("fs_log_active"),0);
+        unsigned before=frame();Frames(core,300);
+        unsigned elapsed=(frame()-before)&65535;
+        m->Write(syms.at("fs_log_active"),logging);
+        Check(elapsed>=299 && elapsed<=301,"fullscreen frame clock carries across low-byte rollover");
+    }
+    {
+        Frames(core,60);
+        auto& sample=const_cast<std::array<uint8_t,4>&>(h->GetMailbox());
+        Check(!sample[0],"diagnostic sample waits for idle mailbox");
+        sample={{uint8_t(m->Read(syms.at("fs_ack"))==127?126:127),39,0x34,0x12}};
+        Frames(core,60);
+        Check(!sample[0],"GB consumes optional hardware timing sample");
+    }
     auto key=[&](unsigned code,unsigned mods=0){Check(h->Inject(1,code,mods),"inject key");Frames(core,180);};
-    key(0x83);key(10);Frames(core,300);
+    {
+        std::vector<unsigned> selection;
+        for(const auto& row:h->GetModel().rows)selection.push_back(unsigned(row.start)|(unsigned(row.end)<<8));
+        Check(h->Inject(1,0x83,0),"inject browser Down");
+        unsigned elapsed=0;bool changed=false;
+        while(elapsed<180 && !changed) {
+            Frames(core,1);++elapsed;unsigned row=0;
+            for(const auto& value:h->GetModel().rows)changed|=selection[row++]!=(unsigned(value.start)|(unsigned(value.end)<<8));
+        }
+        Check(changed,"browser Down changes the selected row");
+        printf("PERF: browser Down to published highlight: %u GB frames\n",elapsed);
+        Frames(core,180-elapsed);
+    }
+    key(10);Frames(core,300);
     Check(Text(m,syms.at("_file_name")).find("sample.c")!=std::string::npos,"open browser file using mailbox keys");
     Check(Contains(h,"counter"),"editor text rows");
-    key('Z');Check(Contains(h,"Zint"),"typed text reflected in terminal model");
+    Check(h->Inject(1,'Z',0),"inject typed character");
+    unsigned typed_frames=0;while(typed_frames<180 && !Contains(h,"Zint")){Frames(core,1);++typed_frames;}
+    Check(Contains(h,"Zint"),"typed text reflected in terminal model");
+    printf("PERF: typed character to published text: %u GB frames\n",typed_frames);
+    Frames(core,180-typed_frames);
+    for(unsigned i=0;i<120 && !h->GetModel().cursorLook;++i)Frames(core,1);
+    if(!h->GetModel().cursorLook || h->GetModel().cursorX!=unsigned(m->Read(syms.at("oam_buffer")+1)-8))
+        fprintf(stderr,"cursor SNES x=%u look=%u GB x=%u y=%u\n",h->GetModel().cursorX,h->GetModel().cursorLook,m->Read(syms.at("oam_buffer")+1),m->Read(syms.at("oam_buffer")));
+    Check(h->GetModel().cursorLook && h->GetModel().cursorX==unsigned(m->Read(syms.at("oam_buffer")+1)-8),
+          "SNES cursor follows left-aligned text without the GB sprite offset");
+    if(std::getenv("SGB_CLIENT_PERF"))return 0;
     key('s',2);Frames(core,300);
     auto saved=Read(root+"/sample.c");Check(!saved.empty() && saved[0]=='Z',"Ctrl-S saves the actual SD file");
     for(unsigned i=0;i<30;++i)Check(h->Inject(1,0x83,0),"queue scroll burst");
@@ -127,5 +248,54 @@ int main(int n,char** v){
     key(27);Frames(core,180);Check(!m->Read(syms.at("_module_busy")),"keyboard menu returns to the document");
     Check(!m->Read(syms.at("fs_fault")),"keyboard menu retains transport");
     puts("SGB overlay menu labels/highlight/close, storage, help/return, OSK and progress passed");
+    // Delay a real ACK beyond the GB timeout, without changing emulator code.
+    // The existing test double's busy commit holds its immutable payload.
+    h->SetRecording("");
+    Check(h->Inject(1,'V',0),"queue edit for delayed ACK");
+    auto& mailbox=const_cast<std::array<uint8_t,4>&>(h->GetMailbox());
+    unsigned held=0;
+    for(unsigned i=0;i<600;++i){
+        if(!held && mailbox[0] && mailbox[1]==6){held=mailbox[0];mailbox[0]|=128;}
+        Frames(core,1);
+        if(held && m->Read(syms.at("fs_fault")))break;
+    }
+    Check(held && m->Read(syms.at("fs_fault")) && m->Read(syms.at("fs_pending")),"delayed ACK reaches actual GB page timeout");
+    unsigned page=mailbox[3],good=h->Good();
+    // Change the GB expectation, keeping the test double's held payload intact.
+    // Mutating that payload would make it queue a second copy of the real ACK.
+    m->Write(syms.at("fs_seq"),page==255?1:page+1);mailbox[0]=held;
+    Frames(core,30);
+    Check(m->Read(syms.at("fs_fault")) && m->Read(syms.at("fs_pending")) && h->Good()==good,"wrong-page ACK cannot clear timeout or publish another page");
+    m->Write(syms.at("fs_seq"),page);
+    Frames(core,300);
+    // Recovery can already have published another page at this sampling point.
+    // Require forward progress, rather than catching the transport between pages.
+    if(m->Read(syms.at("fs_fault")) || h->Good()<=good)
+        fprintf(stderr,"late ACK: fault=%u pending=%u page=%u ack=%u mailbox=%u/%u/%u/%u good=%u PC=%04x\n",m->Read(syms.at("fs_fault")),m->Read(syms.at("fs_pending")),m->Read(syms.at("fs_seq")),m->Read(syms.at("fs_ack")),mailbox[0],mailbox[1],mailbox[2],mailbox[3],h->Good(),core.GetProcessor()->GetState()->PC->GetValue());
+    Check(!m->Read(syms.at("fs_fault")) && h->Good()>good,"matching late ACK clears timeout and resumes transport");
+    good=h->Good();key('W');
+    Check(h->Good()>good && Contains(h,"W"),"editing publishes new text after late ACK recovery");
+    puts("SGB delayed ACK: actual timeout, wrong-page rejection, late recovery and continued editing passed");
+    if(getenv("SGB_CLIENT_NO_LOG")) {
+        Frames(core,300);
+        Check(!m->Read(syms.at("fs_log_active")) && access((root+"/GBCSYS/SGB.LOG").c_str(),F_OK)!=0,
+            "logging-disabled control build does not create or flush a log");
+        puts("SGB control build: no SD recorder writes passed");
+    } else {
+        Frames(core,300);
+        auto log=Read(root+"/GBCSYS/SGB.LOG");
+        Check(log.size()>=28 && std::string(log.begin(),log.begin()+8)==std::string("SGBLOG1\0",8) && log[10]==12,"hardware log is persisted to SD");
+        const auto data=Read(v[4]);
+        Check(log[11]==data[26] && log[12]==data[27],"hardware log identifies the loaded SGB.DAT build");
+        Check((log.size()-16)%12==0 && log.size()<=8192,"hardware log is bounded and has complete records");
+        bool ack=false,write=false,timing=false;
+        for(unsigned at=16;at<log.size();at+=12){
+            ack|=log[at]==3;write|=log[at]==6;
+            timing|=log[at]==39 && log[at+8]==0x34 && log[at+9]==0x12;
+        }
+        Check(ack && write && timing,"SD log retains ACKs, SD-write timing and SNES telemetry");
+        Write("build/sgb/hardware-test.SGB.LOG",log);
+        puts("SGB hardware log: durable bounded records, SNES timing sample and ACKs passed");
+    }
     for(unsigned mode=0;mode<3;++mode)Fallback(v[1],syms,v[3],v[5],Read(v[4]),mode);
 }

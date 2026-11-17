@@ -9,21 +9,28 @@ static ModuleLoad file;
 static unsigned char header[32],packet[16];
 static unsigned char saved[6];
 static unsigned int crc;
+static unsigned int selected_block;
+static void Block(unsigned int block) {
+  if(block==selected_block)return;
+  REG(0xBD03)=block>>8;REG(0xBD02)=block;selected_block=block;
+}
 static unsigned char Read(unsigned long pos) {
   unsigned int b=SGB_FILE_BLOCK+(unsigned int)(pos>>9);
-  REG(0xBD03)=b>>8;REG(0xBD02)=b;
+  Block(b);
   return WINDOW[(unsigned int)pos&511];
 }
 static unsigned long Long(const unsigned char* p) {
   return p[0]|((unsigned long)p[1]<<8)|((unsigned long)p[2]<<16)|((unsigned long)p[3]<<24);
 }
 static void CRC(unsigned char a) {
-  unsigned char i;
-  crc^=(unsigned int)a<<8;
-  for(i=0;i<8;++i) crc=crc&0x8000?(crc<<1)^0x1021:crc<<1;
+  // CRC-16/CCITT byte update, equivalent to the transport's FsCRC.
+  a^=(unsigned char)(crc>>8);
+  a^=a>>4;
+  crc=(crc<<8)^((unsigned int)a<<12)^((unsigned int)a<<5)^a;
 }
 static unsigned char Validate(void) {
   unsigned long i,p,f,o,load,entry;
+  unsigned int block,count,j;
   if(file.size<32) return 1;
   for(i=0;i<32;++i) header[i]=Read(i);
   p=Long(header+14);f=Long(header+18);o=Long(header+22);
@@ -33,10 +40,15 @@ static unsigned char Validate(void) {
      p>0x800000-load||f>0x800000-load-p||entry<load||entry>=load+p||o!=0x1D00||
      file.size!=32+p+f+o||header[28]!=REG(0x14E)||header[29]!=REG(0x14F)||header[30]!=1||header[31]!=1) return 1;
   crc=0xFFFF;
-  for(i=0;i<file.size;++i) CRC(i==26||i==27?0:Read(i));
+  // Walk the window in blocks: no 32-bit address calculation per file byte.
+  i=file.size;block=SGB_FILE_BLOCK;
+  while(i) {
+    count=i>512?512:(unsigned int)i;Block(block);
+    for(j=0;j<count;++j)CRC(block==SGB_FILE_BLOCK&&(j==26||j==27)?0:WINDOW[j]);
+    i-=count;++block;
+  }
   return crc!=(header[26]|((unsigned int)header[27]<<8));
 }
-static void Block(unsigned int block) {REG(0xBD03)=block>>8;REG(0xBD02)=block;}
 static void Send(unsigned char code) {
   unsigned char i;
   Block(SGB_FILE_BLOCK+SGB_FILE_BLOCKS-1);
@@ -68,12 +80,18 @@ static void Restore(void) {
   packet[1]=0;Send(0x17);REG(0xBD06)=saved[5];REG(0xFF0F)=0;REG(0xFFFF)=saved[0];
 }
 static void Upload(void) {
-  unsigned long at,n=Long(header+14)+Long(header+18),load=Long(header+8)&0xFFFFFF;
-  unsigned int i,map;
+  unsigned long n=Long(header+14)+Long(header+18),load=Long(header+8)&0xFFFFFF;
+  unsigned int i,map,count,source=SGB_FILE_BLOCK,offset=32;
   unsigned char row,column,tile;
-  for(at=0;at<n;at+=4096) {
+  while(n) {
     Off();
-    for(i=0;i<4096;++i) REG(0x8000+i)=at+i<n?Read(32+at+i):0;
+    count=n>4096?4096:(unsigned int)n;Block(source);
+    for(i=0;i<count;++i) {
+      REG(0x8000+i)=WINDOW[offset++];
+      if(offset==512){offset=0;Block(++source);}
+    }
+    for(;i<4096;++i)REG(0x8000+i)=0;
+    n-=count;
     for(i=0;i<1024;++i) REG(0x9800+i)=255;
     tile=0;
     for(row=0;row<13;++row)for(column=0;column<20;++column) {
@@ -97,6 +115,7 @@ unsigned char ModuleMain(const unsigned char* context) {
   unsigned char i,result;
   unsigned char* info=(unsigned char*)ModDriver(0x43);
   context;
+  selected_block=0xFFFF;
   if((*info&3)!=1) return 1;
   file.block=SGB_FILE_BLOCK;file.blocks=SGB_FILE_BLOCKS;
   if(ModLoad("/GBCSYS/SGB.DAT",&file)||Validate()) return 1;

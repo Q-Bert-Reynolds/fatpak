@@ -56,32 +56,38 @@ FsStore: ; HL address, A byte, preserves DE/BC
   ld [hli], a
   ret
 FsCRC: ; DE CRC, A byte; preserves BC/HL
-  push bc
+  push hl
   xor d
-  ld b, a
-  swap a
-  and $0F
-  xor b
-  ld b, a
-  swap a
-  and $F0
+  ld l, a
+  ld h, HIGH(FsCRCHigh)
+  ld a, [hl]
   xor e
-  ld c, a
-  ld a, b
-  rrca
-  rrca
-  rrca
-  and $1F
-  xor c
   ld d, a
-  ld a, b
-  rrca
-  rrca
-  rrca
-  and $E0
-  xor b
+  inc h
+  ld e, [hl]
+  pop hl
+  ret
+FsHashRow: ; HL 64-byte source, DE CRC; BC clobbered
+  ld a, 8
+  ldh [fs_count], a
+  ld b, HIGH(FsCRCHigh)
+.loop
+REPT 8
+  ld a, [hli]
+  xor d
+  ld c, a
+  ld a, [bc]
+  xor e
+  ld d, a
+  inc b
+  ld a, [bc]
   ld e, a
-  pop bc
+  dec b
+ENDR
+  ldh a, [fs_count]
+  dec a
+  ldh [fs_count], a
+  jr nz, .loop
   ret
 FsFlush:
   ldh a, [fs_write]
@@ -132,7 +138,11 @@ FsFlush:
   ldh a, [fs_seq]
   call FsStore ; commit last
   ldh [fs_committed], a
+  ld a, 2
+  call FsLog
 FsWait:
+  ld a, 8
+  call FsLog
   ld a, [_render_frames]
   ld b, a
 .wait
@@ -166,6 +176,11 @@ FsWait:
   jr c, .wait
   ld a, 1
   ldh [fs_fault], a
+  ld a, 4
+  call FsLog
+  ; A stalled repaint may never return to FsInput. Persist its timeout here;
+  ; FsLogFlush still excludes active modules and rate-limits SD access.
+  call FsLogFlush
   scf
   ret
 FsTLV: ; A opcode, BC payload size
@@ -282,8 +297,8 @@ FsDraw:
   ldh [fs_deferred], a
   ldh [fs_force], a
   ret
-; Build row geometry first; then one RLE pair per character is valid RLE and
-; bounds the largest ROW at 202 bytes. A page reserves a complete command.
+; Build row geometry and merge equal attributes into runs. Worst-case ROW
+; remains 202 bytes, so the existing page reservation bounds a whole command.
 FsEncodeRow:
   ldh a, [fs_write+1]
   cp $86
@@ -351,26 +366,8 @@ FsEncodeRow:
   ldh [fs_attrs], a
   ld a, h
   ldh [fs_attrs+1], a
-  xor a
-  ldh [fs_count], a
-  ldh [fs_x], a
-.count
-  call FsAttr
-  and 15
-  ld b, a
-  ldh a, [fs_x]
-  add b
-  jr c, .counted
-  cp 249
-  jr nc, .counted
-  ldh [fs_x], a
-  ldh a, [fs_count]
-  inc a
-  ldh [fs_count], a
-  cp 64
-  jr c, .count
-.counted
-  ; Hash characters, widths/styles, font and selection, without using bitmap caches.
+  ; Hash fixed-size source rows first. Only changed rows need width/RLE work.
+  ; Bytes past the visible edge may cause a harmless extra redraw, never stale text.
   ld de, $FFFF
   ldh a, [fs_font]
   call FsCRC
@@ -392,31 +389,16 @@ FsEncodeRow:
   ld l, a
   ldh a, [fs_chars+1]
   ld h, a
-  ldh a, [fs_count]
-  ld b, a
+  call FsHashRow
+  ldh a, [fs_styled]
   and a
   jr z, .hashed
-.hash
-  ld a, [hli]
-  call FsCRC
-  dec b
-  jr nz, .hash
+  ldh a, [fs_attrs]
+  ld l, a
+  ldh a, [fs_attrs+1]
+  ld h, a
+  call FsHashRow
 .hashed
-  xor a
-  ldh [fs_x], a
-.hashAttrs
-  ldh a, [fs_count]
-  ld b, a
-  ldh a, [fs_x]
-  cp b
-  jr z, .attrsHashed
-  call FsAttrAtX
-  call FsCRC
-  ldh a, [fs_x]
-  inc a
-  ldh [fs_x], a
-  jr .hashAttrs
-.attrsHashed
   ldh a, [fs_row]
   add a
   ld c, a
@@ -438,6 +420,42 @@ FsEncodeRow:
   ld [hl], d
   dec hl
   ld [hl], e
+  ldh a, [fs_chars]
+  ld l, a
+  ldh a, [fs_chars+1]
+  ld h, a
+  xor a
+  ldh [fs_count], a
+  ldh [fs_x], a
+  ldh [fs_hash], a ; previous attribute, then run count
+  ldh [fs_hash+1], a
+.count
+  call FsAttr
+  ld c, a
+  and 15
+  ld b, a
+  ldh a, [fs_x]
+  add b
+  jr c, .counted
+  cp 249
+  jr nc, .counted
+  ldh [fs_x], a
+  inc hl
+  ldh a, [fs_hash]
+  cp c
+  jr z, .sameAttr
+  ld a, c
+  ldh [fs_hash], a
+  ldh a, [fs_hash+1]
+  inc a
+  ldh [fs_hash+1], a
+.sameAttr
+  ldh a, [fs_count]
+  inc a
+  ldh [fs_count], a
+  cp 64
+  jr c, .count
+.counted
   ld a, [_bars]
   and a
   jr z, .textRow
@@ -449,6 +467,7 @@ FsEncodeRow:
 .textRow
   ldh a, [fs_count]
   ld c, a
+  ldh a, [fs_hash+1]
   add a
   add c
   add 7
@@ -512,6 +531,7 @@ FsEncodeRow:
   call FsByte
   ldh a, [fs_count]
   call FsByte
+  ldh a, [fs_hash+1]
   call FsByte
   ldh a, [fs_chars]
   ld l, a
@@ -529,17 +549,31 @@ FsEncodeRow:
   xor a
   ldh [fs_x], a
 .runs
-  ld a, 1
-  call FsByte
   call FsAttrAtX
-  call FsByte
+  ld d, a
+  ld e, 0
+.sameRun
+  inc e
   ldh a, [fs_x]
   inc a
   ldh [fs_x], a
   ld b, a
   ldh a, [fs_count]
   cp b
-  jr nz, .runs
+  jr z, .lastRun
+  call FsAttrAtX
+  cp d
+  jr z, .sameRun
+  ld a, e
+  call FsByte
+  ld a, d
+  call FsByte
+  jr .runs
+.lastRun
+  ld a, e
+  call FsByte
+  ld a, d
+  call FsByte
 .done
   ret
 FsAttr:
@@ -613,7 +647,8 @@ FsCursor:
   rrca
   and 31
   call FsByte
-  ld a, [oam_buffer+1] ; GB sprite offset also supplies our 8px text margin
+  ld a, [oam_buffer+1]
+  sub 8 ; remove the GB sprite offset; SNES text starts at screen X=0
   call FsByte
   ld a, [cursor_white]
   inc a
@@ -664,6 +699,7 @@ ASSERT @ <= FontVWFWidths, "terminal head overlaps retained font metrics"
 SECTION "Terminal tail", ROMX[FontVWFWidths+256], BANK[1]
 FsInit:
   xor a
+  ldh [fs_log_active], a
   ld hl, fs_ready
   ld bc, fs_state_end-fs_ready
   call mem_Set
@@ -728,6 +764,17 @@ FsInit:
   ld a, 1
   ret
 .ready
+  ; Own VBlank before any helper can restore interrupts during startup.
+  ; The initial redraw uses P1 for the mailbox; the BIOS-mode handler's
+  ; LatchPad would otherwise change controller selection in the middle of it.
+  ; The bootstrap clears this flag and restores the renderer on failure.
+  ldh a, [sys_info]
+  or 4
+  ldh [sys_info], a
+  call FsLogInit
+  ; Upload and its file read are finished. Persist this build's header before
+  ; any page wait, while the bootstrap still owns an otherwise idle filesystem.
+  call FsLogWrite
   call FsPalette
   ldh a, [fs_fault]
   and a
@@ -749,9 +796,6 @@ FsInit:
   ld a, 4
   call mem_Set
   call FsRedraw
-  ldh a, [sys_info]
-  or 4
-  ldh [sys_info], a
   xor a
   ldh [fs_fault], a
   ld [_render_pending], a
@@ -763,10 +807,19 @@ FsInit:
   xor a
   ret
 FsInput:
+  ; The bootstrap and its initial draw are over. Later module callbacks may
+  ; have a file open, so only the ordinary idle/timeout flush may write now.
+  ldh a, [fs_log_active]
+  cp 2
+  jr nz, .loggingReady
+  dec a
+  ldh [fs_log_active], a
+.loggingReady
   xor a
   ldh [button_state], a
   ldh [last_button_state], a
   call FsPoll
+  call FsLogFlush
   ldh a, [fs_deferred]
   and a
   call nz, FsDraw
@@ -818,27 +871,44 @@ FsInterrupt:
   call FsTick
   jp VBLContinue
 FsFrame:
+  ld a, [_render_frames]
+  push bc
+  ld b, a
   ldh a, [rLY]
   cp 144
   jr c, .vblank
 .visible
+  ; The interrupt may cover all of VBlank. Do not require foreground code
+  ; to observe LY >= 144 after its handler has already advanced the clock.
+  ld a, [_render_frames]
+  cp b
+  jr nz, .advanced
   ldh a, [rLY]
   cp 144
   jr nc, .visible
 .vblank
+  ld a, [_render_frames]
+  cp b
+  jr nz, .advanced
   ldh a, [rLY]
   cp 144
   jr c, .vblank
-  ldh a, [rIE]
-  bit 0, a
+  ; IE does not tell us whether IME allowed the VBlank handler to run.
+  ; After a physical frame, publish status ourselves if it did not advance.
+  ld a, [_render_frames]
+  cp b
+  pop bc
   ret nz
-  ; Bootstrap and wide-module callbacks can have VBlank masked.
   jp FsTick
+.advanced
+  pop bc
+  ret
 FsTick:
   ld hl, _render_frames
   inc [hl]
   jr nz, .counted
   inc hl
+  inc [hl]
 .counted
   ld hl, fs_status
   ld a, $53
@@ -890,12 +960,13 @@ FsPoll:
   ldh [rP1], a
   ld b, 4
 .select
-  ldh a, [rP1]
+  call FsSettle
   and 15
   cp 15
   jr z, .one
   ld a, $10
   ldh [rP1], a
+  call FsSettle
   ld a, $30
   ldh [rP1], a
   dec b
@@ -926,6 +997,13 @@ FsPoll:
   ldh a, [fs_mb+1]
   and a
   ret z
+  cp SGBFS_EVENT_DIAG_GOOD
+  jr c, .ordinary
+  cp SGBFS_EVENT_DIAG_FRAME+1
+  ret nc
+  call FsLog
+  jp .consumed
+.ordinary
   cp SGBFS_EVENT_HELLO
   jr z, .hello
   cp SGBFS_EVENT_ACK
@@ -953,6 +1031,11 @@ FsPoll:
   ret nz
   xor a
   ldh [fs_pending], a
+  ; A matching late ACK completes the preserved page. Resume publication
+  ; even if FsWait previously reached its deadline; unrelated ACKs cannot.
+  ldh [fs_fault], a
+  ld a, 3
+  call FsLog
   jr .consumed
 .key
   ldh a, [fs_mb+2]
@@ -992,26 +1075,36 @@ FsPoll:
   or $10
 .modifiers
   ld [hl], a
+  ld a, 5
+  call FsLog
 .consumed
   ld a, b
   ldh [fs_ack], a
   ret
 FsRead:
+  ; Match the slow, hardware-tested bench reader, including the released
+  ; selection between slots. VBlank never writes P1 in fullscreen mode.
+  call FsSettle
   ld a, $20
   ldh [rP1], a
-REPT 6
-  ldh a, [rP1]
-ENDR
+  call FsSettle
   and 15
   ld e, a
   ld a, $10
   ldh [rP1], a
-REPT 6
-  ldh a, [rP1]
-ENDR
+  call FsSettle
   and 15
   swap a
   or e
+  ret
+FsSettle:
+  push bc
+  ld b, 32
+.wait
+  ldh a, [rP1]
+  dec b
+  jr nz, .wait
+  pop bc
   ret
 
 
@@ -1287,4 +1380,298 @@ FsKiB:
   xor a
   call FsByte
   jp FsByte
+; Binary flight recorder. The first 8 KiB of SGB_FILE staging is free once
+; upload finishes. Records never touch document, undo, or assembler scratch.
+; SD writes happen only from ordinary input, never from the VBlank handler.
+FsLogInit:
+IF DEF(SGB_LOG_DISABLE)
+  ret ; FsInit cleared fs_log_active; control build performs no recorder I/O.
+ENDC
+  xor a
+  ldh [fs_log_size], a
+  ldh [fs_log_size+1], a
+  ldh [fs_log_dirty], a
+  ldh [fs_log_tick], a
+  ldh [fs_log_tick+1], a
+  ld a, 2 ; bootstrap owns an idle filesystem until the first input callback
+  ldh [fs_log_active], a
+  call FsLogWindow
+  push bc
+  ld de, FsLogHeader
+  ld b, 16
+.header
+  ld a, [de]
+  inc de
+  call FsLogByte
+  dec b
+  jr nz, .header
+  ld a, [$014E]
+  ld [$BE08], a
+  ld a, [$014F]
+  ld [$BE09], a
+  ; Preserve the validated SGB.DAT CRC before records reuse its staging area.
+  ld a, [$BE1A]
+  ld [$BE0B], a
+  ld a, [$BE1B]
+  ld [$BE0C], a
+  pop bc
+  call FsLogRestore
+  ld a, 1
+  jp FsLog
+FsLogHeader:
+  DB "SGBLOG1", 0, 0, 0, 12, 0, 0, 0, 0, 0
+FsLogPath:
+  DB "/GBCSYS/SGB.LOG", 0
+FsLogWindow:
+  ld a, [$BD03]
+  ld b, a
+  ld a, [$BD02]
+  ld c, a
+  ld a, HIGH(SGB_FILE_BLOCK)
+  ld [$BD03], a
+  ldh a, [fs_log_size+1]
+  srl a
+  add LOW(SGB_FILE_BLOCK)
+  ld [$BD02], a
+  ldh a, [fs_log_size]
+  ld l, a
+  ldh a, [fs_log_size+1]
+  and 1
+  add $BE
+  ld h, a
+  ret
+FsLogRestore:
+  ld a, b
+  ld [$BD03], a
+  ld a, c
+  ld [$BD02], a
+  ret
+FsLogByte:
+  ld [hli], a
+  ldh a, [fs_log_size]
+  inc a
+  ldh [fs_log_size], a
+  jr nz, .counted
+  ldh a, [fs_log_size+1]
+  inc a
+  ldh [fs_log_size+1], a
+.counted
+  ld a, h
+  cp $C0
+  ret nz
+  ld h, $BE
+  ld a, [$BD02]
+  inc a
+  ld [$BD02], a
+  ret
+FsLog:
+  push af
+  push bc
+  push de
+  push hl
+  ld d, a
+  ldh a, [fs_log_active]
+  and a
+  jp z, .done
+  ldh a, [fs_log_size+1]
+  cp $1F
+  jp nc, .done
+  call FsLogWindow
+  push bc
+  ld a, d
+  call FsLogByte
+  ldh a, [fs_seq]
+  call FsLogByte
+.frame
+  ld a, [_render_frames+1]
+  ld b, a
+  ld a, [_render_frames]
+  ld c, a
+  ld a, [_render_frames+1]
+  cp b
+  jr nz, .frame
+  ld a, c
+  call FsLogByte
+  ld a, b
+  call FsLogByte
+  ldh a, [fs_pending]
+  call FsLogByte
+  ldh a, [fs_fault]
+  call FsLogByte
+  ldh a, [fs_mb]
+  call FsLogByte
+  ldh a, [fs_mb+1]
+  call FsLogByte
+  ld a, d
+  cp 8
+  jr z, .waitState
+  ldh a, [fs_mb+2]
+  call FsLogByte
+  ldh a, [fs_mb+3]
+  call FsLogByte
+  ld a, d
+  cp 7
+  jr z, .writeError
+  cp 6
+  jr z, .flushTime
+  ldh a, [fs_row]
+  call FsLogByte
+  ldh a, [fs_deferred]
+  jr .last
+.flushTime
+  ldh a, [fs_log_tick]
+  call FsLogByte
+  ldh a, [fs_log_tick+1]
+  jr .last
+.writeError
+  ld a, e ; FatFs result supplied by FsLogFlush
+  call FsLogByte
+  xor a
+  jr .last
+.waitState
+  ldh a, [rLCDC]
+  call FsLogByte
+  ldh a, [rLY]
+  call FsLogByte
+  ldh a, [rIE]
+  call FsLogByte
+  ldh a, [rIF]
+.last
+  call FsLogByte
+  pop bc
+  call FsLogRestore
+  ld a, 1
+  ldh [fs_log_dirty], a
+  ; Initial drawing can stall before reaching FsInput, with module_busy set.
+  ; Its source file is already closed. Save each page exchange now, while
+  ; later module callbacks retain the normal no-filesystem-recursion guard.
+  ldh a, [fs_log_active]
+  cp 2
+  jr nz, .done
+  ld a, d
+  cp 8
+  jr z, .persist
+  cp 2
+  jr c, .done
+  cp 5
+  jr nc, .done
+.persist
+  call FsLogWrite
+.done
+  pop hl
+  pop de
+  pop bc
+  pop af
+  ret
+FsLogFlush:
+  ldh a, [fs_log_active]
+  and a
+  ret z
+  ldh a, [fs_log_dirty]
+  and a
+  ret z
+  ld a, [_module_busy]
+  and a
+  ret nz
+  ldh a, [fs_pending]
+  and a
+  jr z, .idle
+  ldh a, [fs_fault]
+  and a
+  ret z
+.idle
+  ld a, [_render_frames]
+  ld e, a
+  ldh a, [fs_log_tick]
+  ld c, a
+  ld a, e
+  sub c
+  ld e, a
+  ld a, [_render_frames+1]
+  ld d, a
+  ldh a, [fs_log_tick+1]
+  ld c, a
+  ld a, d
+  sbc c
+  jr nz, FsLogWrite
+  ld a, e
+  cp 240
+  ret c
+FsLogWrite:
+  ldh a, [fs_log_active]
+  and a
+  ret z
+  ld a, [_render_frames]
+  ldh [fs_log_tick], a
+  ld a, [_render_frames+1]
+  ldh [fs_log_tick+1], a
+  ld a, [$BD03]
+  ld b, a
+  ld a, [$BD02]
+  ld c, a
+  push bc
+  ld de, FsLogPath
+  ldh a, [fs_log_size]
+  ld c, a
+  ldh a, [fs_log_size+1]
+  or $C0
+  ld b, a
+  ; The first hardware trace stopped at the first write with VBlank active.
+  ; Keep the SPI/file operation isolated from interrupt callbacks without
+  ; changing the caller's IME or discarding its pending interrupt requests.
+  ldh a, [rIE]
+  push af
+  xor a
+  ldh [rIE], a
+  call _FileWriteImage
+  ld d, a
+  pop af
+  ldh [rIE], a
+  pop bc
+  call FsLogRestore
+  xor a
+  ldh [fs_log_dirty], a
+  ld a, d
+  and a
+  jr z, .ok
+  ; A transient SD failure must not discard the rest of the hardware trace.
+  ; Keep recording and retry on the next interval; preserve the error code.
+  ld e, a
+  ld a, 7
+  jp FsLog
+.ok
+  ld a, 6
+  jp FsLog
 ASSERT @ <= _RenderOverlayEnd, "terminal exceeds audited renderer interval"
+
+; Split, page-aligned CCITT tables avoid a multiply/add for each lookup.
+; They occupy existing overlay space, without additional WRAM or upload bytes.
+SECTION "Terminal CRC tables", ROMX[$5000], BANK[1]
+FsCRCHigh:
+FOR index, 256
+  DEF value = index << 8
+  REPT 8
+    IF value & $8000
+      REDEF value = ((value << 1) ^ $1021) & $FFFF
+    ELSE
+      REDEF value = (value << 1) & $FFFF
+    ENDC
+  ENDR
+  DB HIGH(value)
+  PURGE value
+ENDR
+FsCRCLow:
+FOR index, 256
+  DEF value = index << 8
+  REPT 8
+    IF value & $8000
+      REDEF value = ((value << 1) ^ $1021) & $FFFF
+    ELSE
+      REDEF value = (value << 1) & $FFFF
+    ENDC
+  ENDR
+  DB LOW(value)
+  PURGE value
+ENDR
+ASSERT LOW(FsCRCHigh) == 0 && FsCRCLow == FsCRCHigh+256
+ASSERT @ <= _RenderOverlayEnd, "CRC tables exceed audited renderer interval"

@@ -21,8 +21,11 @@ printf '{}\n' > "$work/config/MesenCE/settings.json"
 cd "$work"
 XDG_CONFIG_HOME="$work/config" dotnet "${MESEN_DLL:-$root/../MesenCE/bin/linux-x64/Release/Mesen.dll}" --testRunner --timeout=900 \
  --Debug.ScriptWindow.AllowIoOsAccess=true --Gameboy.Model=SuperGameboy --Gameboy.UseSgb2=false \
- --Snes.Port1.Type=SnesController "$root/tests/sgb/kernel.lua" "$root/build/sgb/kernel.gb" >mesen.log 2>&1 || { cat config/MesenCE/result.txt; tail -10 mesen.log; exit 1; }
+ --Snes.Port1.Type=SnesController --Snes.Port2.Type=SnesMouse "$root/tests/sgb/kernel.lua" "$root/build/sgb/kernel.gb" >mesen.log 2>&1 || { cat config/MesenCE/result.txt; tail -10 mesen.log; exit 1; }
 cat config/MesenCE/result.txt
+
+# This fault deliberately prevents the replay from reaching its final picture.
+if [[ ${SGB_KERNEL_STALL:-0} == 1 ]]; then exit 0; fi
 
 python3 - "$root" <<'PY'
 from pathlib import Path
@@ -34,6 +37,6 @@ assert ImageChops.difference(actual,golden).getbbox() is None, 'SNES PPU differs
 print('PASS: all 57,344 SNES pixels match the frontend golden')
 closed=Path('config/MesenCE/kernel-closed.ppm')
 if closed.exists():
-    assert ImageChops.difference(Image.open(closed),Image.open(root/'tests/sgb/fixtures/client.png')).getbbox() is None, 'closing the menu did not restore the original image'
+    assert ImageChops.difference(Image.open(closed),Image.open(root/'build/sgb/kernel-base-golden.png')).getbbox() is None, 'closing the menu did not restore the original image'
     print('PASS: closing the menu restores every original PPU pixel')
 PY

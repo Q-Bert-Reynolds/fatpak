@@ -12,14 +12,15 @@ def build():
     names=['mono','vwf','fixed','h1','h2','h3','h4','fixed_bold','fixed_italic',
            'fixed_bold_italic','vwf_bold','vwf_italic','vwf_bold_italic']
     assets=b''.join(data_file.db_bytes(f'img/fonts/font_{n}.asm')[:2048] for n in names)
-    for i in range(7):
-        assets+=data_file.db_bytes('img/fonts/font_vwf.asm')[2048:2304] if i==1 else bytes([8 if i==0 else 4 if i==2 else 11-i])*256
+    assert all(not any(assets[i*2048+256:i*2048+264]) for i in range(13)), 'space glyph must stay blank'
+    # Only VWF needs a width table; the other six fonts have constant widths.
+    assets+=data_file.db_bytes('img/fonts/font_vwf.asm')[2048:2304]
     assets+=bytes(v for icon in fonts.button_pixels().values() for row in icon for v in row)
-    assert len(assets)==29120
+    assert len(assets)==27584
     (WORK/'fonts.bin').write_bytes(assets)
     def run(*args): subprocess.run(args,cwd=ROOT,check=True)
-    run('cc65','-t','none','-Oirs','--cpu','6502','-o',str(WORK/'kernel.s'),'snes/kernel.c')
-    run('ca65','-o',str(WORK/'kernel.o'),str(WORK/'kernel.s'))
+    run('cc65','-g','-t','none','-Oirs','--cpu','6502','-o',str(WORK/'kernel.s'),'snes/kernel.c')
+    run('ca65','-g','-o',str(WORK/'kernel.o'),str(WORK/'kernel.s'))
     run('ca65','-o',str(WORK/'hardware.o'),'snes/hardware.s')
     run('ca65','-o',str(WORK/'raster.o'),'snes/raster.s')
     run('ca65','-o',str(WORK/'overlay.o'),'snes/overlay.s')

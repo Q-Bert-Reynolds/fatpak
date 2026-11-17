@@ -7,6 +7,20 @@ ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'scripts'))
 import sgb_kernel,sgb_protocol as wire
 W=ROOT/'build/sgb'
 
+def compact(raw):
+    sequence,commands=wire.decode_page(raw)
+    payload=b''
+    for op,body in commands:
+        if op==wire.SGBFS_CMD_ROW:
+            count=body[5];runs=[]
+            for at in range(7+count,len(body),2):
+                n,attr=body[at:at+2]
+                if runs and runs[-1][1]==attr:runs[-1][0]+=n
+                else:runs.append([n,attr])
+            body=body[:6]+bytes((len(runs),))+body[7:7+count]+bytes(v for run in runs for v in run)
+        payload+=wire.command(op,body)
+    return wire.page(sequence,payload)
+
 def recording(path):
     pages=[];expected=1;active=False
     with open(path,'rb') as f:
@@ -39,13 +53,19 @@ def build():
     assert len(raw)%1920==0
     pages=[raw[i:i+1920] for i in range(0,len(raw),1920)]
     for page in pages:wire.decode_page(page)
+    if os.environ.get('SGB_KERNEL_COMPACT'):
+        before=sum(int.from_bytes(p[1:3],'little') for p in pages)
+        pages=[compact(p) for p in pages]
+        after=sum(int.from_bytes(p[1:3],'little') for p in pages)
+        print(f'ROW run merging: {before} -> {after} payload bytes')
     (W/'replay-base.pages').write_bytes(b''.join(pages))
+    import ui_fixture
+    ui_fixture.base_golden(ROOT,W/'kernel-base-golden.png')
     if os.environ.get('SGB_KERNEL_UI'):
-        import ui_fixture
         pages+=ui_fixture.pages()
         ui_fixture.golden(ROOT,W/'kernel-golden.png')
     else:
-        (W/'kernel-golden.png').write_bytes((ROOT/'tests/sgb/fixtures/client.png').read_bytes())
+        (W/'kernel-golden.png').write_bytes((W/'kernel-base-golden.png').read_bytes())
     (W/'replay.pages').write_bytes(b''.join(pages));print(f'{len(pages)} frontend pages')
     image=(W/'kernel.bin').read_bytes();image=image.ljust((len(image)+4095)//4096*4096,b'\0');(W/'upload.bin').write_bytes(image)
     source=('DEF UI_REPLAY EQU 1\n' if os.environ.get('SGB_KERNEL_UI') else '')+(ROOT/'tests/sgb/kernel.asm').read_text()

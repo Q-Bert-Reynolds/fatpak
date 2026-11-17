@@ -7,6 +7,16 @@ import sgb_protocol as wire
 from kernel_build import recording
 
 pages=recording(sys.argv[1])
+row_bytes=legacy_bytes=0
+for raw in pages:
+    _,commands=wire.decode_page(raw)
+    for op,body in commands:
+        if op!=wire.SGBFS_CMD_ROW:continue
+        count=body[5];runs=body[7+count:]
+        assert runs==wire.rle_encode(wire.rle_decode(runs,count)), 'ROW has redundant adjacent attribute runs'
+        row_bytes+=len(body);legacy_bytes+=7+3*count
+assert row_bytes<legacy_bytes, 'frontend did not exercise ROW compression'
+print(f'PASS: frontend ROW payloads use {row_bytes}/{legacy_bytes} bytes with merged runs')
 menu=False
 for raw in pages:
     sequence,commands=wire.decode_page(raw)

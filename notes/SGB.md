@@ -11,7 +11,9 @@ The GB keeps files, PSRAM, text buffers, undo, lexing, wrapping, layout and UI
 logic. The SNES draws the 256×224 display and reports input. It receives glyphs,
 styles and pixel positions, without needing filesystem or editor state.
 Fullscreen replaces the GB picture and border with 28 rows of SNES-rendered text.
-The text area is 248 px wide with an 8 px left margin, capped at 64 glyphs per row:
+The text area is 248 px wide. Fonts 1–6 start at x=1, leaving
+the cursor in the preceding gap; font 0 retains x=0. Rows are
+capped at 64 glyphs:
 26 text rows with both bars, or 21 with the five-row on-screen keyboard (OSK).
 Fonts and BGR555 colors come from the same assets as the GB/GBC UI.
 
@@ -34,10 +36,11 @@ and [fullsnes](https://problemkaputt.de/fullsnes.htm) for hardware references.
 
 ### Game Boy frontend
 
-Startup always uses SGB BIOS mode, even with `SGB.DAT` installed. Select
-**SETTINGS → SGB FULLSCREEN** in the browser or editor to attempt takeover.
-The action appears only in SGB BIOS mode and is not saved as a startup setting.
-This keeps the test ROMs accessible without removing fullscreen files.
+SGB startup attempts fullscreen automatically after loading settings and restoring
+the session. If takeover fails, **SETTINGS → SGB FULLSCREEN** remains available
+in BIOS mode to retry. Remove or rename `SGB.DAT` to boot in BIOS mode for test ROMs.
+The current automatic-start build is OS `B12E` / `SGB.DAT` `D15B`; startup, editing/saving,
+timeout recovery and missing/corrupt/no-HELLO fallback checks pass in the client test.
 
 `SGBBOOT.MOD` loads and validates `/GBCSYS/SGB.DAT`, backs up video, installs the
 host-bound renderer overlay, uploads SNES code/fonts, issues JUMP and waits for
@@ -172,7 +175,8 @@ Version/profile mismatch requires a new handshake, not guessing at a schema.
 
 Rows are 0–27, fonts use the existing GB IDs 0–6, and strings are counted GB glyph
 bytes (including UI glyphs), never NUL terminated or UTF-8. Counts are at most
-64. Screen x is 0–255; text rows have an 8 px left margin and 248 px content.
+64. Screen x is 0–255. Selection/cursor coordinates start at x=0; fonts 1–6
+have a one-pixel glyph inset and occupy up to 248 px.
 
 | Command | Payload |
 | --- | --- |
@@ -231,6 +235,10 @@ only equal, nonzero, nonbusy commits. Idle 0 is not an event. Sequence wraps
 | HELLO | Protocol version | Color=1, mouse=2, pad 2=4 |
 | ACK | Page 0=A / 1=B | Applied page sequence, 1–255 |
 | LAUNCH_READY | Mode 1 RESET_REQUIRED | 0 |
+| DIAG_GOOD…DIAG_FRAME (`$20–$28`) | Low byte | High byte of counter/time |
+
+Diagnostic IDs are GOOD, BAD, MISS, ROWS, DRAW, UI, PAGE, MAIL, FRAME in order.
+They are optional, queued behind input/control, and use the ordinary event echo.
 
 Mouse buttons are left=1/right=2 and represent the state **after** the event.
 DOWN/DRAG require a held button; MOVE is hover with no buttons. UP may leave
@@ -239,6 +247,8 @@ the pointer itself. Mouse row 28–31 and bit 7 are invalid.
 
 The SNES holds an event until the GB echoes its sequence in a CRC-valid status
 record. The GB processes a duplicate only once, but continues echoing its ACK.
+The kernel republishes the unchanged held event once per observed SNES frame;
+losing a commit must not strand later page ACKs behind it.
 Do not overwrite an unacknowledged mailbox even for a page ACK. Queue up to 64
 events; reserve three entries for two page ACKs and launch completion. Coalesce
 motion within the same button state; preserve press/release and key edges.
@@ -266,8 +276,9 @@ status CRC, retaining its previous acknowledged event and state.
 
 HELLO wait budget is 180 GB frames after JUMP, page ACK budget 120. Busy status
 suspends ordinary inactivity checks while a build or filesystem operation runs.
-A timeout is an error indication; it must not silently reset the GB or discard
-unsaved text. Automatic visual recovery after takeover remains unproven.
+A timeout pauses publication without resetting the GB or discarding the page or
+unsaved text. A matching late ACK clears the timeout; other ACKs cannot release
+the pending page. This recovery passes emulation; hardware confirmation is pending.
 
 ### Launch policy
 
@@ -731,29 +742,271 @@ upload/JUMP.
 
 ## Hardware integration checklist (Phase 7)
 
+Fullscreen writes a bounded binary flight recorder to `/GBCSYS/SGB.LOG`.
+After upload/HELLO, it replaces the previous log before the first page wait.
+Until the first ordinary input callback, each page publication, ACK and timeout
+is saved immediately. The bootstrap's source file is already closed; subsequent
+module callbacks retain the filesystem recursion guard.
+Pre-wait records include `LCDC`, `LY`, `IE` and `IF`. Log writes temporarily
+mask interrupts and restore `IE`, preserving `IME` and pending requests.
+GB frame timestamps exclude frames lost during these masked writes; the SNES
+NMI clock continues independently.
+Reproduce for about a minute,
+then remount the card; no counter transcription is needed. Decode with
+`python3 scripts/sgb_log.py /path/to/GBCSYS/SGB.LOG`.
+
+The header identifies the OS checksum and `SGB.DAT` CRC. Twelve-byte records
+capture GB frames, page publication/ACK/timeout, delivered keys and SD-write
+duration and SD error codes. After the first screen is received and drawn, an
+idle mailbox sends one timing field every two seconds: peak draw/UI/page/mail
+times, NMI frames, then GOOD/BAD/MISS/ROW. Control replies take priority.
+SNES timings are in frames; samples are timestamped
+individually. A counter-only NMI keeps timing independent of capture polling.
+
+The recorder reuses the first 8 KiB of upload staging after upload, preserving
+document/undo/assembler storage. It flushes about every four GB seconds outside
+active modules and ordinary pending-page waits. A repaint timeout also attempts
+a flush, so recording does not depend on reaching the ordinary input loop.
+SD errors are recorded and retried on the next interval. At the size limit it
+retains the captured beginning of the session. Records can end up to one flush
+interval behind; partial final records are ignored by the decoder.
+
+On-screen diagnostics start hidden and are controlled only by L+R+Select.
+They never reopen automatically; file recording does not require the overlay.
+Hardware reported no response-time improvement from the preceding optimization
+build (`GOOD=49 BAD=2 MISS=09AA`); the new log is intended to locate that gap.
+The first hardware log captured four pages and two timeouts, but stopped after
+13 records. Its GB clock did not carry past the low byte, so its decoded elapsed
+times are invalid. The next build fixed the clock and retried SD failures, but
+hardware did not load the UI or replace the log within five minutes. Its new
+nine-event telemetry batch has been removed; telemetry now waits for the first
+screen and sends one field at a time, starting with draw cost. The cause of that
+startup failure is not yet confirmed. The folder title and first highlight row
+were visible, locating the failure after upload, during the initial repaint.
+Removing the batch did not change that result or replace the old log. A GB test
+then reproduced a frame wait that stopped updating status with `IE` enabled but
+CPU `IME` disabled. The wait now falls back to publishing status whenever the
+frame counter did not advance across a physical frame; it preserves interrupt
+masking. This explains a possible unbounded ACK wait, but hardware confirmation
+is still needed.
+That hardware build wrote only the startup record (CRC `A575`). Subsequent
+flushes could be suppressed by the active bootstrap module, so startup page
+records now bypass that guard only until the first ordinary input callback.
+The next capture (`6777`) accepted palette page 1, then ended at publication of
+page 2 (GB frame 1768, row 9). It contained no page-2 ACK, timeout or subsequent
+write record. Startup tests left 101 stack bytes unused. The next build isolates
+SD writes from interrupts and records LCD/interrupt state before page waits;
+the hardware cause remains unconfirmed.
+Capture `19C9` reached page 2's pre-wait record: `LCDC=91 LY=7F IE=0B IF=E0`,
+then stopped recording. L+R+Select still toggled the SNES's two diagnostic rows.
+Interrupt isolation did not resolve the hardware stall.
+
+The subsequent performance revision skips snapshots for empty, duplicate or
+out-of-sequence captured pages, retaining copied-sequence/CRC validation. Empty
+overlay rows upload transparent tiles without per-pixel encoding, preserving
+menu erasure. Native tests and a 111-page Mesen replay pass, including all 57,344
+golden pixels and dropped-ACK recovery. Empty overlay rows cost one SNES frame;
+populated rows still peak at ten. The single-threaded raster remains a latency
+limit; these changes do not establish a fix for the hardware stall.
+Hardware capture `ADF2` again ended at page 2's pre-wait record, with
+`LCDC=91 LY=09 IE=0B IF=E0`. The next control build (`64B6`) disables recorder
+initialization and all SD recorder writes, keeping the SNES kernel unchanged.
+Build it with `scripts/sgb_data.py --no-log` and the usual SNES/font arguments;
+validate with `SGB_CLIENT_NO_LOG=1 SGB_CLIENT_DATA=bin/SGB.DAT make test-sgb-client`.
+It intentionally leaves the previous `SGB.LOG` unchanged. This distinguishes
+recorder interference from a stall that also occurs without SD logging.
+
+The logging-disabled control still stalled: `GOOD=0002 BAD=0000 MISS=02EC
+ROW=9A1C Q=0C`, with peak draw/UI/page/mail times of 9/16/52/17 SNES frames.
+SD logging is therefore not required to trigger the stall. Build `6E03`
+keeps logging disabled and adds a third diagnostic row:
+`MB:seq/type/A/B E:echo GB:frame P:published V:valid NEXT:expected`.
+`MB` is displayed as two four-digit words (`seq/type` and `A/B`); `V=01`
+means the latest captured GB status passes validation. Compare `GB` across
+several seconds to check GB progress, and `E` against the mailbox sequence
+to locate a blocked reply. Gamepad commands now use port 1 only; mouse buttons
+in port 2 no longer become Enter/X commands. The kernel replay now connects
+a mouse in port 2 as well as a gamepad in port 1.
+Client timeout/recovery and logging-disabled checks pass. The 111-page SNES
+replay matches all reference pixels; the port-2-mouse stall test opens/hides
+diagnostics without reopening them automatically. Hardware confirmation remains
+pending. The card was mounted read-only when this build was prepared.
+
+Hardware build `D745` had recording enabled again; its fresh log stops at
+page 2's pre-wait record (`LCDC=91 LY=08 IE=0B IF=E0`). Startup activated
+fullscreen interrupt dispatch only after the initial redraw. During that draw,
+restored interrupts could still run the normal VBlank handler and `LatchPad`,
+which shares P1 with the mailbox. Build `0DF5` activates fullscreen dispatch
+after HELLO, before logging/layout/redraw. A client regression fails on the old
+ordering and passes with the change; bootstrap rollback, late ACK recovery,
+editing/saving and recorder checks pass. Hardware confirmation is pending.
+The preceding build's diagnostics showed `MB=0306/0002 E=02 GB=2BAD P=02
+V=01 NEXT=03 Q=01`; GB frames continued advancing. The SNES had accepted
+page 2 and held its ACK, while the GB still echoed the previous event. This
+narrows the observed stall to mailbox consumption, rather than a stopped GB
+clock or rejected page. Build `0DF5` was copied and verified on the card with
+recording enabled; no further counter transcription is requested for this run.
+
+Capture `0DF5` still ends at page 2's pre-wait record, so early interrupt
+ownership did not resolve the stall. `FsFrame` waited for `LY >= 144` before
+checking the frame counter. An interrupt covering VBlank can therefore leave
+foreground code waiting forever while the clock advances. A GB CPU regression
+starts a delayed frame handler at LY 143 to cover the entire blank interval:
+the old wait never returns despite repeated counter updates. Build `3604`
+checks the counter throughout both LY loops, retaining the physical-frame
+fallback when interrupts are masked. Hardware confirmation is pending.
+The full client suite passes, including the covered-VBlank regression, timeout
+recovery, editing/saving, durable logs and rollback. `3604` was copied and
+verified on the SD. The blind LY wait also exists in working commit `c293ec7`;
+this test establishes a timing weakness, not which later change triggered it
+on hardware. Keep that commit as the working control; assess startup/input
+latency separately from stall recovery.
+
+SGB1 hardware confirmation: `3604` renders again and feels somewhat faster,
+but remains unusably slow. Its saved log has 516 records, 30 published pages
+and 30 matching ACKs, with no recorded timeouts or SD errors. Peak SNES costs:
+12 frames per base row, 13 per UI row, 55 for page processing and 112 for a
+held mailbox event. Publish-to-ACK latency is 15 GB frames median, 64 maximum;
+individual SD writes take at most two counted GB frames. The recorder now
+continues beyond page 2. Raw capture and a JSON summary are preserved under
+`build/sgb/hardware-working-3604-*`. Automatic-start build `5772` / OS `B12E`
+was subsequently copied and verified on the card.
+
+Performance build `4D9E` merges equal ROW attributes, uses table CRCs on both
+CPUs, combines GB row counting/hashing into one pass, and clips SNES glyphs
+once per glyph while skipping blank bitmap rows. It adds no WRAM/HRAM and
+keeps the same number of BIOS upload blocks. CRC tables occupy unused GB overlay
+space and 256 SNES program bytes. Header/footer now use full-width GB/GBC-style
+highlighting; text is left-aligned and the cursor removes the GB sprite offset.
+Progress remains visible against the footer highlight.
+
+Same 111-page Mesen replay, with dropped-ACK recovery and pixel comparisons:
+
+| Measurement, SNES frames | Working baseline | Merged runs | Final |
+| --- | ---: | ---: | ---: |
+| Peak page processing | 54 | 12 | 9 |
+| Longest publish-to-ACK | 88 | 19 | 14 |
+| Replay completion after JUMP | 4094 | 3199 | 3033 |
+
+Merged payloads shrink from 32,877 to 14,017 bytes on that replay. The real GB
+client emits 17,746 ROW bytes versus 45,202 with one pair per character. Its
+typed-character test publishes after 26 GB frames, down from 41; ACK follows
+at 28 versus 43. These are emulator comparisons, not hardware latency claims.
+All reference pixels match the intended alignment/bar changes, and menu close
+restores the underlying image. Client tests cover startup, editing/saving,
+cursor alignment, timeouts, logging and fallback. The previous build is retained
+in `build/sgb/perf-before/`; comparison data is in `build/sgb/performance.json`.
+Revision `D15B` restores the original one-pixel glyph inset without moving the
+cursor or selection boundaries. GB row hashes use unrolled CRCs over fixed-size
+source rows; widths and RLE runs are computed only for changed rows. The SNES
+uses lookup-based shade conversion, skips empty/uniform paper tiles, and clears
+raster/shade in native 16-bit chunks. Glyph compositing masks are computed once
+per glyph. Constant font widths no longer consume six redundant asset pages;
+program+fonts shrink from 44,914 to 43,678 bytes, still eleven upload blocks.
+
+Against `4D9E`, browser Down reaches the published model in 10 versus 28 GB
+frames; a typed character takes 17 versus 28. These injection-to-publication
+measurements exclude physical SNES input and PPU drawing. The same Mesen replay
+finishes in 2,636 versus 3,033 frames (13% faster); peak base/UI drawing is 7
+versus 11 frames, peak page handling 8 versus 9, and longest ACK 11 versus 14.
+Pixel comparisons, menu restoration, editing/saving, delayed ACKs, logging,
+fallback and stalled-mailbox diagnostic toggling pass. Comparisons and logs are
+in `build/sgb/speed-*`; the previous package is in `build/sgb/perf-4D9E/`.
+
+The preceding hardware log (`9974`) contains no timeouts or SD errors. Browser
+keys waited 25–30 GB frames before publication, consistent with the frontend
+bottleneck addressed here. Its raw log is preserved in
+`build/sgb/hardware-before-speed-*`. Hardware latency for `D15B` remains untested.
+Run the comparable replay with `SGB_KERNEL_UI=1 SGB_KERNEL_COMPACT=1
+SGB_KERNEL_DROP_COMMIT=1 SGB_KERNEL_PROFILE=1 make test-sgb-kernel`.
+
 The production build now produces `bin/SGB.DAT` from the real cc65/65816 kernel,
 fonts and the renderer overlay bound to `GBCOS.BIN`. `make assemble` stages it
 with the existing OS/data/modules; its normal mounted-card copy includes it.
 For a build without copying to the card, pass `SD_MOUNT=/tmp/fatpak-no-sd`.
 Copy `SGB.DAT`, `GBCOS.BIN`, `EDITOR.DAT` and `MODULES/SGBBOOT.MOD` from the same
 build into `GBCSYS`. The container checks the OS checksum before takeover.
-Fullscreen starts only through **SETTINGS → SGB FULLSCREEN**. Missing data leaves
+Fullscreen starts automatically on SGB. Missing data leaves
 the BIOS renderer active. DMG/CGB startup is unaffected.
 
 First fullscreen hardware report: takeover took several minutes, then displayed
 a dark blue screen with one row of light blue tiles halfway down, starting one
-tile from the left. Console/SGB revision was not recorded. Fullscreen is now
-menu-only so probes remain accessible. Phase 7 has not passed. Mesen validates
+tile from the left. Console/SGB revision was not recorded. Fullscreen was
+temporarily made menu-only for probes; automatic startup has since been restored.
+Phase 7 has not passed. Mesen validates
 BIOS upload, ICD2 transport and PPU output separately from the OS frontend;
 the complete fullscreen EverDrive/SGB combination remains unverified. The separate
 Phase 0b bench now completes on SGB1 after the slot-1 publication fix above.
+
+After that bench pass, fullscreen took about 45 seconds to load, displayed black
+for two seconds, then froze with `/Tests`, empty rows and two blue highlight bars.
+L+R+Select produced no visible response. Diagnostics were drawn in BG1 beneath
+the opaque status bar, so this does not establish that SNES input or execution
+stopped. Diagnostics now use the top UI layer and include the actual queue count.
+An initial diagnostic build opened them after a held event timed out. The
+current recorder build leaves them hidden unless toggled with L+R+Select.
+This shows partial frontend rendering, not a successful Phase 7 exit. The kernel
+previously wrote each mailbox event once and waited indefinitely for its status
+echo. Dropping an ACK commit in Mesen reproduced a permanent stall. Held events
+are now republished once per observed SNES frame. Hardware still stalls with
+the same title/top highlight, but without the middle highlight bar; launch
+still takes about 45 seconds. Retransmission alone did not resolve fullscreen.
+With the first ACK commit suppressed, the revised real-SNES replay completes all
+111 transactions and matches all 57,344 reference pixels, including menu close.
+Longest ACK remains 112 SNES frames. It reports 153 overwritten capture rows,
+recovered through later captures; this is not a zero-loss capture claim.
+Bootstrap validation now uses the transport's equivalent byte-at-a-time CCITT
+update instead of eight C bit iterations per byte. It matches an independent CRC
+implementation across 10,000 state/byte pairs; hardware launch stayed near 45
+seconds. Bootstrap now validates/uploads through sequential 512-byte windows,
+avoiding per-byte bank selection and 32-bit address calculations. Its hardware
+timing is pending. Fullscreen P1 reads now use the bench's 32-read settling loop
+for released selections and both nibbles, instead of six quick reads per nibble.
+This timing change also needs hardware confirmation.
+
+`SGB_KERNEL_STALL=1 SGB_KERNEL_UI=1 make test-sgb-kernel` holds ACK commits and
+checks manual diagnostic display/dismissal across successive stalls in actual
+SNES PPU output. `SGB_CLIENT_DATA=bin/SGB.DAT make test-sgb-client` checks every
+uploaded production byte and final-block zero padding across cartridge windows.
+Both checks pass in emulation, including all 43,157 production payload bytes;
+the local shortcut also passes the native layer/row-preservation check.
+
+Next SGB1 hardware run: launch took about 10 seconds; diagnostics appeared
+about five seconds later, followed by the same title/highlight after another
+five seconds. `GOOD=0003 BAD=0000 MISS=0200 ROW=BCAD Q=00`; MISS/ROW kept
+increasing and L+R+Select toggled diagnostics. SNES capture and input were alive.
+The GB could clear a pending page on a late ACK while leaving its timeout fault
+latched, permanently blocking new pages even after the SNES queue drained.
+A delayed-ACK test reproduces that stall. Only an ACK matching the current
+page/slot now clears the timeout and resumes publication; the page remains
+committed while waiting, and wrong-page ACKs cannot release it.
+With the previous hardware build, the test ends with `fault=1 pending=0` and
+an empty mailbox, matching the observed drained queue. With recovery enabled,
+the timeout, wrong-page rejection, matching late ACK and a subsequent visible
+edit all pass. Hardware confirmation is pending.
+
+The following hardware run reached the browser/editor, but input took 5–10
+seconds and each row about one second. Startup stayed near 10 seconds. Editing
+and saving were not tried. Diagnostics could not be hidden: the watchdog could
+immediately re-enable them. A per-event latch still reopened them on later
+events, so automatic display has been removed. A Mesen gamepad test verifies
+opening/hiding diagnostics and keeping them hidden through another stalled event.
+Performance changes use native CRC arithmetic, pack eight pixels per tile-plane
+byte, skip blank space glyphs and avoid repainting identical ROW commands.
+The font build verifies the blank-space assumption. Pixel comparisons retain
+the existing text/style/selection/UI expectations; hardware timing is pending.
+Final Mesen replay: all 111 pages and reference pixels pass; identical-row
+suppression reduces base draws from 81 to 75. Peak text-row raster time drops
+from 22 to 10 SNES frames, and longest ACK from the previous build's 112 to 59.
+There are 642 overwritten capture rows, recovered by later captures; capture
+loss has not been eliminated. Production upload, late-ACK recovery, continued
+editing/saving and startup fallbacks also pass.
 
 Record console/SGB revision, cart/OS build and keyboard/controller setup with
 all results. Use a gamepad in port 1; leave the mouse in port 2. A keyboard can help inspect text while the full pad
 mapping is developed.
 
-- [ ] SGB1: cold boot reaches BIOS-mode browser; SETTINGS → SGB FULLSCREEN reaches
-      a readable fullscreen title/status and file list.
+- [ ] SGB1: cold boot reaches a readable fullscreen title/status and file list.
 - [ ] SGB2: repeat the same cold-boot check.
 - [ ] On each, open a small `.c` file, verify comments/strings/keywords, scroll,
       place the cursor, edit using the pad/OSK, save and reopen the changed file.
@@ -767,8 +1020,9 @@ mapping is developed.
 - [ ] Remove/reinsert the physical keyboard and try longer filesystem operations;
       no unsaved document may be discarded because of a transport timeout.
 
-A runtime transport fault currently stops page publication and preserves the GB
-state; automatic visual recovery after SNES takeover is not established. Save
+A runtime timeout pauses page publication and preserves the committed page/GB
+state. A matching late ACK resumes publication; an absent ACK leaves it paused.
+Hardware confirmation of this recovery is pending. Save
 before stress tests. Fullscreen game launch, cart-button return and reset/BIOS
 handoff are Phase 10 work; the non-destructive Phase 0c probe is insufficient to
 prove that cycle after replacing SNES VRAM/CGRAM.

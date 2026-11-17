@@ -11,7 +11,7 @@ ROOT=Path(__file__).resolve().parents[1]
 WORK=ROOT/'build/sgb'
 
 
-def client():
+def client(no_log=False):
     WORK.mkdir(parents=True,exist_ok=True)
     definitions=[]
     values={}
@@ -29,13 +29,14 @@ def client():
     internal=set(re.findall(r'^(Fs\w+):',code,re.M))
     branches=set(re.findall(r'^\s*(?:call|jp)\s+(?:(?:n?[zc]),\s*)?([A-Za-z_]\w*)(?=\s*(?:;[^\n]*)?$)',code,re.M|re.I))
     allowed={'mem_Set','RenderLineStyled','RenderRowAddress','_GeometryWide','_Layout__far',
-             'Trampoline','UpdateInputReturn','VBLContinue','_BoxLine'}
+             'Trampoline','UpdateInputReturn','VBLContinue','_BoxLine','_FileWriteImage'}
     unknown=branches-internal-allowed
     if unknown: raise ValueError('unaudited terminal imports: '+str(sorted(unknown)))
     if values['ProcessKeyCodes']<0xA000:
         raise ValueError('keyboard driver is no longer page-mapped')
     (WORK/'host.inc').write_text('\n'.join(definitions)+'\n')
-    subprocess.run(['rgbasm','-o',str(WORK/'client.o'),'src/sgb/display.asm'],cwd=ROOT,check=True)
+    defines=['-D','SGB_LOG_DISABLE=1'] if no_log else []
+    subprocess.run(['rgbasm',*defines,'-o',str(WORK/'client.o'),'src/sgb/display.asm'],cwd=ROOT,check=True)
     subprocess.run(['rgblink','-p','0','-n',str(WORK/'client.sym'),'-o',str(WORK/'client.gb'),str(WORK/'client.o')],cwd=ROOT,check=True)
     low,high=values['_RenderOverlayStart'],values['_RenderOverlayEnd']
     body=bytearray((WORK/'client.gb').read_bytes()[low:high])
@@ -54,8 +55,9 @@ def main():
     parser.add_argument('--snes',type=Path)
     parser.add_argument('--fonts',type=Path)
     parser.add_argument('--output',type=Path,default=ROOT/'bin/SGB.DAT')
+    parser.add_argument('--no-log',action='store_true',help='control build without SD recorder writes')
     args=parser.parse_args()
-    image,binding=client()
+    image,binding=client(args.no_log)
     if args.snes:
         fonts=args.fonts.read_bytes() if args.fonts else b''
         args.output.parent.mkdir(parents=True,exist_ok=True)
