@@ -4,6 +4,24 @@ local finished=false
 local function gb(a) return emu.read(a,emu.memType.gameboyMemory) end
 local function sw(a) return emu.read(a,emu.memType.snesWorkRam) end
 local function word(read,a) return read(a)+256*read(a+1) end
+local dropAck=os.getenv('SGB_BENCH_DROP_ACK')=='1'
+local dropped=false
+local p1Writes,busyWrites=0,0
+local function activeReply()
+ local stage=gb(0xc130)
+ return gb(0xc100)>=5 and stage>=1 and stage<=4
+end
+emu.addMemoryCallback(function(a,v)
+ if v==0xa5 and activeReply() then p1Writes=p1Writes+1 end
+end,emu.callbackType.write,0x6004,0x6004,emu.cpuType.snes)
+emu.addMemoryCallback(function(a,v)
+ if v>=0x80 and activeReply() then busyWrites=busyWrites+1 end
+end,emu.callbackType.write,0x6005,0x6005,emu.cpuType.snes)
+if dropAck then
+ emu.addMemoryCallback(function(a,v)
+  if v==1 and not dropped and activeReply() then dropped=true;return 0 end
+ end,emu.callbackType.write,0x6007,0x6007,emu.cpuType.snes)
+end
 local function finish(ok,message)
  if finished then return end
  finished=true
@@ -46,5 +64,8 @@ emu.addEventCallback(function(cpu)
  if word(gb,0xc136)~=34 or word(gb,0xc138)~=1 or gb(0xc132)~=66 or gb(0xc134)~=66 or gb(0xc135)~=1 then finish(false,'ACK/NACK flow control '..metrics);return end
  if good<34 or bad<1 or miss~=0 or word(sw,0x1026)~=0 then finish(false,'capture/checksum counters '..metrics);return end
  if total~=67*1921 or active==0 or peak<500 or peak>1921 or rtt>20 then finish(false,'writer or round-trip accounting '..metrics);return end
+ if dropAck and not dropped then finish(false,'first ACK suppression did not run');return end
+ if word(sw,0x102d)==0 then finish(false,'ACK writer did not execute');return end
+ if busyWrites<34 or p1Writes<busyWrites then finish(false,'ACK publication omitted slot 1');return end
  finish(true,'LCD pages, deliberate checksum rejection/retry, stress, final ACK; '..metrics)
 end,emu.eventType.endFrame)

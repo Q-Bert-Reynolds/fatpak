@@ -1,8 +1,9 @@
 # Super Game Boy fullscreen mode
 
 Phases 1–6 and Phase 8 pass their software checks. The hello probe passed on
-hardware; Phase 7 integration, the Phase 0b hardware ACK stall, and the complete
-EverDrive launch/return cycle remain unverified. Phases 9–11 are pending.
+hardware, and the channel bench now completes on SGB1. Phase 7 fullscreen
+integration and the complete EverDrive launch/return cycle remain unverified.
+Phases 9–11 are pending.
 
 ## Architecture
 
@@ -398,7 +399,7 @@ after fullscreen takeover; physical keyboard choices and TEST remain available.
 | Phase | Scope | Status / exit check |
 | --- | --- | --- |
 | 0a | BIOS upload + JUMP, green screen | Passed in Mesen and on hardware (2026-11-16); revision unrecorded |
-| 0b | LCD channel, mailbox and throughput | Mesen passed; hardware stalls after first good page |
+| 0b | LCD channel, mailbox and throughput | Mesen and SGB1 flow-control checks pass: 66 good, 6 rejected captures, 0 missed rows, RAM audit 0; hardware rate counters unrecorded, SGB2 untested |
 | 0c | BIOS return and launch policy | Non-destructive return passed in Mesen; hardware inconclusive; manual reset chosen |
 | 0d | WRAM/ROM budgets and bank `$7F` audit | Recorded above; bank audit passes in Mesen |
 | 1 | Protocol/constants/codecs | Software checks pass |
@@ -499,22 +500,82 @@ The revised probe adds these fields (each pair shows the first byte on the left)
 Comparing the SNES publication against the raw GB reads distinguishes failed
 publication from controller selection/readback and seqlock rejection. The SNES
 field is a RAM copy of the values written, never a read of write-only ICD2
-registers. These added diagnostics and bounded waits pass in Mesen; hardware
-confirmation remains pending. Phase 1 is a protocol spec, not hardware approval.
+registers. These diagnostics and bounded waits pass in Mesen; the hardware
+investigation and successful SGB1 completion are recorded below.
 
 SGB1 report (2026-11-17), gamepad in port 1 and mouse in port 2: E1 within
 about two seconds; TX/RX `0100`, RAW B/E `FFFF`, RAW C/D `0000`, SNES SEQ/FLAG
 `0101`, GOOD `0001`, BAD `0000`, RAM AUDIT `0000`; MISSED was `001C` and rising.
 The SNES validated the first page and reports publishing its ACK, while the GB
-rejects its raw commit reads. Controller selection/readback remains unresolved.
+rejects its raw commit reads. This was the initial failure, resolved below.
 
-After E1/E2 the revised bench also scans all four virtual controller slots with
-each P1 selection held for over 100 µs. `SLOW SLOT 1–4 ID/BYTE` show the controller
-ID followed by its byte. For the first ACK, the four pairs should be `0FA5`,
-`0E01`, `0D01`, `0C01` (possibly rotated). These are ICD2 virtual slots, independent
-of the two physical controller ports. The original failed reads stay visible;
-the scan does not retry or rescue the timed-out probe. Normal throughput uses
-the original reader so the diagnostic does not change its measurements.
+The slow scanner reads all four virtual controller slots with each P1 selection
+held for over 100 µs. `SLOW SLOT 1–4 ID/BYTE` show the controller ID followed by
+its byte. These are ICD2 virtual slots, independent of the two physical ports.
+After timeout the failed active reads stay visible while this scanner reads the
+fixed diagnostic pattern; it does not rescue the timed-out probe.
+
+The SGB1 slow scan returned `0FA5`, `0EFF`, `0D00`, `0C00`: IDs rotate correctly,
+but longer read delays do not recover the ACK. The current bench writes
+fixed `A5 C3 69 96` bytes from the timeout display handler, independently of
+validation, using explicit bank-0 addresses. Expected slow-scan pairs are now
+`0FA5`, `0EC3`, `0D69`, `0C96`, possibly rotated. Original TX/RX/raw fields and the SNES ACK
+snapshot remain unchanged. This isolates register readback from ACK generation;
+it is a diagnostic, not a confirmed hardware fix.
+
+Hardware returned the exact fixed pattern `0FA5`, `0EC3`, `0D69`, `0C96`.
+All four slots can carry the requested bytes; the earlier read delays did not
+explain the failed ACK. The current revision also uses explicit bank-0 writes
+for normal ACK/NACK publication, still once per validated page. `ACK DBR` records
+the SNES data bank at publication (expected `0000` with the reference BIOS).
+Hardware still reached E1 with ACK DBR `0000`, so wrong-bank addressing does not
+explain the failure. The current revision holds each committed reply and reissues
+it from NMI until replaced. Page/sequence/flags are snapshotted atomically so a
+retry cannot borrow fields from the next page being validated. A Mesen check
+that suppresses the first ACK flag tests recovery through this repeat path:
+`SGB_BENCH_DROP_ACK=1 bash tests/sgb/run.sh bench`.
+
+Held ACK retransmission also reached E1 on hardware. The current bench uses the
+same slow scanner for active ACK polling, aligning controller IDs with a bounded
+search and checking the commit before/after the payload through two full scans.
+The earlier fixed-pattern success tested only the post-timeout scanner, not the
+active mouse-bridge reader. `ACK WRITES` replaces `ACK DBR` on screen and counts
+actual ACK write attempts, freezing when the timeout pattern starts. Writer byte
+counts remain comparable; polling latency may differ from the baseline above.
+
+The slow active reader still reached E1 with TX/RX `0100` and ACK WRITES `0099`
+(153 attempts). After timeout the current bench runs a five-case matrix and
+captures four bytes per case. Wait until DIAG STEP is `0006` (about eight seconds
+after E1), then report the five rows:
+
+| Row | SNES writes | Expected first-page result |
+| --- | --- | --- |
+| CONST HIGH | Literal bytes, all four slots | `A5C36996` |
+| CONST LOW | Literal ACK-sized bytes, all four slots | `A5010101` |
+| HELD PLAIN | Held sequence/page/flags, all four slots | `A5010101` |
+| HELD BUSY | Held reply with busy marker and final commit | `A5010101` |
+| NO P1 WRITE | Change slots 2–4 without rewriting slot 1 | `A53C695A` |
+
+Snapshots use the same slow scanner and freeze independently. Original failure
+fields remain visible. This checks byte values, held-state loads, busy/commit
+writes and the slot-1 write in one run.
+
+SGB1 matrix result: CONST HIGH `A5C36996`; CONST LOW, HELD PLAIN and HELD BUSY
+all `A5010101`; NO P1 WRITE also `A5010101`, retaining the previous bytes instead
+of receiving `A53C695A`. This isolates omission of the slot-1 write in this probe;
+the exact ICD2 latch mechanism is not established. Normal ACK publication now
+rewrites the slot-1 `$A5` marker before slots 2–4. The Mesen bench checks that
+slot-1 writes accompany the busy/commit transactions.
+
+**SGB1 completion (2026-11-17): STAGE `0004`, TX/RX `4242`**, with a gamepad in
+port 1 and mouse in port 2. The probe completed its reliable transfer, deliberate
+NACK/retry, stress and final ACK stages. Rewriting slot 1 resolved its hardware
+ACK stall. Final hex counters: GOOD `0042` (66), BAD `0006`, MISSED `0000`, RAM
+AUDIT `0000`. This passes the SGB1 flow-control, rejection/retry and RAM checks.
+BAD counts rejected captures during the deliberate fault/stress test, not lost
+transactions. Hardware rate counters remain unrecorded; SGB2 remains untested.
+The production terminal already writes all four slots, so its fullscreen startup
+still requires separate validation.
 
 ## Build and tests
 
@@ -570,6 +631,8 @@ compatibility gate.
 Mesen runners use temporary firmware/settings directories. SameBoy's high-level
 SGB emulation cannot execute this SNES kernel. No production emulator feature is
 required by fullscreen mode.
+The standalone probe runner configures SGB1 with a gamepad in port 1 and mouse
+in port 2, matching the reported hardware setup.
 
 ## Optional Gearboy host
 
@@ -682,7 +745,8 @@ a dark blue screen with one row of light blue tiles halfway down, starting one
 tile from the left. Console/SGB revision was not recorded. Fullscreen is now
 menu-only so probes remain accessible. Phase 7 has not passed. Mesen validates
 BIOS upload, ICD2 transport and PPU output separately from the OS frontend;
-the complete EverDrive/SGB combination and Phase 0b ACK stall remain open.
+the complete fullscreen EverDrive/SGB combination remains unverified. The separate
+Phase 0b bench now completes on SGB1 after the slot-1 publication fix above.
 
 Record console/SGB revision, cart/OS build and keyboard/controller setup with
 all results. Use a gamepad in port 1; leave the mouse in port 2. A keyboard can help inspect text while the full pad

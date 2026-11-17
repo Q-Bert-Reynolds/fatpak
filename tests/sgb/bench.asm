@@ -19,6 +19,9 @@ DEF Dest EQU $C13C
 DEF TestCount EQU $C13E
 DEF RawReply EQU $C140 ; B/E commit reads, C page, D flags
 DEF SlotScan EQU $C148 ; four slow controller ID/byte pairs after timeout
+DEF DiagResults EQU $C150 ; five rows of four controller bytes
+DEF DiagMode EQU $C164 ; 1..5 running, 6 complete
+DEF DiagFrames EQU $C165
 DEF TxBuffer EQU $C200
 SECTION "Bench VBlank", ROM0[$40]
   jp BenchVBlank
@@ -27,7 +30,7 @@ Bench:
   di
   call LCDOff
   ld hl, $C110
-  ld b, $40
+  ld b, $60
   xor a
 .clear
   ld [hli], a
@@ -308,19 +311,65 @@ BenchTimeout:
   ld [Stage], a
   ld a, $E1
   ld [PHASE], a
+  ld a, 1
+  ld [DiagMode], a
+.mode
+  ld a, 96
+  ld [DiagFrames], a
+.sample
+  call BenchScan
+  ld b, 1
+  call BenchWait
+  ld hl, DiagFrames
+  dec [hl]
+  jr nz, .sample
+  ld a, [DiagMode]
+  dec a
+  add a
+  add a
+  add LOW(DiagResults)
+  ld e, a
+  ld d, HIGH(DiagResults)
+  ld hl, SlotScan+1
+  ld b, 4
+.save
+  ld a, [hli]
+  ld [de], a
+  inc de
+  inc hl
+  dec b
+  jr nz, .save
+  ld hl, DiagMode
+  inc [hl]
+  ld a, [hl]
+  cp 6
+  jr nz, .mode
 .hold
   call BenchScan
   halt
   jr .hold
-; Diagnostic only: do not change the benchmark's mailbox reader or ACK result.
-; Each select is held for >100 us; display the ID beside its corresponding byte
-; so a rotated scan is still interpretable. The VBlank handler never writes P1.
+; Shared active/diagnostic reader. Hold each selection for >100 us and align
+; controller 1 with a bounded search. The VBlank handler never writes P1.
 BenchScan:
   di
-  ld de, SlotScan
-  ld c, 4
   ld a, $30
   ldh [rP1], a
+  ld c, 4
+.find
+  call .settle
+  and 15
+  cp 15
+  jr z, .start
+  ld a, $10
+  ldh [rP1], a
+  call .settle
+  ld a, $30
+  ldh [rP1], a
+  dec c
+  jr nz, .find
+.start
+  ld de, SlotScan
+  ld c, 4
 .slot
   call .settle
   and 15
@@ -353,23 +402,38 @@ BenchScan:
   jr nz, .wait
   ret
 BenchRead:
-  call SNESMouseRead
+  call BenchScan
+  ld a, [SlotScan+3]
+  ld [RawReply], a
+  ld a, [SlotScan+5]
+  ld [RawReply+2], a
+  ld a, [SlotScan+7]
+  ld [RawReply+3], a
+  ; Read the commit again through the same full scan. Do not accept a reply
+  ; updated between its commit, payload and final commit observations.
+  call BenchScan
+  ld a, [SlotScan+3]
+  ld [RawReply+1], a
   ld hl, RawReply
-  ld a, b
-  ld [hli], a
-  ld a, e
-  ld [hli], a
-  ld a, c
-  ld [hli], a
-  ld a, d
-  ld [hli], a
-  ld a, b
-  cp e
+  cp [hl]
   ret nz
   bit 7, a
   ret nz
+  ld b, a
+  ld hl, SlotScan
+  ld c, 4
+  ld a, 15
+.ids
+  cp [hl]
+  ret nz
+  inc hl
+  inc hl
+  dec a
+  dec c
+  jr nz, .ids
+  ld a, b
   ld [RxSeq], a
-  ld a, d
+  ld a, [RawReply+3]
   ld [RxFlags], a
   ret
 BenchWait:
@@ -485,6 +549,16 @@ BenchVBlank:
   ld [hli], a
   dec b
   jr nz, .scan
+  ld a, [DiagMode]
+  ld [hli], a
+  ld de, DiagResults
+  ld b, 20
+.results
+  ld a, [de]
+  inc de
+  ld [hli], a
+  dec b
+  jr nz, .results
   xor a
   ld [FrameBytes], a
   ld [FrameBytes+1], a

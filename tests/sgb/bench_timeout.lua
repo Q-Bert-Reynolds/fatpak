@@ -27,7 +27,7 @@ emu.addEventCallback(function(cpu)
   if frame>1200 then finish(false,fault..' timeout did not stop the sender') end
   return
  end
- if frame-done<60 then return end
+ if frame-done<560 then return end
  if suppressed==0 or gb(0xc130)~=stage or gb(0xc143)~=0 then
   finish(false,fault..' timeout state or raw flags incorrect');return
  end
@@ -36,23 +36,36 @@ emu.addEventCallback(function(cpu)
  if tile(0x1076)~=37 or tile(0x1077)~=16+stage%16 or tile(0x1257)~=16 then
   finish(false,fault..' timeout diagnostic did not reach the TV');return
  end
- local scan={15,0xa5,14,gb(0xc132),13,gb(0xc133),12,0}
- for i=1,#scan do
-  if gb(0xc147+i)~=scan[i] then
-   finish(false,'slow slot scan ID/byte mismatch at '..i);return
-  end
+ if emu.read(0x102b,emu.memType.snesWorkRam)~=0 then
+  finish(false,'unexpected ACK data bank in reference BIOS');return
  end
- for slot=0,3 do
-  local id,value=scan[2*slot+1],scan[2*slot+2]
-  local word=0x12d4+slot*32
-  local digits={math.floor(id/16),id%16,math.floor(value/16),value%16}
-  for i=1,4 do
-   local digit=digits[i]
-   local expected=digit<10 and 16+digit or 23+digit
-   if tile(word+i-1)~=expected then
-    finish(false,'slow slot scan did not reach the TV');return
+ local writes=emu.read(0x102d,emu.memType.snesWorkRam)+256*emu.read(0x102e,emu.memType.snesWorkRam)
+ if writes==0 then finish(false,'ACK writer did not execute');return end
+ if gb(0xc164)~=6 then finish(false,'diagnostic matrix did not finish');return end
+ local expected={
+  {0xa5,0xc3,0x69,0x96},
+  {0xa5,1,1,flag==1 and 0 or 1},
+  {0xa5,gb(0xc132),gb(0xc133),0},
+  {0xa5,gb(0xc132),gb(0xc133),0},
+  {0xa5,0x3c,0x69,0x5a}
+ }
+ for row=1,5 do
+  for byte=1,4 do
+   local value=expected[row][byte]
+   if gb(0xc150+(row-1)*4+byte-1)~=value then
+    finish(false,'matrix readback mismatch at row '..row..' byte '..byte);return
+   end
+   local address=0x12d4+(row-1)*32+(byte-1)*2
+   local digits={math.floor(value/16),value%16}
+   for nibble=1,2 do
+    local digit=digits[nibble]
+    local glyph=digit<10 and 16+digit or 23+digit
+    if tile(address+nibble-1)~=glyph then
+     finish(false,'matrix snapshot did not reach the TV');return
+    end
    end
   end
  end
+ if tile(0x1377)~=22 then finish(false,'matrix completion did not reach the TV');return end
  finish(true,fault..' suppressed: visible stage '..string.format('%02X',stage)..', raw flags 00, sender stopped within 120 GB frames')
 end,emu.eventType.endFrame)

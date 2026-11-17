@@ -18,6 +18,10 @@ Sum=$1012
 Seq=$1014
 LastGood=$1016
 HexValue=$1018
+Diagnostic=$102a
+AckBank=$102b
+AckPage=$102c
+AckWrites=$102d
 .a8
 .i8
 Entry:
@@ -124,7 +128,7 @@ Entry:
  lda #0
  sta $2119
  inx
- cpx #26*32
+ cpx #28*32
  bne @labels
  lda #0
  sta $2121
@@ -398,22 +402,109 @@ Validate:
 .a8
  lda #2
 @publish:
- sta $1028
+ ldx Diagnostic
+ bne @published
+ pha
+ lda #0
+ sta $1028                 ; NMI must not publish a partially updated reply
+ phb
+ pla
+ sta f:AckBank             ; record DBR without depending on its value
  lda Seq
  sta $1029
- lda $1028
- pha
- lda Seq
- ora #$80
- sta $6005
  lda Page
- sta $6006
+ sta AckPage
  pla
- sta $6007
- lda Seq
- sta $6005
+ sta $1028                 ; commit the held reply last
+ jsr PublishAck
+@published:
  lda #0
  sta Active
+ rts
+; Hold the latest reply until replaced. Reissue it from NMI as well as on
+; validation, without reading Page/Seq while the next page is being checked.
+PublishAck:
+ lda Diagnostic
+ bne @done
+ lda $1028
+ beq @done
+ pha
+ rep #$20
+.a16
+ inc AckWrites
+ sep #$20
+.a8
+ ; SGB1 matrix: slots 2-4 remained stale when slot 1 was omitted. Rewrite
+ ; the bootstrap marker as part of every reply, just like the working cases.
+ lda #$a5
+ sta f:$006004
+ lda $1029
+ ora #$80
+ sta f:$006005
+ lda AckPage
+ sta f:$006006
+ pla
+ sta f:$006007
+ lda $1029
+ sta f:$006005
+@done:
+ rts
+; Match the known working literal stores, then vary one property per case.
+; These snapshots run only after timeout, with the original reply frozen.
+DiagnosticWrite:
+ lda #1
+ sta Diagnostic
+ lda f:$7f2f20
+ cmp #5
+ bcs @noPlayerOne
+ lda #$a5
+ sta f:$006004
+ lda f:$7f2f20
+ cmp #2
+ beq @low
+ cmp #3
+ beq @plain
+ cmp #4
+ beq @busy
+ lda #$c3
+ sta f:$006005
+ lda #$69
+ sta f:$006006
+ lda #$96
+ sta f:$006007
+ rts
+@low:
+ lda #1
+ sta f:$006005
+ sta f:$006006
+ sta f:$006007
+ rts
+@plain:
+ lda $1029
+ sta f:$006005
+ lda AckPage
+ sta f:$006006
+ lda $1028
+ sta f:$006007
+ rts
+@busy:
+ lda $1029
+ ora #$80
+ sta f:$006005
+ lda AckPage
+ sta f:$006006
+ lda $1028
+ sta f:$006007
+ lda $1029
+ sta f:$006005
+ rts
+@noPlayerOne:
+ lda #$3c
+ sta f:$006005
+ lda #$69
+ sta f:$006006
+ lda #$5a
+ sta f:$006007
  rts
 Nmi:
  php
@@ -428,6 +519,7 @@ Nmi:
  ; active rows; the unused tail gives this occasional display update slack.
  sep #$20
 .a8
+ jsr PublishAck
  lda f:$006000
  and #$f8
  cmp #$68
@@ -488,29 +580,63 @@ Nmi:
  xba
  ldx #$1254
  jsr Hex
- ; The slow scan runs only after a bounded timeout; it must not affect the
- ; throughput measurements or turn the failed ACK into a successful reply.
+ ; Five independent post-timeout readback snapshots, four bytes per row.
  lda f:$7f2f00
  xba
  and #$00ff
  cmp #$e1
- bcc @noStatus
- lda f:$7f2f18
+ bcs @matrix
+ jmp @noStatus
+@matrix:
+ lda f:$7f2f21
  xba
  ldx #$12d4
  jsr Hex
- lda f:$7f2f1a
+ lda f:$7f2f23
+ xba
+ ldx #$12d8
+ jsr Hex
+ lda f:$7f2f25
  xba
  ldx #$12f4
  jsr Hex
- lda f:$7f2f1c
+ lda f:$7f2f27
+ xba
+ ldx #$12f8
+ jsr Hex
+ lda f:$7f2f29
  xba
  ldx #$1314
  jsr Hex
- lda f:$7f2f1e
+ lda f:$7f2f2b
+ xba
+ ldx #$1318
+ jsr Hex
+ lda f:$7f2f2d
  xba
  ldx #$1334
  jsr Hex
+ lda f:$7f2f2f
+ xba
+ ldx #$1338
+ jsr Hex
+ lda f:$7f2f31
+ xba
+ ldx #$1354
+ jsr Hex
+ lda f:$7f2f33
+ xba
+ ldx #$1358
+ jsr Hex
+ lda f:$7f2f20
+ and #$00ff
+ ldx #$1374
+ jsr Hex
+ sep #$20
+.a8
+ jsr DiagnosticWrite
+ rep #$20
+.a16
 @noStatus:
  lda $1028
  ldx #$1274
@@ -529,6 +655,9 @@ Nmi:
  jsr Hex
  lda Rows
  ldx #$10f4
+ jsr Hex
+ lda f:AckWrites
+ ldx #$1294
  jsr Hex
 @exit:
  rep #$30

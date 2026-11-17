@@ -17,7 +17,8 @@ script=${SGB_TEST_SCRIPT:-"$root/tests/sgb/${probe}.lua"}
 cd "$work"
 XDG_CONFIG_HOME="$work/config" dotnet "$mesen" --testRunner --timeout=60 \
   --Debug.ScriptWindow.AllowIoOsAccess=true --Gameboy.Model=SuperGameboy \
-  --Gameboy.UseSgb2=false --Snes.Port1.Type=SnesController "$script" "$root/build/sgb/${probe}.gb" \
+  --Gameboy.UseSgb2=false --Snes.Port1.Type=SnesController --Snes.Port2.Type=SnesMouse \
+  "$script" "$root/build/sgb/${probe}.gb" \
   > mesen.log 2>&1 || {
     cp -- mesen.log "$root/build/sgb/${probe}-mesen.log"
     if [[ -f config/MesenCE/result.txt ]]; then
