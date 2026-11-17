@@ -1,6 +1,5 @@
 """Audit the Phase 0d feasibility budget against the current RGBDS link map."""
 from pathlib import Path
-import csv
 import json
 import re
 
@@ -12,9 +11,13 @@ def audit():
     sections={name: int(size,16) for size,name in re.findall(
         r'SECTION:.*\(\$([0-9a-fA-F]+) bytes?\) \["([^"]+)"\]',text)}
     totals={}
-    with (ROOT/'notes/SGB_WRAM.tsv').open() as source:
-        for row in csv.DictReader(source,delimiter='\t'):
-            totals[row['region']]=totals.get(row['region'],0)+int(row['bytes'])
+    documentation=(ROOT/'notes/SGB.md').read_text()
+    budget=documentation.split('<!-- sgb-budget:start -->',1)[1].split(
+        '<!-- sgb-budget:end -->',1)[0]
+    rows=[line for line in budget.splitlines() if line.startswith('|')]
+    for line in rows[2:]:  # Skip the Markdown header and separator.
+        region,item,size,basis=(cell.strip() for cell in line.strip('|').split('|'))
+        totals[region]=totals.get(region,0)+int(size)
     assert totals['WRAMX']<=4096
     assert totals['WRAM0_RENDER_UNION']<=sections['Render Vars']
     assert totals['HRAM']==sections['Fullscreen transport']
