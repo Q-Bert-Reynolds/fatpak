@@ -20,7 +20,9 @@ def build(probe="hello"):
                 'ROWS', 'GB FRAMES', 'BYTES LO', 'BYTES HI', 'ACTIVE', 'PEAK',
                 'RTT MAX', 'RAM AUDIT', 'TX / RX', 'RX FLAGS',
                 'RAW B / E', 'RAW C / D', 'SNES SEQ / FLAG',
-                '4 DONE E1/E2 TIMEOUT', 'RESET SNES TO EXIT']
+                '4 DONE E1/E2 TIMEOUT', 'RESET SNES TO EXIT',
+                'SLOW SLOT 1 ID/BYTE', 'SLOW SLOT 2 ID/BYTE',
+                'SLOW SLOT 3 ID/BYTE', 'SLOW SLOT 4 ID/BYTE']
         (WORK / 'bench.screen').write_bytes(bytes(ord(c)-32 for row in rows
             for c in ('  ' + row).ljust(32)))
     run('ca65', '-o', str(WORK / f'{probe}.o'), f'tests/sgb/{probe}.s')

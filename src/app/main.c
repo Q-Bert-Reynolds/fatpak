@@ -17,7 +17,6 @@
 #include "../ui/screen.h"
 #include "../ui/text.h"
 #include "../ui/theme.h"
-#include "../sgb/client.h"
 
 static const char loading_text[] = "Loading..."; // before the strings are loaded
 static const char no_data[] = "NO EDITOR.DAT"; // without it there are no strings
@@ -48,7 +47,6 @@ void AppMain(void) {
   if (!lang_count) ShowMessage(no_data);
   if (backup_skipped) ShowMessage(Str(S_SAVE_NOT_BACKED_UP));
   ShowModuleRestart();
-  SGBBegin();
   session_open = modified; // legacy swap without a session: keep recoverable edits
   FileSession(0, 255);
   if (!session_open) {

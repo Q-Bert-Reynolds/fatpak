@@ -14,14 +14,16 @@
 #include "../ui/dialogs.h"
 #include "../ui/text.h"
 #include "../ui/theme.h"
+#include "../sgb/client.h"
 
 // FILE and EDIT's items: the strings from S_SUB_OPEN (SETTINGS: the editor's 6 from S_SUB_LINE_WRAP,
-// the browser's from S_SUB_THEME)
+// the browser's 4 from S_SUB_THEME; SGB BIOS mode adds SGB FULLSCREEN to each)
 static const unsigned char submenu_starts[] = {0, 6, 12};
 
 // Shared by the editor and browser; B returns to their enclosing menu.
 unsigned char PreferencesMenu(unsigned char browser) {
-  unsigned char item = Choose(0, browser ? S_SUB_THEME : S_SUB_LINE_WRAP, browser ? 4 : 6, 0);
+  unsigned char item = Choose(0, browser ? S_SUB_THEME : S_SUB_LINE_WRAP,
+    (browser ? 4 : 6) + ((sys_info & 7) == 1), 0);
   if (item >= BACK) return item;
   if (browser) item += 2; // THEME, LANGUAGE, CLOCK, KEYBOARD
   if (!item) ToggleWrap();
@@ -29,11 +31,12 @@ unsigned char PreferencesMenu(unsigned char browser) {
   else if (item == 2) ThemeSetup();
   else if (item == 3) LanguageSetup();
   else if (item == 4) ClockSetup();
-  else {
+  else if (item == 5) {
     module_status = 0;
     KeyboardSetup(1);
     if (module_status == 2) KeyboardTest(); // TEST selected in the keyboard submenu
   }
+  else SGBBegin();
   return item;
 }
 

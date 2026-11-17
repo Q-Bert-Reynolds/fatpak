@@ -33,6 +33,11 @@ and [fullsnes](https://problemkaputt.de/fullsnes.htm) for hardware references.
 
 ### Game Boy frontend
 
+Startup always uses SGB BIOS mode, even with `SGB.DAT` installed. Select
+**SETTINGS → SGB FULLSCREEN** in the browser or editor to attempt takeover.
+The action appears only in SGB BIOS mode and is not saved as a startup setting.
+This keeps the test ROMs accessible without removing fullscreen files.
+
 `SGBBOOT.MOD` loads and validates `/GBCSYS/SGB.DAT`, backs up video, installs the
 host-bound renderer overlay, uploads SNES code/fonts, issues JUMP and waits for
 HELLO. Missing/corrupt data or startup HELLO timeout restores the renderer and
@@ -497,6 +502,20 @@ field is a RAM copy of the values written, never a read of write-only ICD2
 registers. These added diagnostics and bounded waits pass in Mesen; hardware
 confirmation remains pending. Phase 1 is a protocol spec, not hardware approval.
 
+SGB1 report (2026-11-17), gamepad in port 1 and mouse in port 2: E1 within
+about two seconds; TX/RX `0100`, RAW B/E `FFFF`, RAW C/D `0000`, SNES SEQ/FLAG
+`0101`, GOOD `0001`, BAD `0000`, RAM AUDIT `0000`; MISSED was `001C` and rising.
+The SNES validated the first page and reports publishing its ACK, while the GB
+rejects its raw commit reads. Controller selection/readback remains unresolved.
+
+After E1/E2 the revised bench also scans all four virtual controller slots with
+each P1 selection held for over 100 µs. `SLOW SLOT 1–4 ID/BYTE` show the controller
+ID followed by its byte. For the first ACK, the four pairs should be `0FA5`,
+`0E01`, `0D01`, `0C01` (possibly rotated). These are ICD2 virtual slots, independent
+of the two physical controller ports. The original failed reads stay visible;
+the scan does not retry or rescue the timed-out probe. Normal throughput uses
+the original reader so the diagnostic does not change its measurements.
+
 ## Build and tests
 
 ```sh
@@ -655,20 +674,22 @@ with the existing OS/data/modules; its normal mounted-card copy includes it.
 For a build without copying to the card, pass `SD_MOUNT=/tmp/fatpak-no-sd`.
 Copy `SGB.DAT`, `GBCOS.BIN`, `EDITOR.DAT` and `MODULES/SGBBOOT.MOD` from the same
 build into `GBCSYS`. The container checks the OS checksum before takeover.
-Removing `SGB.DAT` disables fullscreen startup on SGB and retains the BIOS mode.
-DMG/CGB startup is unaffected.
+Fullscreen starts only through **SETTINGS → SGB FULLSCREEN**. Missing data leaves
+the BIOS renderer active. DMG/CGB startup is unaffected.
 
-No SGB1 or SGB2 hardware results have been collected for this kernel. Mesen
-proves BIOS upload, real ICD2 transport and PPU output separately from the OS
-frontend test; it cannot prove the complete EverDrive/SGB combination. The
-Phase 0b hardware ACK stall remains relevant. Do not mark Phase 7 complete from
-an emulator result or from producing the container.
+First fullscreen hardware report: takeover took several minutes, then displayed
+a dark blue screen with one row of light blue tiles halfway down, starting one
+tile from the left. Console/SGB revision was not recorded. Fullscreen is now
+menu-only so probes remain accessible. Phase 7 has not passed. Mesen validates
+BIOS upload, ICD2 transport and PPU output separately from the OS frontend;
+the complete EverDrive/SGB combination and Phase 0b ACK stall remain open.
 
 Record console/SGB revision, cart/OS build and keyboard/controller setup with
 all results. Use a gamepad in port 1; leave the mouse in port 2. A keyboard can help inspect text while the full pad
 mapping is developed.
 
-- [ ] SGB1: cold boot reaches fullscreen browser, readable title/status and file list.
+- [ ] SGB1: cold boot reaches BIOS-mode browser; SETTINGS → SGB FULLSCREEN reaches
+      a readable fullscreen title/status and file list.
 - [ ] SGB2: repeat the same cold-boot check.
 - [ ] On each, open a small `.c` file, verify comments/strings/keywords, scroll,
       place the cursor, edit using the pad/OSK, save and reopen the changed file.

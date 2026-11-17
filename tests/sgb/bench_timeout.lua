@@ -36,5 +36,23 @@ emu.addEventCallback(function(cpu)
  if tile(0x1076)~=37 or tile(0x1077)~=16+stage%16 or tile(0x1257)~=16 then
   finish(false,fault..' timeout diagnostic did not reach the TV');return
  end
+ local scan={15,0xa5,14,gb(0xc132),13,gb(0xc133),12,0}
+ for i=1,#scan do
+  if gb(0xc147+i)~=scan[i] then
+   finish(false,'slow slot scan ID/byte mismatch at '..i);return
+  end
+ end
+ for slot=0,3 do
+  local id,value=scan[2*slot+1],scan[2*slot+2]
+  local word=0x12d4+slot*32
+  local digits={math.floor(id/16),id%16,math.floor(value/16),value%16}
+  for i=1,4 do
+   local digit=digits[i]
+   local expected=digit<10 and 16+digit or 23+digit
+   if tile(word+i-1)~=expected then
+    finish(false,'slow slot scan did not reach the TV');return
+   end
+  end
+ end
  finish(true,fault..' suppressed: visible stage '..string.format('%02X',stage)..', raw flags 00, sender stopped within 120 GB frames')
 end,emu.eventType.endFrame)

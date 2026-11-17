@@ -18,6 +18,7 @@ DEF SentFrame EQU $C13A
 DEF Dest EQU $C13C
 DEF TestCount EQU $C13E
 DEF RawReply EQU $C140 ; B/E commit reads, C page, D flags
+DEF SlotScan EQU $C148 ; four slow controller ID/byte pairs after timeout
 DEF TxBuffer EQU $C200
 SECTION "Bench VBlank", ROM0[$40]
   jp BenchVBlank
@@ -308,8 +309,49 @@ BenchTimeout:
   ld a, $E1
   ld [PHASE], a
 .hold
+  call BenchScan
   halt
   jr .hold
+; Diagnostic only: do not change the benchmark's mailbox reader or ACK result.
+; Each select is held for >100 us; display the ID beside its corresponding byte
+; so a rotated scan is still interpretable. The VBlank handler never writes P1.
+BenchScan:
+  di
+  ld de, SlotScan
+  ld c, 4
+  ld a, $30
+  ldh [rP1], a
+.slot
+  call .settle
+  and 15
+  ld [de], a
+  inc de
+  ld a, $20
+  ldh [rP1], a
+  call .settle
+  and 15
+  ld h, a
+  ld a, $10
+  ldh [rP1], a
+  call .settle
+  and 15
+  swap a
+  or h
+  ld [de], a
+  inc de
+  ld a, $30
+  ldh [rP1], a
+  dec c
+  jr nz, .slot
+  ei
+  ret
+.settle
+  ld b, 32
+.wait
+  ldh a, [rP1]
+  dec b
+  jr nz, .wait
+  ret
 BenchRead:
   call SNESMouseRead
   ld hl, RawReply
@@ -435,6 +477,15 @@ BenchVBlank:
   jr nz, .raw
   xor a
   ld [hli], a
+  ld de, SlotScan
+  ld b, 8
+.scan
+  ld a, [de]
+  inc de
+  ld [hli], a
+  dec b
+  jr nz, .scan
+  xor a
   ld [FrameBytes], a
   ld [FrameBytes+1], a
   pop hl

@@ -19,6 +19,19 @@ static std::map<std::string,unsigned> Symbols(const char* p){std::map<std::strin
 static void Frames(GearboyCore& c,unsigned n){s16 a[AUDIO_BUFFER_SIZE];while(n--){int count=0;c.RunToVBlank(pixels.data(),a,&count);}}
 static std::string Text(Memory* m,unsigned at){std::string s;for(unsigned i=0;i<128 && m->Read(at+i);++i)s+=char(m->Read(at+i));return s;}
 static bool Contains(FatPakSGBHost* h,const std::string& text){for(const auto& r:h->GetModel().rows){std::string s(r.chars.begin(),r.chars.end());if(s.find(text)!=std::string::npos)return true;}return false;}
+static void EnterFullscreen(GearboyCore& c,const std::map<std::string,unsigned>& syms) {
+    auto m=c.GetMemory();
+    Check(!(m->Read(syms.at("sys_info"))&4) && m->Read(syms.at("_screen_rows"))==18,
+          "startup stays in BIOS mode with fullscreen data installed");
+    Check(!m->Read(syms.at("_overlay_live")) && !c.GetSGB()->GetFatPakHost()->Active(),
+          "startup does not install the overlay or upload the kernel");
+    auto pad=[&](Gameboy_Keys key){c.KeyPressed(key);Frames(c,4);c.KeyReleased(key);Frames(c,70);};
+    pad(Start_Key);pad(Down_Key);pad(Down_Key);pad(A_Key); // browser SETTINGS
+    Check(m->Read(syms.at("_render_box_rows"))==7,"SGB BIOS browser has five settings");
+    Check(Text(m,syms.at("tile_buffer")+20*40+80)==" SGB FULLSCREEN","explicit SGB fullscreen menu item");
+    pad(Up_Key);pad(A_Key); // last setting: SGB FULLSCREEN
+    Frames(c,2000);
+}
 static void Fallback(const char* image,const std::map<std::string,unsigned>& syms,const char* data,const char* module,
                      const std::vector<u8>& file,unsigned mode) {
     char dir[]="/tmp/fatpak-client-fallback-XXXXXX";Check(mkdtemp(dir),"fallback SD");
@@ -28,6 +41,7 @@ static void Fallback(const char* image,const std::map<std::string,unsigned>& sym
     GearboyCore c;c.Init();c.SetForceSGB(true);c.SetEverdriveFolder(dir);
     if(mode!=2)c.GetSGB()->GetFatPakHost()->Configure(FatPakSGBHost::TerminalV1);
     Check(c.LoadROM(image,false),"fallback OS");Frames(c,1800);
+    EnterFullscreen(c,syms);
     auto m=c.GetMemory();
     Check(!(m->Read(syms.at("sys_info"))&4) && m->Read(syms.at("_screen_rows"))==18,"missing/corrupt/HELLO-timeout preserves GB geometry");
     Check(!m->Read(syms.at("_overlay_live")),"bootstrap rollback restores renderer");
@@ -46,6 +60,7 @@ int main(int n,char** v){
     Check(core.GetSGB()->GetFatPakHost()->SetRecording("build/sgb/client.fph"),"record real frontend LCD stream");
     auto h=core.GetSGB()->GetFatPakHost();auto m=core.GetMemory();
     Frames(core,2000);
+    EnterFullscreen(core,syms);
     printf("boot PC=%04x sys=%02x geometry=%u host=%d good=%u bad=%u error=%s fault=%u row=%u pending=%u ack=%u mailbox=%u/%u/%u/%u file=%s\n",
         core.GetProcessor()->GetState()->PC->GetValue(),m->Read(syms.at("sys_info")),m->Read(syms.at("_screen_rows")),h->Active(),h->Good(),h->Bad(),h->LastError().c_str(),
         m->Read(syms.at("fs_fault")),m->Read(syms.at("fs_row")),m->Read(syms.at("fs_pending")),m->Read(syms.at("fs_ack")),

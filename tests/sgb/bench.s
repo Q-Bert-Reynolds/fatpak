@@ -124,7 +124,7 @@ Entry:
  lda #0
  sta $2119
  inx
- cpx #22*32
+ cpx #26*32
  bne @labels
  lda #0
  sta $2121
@@ -444,7 +444,9 @@ Nmi:
  lda f:$7f2f00
  and #$00ff
  cmp #$53
- bne @noStatus
+ beq @status
+ jmp @noStatus
+@status:
  lda f:$7f2f00
  xba
  and #$00ff
@@ -485,6 +487,29 @@ Nmi:
  lda f:$7f2f15
  xba
  ldx #$1254
+ jsr Hex
+ ; The slow scan runs only after a bounded timeout; it must not affect the
+ ; throughput measurements or turn the failed ACK into a successful reply.
+ lda f:$7f2f00
+ xba
+ and #$00ff
+ cmp #$e1
+ bcc @noStatus
+ lda f:$7f2f18
+ xba
+ ldx #$12d4
+ jsr Hex
+ lda f:$7f2f1a
+ xba
+ ldx #$12f4
+ jsr Hex
+ lda f:$7f2f1c
+ xba
+ ldx #$1314
+ jsr Hex
+ lda f:$7f2f1e
+ xba
+ ldx #$1334
  jsr Hex
 @noStatus:
  lda $1028
