@@ -13,6 +13,7 @@ WRAMX	localized string slots	48	preserved
 WRAMX	mouse state	18	preserved budget; fullscreen replacement must fit
 WRAMX	palette scratch	8	preserved
 WRAMX	module state	5	preserved
+WRAMX	overlay loader state	21	request, saved interval/CRC, entry, live flag
 WRAM0_RENDER_UNION	fullscreen render state	160	budget cap including 28-row metadata and selection; Geometry Vars stays separate
 WRAM0_RENDER_UNION	control queue	64	protocol constant
 WRAM0_RENDER_UNION	transport state	16	revised cap after Phase 2; implementation must prove it fits

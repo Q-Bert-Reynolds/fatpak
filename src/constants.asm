@@ -51,7 +51,11 @@ DEF WIN_SIZE           EQU $C000;the part of a large file in the text buffer (sr
 DEF WIN_CHUNKS         EQU WIN_SIZE/512+1;sector boundaries in it
 DEF MAX_PIECES         EQU 96;a large file's piece table (src/fatfs/fatfs.c)
 DEF ADD_BLOCK          EQU $0400;text added to a large file, PSRAM 512KB up to the save states at $3E40
-DEF ADD_MAX            EQU $720000;stop before the protected EDITOR.DAT region
+; Long-lived fullscreen image/overlay backup must survive modules and snapshots.
+DEF SGB_FILE_BLOCK     EQU $3B00
+DEF SGB_FILE_BLOCKS    EQU $90
+DEF OVERLAY_BACKUP     EQU $3B90
+DEF ADD_MAX            EQU $6E0000;stop before the persistent fullscreen image
 DEF TB_SIZE      EQU (TB_BANK_SIZE*TB_BANKS)
 DEF TB_CLIP_OFFSET EQU $0100;the clipboard's text in PSRAM blocks 240-255 (src/sram.asm)
 DEF TB_CLIP_SIZE EQU ($2000-TB_CLIP_OFFSET)
@@ -104,7 +108,7 @@ DEF ASM_FILE_END     EQU $387E;then build.cache's new index, and the build log
 DEF ASM_CACHE_BLOCK  EQU $387E;build.cache: where pass 1 found each file, 128 blocks (modules/asm_cache.c)
 DEF ASM_CACHE_BLOCKS EQU 128
 DEF ASM_LOG_BLOCK    EQU $38FE;build.log's text, 2 blocks (up to ADD_MAX / 512); in pass 1, the cache's directory and FAT sectors
-DEF MODULE_ABI     EQU 11;newest ABI the host provides, modules built for older ones still load
+DEF MODULE_ABI     EQU 12;newest ABI the host provides, modules built for older ones still load
 DEF MODULE_TABLE   EQU $7F00;ABI jump table in resident bank 1, 3 bytes per entry
 DEF MODULE_SLOTS   EQU 32;entries reserved for it
 DEF MODULE_FORMAT  EQU 1;one page, BSS after the code

@@ -24,6 +24,12 @@ PAGE5 = utils.constants()['MODULE_PAGE5']  # the keyboard handlers ('ProcessKeyC
 # the fonts' widths); rows are already lexed, so drawing never reaches KeywordLookup (page 13).
 ASM = {
     '_ModuleAPIDriver': ['KBDriverInstall'],
+    # The host-bound entry's imports are checked separately by sgb_data.py.
+    # Standard bootstrap modules borrow page 13; loader helpers must not.
+    '_ModuleAPIOverlay': ['_OverlayInstall', '_OverlayRestore'],
+    '_OverlayInstall': ['_OverlayInstallBody'],
+    '_OverlayRestore': ['_OverlayRestoreBody'],
+    '_ModuleCRC': [],
     'KBDriverInstall': ['KeyboardDriverInit', 'mem_Copy', '_SettingsSave', '_FileSaveSwap'],
     'KeyboardDriverInit': [], 'mem_Copy': [],
     '_tb_ClipLength': [], '_tb_Length': [], '_ByteSum': [],

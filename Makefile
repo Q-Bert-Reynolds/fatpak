@@ -24,11 +24,23 @@ C_LIBS    = $(wildcard $(SRC_DIR)/*/lib/*.c) $(wildcard $(SRC_DIR)/*/lib/*.h)
 # Preserve raw output: page placement and cross-module call resolution run together.
 C_RAW     = $(patsubst %.c,$(BUILD_DIR)/c/%.asm,$(C_SOURCES))
 
-.PHONY: test-sgb-host test-geometry all code modules assemble run assets clean sgb-hello test-sgb-hello sgb-bench test-sgb-bench test-sgb-bench-timeout sgb-handoff test-sgb-handoff sgb-protocol test-sgb-protocol sgb-budget
+.PHONY: sgb-kernel test-sgb-kernel test-sgb-client test-overlays test-sgb-host test-geometry all code modules assemble run assets clean sgb-hello test-sgb-hello sgb-bench test-sgb-bench test-sgb-bench-timeout sgb-handoff test-sgb-handoff sgb-protocol test-sgb-protocol sgb-budget
 
 all: clean assets assemble run
 
 code: assemble run
+
+sgb-kernel:
+	$(PYTHON) scripts/sgb_kernel.py
+
+test-sgb-kernel:
+	bash tests/run_sgb_kernel.sh
+
+test-sgb-client:
+	bash tests/run_sgb_client.sh
+
+test-overlays:
+	bash tests/run_overlays.sh
 
 test-sgb-host:
 	bash tests/run_sgb_host.sh
@@ -107,6 +119,7 @@ ifneq ($(ROM_FILE),$(BIN_DIR)/GBCOS.BIN)
 endif
 	$(PYTHON) scripts/keyboard_drivers.py
 	$(PYTHON) scripts/data_file.py $(BIN_DIR)/EDITOR.DAT
+	$(PYTHON) scripts/sgb_data.py
 	@if mountpoint -q "$(SD_MOUNT)"; then \
 		cp $(BIN_DIR)/GBCOS.BIN "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
 		cp $(BIN_DIR)/EDITOR.DAT "$(SD_MOUNT)/GBCSYS/EDITOR.DAT" && \

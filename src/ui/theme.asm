@@ -16,6 +16,7 @@ DEF DMG_PAL_DARK EQU %00011011;every shade inverted (DMG_PAL_WLDB keeps 1 and 2)
 
 FIXED "Theme"
 _ThemeApply::
+  SGB_JUMP 18
   TRAMPOLINE EditorSetPalettes
   ret
 

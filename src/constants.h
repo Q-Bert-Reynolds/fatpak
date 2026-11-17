@@ -54,7 +54,11 @@
 #define WIN_CHUNKS         WIN_SIZE/512+1//sector boundaries in it
 #define MAX_PIECES         96//a large file's piece table (src/fatfs/fatfs.c)
 #define ADD_BLOCK          0x0400u//text added to a large file, PSRAM 512KB up to the save states at 0x3E40
-#define ADD_MAX            0x720000//stop before the protected EDITOR.DAT region
+// Long-lived fullscreen image/overlay backup must survive modules and snapshots.
+#define SGB_FILE_BLOCK     0x3B00u
+#define SGB_FILE_BLOCKS    0x90
+#define OVERLAY_BACKUP     0x3B90u
+#define ADD_MAX            0x6E0000//stop before the persistent fullscreen image
 #define TB_SIZE      (TB_BANK_SIZE*TB_BANKS)
 #define TB_CLIP_OFFSET 0x0100u//the clipboard's text in PSRAM blocks 240-255 (src/sram.asm)
 #define TB_CLIP_SIZE (0x2000u-TB_CLIP_OFFSET)
@@ -107,7 +111,7 @@
 #define ASM_CACHE_BLOCK  0x387Eu//build.cache: where pass 1 found each file, 128 blocks (modules/asm_cache.c)
 #define ASM_CACHE_BLOCKS 128
 #define ASM_LOG_BLOCK    0x38FEu//build.log's text, 2 blocks (up to ADD_MAX / 512)// in pass 1, the cache's directory and FAT sectors
-#define MODULE_ABI     11//newest ABI the host provides, modules built for older ones still load
+#define MODULE_ABI     12//newest ABI the host provides, modules built for older ones still load
 #define MODULE_TABLE   0x7F00u//ABI jump table in resident bank 1, 3 bytes per entry
 #define MODULE_SLOTS   32//entries reserved for it
 #define MODULE_FORMAT  1//one page, BSS after the code

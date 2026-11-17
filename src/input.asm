@@ -55,6 +55,7 @@ ENDM
 
 UpdateInput::;https://gbdev.io/pandocs/Joypad_Input.html
   PUSH_ALL
+  SGB_JUMP 12
   di
   call SGBInputSync
 
@@ -93,6 +94,7 @@ ENDR
   or a, b
   ldh [button_state], a 
 
+UpdateInputReturn::
   POP_ALL
   ret
 

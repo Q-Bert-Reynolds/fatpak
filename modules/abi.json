@@ -31,6 +31,7 @@
     ["String", "char*", "char* dest, unsigned int id", 9],
     ["Stat", "unsigned long", "unsigned char which", 10],
     ["Sector", "unsigned char", "unsigned long sector, unsigned int block", 10],
-    ["Driver", "unsigned int", "unsigned char command", 11]
+    ["Driver", "unsigned int", "unsigned char command", 11],
+    ["Overlay", "unsigned int", "unsigned char command", 12]
   ]
 }

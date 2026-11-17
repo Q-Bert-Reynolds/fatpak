@@ -1,13 +1,12 @@
 # Super Game Boy fullscreen mode (plan)
 
-Status: **Phase 0a passed on hardware; Phases 0b/0c and the Phase 1 protocol
-pass in Mesen/unit tests. Phase 2 geometry passes the full Gearboy integration
-suite on DMG/CGB. Phase 3 host stub passes the real bench ROM, protocol,
-reference raster, replay and MCP checks in Gearboy. Phase 0d budgets are updated below.** The fullscreen
-OS remains planned; additional hardware results are marked explicitly. **(verify)** marks documented hardware facts
-(fullsnes, Pan Docs) that Phase 0 must confirm. The existing SNES mouse bridge
-uses `DATA_SND` and a BIOS hook while leaving the GB picture visible; it is
-separate from the fullscreen takeover tested here.
+Status: **Phase 0a passed on hardware; Phases 1–6 pass their software exit
+checks. Phase 6 runs the real SNES kernel in Mesen and matches the recorded
+frontend golden pixel for pixel. Phase 7 hardware integration is still pending.**
+The Phase 0b hardware ACK stall and the complete EverDrive launch/return cycle
+remain unverified; emulator results do not close those checks. **(verify)** marks
+documented hardware facts that still need confirmation. The BIOS mouse bridge
+is separate from fullscreen takeover.
 
 Today's SGB mode (DMG renderer plus `src/ui/sgb.asm`: `MLT_REQ` detection,
 palettes, border from `EDITOR.DAT`, LCD VRAM transfers) stays as the **fallback**.
@@ -396,9 +395,9 @@ features it tests. Each phase has an exit check.
 | 1 | **Protocol spec** | `src/sgb/protocol.asm` → `.h` / `.inc` / `.hpp` generation; encode/decode round-trip tests in Python | **Passed:** reference codecs, generation freshness and all four language consumers |
 | 2 | **Geometry refactor** | Runtime row width/rows, stride-64 layout union, row-address table. No SGB code yet | **Passed:** new 28×64 geometry tests and all existing Gearboy integration suites on DMG/CGB; normal GB geometry retained |
 | 3 | **Gearboy SGB host stub** | See Testing. `JUMP`/`DATA_TRN` capture, page decoder, reference renderer, mailbox injection, MCP/test hooks | **Passed in Gearboy:** real bench completes all stages, 66 valid pages, exact upload and deterministic replay; v1 decoder/raster/mailbox/MCP checks below |
-| 4 | **Overlay loader** | General overlay infrastructure (TODO item) loads the SGB backend page from `SGB.DAT` | A trivial overlay round-trips in tests |
-| 5 | **GB backend: text** | Bootstrap + fallback, transport, `ROW`/`SCROLL`/`LAYOUT`/`CURSOR`, mailbox → key events | In the Gearboy stub, opening, typing, scrolling and saving a file render correctly in the reference image |
-| 6 | **SNES core** | boot, icd2 capture, proto, model, raster (styles/colors), BG1 ring + smooth scroll, cursor sprite, debug overlay | The Mesen harness replaying recorded Phase 5 streams matches golden screenshots |
+| 4 | **Overlay loader** | General overlay infrastructure (TODO item) loads the SGB backend page from `SGB.DAT` | **Passed:** host-bound renderer overlays install, execute and restore on DMG/CGB; corruption/bounds rejection and full-interval round trips |
+| 5 | **GB backend: text** | Bootstrap + fallback, transport, `ROW`/`SCROLL`/`LAYOUT`/`CURSOR`, mailbox → key events | **Passed:** actual OS bootstrap/browser/open/type/save/scroll/selection through LCD v1; missing/corrupt files and HELLO timeout restore GB state |
+| 6 | **SNES core** | boot, icd2 capture, proto, model, raster (styles/colors), BG1 ring + smooth scroll, cursor sprite, debug overlay | **Passed in Mesen:** real BIOS upload, 102 recorded frontend pages and all 57,344 PPU pixels match the golden; native parser/model negative checks pass |
 | 7 | **Integration on hardware** | Real FatPak OS + `SGB.DAT` on SGB1/SGB2 | Edit and save a `.c` and a `.md` file with highlighting using the pad |
 | 8 | **Overlay UI** | Bars, menus (`BOX`), dialogs, browser, help, OSK, loading boxes and progress on BG3 | Every screen in the app reachable and correct; menu open/close redraws no text rows |
 | 9 | **Full controls + mouse** | Complete button map, repeat, pad 2; mouse detect/pointer/sensitivity; `editor/mouse.c` hit testing (also usable on GB later) | Scripted tests in both emulators; mouse checklist on hardware |
@@ -721,6 +720,52 @@ ACK stall, which remains open. Host state is deliberately reset when loading a
 legacy Gearboy save state. The fullscreen OS still awaits the overlay loader
 (Phase 4) and GB backend/bootstrap (Phase 5); the current OS uses its fallback.
 
+### Phase 4: fixed-code overlay loader
+
+[OVERLAYS.md](OVERLAYS.md) documents the OVL1 entry envelope, verified backup,
+copy/restore failure policy and protected PSRAM allocation. `make test-overlays`
+passes on DMG/CGB, including execution, the full 4677-byte renderer interval,
+unaligned sector crossings and corrupt backup recovery. Geometry and module
+regressions pass on both machines. The link/page/module ABI audits pass; loader
+state leaves 14 WRAMX bytes free. Normal startup still uses the GB renderer.
+The large-file added-text cap is reduced by 256 KiB to reserve persistent SGB
+image/backup space below snapshots and the known unsafe $3E00 area.
+
+### Phase 5: GB terminal client
+
+The optional `SGBBOOT.MOD` uses the ordinary module loader and the new last
+reserved ABI slot (`ModOverlay`, ABI 12). It loads SGB.DAT into protected PSRAM,
+validates the complete container/host binding before modifying code or video,
+backs up video, installs the bound terminal, uploads program/fonts with DATA_TRN,
+sends JUMP and waits for a v1 HELLO. Missing/corrupt files and HELLO timeout
+restore the renderer and video; normal DMG/CGB startup never takes this path.
+
+`display.asm` is independently linked into the fixed renderer interval. Its jump
+directory dispatches drawing, redraw, input, VBlank status and palette changes.
+The original VWF width table retains its address for shared layout metrics.
+ROW packets include style RLE and pixel selection boundaries; the client emits
+LAYOUT, SCROLL, CURSOR and PALETTE, publishes sequence last, waits for an ACK,
+and echoes mailbox events in CRC-protected status. A full key queue defers the
+pending draw instead of discarding a key or recycling an unacknowledged page.
+Row hashes cover characters, attributes, font and selection. Transport/state
+uses 51 previously free HRAM bytes; WRAM0/WRAMX growth is unchanged from Phase 4.
+
+`make test-sgb-client` uses the optional Gearboy host branch for a software
+reference check: the real OS opens a C file from the browser, types, saves to
+SD, scrolls through a 30-key burst and selects text. It also proves rollback for
+missing/corrupt SGB.DAT and absent HELLO, including exact renderer-byte restore.
+The existing geometry, module and SGB fallback suites pass on both applicable
+machines. `build/sgb/client.fph` records this real frontend stream for Phase 6.
+No additional emulator behavior was added. `sgb_data.py` audits the terminal's
+external calls and packages a supplied SNES kernel with the bound overlay.
+
+The build emits `build/sgb/client.ovl`; the test packages the hello probe only
+as an internal host fixture. It deliberately does **not** install that placeholder
+as `bin/SGB.DAT`. Phase 6 supplies real SNES firmware. A runtime page timeout
+latches `fs_fault` and stops publication without discarding the document;
+post-takeover recovery and the launch/warm-return contract require the SNES side
+and the later integration/launch work. Overlay UI serialization is Phase 8.
+
 ## Testing
 
 The full app needs EverDrive emulation, which only the **Gearboy fork** has, and
@@ -807,3 +852,48 @@ a second pad, and the EverDrive GB X7.
 | Separate `SGB.DAT` vs extending `EDITOR.DAT` | Separate (versioned independently; only SGB loads it) |
 | Launch fallback if 0c fails | Decide after 0c; "press reset" is the safe last resort |
 | Bring mouse hit testing to GB modes (iGKB mouse)? | Yes, `editor/mouse.c` is mode-independent by design |
+
+### Phase 6: real SNES display kernel
+
+`snes/kernel.c` is the production protocol/model core, compiled by cc65 for the
+native 65816's 8-bit accumulator/index ABI. `hardware.s` owns startup, ICD2 DMA,
+mailbox publication, pad sampling and PPU writes; `raster.s` performs bounded
+glyph composition and 4bpp encoding. No additional emulator features are used.
+The program runs in bank $7F, with code/fonts there and mutable state in $7E.
+The linker asserts the image fits below $7F:FF00. Font bytes are generated from
+the same source assets as the Game Boy renderer.
+
+Capture drains up to four completed ICD2 buffers between bounded pieces of
+work. A separate 1920-byte snapshot protects decoding from concurrent capture;
+CRC rejects torn images. The complete TLV stream is validated before mutation.
+Page sequence/duplicate handling, a held mailbox, reserved control-queue slots,
+and control replies ahead of queued keys implement backpressure. The native
+parser test includes a valid mutation followed by an invalid trailing command,
+CRC/range/RLE errors, sequence gaps, duplicates and mailbox echo rejection.
+
+BG1 has a 32-row physical ring; SCROLL rotates its slots and preserves clean
+rows. Changed/revealed rows rasterize independently, and scroll publication
+waits for their DMA. The smooth flag requests 2 px steps. Syntax colors,
+overlapping italic glyphs, raw UI icons, pixel selection, palette changes and an
+OBJ cursor use the existing font/style rules. L+R+Select toggles capture/page
+counters on the bottom row without mutating the underlying model. Basic pad
+navigation uses the editor's key codes; complete mappings/repeat/mouse are Phase 9.
+
+VRAM uses BG1 tiles $0000–$7FFF, reserved BG3 tiles $8000–$BFFF, OBJ tiles
+$C000–$C7FF, and maps $E000/$E800. This replaces the earlier provisional map,
+which did not reserve enough space for 1024 4bpp BG1 tiles. UI state is retained
+separately for the Phase 8 overlay implementation. Launch remains Phase 10.
+
+`make test-sgb-kernel` builds a plain MBC5 harness, uploads the real kernel/fonts
+with BIOS DATA_TRN/JUMP, replays the 102 Phase 5 transactions through real ICD2
+capture in Mesen, waits for pending raster/scroll work, and compares the actual
+SNES PPU pixels with the committed golden. The compact recording and image are
+in `tests/sgb/fixtures/`; the optional Gearboy host is not needed by this test.
+The production container is installed by the Phase 7 build integration.
+
+Phase 6 replay result: **102 applied pages, exact 256×224 output, longest page
+ACK 109 SNES frames** (below the 120-GB-frame budget). The capture loss counter
+reported 40 overwritten rows during the full run; later captures/retries recovered
+them without losing a transaction. This is not a zero-loss performance claim.
+The remaining latency margin needs attention in performance work and hardware
+checks, especially when input and filesystem operations overlap.

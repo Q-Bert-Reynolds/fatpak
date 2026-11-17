@@ -95,10 +95,12 @@ DisableLCDInterrupt::
 
 VBLInterrupt::
   PUSH_ALL
+  SGB_JUMP 15
 
   call gbdk_DMATransfer
   call LatchPad
 
+VBLContinue::
   ld a, 1
   ldh [vbl_done], a
 

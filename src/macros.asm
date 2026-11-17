@@ -310,3 +310,11 @@ MACRO ST_DE_VAR ;\1 = address of little endian word
   ld a, d
   ld [\1+1], a
 ENDM
+
+; No arguments in A at these dispatch sites; interrupt/input callers already
+; saved their registers. Warm startup ignores the overlay until reactivated.
+MACRO SGB_JUMP
+  ldh a, [sys_info]
+  bit 2, a
+  jp nz, _RenderOverlayStart+\1
+ENDM

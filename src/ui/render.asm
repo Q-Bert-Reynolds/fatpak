@@ -318,12 +318,14 @@ _RenderTextWidth::;de = text (0 ends it), returns its width in the variable widt
   ret
 
 _EditorRedraw::
+  SGB_JUMP 6
   ld a, $FF
   ld hl, row_font
   ld bc, RENDER_BLOCKS
   jp mem_Set
 
 _EditorDraw::
+  SGB_JUMP 3
   ld a, [_render_pending]
   cp a, 2
   jr nz, .waitScroll
@@ -949,6 +951,7 @@ ENDC
 ENDR
 
 SECTION "Render", ROMX, BANK[1]
+_RenderOverlayStart::
 ASSERT LOW(render_bitmap) == 0, "render_bitmap must be page aligned"
 
 ;bc = glyph, returns the glyph styled by [render_look] and [render_head] in bc (render_glyph if it
@@ -2458,4 +2461,6 @@ DEF FixedBoldWidths EQU $0400
 DEF VWFBoldWidths EQU $0500
 ASSERT HIGH(DATA_BLOCK + DATA_SHIFTS) == HIGH(DATA_BLOCK + DATA_SHIFTS + 6)
 ASSERT DATA_BLOCK + DATA_BLOCKS + 16 <= $3E2F, "assets and name undo must precede game metadata"
-ASSERT ADD_BLOCK + (ADD_MAX >> 9) == DATA_BLOCK, "large edits must stop before assets"
+ASSERT ADD_BLOCK + (ADD_MAX >> 9) == SGB_FILE_BLOCK, "large edits must stop before assets"
+
+_RenderOverlayEnd::

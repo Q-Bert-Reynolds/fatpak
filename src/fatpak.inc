@@ -41,6 +41,8 @@ INCLUDE "src/fatfs/fatfs.asm"
 
 INCLUDE "src/modules/runtime.asm"
 
+INCLUDE "src/sgb/client.asm"
+INCLUDE "src/overlays/overlay.asm"
 INCLUDE "src/wram.asm"
 INCLUDE "src/sram.asm"
 

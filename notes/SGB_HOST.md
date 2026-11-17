@@ -1,4 +1,8 @@
-# Gearboy FatPak host (Phase 3)
+# Gearboy FatPak host (optional test branch)
+
+This software-specific test double is kept on Gearboy's `fatpak` branch. It is
+optional validation infrastructure, not an SGB hardware implementation or a
+production dependency. The real SNES program is tested separately in Mesen.
 
 Build the sibling Gearboy fork with `make -C ../Gearboy/platforms/linux all`.
 Run the protocol/model, font-image and real GB bench checks with:
