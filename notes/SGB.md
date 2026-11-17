@@ -1,11 +1,13 @@
 # Super Game Boy fullscreen mode (plan)
 
-Status: **plan, nothing implemented.** Running FatPak as a fullscreen SNES
-application on a Super Game Boy. **(verify)** marks documented hardware facts
-(fullsnes, Pan Docs) that Phase 0 must confirm.
+Status: **Phase 0a implemented and passing in Mesen; hardware check pending.**
+The fullscreen OS remains planned. **(verify)** marks documented hardware facts
+(fullsnes, Pan Docs) that Phase 0 must confirm. The existing SNES mouse bridge
+uses `DATA_SND` and a BIOS hook while leaving the GB picture visible; it is
+separate from the fullscreen takeover tested here.
 
 Today's SGB mode (DMG renderer plus `src/ui/sgb.asm`: `MLT_REQ` detection,
-palettes, border from `EDITOR.DAT`, `sgb_CopyToWRAM`) stays as the **fallback**.
+palettes, border from `EDITOR.DAT`, LCD VRAM transfers) stays as the **fallback**.
 
 The current border uploader preserves `$8800-$9FFF` in snapshot staging
 (`$3C00-$3C0B`, twelve PSRAM blocks) during startup. Interrupts stay masked while
@@ -176,8 +178,9 @@ Commands (first draft; Phase 1 fixes the encodings):
 
 Big data never goes through a separate queue. The page writer serializes **dirty
 rows straight from `tile_buffer`/`tile_attrs`** into VRAM. Only small control
-commands use a short WRAM queue (64 bytes). That matters because WRAM0 has 17
-bytes free and WRAMX has 104.
+commands use a short WRAM queue (64 bytes). The current baseline has only **1
+byte free in WRAM0 and 33 bytes in WRAMX**; the queue requires reclaimed memory,
+not an additional resident allocation. Phase 0d must budget it explicitly.
 
 ### SNES → GB: the mailbox
 
@@ -287,8 +290,8 @@ to 64 characters and 248 px.
 
 ### ROM space
 
-ROM0 has about 160 bytes free and every OS page is 98-100% full (0-85 bytes
-each). The GB-side SGB code (estimated 2.5-4 KB) can't be resident. Options, in
+The current link map has 41 bytes free in ROM0 (fragmented), and every OS page
+is 99-100% full. The GB-side SGB code (estimated 2.5-4 KB) can't be resident. Options, in
 order of preference:
 
 1. **Overlay.** The [TODO](../TODO.md#os-utilities) overlay design is built first as
@@ -375,7 +378,7 @@ features it tests. Each phase has an exit check.
 
 | # | Phase | Contents | Done when |
 | --- | --- | --- | --- |
-| 0a | **Hello SNES** | cc65 + Mesen 2 set up. `tests/sgb/hello.gb` (a plain ROM, no EverDrive) uploads a 65816 stub with `DATA_TRN` + `JUMP`, and the SNES paints a color | It works in Mesen **and on hardware** (launch `hello.gb` from FatPak) |
+| 0a | **Hello SNES** | cc65 + Mesen 2 set up. `build/sgb/hello.gb` (a plain ROM, no EverDrive) uploads a 65816 stub with `DATA_TRN` + `JUMP`, and the SNES paints a color | **Mesen passes; hardware pending.** Requires fullscreen green when launched from FatPak |
 | 0b | **Channel bench** | Same ROM: the GB streams pages, the SNES counts good/torn pages; mailbox round trip; GB VRAM write rate | Measured bytes/frame, tear rate, latency; protocol constants updated |
 | 0c | **BIOS handoff** | After `JUMP`, return to the BIOS and launch a game via the EverDrive | A known SGB game boots with its border, or a fallback is chosen |
 | 0d | **Budgets** | WRAM spreadsheet, ROM plan (overlay or move tables), `$7F` load address check | Written into this doc |
@@ -393,6 +396,50 @@ features it tests. Each phase has an exit check.
 
 Phases 3 and 6 can run in parallel once Phase 1 exists, because they meet only at
 the protocol.
+
+### Phase 0a implementation and check
+
+Build only: `make sgb-hello`. Build and run the real SGB1 BIOS test:
+`make test-sgb-hello`. Neither target rebuilds or installs the OS. Sources are
+in `tests/sgb/`; the GB probe shares `src/sgb/commands.asm` and
+`src/sgb/packet.asm` with the OS. Extracting those includes leaves the OS binary
+byte-for-byte unchanged.
+
+The GB freezes a checkerboard picture, stages a 4 KiB payload in `$8800-$97FF`
+with `BGP=$E4`, maps the tiles over 13 visible rows, waits for capture, then sends
+`DATA_TRN` to `$7F0000` and `JUMP` to its entry. The last row contains only 16
+payload tiles; its remaining four tiles repeat the start and are outside the
+4 KiB transfer. The SNES stub disables BIOS IRQ/NMI/HDMA, takes its own stack,
+disables all BG/OBJ layers and color math, and sets backdrop color 0 to BGR555
+`$03E0` at full brightness. It replies `$A5` through `$6004` with one player
+selected and the GB still running at the normal SGB1 clock setting.
+
+The Mesen test observes execution at `$7F0000`, compares **all 4096 uploaded
+bytes** including a position-dependent padding pattern, checks that the GB
+receives `$A5`, and checks every visible output pixel for green (including the
+former GB picture and border). Mesen's 7/8-line VBlank padding around the
+224-line picture is excluded. Artifacts: `build/sgb/hello.gb`, `hello.png` and
+`hello-result.txt`. On failure, `hello-mesen.log` is retained too. The runner
+uses a temporary firmware/settings directory and the same `MESEN_DLL`,
+`SGB_BIOS`, `SGB_BOOT` overrides as the mouse test; defaults use the sibling
+MesenCE build and `~/Downloads/program.rom` / `sgb1.boot.rom`.
+
+**Hardware exit check:** copy `build/sgb/hello.gb` to the card and launch it
+from FatPak on the SGB. After a brief checkerboard, the whole visible SNES
+picture should become solid bright green, with no GB window or border.
+**Reset the SNES to leave this probe**: it intentionally owns the PPU forever;
+returning to the BIOS is Phase 0c. Report whether green fills the screen and
+which SGB revision was used. Until this succeeds, Phase 0a is not complete.
+Next is Phase 0b's LCD channel benchmark; no throughput, tear-rate or page
+protocol claims are established by the hello test.
+
+GB diagnostics for the emulator/debugger: `$C100` is the phase (0 boot,
+1 SGB detected, 2 payload staged, 3 DATA_TRN sent, 4 JUMP sent, 5 reply received,
+`$E0` no SGB), and `$C101` is the last reply. The reset/launch/return sequence,
+SGB2 behavior, wider `$7F` memory ownership and the geometry/overlay budgets
+remain unverified. Command formats follow
+[Pan Docs system commands](https://eldred.fr/pandocs/SGB_Command_System.html);
+PPU setup follows [fullsnes](https://problemkaputt.de/fullsnes.htm).
 
 ## Testing
 
@@ -457,15 +504,15 @@ emulation (`EverdriveOSMemoryRule`, `EverdriveX`, `VirtualFat`, about 1,700 line
 C++) into Mesen 2's GB core as a mapper. That gives full-stack SGB emulation of the
 real OS, including launch/reset.
 
-## Tools to install
+## Toolchain
 
 | Tool | Why | Notes |
 | --- | --- | --- |
-| **Mesen 2** (standalone, latest 2.x release) | Main SNES/SGB development and debugging: runs the real SGB BIOS, emulates the ICD2, SNES Mouse, debugger for SNES and GB CPUs, Lua scripting, headless test runner | The installed `mesen-s_libretro` core in RetroArch is fine for quick smoke tests but has no debugger |
-| **cc65** (`sudo apt install cc65`) | `ca65`/`ld65` for the 65816 program | Linked as a flat binary at the WRAM load address |
+| **Mesen 2** (sibling MesenCE build installed) | Main SNES/SGB development and debugging: runs the real SGB BIOS, emulates the ICD2, SNES Mouse, debugger for SNES and GB CPUs, Lua scripting, headless test runner | Phase 0a and the SNES mouse tests use `dotnet ../MesenCE/bin/linux-x64/Release/Mesen.dll` |
+| **cc65** (installed) | `ca65`/`ld65` for the 65816 program | Linked as a flat binary at the WRAM load address |
 | **bsnes v115** or **ares** | Accuracy cross-check of ICD2 timing | Optional but recommended before hardware sessions |
-| SGB BIOS dump | Required by Mesen/bsnes/ares | `~/Desktop/beisbol/Super Game Boy (World) (Rev 2).sfc` already exists; put it in Mesen's firmware folder. Add an **SGB2** dump if available (SGB2 differs: link port, clock) |
-| SGB boot ROM | Some emulators want the GB-side `sgb_boot.bin`/`sgb2_boot.bin` | Build the open-source versions from `../SameBoy/BootROMs` |
+| SGB BIOS dump | Required by Mesen/bsnes/ares | Tests use `~/Downloads/program.rom`, copied to temporary firmware storage. An **SGB2** dump remains needed for SGB2 coverage |
+| SGB boot ROM | GB-side `sgb_boot.bin`/`sgb2_boot.bin` | Tests use the supplied `~/Downloads/sgb1.boot.rom` |
 | Already installed | Gearboy fork (GB-side tests), SameBoy | SameBoy's SGB is high-level emulation and **cannot run SNES code**, so it only covers today's non-fullscreen SGB mode |
 
 Hardware: SNES/SFC, **Super Game Boy** (ideally both SGB1 and SGB2), **SNES Mouse**,

@@ -24,11 +24,18 @@ C_LIBS    = $(wildcard $(SRC_DIR)/*/lib/*.c) $(wildcard $(SRC_DIR)/*/lib/*.h)
 # Preserve raw output: page placement and cross-module call resolution run together.
 C_RAW     = $(patsubst %.c,$(BUILD_DIR)/c/%.asm,$(C_SOURCES))
 
-.PHONY: all code modules assemble run assets clean
+.PHONY: all code modules assemble run assets clean sgb-hello test-sgb-hello
 
 all: clean assets assemble run
 
 code: assemble run
+
+# Phase 0a is a standalone ROM; it does not rebuild or install the OS.
+sgb-hello:
+	$(PYTHON) tests/sgb/build.py
+
+test-sgb-hello: sgb-hello
+	bash tests/sgb/run_hello.sh
 
 # Module SDK/host headers: scripts/module_build.py rewrites them only when their content changes.
 MODULE_HEADERS = $(BUILD_DIR)/modules/sdk.h $(BUILD_DIR)/modules/modules.h

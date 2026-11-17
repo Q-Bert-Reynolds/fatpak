@@ -100,3 +100,6 @@ node_modules
 
 # Standalone Mesen SNES mouse integration harness
 /build/snes_mouse.gb
+
+# Standalone SGB fullscreen probes (make sgb-hello / test-sgb-hello)
+/build/sgb/
