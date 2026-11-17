@@ -1,7 +1,8 @@
 # Super Game Boy fullscreen mode (plan)
 
 Status: **Phase 0a passed on hardware; Phases 0b/0c and the Phase 1 protocol
-pass in Mesen/unit tests. Phase 0d budgets are recorded below.** The fullscreen
+pass in Mesen/unit tests. Phase 2 geometry passes the full Gearboy integration
+suite on DMG/CGB. Phase 0d budgets are updated below.** The fullscreen
 OS remains planned; additional hardware results are marked explicitly. **(verify)** marks documented hardware facts
 (fullsnes, Pan Docs) that Phase 0 must confirm. The existing SNES mouse bridge
 uses `DATA_SND` and a BIOS hook while leaving the GB picture visible; it is
@@ -184,7 +185,7 @@ Commands (overview; exact v1 payloads are in the linked specification):
 Big data never goes through a separate queue. The page writer serializes **dirty
 rows straight from `tile_buffer`/`tile_attrs`** into VRAM. Only small control
 commands use a short WRAM queue (64 bytes). The current baseline has only **1
-byte free in WRAM0 and 33 bytes in WRAMX**; the queue requires reclaimed memory,
+byte free in WRAM0 and 35 bytes in WRAMX**; the queue requires reclaimed memory,
 not an additional resident allocation. Phase 0d must budget it explicitly.
 
 ### SNES → GB: the mailbox
@@ -276,28 +277,39 @@ the GB renderer uses) are the first optimization.
 
 ### Prerequisite refactor: screen geometry
 
-The editor hard-codes the GB screen: `TB_ROWS 18`, `TB_STRIDE 40`, `TB_WIDTH 160`,
-about 100 uses across 17 files (`text_buffer.asm`, `render.asm`, `screen.c`,
-`browser.c`, `view.c`, `osk.asm`, `ingame.asm`, …). Fullscreen needs 28 rows of up
-to 64 characters and 248 px.
+Phase 2 separates logical geometry from the GB pixel renderer's physical
+`TB_ROWS=18`, `TB_STRIDE=40`, `TB_WIDTH=160` constants. Content, wrapping and
+layout use `screen_rows`, `screen_stride`, `screen_width` and `screen_header`.
+`RowAddress` and `AttrAddress` use a shared row-offset table and the selected
+character/attribute bases. The table has 32 entries, including range sentinels.
+The GB pixel renderer keeps its fixed tile dimensions.
 
-- `tb_row_width` (px) and the row count become **runtime variables**. `TBScanRow`
-  compares against a variable instead of an immediate, which costs a few cycles.
-- The stride stays a compile-time constant (all indexing is `row * TB_STRIDE`).
-  The plan: **stride 64 in fullscreen layout, 40 in GB layout**, selected by
-  separate WRAMX `UNION`s, with indexing through a small row-address table
-  (`RenderRowAddress` already exists) instead of multiplies.
-- **WRAM budget (WRAMX, 4 KB):** fullscreen does not need `bkg_buffer` (760),
-  `cmd_buffer` (512), `render_dma_buffer` (320), `block_states` or the GBC accent
-  buffer. That frees about 1.6 KB on top of the 1.7 KB `tile_buffer` + `tile_attrs`
-  already use. 26 text rows × 64 × 2 = 3.3 KB plus bar/box text just fits. If the
-  measured budget doesn't fit, cap the stride at 56 (62 code columns becomes 56).
-  **Phase 0d produces the real spreadsheet before Phase 2 starts.**
+`GeometryGB` selects the original dimensions and bar-buffer rows 18/19.
+`GeometryWide` selects 28 rows, stride 64, 248 text pixels and bar slots 26/27.
+The wide layout holds either 26 text rows plus bars or 28 text rows without them.
+These initializers require the renderer to be stopped and interrupts disabled:
+selecting geometry
+invalidates the overlapping buffers, and callers must rebuild layout and rows.
+`GeometryWide` does not activate a display backend or send any SGB commands.
+The normal OS and suspended-game menu always initialize GB geometry.
+
+The WRAMX union in `src/wram.asm` reserves both layouts. GB-only renderer caches
+move from WRAM0 into unused bitmap/staging space, allowing shared row metadata
+and selection arrays to grow to 28 entries without increasing WRAM0 use.
+Wide rows have a 32-byte PSRAM staging area; gap movement, clipboard and undo
+use its runtime chunk limit instead of overwriting the character buffer.
+Both layouts keep lexer state and general string buffers at the same addresses.
+Wide modules still borrow/save the first 3072 bytes.
+
+Menus retain their legacy GB text-storage contract until the overlay UI phase;
+there is no spare menu-text buffer alongside the 28 wide rows. No fullscreen
+backend is enabled by this refactor. The audited allocation is below.
 
 ### ROM space
 
-The current link map has 41 bytes free in ROM0 (fragmented), and every OS page
-is 99-100% full. The GB-side SGB code (estimated 2.5-4 KB) can't be resident. Options, in
+Before Phase 2, the link map had 41 fragmented bytes free in ROM0 and every OS
+page was 99-100% full. Local-branch shortening now leaves 70 ROM0 bytes and
+roughly 2-6% per page. The GB-side SGB code (estimated 2.5-4 KB) can't be resident. Options, in
 order of preference:
 
 1. **Overlay.** The [TODO](../TODO.md#os-utilities) overlay design is built first as
@@ -381,7 +393,7 @@ features it tests. Each phase has an exit check.
 | 0c | **BIOS handoff** | After `JUMP`, return to the BIOS and launch a game via the EverDrive | **Fallback chosen:** manual SNES reset. Non-destructive BIOS return passes in Mesen; full cart cycle remains a hardware check |
 | 0d | **Budgets** | WRAM spreadsheet, ROM plan (overlay or move tables), `$7F` load address check | **Recorded:** spreadsheet + audited WRAM/ROM plan and bank $7F test below |
 | 1 | **Protocol spec** | `src/sgb/protocol.asm` → `.h` / `.inc` / `.hpp` generation; encode/decode round-trip tests in Python | **Passed:** reference codecs, generation freshness and all four language consumers |
-| 2 | **Geometry refactor** | Runtime row width/rows, stride-64 layout union, row-address table. No SGB code yet | **All existing Gearboy integration tests pass on DMG and CGB** with unchanged behavior |
+| 2 | **Geometry refactor** | Runtime row width/rows, stride-64 layout union, row-address table. No SGB code yet | **Passed:** new 28×64 geometry tests and all existing Gearboy integration suites on DMG/CGB; normal GB geometry retained |
 | 3 | **Gearboy SGB host stub** | See Testing. `JUMP`/`DATA_TRN` capture, page decoder, reference renderer, mailbox injection, MCP/test hooks | It decodes Phase 0b's bench ROM stream correctly |
 | 4 | **Overlay loader** | General overlay infrastructure (TODO item) loads the SGB backend page from `SGB.DAT` | A trivial overlay round-trips in tests |
 | 5 | **GB backend: text** | Bootstrap + fallback, transport, `ROW`/`SCROLL`/`LAYOUT`/`CURSOR`, mailbox → key events | In the Gearboy stub, opening, typing, scrolling and saving a file render correctly in the reference image |
@@ -534,7 +546,8 @@ The probe restores a small diagnostic BIOS path, not the final fullscreen OS.
 The spreadsheet is [SGB_WRAM.tsv](SGB_WRAM.tsv). `make sgb-budget` checks its
 sums against `build/main.map` and writes `build/sgb/budget.json` (build the OS
 first if that map is absent). Baseline: 1 free WRAM0 byte, 33 free WRAMX bytes,
-41 fragmented ROM0 bytes, and 0–24 bytes free per OS page. New state must replace
+41 fragmented ROM0 bytes, and 0–24 bytes free per OS page. These are the
+pre-refactor measurements; Phase 2 records its new map below. New state must replace
 renderer storage rather than add allocations beside it.
 
 | Proposed fullscreen WRAMX use | Bytes |
@@ -542,12 +555,13 @@ renderer storage rather than add allocations beside it.
 | 28 × 64 characters | 1792 |
 | 28 × 64 width/style attributes | 1792 |
 | 29 lexer boundary states | 58 |
-| Two 28-entry row-address tables | 112 |
+| Shared 32-entry row-offset table | 64 |
+| PSRAM staging / union padding | 32 / 8 |
 | 28 row hashes | 56 |
-| Existing lexer scratch | 101 |
+| Existing lexer scratch | 100 |
 | Existing string/name buffers | 80 |
 | String slots, mouse, palette and module state | 79 |
-| **Total / free out of 4096** | **4070 / 26** |
+| **Total / free out of 4096** | **4061 / 35** |
 
 Choose **stride 64**, with the fullscreen allocation in a union with today's
 GB buffers. This includes all 28 screen rows, not just 26 text rows. UI command
@@ -558,11 +572,15 @@ FatFs state and the 1 KiB stack stay outside this union. Existing wide-module
 BSS save/restore still borrows its first 3072 bytes; geometry/module tests must
 cover that interaction.
 
-The current WRAM0 `Render Vars` section is 305 bytes. Budget its replacement as
-160 bytes of fullscreen geometry/selection/box state, a 64-byte control queue,
-and 32 bytes of transport state: **256 bytes, leaving 49**. This is an allocation
-cap for Phase 2/5, not an implemented layout. Preserve geometry helpers and all
-fields still used by content/layout code; union only state whose mode is dead.
+Phase 2 reduced WRAM0 `Render Vars` from 305 to **241 bytes** by moving GB-only
+caches into WRAMX, while expanding its shared row/selection arrays to 28 entries.
+`Geometry Vars` adds 14 shared bytes outside that section. The whole OS still
+has one free WRAM0 byte. The revised fullscreen replacement cap is 160 bytes
+of render metadata/selection/box state, a 64-byte control queue and **16 bytes**
+of transport state: **240 bytes, leaving 1** in `Render Vars`. Transport code
+must prove this tighter cap in Phase 5; the queue/transport replacement is not
+implemented yet. Preserve geometry helpers and fields used by content/layout
+code; union only state whose mode is dead.
 
 **ROM choice:** install the GB backend as an overlay of the always-mapped
 fixed renderer, currently 4677 bytes at `$4000–$5244`. It contains pixel code
@@ -610,7 +628,40 @@ all command/event round trips, malformed/truncated/corrupt inputs, RLE bounds,
 sequence rollover/replay, status tears, container bounds/host mismatch, generated
 file freshness and compilation by RGBDS, ca65, C and C++. These are reference
 codecs and shared headers; no fullscreen app backend or installed SGB.DAT is
-claimed yet. Phase 2 geometry work is next.
+claimed yet. Phase 2 implements the logical geometry prerequisite below.
+
+### Phase 2: geometry implementation and checks
+
+`make test-geometry` (or `bash tests/run_geometry.sh`) executes the real GB code in Gearboy on DMG and
+CGB. It checks default geometry, both row-address bases and sentinels, 28×64
+characters/styles, pixel and character wrapping limits, cursor clamping,
+logical bar layout without GB map writes, row drawing, wide clock placement,
+scroll copies in both directions, gap/clipboard/undo staging, on-screen keyboard
+row spacing and return to GB geometry.
+The existing browser/editor, clock, input, module, build, loading, session,
+SGB fallback and suspended-game tests remain the compatibility gate. The new
+geometry test also exercises all five keyboard rows and clipboard/undo copies
+that cross several 32-byte staging chunks.
+
+Validation: `make assemble SD_MOUNT=/tmp/fatpak-no-sd`, page bounds and module
+ABI audits, 11 bank-split tests, 7 protocol tests and all ten Gearboy suites
+(`geometry`, `footer_clock`, `browser_menu`, `loading`, `modules`,
+`ingame_return`, `session`, `igkb`, `sgb`, `build`) passed. The build suite
+includes both machines, project builds, 600 KB INCBIN inputs, large source
+includes, failure recovery and crash handling. The final link leaves 70 ROM0
+bytes, one WRAM0 byte and 35 WRAMX bytes free. Normal startup retains GB
+geometry; fullscreen transport/backend activation starts in later phases.
+The unresolved Phase 0b hardware ACK result remains a separate hardware check.
+
+The new code initially overflowed several full pages. `bank_split.py` now
+shortens local JP branches only when an upper bound of three bytes per
+instruction proves a distance of at most 120 bytes. Global labels/directives
+stop the estimate. Consecutive unconditional JP entries retain their size:
+SDCC switch dispatch indexes those tables in three-byte units. Regression tests
+cover this rule, distance/scope boundaries and assembled short-branch bytes.
+Row drawing and clock composition use assembly helpers to avoid the larger
+runtime-index arithmetic generated by SDCC; the module ABI audit follows their
+page-switching gates explicitly.
 
 ## Testing
 

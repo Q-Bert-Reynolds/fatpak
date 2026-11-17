@@ -46,7 +46,6 @@ SECTION "Font Widths", WRAM0, ALIGN[8]
 _font_widths:: DS 256;current font's widths, used to wrap rows
 
 SECTION "Render Vars", WRAM0
-row_font: DS RENDER_BLOCKS;font each block was drawn with, $FF = not drawn
 render_row: DB
 render_row_font: DB
 render_src: DW
@@ -61,18 +60,15 @@ font_bold_widths:: DB;page of the current font's bold widths (styled_widths.asm)
 render_look: DB;StyleLooks of the char RenderGlyph draws
 render_inked: DB;bit 0: dim plane, bit 1: accent plane, bit 2: unstyled 2bpp icons
 render_highlight: DB;1 on SGB and GBC: selected pixels are highlighted, not inverted
-_block_map_rows::
-block_map_rows: DS RENDER_BLOCKS;map row each block is shown in, $FF = none (used for GBC attributes)
-block_accents: DS RENDER_BLOCKS;GBC: the block's map row has accent palettes
 _render_text:: DB;1 = rows below tb_rows are TBScanRow's text (styled by tile_attrs), 0 = the file browser and help draw their own
 render_x: DB
 render_w: DB
 render_col: DB
 draw_row: DB
 render_block: DB
-_render_row_blocks:: DS TB_ROWS;block each screen row draws into
-_render_row_lines:: DS TB_ROWS;tile_buffer row each screen row shows
-_render_row_fonts:: DS TB_ROWS;font each screen row uses
+_render_row_blocks:: DS MAX_SCREEN_ROWS;block each screen row draws into
+_render_row_lines:: DS MAX_SCREEN_ROWS;tile_buffer row each screen row shows
+_render_row_fonts:: DS MAX_SCREEN_ROWS;font each screen row uses
 _render_text_top:: DB;screen row of text row 0
 render_top_lcdc: DB;LCDCF_BG8000 and LCDCF_WINON at the top of the screen
 render_event_count: DB
@@ -92,8 +88,7 @@ stage_mode: DB;RenderStage
 stage_win: DB
 stage_shared: DB;first of the rows since the last one that needs a mode, $FF = none
 render_map_row: DS TB_COLS
-_render_sel:: DS TB_ROWS*2;selected columns of each screen row (first, end), end $FF = right edge, first = end for none
-block_sel: DS RENDER_BLOCKS*2;selection each block was drawn with
+_render_sel:: DS MAX_SCREEN_ROWS*2;selected columns of each screen row (first, end), end $FF = right edge, first = end for none
 render_sel_first: DB
 render_sel_end: DB
 render_sel_x: DB
@@ -110,7 +105,6 @@ render_box_line: DB
 render_box_count: DB
 render_box_y: DB;lines of the row the box covers
 render_box_h: DB
-block_box: DS RENDER_BLOCKS;RenderBoxSig each block was drawn with
 
 DEF render_bitmap EQUS "cmd_buffer";160 bytes, 20 tiles of 8 lines (1bpp), must start a page
 DEF render_mask EQUS "(cmd_buffer+TB_WIDTH)";selected pixels of each tile, in the same page
@@ -119,7 +113,7 @@ DEF render_pals EQUS "(cmd_buffer+TB_WIDTH+TB_COLS*2)";GBC: accent palette of ea
 DEF render_dim EQUS "(cmd_buffer+$100)";pixels of dim ink, the page after render_bitmap
 DEF render_accent EQUS "win_buffer";GBC: pixels of accent ink (win_buffer is only used between renders)
 
-SECTION "Icon Renderer", ROM0
+FIXED "Icon Renderer"
 
 ;A = icon index 0..10, C = character. Use the normal compositing planes:
 ;ink = occupied pixels, dim = color 2, accent = color 1. No palette changes.
@@ -410,7 +404,7 @@ RenderCursorX::
   ld c, a;column
   ld a, [_tb_found_row]
   call RenderRowAddress
-  ld de, tile_attrs
+  LD_DE_VAR _tile_attrs
   add hl, de
   ld b, 0;x
   ld a, c
@@ -426,24 +420,12 @@ RenderCursorX::
     jr nz, .sum
 .done
   ld a, b
-  cp a, TB_WIDTH
+  ld hl, _screen_width
+  cp a, [hl]
   ret c
 .clamp
-  ld a, TB_WIDTH-1;hanging space or line feed, right edge of the screen
-  ret
-
-;a = row, returns row * TB_STRIDE in hl, affects a, de
-RenderRowAddress:
-  ld l, a
-  ld h, 0
-  add hl, hl
-  add hl, hl
-  add hl, hl
-  ld d, h
-  ld e, l
-  add hl, hl
-  add hl, hl
-  add hl, de
+  ld a, [_screen_width];hanging space or line feed, right edge of the screen
+  dec a
   ret
 
 ;LCD interrupt: changes LCDC at render_events (tile data mode and window), and at line 144 applies

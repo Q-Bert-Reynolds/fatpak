@@ -104,7 +104,7 @@ _log_RestoreText::
   call TBMoveGap
   pop bc
   ld a, 1
-LogText:;bc = count, TB_CHUNK at a time through win_buffer
+LogText:;bc = count, [screen_chunk] bytes at a time through [screen_scratch]
   ld [log_restore], a
 .loop
     ld a, b
@@ -112,27 +112,27 @@ LogText:;bc = count, TB_CHUNK at a time through win_buffer
     ret z
     ld h, b
     ld l, c
-    ld de, TB_CHUNK
+    LD_DE_VAR screen_chunk
     call TBMin
     push bc
     push hl
     ld b, h
     ld c, l
-    ld de, win_buffer
+    LD_DE_VAR screen_scratch
     ld a, [log_restore]
     and a
     jr nz, .restore
     call _tb_Read
     pop bc
     push bc
-    ld de, win_buffer
+    LD_DE_VAR screen_scratch
     call _log_Write
     jr .next
 .restore
     call _log_Read
     pop bc
     push bc
-    ld de, win_buffer
+    LD_DE_VAR screen_scratch
     call _tb_Append
 .next
     pop de

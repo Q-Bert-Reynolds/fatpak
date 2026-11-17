@@ -1,7 +1,7 @@
 #ifndef FATPAK_UI_RENDER_H
 #define FATPAK_UI_RENDER_H
 
-#include "../constants.h"
+#include "geometry.h"
 
 extern unsigned char font_widths[256]; // current font
 extern unsigned char HeadingCharWidth(unsigned char level, unsigned char c); // width in heading 1-4's font
@@ -12,9 +12,9 @@ extern void RenderRawRow(unsigned char row, const unsigned char* tiles); // scre
 extern unsigned char RenderCursorX(unsigned char col); // x of col in tb_found_row
 extern void RenderSetMapRow(unsigned char map_row, unsigned char block);
 extern unsigned char block_map_rows[]; // map row each block was last set to (RenderSetMapRow)
-extern unsigned char render_row_blocks[TB_ROWS]; // block each screen row draws into
-extern unsigned char render_row_lines[TB_ROWS]; // tile_buffer row each screen row shows
-extern unsigned char render_row_fonts[TB_ROWS]; // font each screen row uses
+extern unsigned char render_row_blocks[MAX_SCREEN_ROWS]; // block each screen row draws into
+extern unsigned char render_row_lines[MAX_SCREEN_ROWS]; // tile_buffer row each screen row shows
+extern unsigned char render_row_fonts[MAX_SCREEN_ROWS]; // font each screen row uses
 extern unsigned char render_text_top; // screen row of text row 0
 extern unsigned char render_text; // 1 = text rows are styled (tile_attrs), 0 while the browser or help draw their own rows
 extern unsigned char render_gbc; // 1 on GBC: the text ring has a spare block and scrolls smoothly
@@ -31,9 +31,9 @@ extern unsigned char RenderTextWidth(const char* text); // in the variable width
 extern unsigned char render_pending; // a staged scroll, applied at line 144
 extern unsigned char render_pending_scy;
 extern void RenderStage(void); // stages LCDC changes (tile data mode, window) for the layout, sets render_pending
-extern unsigned char render_sel[TB_ROWS * 2]; // selected columns of each row (first, end), end 0xFF = right edge
+extern unsigned char render_sel[MAX_SCREEN_ROWS * 2]; // selected columns of each row (first, end), end 0xFF = right edge
 extern unsigned char render_cpu_copy; // launch and warm return use CPU tile copies instead of CGB HDMA
 extern unsigned char tile_buffer[];
-extern unsigned char tile_attrs[]; // style of each char in tile_buffer's text rows: STYLE_* bits and its width
+extern unsigned char* tile_attrs; // style of each char in tile_buffer's text rows: STYLE_* bits and its width
 
 #endif

@@ -61,8 +61,13 @@ _OSKDraw::;a = layer, e = first tile_buffer row
   ld de, tile_buffer
   add hl, de
   push hl;first row
+  ld a, OSK_ROWS
+  call RenderRowAddress
+  ld b, h
+  ld c, l
+  pop hl
+  push hl
   ld a, ' '
-  ld bc, OSK_ROWS*TB_STRIDE
   call mem_Set
   pop de;first row
   pop af
@@ -82,8 +87,9 @@ _OSKDraw::;a = layer, e = first tile_buffer row
       inc de;gap
       dec b
       jr nz, .key
-    ld a, e
-    add a, TB_STRIDE-OSK_COLS*2
+    ld a, [_screen_stride]
+    sub OSK_COLS*2
+    add a, e
     ld e, a
     ld a, d
     adc a, 0

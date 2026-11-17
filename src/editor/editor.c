@@ -47,7 +47,7 @@ unsigned char saved_modified; // modified as last saved with the settings
 // Called after the recovery file and hardware screen setup.
 void EditorInit(void) {
   unsigned char key;
-  for (key = 0; key < BG_MAP_ROWS + WIN_MAP_ROWS; ++key) map_blocks[key] = key < TB_ROWS ? key : 0xFF; // set by RenderSetup
+  for (key = 0; key < BG_MAP_ROWS + WIN_MAP_ROWS; ++key) map_blocks[key] = key < screen_rows ? key : 0xFF; // set by RenderSetup
   idle_frames = 0;
   cursor = 0;
   top = 0;

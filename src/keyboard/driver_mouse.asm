@@ -279,16 +279,7 @@ IGKBMouseAction:
   ld [igkb_target], a
   ; Browser text rows are stored at row-1; an empty row has no name.
   dec a
-  ld l, a
-  ld h, 0
-  add hl, hl
-  add hl, hl
-  add hl, hl
-  ld d, h
-  ld e, l
-  add hl, hl
-  add hl, hl
-  add hl, de; row * 40 (TB_STRIDE)
+  call RenderRowAddress
   ld de, tile_buffer+1
   add hl, de
   ld a, [hl]

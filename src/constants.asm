@@ -61,6 +61,8 @@ DEF TB_COLS   EQU 20;tiles per row
 DEF TB_ROWS   EQU 18
 DEF TB_WIDTH  EQU TB_COLS*8;pixels per row
 DEF TB_STRIDE EQU 40;characters per row in tile_buffer
+DEF MAX_SCREEN_ROWS EQU 28;logical row capacity (the GB renderer remains 18 rows)
+DEF MAX_ROW_STRIDE EQU 64
 DEF BOX_STRIDE EQU 20;characters per line of the menu box's text, 0 ends a line
 DEF HEADER_LINE EQU TB_ROWS;tile_buffer rows of the file name and status bars
 DEF STATUS_LINE EQU (TB_ROWS + 1)

@@ -64,7 +64,7 @@ unsigned char PlaceCursor(void) {
 
 // position in a rendered row closest to x
 unsigned int PosAtX(unsigned char row, unsigned char x) {
-  unsigned char* attrs = (unsigned char*)RowAddress(row) + (tile_attrs - tile_buffer);
+  unsigned char* attrs = AttrAddress(row);
   unsigned char count = tb_row_counts[row], col = 0, width;
   unsigned int pos;
   while (col < count) {
@@ -84,7 +84,7 @@ unsigned int PosAtX(unsigned char row, unsigned char x) {
 
 // text rows: all but the bars and the on screen keyboard
 static unsigned char TextRows(void) {
-  return TB_ROWS - (bars << 1) - (osk_shown ? OSK_ROWS : 0);
+  return screen_rows - (bars << 1) - (osk_shown ? OSK_ROWS : 0);
 }
 
 // scrolls one row down, only the new bottom row is scanned and drawn
@@ -200,8 +200,8 @@ static unsigned int CursorColumn(void) {
 
 // file name (* = unsaved changes) and line and column, or how many chars are selected
 void UpdateBars(void) {
-  char text[TB_STRIDE];
-  char* end = file_name[0] ? ToLatin1(text, file_name, TB_STRIDE - 3) : PutStr(text, S_UNTITLED);
+  char text[MAX_ROW_STRIDE];
+  char* end = file_name[0] ? ToLatin1(text, file_name, screen_stride - 3) : PutStr(text, S_UNTITLED);
   if (modified) *end++ = '*';
   *end = 0;
   DrawRow(HEADER_LINE, 1, text);
@@ -254,7 +254,7 @@ void BeginView(unsigned char show_bars) {
   EditorShowCursor(0);
   if (osk_shown) OSKShow(0);
   bars = show_bars;
-  tb_rows = TB_ROWS - (bars << 1);
+  tb_rows = screen_rows - (bars << 1);
   Layout();
   NoHighlight();
   dirty = 1;
@@ -303,12 +303,12 @@ static unsigned char ScrollX(void) {
   else if (row != 0xFF) { // its char is drawn, or it's the line's end right of its last one
     count = tb_row_counts[row];
     if (col - tb_left < count) return 0;
-    if (col - tb_left == count && cursor == LineEnd(row) && RenderCursorX(count) < TB_WIDTH - 1) return 0;
+    if (col - tb_left == count && cursor == LineEnd(row) && RenderCursorX(count) < screen_width - 1) return 0;
   }
   LineHeading(start, row);
   if (keep == KEEP_LEFT) { // more if the line ends sooner, so the screen isn't left empty
-    for (pos = cursor, x = 0; pos < length && (c = tb_GetChar(pos)) != ASCII_LF && x <= TB_WIDTH; ++pos) x += CharWidth(c);
-    if (x < TB_WIDTH - 1 - KEEP_LEFT) keep = TB_WIDTH - 1 - x;
+    for (pos = cursor, x = 0; pos < length && (c = tb_GetChar(pos)) != ASCII_LF && x < (unsigned char)(screen_width - 1 - KEEP_LEFT); ++pos) x += CharWidth(c);
+    if (x < screen_width - 1 - KEEP_LEFT) keep = screen_width - 1 - x;
   }
   for (left = col, x = 0; left; --left) {
     if ((x += CharWidth(tb_GetChar(start + left - 1))) > keep) break;

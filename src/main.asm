@@ -122,6 +122,7 @@ MainStart:
   ld hl, _RAM
   ld bc, (_RAMBANK-_RAM)*2
   call mem_Set;clear WRAM
+  call _GeometryGB
   ld a, [main_warm]
   ld [_render_cpu_copy], a;warm return uses the launcher's CPU-copy fallback
   ld a, KB_MODE_BUTTONS

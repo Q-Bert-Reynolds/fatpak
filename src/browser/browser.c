@@ -22,7 +22,7 @@
 #include "../ui/text.h"
 #include "../ui/icons.h"
 
-#define LIST_ROWS      (TB_ROWS - 2) // file browser rows between the bars
+#define LIST_ROWS      ((unsigned char)(screen_rows - 2)) // file browser rows between the bars
 #define LIST_ALL       0xFFFF
 #define KIND_UP        0
 #define KIND_FOLDER    1
@@ -35,7 +35,7 @@
 static FileEntry entry;
 static unsigned int list_count; // file browser entries, with .. below the root
 static unsigned char list_result; // FRESULT of listing the folder or reading an entry
-static unsigned char list_kinds[LIST_ROWS]; // file browser rows
+static unsigned char list_kinds[MAX_SCREEN_ROWS - 2]; // file browser rows
 static unsigned char clipboard_cut;
 // Keep the active viewport out of Browse's deep filesystem stack.
 static unsigned int selected, first;
@@ -74,7 +74,7 @@ static void ListRows(const char* path, unsigned int first, unsigned char row, un
     if (first + row >= list_count) continue;
     if ((kind = ListEntry(path, first + row)) == 0xFF) return;
     list_kinds[row] = kind;
-    dest = ToLatin1(RowAddress(row) + 1, entry.name, TB_STRIDE - 3);
+    dest = ToLatin1(RowAddress(row) + 1, entry.name, screen_stride - 3);
     if (kind == KIND_FOLDER) *dest = '/';
   }
 }
@@ -94,7 +94,7 @@ static void ScrollList(const char* path, unsigned int first, unsigned char down)
 
 // Keep the folder in the header and gamepad actions beside the footer clock.
 static void ListBars(const char* path) {
-  char text[TB_STRIDE];
+  char text[MAX_ROW_STRIDE];
   PutPath(text, path, 30);
   DrawRow(HEADER_LINE, 1, text);
   DrawRow(STATUS_LINE, 1, Str(S_BROWSER_HINT));
@@ -103,7 +103,7 @@ static void ListBars(const char* path) {
 // new path in the file name bar and a Loading... box over the list, with row's folder added to path
 // if row isn't 0xFF (shown before reading the folder again for its full name)
 static void ListLoading(const char* path, unsigned char row) {
-  char text[PATH_SIZE + TB_STRIDE];
+  char text[PATH_SIZE + MAX_ROW_STRIDE];
   char* end = path[0] ? ToLatin1(text, path, PATH_SIZE - 1) : text;
   char* name;
   unsigned char length;

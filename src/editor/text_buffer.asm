@@ -43,8 +43,8 @@ _tb_found_col:: DB;$FF = not found
 _tb_found_row:: DB;$FF = not found
 _tb_bottom:: DW;start of the row after the last rendered row
 _tb_rows:: DB;visible rows
-_tb_row_starts:: DS (TB_ROWS+1)*2;start of each rendered row, then _tb_bottom
-_tb_row_counts:: DS TB_ROWS;characters drawn in each rendered row
+_tb_row_starts:: DS (MAX_SCREEN_ROWS+1)*2;start of each rendered row, then _tb_bottom
+_tb_row_counts:: DS MAX_SCREEN_ROWS;characters drawn in each rendered row
 tb_row_chars: DB
 tb_end: DB
 _tb_end_row:: DB;rendered row the end of the text is on, $FF = not on screen
@@ -274,7 +274,7 @@ _tb_GetChar::;de = pos, returns char in a
   ld a, b
   ret
 
-DEF TB_CHUNK EQU 256;bytes moved at a time, through win_buffer when banks differ
+; screen_scratch/screen_chunk select safe PSRAM staging for the active layout.
 
 ;hl = min(hl, de), only affects a
 TBMin:
@@ -287,13 +287,13 @@ TBMin:
   ld l, e
   ret
 
-;hl = min(hl, gap length, TB_CHUNK), affects a, bc, de
+;hl = min(hl, gap length, [screen_chunk]), affects a, bc, de
 TBChunkLimit:
   call TBGapLength
   ld d, b
   ld e, c
   call TBMin
-  ld de, TB_CHUNK
+  LD_DE_VAR screen_chunk
   jr TBMin
 
 ;hl = physical offset, returns block in b, window address in hl, bytes until the block end in de, affects a
@@ -355,7 +355,7 @@ TBCopyChunk:
   call mem_Copy
   jr .zeroSource
 .differentBanks
-  ld de, win_buffer
+  LD_DE_VAR screen_scratch
   LD_HL_VAR tb_src_addr
   LD_BC_VAR tb_k
   call mem_Copy
@@ -364,7 +364,7 @@ TBCopyChunk:
   LD_HL_VAR tb_dst_addr
   ld d, h
   ld e, l
-  ld hl, win_buffer
+  LD_HL_VAR screen_scratch
   LD_BC_VAR tb_k
   call mem_Copy
   ld a, [tb_src_bank]
@@ -797,7 +797,6 @@ _tb_DeleteRange::;de = pos, bc = count, deletes count chars at pos (they must ex
     jr nz, .loop
   ret
 
-DEF TB_CLIP_CHUNK EQU 256;bytes copied at a time through win_buffer
 
 ;selects the block for [tb_clip_ptr] (an offset from block MAIN_SRAM_BANK), returns its address in hl, affects a, b, de
 TBClipAddr:
@@ -829,10 +828,10 @@ _tb_ClipLength::;returns clipboard length in bc, 0 if it's empty or was never se
 .done
   ret
 
-;returns min([tb_clip_left], TB_CLIP_CHUNK) in bc, z if it's 0, affects a, de, hl
+;returns min([tb_clip_left], [screen_chunk]) in bc, z if it's 0, affects a, de, hl
 TBClipChunk:
   LD_HL_VAR tb_clip_left
-  ld de, TB_CLIP_CHUNK
+  LD_DE_VAR screen_chunk
   call TBMin
   ld b, h
   ld c, l
@@ -888,14 +887,14 @@ _tb_Copy::;de = pos, bc = count, copies text to the clipboard, returns a = 0 if 
     call TBClipChunk
     jr z, .done
     push bc
-    ld de, win_buffer
+    LD_DE_VAR screen_scratch
     call _tb_Read
       call TBClipAddr
     ld d, h
     ld e, l
     pop bc
     push bc
-    ld hl, win_buffer
+    LD_HL_VAR screen_scratch
     call mem_Copy
     pop bc
     call TBClipAdvance
@@ -934,11 +933,11 @@ _tb_Paste::;de = pos, inserts the clipboard, returns a = 0 if it doesn't fit (no
     call TBClipAddr
     pop bc
     push bc
-    ld de, win_buffer
+    LD_DE_VAR screen_scratch
     call mem_Copy
     pop bc
     push bc
-    ld de, win_buffer
+    LD_DE_VAR screen_scratch
     call _tb_Append
       pop bc
     call TBClipAdvance
@@ -978,7 +977,7 @@ TBDrawChar:
   pop af
   ld [hl], a
   push de
-  ld de, tile_attrs - tile_buffer
+  LD_DE_VAR screen_attr_delta
   add hl, de
   ld a, [tb_attr]
   ld [hl], a
@@ -2174,8 +2173,8 @@ TBSyncState:
   LD_DE_VAR tb_sync_end
   ret
 
-;Scans one visual row. Rows are up to TB_WIDTH pixels (character widths from TBLex)
-;and TB_STRIDE characters, end after a line feed, and wrap after the last space when a word
+;Scans one visual row. Runtime screen_width/stride limit its pixels and characters
+;(character widths from TBLex), end after a line feed, and wrap after the last space when a word
 ;doesn't fit. Spaces and a line feed after a full row hang off the end of it.
 ;With [_tb_nowrap] set a row is a whole line: its first [_tb_left] characters and the ones
 ;that don't fit aren't drawn, and [_tb_found_col] is 0 or the characters drawn for them.
@@ -2228,8 +2227,8 @@ TBScanRow:
     ld [tb_k+1], a
     jr .skip
 .loop
-    ld a, b
-    cp a, TB_STRIDE
+    ld a, [_screen_stride]
+    cp a, b
     jr z, .full
     call TBCheckEnd
     jr z, .end
@@ -2245,8 +2244,13 @@ TBScanRow:
     ld a, [tb_x]
     add a, b
     pop bc
-    cp a, TB_WIDTH+1
-    jr nc, .full
+    jr c, .full;pixel addition can overflow with the 248px geometry
+    push hl
+    ld hl, _screen_width
+    cp a, [hl]
+    pop hl
+    jr c, .fits
+    jr nz, .full
     jr .fits
   .lexFits
     call TBLex
@@ -2533,14 +2537,14 @@ _tb_RenderRows::;a = first row, e = end row, scans rows [first, end) from _tb_ro
   sub a, b
   call RenderRowAddress
   ld b, h
-  ld c, l;rows * TB_STRIDE
+  ld c, l;rows * screen_stride
   push bc
   LD_HL_VAR tb_row_ptr
   ld a, ' '
   call mem_Set
   pop bc
   LD_HL_VAR tb_row_ptr
-  ld de, tile_attrs - tile_buffer
+  LD_DE_VAR screen_attr_delta
   add hl, de
   xor a
   call mem_Set
@@ -2597,7 +2601,9 @@ _tb_RenderRows::;a = first row, e = end row, scans rows [first, end) from _tb_ro
     ld [_tb_found_row], a
   .nextRow
     LD_HL_VAR tb_row_ptr
-    ld bc, TB_STRIDE
+    ld a, [_screen_stride]
+    ld c, a
+    ld b, 0
     add hl, bc
     ST_HL_VAR tb_row_ptr
     ld a, [tb_row]
@@ -2641,12 +2647,20 @@ _tb_ScrollRows::;a = 1 to move rows up (scroll down) or 0 to move them down, shi
   ld b, h
   ld c, l
   push bc
-  ld hl, tile_buffer+TB_STRIDE
+  ld a, [_screen_stride]
+  ld e, a
+  ld d, 0
+  ld hl, tile_buffer
+  add hl, de
   ld de, tile_buffer
   call mem_Copy
   pop bc
-  ld hl, tile_attrs+TB_STRIDE
-  ld de, tile_attrs
+  LD_HL_VAR _tile_attrs
+  ld a, [_screen_stride]
+  ld e, a
+  ld d, 0
+  add hl, de
+  LD_DE_VAR _tile_attrs
   call mem_Copy
   ld a, [_tb_rows]
   add a, a
@@ -2677,7 +2691,7 @@ _tb_ScrollRows::;a = 1 to move rows up (scroll down) or 0 to move them down, shi
 .moveDown
   ld a, [_tb_rows]
   dec a
-  call RenderRowAddress;(rows - 1) * TB_STRIDE
+  call RenderRowAddress;(rows - 1) * screen_stride
   ld b, h
   ld c, l
   push bc
@@ -2685,13 +2699,19 @@ _tb_ScrollRows::;a = 1 to move rows up (scroll down) or 0 to move them down, shi
   add hl, de
   ld d, h
   ld e, l;last byte of row rows - 2
-  ld hl, TB_STRIDE
+  ld a, [_screen_stride]
+  ld l, a
+  ld h, 0
   add hl, de
   ld d, h
   ld e, l;last byte of row rows - 1
   pop bc
   push de
-  ld de, -TB_STRIDE
+  ld a, [_screen_stride]
+  cpl
+  inc a
+  ld e, a
+  ld d, $FF
   add hl, de
   pop de
   push bc
@@ -2699,12 +2719,12 @@ _tb_ScrollRows::;a = 1 to move rows up (scroll down) or 0 to move them down, shi
   push de
   call TBCopyBack
   pop hl;the same rows of tile_attrs
-  ld de, tile_attrs - tile_buffer
+  LD_DE_VAR screen_attr_delta
   add hl, de
   ld d, h
   ld e, l
   pop hl
-  ld bc, tile_attrs - tile_buffer
+  LD_BC_VAR screen_attr_delta
   add hl, bc
   pop bc
   call TBCopyBack

@@ -33,7 +33,7 @@ static void ShowGameProgress(char* text) {
 // the swap file first, returns if it can't. A large file's unsaved edits can't be kept
 void LaunchGame(const char* path) {
   unsigned char result;
-  char text[TB_STRIDE];
+  char text[MAX_ROW_STRIDE];
   const char *basename, *scan;
   if (doc_large) {
     if (!CanDiscard()) return;
@@ -58,7 +58,7 @@ void LaunchGame(const char* path) {
     PutStr(PutText(PutStr(PutText(PutStr(text, S_PART(S_LOADING_KB, 0)), "8888"), S_PART(S_LOADING_KB, 1)), "8888"),
            S_PART(S_LOADING_KB, 2));
     render_box_w = RenderTextWidth(text) + BOX_PADDING;
-    render_box_x = (TB_WIDTH - render_box_w) >> 1;
+    render_box_x = (screen_width - render_box_w) >> 1;
     ShowGameProgress(text);
     while (!result && game_block != game_blocks) {
       result = FileGameCopy();

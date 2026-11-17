@@ -48,7 +48,7 @@ void SetLang(void) {
   if (lang == tb_lang) return;
   tb_lang = lang;
   tb_ResetChecks();
-  for (i = 0; i <= TB_ROWS; ++i) tb_row_states[i] = 0; // no markdown headings left in them
+  for (i = 0; i <= screen_rows; ++i) tb_row_states[i] = 0; // no markdown headings left in them
   SetFont(font);
   for (i = bars; i < bars + tb_rows; ++i) render_row_fonts[i] = font;
   EditorRedraw();

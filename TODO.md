@@ -61,5 +61,5 @@
 - Small-C style compiler matching SDCC's calling convention, multi-pass via SD temp files
 - Document real differences of other X-series carts rather than assuming X7 SD/RTC/button behavior.
 - Ports to other cartridges need a loader, SD access and a new memory layout; the PSRAM window is assumed everywhere.
-- SGB: use the whole GB screen for text with header/footer in the border, or go fullscreen ([SGB.md](SGB.md)); SNES mouse.
+- SGB: use the whole GB screen for text with header/footer in the border, or go fullscreen ([SGB.md](notes/SGB.md); Phase 2 geometry complete, Phase 3 host stub next); SNES mouse.
 - fix accented characters in font images

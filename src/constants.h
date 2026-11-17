@@ -64,6 +64,8 @@
 #define TB_ROWS   18
 #define TB_WIDTH  TB_COLS*8//pixels per row
 #define TB_STRIDE 40//characters per row in tile_buffer
+#define MAX_SCREEN_ROWS 28//logical row capacity (the GB renderer remains 18 rows)
+#define MAX_ROW_STRIDE 64
 #define BOX_STRIDE 20//characters per line of the menu box's text, 0 ends a line
 #define HEADER_LINE TB_ROWS//tile_buffer rows of the file name and status bars
 #define STATUS_LINE (TB_ROWS + 1)

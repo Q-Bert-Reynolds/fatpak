@@ -124,7 +124,52 @@ class Module:
                     line = branch[1] + target + '__far' + branch[3]
             out.append(line)
         self.output.parent.mkdir(parents=True, exist_ok=True)
-        self.output.write_text('\n'.join(out) + '\n')
+        self.output.write_text('\n'.join(shorten_local_jumps(out)) + '\n')
+
+
+def shorten_local_jumps(lines):
+    """Use JR only within one label scope and a proven 120-byte upper bound.
+
+    Every SM83 instruction is at most three bytes. Directives and global
+    labels end a scope, so data, page changes and external thunks are never
+    included in this estimate. The margin also covers JP's own size change.
+    No instruction-size decoder or speculative linker retry is needed.
+    """
+    result = list(lines)
+    labels, branches, position = {}, [], 0
+    # SDCC switch tables contain consecutive three-byte JP entries; the
+    # dispatch indexes them by three. Their sizes are part of the table ABI.
+    code_lines = [(i, line.split(';', 1)[0].strip()) for i, line in enumerate(lines)
+                  if line.split(';', 1)[0].strip()]
+    table_entries = set()
+    for n, (index, code) in enumerate(code_lines):
+        if re.fullmatch(r'jp\s+\.\w+', code, re.I):
+            for neighbor in (n-1, n+1):
+                if 0 <= neighbor < len(code_lines) and re.fullmatch(r'jp\s+\.\w+', code_lines[neighbor][1], re.I):
+                    table_entries.add(index)
+
+    def flush():
+        for index, at, label in branches:
+            if index not in table_entries and label in labels and abs(labels[label] - at) <= 120:
+                result[index] = re.sub(r'^(\s*)jp\b', r'\1jr', result[index])
+        labels.clear()
+        branches.clear()
+
+    for index, line in enumerate(lines):
+        code = line.split(';', 1)[0].strip()
+        if not code:
+            continue
+        if match := re.fullmatch(r'(\.\w+):', code):
+            labels[match[1]] = position
+        elif re.match(r'^(?:adc|add|and|bit|call|ccf|cp|cpl|daa|dec|di|ei|halt|inc|jp|jr|ld|ldh|nop|or|pop|push|res|ret|reti|rl|rla|rlc|rlca|rr|rra|rrc|rrca|rst|sbc|scf|set|sla|sra|srl|stop|sub|swap|xor)\b', code, re.I):
+            if match := re.fullmatch(r'jp\s+(?:(?:NZ|Z|NC|C),\s*)?(\.\w+)', code, re.I):
+                branches.append((index, position, match[1]))
+            position += 3
+        else:
+            flush()
+            position = 0
+    flush()
+    return result
 
 
 def main():

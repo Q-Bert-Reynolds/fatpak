@@ -41,7 +41,7 @@ unsigned char ShowFileView(const char* path, const FileEntry* entry, unsigned ch
     for (row = 0; row < tb_rows; ++row) {
       DrawRow(row, 0, "");
       tb_row_states[row] = 0; // no markdown heading fonts
-      for (i = 0; i < TB_STRIDE; ++i) *attrs++ = STYLE_TEXT << 4 | 4;
+      for (i = 0; i < screen_stride; ++i) *attrs++ = STYLE_TEXT << 4 | 4;
     }
     *ToLatin1(line, entry->name, FS_NAME_SIZE - 1) = 0;
     DrawRow(HEADER_LINE, 1, line);

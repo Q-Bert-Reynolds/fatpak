@@ -7,7 +7,7 @@
 
 unsigned char ring_top; // BG map row of text row 0
 unsigned char ring_pos; // index in ring_blocks of text row 0's block
-unsigned char ring_blocks[TB_ROWS + 1]; // blocks text rows use
+unsigned char ring_blocks[MAX_SCREEN_ROWS + 1]; // blocks text rows use
 unsigned char map_blocks[BG_MAP_ROWS + WIN_MAP_ROWS]; // block each BG map row, then window map row, shows, 0xFF = none
 unsigned char bars; // bars are shown now (not in menus)
 unsigned char font;
@@ -26,9 +26,9 @@ static unsigned char IsOSKBlock(unsigned char block) {
 // On GBC the ring has a spare block (18) for the row scrolling in or out (see src/ui/render.asm)
 // Text row 0 keeps its block, so rows that keep theirs aren't drawn again
 void Layout(void) {
-  unsigned char row, line, block, map_row, i = 0, win_row = BG_MAP_ROWS, osk = TB_ROWS - (bars << 1) - tb_rows;
+  unsigned char row, line, block, map_row, i = 0, win_row = BG_MAP_ROWS, osk = screen_rows - (bars << 1) - tb_rows;
   unsigned char length = tb_rows + render_gbc, first = ring_blocks[ring_pos];
-  for (block = 0; block < TB_ROWS + render_gbc; ++block) {
+  for (block = 0; block < screen_rows + render_gbc; ++block) {
     if (bars && (block == HEADER_BLOCK || block == STATUS_BLOCK)) continue;
     if (osk && IsOSKBlock(block)) continue;
     if (block == first) ring_pos = i;
@@ -38,7 +38,7 @@ void Layout(void) {
   i = ring_pos;
   render_pending = 0;
   render_text_top = bars;
-  for (row = 0; row < TB_ROWS; ++row) {
+  for (row = 0; row < screen_rows; ++row) {
     line = row - bars;
     if (line < tb_rows) {
       block = ring_blocks[i];
@@ -48,7 +48,7 @@ void Layout(void) {
     }
     else {
       map_row = win_row++;
-      if (bars && (!row || row == TB_ROWS - 1)) {
+      if (bars && (!row || row == screen_rows - 1)) {
         block = row ? STATUS_BLOCK : HEADER_BLOCK;
         line = row ? STATUS_LINE : HEADER_LINE;
         render_row_fonts[row] = FONT_VWF;
@@ -60,13 +60,13 @@ void Layout(void) {
     }
     render_row_blocks[row] = block;
     render_row_lines[row] = line;
-    if (map_blocks[map_row] != block || block_map_rows[block] != map_row) { // a block can still be listed in a map row it left
+    if (screen_rows == TB_ROWS && (map_blocks[map_row] != block || block_map_rows[block] != map_row)) { // a block can still be listed in a map row it left
       map_blocks[map_row] = block;
       RenderSetMapRow(map_row, block);
     }
   }
   render_pending_scy = (ring_top - bars) << 3;
-  RenderStage();
+  if (screen_rows == TB_ROWS) RenderStage();
 }
 
 // scrolls the screen one row with SCY (dir 1 = down), the block leaving the screen draws the new row
@@ -91,25 +91,11 @@ void ScrollRows(unsigned char down) {
 // no selection, the bars are drawn selected
 void NoHighlight(void) {
   unsigned char i;
-  for (i = 0; i < TB_ROWS * 2; ++i) render_sel[i] = 0;
-  if (bars) render_sel[1] = render_sel[(TB_ROWS << 1) - 1] = 0xFF;
-}
-
-char* RowAddress(unsigned char row) {
-  unsigned int offset = row;
-  return (char*)tile_buffer + (offset << 5) + (offset << 3); // row * TB_STRIDE
-}
-
-// draws text at col on row, clearing the rest of the row
-void DrawRow(unsigned char row, unsigned char col, const char* text) {
-  char* dest = RowAddress(row);
-  unsigned char i;
-  for (i = 0; i < TB_STRIDE; ++i) dest[i] = ' ';
-  for (dest += col; *text && col < TB_STRIDE; ++col) *dest++ = *text++;
-  if (row == STATUS_LINE) FooterCompose(RowAddress(row));
+  for (i = 0; i < (unsigned char)(screen_rows * 2); ++i) render_sel[i] = 0;
+  if (bars) render_sel[1] = render_sel[(unsigned char)((screen_rows << 1) - 1)] = 0xFF;
 }
 
 void ClearScreen(void) {
   unsigned char row;
-  for (row = 0; row < TB_ROWS; ++row) DrawRow(row, 0, "");
+  for (row = 0; row < screen_rows; ++row) DrawRow(row, 0, "");
 }

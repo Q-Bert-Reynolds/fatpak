@@ -1,17 +1,17 @@
 #ifndef FATPAK_EDITOR_TEXT_BUFFER_H
 #define FATPAK_EDITOR_TEXT_BUFFER_H
 
-#include "../constants.h"
+#include "../ui/geometry.h"
 
-extern unsigned int tb_row_states[TB_ROWS + 1]; // lexer state at the start of each rendered row
+extern unsigned int tb_row_states[MAX_SCREEN_ROWS + 1]; // lexer state at the start of each rendered row
 extern unsigned char tb_lang; // LANG_*, how text is styled
 extern unsigned char tb_rows; // visible rows
 extern unsigned int tb_find;
 extern unsigned char tb_found_col;
 extern unsigned char tb_found_row;
 extern unsigned int tb_bottom;
-extern unsigned int tb_row_starts[TB_ROWS + 1]; // rendered rows, then tb_bottom
-extern unsigned char tb_row_counts[TB_ROWS]; // characters drawn in each rendered row
+extern unsigned int tb_row_starts[MAX_SCREEN_ROWS + 1]; // rendered rows, then tb_bottom
+extern unsigned char tb_row_counts[MAX_SCREEN_ROWS]; // characters drawn in each rendered row
 extern unsigned char tb_end_row; // rendered row the end of the text is on, 0xFF = not on screen
 extern unsigned char tb_nowrap; // rows are whole lines, scrolled sideways
 extern unsigned int tb_left; // characters of each line left of the screen when tb_nowrap is set

@@ -1,5 +1,6 @@
 """Regression checks for separately compiled modules sharing one RGBDS unit."""
 import subprocess
+import importlib.util
 import sys
 import tempfile
 import unittest
@@ -142,6 +143,48 @@ _Kept::
         self.assertNotIn('ld a, 99', output)
         self.assertIn('EXPORT _Kept', output)
         self.assertIn('_Kept::', output)
+
+
+class LocalJumpTest(unittest.TestCase):
+    @staticmethod
+    def shorten(source):
+        spec = importlib.util.spec_from_file_location('bank_split', SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return '\n'.join(module.shorten_local_jumps(source.splitlines()))
+
+    def test_forward_backward_and_external(self):
+        source = '_Fn::\n.start:\n\tjp Z, .end\n\tld a, 1\n\tjp .start\n.end:\n\tjp _External\n'
+        output = self.shorten(source)
+        self.assertIn('jr Z, .end', output)
+        self.assertIn('jr .start', output)
+        self.assertIn('jp _External', output)
+
+    def test_far_branch_and_bound(self):
+        source = '_Fn::\n\tjp .end\n' + '\tld [$c000], sp\n' * 43 + '.end:\n\tret\n'
+        self.assertIn('jp .end', self.shorten(source))
+
+    def test_directives_and_global_scope_are_barriers(self):
+        for barrier in ('\tDS 200', '_Other::', '\tSECTION "Other",ROM0', '\tREPT 200'):
+            source = '_Fn::\n\tjp .end\n' + barrier + '\n.end:\n\tret\n'
+            self.assertIn('jp .end', self.shorten(source))
+
+    def test_switch_table_entries_keep_three_byte_size(self):
+        source = '_Fn::\n\tjp hl\n.table:\n\tjp .one\n\tjp .two\n\tjp .three\n.one:\n\tret\n.two:\n\tret\n.three:\n\tret\n'
+        output = self.shorten(source)
+        for target in ('.one', '.two', '.three'):
+            self.assertIn('jp ' + target, output)
+
+    def test_assembled_short_branch(self):
+        source = 'SECTION "Code",ROM0[$100]\n_Fn::\n\tjp .end\n\tld [$c000], sp\n.end:\n\tret\n'
+        output = self.shorten(source)
+        with tempfile.TemporaryDirectory() as folder:
+            asm = Path(folder) / 'short.asm'
+            asm.write_text(output)
+            subprocess.run(['rgbasm','-o',folder+'/short.o',str(asm)],check=True)
+            subprocess.run(['rgblink','-o',folder+'/short.gb',folder+'/short.o'],check=True)
+            data = (Path(folder)/'short.gb').read_bytes()
+            self.assertEqual(data[0x100:0x102], bytes([0x18,3]))
 
 
 if __name__ == '__main__':

@@ -31,7 +31,7 @@ static unsigned char NameChar(unsigned char c) {
 // NO_PROMPT edits name_row in the browser; other callers use the header, after the prompt string.
 // Returns 0 on cancel, 1 after editing, 2 when accepting an unchanged name.
 unsigned char AskName(char* value, unsigned int prompt) {
-  char name[FS_NAME_SIZE], text[TB_STRIDE + 1];
+  char name[FS_NAME_SIZE], text[MAX_ROW_STRIDE + 1];
   char* end;
   unsigned int event;
   unsigned char length, bytes, fit, i, key, current = 0, first = 0, last = 0, changed = 0;
@@ -43,7 +43,7 @@ unsigned char AskName(char* value, unsigned int prompt) {
   while (1) {
     for (length = bytes = 0; name[length]; ++length) bytes += (unsigned char)name[length] >= 0x80 ? 2 : 1;
     end = prompt != NO_PROMPT ? PutStr(text, prompt) : text;
-    fit = (unsigned char)(TB_STRIDE - 2 - (end - text)); // the name's last characters that fit, and the _
+    fit = (unsigned char)(screen_stride - 2 - (end - text)); // the name's last characters that fit, and the _
     if (fit > 31) fit = 31;
     for (i = length > fit ? length - fit : 0; i < length; ++i) *end++ = name[i];
     *end++ = '_';

@@ -142,6 +142,7 @@ InGameMenu:
 
   call SnapshotCaptureGame
   call MenuRestoreOSCode;mapper writes may have changed resident drawing instructions
+  call _GeometryGB;game-owned WRAM cannot supply the OS geometry
   ld sp, stack_bottom;the game RAM/stack is now in the full snapshot
   ld a, [menu_cgb]
   and a

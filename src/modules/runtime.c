@@ -21,7 +21,7 @@
 #define FR_NO_PATH        5
 #define FR_INVALID_OBJECT 9
 #define FR_LOCKED         16
-#define MENU_LINES ((BUFFER_SIZE - BOX_LINE * TB_STRIDE) / BOX_STRIDE) // box text stays inside tile_buffer
+#define MENU_LINES ((BUFFER_SIZE - (TB_ROWS + 2) * TB_STRIDE) / BOX_STRIDE) // box text stays inside tile_buffer
 
 unsigned char module_busy;
 unsigned int module_entry;
@@ -166,9 +166,9 @@ static void Marshal(const char* text, unsigned char limit) {
 
 unsigned char ModuleAPIVersion(void) { return MODULE_ABI; }
 void ModuleAPIRow(unsigned char row, const char* text) {
-  if (row >= TB_ROWS) return;
-  Marshal(text, TB_STRIDE);
-  if (row == TB_ROWS - 1) FooterDraw(row, 0, (char*)buffer);
+  if (row >= screen_rows) return;
+  Marshal(text, screen_stride);
+  if (row == screen_rows - 1) FooterDraw(row, 0, (char*)buffer);
   else DrawRow(row, 0, (char*)buffer);
 }
 unsigned char ModuleAPIFrame(void) {
@@ -204,8 +204,8 @@ unsigned char ModuleAPIClock(ModuleClock* clock) {
 
 // ABI 2
 void ModuleAPIText(unsigned char row, unsigned char col, const char* text) {
-  if (row > STATUS_LINE || col >= TB_STRIDE) return; // text rows and both bars
-  Marshal(text, TB_STRIDE);
+  if (row > STATUS_LINE || col >= screen_stride) return; // text rows and both bars
+  Marshal(text, screen_stride);
   DrawRow(row, col, (char*)buffer);
 }
 unsigned char ModuleAPIKey(void) {
@@ -349,14 +349,14 @@ unsigned char ModuleAPIRead(unsigned long offset, char* dest, unsigned char leng
   for (i = 0; i < n; ++i) dest[i] = buffer[i];
   return n;
 }
-// TB_STRIDE tile_attrs (STYLE_* << 4 | width) for a text row, drawn as styled text while
+// screen_stride tile_attrs (STYLE_* << 4 | width) for a text row, drawn as styled text while
 // render_text is set (the host sets it and the font)
 void ModuleAPIStyle(unsigned char row, const char* styles) {
   unsigned char* dest;
   unsigned char i;
   if (row >= tb_rows) return;
-  dest = tile_attrs + (unsigned int)(RowAddress(row) - (char*)tile_buffer);
-  for (i = 0; i < TB_STRIDE; ++i) dest[i] = styles[i];
+  dest = AttrAddress(row);
+  for (i = 0; i < screen_stride; ++i) dest[i] = styles[i];
 }
 // selects columns first to end (exclusive) of a text row and nothing else on the text rows
 void ModuleAPISelect(unsigned char row, unsigned char first, unsigned char end) {

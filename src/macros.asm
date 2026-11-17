@@ -203,10 +203,12 @@ MACRO COPY_BUFFER_TO_BKG ;x, y, w, h
 ENDM
 
 MACRO COPY_WIN_TO_BUFFER ;x, y, w, h
+  ASSERT \3 * \4 <= 256, "window scratch holds 256 bytes"
   COPY_SCREEN_TO_FROM_BUFFER \1, \2, \3, \4, win_buffer, gbdk_GetWinTiles
 ENDM
 
 MACRO COPY_BUFFER_TO_WIN ;x, y, w, h
+  ASSERT \3 * \4 <= 256, "window scratch holds 256 bytes"
   COPY_SCREEN_TO_FROM_BUFFER \1, \2, \3, \4, win_buffer, gbdk_SetWinTiles
 ENDM
 

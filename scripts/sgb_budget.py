@@ -22,7 +22,8 @@ def audit():
             'render_union_planned':totals['WRAM0_RENDER_UNION'],
             'render_union_free':sections['Render Vars']-totals['WRAM0_RENDER_UNION'],
             'fixed_render_candidate':sections['Render'],
-            'rom0_renderer':sections['Render ROM0']}
+            'rom0_renderer':sections['Render ROM0'],
+            'geometry_vars':sections.get('Geometry Vars',0)}
     path=ROOT/'build/sgb';path.mkdir(parents=True,exist_ok=True)
     (path/'budget.json').write_text(json.dumps(result,indent=2)+'\n')
     print(json.dumps(result))

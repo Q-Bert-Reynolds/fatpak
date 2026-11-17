@@ -11,17 +11,39 @@ SECTION "Stack", WRAM0
 stack_top: DS STACK_SIZE
 stack_bottom:
 
-SECTION "Buffers", WRAMX[$D000];cmd_buffer must start a page
+SECTION "Buffers", WRAMX[$D000]
+; The GB renderer and wide logical rows are mutually exclusive. Keep the first
+; 3072 bytes available to wide-module BSS save/restore in either layout.
+UNION
 _tile_buffer::
 tile_buffer::       DS BUFFER_SIZE
-win_buffer::        DS SCRN_X_B*SCRN_Y_B;20x18 tiles, the editor moves text through it TB_CHUNK bytes at a time, and renders accent ink in it (render_accent)
-bkg_buffer::        DS (TB_ROWS+1)*TB_STRIDE;the editor's row cache (a block's characters), 20x18 tiles for the engine
-_tile_attrs::
-tile_attrs::        DS TB_ROWS*TB_STRIDE;style of each character in tile_buffer's text rows (see TBLex)
+win_buffer::        DS 256;PSRAM staging, and the GBC accent plane
+bkg_buffer::        DS (TB_ROWS+1)*TB_STRIDE
+tile_attrs::        DS TB_ROWS*TB_STRIDE
+                    DS (-@) & 15
+_render_dma_buffer::
+render_dma_buffer:: DS TB_WIDTH*2
+block_states::      DS (TB_ROWS+1)*2
+render_glyph::      DS 8
+row_font::          DS TB_ROWS+1
+_block_map_rows::
+block_map_rows::    DS TB_ROWS+1
+block_accents::     DS TB_ROWS+1
+block_sel::         DS (TB_ROWS+1)*2
+block_box::         DS TB_ROWS+1
+gb_row_offsets::    DS 32*2
+                    DS $DD00-@
+cmd_buffer::        DS $1A0;bitmap/masks/palettes and dim plane, both page-aligned
+NEXTU
+wide_tile_buffer:: DS MAX_SCREEN_ROWS*MAX_ROW_STRIDE
+wide_tile_attrs::  DS MAX_SCREEN_ROWS*MAX_ROW_STRIDE
+wide_row_offsets:: DS 32*2
+wide_row_hashes::  DS MAX_SCREEN_ROWS*2
+wide_scratch::     DS 32;PSRAM staging while the GB bitmap renderer is absent
+                    DS $DEA0-@
+ENDU
 _tb_row_states::
-tb_row_states::     DS (TB_ROWS+1)*2;lexer state at the start of each rendered row, then at _tb_bottom
-block_states::      DS (TB_ROWS+1)*2;lexer state each render block was drawn with
-render_glyph::      DS 8;a styled glyph
+tb_row_states::     DS (MAX_SCREEN_ROWS+1)*2
 tb_state::          DS 2;lexer state (see TBLex)
 tb_next_state::     DS 2;after the character TBLex looked at
 tb_space_state::    DS 2;after the last space, a wrapped word starts there
@@ -37,15 +59,16 @@ tb_checks_last::    DB
 tb_check_end::      DW
 tb_check_pos::      DW
 tb_check_state::    DB
-                    DS 3*BUFFER_SIZE - (@ - tile_buffer)
-ASSERT @ - tile_buffer == MODULE_BSS_SIZE, "wide modules borrow exactly this region (MODULE_BSS)"
-ASSERT tile_buffer == MODULE_BSS
-cmd_buffer::        DS BUFFER_SIZE/2;the renderer's row bitmap, masks and palettes, then render_dim
-ASSERT LOW(win_buffer) == 0, "render_accent must start a page"
 _str_buffer::
 str_buffer::        DS STR_BUFFER_SIZE
 _name_buffer::
 name_buffer::       DS NAME_BUFFER_SIZE
-_render_dma_buffer::
-render_dma_buffer:: DS TB_WIDTH*2;GBC: a row's tiles for HDMA, 16 byte aligned (see RenderRowDMA)
+ASSERT tile_buffer == MODULE_BSS
+ASSERT wide_tile_buffer == MODULE_BSS
+ASSERT gb_row_offsets >= MODULE_BSS+MODULE_BSS_SIZE
+ASSERT wide_row_offsets >= MODULE_BSS+MODULE_BSS_SIZE
+ASSERT wide_tile_attrs-wide_tile_buffer == MAX_SCREEN_ROWS*MAX_ROW_STRIDE
+ASSERT LOW(win_buffer) == 0
+ASSERT LOW(cmd_buffer) == 0
 ASSERT render_dma_buffer % 16 == 0
+ASSERT @ <= $DF90, "buffers must leave room for strings, mouse and module state"

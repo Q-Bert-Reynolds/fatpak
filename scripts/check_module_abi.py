@@ -37,6 +37,12 @@ ASM = {
     'ProcessKeyCodes': [],  # page 15 with its jump tables and handlers
     '_RenderTextWidth': [], '_RTCRead': [], '_RTCWrite': [], '_KBListen': [], '_KBPopEvent': [], '_PadPressed': [],
     'RenderRow': [],
+    '_RowAddress': ['RenderRowAddress'], '_AttrAddress': ['RenderRowAddress'],
+    'RenderRowAddress': [], 'mem_Set': [],
+    '_DrawRow': ['DrawRow'],
+    'DrawRow': ['RenderRowAddress', 'mem_Set', '_FooterCompose'],
+    '_FooterCompose': ['FooterCompose'],
+    'FooterCompose': ['_footer_Poll', '_RenderTextWidth'],
     '_RenderRawRow': [],  # resident bank 1: mem_Copy, mem_CopyVRAM (ROM0), the row upload
     '_SetWindowBlock': [], '_SettingsSave': [],  # register writes; mem_Copy and its own loop (ROM0)
     '_ThemeApply': ['EditorSetPalettes'],  # THEME_PAGE
