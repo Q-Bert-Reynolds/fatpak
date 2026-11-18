@@ -86,7 +86,7 @@ unsigned char file_error;
 // path[], read whole into PSRAM once (in pass 1): its symbol (the path's last NAME_MAX
 // characters; its first block and size), and file_at, file_size. 0 if it can't be, with
 // file_error ASM_ERR_FILE or ASM_ERR_FULL.
-unsigned int LoadPath(void) {
+static unsigned int Load(void) {
   unsigned char i = 0, cached;
   ModuleLoad load;
   while (path[i]) ++i;
@@ -112,6 +112,13 @@ unsigned int LoadPath(void) {
   }
   FileOf(found);
   return found;
+}
+unsigned int LoadPath(void) { // in the files' table
+  unsigned int file;
+  sym_table = 1;
+  file = Load();
+  sym_table = 0;
+  return file;
 }
 // file_at, file_size and file_end of a file's symbol: its first block (bytes 4-5), its size (8, 9, 7)
 #ifdef HOST_TEST

@@ -17,7 +17,6 @@ static char proj_token[NAME_MAX + 1], proj_value[NAME_MAX + 1];
 char output[65];
 unsigned int units[UNITS], prelude;
 unsigned char nunits;
-Fix fix;
 
 // a word of the line into dest: up to a space, a tab, ';' or the line's end; "..." may hold them.
 // Its length, 0 at the line's end

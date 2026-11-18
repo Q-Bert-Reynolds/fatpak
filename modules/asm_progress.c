@@ -1,28 +1,31 @@
 // ASM.MOD: progress for the host's box (build.c's BuildProgress writes the text)
 #include "asm_shared.h"
 
-// --- progress (ModProgress) every 64 lines and as each pass starts: the pass, its count (pass
-// 1: thousands of lines, pass 2: percent of pass 1's lines) and where it is go in the context,
-// and the host writes the text
-unsigned int progress_units, pass1_units; // 64-line steps this pass, and pass 1's
+// --- progress (ModProgress) every 64 lines and as each file starts: where it is, and how far:
+// a project's units' passes done in percent (pass 5), or the document's pass 1 in thousands of
+// lines and pass 2 in percent of pass 1's
+unsigned int progress_units, pass1_units, lines_read; // 64-line steps of this unit's pass, its pass 1's, all
+unsigned char unit_n;
 void Progress(void) {
-  unsigned int part = ++progress_units;
-  Frame* f = &frames[depth];
-  while (f > frames && (f->kind == F_MACRO || f->kind == F_ARG || f->file == FILE_EXPANSION)) --f; // like the error report
-  Report(f->file, f->line, 0);
-  if (pass == 1) part = (unsigned int)Apply('/', Apply('*', part, 8), 125); // x 64 / 1000 (Apply: assembly)
-  else {
-    part = (unsigned int)Apply('/', Apply('*', part, 100), pass1_units);
-    if (part > 99) part = 99;
-  }
+  unsigned int part = ++progress_units, all = pass1_units;
+  unsigned char percent = 0;
+  ReportWhere(); // the file and line, like an error's
   context->pass = pass;
+  if (nunits) { // the units' passes so far, in percent: by subtraction (no helpers)
+    context->pass = 5;
+    for (part = ((unit_n - 1) * 2 + pass - 1) * 50; part >= nunits; part -= nunits) ++percent;
+    part = percent;
+  }
+  else if (pass == 1) part >>= 4; // thousands of lines: x 64 / 1024, 2% short (no helpers for / 1000)
+  else { // percent of pass 1's, by subtraction: both scaled down until part * 100 fits
+    while (all > 655) {
+      all >>= 1;
+      part >>= 1;
+    }
+    for (part *= 100; part >= all && percent < 99; part -= all) ++percent;
+    part = percent;
+  }
   context->progress = part;
   ModProgress(0);
   run_n = 0; // the window moved
-}
-// a step between or after the passes: the box says which, between its own steps
-void Phase(unsigned char p) {
-  context->pass = p;
-  ModProgress(0);
-  run_n = 0; // the window may have moved
 }

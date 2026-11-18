@@ -6,6 +6,7 @@
 // split keeps them to a few per statement; pointers never cross pages.
 #include "../build/modules/sdk.h"
 #include "asm.h"
+#include "asm_obj.h"
 #include "lib/psram.h"
 
 // Advance's fast path: run_n bytes from run_p belong to the current frame without a check.
@@ -20,15 +21,8 @@ extern unsigned char run_n;
 
 #define NAME_MAX 79
 
-// Values are 32 bits and signed, like RGBDS's (EQU and = constants, expressions, FOR, {d:}
-// formats); addresses, sizes and operands stay 16. A constant's high word is its symbol's extra.
-#ifdef HOST_TEST
-typedef signed Val __attribute__((mode(SI))); // the PC harness builds with -Dint=short
-typedef unsigned UVal __attribute__((mode(SI)));
-#else
-typedef long Val;
-typedef unsigned long UVal;
-#endif
+// Values (Val, asm_obj.h) are 32 bits (EQU and = constants, expressions, FOR, {d:} formats);
+// addresses, sizes and operands stay 16. A constant's high word is its symbol's extra.
 
 // asm.c
 extern AsmContext* context;
@@ -69,12 +63,11 @@ void Emit8(unsigned int v);
 void EmitSigned(unsigned int v);
 void Reserve(unsigned int bytes, unsigned char fill);
 void Instruction(unsigned char m);
-void Fill(void);
-void Header(void);
 void Progress(void); // the box shows where the pass is (asm_pushs.c)
 UVal Div(UVal a, UVal b); // asm_emit.c, unsigned (no SDCC helpers in modules): the quotient; the remainder in div_rem
 extern UVal div_rem;
 extern unsigned int progress_units, pass1_units;
+extern unsigned char unit_n; // the unit being assembled, from 1 (0: the prelude)
 
 #define SYM_LABEL 0
 #define SYM_EQU   1 // value: the low word, extra: the high word
@@ -84,6 +77,11 @@ extern unsigned int progress_units, pass1_units;
 #define SYM_STRING 5 // EQUS: value: heap offset, extra: length
 #define SYM_SECTION 6 // name: '"' and the section's name, value: its index
 #define SYM_CACHED 7 // build.cache: name: a file's, as SYM_INCLUDE's; value: its record in the last cache file (asm_cache.c)
+// a label's extra is its section, with LABEL_FIXED when that has an address (the label is known);
+// its bank is BANK_LINK until the link when the section's bank isn't given. An EQU or = constant's
+// bank is 1 when it's EXPORTed.
+#define LABEL_FIXED 0x8000
+#define BANK_LINK 0xFF
 #define SYM_SEEN 0x80 // with the kind: defined this pass (see Mark)
 
 // shared by asm.c and asm_line.c
@@ -154,28 +152,8 @@ typedef struct {
   unsigned int id; // \@
   unsigned char args, nargs; // a macro's arguments in args[], 0-ended each
 } Frame;
-#define ROM_BANKS 64 // ASM_IMAGE_BLOCKS / 32
-// asm_sect.c: sections, 32-byte records in PSRAM from ASM_SECTION_BLOCK (16 a block), each
-// found by a SYM_SECTION symbol. The open one is in sec, written back when it closes.
-#define ASM_SECTIONS 512
-#define SECT_ADDRESS 1 // flags: the address was given
-#define SECT_BANK 2 // the bank was given
-#define SECT_PLACED 4 // Link placed it
-#define SECT_FRAGMENT 8 // SECTION FRAGMENT: later ones with its name continue it
-#define SECT_OPEN 16 // pass 2 has opened it
-typedef struct {
-  unsigned char type, bank, align, flags; // type: index into the region tables (ROM0 ROMX VRAM SRAM WRAM0 WRAMX OAM HRAM)
-  unsigned int start, size, base; // pass 1's start (the address, or the region's start), size; Link's address
-  unsigned int file; // where it was declared, for errors
-  unsigned int line, pos;
-  unsigned int ofs; // the alignment's offset: base % (1 << align) == ofs (DS ALIGN tightens both)
-  unsigned char align0; // as declared: each pass starts from these
-  unsigned int ofs0;
-  unsigned int fill; // this pass's address after its last byte so far (FRAGMENTs and POPS go on there)
-  unsigned int next; // Link: the next placed section in its bank by address, NO_SECT for none
-  unsigned int rank; // Link's order, biggest first: rank, then size, then the index
-} Sect;
-#define NO_SECT 0xFFFF
+// asm_sect.c: sections (Sect, asm_obj.h), each found by a SYM_SECTION symbol. The open one is
+// in sec, written back when it closes.
 extern Sect sec;
 extern unsigned int nsects, cur;
 extern unsigned char sect_depth; // PUSHS
@@ -187,10 +165,11 @@ void PushS(void);
 void PopS(void);
 unsigned int AlignPad(unsigned char a, unsigned int ofs); // DS ALIGN: the bytes to its address
 void AlignTo(unsigned char a, unsigned int ofs); // then the section's alignment is at least that
-unsigned int Link(void); // NO_SECT, or the section that doesn't fit
-void Relocate(void);
+void UnitData(void); // after a unit's pass 1: its ROM sections' blocks in ASM_DATA_BLOCK
+extern unsigned int unit_sect0, data_top; // the unit's first section; the next free data block
+extern unsigned int sec_dbase; // the open section's data block for pc 0 (Emit: + pc / 512)
 extern Frame frames[FRAMES];
-extern unsigned char depth, chunk_n, arg_top, max_bank;
+extern unsigned char depth, chunk_n, arg_top;
 extern char args[256], path[128];
 extern unsigned int unique;
 unsigned char Keyword(unsigned char which); // the index of ident in a T_ table, 0xFF if absent
@@ -200,7 +179,7 @@ Frame* TextFrame(void);
 Frame* Push(unsigned char kind, unsigned char source, Pos pos, Pos end); // file: the current frame's
 void ToEnd(void);
 void Operands(void);
-void Pass(unsigned char p);
+
 void Advance(void);
 void Space(void);
 unsigned char AtEnd(void);
@@ -213,6 +192,47 @@ Val Eval(void);
 Val Constant(void);
 unsigned char FindDotted(void); // asm_emit.c
 unsigned char* Entry(unsigned int unit);
+// Two tables share the hash code: names (sym_table 0: the prelude's and the unit's symbols, emptied
+// back to the prelude's for each unit) and files (1: INCLUDE, INCBIN and build.cache's, kept all
+// build). Each has its heads block; their entries are in separate ranges.
+extern unsigned char sym_table;
+#define FILE_UNITS 49152u
+extern unsigned int file_next; // the files table's next unit
+extern unsigned int sym_mark; // the names table's first unit after the prelude's (a block's start)
+void Dirty(unsigned int unit); // a prelude symbol is about to change: its block goes back for the next pass
+void Snapshot(void); // asm_prelude.c: the prelude's names, heap and charmaps, to put back for each unit
+void Restore(unsigned char unit); // before each pass of a unit: the prelude's again (unit: its symbols go too)
+extern unsigned char cm_dirty; // asm_str.c: a charmap changed since the snapshot
+void CharmapSave(unsigned char store); // its variables to (1) or from (0) the snapshot
+extern unsigned int heap_mark;
+
+// relocation: an expression's value is known (xs 0), a pass value in section xsect of this unit
+// (1: a label or @ whose section Link places), or RPN in rpn[] (2: anything else the link
+// works out). A patch-able value (an operand, a data item, ASSERT) leaves its state in prel.
+extern unsigned char xs, prel, rpn_n, importing; // importing: unknown names in pass 2 are other units'
+extern unsigned int xsect, psect;
+extern unsigned char rpn[RPN_SIZE];
+extern Val pval;
+extern unsigned char x_ls, x_lmark; // Combine's left operand: its state and RPN start
+extern unsigned int x_lsect;
+Val Combine(unsigned char o, Val a, Val b); // asm_rel.c: o on a (x_ls) and b (xs)
+Val Rel(unsigned char o, Val v); // a unary operator on v, which isn't known (xs): RPN
+void RelSect(unsigned char op, unsigned int s); // RPN_SREL's or RPN_BANKSECT's operand for section s
+void Import(void); // ident is another unit's: RPN_SYM with its name (xs 2)
+void Patch(unsigned char type); // pass 2: prel's value at pc, for the link
+Val Known(void); // Eval, which must not need the link
+void PushId(void); // \@: its text in idtext[] as a frame
+extern char idtext[8];
+void Where(void); // where_file, where_line, where_pos: the place an error or patch is reported at
+extern unsigned int where_file, where_line, where_pos;
+// the patch and export streams (asm_obj.h): Out writes at out_block, out_ofs, up to out_end
+extern unsigned int out_block, out_ofs, out_end;
+void Out(unsigned char b);
+void Out16(unsigned int v);
+void Assemble(void); // asm_line.c: the prelude, then each unit's two passes and its objects
+void Exports(void); // the unit's section names, labels and EXPORTed constants
+extern unsigned int patches, lines_read; // patches written; 64-line steps read, all passes
+#define CM_MAPS 8 // asm_str.c's charmaps: a names block and each map's heads block, from ASM_CHARMAP_BLOCK
 
 // asm_str.c: string symbols on a heap in PSRAM, string expressions, {} interpolation
 #define STR_SIZE 256
@@ -225,7 +245,7 @@ unsigned int StrExpr(void);
 unsigned int StrNumber(unsigned char k);
 void DefineString(unsigned int start);
 void Interpolate(void);
-void Purge(unsigned char at);
+void Purge(unsigned char at, unsigned char b);
 void CharmapReset(void); // charmaps (asm_str.c)
 void Charmap(unsigned char d); // d: 0 CHARMAP, 1 NEWCHARMAP, 2 SETCHARMAP, 3 PUSHC, 4 POPC
 void MapEmit(unsigned int start); // str[start..str_top) through the charmap, used up
@@ -244,20 +264,14 @@ void DefineValue(unsigned char kind, Val v); // name gets v
 void Repeat(unsigned int n, unsigned int unit, Val step); // the body after this line n times
 unsigned int OpenFile(void); // INCLUDE and INCBIN's "path": its symbol, 0 if it failed; sets file_at, file_size
 // asm_proj.c: project.gbp
-typedef struct {
-  char title[16], licensee[2], id[4]; // rgbfix -t, -k, -i: only their own characters are written
-  unsigned char title_n, licensee_n, id_n;
-  unsigned char bytes[8]; // -j $14A, -c/-C $143, -s $146, -l $14B, -m $147, -r $149, -n $14C, -p the padding
-  unsigned char given; // a bit for each of bytes[]
-} Fix;
-extern Fix fix;
+extern AsmLink asm_link; // asm_main.c: for LINK.MOD at the end
+#define fix asm_link.fix
 extern char output[65]; // the ROM's path from the project's folder
 // main's files: each a unit (rgbasm runs one per file and rgblink joins them), its own symbols but
 // for labels and sections (rgbasm -E's), in link order; none: assemble the document
-#define UNITS 63 // unit_tag 1-63
+#define UNITS 63
 extern unsigned int units[UNITS], prelude; // their INCLUDE symbols; rgbasm -P's file (0: none)
 extern unsigned char nunits;
-extern unsigned char unit_tag; // asm_emit.c
 typedef union { Val v; UVal u; unsigned int w[2]; } Num;
 extern Num num; // asm.c: a number being read
 void Digit(unsigned char base, unsigned char d); // num = num * base + d (2, 8, 10, 16)
@@ -269,13 +283,6 @@ extern unsigned char card_frames[4]; // 32 bits
 void CacheStart(void); // after project.gbp
 unsigned char CacheLoad(ModuleLoad* load, unsigned int record); // ModLoad(path, load), through the cache record (0: none) when it can
 void CacheEnd(void);
-// asm_log.c: build.log
-#define LOG_STEPS 4 // pass 1, placing sections, pass 2, finishing
-#define ASM_LOG_BLOCKS 2
-extern unsigned int log_marks[LOG_STEPS + 1]; // seconds
-extern unsigned char log_steps;
-void Log(void);
-void Phase(unsigned char p); // 3 placing sections, 4 finishing: the box says so
 unsigned int LoadPath(void); // the same for path[], 0 with file_error if it can't be read
 extern unsigned char file_error;
 extern Pos file_at, file_size, file_end; // and file_at + file_size
@@ -285,5 +292,6 @@ void For(void); // asm_str.c
 void Incbin(void);
 void FileOf(unsigned int file); // asm_loop.c: file_at, file_size, file_end from its symbol
 void Include(void); // asm_loop.c
-void Report(unsigned int file, unsigned int line, Pos at); // asm_line.c: where the error is, into the context
+void Report(unsigned int file, unsigned int line, unsigned int pos); // asm_main.c: where the error is, into the context
+void ReportWhere(void); // Where, into the context
 #endif

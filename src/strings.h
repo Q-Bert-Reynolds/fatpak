@@ -4,8 +4,8 @@
 // PutStr(dest, id) and Str(id) (src/strings.asm), ModString in modules; S_PART(id, n) is the
 // text after its nth {}, up to the next
 #define S_PART(id, n) ((id) | ((n) << 12))
-#define STR_COUNT 208
-#define STR_HASH 0x785Eu
+#define STR_COUNT 209
+#define STR_HASH 0x4835u
 #define LANGUAGES 2
 #define LANG_CODES "ENES" // 2 characters each: /GBCSYS/LANG/<code>.DAT
 #define S_MENU_FILE 0 // FILE
@@ -100,120 +100,121 @@
 #define S_LOADING_KB 89 // Loading {}/{} KB
 #define S_BUILD_PASS1 90 // Pass 1: {}k lines
 #define S_BUILD_PASS2 91 // Pass 2: {}%
-#define S_BUILD_AT_LINE 92 // line {}
-#define S_BUILD_LINE 93 // Line {}
-#define S_BUILD_DONE 94 // Built {} KB
-#define S_ERR_SYNTAX 95 // SYNTAX ERROR
-#define S_ERR_SYMBOL 96 // UNKNOWN SYMBOL
-#define S_ERR_DUPLICATE 97 // ALREADY DEFINED
-#define S_ERR_RANGE 98 // VALUE TOO BIG
-#define S_ERR_JR 99 // JR TOO FAR
-#define S_ERR_OPERAND 100 // BAD OPERAND
-#define S_ERR_SECTION 101 // NO SECTION
-#define S_ERR_FULL 102 // SECTION FULL
-#define S_ERR_FORWARD 103 // NOT YET DEFINED
-#define S_ERR_UNSUPPORTED 104 // NOT SUPPORTED
-#define S_ERR_NAME 105 // NAME TOO LONG
-#define S_ERR_DIVIDE 106 // DIVIDE BY ZERO
-#define S_ERR_MNEMONIC 107 // BAD INSTRUCTION
-#define S_ERR_PHASE 108 // PHASE ERROR
-#define S_ERR_STRING 109 // BAD STRING
-#define S_ERR_SCOPE 110 // NO GLOBAL LABEL
-#define S_ERR_SYMBOLS 111 // TOO MANY SYMBOLS
-#define S_ERR_EMPTY 112 // NO CODE
-#define S_ERR_BANK 113 // BAD BANK
-#define S_ERR_ASSERT 114 // ASSERT FAILED
-#define S_ERR_FILE 115 // NO SUCH FILE
-#define S_ERR_NESTING 116 // TOO DEEP
-#define S_ERR_OVERLAP 117 // SECTIONS OVERLAP
-#define S_UNTITLED 118 // Untitled
-#define S_SELECTED 119 // {} selected
-#define S_LINE_COL 120 // Line {}, Col {}
-#define S_SAVE_AS 121 // Save as
-#define S_IN_FOLDER 122 // in
-#define S_CLOCK_YEAR 123 // Year
-#define S_CLOCK_MONTH 124 // Month
-#define S_CLOCK_DAY 125 // Day
-#define S_CLOCK_HOUR 126 // Hour
-#define S_CLOCK_MINUTE 127 // Minute
-#define S_CLOCK_SECOND 128 // Second
-#define S_CLOCK_HINT 129 // <LR> Edit <A>Set <B>Back
-#define S_CLOCK_INVALID 130 // Invalid date or no clock
-#define S_HELP_HINT 131 // <UD>Scroll <B>Exit
-#define S_THEME_HINT 132 // <A>Toggle <B>Back
-#define S_THEME_DARK 133 // Dark mode  {}
-#define S_ON 134 // On
-#define S_OFF 135 // Off
-#define S_INFO_TYPE 136 // Type:
-#define S_INFO_SIZE 137 // Size:
-#define S_INFO_CREATED 138 // Created:
-#define S_INFO_ACCESSED 139 // Accessed:
-#define S_INFO_MODIFIED 140 // Modified:
-#define S_INFO_READ 141 // Read:
-#define S_INFO_HEADER 142 // Header:
-#define S_INFO_WORDS 143 // Words:
-#define S_INFO_LINES 144 // Lines:
-#define S_INFO_COUNTS 145 // Counts:
-#define S_INFO_TITLE 146 // Title:
-#define S_INFO_PLATFORM 147 // Platform:
-#define S_INFO_SGB 148 // Super GB:
-#define S_INFO_MAPPER 149 // Mapper:
-#define S_INFO_ROM 150 // ROM:
-#define S_INFO_RAM 151 // RAM:
-#define S_INFO_REGION 152 // Region:
-#define S_INFO_REVISION 153 // Revision:
-#define S_INFO_CHECKSUM 154 // Header checksum:
-#define S_TYPE_TEXT 155 // Plain Text
-#define S_TYPE_MARKDOWN 156 // Markdown
-#define S_TYPE_C 157 // C source
-#define S_TYPE_ASM 158 // Assembly
-#define S_TYPE_FOLDER 159 // Folder
-#define S_TYPE_GAME 160 // Game Boy ROM
-#define S_TYPE_BINARY 161 // Binary
-#define S_SD_ERROR_LOWER 162 // SD error
-#define S_TOO_SHORT 163 // Too short
-#define S_BINARY_FILE 164 // Binary file
-#define S_SKIPPED 165 // Skipped (>32KB)
-#define S_GB_ONLY 166 // Game Boy
-#define S_INFO_YES 167 // Yes
-#define S_INFO_NO 168 // No
-#define S_NONE 169 // --
-#define S_RAM_MBC2 170 // 512 x 4 bits
-#define S_GB_COLOR_ONLY 171 // Color only
-#define S_GB_BOTH 172 // GB / Color
-#define S_UNKNOWN 173 // Unknown
-#define S_JAPAN 174 // Japan
-#define S_OVERSEAS 175 // Overseas
-#define S_CHECK_OK 176 // OK
-#define S_CHECK_BAD 177 // Bad
-#define S_MAPPER_TYPE 178 // type
-#define S_KB_TITLE 179 // KEYBOARD TEST
-#define S_KB_PS2 180 // Found at boot: PS/2
-#define S_KB_NONE 181 // Found at boot: none, listening anyway
-#define S_KB_CODES 182 // Raw bytes (newest last):
-#define S_KB_BACK 183 // <A> Pause  <B> Back
-#define S_KB_BYTES 184 // Bytes {}   with errors {}
-#define S_KB_KEY 185 // Key {}   modifiers {}
-#define S_KB_FINISH 186 // finish
-#define S_KB_PARITY 187 // parity
-#define S_KB_START 188 // start
-#define S_KB_UNUSED3 189 //
-#define S_KB_UNUSED4 190 //
-#define S_KB_TIMEOUT 191 // timeout
-#define S_TILE_N 192 // Tile
-#define S_INGAME_RESUME 193 // Resume game
-#define S_INGAME_SAVE 194 // Save state
-#define S_INGAME_LOAD 195 // Load state
-#define S_INGAME_RETURN 196 // Return to OS
-#define S_INGAME_ERROR 197 // State / SD error
-#define S_INGAME_FOOTER 198 // <A> Select  <B> Resume
-#define S_MODULE_COPY_FAILED 199 // COPY FAILED {}:{}
-#define S_BUILD_LOADING 200 // loading
-#define S_BUILD_LINKING 201 // Placing sections
-#define S_BUILD_FINISHING 202 // Finishing
-#define S_DRIVER_NONE 203 // NONE
-#define S_DRIVER_PS2 204 // PS/2 KEYBOARD
-#define S_DRIVER_IGKB 205 // iGKB USB
-#define S_DRIVER_SNES_MOUSE 206 // SNES MOUSE
-#define S_KB_PAUSED 207 // PAUSED (A resumes)
+#define S_BUILD_UNIT 92 // Assembling: {}%
+#define S_BUILD_AT_LINE 93 // line {}
+#define S_BUILD_LINE 94 // Line {}
+#define S_BUILD_DONE 95 // Built {} KB
+#define S_ERR_SYNTAX 96 // SYNTAX ERROR
+#define S_ERR_SYMBOL 97 // UNKNOWN SYMBOL
+#define S_ERR_DUPLICATE 98 // ALREADY DEFINED
+#define S_ERR_RANGE 99 // VALUE TOO BIG
+#define S_ERR_JR 100 // JR TOO FAR
+#define S_ERR_OPERAND 101 // BAD OPERAND
+#define S_ERR_SECTION 102 // NO SECTION
+#define S_ERR_FULL 103 // SECTION FULL
+#define S_ERR_FORWARD 104 // NOT YET DEFINED
+#define S_ERR_UNSUPPORTED 105 // NOT SUPPORTED
+#define S_ERR_NAME 106 // NAME TOO LONG
+#define S_ERR_DIVIDE 107 // DIVIDE BY ZERO
+#define S_ERR_MNEMONIC 108 // BAD INSTRUCTION
+#define S_ERR_PHASE 109 // PHASE ERROR
+#define S_ERR_STRING 110 // BAD STRING
+#define S_ERR_SCOPE 111 // NO GLOBAL LABEL
+#define S_ERR_SYMBOLS 112 // TOO MANY SYMBOLS
+#define S_ERR_EMPTY 113 // NO CODE
+#define S_ERR_BANK 114 // BAD BANK
+#define S_ERR_ASSERT 115 // ASSERT FAILED
+#define S_ERR_FILE 116 // NO SUCH FILE
+#define S_ERR_NESTING 117 // TOO DEEP
+#define S_ERR_OVERLAP 118 // SECTIONS OVERLAP
+#define S_UNTITLED 119 // Untitled
+#define S_SELECTED 120 // {} selected
+#define S_LINE_COL 121 // Line {}, Col {}
+#define S_SAVE_AS 122 // Save as
+#define S_IN_FOLDER 123 // in
+#define S_CLOCK_YEAR 124 // Year
+#define S_CLOCK_MONTH 125 // Month
+#define S_CLOCK_DAY 126 // Day
+#define S_CLOCK_HOUR 127 // Hour
+#define S_CLOCK_MINUTE 128 // Minute
+#define S_CLOCK_SECOND 129 // Second
+#define S_CLOCK_HINT 130 // <LR> Edit <A>Set <B>Back
+#define S_CLOCK_INVALID 131 // Invalid date or no clock
+#define S_HELP_HINT 132 // <UD>Scroll <B>Exit
+#define S_THEME_HINT 133 // <A>Toggle <B>Back
+#define S_THEME_DARK 134 // Dark mode  {}
+#define S_ON 135 // On
+#define S_OFF 136 // Off
+#define S_INFO_TYPE 137 // Type:
+#define S_INFO_SIZE 138 // Size:
+#define S_INFO_CREATED 139 // Created:
+#define S_INFO_ACCESSED 140 // Accessed:
+#define S_INFO_MODIFIED 141 // Modified:
+#define S_INFO_READ 142 // Read:
+#define S_INFO_HEADER 143 // Header:
+#define S_INFO_WORDS 144 // Words:
+#define S_INFO_LINES 145 // Lines:
+#define S_INFO_COUNTS 146 // Counts:
+#define S_INFO_TITLE 147 // Title:
+#define S_INFO_PLATFORM 148 // Platform:
+#define S_INFO_SGB 149 // Super GB:
+#define S_INFO_MAPPER 150 // Mapper:
+#define S_INFO_ROM 151 // ROM:
+#define S_INFO_RAM 152 // RAM:
+#define S_INFO_REGION 153 // Region:
+#define S_INFO_REVISION 154 // Revision:
+#define S_INFO_CHECKSUM 155 // Header checksum:
+#define S_TYPE_TEXT 156 // Plain Text
+#define S_TYPE_MARKDOWN 157 // Markdown
+#define S_TYPE_C 158 // C source
+#define S_TYPE_ASM 159 // Assembly
+#define S_TYPE_FOLDER 160 // Folder
+#define S_TYPE_GAME 161 // Game Boy ROM
+#define S_TYPE_BINARY 162 // Binary
+#define S_SD_ERROR_LOWER 163 // SD error
+#define S_TOO_SHORT 164 // Too short
+#define S_BINARY_FILE 165 // Binary file
+#define S_SKIPPED 166 // Skipped (>32KB)
+#define S_GB_ONLY 167 // Game Boy
+#define S_INFO_YES 168 // Yes
+#define S_INFO_NO 169 // No
+#define S_NONE 170 // --
+#define S_RAM_MBC2 171 // 512 x 4 bits
+#define S_GB_COLOR_ONLY 172 // Color only
+#define S_GB_BOTH 173 // GB / Color
+#define S_UNKNOWN 174 // Unknown
+#define S_JAPAN 175 // Japan
+#define S_OVERSEAS 176 // Overseas
+#define S_CHECK_OK 177 // OK
+#define S_CHECK_BAD 178 // Bad
+#define S_MAPPER_TYPE 179 // type
+#define S_KB_TITLE 180 // KEYBOARD TEST
+#define S_KB_PS2 181 // Found at boot: PS/2
+#define S_KB_NONE 182 // Found at boot: none, listening anyway
+#define S_KB_CODES 183 // Raw bytes (newest last):
+#define S_KB_BACK 184 // <A> Pause  <B> Back
+#define S_KB_BYTES 185 // Bytes {}   with errors {}
+#define S_KB_KEY 186 // Key {}   modifiers {}
+#define S_KB_FINISH 187 // finish
+#define S_KB_PARITY 188 // parity
+#define S_KB_START 189 // start
+#define S_KB_UNUSED3 190 //
+#define S_KB_UNUSED4 191 //
+#define S_KB_TIMEOUT 192 // timeout
+#define S_TILE_N 193 // Tile
+#define S_INGAME_RESUME 194 // Resume game
+#define S_INGAME_SAVE 195 // Save state
+#define S_INGAME_LOAD 196 // Load state
+#define S_INGAME_RETURN 197 // Return to OS
+#define S_INGAME_ERROR 198 // State / SD error
+#define S_INGAME_FOOTER 199 // <A> Select  <B> Resume
+#define S_MODULE_COPY_FAILED 200 // COPY FAILED {}:{}
+#define S_BUILD_LOADING 201 // loading
+#define S_BUILD_LINKING 202 // Placing sections
+#define S_BUILD_FINISHING 203 // Finishing
+#define S_DRIVER_NONE 204 // NONE
+#define S_DRIVER_PS2 205 // PS/2 KEYBOARD
+#define S_DRIVER_IGKB 206 // iGKB USB
+#define S_DRIVER_SNES_MOUSE 207 // SNES MOUSE
+#define S_KB_PAUSED 208 // PAUSED (A resumes)
 #endif

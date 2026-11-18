@@ -1,9 +1,11 @@
 # Priority
 
-- ASM.MOD has ~440 bytes free (page 12 ~250, page 5 ~115, the rest ~20-30): more features still need code moved to assembly or out of the module (Stage 2's LINK.MOD would take `Link`, `Header`, `Log`).
-- Assembler: build beisbolgb on the device faster ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): the split into 50 units builds in 24.7 min CGB in Gearboy (42 before the split); DMG not measured.
-  - Stage 1: `build.cache` (where each file's directory entry is) is done. Left: an "up to date" check (every file's entry unchanged since the ROM was written: RUN without building), which needs entry dates.
-  - Stage 2: units build together now (`main` with several files, `-P`, `-E`). Left: keep each unit's object between builds and reassemble only units whose files changed, with patches and a linker (LINK.MOD): plan in [ASSEMBLER.md](notes/ASSEMBLER.md#next-steps).
+- Assembler: build beisbolgb on the device faster ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): its 50 units (beisbolgb's `project.gbp`, kept in step with its Makefile) build in 23.9 min CGB in Gearboy (42 before the split): assembling 22:14 (each unit alone, the prelude once), linking 1:30 (LINK.MOD). DMG and hardware not measured.
+  - Stage 2b: keep each unit's object between builds (`build.obj`) and assemble only units whose files changed: plan in [ASSEMBLER.md](notes/ASSEMBLER.md#next-steps). Done: units assembled alone with patches, LINK.MOD.
+  - Stage 1 left: an "up to date" check (RUN without building), which falls out of 2b when no unit changed.
+  - LINK.MOD: labels (31 s) and patches (32 s) in assembly; it has ~5 KB free.
+  - Small builds pay ~200 DMG frames for LINK.MOD's load: a cached backup compare (MODULES.md) would help both modules.
+  - ASM.MOD has ~300 bytes free (page 13 ~20, 12 ~90, 5 ~20, 4 ~40, 15 ~100): Stage 2b's ASM side has to fit there or move more out.
   - The symbol table's 256 hash chains (`Find` is assembly now; the chains are as long as before).
 
 # Rendering

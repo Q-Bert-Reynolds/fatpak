@@ -107,11 +107,17 @@
 #define ASM_HEAP_BLOCK   0x1000u//the EQUS heap, 128 blocks (64 KiB)
 #define ASM_CHARMAP_BLOCK 0x1080u//names, 8 maps' heads, then a 60 KiB pool (129 blocks)
 #define ASM_SECTION_BLOCK 0x1110u//the section table, 32 blocks (512 32-byte records)
-#define ASM_FILE_BLOCK   0x1130u//included and INCBIN files, packed whole from here
+#define ASM_DATA_BLOCK   0x1130u//each ROM section's bytes as pass 2 assembles them, before LINK.MOD places them (1 MiB)
+#define ASM_DATA_END     0x1930u
+#define ASM_OBJ_BLOCK    0x1930u//each unit's patches, section names, labels and exports for LINK.MOD (modules/asm_obj.h), 1 MiB
+#define ASM_FILE_BLOCK   0x2130u//included and INCBIN files, packed whole from here
 #define ASM_FILE_END     0x387Eu//then build.cache's new index, and the build log
 #define ASM_CACHE_BLOCK  0x387Eu//build.cache: where pass 1 found each file, 128 blocks (modules/asm_cache.c)
 #define ASM_CACHE_BLOCKS 128
 #define ASM_LOG_BLOCK    0x38FEu//build.log's text, 2 blocks (up to ADD_MAX / 512)// in pass 1, the cache's directory and FAT sectors
+#define ASM_LINK_BLOCK   0x3900u//what ASM.MOD hands LINK.MOD (AsmLink in modules/asm_obj.h)
+#define ASM_SNAP_BLOCK   0x3901u//the symbol table and charmaps after the prelude, put back for each unit (255 blocks)
+#define ASM_SNAP_END     0x3A00u
 #define MODULE_ABI     12//newest ABI the host provides, modules built for older ones still load
 #define MODULE_TABLE   0x7F00u//ABI jump table in resident bank 1, 3 bytes per entry
 #define MODULE_SLOTS   32//entries reserved for it

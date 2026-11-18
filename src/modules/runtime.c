@@ -82,7 +82,7 @@ unsigned char RunModule(const char* path, unsigned char id) {
   module_busy = 1;
   module_fail = 0;
   module_retries = 0;
-  module_frames = 0;
+  if (id != MODULE_LINK) module_frames = 0; // LINK.MOD's goes on from ASM.MOD's (BUILD's box and build.log)
   frames_at = render_frames;
   module_aborted = buffers_live = 0;
   module_loading = 0;

@@ -92,15 +92,15 @@ static void WriteOutputs(const AsmContext* c, char* path) {
   }
 }
 
-// ASM.MOD's ModProgress(0) text: the pass and how far it is, the file and line it's on (or the
-// file being read from the card), and the time since BUILD; after pass 1 and 2, what it's doing.
-// The time moves at every redraw, every 5 s while the build is working: if it stops, so has the
-// build. (FIXED, and only calling what's outside the module's pages.)
+// ASM.MOD's ModProgress(0) text: the pass and how far it is (a project's: how much of its units),
+// the file and line it's on (or the file being read from the card), and the time since BUILD;
+// LINK.MOD's: what it's doing. The time (both modules') moves at every redraw, every 5 s while the build is
+// working: if it stops, so has the build. (FIXED, and only calling what's outside the module's pages.)
 static void BuildProgress(char* text) {
   const AsmContext* c = module_context;
-  unsigned int pass = c->pass == 1 ? S_BUILD_PASS1 : S_BUILD_PASS2;
+  unsigned int pass = c->pass == 1 ? S_BUILD_PASS1 : c->pass == 5 ? S_BUILD_UNIT : S_BUILD_PASS2;
   char* end;
-  if (c->pass > 2) end = PutStr(text, c->pass == 3 ? S_BUILD_LINKING : S_BUILD_FINISHING);
+  if (c->pass == 3 || c->pass == 4) end = PutStr(text, c->pass == 3 ? S_BUILD_LINKING : S_BUILD_FINISHING);
   else {
     end = PutStr(PutNumber(PutStr(text, S_PART(pass, 0)), c->progress), S_PART(pass, 1));
     *end++ = '\n';
@@ -116,7 +116,7 @@ static void BuildProgress(char* text) {
 void BuildFile(unsigned char run) {
   AsmContext context;
   char path[PATH_SIZE + FS_NAME_SIZE], text[FS_NAME_SIZE + 3 * LANG_MAX], *end;
-  unsigned char result;
+  unsigned char result, level;
   if (doc_large) { ShowMessage(Str(S_FILE_TOO_BIG)); return; }
   if (!file_name[0] && tb_lang != LANG_ASM) { ShowMessage(Str(S_NOT_ASM_FILE)); return; } // no folder, no project
   if (modified || !file_name[0]) SaveFile(0); // the ROM matches the file on the card
@@ -128,6 +128,13 @@ void BuildFile(unsigned char run) {
   module_context = &context;
   module_progress = BuildProgress;
   result = RUN_MODULE(ASM);
+  if (!result && module_status != ASM_NOT_ASM) { // then LINK.MOD: the image, or after an error build.log
+    level = file_level; // project.gbp's folder (RunModule forgets it)
+    module_context = &context;
+    module_progress = BuildProgress;
+    result = RUN_MODULE(LINK); // its time goes on from ASM.MOD's
+    file_level = level;
+  }
   HideBox();
   if (result) { ShowModuleError(result); return; }
   if (module_status == ASM_NOT_ASM) { ShowMessage(Str(S_NOT_ASM_FILE)); return; }

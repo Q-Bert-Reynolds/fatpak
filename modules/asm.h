@@ -15,7 +15,8 @@ typedef struct {
   unsigned int log_bytes; // out: build.log's text at ASM_LOG_BLOCK, its bytes | $8000 (FileWriteImage's count); 0: none
   unsigned int cache_blocks; // out: build.cache's blocks at ASM_CACHE_BLOCK | $4000; 0: none
   unsigned char pass;  // progress (ModProgress(0), while it runs): the pass, file, name and line above,
-  unsigned int progress; // and pass 1's lines in thousands or pass 2's percent
+  unsigned int progress; // and pass 1's lines in thousands or pass 2's percent; pass 5: a project's
+                         // percent of its units' passes; 3 and 4: LINK.MOD placing sections, finishing
 } AsmContext;
 
 #define ASM_DOC     1

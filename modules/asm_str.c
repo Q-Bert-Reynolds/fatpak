@@ -16,6 +16,21 @@ static void Put(unsigned char c) {
   if (str_top == STR_SIZE) { Fail(ASM_ERR_STRING); return; }
   str[str_top++] = c;
 }
+unsigned char Char(void) { // a character of a string or literal, quotes end it
+  unsigned char c = ch;
+  if (c == 0 || c == 10) { Fail(ASM_ERR_STRING); return 0; }
+  Advance();
+  if (c != '\\') return c;
+  c = ch;
+  Advance();
+  if (c == 'n') return 10;
+  if (c == 't') return 9;
+  if (c == 'r') return 13;
+  if (c == '0') return 0;
+  if (c == '\\' || c == '"' || c == '\'' || c == '{' || c == '}') return c;
+  Fail(ASM_ERR_STRING);
+  return 0;
+}
 // "..." or """...""" (which may span lines), at its opening quote
 static void Literal(void) {
   unsigned char triple = 0, n;
@@ -213,7 +228,11 @@ void Interpolate(void) {
   Push(F_TEXT, SRC_FMT, 0, i)->file = FILE_EXPANSION;
 }
 
-void Purge(unsigned char at) { Entry(found)[at] = 0; } // PURGE (10), EXPORT (2): asm_line.c
+// found's byte at becomes b: PURGE's length 10 (no name matches it) and EXPORT's bank 7 (asm_line.c)
+void Purge(unsigned char at, unsigned char b) {
+  Dirty(found);
+  Entry(found)[at] = b;
+}
 
 
 // --- charmaps (CHARMAP, NEWCHARMAP, SETCHARMAP, PUSHC, POPC): in PSRAM from ASM_CHARMAP_BLOCK.
@@ -223,21 +242,31 @@ void Purge(unsigned char at) { Entry(found)[at] = 0; } // PURGE (10), EXPORT (2)
 // in front, so maps share their tails. Rebuilt every pass, in the same order.
 #define CM_NAMES ASM_CHARMAP_BLOCK
 #define CM_HEADS (ASM_CHARMAP_BLOCK + 1) // + map
-#define CM_MAPS 8
 #define CM_POOL (ASM_CHARMAP_BLOCK + 1 + CM_MAPS) // its first block; pool positions are bytes from there
-static unsigned char cm_current, cm_count, cm_used; // cm_used: a bit for each map with entries
-static unsigned char cm_stack[8], cm_sp;
-static unsigned int cm_top; // the pool's next free byte (0 means "none")
+// the state each unit starts from: the prelude's (CharmapSave keeps a copy)
+static struct {
+  unsigned char current, count, used; // used: a bit for each map with entries
+  unsigned char stack[8], sp;
+  unsigned int top; // the pool's next free byte (0 means "none")
+} cm, cm_saved;
+unsigned char cm_dirty; // its PSRAM blocks changed since the snapshot (CHARMAP, NEWCHARMAP)
+void CharmapSave(unsigned char store) {
+  unsigned char* a = (unsigned char*)&cm;
+  unsigned char* b = (unsigned char*)&cm_saved;
+  unsigned char n = sizeof(cm);
+  if (store) do *b++ = *a++; while (--n);
+  else do *a++ = *b++; while (--n);
+}
 
 static unsigned char PoolByte(unsigned int p) {
   Window(CM_POOL + (p >> 9));
   return WINDOW[p & 511];
 }
 static void PoolPut(unsigned char b) {
-  if (cm_top >= 120u << 9) { Fail(ASM_ERR_FULL); return; } // the pool ends at block $18FF
-  Window(CM_POOL + (cm_top >> 9));
-  WINDOW[cm_top & 511] = b;
-  ++cm_top;
+  if (cm.top >= 120u << 9) { Fail(ASM_ERR_FULL); return; } // the pool ends at block $18FF
+  Window(CM_POOL + (cm.top >> 9));
+  WINDOW[cm.top & 511] = b;
+  ++cm.top;
 }
 static unsigned int Head(unsigned char map, unsigned char c) {
   Window(CM_HEADS + map);
@@ -255,13 +284,13 @@ static void Heads(unsigned char map, unsigned char base) {
     if (base == 0xFF) { Window(CM_HEADS + map); WINDOW[i] = 0; }
     else { Window(CM_HEADS + base); str[0] = WINDOW[i]; Window(CM_HEADS + map); WINDOW[i] = str[0]; }
   }
-  if (base == 0xFF || !(cm_used & (1 << base))) cm_used &= ~(1 << map);
-  else cm_used |= 1 << map;
+  if (base == 0xFF || !(cm.used & (1 << base))) cm.used &= ~(1 << map);
+  else cm.used |= 1 << map;
 }
 // the map named ident, 0xFF if none
 static unsigned char MapNamed(void) {
   unsigned char m, i;
-  for (m = 0; m < cm_count; ++m) {
+  for (m = 0; m < cm.count; ++m) {
     Window(CM_NAMES);
     if (WINDOW[m << 5] != ident_len) continue;
     for (i = 0; i < ident_len && WINDOW[(m << 5) + 1 + i] == ident[i]; ++i);
@@ -276,9 +305,9 @@ static void NameMap(unsigned char m) {
   for (i = 0; i < ident_len && i < 31; ++i) WINDOW[(m << 5) + 1 + i] = ident[i];
 }
 void CharmapReset(void) { // each pass starts with an empty "main"
-  cm_current = cm_sp = cm_used = 0;
-  cm_top = 2;
-  cm_count = 1;
+  cm.current = cm.sp = cm.used = 0;
+  cm.top = 2;
+  cm.count = 1;
   for (ident_len = 0; ident_len < 4; ++ident_len) ident[ident_len] = "main"[ident_len];
   ident[4] = 0;
   NameMap(0);
@@ -288,7 +317,7 @@ void CharmapReset(void) { // each pass starts with an empty "main"
 static unsigned int Match(unsigned int at, unsigned int end, unsigned char* matched) {
   unsigned int p, best = 0;
   unsigned char n, i, best_n = 0;
-  for (p = Head(cm_current, (unsigned char)str[at]); p; p = PoolByte(p) | (PoolByte(p + 1) << 8)) {
+  for (p = Head(cm.current, (unsigned char)str[at]); p; p = PoolByte(p) | (PoolByte(p + 1) << 8)) {
     n = PoolByte(p + 2);
     if (n <= best_n || at + n > end) continue; // a newer entry of the same length wins: it's first
     for (i = 1; i < n && PoolByte(p + 4 + i) == (unsigned char)str[at + i]; ++i);
@@ -302,7 +331,7 @@ void MapEmit(unsigned int start) {
   unsigned int at, p, end = str_top;
   unsigned char n, v, i;
   for (at = start; at < end && !error;) {
-    if (!(cm_used & (1 << cm_current)) || !(p = Match(at, end, &n))) { Emit(str[at++]); continue; }
+    if (!(cm.used & (1 << cm.current)) || !(p = Match(at, end, &n))) { Emit(str[at++]); continue; }
     v = PoolByte(p + 3);
     for (i = 0; i < v; ++i) Emit(PoolByte(p + 4 + n + i));
     at += n;
@@ -320,8 +349,8 @@ unsigned int CharLiteral(void) {
   }
   Advance();
   v = (unsigned char)str[start];
-  if (str_top - start != 1 || (cm_used & (1 << cm_current))) {
-    p = (cm_used & (1 << cm_current)) ? Match(start, str_top, &n) : 0;
+  if (str_top - start != 1 || (cm.used & (1 << cm.current))) {
+    p = (cm.used & (1 << cm.current)) ? Match(start, str_top, &n) : 0;
     if (p && n == str_top - start) { // one entry: it must be one byte
       if (PoolByte(p + 3) == 1) v = PoolByte(p + 4 + n);
       else Fail(ASM_ERR_STRING);
@@ -335,25 +364,26 @@ unsigned int CharLiteral(void) {
 void Charmap(unsigned char d) {
   unsigned int start, entry;
   unsigned char m, n, base;
-  if (d == 3) { if (cm_sp == sizeof(cm_stack)) Fail(ASM_ERR_NESTING); else cm_stack[cm_sp++] = cm_current; return; }
-  if (d == 4) { if (!cm_sp) Fail(ASM_ERR_SYNTAX); else cm_current = cm_stack[--cm_sp]; return; }
+  if (d == 3) { if (cm.sp == sizeof(cm.stack)) Fail(ASM_ERR_NESTING); else cm.stack[cm.sp++] = cm.current; return; }
+  if (d == 4) { if (!cm.sp) Fail(ASM_ERR_SYNTAX); else cm.current = cm.stack[--cm.sp]; return; }
+  if (d < 2) cm_dirty = 1; // the next unit starts from the prelude's maps again
   if (d == 0) {
     start = StrExpr();
     n = (unsigned char)(str_top - start);
     if (!n || str_top - start > 255) { Fail(ASM_ERR_STRING); return; }
-    entry = cm_top;
-    PoolPut((unsigned char)Head(cm_current, (unsigned char)str[start]));
-    PoolPut((unsigned char)(Head(cm_current, (unsigned char)str[start]) >> 8));
+    entry = cm.top;
+    PoolPut((unsigned char)Head(cm.current, (unsigned char)str[start]));
+    PoolPut((unsigned char)(Head(cm.current, (unsigned char)str[start]) >> 8));
     PoolPut(n);
     PoolPut(0); // the value count, written below
     for (m = 0; m < n; ++m) PoolPut(str[start + m]);
     for (m = 0; Comma(); ++m) PoolPut((unsigned char)Constant());
     if (!m) { Fail(ASM_ERR_SYNTAX); return; }
-    cm_top -= m + n + 1; // the count, then back to the end
+    cm.top -= m + n + 1; // the count, then back to the end
     PoolPut(m);
-    cm_top += n + m;
-    SetHead(cm_current, (unsigned char)str[start], entry);
-    cm_used |= 1 << cm_current;
+    cm.top += n + m;
+    SetHead(cm.current, (unsigned char)str[start], entry);
+    cm.used |= 1 << cm.current;
     str_top = start;
     return;
   }
@@ -361,10 +391,10 @@ void Charmap(unsigned char d) {
   ReadIdent();
   if (!ident_len) { Fail(ASM_ERR_SYNTAX); return; }
   m = MapNamed();
-  if (d == 2) { if (m == 0xFF) Fail(ASM_ERR_SYMBOL); else cm_current = m; return; }
-  if (m != 0xFF) { Fail(ASM_ERR_DUPLICATE); return; } // each pass rebuilds the maps, so pass 2 starts empty too
-  if (cm_count == CM_MAPS) { Fail(ASM_ERR_NESTING); return; }
-  m = cm_count++;
+  if (d == 2) { if (m == 0xFF) Fail(ASM_ERR_SYMBOL); else cm.current = m; return; }
+  if (m != 0xFF) { Fail(ASM_ERR_DUPLICATE); return; } // each pass starts from the prelude's maps
+  if (cm.count == CM_MAPS) { Fail(ASM_ERR_NESTING); return; }
+  m = cm.count++;
   NameMap(m);
   base = 0xFF;
   if (Comma()) {
@@ -374,5 +404,5 @@ void Charmap(unsigned char d) {
     if (base == 0xFF) { Fail(ASM_ERR_SYMBOL); return; }
   }
   Heads(m, base);
-  cm_current = m;
+  cm.current = m;
 }

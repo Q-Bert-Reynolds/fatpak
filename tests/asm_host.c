@@ -10,7 +10,8 @@
 
 static unsigned char psram[16 << 20];
 unsigned char* psram_window;
-void psram_select(unsigned int block) { psram_window = psram + (unsigned long)block * 512; }
+extern unsigned long psram_selects; unsigned long psram_selects; // ASM_HOST_STATS: window moves, a proxy for the device's time
+void psram_select(unsigned int block) { psram_window = psram + (unsigned long)block * 512; ++psram_selects; }
 
 static unsigned char* source;
 static unsigned long source_len;
@@ -21,6 +22,7 @@ unsigned char ModSource(unsigned short pos, char* dest) {
   return (unsigned char)n;
 }
 unsigned char ModuleMain(AsmContext* c);
+unsigned char LinkMain(AsmContext* c); // LINK.MOD's ModuleMain (modules/link.c)
 
 static char source_dir[1024];
 typedef struct { unsigned short block, blocks; unsigned long size; } ModuleLoad; // sdk.h's, with 16-bit ints
@@ -48,6 +50,7 @@ static unsigned files;
 static AsmContext* progress_context;
 void ModProgress(const char* text) { // ASM_PROGRESS=1 prints each one, as build.c's BuildProgress would
   AsmContext* c = progress_context;
+  if (getenv("ASM_HOST_STATS") && c->pass >= 3 && c->pass <= 4) fprintf(stderr, "phase %d at %lu window moves\n", c->pass, psram_selects);
   if (!getenv("ASM_PROGRESS")) return;
   if (text) fprintf(stderr, "%s\n", text);
   else fprintf(stderr, "Pass %d: %d%s|%s|line %d\n", c->pass, c->progress, c->pass == 1 ? "k lines" : "%",
@@ -85,8 +88,19 @@ int main(int argc, char** argv) {
   fread(source, 1, source_len, f); fclose(f);
   progress_context = &c;
   status = ModuleMain(&c);
+  if (getenv("ASM_HOST_STATS")) fprintf(stderr, "ASM.MOD: %lu window moves\n", psram_selects);
+  psram_selects = 0;
+  if (status != ASM_NOT_ASM) status = LinkMain(&c); // as editor/build.c runs them
+  if (getenv("ASM_HOST_STATS")) fprintf(stderr, "LINK.MOD: %lu window moves\n", psram_selects);
   printf("%u %u %u %u %u %u %s\n", status, c.line, c.pos, c.blocks, c.symbols, c.file,
          c.kind & ASM_PROJECT && !status ? c.name : c.file ? c.name + c.base : "");
+  if (getenv("ASM_HOST_STATS")) { // how full ASM.MOD's PSRAM regions got
+    extern unsigned short data_top, file_top, sym_mark, next_unit, out_block;
+    fprintf(stderr, "data %u of %u blocks, files %u of %u, prelude names to unit %u (snapshot %u of %u blocks)\n",
+            data_top - ASM_DATA_BLOCK, ASM_DATA_END - ASM_DATA_BLOCK, file_top - ASM_FILE_BLOCK, ASM_FILE_END - ASM_FILE_BLOCK,
+            sym_mark, 10 + (sym_mark >> 6), ASM_SNAP_END - ASM_SNAP_BLOCK);
+    fprintf(stderr, "objects %u of %u blocks\n", out_block - ASM_OBJ_BLOCK, ASM_FILE_BLOCK - ASM_OBJ_BLOCK);
+  }
   if (getenv("ASM_LOG")) fwrite(psram + (unsigned long)ASM_LOG_BLOCK * 512, 1, c.log_bytes & 0x7FFF, stderr); // build.log
   if (!status && argc > 2) {
     f = fopen(argv[2], "wb");

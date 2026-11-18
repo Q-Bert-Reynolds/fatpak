@@ -91,6 +91,7 @@ PREPARING_GAME,box,,Preparing game...,Preparando juego...
 LOADING_KB,box,"a game: KB copied and its size, up to 8888/8888",Loading {}/{} KB,Cargando {}/{} KB
 BUILD_PASS1,box,build progress: thousands of lines,Pass 1: {}k lines,Paso 1: {}k líneas
 BUILD_PASS2,box,build progress: percent,Pass 2: {}%,Paso 2: {}%
+BUILD_UNIT,box,"build progress: a project's files, percent assembled",Assembling: {}%,Ensamblando: {}%
 BUILD_AT_LINE,box,build progress: the line in the file named above,line {},línea {}
 BUILD_LINE,box,build error: the line in the file named above,Line {},Línea {}
 BUILD_DONE,box,"the ROM's size, under its name",Built {} KB,Compilado: {} KB

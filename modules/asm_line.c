@@ -43,7 +43,7 @@ static void ParseOp(unsigned char i) {
         Space();
         if (ch == '+' || ch == '-') {
           kind = K_SPREL;
-          if (ch == '-') { Advance(); v = -Eval(); }
+          if (ch == '-') { Advance(); v = -Eval(); if (prel) Fail(ASM_ERR_UNSUPPORTED); }
           else { Advance(); v = Eval(); }
         }
       }
@@ -74,7 +74,7 @@ void Operands(void) {
 // --- directives
 static unsigned int if_active, if_taken; // bit per open IF level
 static unsigned char if_depth;
-static unsigned int rs; // RSSET/RB counter
+static unsigned int rs, rs0; // RSSET/RB counter, and as the prelude left it
 
 void DefineValue(unsigned char kind, Val v) { // name gets v
   LoadName();
@@ -96,7 +96,10 @@ void Label(void) { // ident
     if (pass == 1 || sym_value != pc) Fail(pass == 1 ? ASM_ERR_DUPLICATE : ASM_ERR_PHASE);
     else Mark();
   }
-  else if (pass == 1) { sym_extra = cur; Add(SYM_LABEL, pc, sec_bank); }
+  else if (pass == 1) { // its section, and whether that has an address (the label is known)
+    sym_extra = sec.flags & SECT_ADDRESS ? cur | LABEL_FIXED : cur;
+    Add(SYM_LABEL, pc, sec_bank);
+  }
   else Fail(ASM_ERR_PHASE);
   if (!local) scope = found;
 }
@@ -146,7 +149,7 @@ static void Ds(void) { // ds count[, fill], ds align[a[, offset]][, fill]
   Space();
   if (ch == ',') {
     Advance();
-    fill = (unsigned char)Eval();
+    fill = (unsigned char)Known();
     if (!sec_rom) { Fail(ASM_ERR_SECTION); return; }
   }
   Reserve(n, fill);
@@ -160,7 +163,7 @@ static void IfSkip(void) {
     d = Scan(SKIP_IF);
     if (d == D_ENDC) { --if_depth; return; }
     if (d == D_ELSE) { if (!(if_taken & bit)) if_active |= bit; }
-    else if (d == D_ELIF && !(if_taken & bit) && Eval()) if_active |= bit;
+    else if (d == D_ELIF && !(if_taken & bit) && Known()) if_active |= bit;
     if (if_active & bit) if_taken |= bit;
     ToEnd();
   }
@@ -171,7 +174,7 @@ static void If(void) {
   bit = 1 << ++if_depth;
   if_active &= ~bit;
   if_taken &= ~bit;
-  if (Eval()) if_active |= if_taken |= bit;
+  if (Known()) if_active |= if_taken |= bit;
   else { ToEnd(); IfSkip(); }
 }
 void Repeat(unsigned int n, unsigned int unit, Val step) {
@@ -307,9 +310,10 @@ void Statement(void) {
     case D_RSRESET: rs = 0; break;
     case D_RSSET: rs = Constant(); break;
     case D_FAIL: Fail(ASM_ERR_ASSERT); break;
-    case D_ASSERT:
+    case D_ASSERT: // one the link has to work out is a patch
       v = Eval();
-      if (pass == 2 && !v) Fail(ASM_ERR_ASSERT);
+      if (prel) Patch(P_ASSERT);
+      else if (pass == 2 && !v) Fail(ASM_ERR_ASSERT);
       ToEnd();
       break;
     case D_SHIFT: Shift(); break;
@@ -322,8 +326,8 @@ void Statement(void) {
         Space();
         ReadIdent();
         if (FindDotted()) {
-          if (d == D_PURGE) Purge(10); // unfindable: its length no longer matches any name
-          else if (sym_kind) Purge(2); // a constant every unit sees: no unit tag for a scope
+          if (d == D_PURGE) Purge(10, 0); // unfindable: its length no longer matches any name
+          else if (sym_kind == SYM_EQU || sym_kind == SYM_VAR) Purge(7, 1); // the link sees it (labels all are)
         }
       } while (Comma());
       break;
@@ -362,45 +366,46 @@ static void Unit(unsigned int file) {
   arg_top = if_depth = 0;
   scope = 0;
   in_section = sect_depth = 0;
+  rs = rs0;
+  unique = 0;
+  str_top = literal = bs_literal = 0;
+  progress_units = 0;
+  Progress();
   Advance();
   while (ch && !error) Line();
   if (!error && (if_depth || depth)) Fail(ASM_ERR_SYNTAX);
   CloseSection();
+  lines_read += progress_units - 1; // Progress counted one as it started
 }
-void Pass(unsigned char p) {
-  unsigned int rs0;
-  unsigned char i = 0;
-  pass = p;
-  rs = 0;
-  str_top = literal = bs_literal = 0;
+// Each unit alone, as rgbasm -P assembles a file: the prelude once (read as pass 2 does, its
+// symbols the snapshot every unit starts from), then each unit's two passes and its objects for
+// LINK.MOD. Without a project, the document is the one unit.
+void Assemble(void) {
+  unsigned char i = 0, p;
+  pass = 2;
+  importing = 0;
+  rs0 = 0;
   CharmapReset();
-  progress_units = 0;
-  Progress();
-  unit_tag = 0;
   if (prelude) Unit(prelude);
   rs0 = rs;
-  do { // each starts as rgbasm would, after the prelude
-    if (nunits) unit_tag = i + 1;
-    unique = 0;
-    rs = rs0;
-    Unit(nunits ? units[i] : 0); // without a project, the document
+  Snapshot();
+  do {
+    unit_sect0 = nsects;
+    unit_n = i + 1;
+    for (p = 1; p <= 2 && !error; ++p) {
+      Restore(p == 1);
+      pass = p;
+      importing = p == 2;
+      if (p == 2) { // its sections are known: the object starts
+        pass1_units = progress_units;
+        UnitData();
+        Out(OBJ_UNIT);
+        Out16(unit_sect0);
+        Out16(nsects - unit_sect0);
+      }
+      Unit(nunits ? units[i] : 0); // without a project, the document
+    }
+    if (!error) Exports();
   } while (++i < nunits && !error);
-  if (p == 1) pass1_units = progress_units;
-}
-// where the error is: its file's symbol and name, line and the document position
-void Report(unsigned int file, unsigned int line, Pos at) {
-  AsmContext* c = context;
-  unsigned char *e, n, i, from = 0;
-  c->file = file;
-  c->line = line;
-  c->pos = (unsigned int)at;
-  c->base = 0;
-  if (!file) return;
-  e = Entry(file);
-  n = e[10];
-  if (n > sizeof(c->name) - 1) from = n - (sizeof(c->name) - 1); // the path's end
-  for (i = 0; from < n; ++i) {
-    if ((c->name[i] = e[11 + from++]) == '/') c->base = i + 1;
-  }
-  c->name[i] = 0;
+  Out(OBJ_END);
 }

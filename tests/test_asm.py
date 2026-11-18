@@ -1,7 +1,7 @@
 """ASM.MOD against RGBDS: builds modules/asm.c for the PC (tests/asm_host.c), assembles each
 tests/asm/*.asm with both and compares the ROMs byte for byte; then checks error reporting.
 usage: python3 tests/test_asm.py"""
-import os, subprocess, sys, tempfile
+import json, os, subprocess, sys, tempfile
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'scripts'))
 
@@ -168,24 +168,27 @@ def macro_log(work):
     print('macro log: call site, innermost body line and failing byte checked')
     return 0
 
+# ASM.MOD's sources (modules/modules.json's, all pages)
+ASM_SOURCES = [name for page in ('sources', 'sources2', 'sources3', 'sources4', 'sources5')
+               for module in json.loads((ROOT / 'modules/modules.json').read_text())['modules'] if module['name'] == 'ASM'
+               for name in module.get(page, [])]
+
 def main():
-    # the module's ints are 16 bits on SDCC: build it that way here too
-    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '.o', str(ROOT / 'modules/asm.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '2.o', str(ROOT / 'modules/asm_emit.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '3.o', str(ROOT / 'modules/asm_line.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '4.o', str(ROOT / 'modules/asm_str.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '5.o', str(ROOT / 'modules/asm_loop.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '6.o', str(ROOT / 'modules/asm_main.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '7.o', str(ROOT / 'modules/asm_sect.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '8.o', str(ROOT / 'modules/asm_pushs.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '9.o', str(ROOT / 'modules/asm_align.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '10.o', str(ROOT / 'modules/asm_progress.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '11.o', str(ROOT / 'modules/asm_proj.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '12.o', str(ROOT / 'modules/asm_log.c')])
-    run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '13.o', str(ROOT / 'modules/asm_cache.c')])
-    for n, name in ((14, 'asm_cstart.c'), (15, 'asm_cread.c'), (16, 'asm_cbytes.c'), (17, 'asm_projw.c')):
-        run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + f'{n}.o', str(ROOT / 'modules' / name)])
-    run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c')] + [str(HOST) + suffix + '.o' for suffix in ('', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17')])
+    # the module's ints are 16 bits on SDCC: build it that way here too. LINK.MOD (link.c) goes in
+    # the same program, its ModuleMain renamed: tests/asm_host.c runs one, then the other
+    objs = []
+    for name in ASM_SOURCES:
+        objs.append(str(HOST) + '-' + name + '.o')
+        run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', objs[-1], str(ROOT / 'modules' / name)])
+    # LINK.MOD's pages as one object whose only global is LinkMain: its names stay its own
+    link_objs = []
+    for name in ('link.c', 'link_obj.c'):
+        link_objs.append(str(HOST) + '-' + name + '.o')
+        run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-DModuleMain=LinkMain', '-c', '-o', link_objs[-1], str(ROOT / 'modules' / name)])
+    objs.append(str(HOST) + '-link.o')
+    run(['ld', '-r', '-o', objs[-1]] + link_objs)
+    run(['objcopy', '--keep-global-symbol=LinkMain', objs[-1]])
+    run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c')] + objs)
     failed = 0
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
@@ -291,6 +294,7 @@ ENDM
 CHARMAP "<A>", $F0
 RSRESET
 DEF FIELD_A RB 2
+DEF COUNTER = 10
 ENDC
 ''',
     'inc/more.inc': 'DEF SHARED EQU $5A\n',
@@ -314,6 +318,22 @@ SECTION FRAGMENT "frag", ROM0
   db "a1"
 SECTION "same size 1", ROMX
   ds 16, 1
+; the prelude's state changes here, and the next unit starts from the prelude's again
+DEF COUNTER = COUNTER + 1
+PURGE FIELD_A
+DEF FIELD_A EQU $33
+CHARMAP "<B>", $F1
+NEWCHARMAP extra
+SECTION "a state", ROMX
+  db COUNTER, FIELD_A, "<B>"
+SECTION "rst vector", ROM0[$08]
+RstVec::
+  ret
+SECTION "a hram", HRAM
+hVar:: db
+SECTION FRAGMENT "afrag", ROMX, ALIGN[4]
+AFrag::
+  db 1, 2, 3, 4
 ''',
     'src/b.asm': '''DEF LOCAL EQU 2
 MACRO mine
@@ -334,6 +354,31 @@ SECTION FRAGMENT "frag", ROM0
   db "b1"
 SECTION "same size 2", ROMX
   ds 16, 2
+SECTION "b state", ROMX
+  db COUNTER, FIELD_A, "<B>"
+; values only the link knows: other units' labels, this one's in sections without an address
+SECTION "b link", ROMX
+  ld a, BANK(AStart)
+  ld a, BANK(@)
+  ld b, HIGH(AStart)
+  ld c, LOW(BStart)
+  ld d, LOW(~AStart)
+  rst RstVec
+  ldh a, [hVar]
+  ldh [hVar], a
+  dw BStart - AStart, AStart + 3, AFrag
+  dl AStart
+  db LOW(AStart.loop - 1), -LOW(BStart)
+  jr JrTarget
+  ASSERT AStart >= $4000
+  ASSERT BANK(BStart) != 0
+SECTION "b link 2", ROMX
+JrTarget:
+  ret
+SECTION FRAGMENT "afrag", ROMX, ALIGN[2]
+  db 5
+  ds ALIGN[1]
+  db 6
 ''',
     'src/main.asm': '''SECTION "entry", ROM0[$150]
   call AStart
@@ -341,6 +386,17 @@ SECTION "same size 2", ROMX
   shared 9
 ''',
 }
+# a third unit's errors that only the link finds
+UNIT_ERRORS = [
+    ('SECTION "c", ROMX\n  dw VALUE\n  db LATER\n', 'SYMBOL', 3), # another unit's constant isn't this one's unless EXPORTed
+    ('SECTION "c", ROMX\n  nop\n  ld a, AStart\n', 'RANGE', 3),
+    ('SECTION "c", ROMX\n  jr Far\nSECTION "far", ROMX\nFar:\n  ds 300\n', 'JR', 2), # placed first, 300 bytes back
+    ('SECTION "c", ROMX\n  ASSERT AStart < $4000\n', 'ASSERT', 2),
+    ('SECTION "c", ROMX\nBStart:\n  nop\n', 'DUPLICATE', 1), # b's label too
+    ('SECTION FRAGMENT "afrag", ROM0\n  db 7\n', 'DUPLICATE', 1), # a FRAGMENT of another type
+    ('SECTION "c", ROMX\n  ldh a, [AStart]\n', 'RANGE', 2),
+    ('SECTION "c", ROMX\nMACRO m\n  call \\1\nENDM\n  nop\n  m Nowhere\n', 'SYMBOL', 6), # at the macro's call
+]
 def units(work):
     root = work / 'units'
     for name, text in UNIT_FILES.items():
@@ -363,12 +419,14 @@ def units(work):
             print(f'units: FAIL sizes {len(mine)} {len(expected)}, differences at {[hex(i) for i in diffs[:8]]}'); failed += 1
         else:
             print(f'units: {len(names)} units, {len(mine)} bytes match')
-    # a unit's constant isn't another's unless it's EXPORTed
-    (root / 'src/c.asm').write_text('SECTION "c", ROMX\n  dw VALUE\n  db LATER\n')
+    # errors the link finds, in a third unit: the code, its file and line
     (root / 'project.gbp').write_text('main src/a.asm src/b.asm src/c.asm\nrgbasm -E -P inc/prelude.inc\n')
-    out = run([str(HOST), str(root / 'src/b.asm'), str(work / 'ours.gb')]).stdout.split()
-    if int(out[0]) != CODES['SYMBOL'] or int(out[1]) != 3 or out[6:] != ['c.asm']:
-        print(f'units: another unit\'s constant: FAIL got {NAMES.get(int(out[0]), out[0])} line {out[1]} {out[6:]}'); failed += 1
+    for text, name, line in UNIT_ERRORS:
+        (root / 'src/c.asm').write_text(text)
+        out = run([str(HOST), str(root / 'src/b.asm'), str(work / 'ours.gb')]).stdout.split()
+        if int(out[0]) != CODES[name] or int(out[1]) != line or out[6:] != ['c.asm']:
+            print(f'units: {text!r}: FAIL got {NAMES.get(int(out[0]), out[0])} line {out[1]} {out[6:]}, wanted {name} line {line}'); failed += 1
+    if not failed: print(f'units: {len(UNIT_ERRORS)} link errors checked')
     return failed
 
 def projects(work):

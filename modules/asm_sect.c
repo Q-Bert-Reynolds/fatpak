@@ -1,24 +1,19 @@
 // ASM.MOD: sections (see asm_shared.h). Pass 1 records each section in PSRAM; one without an
-// address starts at its region's base for the pass (labels are relocated after). Link then
-// places them the way rgblink does, and pass 2 assembles each at its final place. A section's
-// name is a symbol ('"' and the name) holding its index, so FRAGMENTs and pass 2 find it again.
+// address starts at its region's base in both passes, and its labels keep those pass values:
+// LINK.MOD places the sections the way rgblink does and moves them. A section's name is a symbol
+// ('"' and the name) holding its index, so FRAGMENTs and pass 2 find it again; each unit has its own.
 #include "asm_shared.h"
 
-#define SECT_SIZE 32
-#define SECT_PER_BLOCK (512 / SECT_SIZE)
-typedef char sect_fits[sizeof(Sect) <= SECT_SIZE && ASM_SECTIONS / SECT_PER_BLOCK <= ASM_FILE_BLOCK - ASM_SECTION_BLOCK ? 1 : -1];
+typedef char sect_fits[sizeof(Sect) == SECT_SIZE && ASM_SECTIONS / SECT_PER_BLOCK <= ASM_DATA_BLOCK - ASM_SECTION_BLOCK ? 1 : -1];
 
 Sect sec;
 unsigned int nsects, cur; // sections recorded, the open (or last) one
-unsigned char max_bank;
+unsigned int unit_sect0, data_top;
 
-// region (type) base, size, bank count, first bank's list in heads
+// region (type) base, size, bank count
 static const unsigned int region_base[8] = {0, 0x4000, 0x8000, 0xA000, 0xC000, 0xD000, 0xFE00, 0xFF80};
 static const unsigned int region_size[8] = {0x4000, 0x4000, 0x2000, 0x2000, 0x1000, 0x1000, 0xA0, 0x7F};
 static const unsigned char region_banks[8] = {1, ROM_BANKS, 2, 4, 1, 8, 1, 1};
-static const unsigned char region_first[8] = {0, 1, ROM_BANKS + 1, ROM_BANKS + 3, ROM_BANKS + 7, ROM_BANKS + 8, ROM_BANKS + 16, ROM_BANKS + 17};
-#define HEADS (ROM_BANKS + 18)
-static unsigned int heads[HEADS]; // Link: each bank's placed sections by address
 
 static unsigned char* SectAt(unsigned int index) {
   Window(ASM_SECTION_BLOCK + index / SECT_PER_BLOCK);
@@ -34,10 +29,32 @@ void SectCopy(unsigned int index, unsigned char store) {
 
 void Enter(void) { // sec is open: pc goes on from its fill
   sec_rom = sec.type < 2;
-  sec_bank = sec.bank;
+  sec_bank = (sec.flags & SECT_BANK) || region_banks[sec.type] == 1 ? sec.bank : BANK_LINK;
   sec_last = region_base[sec.type] + region_size[sec.type] - 1;
+  sec_dbase = sec.data - (sec.start >> 9);
   pc = sec.fill;
   in_section = 1;
+}
+// after a unit's pass 1: each ROM section's bytes get blocks from ASM_DATA_BLOCK, the first
+// holding its start address's 512 bytes (pass 2 writes them at pc % 512)
+void UnitData(void) {
+  unsigned int i;
+  for (i = unit_sect0; i < nsects && !error; ++i) {
+    SectCopy(i, 0);
+    sec.data = data_top;
+    if (sec.type < 2 && sec.size) {
+      data_top += ((sec.start & 511) + sec.size + 511) >> 9;
+      if (data_top > ASM_DATA_END) Fail(ASM_ERR_FULL);
+    }
+    SectCopy(i, 1);
+  }
+}
+void CloseSection(void) {
+  if (!in_section) return;
+  sec.fill = pc;
+  if (pass == 1) sec.size = pc - sec.start;
+  SectCopy(cur, 1);
+  in_section = 0;
 }
 // the first address at or after at that's ofs past a multiple of mask + 1
 static unsigned int Align(unsigned int at, unsigned int mask, unsigned int ofs) {
@@ -102,7 +119,7 @@ void Section(void) {
     if (pass == 1 && (!fragment || !(sec.flags & SECT_FRAGMENT) || sec.type != type)) { Fail(ASM_ERR_DUPLICATE); return; }
     if (pass == 2 && !(sec.flags & SECT_OPEN)) {
       sec.flags |= SECT_OPEN;
-      sec.fill = sec.base;
+      sec.fill = sec.start;
       sec.align = sec.align0;
       sec.ofs = sec.ofs0;
     }
@@ -124,79 +141,4 @@ void Section(void) {
     sec.pos = (unsigned int)frames[0].line_pos;
   }
   Enter();
-}
-
-// rgblink's order, biggest first: address and bank given, then bank (one-bank regions count),
-// then address, then neither; within those aligned first (the rank), then bigger, then later in
-// the source
-static unsigned char Rank(void) {
-  unsigned char bank = (sec.flags & SECT_BANK) || region_banks[sec.type] == 1;
-  return (sec.flags & SECT_ADDRESS ? (bank ? 6 : 2) : (bank ? 4 : 0)) | (sec.align != 0);
-}
-// a's place comes before b's (by rank and size; the index breaks ties)
-static unsigned char Before(const Sect* a, unsigned int ia, const Sect* b, unsigned int ib) {
-  if (a->rank != b->rank) return a->rank > b->rank;
-  if (a->size != b->size) return a->size > b->size;
-  return ia > ib;
-}
-// places every section like rgblink; NO_SECT, or the one that can't be placed
-unsigned int Link(void) {
-  unsigned int n, i, best, at, mask, prev, t, base, end;
-  unsigned char bank, last, found;
-  Sect* p;
-  max_bank = 0;
-  for (i = 0; i < HEADS; ++i) heads[i] = NO_SECT;
-  for (i = 0; i < nsects; ++i) {
-    SectCopy(i, 0);
-    sec.rank = Rank();
-    SectCopy(i, 1);
-  }
-  for (n = 0; n < nsects; ++n) {
-    Phase(3);
-    best = NO_SECT;
-    for (i = 0; i < nsects; ++i) { // the first left (sec holds the best so far)
-      p = (Sect*)SectAt(i);
-      if (!(p->flags & SECT_PLACED) && (best == NO_SECT || Before(p, i, &sec, best))) {
-        best = i;
-        SectCopy(i, 0);
-      }
-    }
-    mask = (1 << sec.align) - 1;
-    bank = (sec.flags & SECT_BANK) ? sec.bank : sec.type == 1 || sec.type == 5;
-    last = (sec.flags & SECT_BANK) ? bank : region_banks[sec.type] - 1;
-    found = 0;
-    if (!sec.size) { // empty: its address, or the region's start; it takes no room
-      sec.bank = bank;
-      sec.base = (sec.flags & SECT_ADDRESS) ? sec.start : Align(region_base[sec.type], mask, 0); // rgblink ignores the offset
-      found = 1;
-    }
-    for (; !found && bank <= last; ++bank) { // the first gap in the bank's list where it fits
-      at = (sec.flags & SECT_ADDRESS) ? sec.start : Align(region_base[sec.type], mask, sec.ofs);
-      prev = NO_SECT;
-      for (t = heads[region_first[sec.type] + bank]; t != NO_SECT; prev = t, t = p->next) {
-        p = (Sect*)SectAt(t);
-        base = p->base;
-        end = base + p->size;
-        if ((unsigned long)at + sec.size <= base) break;
-        if (at < end) {
-          if (sec.flags & SECT_ADDRESS) break;
-          at = Align(end, mask, sec.ofs);
-          if (at < end) { at = 0xFFFF; break; } // past $FFFF: doesn't fit
-        }
-      }
-      if (at < region_base[sec.type] || (unsigned long)at + sec.size > (unsigned long)region_base[sec.type] + region_size[sec.type]) continue;
-      if (t != NO_SECT && (unsigned long)at + sec.size > base) continue; // a fixed address that overlaps
-      found = 1;
-      sec.bank = bank;
-      sec.base = at;
-      sec.next = t;
-      if (prev == NO_SECT) heads[region_first[sec.type] + bank] = best;
-      else ((Sect*)SectAt(prev))->next = best;
-    }
-    if (!found) return best;
-    sec.flags |= SECT_PLACED;
-    SectCopy(best, 1);
-    if (sec.type < 2 && sec.bank > max_bank) max_bank = sec.bank; // empty ones too, like rgblink
-  }
-  return NO_SECT;
 }

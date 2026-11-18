@@ -145,7 +145,7 @@ static unsigned int chunk_pos;
 unsigned char chunk_n;
 char args[256];
 unsigned char arg_top;
-static char idtext[8];
+char idtext[8]; // \@'s text (PushId, asm_main.c)
 unsigned int unique; // the last \@
 char path[128];
 static unsigned int* lf_line; // the line count of the frame a line feed in ch came from
@@ -202,18 +202,6 @@ static void PushArg(unsigned char n) {
   for (at = m->args, i = 0; i < n; ++i) while (args[at++]);
   for (i = at; args[i]; ++i);
   Push(F_ARG, SRC_ARGS, at, i);
-}
-static void PushId(void) { // \@: _u and the innermost macro or repeat's number
-  Frame* m = &frames[depth];
-  unsigned int id;
-  unsigned char i = 7;
-  while (m > frames && m->kind != F_MACRO && m->kind != F_REPT) --m;
-  id = m->id;
-  idtext[i] = 0;
-  do { id = (unsigned int)Div(id, 10); idtext[--i] = '0' + (unsigned char)div_rem; } while (id); // no SDCC helpers
-  idtext[--i] = 'u';
-  idtext[--i] = '_';
-  Push(F_ARG, SRC_ID, i, 7);
 }
 unsigned char run_n;
 static const unsigned char* run_p;
@@ -512,29 +500,21 @@ static UVal Number(void) {
   }
   return Apply('+', v, Apply('g', Apply('s', f, 1), num.u));
 }
-unsigned char Char(void) { // a character of a string or literal, quotes end it
-  unsigned char c = ch;
-  if (c == 0 || c == 10) { Fail(ASM_ERR_STRING); return 0; }
-  Advance();
-  if (c != '\\') return c;
-  c = ch;
-  Advance();
-  if (c == 'n') return 10;
-  if (c == 't') return 9;
-  if (c == 'r') return 13;
-  if (c == '0') return 0;
-  if (c == '\\' || c == '"' || c == '\'' || c == '{' || c == '}') return c;
-  Fail(ASM_ERR_STRING);
-  return 0;
-}
-static Val Lookup(void) { // ident's value, 0 and undefined when it has none yet
+// ident's value, 0 and undefined when it has none yet. A label whose section has no address is a
+// pass value there (xs 1); a name this unit doesn't have in pass 2 is another unit's (xs 2).
+static Val Lookup(void) {
   if (FindDotted()) {
     num.w[0] = sym_value;
     num.w[1] = sym_kind == SYM_EQU || sym_kind == SYM_VAR ? sym_extra : 0;
+    if (sym_kind == SYM_LABEL && !(sym_extra & LABEL_FIXED)) {
+      xs = 1;
+      xsect = sym_extra;
+    }
     return num.v;
   }
   sym_kind = 0xFF;
-  if (pass == 2) Fail(ASM_ERR_SYMBOL);
+  if (importing && ident[0] != '.') Import();
+  else if (pass == 2) Fail(ASM_ERR_SYMBOL);
   undefined = 1;
   return 0;
 }
@@ -550,7 +530,7 @@ void Expand(void) {
 }
 static Val Symbol(void) { // ident is a name, a function or the register c
   Val v;
-  unsigned char k = Keyword(T_FUNCTIONS);
+  unsigned char k = Keyword(T_FUNCTIONS), o;
   if (k >= 5 && k != 0xFF) return StrNumber(k); // STRLEN, STRCMP, STRFIND, STRRFIND
   if (k == 4) { // _NARG: the enclosing macro's argument count
     Frame* m = &frames[depth];
@@ -563,18 +543,32 @@ static Val Symbol(void) { // ident is a name, a function or the register c
       Advance();
       Space();
       if (k >= 2) { // bank(label or @), def(name)
-        if (k == 2 && ch == '@') { Advance(); v = sec_bank; }
+        if (k == 2 && ch == '@') {
+          Advance();
+          v = sec_bank;
+          if (v == BANK_LINK) RelSect(RPN_BANKSECT, cur);
+        }
         else {
           ReadIdent();
           if (!ident_len) Fail(ASM_ERR_SYNTAX);
           if (k == 3) v = FindDotted() && (pass == 1 || sym_seen); // defined above, in this pass
-          else { Lookup(); v = sym_bank; }
+          else {
+            o = rpn_n;
+            Lookup();
+            v = sym_bank;
+            if (xs == 2) rpn[o] = RPN_BANKSYM; // another unit's
+            else if (sym_kind == SYM_LABEL && v == BANK_LINK) RelSect(RPN_BANKSECT, sym_extra);
+            else xs = 0;
+          }
         }
       }
       else {
         v = Binary(1);
-        if (!k) v >>= 8;
-        v &= 0xFF;
+        if (xs) v = Rel(k ? RPN_LOW : RPN_HIGH, v);
+        else {
+          if (!k) v >>= 8;
+          v &= 0xFF;
+        }
       }
       Expect(')');
       return v;
@@ -589,6 +583,7 @@ static Val Symbol(void) { // ident is a name, a function or the register c
 static Val Primary(void) {
   Val v;
   unsigned char c;
+  xs = 0;
   if (pending) { pending = 0; return Symbol(); }
   Space();
   c = ch;
@@ -598,16 +593,28 @@ static Val Primary(void) {
     Expect(')');
     return v;
   }
-  if (c == '-') { Advance(); return 0 - (UVal)Primary(); }
   if (c == '+') { Advance(); return Primary(); }
-  if (c == '~') { Advance(); return ~Primary(); }
-  if (c == '!') { Advance(); return !Primary(); }
+  if (c == '-' || c == '~' || c == '!') { // a value the link works out takes the operator along
+    Advance();
+    v = Primary();
+    if (xs) return Rel(c == '-' ? RPN_NEG : c == '~' ? RPN_NOT : RPN_LNOT, v);
+    if (c == '-') return 0 - (UVal)v;
+    if (c == '~') return ~v;
+    return !v;
+  }
   if (c == '$') { Advance(); return Digits(16); }
   if (c == '%') { Advance(); return Digits(2); }
   if (c == '&') { Advance(); return Digits(8); }
   if (IsDigit(c)) return Number();
   if (c == '\'') { Advance(); return CharLiteral(); } // through the charmap
-  if (c == '@') { Advance(); return pc; }
+  if (c == '@') {
+    Advance();
+    if (!(sec.flags & SECT_ADDRESS)) { // a pass value in the open section
+      xs = 1;
+      xsect = cur;
+    }
+    return pc;
+  }
   if (IsStart(c)) { ReadIdent(); return Symbol(); }
   Fail(ASM_ERR_SYNTAX);
   return 0;
@@ -632,24 +639,43 @@ static void ReadOp(void) {
   for (i = 0; op_levels[i] != c; ++i) if (op_levels[i] < 8) op_level = op_levels[i];
 }
 static Val Binary(unsigned char min) {
+  unsigned char lmark = rpn_n; // where the left operand's RPN starts
   Val left = Primary(), right;
-  unsigned char o, level;
+  unsigned char o, level, ls;
+  unsigned int lsect;
   while (1) {
     if (!op) ReadOp();
     if (!op || op_level < min) return left;
     o = op;
     level = op_level;
     op = 0;
+    ls = xs;
+    lsect = xsect;
     right = Binary(level + 1);
-    left = Apply(o, left, right);
+    if (ls | xs) {
+      x_ls = ls;
+      x_lsect = lsect;
+      x_lmark = lmark;
+      left = Combine(o, left, right);
+    }
+    else left = Apply(o, left, right);
   }
 }
+// an expression; one the link has to work out leaves its state for a patch (prel, and the RPN)
 Val Eval(void) {
+  Val v;
   op = 0;
-  return Binary(1);
+  v = Binary(1);
+  if (xs) {
+    if (prel) Fail(ASM_ERR_UNSUPPORTED); // two in one statement
+    prel = xs;
+    psect = xsect;
+    pval = v;
+  }
+  return v;
 }
 Val Constant(void) { // an expression that must be known in pass 1: sizes, addresses
-  Val v = Eval();
+  Val v = Known();
   if (undefined) Fail(ASM_ERR_FORWARD);
   return v;
 }
@@ -704,7 +730,7 @@ void Line(void) {
   Frame* f;
   if (!(++line_tick & 63)) Progress();
   f = TextFrame();
-  undefined = 0;
+  undefined = prel = rpn_n = 0;
   f->line_pos = f->pos - 1;
   Space();
   if (IsStart(ch)) {

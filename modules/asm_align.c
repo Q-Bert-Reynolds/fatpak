@@ -1,18 +1,11 @@
-// ASM.MOD: closing a section and DS ALIGN's arithmetic (asm_sect.c has the sections; this is on
-// another page for room)
+// ASM.MOD: DS ALIGN's arithmetic (asm_sect.c has the sections; this is beside Ds, on another
+// page for room)
 #include "asm_shared.h"
 
-void CloseSection(void) {
-  if (!in_section) return;
-  sec.fill = pc;
-  if (pass == 1) sec.size = pc - sec.start;
-  SectCopy(cur, 1);
-  in_section = 0;
-}
 
 // DS ALIGN[a, ofs], like rgbasm: the padding to the next address that's ofs past a multiple of
 // 1 << a, as far as the section's own alignment (or address) says where that is
-static unsigned int Offset(void) { return pc - (pass == 1 ? sec.start : sec.base); }
+static unsigned int Offset(void) { return pc - sec.start; } // both passes start it there
 unsigned int AlignPad(unsigned char a, unsigned int ofs) {
   unsigned char fixed = sec.flags & SECT_ADDRESS;
   if (!in_section || (!fixed && !sec.align)) return 0;

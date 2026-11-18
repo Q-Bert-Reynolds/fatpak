@@ -25,7 +25,8 @@ void CacheStart(void) {
     cache_base = BLOCK(file_at);
     end = (unsigned int)file_size;
     for (n = 0; n < HEAD && CacheByte(n) == cache_head[n]; ++n);
-    if (n == HEAD) { // the same volume's
+    if (n == HEAD) { // the same volume's: in the files' table
+      sym_table = 1;
       for (at = HEAD; at < end && (n = CacheByte(at)) != 0 && n <= NAME_MAX; at += RECORD) {
         CacheName(n, at + 1);
         ident[ident_len = n] = 0;
@@ -35,6 +36,7 @@ void CacheStart(void) {
           Add(SYM_CACHED, at, 0);
         }
       }
+      sym_table = 0;
     }
   }
   cache_n = 0;

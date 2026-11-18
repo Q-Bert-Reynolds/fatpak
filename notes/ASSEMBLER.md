@@ -60,10 +60,11 @@ assemble byte-identical to RGBDS, unmodified (`memory1.asm` calls
   first, as `rgbasm` resolves them when a Makefile runs it there.
 - **Units.** `main` takes several files, and may be repeated: each is a unit, as
   a Makefile that runs `rgbasm` once per file and `rgblink` over the objects
-  builds them, in link order (sections are placed as `rgblink` places them given
-  the objects in that order). `rgbasm -P file` is read before each unit (once
-  per pass: it may define anything but code), so a project split like beisbol's
-  is:
+  builds them, in link order. Each unit is assembled on its own, as `rgbasm -P
+  file` assembles it, and LINK.MOD then does what `rgblink` and `rgbfix` do. The
+  `-P` file is read once per build (it may define anything but code) and every
+  unit starts from what it left: its symbols, charmaps and `RS` counter. A
+  project split like beisbol's is:
 
   ```
   main   src/memory1.asm src/strings.asm src/gbdk.asm ...
@@ -73,13 +74,16 @@ assemble byte-identical to RGBDS, unmodified (`memory1.asm` calls
   rgbfix -jvcs -k 01 -l 0x33 -m 0x1B -p 255
   ```
 
-  Labels and sections belong to every unit, as with `rgbasm -E` (`-E` is
-  accepted; without it labels are still shared). Constants, macros and string
-  symbols belong to the unit that defines them, unless it `EXPORT`s them (after
-  defining them); `\@` and the `RS` counter start again in each unit (from where
-  the prelude left the counter); the prelude's charmaps are every unit's. Up to
-  63 units. They are still assembled together in one build: a unit isn't kept
-  between builds (TODO.md, Stage 2).
+  A unit's constants, macros and string symbols are its own. Other units'
+  labels (all of them, as with `rgbasm -E`; `-E` is accepted, and without it
+  labels are still shared) and the constants they `EXPORT` are found by the
+  link, so a unit can use them wherever `rgbasm` would leave the value to
+  `rgblink`: an operand, `DB`/`DW`/`DL`, `ASSERT`, `BANK()`, but not a size, an
+  address or an `IF` (NOT YET DEFINED). `\@` starts again in each unit. Up to
+  63 units. Every unit is still assembled at every build: keeping them between
+  builds is next (TODO.md, Stage 2). One difference from `rgbasm`: a unit that
+  uses a prelude symbol, then `PURGE`s and redefines it, sees the new value at
+  the earlier use too (its second pass finds its own definition first).
 - The `rgbasm` and `rgbfix` lines take those tools' options: `-D NAME[=VALUE]`
   (an `EQUS`, `"1"` without a value), `-P file`, `-E` and `-W...` (ignored);
   `-v -j -c -C -s` and `-k -l -m -n -p -r -t -i`,
@@ -126,8 +130,8 @@ assemble byte-identical to RGBDS, unmodified (`memory1.asm` calls
 | `INCBIN "file"[, start[, length]]` | copied a run at a time (up to 256 bytes), not a byte at a time |
 | `PURGE name, ...` | names can be defined again (pass 2 too) |
 | `CHARMAP "string", value, ...`, `NEWCHARMAP name[, base]`, `SETCHARMAP name`, `PUSHC`, `POPC` | strings in `DB` and character literals go through the current map: the longest entry at each position, unmapped characters as themselves; `'x'` must be one entry of one byte; 8 maps, 60 KiB of entries; `\{` `\}` are literal braces |
-| `ASSERT expr[, msg]`, `FAIL` | ASSERT is checked in pass 2 |
-| `EXPORT`, `GLOBAL` | a constant, macro or string symbol defined above becomes every later unit's; labels are already |
+| `ASSERT expr[, msg]`, `FAIL` | ASSERT is checked in pass 2, or by the link when it needs a label's address |
+| `EXPORT`, `GLOBAL` | an `EQU` or `=` constant defined above is other units' too, for values the link works out; labels already are |
 | `WARN`, `PRINT`, `PRINTLN` | accepted and ignored |
 | Expressions | `+ - * / % & \| ^ << >> == != < > <= >= && \|\| ! ~`, unary `-`, parentheses, `@`, `HIGH()`, `LOW()`, `BANK(label or @)`, `DEF(name)`, `_NARG`, `__RGBDS_MAJOR__` etc., `$hex %bin &oct 123 'c'`, fixed point `1.5` (16.16), `_` separators |
 
@@ -153,7 +157,9 @@ gone from RGBDS 1.0 and aren't accepted.
 
 **Placement** follows rgblink, checked against it on thousands of random
 layouts. Pass 1 records each section's type, bank, alignment (and its offset),
-address and size.
+address and size; LINK.MOD joins `FRAGMENT`s of one name (each unit's piece
+after the last, its bank, address or alignment counting for the whole, as
+rgblink merges them) and places them.
 Then, in order: sections with address and bank given (one-bank regions count as
 given), then bank only, then address only, then neither; within each, aligned
 ones first, then bigger, then the later one in the source. Each goes in the
@@ -167,15 +173,65 @@ that holds the highest ROM bank used.
 
 ## How it works
 
-Two passes. Pass 1 parses everything, sizes every statement (instruction sizes
-depend only on syntax), assembles each section as if it started at its region's
-base (or its address), and defines labels. `Link` places the sections and
-`Relocate` moves every label by its section's offset. Pass 2 parses again from
-the start, evaluates and writes bytes. `DS` counts and section addresses must be
-known in pass 1 (NOT YET DEFINED otherwise); a label that ends up somewhere else
-in pass 2 is a PHASE ERROR (a bug). `DEF()` in pass 2 only sees symbols defined
-earlier in pass 2 (a mark bit per symbol), so include guards work.
+Two modules, run one after the other (`BuildFile`): ASM.MOD assembles each unit
+(the document alone is one) as `rgbasm` would, into objects in PSRAM; LINK.MOD
+does `rgblink`'s and `rgbfix`'s work on them and writes `build.log`.
 
+ASM.MOD reads the prelude (`-P`) once, as pass 2 reads, and `Snapshot`
+(`asm_prelude.c`) copies what it left. Then each unit gets two passes. Pass 1
+parses it, sizes every statement (instruction sizes depend only on syntax),
+records its sections (each starting at its region's base, or its address) and
+defines labels; pass 2 parses again, evaluates and writes bytes, with the same
+addresses (a label that ends up somewhere else is a PHASE ERROR, a bug). `DS`
+counts and section addresses must be known in pass 1 (NOT YET DEFINED
+otherwise). `DEF()` in pass 2 only sees symbols defined earlier in pass 2 (a mark
+bit per symbol), so include guards work. Before each pass, `Restore` puts back
+the prelude's state: the blocks of prelude symbols the unit redefined, `PURGE`d
+or `EXPORT`ed (`Dirty` marks them), the charmaps if it added to them, and
+before pass 1 the hash heads, which drops the last unit's symbols.
+
+- **Relocation** (`asm_rel.c`). Without the link, a label in a section that has
+  no address is a pass value there, and a name the unit doesn't define is
+  another unit's. The parser keeps each value's state (`xs`): known; a pass value
+  in one of the unit's sections (labels, `@`), which stays one under `+` and `-`
+  of a known value, and two in the same section subtract to a known distance (so
+  `jr .loop` and `End - Start` need nothing); or RPN, once any other operator
+  meets one (`Combine`, `Rel`). A value that isn't known becomes a **patch**
+  where it's used: an operand or `DB`/`DW`/`DL` item (its field: a byte, word,
+  long, `jr` distance, `ldh` address, `rst` opcode or `sp+e8`), or `ASSERT`;
+  anywhere else it's NOT YET DEFINED. Beisbol has 12,039 (rgbasm writes 13,418:
+  it patches every `jr` to a label).
+- **Objects** (`modules/asm_obj.h`). Pass 2 writes each ROM section's bytes in
+  its own blocks from `ASM_DATA_BLOCK` (`UnitData` gives them out after pass 1;
+  the block for `pc` is `sec_dbase + pc / 512`), and the unit's records to the
+  object stream at `ASM_OBJ_BLOCK`: a unit header, its patches (section, offset,
+  type, file and line, RPN), then `Exports`' section names, labels (full
+  `Global.local` names: other units use them) and `EXPORT`ed constants; a
+  patch's place is its pass address, like a label's. The sections themselves
+  stay in the build's section table. Beisbol: 699 data
+  blocks (of 2,048), 1,105 object blocks (of 2,048), the prelude's snapshot 105
+  (of 255).
+- **LINK.MOD** (`modules/link.c`, `link_obj.c`; two pages, 13 and 12). It reads
+  `ASM_LINK_BLOCK` (`AsmLink`: ASM.MOD's result, counts, times and `rgbfix`
+  options) and, unless the assembly failed, walks the object stream three
+  times: section names (the first of a name is a section, later `FRAGMENT`s of
+  it join it: `Join`), then, after `Place` (rgblink's placement, below), labels
+  and exported constants into a hash table of names (in ASM.MOD's names-table
+  blocks, 1,024 chains), and last the patches. Between those, `Image` zeroes
+  the ROM image and copies each section's bytes to its place. After `Place`,
+  each section's move (its address minus its pass start: within 16 bits, both
+  are in one region) and bank are a table in WRAM, so a label or patch needs no
+  section record. A patch's RPN runs on a stack of 32-bit values (`Value`, with
+  ASM.MOD's `Apply`), and the result is checked for its field and written; any
+  error reports the patch's file and line. The stream is read a block's run at a
+  time (records a step doesn't need are skipped), and zeroing, copying, the
+  checksum and the name hash are assembly: in SDCC's C they took beisbol's link
+  to 4:16, now 1:30 (CGB: names 8 s, placing 8, labels 31, image 6, patches 32,
+  header 4). SDCC 4.2 also dropped the store of `(in_ofs += n) == 512` when it
+  wasn't 512 (the walk then never ended on the device): such tests are written
+  apart. Then the header and checksums
+  (`Header`), and `build.log` after a build that failed too. The box says
+  `Placing sections` and `Finishing`, with the time going on from ASM.MOD's.
 - **The stream** is a stack of frames that read text by address (`Pos`, 32
   bits): below 64 KiB the document (read through `ModSource` 128 bytes at a
   time), above it a PSRAM byte (`block << 9 | offset`): included files, the EQUS
@@ -201,35 +257,36 @@ ERROR at line 1, byte 0. The host C build did not exhibit the compiler bug.
 The device regression includes several 22 KB files to exercise that overflow.
 
 - **String symbols** go on a heap in PSRAM (`ASM_HEAP_BLOCK`, 64 KiB)
-  that never shrinks during a build, so a macro defined from a string keeps its
-  body; the symbol's value is its offset, extra its length. String expressions
+  that never shrinks during a unit (each starts again from the prelude's), so a
+  macro defined from a string keeps its body; the symbol's value is its offset,
+  extra its length. String expressions
   are built in a 256-byte WRAMX buffer, nested ones stacked.
 - **Symbols** live in PSRAM from `ASM_SYMBOL_BLOCK` as 8-byte units: next, scope
   (the parent label's unit, 0 for globals), value, kind (top bit: defined this
-  pass), bank, extra (a label's section, a macro's body length), length, name
-  (up to 79 characters). 256 hash chains whose heads fill the first block;
-  entries never cross a block. Macros keep their body's address (value and bank)
-  and length; files are symbols named by their path's last 79 characters.
-  `Find` is assembly on the device (every name read goes through it).
-  A unit's constants, macros and string symbols have its tag (`unit_tag`, 1-63:
-  no entry's unit is that low, those are the hash heads) where a global's scope
-  is 0, and `Find` takes a global name's scope as 0 or the current unit's tag;
-  the prelude and a lone source are tag 0. `EXPORT` sets the scope to 0. So
-  another unit's `DEF X` is invisible without a pass over the table, a unit's
-  own constants stay findable in pass 2 (forward references), and a build
-  without units is the same as before.
+  pass), bank, extra (a label's section, with `LABEL_FIXED` when that has an
+  address; a macro's body length), length, name (up to 79 characters). Two
+  tables of 256 hash chains share the code (`sym_table`): names (heads in the
+  first block, entries from unit 128 to 49,151), emptied back to the prelude's
+  for each unit, and files (heads in the second, entries from 49,152), kept the
+  whole build: files are symbols named by their path's last 79 characters.
+  Entries never cross a block. Macros keep their body's address (value and
+  bank) and length. A label's bank is `BANK_LINK` until the link when its
+  section's bank isn't given; an `EXPORT`ed constant's bank is 1. `Find` is
+  assembly on the device (every name read goes through it).
 - **Sections** are 32-byte records in PSRAM from `ASM_SECTION_BLOCK` (512, 32
   blocks), each found by a symbol named `"` and the section's name (so a
   FRAGMENT or pass 2 finds its own). The open one is a copy in WRAMX (`sec`),
   written back when it closes; `fill` is where the pass is up to, so a FRAGMENT
   or `POPS` goes on there. `DS ALIGN` changes the alignment while a pass runs,
   so each pass starts from the declared one. Labels keep their section's 16-bit
-  index for `Relocate`.
-- **Image** at `ASM_IMAGE_BLOCK` (up to 1 MiB, 2048 blocks); `Emit` selects the
-  block from the bank and address. `INCBIN` goes through `EmitFile` (assembly,
-  beside `Emit`): runs that end at the next 256-byte boundary of the file's
-  block or the image's (or at the file's end), copied through `str[]` between
-  the two windows; pass 1 only counts them. A byte at a time it was a far call
+  index for the link; each unit has its own records, and LINK.MOD joins
+  `FRAGMENT`s (`root`, `piece`) and records where each went (`base`, `bank`).
+- **Image** at `ASM_IMAGE_BLOCK` (up to 1 MiB, 2048 blocks), which LINK.MOD
+  fills from the sections' data blocks; `Emit` writes the open section's block
+  for the address. `INCBIN` goes through `EmitFile` (assembly, beside `Emit`):
+  runs that end at the next 256-byte boundary of the file's block or the
+  section's (or at the file's end), copied through `str[]` between the two
+  windows; pass 1 only counts them. A byte at a time it was a far call
   each (72 KB took ~30 s of a pass on DMG; beisbol's split has ~630 KB). Image, symbols, heap, charmaps and files are
   inside the large-file add buffer, which is unused while a text-buffer document
   is open.
@@ -237,11 +294,12 @@ The device regression includes several 22 KB files to exercise that overflow.
   host's search (the first file found sets `file_level`, the folder later
   searches try first and `BuildFile` takes the project's folder from), reads it
   as a frame with the lexer's own helpers, loads each main file (`units[]`) and
-  the `-P` prelude as included files, defines the `-D` strings before both
-  passes, and `Header` applies the `rgbfix` bytes. Each pass (`Pass`, in
-  `asm_line.c`) reads the prelude, then each unit (`Unit`: an empty frame 0 that
-  includes the file, so it reads as `INCLUDE` does), closing the unit's section
-  and starting its `\@`, `RS` counter, label scope and `IF` depth over. The context reports the error file's path
+  the `-P` prelude as included files, defines the `-D` strings before the
+  prelude, and LINK.MOD's `Header` applies the `rgbfix` bytes. `Assemble` (in
+  `asm_line.c`) reads the prelude, then each unit's passes (`Unit`: an empty
+  frame 0 that includes the file, so it reads as `INCLUDE` does), closing the
+  unit's section and starting its `\@`, `RS` counter, label scope and `IF` depth
+  over. The context reports the error file's path
   as written (`name`, with `base` at its file name) and, on success, the output.
 - **build.cache** (`asm_cache.c`, `asm_cstart.c`, `asm_cread.c`, `asm_cbytes.c`;
   split to fit the pages): `CacheStart` (in `Project`, before main) reads the
@@ -258,44 +316,48 @@ The device regression includes several 22 KB files to exercise that overflow.
   count, `Progress`'s percent and the 16.16 fraction into `Apply` calls.
 - **Pages.** A five-page wide module ([MODULES.md](MODULES.md)):
   `modules/asm.c` (page 13: the stream, words, expressions, word tables, a
-  `ModuleMain` that calls `Main`), `modules/asm_emit.c` with `asm_pushs.c` and
-  `asm_main.c` (page 12: 32-bit arithmetic, symbol table, relocation, instruction
-  encoders, image fill and header; `PUSHS`/`POPS`; the passes), `modules/asm_line.c` with `asm_loop.c`
-  (page 5: lines, operands, directives, `IF`/`REPT`/`MACRO`, the error report;
-  `FOR`, opening files, `INCLUDE`, `INCBIN`), `modules/asm_str.c` with
-  `asm_align.c` (page 4: `EQUS`, string functions, `{}`, charmaps; closing a
-  section, `DS ALIGN`'s arithmetic) and `modules/asm_sect.c` with
-  `asm_progress.c` and `asm_proj.c` (page 15: sections and `Link`; progress;
-  `project.gbp`).
+  `ModuleMain` that calls `Main`), `asm_emit.c` with `asm_pushs.c`,
+  `asm_main.c`, `asm_projw.c` and `asm_cbytes.c` (page 12: 32-bit arithmetic,
+  the symbol table, instruction encoders, the data blocks; `PUSHS`/`POPS`;
+  `Main`, `Where`, `Report`, `\@`; the cache's 32-bit sector arithmetic),
+  `asm_line.c` with `asm_loop.c`, `asm_progress.c`, `asm_cstart.c` and
+  `asm_align.c` (page 5: lines, operands, directives, `IF`/`REPT`/`MACRO`,
+  `Assemble`; `FOR`, opening files, `INCLUDE`, `INCBIN`; progress; `DS ALIGN`),
+  `asm_str.c` with `asm_cread.c` (page 4: `EQUS`, string functions, `{}`,
+  charmaps, string characters) and `asm_sect.c` with `asm_proj.c`,
+  `asm_cache.c`, `asm_rel.c` and `asm_prelude.c` (page 15: sections;
+  `project.gbp`; relocation and patches; the prelude's snapshot and the exports).
   Calls between pages cost a far call each; pointers never cross: each page's
   constants are read by its own code; `modules/asm_shared.h` lists what is shared
   (globals are WRAMX BSS, readable from all five). Free bytes: page 13 ~20,
-  12 ~250, 5 ~115, 4 ~30, 15 ~25 (with `jr` for every jump in range,
-  `modules/peephole_jr.def`). Units cost ~490 bytes; the room came from SDCC's
-  32-bit C moved to assembly: `Find` (550 bytes in C), `StepVar` (`FOR`'s
-  variable, 312), `FileOf` (a file symbol's position and size, 219 in C, which
-  `LoadPath` shares), with `Output` (the default ROM name) in `asm_projw.c` on
-  page 12.
+  12 ~90, 5 ~20, 4 ~40, 15 ~100 (with `jr` for every jump in range,
+  `modules/peephole_jr.def`). Units and patches came out of SDCC's 32-bit C
+  moved to assembly (`Find`, `StepVar`, `FileOf`, `EmitFile`), `Link`,
+  `Relocate`, `Fill`, `Header` and `Log` moving to LINK.MOD, and code moved to
+  the page that calls it (`Char` beside the string code, `DS ALIGN`'s beside
+  `Ds`, `CloseSection` beside `Section`).
 - **32-bit arithmetic** is hand-written assembly on the device: SDCC's `long`
   code took `Apply` alone to 1.6 KB. `Apply` (every binary operator) and `Div`
   (unsigned, for `FOR` counts and `{}` digits) work on two 4-byte registers in
-  `asm_emit.c`; `Digit` (`num * base + d`, for every digit read) is in `asm.c`.
+  `asm_math.c` (in both modules); `Digit` (`num * base + d`, for every digit read) is in `asm.c`.
   The C beside each is the PC harness's, which `test_asm.py` checks against
   RGBDS; `values.asm` runs both in Gearboy.
 - **Host** (`src/editor/build.c`, page 13, `FileWriteImage` and `fs_LoadFile`
-  in `fatfs.c`): saves, runs the module with an `AsmContext` (length in; line,
-  position, file, blocks, symbols back), shows the result in a box, writes the
-  blocks with `f_write` straight from the window, then `LaunchGame` for RUN.
-- **Progress:** every 64 lines (and as each pass starts) `Progress`
-  (`asm_progress.c`) puts the pass, a count and where it is (`Report`: file and
-  line) in the context and calls `ModProgress(0)`. The host draws at most every
-  5 s, so a build under 5 s never pays for it, and its `BuildProgress` (bank 1)
-  writes the box: `Pass 1: 45k lines` (pass 1 can't know the total), `Pass 2:
-  47%` (of pass 1's lines), the file's name and `line n`, and the time since
-  BUILD (`m:ss`). While a file is found and read the host draws too, between its
-  sectors, with the file's name and `loading`; after pass 1 (`Link`,
-  `Relocate`) and pass 2 (`Fill`, `Header`) `Phase` shows `Placing sections` and
-  `Finishing`. So the time moves every 5 s whatever the build is doing: if it
+  in `fatfs.c`): saves, runs ASM.MOD with an `AsmContext` (length in; line,
+  position, file, symbols back), then LINK.MOD with it (blocks back; the
+  error's place when it's the link's; `RunModule` keeps the clock going for
+  it and BUILD keeps `file_level`), shows the result in a box, writes the blocks
+  with `f_write` straight from the window, then `LaunchGame` for RUN.
+- **Progress:** every 64 lines (and as each file starts) `Progress`
+  (`asm_progress.c`) puts the pass, a count and where it is (`ReportWhere`: file
+  and line) in the context and calls `ModProgress(0)`. The host draws at most
+  every 5 s, so a build under 5 s never pays for it, and its `BuildProgress`
+  (bank 1) writes the box: for a document `Pass 1: 45k lines` (pass 1 can't know
+  the total; 64-line steps / 16, 2% short) and `Pass 2: 47%` (of pass 1's
+  lines), for a project `Assembling: 47%` (of its units' passes), then the
+  file's name and `line n`, and the time since BUILD (`m:ss`). While a file is
+  found and read the host draws too, between its sectors, with the file's name
+  and `loading`; LINK.MOD's `Phase` shows `Placing sections` and `Finishing`. So the time moves every 5 s whatever the build is doing: if it
   stops, so has the build. A draw between sectors is the deepest the OS stack
   gets (module, `ModLoad`, `FileSearch`, `FileTry`, `fs_LoadFile`,
   `ModuleAPIProgress`, `EditorDraw`, `RenderRow`): `FileTry`'s path is in
@@ -311,32 +373,36 @@ The device regression includes several 22 KB files to exercise that overflow.
   copy that failed). Before, that restarted the device, and a beisbol build on a
   GBA SP stayed frozen on its progress box for most of an hour (2026-11-13;
   Gearboy builds it through, so the cause is unconfirmed).
-- **build.log** (`asm_log.c`): written beside `project.gbp`, or the document,
-  after every build that ran (not after `COPY FAILED`): the output, each step's
-  time (pass 1 with the card's share and files, placing sections, pass 2,
-  finishing; lines approximate, to 64), the total, PSRAM copies retried, and
-  `built n KB` or `stopped: file line n: ERROR`. Times come from `ModStat`
+- **build.log** (LINK.MOD's `Log`): written beside `project.gbp`, or the
+  document, after every build that ran (not after `COPY FAILED`): the output,
+  the time assembling (with the lines read in all passes, approximate to 64, the
+  units, and the card's share and files) and linking (with sections and
+  patches), the total, PSRAM copies retried (both modules), and `built n KB` or
+  `stopped: file line n: ERROR`. Times come from `ModStat`
   (seconds counted by the host from `render_frames`, 60 a second: 0.5% slow); the
   text goes to `ASM_LOG_BLOCK` and the host writes `context.log_bytes` of it with
   `FileWriteImage` (bit 15 of its count).
 - **No SDCC helpers:** `*` `/` `%` are shift loops; numbers scale by shifts.
-- `tests/asm_host.c` builds the same three files for the PC with 16-bit ints
+- `tests/asm_host.c` builds the same sources for the PC with 16-bit ints
   (`-Dint=short`), a 16 MiB PSRAM array and includes from the source's folder,
-  so `tests/test_asm.py` can diff against RGBDS without an emulator.
+  so `tests/test_asm.py` can diff against RGBDS without an emulator. It runs
+  LINK.MOD's `ModuleMain` (as `LinkMain`, its two files one object whose other
+  names are local) after ASM.MOD's; `ASM_HOST_STATS=1` prints how full the
+  PSRAM regions got.
 
 ## Errors
 
 | Code | Message | Meaning |
 | --- | --- | --- |
 | 1 | SYNTAX ERROR | unexpected character, missing `,` `]` `)` `"`, unclosed `IF`/`REPT`/`MACRO` |
-| 2 | UNKNOWN SYMBOL | undefined in pass 2 |
-| 3 | ALREADY DEFINED | label, `EQU` or macro twice |
+| 2 | UNKNOWN SYMBOL | undefined in pass 2, or (the link) no unit defines or `EXPORT`s it |
+| 3 | ALREADY DEFINED | label, `EQU` or macro twice; a label in two units, a section name in two (not `FRAGMENT`s of one type) |
 | 4 | VALUE TOO BIG | operand outside its range |
 | 5 | JR TOO FAR | |
 | 6 | BAD OPERAND | no such form of the instruction |
 | 7 | NO SECTION | code or label outside a section, data in RAM |
 | 8 | SECTION FULL | past the region's end, outside it, or no room to place it |
-| 9 | NOT YET DEFINED | `DS`, `SECTION`, `REPT` or a constant needs a later symbol |
+| 9 | NOT YET DEFINED | `DS`, `SECTION`, `REPT`, `IF` or a constant needs a later symbol, or one only the link knows |
 | 10 | NOT SUPPORTED | a known directive this assembler lacks |
 | 11 | NAME TOO LONG | over 32 characters |
 | 12 | DIVIDE BY ZERO | |
@@ -344,7 +410,7 @@ The device regression includes several 22 KB files to exercise that overflow.
 | 14 | PHASE ERROR | assembler bug: a label moved between passes |
 | 15 | BAD STRING | unterminated, a bad escape, or a string over 256 bytes |
 | 16 | NO GLOBAL LABEL | local label before any global one |
-| 17 | TOO MANY SYMBOLS | 512 KiB of symbol table used |
+| 17 | TOO MANY SYMBOLS | a unit's symbols past 384 KiB, the prelude's past 120 KiB, or the link's names past 384 KiB |
 | 18 | NO CODE | nothing in ROM |
 | 19 | BAD BANK | wrong bank for the region, ROMX bank 0 or > 63, `ALIGN` > 13 |
 | 20 | ASSERT FAILED | `ASSERT` false or `FAIL` |
@@ -352,6 +418,9 @@ The device regression includes several 22 KB files to exercise that overflow.
 | 22 | TOO DEEP | nesting, arguments, 16 includes, 8 `PUSHS`, 512 sections or 63 units exceeded |
 | 23 | SECTIONS OVERLAP | two sections with addresses overlap |
 
+The link's errors (UNKNOWN SYMBOL, VALUE TOO BIG, JR TOO FAR, ASSERT FAILED,
+ALREADY DEFINED, SECTION FULL, SECTIONS OVERLAP) are reported at the line of the
+instruction, data or `ASSERT` that needed the value, or at the `SECTION`.
 Module load failures show the usual MODULE MISSING / DAMAGED / NEEDS NEWER OS.
 Results show in a box in the middle of the editor (`ShowBox`): the file's whole
 name (wrapped at 19 characters), `Line <n>` and the message, or the ROM's name and
@@ -363,14 +432,16 @@ Gearboy, from the keypress to the message (`tests/run_build.sh` prints these):
 
 | Source | DMG | CGB |
 | --- | --- | --- |
-| `hello.asm` (1 KB, 32 KiB ROM) | 517 frames (8.6 s) | 251 frames (4.2 s) |
-| `features.asm` with two includes | 637 frames (10.6 s) | 309 frames (5.2 s) |
-| `strings.asm` | 605 frames (10.1 s) | 296 frames (4.9 s) |
-| `loops.asm` | 513 frames (8.6 s) | 249 frames (4.2 s) |
-| `gbdk.asm` with `memory1.asm` and `hardware.inc` (52 KB of source) | 3,051 frames (51 s) | 1,481 frames (25 s) |
+| `hello.asm` (1 KB, 32 KiB ROM) | 733 frames (12.2 s) | 357 frames (6.0 s) |
+| `features.asm` with two includes | 862 frames (14.4 s) | 420 frames (7.0 s) |
+| `strings.asm` | 808 frames (13.5 s) | 396 frames (6.6 s) |
+| `loops.asm` | 755 frames (12.6 s) | 368 frames (6.1 s) |
+| `gbdk.asm` with `memory1.asm` and `hardware.inc` (52 KB of source) | 3,652 frames (61 s) | 1,717 frames (29 s) |
 
-About 55 / 28 frames of each are the card write; loading and swapping the four
-pages plus the WRAMX region is about 300 on DMG. Two routines are hand-written
+About 55 / 28 frames of each are the card write; loading and swapping the five
+pages plus the WRAMX region is about 300 on DMG, and LINK.MOD's two pages about
+200 more (2026-11-18: before LINK.MOD, `hello.asm` was 517 / 251 frames and
+`gbdk.asm` 3,051 / 1,481). Two routines are hand-written
 assembly on the device because every character or statement goes through them:
 `Advance`'s fast path (a pointer and count for the run of bytes left in the
 current chunk or PSRAM block; anything that moves the window or the frame stack
@@ -409,8 +480,12 @@ from `asm_line.c` on page 5 to the lexer on page 13: `Space`, `Keyword`, `Line`,
   built from a markdown file two folders down, against `rgbasm`/`rgbfix` with
   the same options; ten errors at their lines), units (three files with a `-P`
   prelude: their own constants, macros and `\@`, an `EXPORT`ed constant, labels
-  and a `FRAGMENT` across them, against `rgbasm -E -P` per file and `rgblink`;
-  another unit's constant is UNKNOWN SYMBOL), 150 random
+  and `FRAGMENT`s across them (aligned, with `DS ALIGN`), a prelude variable,
+  constant and charmap one unit changes and the next doesn't see, and what only
+  the link knows: other units' labels in operands, `BANK()`, `HIGH()`/`LOW()`,
+  `~`, `-`, differences, `rst`, `ldh` to HRAM, `dl`, `Global.local`, a `jr` to
+  another section and `ASSERT`; against `rgbasm -E -P` per file and `rgblink`;
+  then eight errors only the link finds, each at its file and line), 150 random
   section layouts (with fragments, offsets and `DS ALIGN`) whose labels and banks
   go in a fixed table, and 400 ROMX sections. Then each error code's line and
   position.
@@ -452,7 +527,7 @@ two-line prelude and limits raised) worked through it as far as it could:
 | 32-bit values | `D24`, `D32` (item costs) | done |
 | `-D` defines, `rgbfix` options | `_DEMO`, `LANG_EN`; `-jvcs -k 01 -l 0x33 -m 0x1B -p 255` | done: `project.gbp` |
 | Units | split into 50 (`rgbasm -E -P src/beisbol.inc` each, then `rgblink`) | done: `main` with several files |
-| Speed | ~1.1 MB of units and 110 KB of prelude read per pass, ~630 KB of `INCBIN` | 24.7 minutes on CGB in Gearboy; **to do**: keep units between builds |
+| Speed | ~1.1 MB of units read twice, 110 KB of prelude once, ~630 KB of `INCBIN` | 23.9 minutes on CGB in Gearboy; **to do**: keep units between builds |
 
 With a `project.gbp` (the one under Using it) beside an unmodified copy, the
 PC harness builds it from any file in it byte for byte as the Makefile's `rgbasm`
@@ -491,6 +566,19 @@ pass 2      11:28   ~14464 lines
 total       23:20
 ```
 
+With each unit assembled alone and LINK.MOD (2026-11-18), 85,861 frames (23.9
+min), the ROM again rgblink's:
+
+```
+beisbol.gb from project.gbp
+assembling   22:14   ~25088 lines, 50 units
+  card        1:37   393 files found and read, 0 through build.cache
+linking       1:30   295 sections, 12039 patches
+total        23:44
+```
+
+The prelude is read once instead of twice; the link (placing, labels, patches,
+the image and checksums) is 1:30 against the old 1:01 of placing and finishing.
 The rest is parsing: each unit is assembled twice every build. Before the split
 (one `main.asm`), Gearboy (CGB), 2026-11-13:
 
@@ -508,27 +596,24 @@ built 512 KB
 
 ## Next steps
 
-1. **Stage 2: units kept between builds** (TODO.md). Units now assemble
-   together, every build. To reassemble only a unit whose files changed:
-   - Each unit gets its own pass 1 and pass 2, back to back, with no `Link`
-     between: anything only a link can know (a label in a floating section,
-     another unit's label or `EXPORT`, `BANK()` of those, `@` in a floating
-     section) becomes a patch, an RPN expression as rgbasm writes it. On page 13
-     every operand and operator appends to an RPN buffer that's dropped when the
-     value comes out known; the emitters (`Emit8/16`, `EmitSigned`, `jr`, `DW`,
-     `DL`, `ldh`) write a patch instead of failing.
-   - The unit's object (sections with bytes, labels, `EXPORT`s, patches with
-     file and line, `ASSERT`s, and every file it read with its directory entry:
-     sector, place, date, time, size, as `build.cache` finds them) stays in
-     PSRAM; the host writes it beside `project.gbp`. A unit whose entries all
-     still match (the prelude's included) isn't assembled at all.
-   - `LINK.MOD`, run after `ASM.MOD`: reads the objects (new ones from PSRAM,
-     the rest from the card), places sections (`Link` and `Relocate` move there
-     from page 15), resolves symbols, evaluates patches and `ASSERT`s, fixes the
-     header and writes the ROM. That frees `Link`, `Relocate`, `Fill`, `Header`
-     and `Log` (~2.5 KB) from ASM.MOD for the patch code.
-   - Edited unit then: its two passes plus the prelude's (~110 KB each), and the
-     link.
+1. **Stage 2b: units kept between builds** (TODO.md). Units are assembled alone
+   now, into objects LINK.MOD links, so an unchanged unit's object can be
+   reused. The plan:
+   - ASM.MOD records each unit's files (`OpenFile`) and a hash of each file's
+     bytes (computed as it's loaded, in assembly), and writes them in the unit's
+     object (`OBJ_FILE` records); a patch's and a section's file become an index
+     into that list.
+   - After a build that worked, the host writes the section table, the used data
+     blocks and the object stream (contiguous from `ASM_SECTION_BLOCK`, after a
+     header block before it) as `build.obj` beside `project.gbp`.
+   - Next build: `build.obj` is loaded like a file; a unit whose files all still
+     hash the same (and the prelude's, and `project.gbp`'s options) isn't
+     assembled: ASM.MOD reserves its sections, data and object space, and LINK.MOD
+     (which has ~5 KB free) copies them in from the old file. Reading every file
+     to hash it is the cost of being sure: through `build.cache` that's ~0:21 for
+     beisbol. File dates would avoid it but not every cart's clock is set.
+   - Edited unit then: the prelude (~110 KB) and the unit's two passes, and the
+     link (1:30, mostly labels and patches: worth assembly next).
 2. **Hardware pass** for `EQUS`, `FOR` and `INCBIN` with the `Asm` folder.
 3. **Speed** (the profile above): five module loads and swaps are the biggest
    fixed cost for small files; a cached backup compare (MODULES.md) or keeping

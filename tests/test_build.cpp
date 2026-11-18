@@ -249,10 +249,10 @@ static void Library(const char* image, const char* symbols, const char* data, co
     unsigned minutes = 0, seconds = 0; size_t at = log.find("total");
     if (at != std::string::npos) sscanf(log.c_str() + at + 5, "%u:%u", &minutes, &seconds);
     int total = minutes * 60 + seconds, expected_s = frames / 60;
-    if (log.find("the document") != 0 || log.find("\npass 1 ") == std::string::npos || log.find("\n  card ") == std::string::npos ||
-        log.find("\npass 2 ") == std::string::npos || log.find("\nfinishing ") == std::string::npos || log.find("built 32 KB") == std::string::npos ||
+    if (log.find("the document") != 0 || log.find("\nassembling ") == std::string::npos || log.find("\n  card ") == std::string::npos ||
+        log.find("\nlinking ") == std::string::npos || log.find("built 32 KB") == std::string::npos ||
         total < expected_s - 10 || total > expected_s) fprintf(stderr, "build.log (%u frames):\n%s", frames, log.c_str());
-    Check(log.find("\npass 2 ") != std::string::npos && log.find("built 32 KB") != std::string::npos, "build.log has each step");
+    Check(log.find("\nassembling ") != std::string::npos && log.find("\nlinking ") != std::string::npos && log.find("built 32 KB") != std::string::npos, "build.log has each step");
     Check(total >= expected_s - 10 && total <= expected_s, "build.log's total matches the build's time (less saving, loading the module and writing)");
     s.pad(A_Key);
     printf("%s gbdk.asm with memory1.asm and hardware.inc: %u frames, %u box updates\n", color ? "CGB" : "DMG", frames, s.progress);
