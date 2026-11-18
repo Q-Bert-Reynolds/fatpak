@@ -4,12 +4,10 @@
 #include "asm_math.c"
 
 // --- byte loops in assembly (SDCC's C took a minute of beisbol's link for them): the window filled
-// with b; sum plus its 512 bytes; copy_n bytes (0: 256) from from to to
-unsigned char copy_n;
+// with b; sum plus its 512 bytes (Copy is in link_read.c)
 #ifdef HOST_TEST
 void Fill(unsigned char b) { unsigned int i; for (i = 0; i < 512; ++i) WINDOW[i] = b; }
 unsigned int Sum(unsigned int sum) { unsigned int i; for (i = 0; i < 512; ++i) sum += WINDOW[i]; return sum; }
-void Copy(unsigned char* to, const unsigned char* from) { unsigned char n = copy_n; do *to++ = *from++; while (--n); }
 #else
 void Fill(unsigned char b) __naked {
   b; // a
@@ -43,48 +41,18 @@ unsigned int Sum(unsigned int sum) __naked {
 	ret
   __endasm;
 }
-void Copy(unsigned char* to, const unsigned char* from) __naked {
-  to; from; // de, bc
-  __asm
-	ld	a, [_copy_n]
-	ld	l, a
-.copy:
-	ld	a, [bc]
-	inc	bc
-	ld	[de], a
-	inc	de
-	dec	l
-	jr	nz, .copy
-	ret
-  __endasm;
-}
 #endif
 
-// --- the object stream: records read a block's run at a time, and what a step doesn't need skipped
-unsigned int in_block, in_ofs;
-static void Read(unsigned char* p, unsigned char n) {
-  unsigned int left;
-  while (n) {
-    left = 512 - in_ofs;
-    copy_n = n < left ? n : (unsigned char)left;
-    Window(in_block);
-    Copy(p, WINDOW + in_ofs);
-    p += copy_n;
-    n -= copy_n;
-    in_ofs += copy_n; // apart: SDCC 4.2 dropped the store of (in_ofs += copy_n) == 512 when it wasn't
-    if (in_ofs == 512) {
-      in_ofs = 0;
-      ++in_block;
-    }
-  }
-}
-static void Skip(unsigned char n) {
-  in_ofs += n;
-  in_block += in_ofs >> 9;
-  in_ofs &= 511;
-}
+unsigned int obj_end_block, obj_end_ofs;
 char name[160];
 unsigned char name_n;
+// file's name (ASM.MOD's files table): its length, and the stream at it for Read
+unsigned char FileName(unsigned int file) {
+  in_block = ASM_SYMBOL_BLOCK + (file >> 6);
+  in_ofs = ((file & 63) << 3) + 10;
+  Read(&name_n, 1);
+  return name_n;
+}
 
 // --- where each section went: Place's address minus the passes' (both in one region, so within
 // 16 bits), and its bank; Moved and Put need nothing else
@@ -291,18 +259,43 @@ static void Put(unsigned int s, unsigned int pc, unsigned char type) {
 static unsigned char head[PATCH_HEAD];
 #define HEAD16(at) (head[at] | (head[(at) + 1] << 8))
 void Walk(unsigned char step) {
-  unsigned char kind, n;
+  unsigned char kind, n, unit = 0, kept = 0;
+  unsigned int back_block = 0, back_ofs = 0;
   unsigned int s;
   Val v;
   in_block = ASM_OBJ_BLOCK;
   in_ofs = 0;
   while (!error) {
+    if (kept && in_block == kept_end_block && in_ofs == kept_end_ofs) { // an unchanged unit's end: back
+      kept = 0;
+      in_block = back_block;
+      in_ofs = back_ofs;
+    }
     Read(&kind, 1);
-    if (kind == OBJ_END) break;
+    if (kind == OBJ_KEEP) { // an unchanged unit's object, in the last build.obj
+      Read(&n, 1);
+      back_block = in_block;
+      back_ofs = in_ofs;
+      kept = 1;
+      report_unit = unit++;
+      KeepAt(n);
+      if (step == 2) Phase(3);
+      continue;
+    }
+    if (kind == OBJ_END) {
+      obj_end_block = in_block; // just past it: build.obj takes the stream to here
+      obj_end_ofs = in_ofs;
+      break;
+    }
     if (kind == OBJ_UNIT) {
       Read(head, 4);
       first = HEAD16(0);
+      report_unit = unit++;
       if (step == 2) Phase(3);
+      continue;
+    }
+    if (kind == OBJ_FILE) { // a file the unit read: for build.obj
+      Skip(2);
       continue;
     }
     if (kind == OBJ_PATCH) { // section, pass address, type, file, line, pos, RPN length
@@ -315,6 +308,7 @@ void Walk(unsigned char step) {
       rpn_n = n;
       Read(rpn, n);
       Put(HEAD16(0), HEAD16(2), head[4]);
+      ++link.patches;
       continue;
     }
     Read(head, kind == OBJ_SECTION ? 3 : 5); // the section and length, or a label's or constant's 4 bytes too

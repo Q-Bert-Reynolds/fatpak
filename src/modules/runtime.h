@@ -14,7 +14,8 @@ extern unsigned int module_entry;
 extern unsigned char file_level; // ModFile/ModLoad: the folder level (characters of file_dir) of the first file found
 extern void (*module_progress)(char* text);
 extern const char* module_loading; // ModFile/ModLoad: the name of the file being read, else 0
-extern unsigned long module_frames; // since RunModule started (LINK.MOD: ASM.MOD), counted at ModProgress and ModStat
+extern unsigned long module_frames; // since RunModule started (ASM.MOD, LINK.MOD: BUILD), counted at ModProgress and ModStat
+unsigned int Seconds(unsigned long frames); // 60 a second
 void ModuleAPIProgress(const char* text); // set with module_context: the text for ModProgress(0)
 extern void* module_context; // set just before RunModule, cleared after: passed to ModuleMain
 

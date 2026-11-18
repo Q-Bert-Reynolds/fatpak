@@ -182,12 +182,19 @@ def main():
         run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', objs[-1], str(ROOT / 'modules' / name)])
     # LINK.MOD's pages as one object whose only global is LinkMain: its names stay its own
     link_objs = []
-    for name in ('link.c', 'link_obj.c'):
+    for name in ('link.c', 'link_obj.c', 'link_build.c', 'link_read.c'):
         link_objs.append(str(HOST) + '-' + name + '.o')
         run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-DModuleMain=LinkMain', '-c', '-o', link_objs[-1], str(ROOT / 'modules' / name)])
     objs.append(str(HOST) + '-link.o')
     run(['ld', '-r', '-o', objs[-1]] + link_objs)
     run(['objcopy', '--keep-global-symbol=LinkMain', objs[-1]])
+    prep_objs = []
+    for name in ('prep.c', 'link_read.c'): # PREP.MOD, the same way
+        prep_objs.append(str(HOST) + '-prep-' + name + '.o')
+        run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-DModuleMain=PrepMain', '-c', '-o', prep_objs[-1], str(ROOT / 'modules' / name)])
+    objs.append(str(HOST) + '-prep.o')
+    run(['ld', '-r', '-o', objs[-1]] + prep_objs)
+    run(['objcopy', '--keep-global-symbol=PrepMain', objs[-1]])
     run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c')] + objs)
     failed = 0
     with tempfile.TemporaryDirectory() as tmp:
@@ -386,6 +393,43 @@ SECTION FRAGMENT "afrag", ROMX, ALIGN[2]
   shared 9
 ''',
 }
+# build.obj: unchanged units come from it (the PC's made-up directory entries: size and time)
+def incremental(work, root, names):
+    failed = 0
+    def build(expect_units, label):
+        env = dict(os.environ, ASM_LOG='1')
+        done = subprocess.run([str(HOST), str(root / 'src/b.asm'), str(work / 'ours.gb')], capture_output=True, text=True, env=env)
+        out = done.stdout.split()
+        assembled = next((l for l in done.stderr.splitlines() if 'units' in l and 'assembling' in l), '')
+        if done.returncode or out[0] != '0' or f'{expect_units} of {len(names)} units' not in assembled:
+            print(f'units, {label}: FAIL rc {done.returncode} {out[:2]} {assembled!r}'); return 1
+        for i, name in enumerate(names):
+            run(['rgbasm', '-E', '-P', 'inc/prelude.inc', '-D', 'X', '-o', str(work / f'u{i}.o'), name], cwd=root)
+        run(['rgblink', '-o', str(work / 'u.gb')] + [str(work / f'u{i}.o') for i in range(len(names))])
+        run(['rgbfix', '-v', '-p', '0', str(work / 'u.gb')])
+        if (work / 'ours.gb').read_bytes() != (work / 'u.gb').read_bytes():
+            print(f'units, {label}: FAIL the ROM differs'); return 1
+        return 0
+    failed += build(0, 'unchanged')
+    b = (root / 'src/b.asm').read_text()
+    (root / 'src/b.asm').write_text(b.replace('  ret\n', '  nop\n  nop\n  ret\n', 1)) # bigger: sections move
+    failed += build(1, 'b.asm edited')
+    failed += build(0, 'unchanged again')
+    prelude = (root / 'inc/prelude.inc').read_text()
+    (root / 'inc/prelude.inc').write_text(prelude + '; edited\n')
+    failed += build(3, 'the prelude edited')
+    # a link error in a unit build.obj kept (a.asm calls BStart, which b.asm no longer has)
+    (root / 'src/b.asm').write_text(b.replace('BStart::', 'BStart2::'))
+    done = subprocess.run([str(HOST), str(root / 'src/b.asm'), str(work / 'ours.gb')], capture_output=True, text=True)
+    out = done.stdout.split()
+    if int(out[0]) != CODES['SYMBOL'] or out[6:] != ['a.asm'] or int(out[1]) != 10:
+        print(f'units, an error in a kept unit: FAIL {NAMES.get(int(out[0]), out[0])} line {out[1]} {out[6:]}'); failed += 1
+    (root / 'src/b.asm').write_text(b)
+    (root / 'inc/prelude.inc').write_text(prelude)
+    (root / 'build.obj').unlink(missing_ok=True)
+    if not failed: print('units: build.obj: unchanged, edited, prelude edited, and an error in a kept unit')
+    return failed
+
 # a third unit's errors that only the link finds
 UNIT_ERRORS = [
     ('SECTION "c", ROMX\n  dw VALUE\n  db LATER\n', 'SYMBOL', 3), # another unit's constant isn't this one's unless EXPORTed
@@ -419,6 +463,7 @@ def units(work):
             print(f'units: FAIL sizes {len(mine)} {len(expected)}, differences at {[hex(i) for i in diffs[:8]]}'); failed += 1
         else:
             print(f'units: {len(names)} units, {len(mine)} bytes match')
+    failed += incremental(work, root, names)
     # errors the link finds, in a third unit: the code, its file and line
     (root / 'project.gbp').write_text('main src/a.asm src/b.asm src/c.asm\nrgbasm -E -P inc/prelude.inc\n')
     for text, name, line in UNIT_ERRORS:

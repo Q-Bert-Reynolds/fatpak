@@ -115,6 +115,10 @@ DEF ASM_LOG_BLOCK    EQU $38FE;build.log's text, 2 blocks (up to ADD_MAX / 512);
 DEF ASM_LINK_BLOCK   EQU $3900;what ASM.MOD hands LINK.MOD (AsmLink in modules/asm_obj.h)
 DEF ASM_SNAP_BLOCK   EQU $3901;the symbol table and charmaps after the prelude, put back for each unit (255 blocks)
 DEF ASM_SNAP_END     EQU $3A00
+DEF ASM_PREP_BLOCK   EQU $3A00;LINK.MOD's check of build.obj before ASM.MOD runs: which units are unchanged (3 blocks, AsmPrep)
+DEF ASM_SECTOR_BLOCK EQU $3A03;a directory sector LINK.MOD reads (ModSector)
+DEF ASM_OLD_BLOCK    EQU $307E;the last build.obj, loaded at the files' end (up to ASM_FILE_END) while it's used
+DEF ASM_BUILD_BLOCK  EQU $2130;the new build.obj, put together over the files after the link (FileWriteImage $2000)
 DEF MODULE_ABI     EQU 12;newest ABI the host provides, modules built for older ones still load
 DEF MODULE_TABLE   EQU $7F00;ABI jump table in resident bank 1, 3 bytes per entry
 DEF MODULE_SLOTS   EQU 32;entries reserved for it

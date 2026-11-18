@@ -68,19 +68,19 @@ static void ErrorCursor(const AsmContext* c, char* doc) {
 
 // minutes:seconds of frames (60 a second; the Game Boy's 59.7 makes it 0.5% slow)
 static char* PutTime(char* end, unsigned long frames) {
-  unsigned int minutes = 0;
+  unsigned int seconds = Seconds(frames), minutes = 0;
   unsigned char tens = 0;
-  for (; frames >= 3600; frames -= 3600) ++minutes;
-  for (; (unsigned int)frames >= 600; frames -= 600) ++tens; // no SDCC helpers in the OS either
+  for (; seconds >= 60; seconds -= 60) ++minutes; // no SDCC helpers in the OS either
+  for (; seconds >= 10; seconds -= 10) ++tens;
   end = PutNumber(end, minutes);
   *end++ = ':';
   *end++ = '0' + tens;
-  *end++ = '0' + (unsigned char)((unsigned int)frames / 60);
+  *end++ = '0' + (unsigned char)seconds;
   *end = 0;
   return end;
 }
-// build.log beside the project or the document, and build.cache beside project.gbp after a build
-// that worked; their own failures aren't reported
+// build.log beside the project or the document, and build.cache and build.obj beside project.gbp
+// after a build that worked; their own failures aren't reported
 static void WriteOutputs(const AsmContext* c, char* path) {
   if (c->log_bytes) {
     FolderPath(path, c->kind & ASM_PROJECT ? file_level : 0xFF, "build.log");
@@ -89,6 +89,10 @@ static void WriteOutputs(const AsmContext* c, char* path) {
   if (c->cache_blocks) {
     FolderPath(path, file_level, "build.cache");
     FileWriteImage(path, c->cache_blocks);
+  }
+  if (c->obj_blocks) { // each unit's object, for the next build (LINK.MOD put it together)
+    FolderPath(path, file_level, "build.obj");
+    FileWriteImage(path, c->obj_blocks);
   }
 }
 
@@ -113,6 +117,12 @@ static void BuildProgress(char* text) {
   PutTime(end, module_frames);
 }
 
+// PREP.MOD (which 2), ASM.MOD (1) or LINK.MOD (0) with the context, the box's progress BuildProgress's
+static unsigned char Module(AsmContext* c, unsigned char which) {
+  module_context = c;
+  module_progress = BuildProgress;
+  return which == 2 ? RUN_MODULE(PREP) : which ? RUN_MODULE(ASM) : RUN_MODULE(LINK);
+}
 void BuildFile(unsigned char run) {
   AsmContext context;
   char path[PATH_SIZE + FS_NAME_SIZE], text[FS_NAME_SIZE + 3 * LANG_MAX], *end;
@@ -124,15 +134,13 @@ void BuildFile(unsigned char run) {
   ShowBusy(Str(S_ASSEMBLING));
   context.length = tb_Length();
   context.kind = tb_lang == LANG_ASM ? ASM_DOC : 0; // anything builds under a project.gbp
-  context.log_bytes = context.cache_blocks = 0;
-  module_context = &context;
-  module_progress = BuildProgress;
-  result = RUN_MODULE(ASM);
+  context.log_bytes = context.cache_blocks = context.obj_blocks = 0;
+  module_frames = 0; // the build's time, through all three runs
+  result = Module(&context, 2); // PREP.MOD first: which units build.obj has unchanged
+  if (!result) result = Module(&context, 1);
   if (!result && module_status != ASM_NOT_ASM) { // then LINK.MOD: the image, or after an error build.log
     level = file_level; // project.gbp's folder (RunModule forgets it)
-    module_context = &context;
-    module_progress = BuildProgress;
-    result = RUN_MODULE(LINK); // its time goes on from ASM.MOD's
+    result = Module(&context, 0);
     file_level = level;
   }
   HideBox();

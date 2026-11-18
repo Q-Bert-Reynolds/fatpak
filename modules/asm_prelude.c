@@ -73,27 +73,25 @@ static void OutName(unsigned int unit, unsigned int parent) { // "Global.local" 
 }
 // the unit's sections' names, its labels and EXPORTed constants: the newest entries of each chain,
 // down to the prelude's
+typedef struct { unsigned int next, scope, value; unsigned char kind, bank; unsigned int extra; } SymHead; // an entry's start
 void Exports(void) {
-  unsigned char h = 0, kind, *e;
-  unsigned int unit, next, value, extra, parent;
+  unsigned char h = 0, kind, i, *p;
+  unsigned int unit;
+  SymHead e;
   do {
     Window(ASM_SYMBOL_BLOCK);
-    for (unit = ((unsigned int*)WINDOW)[h]; unit >= sym_mark && !error; unit = next) {
-      e = Entry(unit);
-      next = e[0] | (e[1] << 8);
-      parent = e[2] | (e[3] << 8);
-      value = e[4] | (e[5] << 8);
-      extra = e[8] | (e[9] << 8);
-      kind = e[6] & 0x7F;
+    for (unit = ((unsigned int*)WINDOW)[h]; unit >= sym_mark && !error; unit = e.next) {
+      for (p = Entry(unit), i = 0; i < sizeof(SymHead); ++i) ((unsigned char*)&e)[i] = p[i]; // (Out moves the window)
+      kind = e.kind & 0x7F;
       if (kind == SYM_SECTION) kind = OBJ_SECTION;
       else if (kind == SYM_LABEL) kind = OBJ_LABEL;
-      else if ((kind == SYM_EQU || kind == SYM_VAR) && e[7]) kind = OBJ_CONST; // EXPORTed
+      else if ((kind == SYM_EQU || kind == SYM_VAR) && e.bank) kind = OBJ_CONST; // EXPORTed
       else continue;
       Out(kind);
-      if (kind != OBJ_CONST) Out16((kind == OBJ_SECTION ? value : extra & ~LABEL_FIXED) - unit_sect0);
-      if (kind != OBJ_SECTION) Out16(value);
-      if (kind == OBJ_CONST) Out16(extra);
-      OutName(unit, parent);
+      if (kind != OBJ_CONST) Out16((kind == OBJ_SECTION ? e.value : e.extra & ~LABEL_FIXED) - unit_sect0);
+      if (kind != OBJ_SECTION) Out16(e.value);
+      if (kind == OBJ_CONST) Out16(e.extra);
+      OutName(unit, e.scope);
     }
   } while (++h);
 }

@@ -51,8 +51,13 @@ void NextCluster(void) {
 #endif
 
 #ifdef HOST_TEST
-// no FAT volume on the PC: every file is searched for
-void CacheStart(void) {}
+// no FAT volume on the PC: every file is searched for, and recorded with tests/asm_host.c's
+// made-up directory entries (for build.obj)
+extern void HostLastEntry(unsigned char* rec);
+void CacheStart(void) {
+  cache_n = 0;
+  CachePutN(cache_head, HEAD);
+}
 unsigned char CacheRead(unsigned int record, ModuleLoad* load) { (void)record; (void)load; return 1; }
 void CacheTime(unsigned int start) { *(unsigned long*)card_frames += (unsigned int)((unsigned int)ModStat(MODULE_STAT_FRAMES) - start); }
 #endif
@@ -74,6 +79,8 @@ unsigned char CacheLoad(ModuleLoad* load, unsigned int record) {
         CacheCopy11(cache_rec + 6, WINDOW + *(unsigned int*)(cache_rec + 4));
       }
     }
+#else
+    if (!result) HostLastEntry(cache_rec);
 #endif
   }
   if (!result) ++files_read;

@@ -40,6 +40,7 @@ typedef struct {
   unsigned int piece; // and where it starts in it
 } Sect;
 #define NO_SECT 0xFFFF
+#define FILE_UNITS 49152u // ASM.MOD's files table's first symbol: below it, a file is a number in a unit's list
 
 // rgbfix's options from project.gbp
 typedef struct {
@@ -56,6 +57,10 @@ typedef struct {
 #define OBJ_SECTION 2 // a section (2), its name's length and '"' with the name
 #define OBJ_LABEL 3 // a section (2), the pass value (2), the name's length and name ("Global.local" for a local)
 #define OBJ_CONST 4 // an EXPORTed constant: its value (4), the name's length and name
+#define OBJ_FILE 5 // a file the unit read (2): its symbol in ASM.MOD's files table, or in build.obj its
+                   // number in the unit's list (from 1); before the first unit, the prelude's
+#define OBJ_KEEP 6 // ASM.MOD's, for an unchanged unit: its number (1); LINK.MOD reads its object in the
+                   // last build.obj, its first section in ASM_PREP_BLOCK + 2
 #define OBJ_END 0xFF
 #define PATCH_HEAD 12 // a patch's bytes after its kind, up to the RPN
 // a patch's type: the field it fills
@@ -92,6 +97,48 @@ typedef struct {
   unsigned int files_read, cache_files;
   unsigned int retries; // its PSRAM copies retried
   unsigned char project; // project.gbp built it: context->name is the ROM's path
+  unsigned char assembled; // units assembled (the rest came from build.obj)
+  unsigned int data_end; // data blocks used, to here
   Fix fix;
 } AsmLink;
+
+// build.obj (beside project.gbp): each unit's object as the last build that worked left it, so an
+// unchanged unit isn't assembled again. Blocks from its start (ASM_BUILD_BLOCK as it's put
+// together, ASM_OLD_BLOCK as it's read): BuildHead, then the section records as ASM.MOD made
+// them (before the link; data counts blocks from build.obj's start), the data blocks, then each
+// unit's object stream and file list. A file's
+// record: its directory entry's sector (4) and place in it (2), the entry (32), the path's length
+// and the path (its symbol's name). An unchanged unit is one whose files' entries all read the
+// same (written by the clock: one dated 2026-01-01 00:00, the date without a clock, never is),
+// with project.gbp's and the prelude's.
+#define OBJ_MAGIC 0x4F4B5046UL // "FPKO"
+#define OBJ_VERSION 1
+#define FILE_RECORD 38 // a file record's bytes before its path
+typedef struct {
+  unsigned int first, n; // its sections (in build.obj's section records)
+  unsigned int data, data_n; // its data blocks: the first (from build.obj's start), how many
+  UVal obj, obj_n; // its object stream: from build.obj's start, bytes
+  UVal files; // its file list, from build.obj's start
+  unsigned char files_n;
+} BuildUnit;
+#define BUILD_HEAD_BLOCKS 4
+typedef struct {
+  UVal magic;
+  unsigned char version, units;
+  unsigned int nsects; // section records, from block BUILD_HEAD_BLOCKS
+  unsigned int data; // the data blocks' first block in build.obj
+  UVal size; // build.obj's bytes
+  unsigned char project[FILE_RECORD]; // project.gbp's record (no path)
+  UVal prelude; // the prelude's file list
+  unsigned char prelude_n;
+  BuildUnit unit[63];
+} BuildHead;
+
+// ASM_PREP_BLOCK: LINK.MOD's check, before ASM.MOD; the second block has each unchanged unit's
+// sections (an unsigned int each), the third its first section's number (ASM.MOD's Keep)
+typedef struct {
+  unsigned char valid; // build.obj is at ASM_OLD_BLOCK, and these are good
+  unsigned char all_clean; // no unit is assembled (nor the prelude)
+  unsigned char clean[8]; // a bit for each unchanged unit
+} AsmPrep;
 #endif

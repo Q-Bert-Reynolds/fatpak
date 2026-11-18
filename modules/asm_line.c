@@ -358,6 +358,7 @@ static void Unit(unsigned int file) {
   f->pos = 0;
   f->end = file ? 0 : context->length; // a file is included from an empty frame 0
   if (file) {
+    Opened(file);
     FileOf(file);
     Push(F_TEXT, SRC_TEXT, file_at, file_end);
   }
@@ -386,12 +387,17 @@ void Assemble(void) {
   importing = 0;
   rs0 = 0;
   CharmapReset();
-  if (prelude) Unit(prelude);
+  if (prelude && !prep.all_clean) Unit(prelude);
   rs0 = rs;
   Snapshot();
   do {
     unit_sect0 = nsects;
     unit_n = i + 1;
+    if (Clean(i)) { // build.obj has it: LINK.MOD copies it into the room Keep leaves
+      Keep(i);
+      continue;
+    }
+    ++asm_link.assembled;
     for (p = 1; p <= 2 && !error; ++p) {
       Restore(p == 1);
       pass = p;

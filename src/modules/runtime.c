@@ -82,7 +82,7 @@ unsigned char RunModule(const char* path, unsigned char id) {
   module_busy = 1;
   module_fail = 0;
   module_retries = 0;
-  if (id != MODULE_LINK) module_frames = 0; // LINK.MOD's goes on from ASM.MOD's (BUILD's box and build.log)
+  if (id != MODULE_LINK && id != MODULE_ASM) module_frames = 0; // BUILD's go on from its first (the box, build.log)
   frames_at = render_frames;
   module_aborted = buffers_live = 0;
   module_loading = 0;
@@ -421,7 +421,7 @@ void ModuleAPIProgress(const char* text) {
 }
 
 // ABI 10: ModStat (MODULE_STAT_*)
-static unsigned int Seconds(unsigned long frames) { // 60 a second: the Game Boy's 59.7 makes it 0.5% slow
+unsigned int Seconds(unsigned long frames) { // 60 a second: the Game Boy's 59.7 makes it 0.5% slow
   unsigned int seconds = 0;
   for (; frames >= 3600; frames -= 3600) seconds += 60;
   for (; (unsigned int)frames >= 60; frames -= 60) ++seconds;

@@ -118,6 +118,10 @@
 #define ASM_LINK_BLOCK   0x3900u//what ASM.MOD hands LINK.MOD (AsmLink in modules/asm_obj.h)
 #define ASM_SNAP_BLOCK   0x3901u//the symbol table and charmaps after the prelude, put back for each unit (255 blocks)
 #define ASM_SNAP_END     0x3A00u
+#define ASM_PREP_BLOCK   0x3A00u//LINK.MOD's check of build.obj before ASM.MOD runs: which units are unchanged (3 blocks, AsmPrep)
+#define ASM_SECTOR_BLOCK 0x3A03u//a directory sector LINK.MOD reads (ModSector)
+#define ASM_OLD_BLOCK    0x307Eu//the last build.obj, loaded at the files' end (up to ASM_FILE_END) while it's used
+#define ASM_BUILD_BLOCK  0x2130u//the new build.obj, put together over the files after the link (FileWriteImage 0x2000)
 #define MODULE_ABI     12//newest ABI the host provides, modules built for older ones still load
 #define MODULE_TABLE   0x7F00u//ABI jump table in resident bank 1, 3 bytes per entry
 #define MODULE_SLOTS   32//entries reserved for it

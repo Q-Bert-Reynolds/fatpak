@@ -161,9 +161,11 @@ unsigned char Project(void) {
       k = ProjWhich();
       if (k == 0) { // main: its files, read now so a missing one is reported here
         while (ProjWord(path) && !error) {
-          if (nunits == UNITS) Fail(ASM_ERR_NESTING);
-          else if (!(units[nunits++] = LoadPath())) Fail(file_error);
-          else if (!output[0]) Output(); // the first one's name, unless output says
+          if (nunits == UNITS) { Fail(ASM_ERR_NESTING); break; }
+          units[nunits] = 0; // an unchanged one isn't read: build.obj has it
+          if (!Clean(nunits) && !(units[nunits] = LoadPath())) Fail(file_error);
+          ++nunits;
+          if (!output[0]) Output(); // the first one's name, unless output says
         }
       }
       else if (k == 1) ProjWord(output); // over main's

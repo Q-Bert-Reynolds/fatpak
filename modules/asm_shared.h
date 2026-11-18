@@ -196,7 +196,6 @@ unsigned char* Entry(unsigned int unit);
 // back to the prelude's for each unit) and files (1: INCLUDE, INCBIN and build.cache's, kept all
 // build). Each has its heads block; their entries are in separate ranges.
 extern unsigned char sym_table;
-#define FILE_UNITS 49152u
 extern unsigned int file_next; // the files table's next unit
 extern unsigned int sym_mark; // the names table's first unit after the prelude's (a block's start)
 void Dirty(unsigned int unit); // a prelude symbol is about to change: its block goes back for the next pass
@@ -230,6 +229,11 @@ extern unsigned int out_block, out_ofs, out_end;
 void Out(unsigned char b);
 void Out16(unsigned int v);
 void Assemble(void); // asm_line.c: the prelude, then each unit's two passes and its objects
+void Opened(unsigned int file); // asm_rel.c: OBJ_FILE, in pass 2
+void Keep(unsigned char i); // an unchanged unit's room
+extern AsmPrep prep; // asm_main.c: LINK.MOD's check (ASM_PREP_BLOCK), zero without one
+unsigned char Clean(unsigned char i); // asm_rel.c: unit i is unchanged (LINK.MOD's check)
+extern unsigned int files_end; // where files may be loaded to (build.obj may be above)
 void Exports(void); // the unit's section names, labels and EXPORTed constants
 extern unsigned int patches, lines_read; // patches written; 64-line steps read, all passes
 #define CM_MAPS 8 // asm_str.c's charmaps: a names block and each map's heads block, from ASM_CHARMAP_BLOCK

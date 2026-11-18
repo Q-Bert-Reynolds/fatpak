@@ -80,8 +80,13 @@ assemble byte-identical to RGBDS, unmodified (`memory1.asm` calls
   link, so a unit can use them wherever `rgbasm` would leave the value to
   `rgblink`: an operand, `DB`/`DW`/`DL`, `ASSERT`, `BANK()`, but not a size, an
   address or an `IF` (NOT YET DEFINED). `\@` starts again in each unit. Up to
-  63 units. Every unit is still assembled at every build: keeping them between
-  builds is next (TODO.md, Stage 2). One difference from `rgbasm`: a unit that
+  63 units. A build that worked also writes **`build.obj`** beside
+  `project.gbp`: each unit's object and the directory entries of the files it
+  read. The next build assembles only units whose files changed (or all of them
+  when `project.gbp` or the prelude did) and takes the rest from it: beisbol
+  unchanged rebuilds in 2.1 minutes instead of 25. A file saved without a clock
+  (dated 2026-01-01 00:00) always counts as changed. Delete `build.obj` to
+  assemble everything again. One difference from `rgbasm`: a unit that
   uses a prelude symbol, then `PURGE`s and redefines it, sees the new value at
   the earlier use too (its second pass finds its own definition first).
 - The `rgbasm` and `rgbfix` lines take those tools' options: `-D NAME[=VALUE]`
@@ -211,7 +216,29 @@ before pass 1 the hash heads, which drops the last unit's symbols.
   stay in the build's section table. Beisbol: 699 data
   blocks (of 2,048), 1,105 object blocks (of 2,048), the prelude's snapshot 105
   (of 255).
-- **LINK.MOD** (`modules/link.c`, `link_obj.c`; two pages, 13 and 12). It reads
+- **build.obj** (`modules/prep.c`, `link_build.c`). PREP.MOD (one page) runs
+  first: it loads the last `build.obj` at `ASM_OLD_BLOCK`, above where the files
+  are packed, and reads the directory entry of `project.gbp` and of each file it
+  lists (`ModSector`, the sector kept between them), comparing name, attributes,
+  cluster, time, date and size. With `project.gbp` and the prelude's files the
+  same, each unit whose files are all the same is clean (`AsmPrep` at
+  `ASM_PREP_BLOCK`, `ASM_OLD` in the context). ASM.MOD doesn't read a clean
+  unit's main file nor assemble it (nor the prelude, if all are clean): `Keep`
+  writes `OBJ_KEEP` and takes its sections' numbers. In pass 2 every file a
+  unit opens is an `OBJ_FILE` record. LINK.MOD's `Restore` copies the kept
+  units' section records into their numbers and their data blocks after the
+  others; `Walk` reads their objects in the old `build.obj` (`KeepAt`, to their
+  recorded length); errors in them name their file from its list. After a link
+  that worked, `Compose` puts the new `build.obj` together over the files
+  (`ASM_BUILD_BLOCK`): a head (`BuildHead`: `project.gbp`'s record, the
+  prelude's list, a `BuildUnit` per unit), the section records as they were
+  before the link (`Snap`), the data, then each unit's object (files as numbers
+  in its list) and list. A file's record is its entry's sector and place, from
+  `build.cache`'s index (so only with one), and the entry as `ModSector` reads it
+  now. The host writes it with `FileWriteImage`'s `$2000` count. When every unit
+  was clean it isn't rewritten. Beisbol's is ~940 KB.
+- **LINK.MOD** (`modules/link.c`, `link_obj.c` with `link_read.c`,
+  `link_build.c`; three pages, 13, 12 and 5). It reads
   `ASM_LINK_BLOCK` (`AsmLink`: ASM.MOD's result, counts, times and `rgbfix`
   options) and, unless the assembly failed, walks the object stream three
   times: section names (the first of a name is a section, later `FRAGMENT`s of
@@ -330,7 +357,7 @@ The device regression includes several 22 KB files to exercise that overflow.
   Calls between pages cost a far call each; pointers never cross: each page's
   constants are read by its own code; `modules/asm_shared.h` lists what is shared
   (globals are WRAMX BSS, readable from all five). Free bytes: page 13 ~20,
-  12 ~90, 5 ~20, 4 ~40, 15 ~100 (with `jr` for every jump in range,
+  12 ~25, 5 ~15, 4 ~35, 15 ~90 (with `jr` for every jump in range,
   `modules/peephole_jr.def`). Units and patches came out of SDCC's 32-bit C
   moved to assembly (`Find`, `StepVar`, `FileOf`, `EmitFile`), `Link`,
   `Relocate`, `Fill`, `Header` and `Log` moving to LINK.MOD, and code moved to
@@ -485,7 +512,12 @@ from `asm_line.c` on page 5 to the lexer on page 13: `Space`, `Keyword`, `Line`,
   the link knows: other units' labels in operands, `BANK()`, `HIGH()`/`LOW()`,
   `~`, `-`, differences, `rst`, `ldh` to HRAM, `dl`, `Global.local`, a `jr` to
   another section and `ASSERT`; against `rgbasm -E -P` per file and `rgblink`;
-  then eight errors only the link finds, each at its file and line), 150 random
+  then eight errors only the link finds, each at its file and line; then
+  `build.obj`: built again unchanged (0 of 3 units assembled), with one unit
+  grown (1 of 3, the others' sections moved), with the prelude edited (3 of 3),
+  each against RGBDS, and a link error in a kept unit named by its file and
+  line; the PC harness makes up directory entries from each file's size and
+  time, its inode for a sector), 150 random
   section layouts (with fragments, offsets and `DS ALIGN`) whose labels and banks
   go in a fixed table, and 400 ROMX sections. Then each error code's line and
   position.
@@ -527,7 +559,7 @@ two-line prelude and limits raised) worked through it as far as it could:
 | 32-bit values | `D24`, `D32` (item costs) | done |
 | `-D` defines, `rgbfix` options | `_DEMO`, `LANG_EN`; `-jvcs -k 01 -l 0x33 -m 0x1B -p 255` | done: `project.gbp` |
 | Units | split into 50 (`rgbasm -E -P src/beisbol.inc` each, then `rgblink`) | done: `main` with several files |
-| Speed | ~1.1 MB of units read twice, 110 KB of prelude once, ~630 KB of `INCBIN` | 23.9 minutes on CGB in Gearboy; **to do**: keep units between builds |
+| Speed | ~1.1 MB of units read twice, 110 KB of prelude once, ~630 KB of `INCBIN` | 24.9 minutes on CGB in Gearboy, 2.1 again unchanged (`build.obj`) |
 
 With a `project.gbp` (the one under Using it) beside an unmodified copy, the
 PC harness builds it from any file in it byte for byte as the Makefile's `rgbasm`
@@ -566,8 +598,19 @@ pass 2      11:28   ~14464 lines
 total       23:20
 ```
 
-With each unit assembled alone and LINK.MOD (2026-11-18), 85,861 frames (23.9
-min), the ROM again rgblink's:
+With `build.obj` (2026-11-18), the same build again with nothing changed:
+7,504 frames (2.1 min), the ROM rgblink's:
+
+```
+assembling    0:17   ~0 lines, 0 of 50 units
+  card        0:00   3 files found and read, 1 through build.cache
+linking       1:40   295 sections, 12039 patches
+total         1:57
+```
+
+A full build is 24.9 minutes: putting `build.obj` together adds ~50 s to the
+link. With each unit assembled alone and LINK.MOD, before `build.obj`, 85,861
+frames (23.9 min), the ROM again rgblink's:
 
 ```
 beisbol.gb from project.gbp
@@ -596,24 +639,11 @@ built 512 KB
 
 ## Next steps
 
-1. **Stage 2b: units kept between builds** (TODO.md). Units are assembled alone
-   now, into objects LINK.MOD links, so an unchanged unit's object can be
-   reused. The plan:
-   - ASM.MOD records each unit's files (`OpenFile`) and a hash of each file's
-     bytes (computed as it's loaded, in assembly), and writes them in the unit's
-     object (`OBJ_FILE` records); a patch's and a section's file become an index
-     into that list.
-   - After a build that worked, the host writes the section table, the used data
-     blocks and the object stream (contiguous from `ASM_SECTION_BLOCK`, after a
-     header block before it) as `build.obj` beside `project.gbp`.
-   - Next build: `build.obj` is loaded like a file; a unit whose files all still
-     hash the same (and the prelude's, and `project.gbp`'s options) isn't
-     assembled: ASM.MOD reserves its sections, data and object space, and LINK.MOD
-     (which has ~5 KB free) copies them in from the old file. Reading every file
-     to hash it is the cost of being sure: through `build.cache` that's ~0:21 for
-     beisbol. File dates would avoid it but not every cart's clock is set.
-   - Edited unit then: the prelude (~110 KB) and the unit's two passes, and the
-     link (1:30, mostly labels and patches: worth assembly next).
+1. **Faster rebuilds.** With every unit unchanged the build is the link (1:40
+   of 1:57: labels ~31 s, patches ~32 s, the image and checksum): labels and
+   patches in assembly next, and an up-to-date check (the ROM's entry in
+   `build.obj`: unchanged units and an unchanged ROM need no link). An edited
+   unit costs the prelude (~110 KB) and its two passes on top.
 2. **Hardware pass** for `EQUS`, `FOR` and `INCBIN` with the `Asm` folder.
 3. **Speed** (the profile above): five module loads and swaps are the biggest
    fixed cost for small files; a cached backup compare (MODULES.md) or keeping

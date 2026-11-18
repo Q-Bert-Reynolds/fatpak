@@ -56,6 +56,8 @@ void ReportWhere(void) {
   Report(where_file, where_line, where_pos);
 }
 AsmLink asm_link; // what LINK.MOD gets, fix (project.gbp's rgbfix options) included
+AsmPrep prep;
+unsigned int files_end;
 unsigned char Main(void) {
   unsigned int i;
   unsigned char *h, *s;
@@ -73,6 +75,14 @@ unsigned char Main(void) {
   file_next = FILE_UNITS;
   heap_top = 0;
   file_top = ASM_FILE_BLOCK;
+  files_end = ASM_FILE_END;
+  for (h = (unsigned char*)&prep, i = 0; i < sizeof(AsmPrep); ++i) *h++ = 0;
+  if (context->kind & ASM_OLD) { // LINK.MOD's check: unchanged units, and build.obj above the files
+    Window(ASM_PREP_BLOCK);
+    for (h = (unsigned char*)&prep, s = WINDOW, i = 0; i < sizeof(AsmPrep); ++i) *h++ = *s++;
+    files_end = ASM_OLD_BLOCK;
+  }
+  asm_link.assembled = 0;
   data_top = ASM_DATA_BLOCK;
   out_block = ASM_OBJ_BLOCK;
   out_ofs = 0;
@@ -106,6 +116,7 @@ unsigned char Main(void) {
   asm_link.cache_files = cache_files;
   asm_link.retries = (unsigned int)ModStat(MODULE_STAT_RETRIES);
   asm_link.project = nunits != 0;
+  asm_link.data_end = data_top;
   Window(ASM_LINK_BLOCK);
   for (h = WINDOW, s = (unsigned char*)&asm_link, i = 0; i < sizeof(AsmLink); ++i) *h++ = *s++;
   if (!error && nunits) for (i = 0; (context->name[i] = output[i]) != 0; ++i);

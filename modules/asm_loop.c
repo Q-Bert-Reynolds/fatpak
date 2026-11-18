@@ -95,7 +95,7 @@ static unsigned int Load(void) {
   cached = Find() ? sym_kind == SYM_CACHED : 2; // 1: build.cache knows where it is, 2: not read yet
   if (cached) {
     load.block = file_top;
-    load.blocks = ASM_FILE_END - file_top;
+    load.blocks = files_end - file_top;
     i = CacheLoad(&load, cached == 1 ? sym_value : 0);
     if (i) { file_error = i == 1 ? ASM_ERR_FILE : ASM_ERR_FULL; return 0; }
     sym_value = file_top;
@@ -120,78 +120,6 @@ unsigned int LoadPath(void) { // in the files' table
   sym_table = 0;
   return file;
 }
-// file_at, file_size and file_end of a file's symbol: its first block (bytes 4-5), its size (8, 9, 7)
-#ifdef HOST_TEST
-void FileOf(unsigned int file) {
-  unsigned char* e = Entry(file);
-  file_at = ADDRESS(e[4] | (e[5] << 8));
-  file_size = (e[8] | (e[9] << 8)) | (Pos)e[7] << 16;
-  file_end = file_at + file_size;
-}
-#else
-void FileOf(unsigned int file) __naked {
-  file; // de
-  __asm
-	call	_Entry
-	ld	hl, 4
-	add	hl, bc
-	ld	a, [hl+]
-	ld	e, a
-	ld	d, [hl]
-	ld	hl, _file_at
-	xor	a, a
-	ld	[hl+], a
-	ld	a, e
-	add	a, a
-	ld	[hl+], a
-	ld	a, d
-	adc	a, a
-	ld	[hl+], a
-	ld	a, 0
-	adc	a, a
-	ld	[hl], a
-	ld	hl, 7
-	add	hl, bc
-	ld	a, [hl+]
-	ld	d, a
-	ld	a, [hl+]
-	ld	e, a
-	ld	a, [hl]
-	ld	hl, _file_size
-	ld	[hl], e
-	inc	hl
-	ld	[hl+], a
-	ld	a, d
-	ld	[hl+], a
-	ld	[hl], 0
-	ld	bc, _file_end
-	ld	de, _file_at
-	ld	hl, _file_size
-	ld	a, [de]
-	add	a, [hl]
-	ld	[bc], a
-	inc	bc
-	inc	de
-	inc	hl
-	ld	a, [de]
-	adc	a, [hl]
-	ld	[bc], a
-	inc	bc
-	inc	de
-	inc	hl
-	ld	a, [de]
-	adc	a, [hl]
-	ld	[bc], a
-	inc	bc
-	inc	de
-	inc	hl
-	ld	a, [de]
-	adc	a, [hl]
-	ld	[bc], a
-	ret
-  __endasm;
-}
-#endif
 // INCLUDE and INCBIN's "path"
 unsigned int OpenFile(void) {
   unsigned char i;
@@ -207,6 +135,7 @@ unsigned int OpenFile(void) {
   path[i] = 0;
   Advance();
   if (!(file = LoadPath()) && !error) Fail(file_error);
+  if (file) Opened(file);
   return file;
 }
 void Include(void) {

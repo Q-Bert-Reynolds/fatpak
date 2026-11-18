@@ -33,23 +33,26 @@ static const unsigned char region_first[8] = {0, 1, ROM_BANKS + 1, ROM_BANKS + 3
 #define HEADS (ROM_BANKS + 18)
 static unsigned int heads[HEADS]; // each bank's placed sections by address
 
-// where an error is: the file's symbol (ASM.MOD's files table is still in PSRAM), line, position
+// where an error is: the file (its symbol in ASM.MOD's files table, still in PSRAM; below
+// FILE_UNITS, a number in report_unit's list in the last build.obj), line, position
+unsigned char report_unit;
 void Report(unsigned int file, unsigned int line, unsigned int pos) {
   AsmContext* c = context;
-  unsigned char *e, n, i, from = 0;
+  unsigned char n, i;
   c->file = file;
   c->line = line;
   c->pos = pos;
   c->base = 0;
   if (!file) return;
-  Window(ASM_SYMBOL_BLOCK + (file >> 6));
-  e = WINDOW + ((file & 63) << 3);
-  n = e[10];
-  if (n > sizeof(c->name) - 1) from = n - (sizeof(c->name) - 1); // the path's end
-  for (i = 0; from < n; ++i) {
-    if ((c->name[i] = e[11 + from++]) == '/') c->base = i + 1;
+  n = file >= FILE_UNITS ? FileName(file) : OldName(report_unit, file);
+  if (n > sizeof(c->name) - 1) { // the path's end
+    Skip(n - (sizeof(c->name) - 1));
+    n = sizeof(c->name) - 1;
   }
-  c->name[i] = 0;
+  copy_n = n;
+  if (n) Read((unsigned char*)c->name, n);
+  for (i = 0; i < n; ++i) if (c->name[i] == '/') c->base = i + 1;
+  c->name[n] = 0;
 }
 void FailAt(unsigned char code, unsigned int file, unsigned int line, unsigned int pos) {
   if (error) return;
@@ -58,6 +61,7 @@ void FailAt(unsigned char code, unsigned int file, unsigned int line, unsigned i
 }
 void SectFail(unsigned char code, unsigned int s) { // at the section's SECTION line
   SectCopy(s, 0);
+  report_unit = sec.rank; // a unit's from build.obj: its own
   FailAt(code, sec.file, sec.line, sec.pos);
 }
 void Phase(unsigned char p) { // the box says what's happening, between its own steps
@@ -186,7 +190,7 @@ static unsigned int Place(void) {
 }
 
 // --- the image
-static unsigned char buf[256];
+unsigned char buf[256];
 // zeroes the image, then copies each ROM section's bytes from its data blocks to its place
 static void Image(void) {
   unsigned int block, i, from, from_ofs, to, to_ofs, left, n;
@@ -260,6 +264,9 @@ static void Header(void) {
 
 static void Run(void) {
   unsigned int i;
+  link.patches = 0; // counted as they're worked out, the unchanged units' too
+  if (context->kind & ASM_OLD) Restore(); // the units build.obj had unchanged
+  Snap();
   for (i = 0; i < link.nsects; ++i) { // each section's pass start, for its labels (Join moves start)
     SectCopy(i, 0);
     sec.fill = sec.start;
@@ -300,6 +307,7 @@ static void Run(void) {
   Walk(2);
   if (error) return;
   Header();
+  Compose();
 }
 
 // --- build.log (beside the project or the document; the host writes it):
@@ -352,6 +360,8 @@ static void Log(char* output, unsigned int seconds) {
   LogText(" lines");
   if (link.units) {
     LogText(", ");
+    LogNumber(link.assembled);
+    LogText(" of ");
     LogNumber(link.units);
     LogText(" units");
   }
@@ -407,6 +417,7 @@ unsigned char ModuleMain(AsmContext* c) {
   unsigned char i;
   char output[sizeof(c->name)];
   context = c;
+  c->obj_blocks = 0;
   Window(ASM_LINK_BLOCK);
   for (i = 0; i < sizeof(AsmLink); ++i) p[i] = WINDOW[i];
   error = link.error;

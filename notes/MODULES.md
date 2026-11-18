@@ -22,7 +22,8 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
 | `ASM.MOD` | 6 | 10 | FILE > BUILD, RUN (`editor/build.c`), [ASSEMBLER.md](ASSEMBLER.md) | wide, 5 pages: 7,406 + 7,336 + 7,405 + 7,387 + 7,320 B, 2,649 B BSS |
 | `HEXVIEW.MOD` | 7 | 9 | Opening a binary file in the browser (`browser/viewer.c`) | 2,216 B + 269 B BSS |
 | `TILEVIEW.MOD` | 8 | 9 | Opening a `.tiles` file in the browser (`browser/viewer.c`) | 2,097 B + 431 B BSS |
-| `LINK.MOD` | 10 | 10 | FILE > BUILD, RUN, after `ASM.MOD`: places its units' sections, patches, header, `build.log` ([ASSEMBLER.md](ASSEMBLER.md)) | wide, 2 pages: 5,814 + 4,122 B, 2,485 B BSS |
+| `LINK.MOD` | 10 | 10 | FILE > BUILD, RUN, after `ASM.MOD`: places its units' sections, patches, header, `build.log`, `build.obj` ([ASSEMBLER.md](ASSEMBLER.md)) | wide, 3 pages: 5,865 + 4,512 + 5,069 B, 2,707 B BSS |
+| `PREP.MOD` | 11 | 10 | FILE > BUILD, RUN, before `ASM.MOD`: which units `build.obj` has unchanged | 1,252 B + 50 B BSS |
 
 ## Rules
 
@@ -171,7 +172,7 @@ below `$8000`. Copies never touch the final sector's upper 256 bytes.
 ### Call sequence (`RunModule`)
 
 `module_frames` (`ModStat`'s clock, and BUILD's box) starts at 0 for every module but
-`LINK.MOD`, whose time goes on from `ASM.MOD`'s just before it.
+`ASM.MOD` and `LINK.MOD`, whose time goes on from the build's first (`PREP.MOD`).
 
 1. `fs_LoadModule` opens the file with a private `FIL` (an open large document is
    untouched), validates the header, reads 512 bytes at a time into `buffer`

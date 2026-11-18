@@ -1,8 +1,12 @@
+#define _XOPEN_SOURCE 700 // nftw
 // Runs modules/asm.c on a PC: tests/test_asm.py compares its ROM with RGBDS's.
 // usage: asm_host source.asm image.gb  (prints "status line pos blocks symbols")
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <ftw.h>
 #define int short // the module is built with 16-bit ints, like SDCC
 #include "../modules/asm.h"
 #include "../src/constants.h"
@@ -13,6 +17,19 @@ unsigned char* psram_window;
 extern unsigned long psram_selects; unsigned long psram_selects; // ASM_HOST_STATS: window moves, a proxy for the device's time
 void psram_select(unsigned int block) { psram_window = psram + (unsigned long)block * 512; ++psram_selects; }
 
+static char loaded[4096][512]; // files seen, and their inodes: a made-up entry's "sector"
+static unsigned long loaded_ino[4096];
+static unsigned loaded_n, last_loaded;
+static unsigned Known(const char* path) { // its number, from 1
+  struct stat st;
+  unsigned i;
+  for (i = 0; i < loaded_n; ++i) if (!strcmp(loaded[i], path)) return i + 1;
+  if (loaded_n == 4096 || stat(path, &st)) return 0;
+  snprintf(loaded[loaded_n], sizeof(loaded[0]), "%s", path);
+  loaded_ino[loaded_n] = st.st_ino;
+  return ++loaded_n;
+}
+static int Seen(const char* path, const struct stat* st, int type, struct FTW* w) { (void)st; (void)w; if (type == FTW_F) Known(path); return 0; }
 static unsigned char* source;
 static unsigned long source_len;
 unsigned char ModSource(unsigned short pos, char* dest) {
@@ -23,6 +40,7 @@ unsigned char ModSource(unsigned short pos, char* dest) {
 }
 unsigned char ModuleMain(AsmContext* c);
 unsigned char LinkMain(AsmContext* c); // LINK.MOD's ModuleMain (modules/link.c)
+unsigned char PrepMain(AsmContext* c); // PREP.MOD's (modules/prep.c)
 
 static char source_dir[1024];
 typedef struct { unsigned short block, blocks; unsigned long size; } ModuleLoad; // sdk.h's, with 16-bit ints
@@ -42,6 +60,7 @@ static unsigned char Load(const char* name, unsigned n, ModuleLoad* load) { // t
   if (size >= 0x1000000 || (size + 511) / 512 > load->blocks) { fclose(f); return 2; }
   if (fread(at, 1, size, f) != (size_t)size) size = 0;
   fclose(f);
+  last_loaded = Known(full);
   return 0;
 }
 static unsigned files;
@@ -58,7 +77,34 @@ void ModProgress(const char* text) { // ASM_PROGRESS=1 prints each one, as build
 }
 static int first_level = -1; // the folder that found the first file (project.gbp's): searched first, like the OS
 unsigned long ModStat(unsigned char which) { (void)which; return 0; } // no clock here: build.log's times are 0:00; no FAT volume: no build.cache
-unsigned char ModSector(unsigned long sector, unsigned short block) { (void)sector; (void)block; return 1; }
+// directory entries made up for build.obj: a file's "sector" is its number here, its entry at 0 in
+// it, with the file's size and modification time as FatFs would write them
+void HostLastEntry(unsigned char* rec) { // the inode as the sector, the entry at 0
+  unsigned long ino = last_loaded ? loaded_ino[last_loaded - 1] : 0;
+  rec[0] = ino; rec[1] = ino >> 8; rec[2] = ino >> 16; rec[3] = ino >> 24;
+  rec[4] = rec[5] = 0;
+}
+unsigned char ModSector(unsigned long sector, unsigned short block) {
+  unsigned char* e = psram + (unsigned long)block * 512;
+  struct stat st; struct tm* t; unsigned time_, date;
+  unsigned i;
+  char root[2048];
+  for (i = 0; i < loaded_n && (loaded_ino[i] & 0xFFFFFFFFul) != sector; ++i);
+  if (i == loaded_n && first_level >= 0) { // every file in the project's folder, by inode
+    snprintf(root, sizeof(root), "%.*s.", first_level, source_dir);
+    nftw(root, Seen, 16, FTW_PHYS);
+    for (i = 0; i < loaded_n && (loaded_ino[i] & 0xFFFFFFFFul) != sector; ++i);
+  }
+  if (i == loaded_n || stat(loaded[i], &st)) return 1;
+  memset(e, 0, 512); memset(e, ' ', 11); e[11] = 0x20;
+  sprintf((char*)e, "%09ld", (long)st.st_mtim.tv_nsec); e[9] = ' '; // the name: below FAT's 2 s, for tests that rewrite a file quickly
+  t = localtime(&st.st_mtime);
+  time_ = t->tm_hour << 11 | t->tm_min << 5 | t->tm_sec / 2; date = (t->tm_year - 80) << 9 | (t->tm_mon + 1) << 5 | t->tm_mday;
+  e[22] = time_; e[23] = time_ >> 8; e[24] = date; e[25] = date >> 8;
+  e[26] = (unsigned char)sector; e[27] = (unsigned char)(sector >> 8);
+  e[28] = st.st_size; e[29] = st.st_size >> 8; e[30] = st.st_size >> 16; e[31] = st.st_size >> 24;
+  return 0;
+}
 char* ModString(char* dest, unsigned short id) { return dest + sprintf(dest, "error %u", id); }
 unsigned char ModLoad(const char* path, ModuleLoad* load) {
   unsigned n = strlen(source_dir), end = n;
@@ -87,15 +133,23 @@ int main(int argc, char** argv) {
   source = malloc(source_len + 1);
   fread(source, 1, source_len, f); fclose(f);
   progress_context = &c;
+  PrepMain(&c); // PREP.MOD's check of build.obj first, as BUILD runs it
+  first_level = -1; // (each module run searches afresh)
   status = ModuleMain(&c);
   if (getenv("ASM_HOST_STATS")) fprintf(stderr, "ASM.MOD: %lu window moves\n", psram_selects);
   psram_selects = 0;
   if (status != ASM_NOT_ASM) status = LinkMain(&c); // as editor/build.c runs them
+  if (!status && c.obj_blocks && first_level >= 0) { // build.obj beside project.gbp, as WriteOutputs writes it
+    char full[2048]; FILE* o;
+    snprintf(full, sizeof(full), "%.*sbuild.obj", first_level, source_dir);
+    if ((o = fopen(full, "wb"))) { fwrite(psram + (unsigned long)ASM_BUILD_BLOCK * 512, 512, c.obj_blocks & 0x1FFF, o); fclose(o); }
+  }
   if (getenv("ASM_HOST_STATS")) fprintf(stderr, "LINK.MOD: %lu window moves\n", psram_selects);
   printf("%u %u %u %u %u %u %s\n", status, c.line, c.pos, c.blocks, c.symbols, c.file,
          c.kind & ASM_PROJECT && !status ? c.name : c.file ? c.name + c.base : "");
   if (getenv("ASM_HOST_STATS")) { // how full ASM.MOD's PSRAM regions got
     extern unsigned short data_top, file_top, sym_mark, next_unit, out_block;
+    fprintf(stderr, "units from build.obj: %s, obj_blocks %x\n", c.kind & ASM_OLD ? "yes" : "no", c.obj_blocks);
     fprintf(stderr, "data %u of %u blocks, files %u of %u, prelude names to unit %u (snapshot %u of %u blocks)\n",
             data_top - ASM_DATA_BLOCK, ASM_DATA_END - ASM_DATA_BLOCK, file_top - ASM_FILE_BLOCK, ASM_FILE_END - ASM_FILE_BLOCK,
             sym_mark, 10 + (sym_mark >> 6), ASM_SNAP_END - ASM_SNAP_BLOCK);

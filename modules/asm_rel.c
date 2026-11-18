@@ -98,6 +98,25 @@ void Out16(unsigned int v) {
   Out((unsigned char)v);
   Out((unsigned char)(v >> 8));
 }
+// a file the unit reads, for build.obj (in pass 2; the prelude's before any unit)
+void Opened(unsigned int file) {
+  if (pass == 2) {
+    Out(OBJ_FILE);
+    Out16(file);
+  }
+}
+// an unchanged unit i: OBJ_KEEP and its sections' numbers; LINK.MOD reads the rest from build.obj
+void Keep(unsigned char i) {
+  Out(OBJ_KEEP);
+  Out(i);
+  Window(ASM_PREP_BLOCK + 2);
+  ((unsigned int*)WINDOW)[i] = nsects;
+  Window(ASM_PREP_BLOCK + 1);
+  nsects += ((unsigned int*)WINDOW)[i];
+  rom_used = 1; // (it had: it built)
+  if (nsects > ASM_SECTIONS) Fail(ASM_ERR_NESTING);
+}
+unsigned char Clean(unsigned char i) { return prep.clean[i >> 3] & (1 << (i & 7)); }
 // prel's value, for the field about to be emitted at pc (in pass 2; pass 1 only drops it)
 void Patch(unsigned char type) {
   unsigned char i;

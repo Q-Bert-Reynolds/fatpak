@@ -429,11 +429,12 @@ static void Project(const char* image, const char* symbols, const char* data, co
         s.pad(A_Key);
         unsigned again = s.command(4, "Built ");
         std::string log = Text(s.root + "/build.log");
-        if (log.find(", 3 through build.cache") == std::string::npos) fprintf(stderr, "build.log:\n%s", log.c_str());
-        Check(log.find(", 3 through build.cache") != std::string::npos, "the next build reads main.asm, part.asm and Base.asm through build.cache");
-        Check(Read(s.root + "/game.gb") == Read(expected), "the same ROM through build.cache");
+        if (log.find(", 0 of 1 units") == std::string::npos) fprintf(stderr, "build.log:\n%s", log.c_str());
+        Check(Read(s.root + "/build.obj").size() >= 2048, "build.obj goes beside project.gbp");
+        Check(log.find(", 0 of 1 units") != std::string::npos, "the next build takes the unchanged unit from build.obj");
+        Check(Read(s.root + "/game.gb") == Read(expected), "the same ROM from build.obj");
         s.pad(A_Key);
-        printf("%s project.gbp builds from About.md: %u frames, again %u through build.cache\n", color ? "CGB" : "DMG", frames, again);
+        printf("%s project.gbp builds from About.md: %u frames, again %u from build.obj\n", color ? "CGB" : "DMG", frames, again);
     }
     {
         // an edit after build.cache is written: the build reads the file as it is now

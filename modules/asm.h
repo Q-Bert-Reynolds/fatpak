@@ -17,10 +17,12 @@ typedef struct {
   unsigned char pass;  // progress (ModProgress(0), while it runs): the pass, file, name and line above,
   unsigned int progress; // and pass 1's lines in thousands or pass 2's percent; pass 5: a project's
                          // percent of its units' passes; 3 and 4: LINK.MOD placing sections, finishing
+  unsigned int obj_blocks; // out: build.obj's blocks at ASM_BUILD_BLOCK | $2000 (FileWriteImage's count); 0: none
 } AsmContext;
 
 #define ASM_DOC     1
 #define ASM_PROJECT 2
+#define ASM_OLD     8 // out of PREP.MOD, before ASM.MOD: build.obj is loaded and AsmPrep says which units are unchanged
 #define ASM_PROJECT_FILE "project.gbp" // BUILD's project: the nearest one in the document's folder or above
 #define ASM_NOT_ASM 0xFF // module_status: no project, and the document isn't assembly
 
