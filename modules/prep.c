@@ -94,12 +94,136 @@ static unsigned char SameList(UVal at, unsigned char n) { // n file records from
   return 1;
 }
 
+// ASM_CHECK, after a build that stopped (BUILD runs this again after LINK.MOD wrote build.log):
+// each file in ASM.MOD's files table (still in PSRAM) is read from the card again, into the ROM
+// image's blocks, and compared with the copy it assembled, twice. build.log gets a line for each
+// one that differs and a count. Hardware PSRAM copies have read back wrong (notes/MODULES.md):
+// this tells a damaged copy (the same bytes differ twice) or a bad read (not the same ones) from
+// an assembler bug (nothing differs).
+#define CHECK_FILES 128 // at most: an error late in a big project doesn't wait minutes
+#define ENTRY_KIND_INCLUDE 4 // asm_shared.h's SYM_INCLUDE: a file read whole into PSRAM
+static unsigned int log_n;
+static void Put(char ch) {
+  if (log_n >= 1024) return; // ASM_LOG_BLOCK's 2 blocks
+  Window(ASM_LOG_BLOCK + (log_n >> 9));
+  WINDOW[log_n & 511] = ch;
+  ++log_n;
+}
+static void PutText(const char* s) { while (*s) Put(*s++); }
+static const unsigned int tens[] = {10000, 1000, 100, 10, 1};
+static void PutNumber(unsigned int v) { // no SDCC helpers in a module: no / or %
+  unsigned char i, d, any = 0;
+  for (i = 0; i < 5; ++i) {
+    for (d = '0'; v >= tens[i]; v -= tens[i]) ++d;
+    if (d != '0' || any || i == 4) { Put(d); any = 1; }
+  }
+}
+static const char hex[] = "0123456789abcdef";
+static void PutHex(unsigned char b) { Put(hex[b >> 4]); Put(hex[b & 15]); }
+static unsigned char chunk[64];
+static UVal diff_at;
+static unsigned int diff_line;
+static unsigned char diff_copy, diff_card;
+// the bytes of the copy at block that aren't the card's (at ASM_IMAGE_BLOCK), the first's place in diff_*
+static unsigned int Differ(unsigned int block, UVal size) {
+  UVal at = 0;
+  unsigned int n = 0, line = 1, o;
+  unsigned char i, k, ch;
+  while (at < size) {
+    k = size - at < 64 ? (unsigned char)(size - at) : 64; // 64s never cross a block
+    o = (unsigned int)at & 511;
+    Window(block + (unsigned int)(at >> 9));
+    for (i = 0; i < k; ++i) chunk[i] = WINDOW[o + i];
+    Window(ASM_IMAGE_BLOCK + (unsigned int)(at >> 9));
+    for (i = 0; i < k; ++i) {
+      ch = WINDOW[o + i];
+      if (ch != chunk[i]) {
+        if (!n) {
+          diff_at = at + i;
+          diff_line = line;
+          diff_copy = chunk[i];
+          diff_card = ch;
+        }
+        if (n != 0xFFFF) ++n;
+      }
+      if (chunk[i] == 10) ++line;
+    }
+    at += k;
+  }
+  return n;
+}
+static char check_path[80];
+static void Check(AsmContext* c) {
+  unsigned int u, next, block, files = 0, bad = 0, steps = 0, a, b;
+  UVal size;
+  unsigned char h = 0, i, n, kind, *e;
+  log_n = c->log_bytes & 0x7FFF;
+  PutText("card check:");
+  do {
+    Window(ASM_SYMBOL_BLOCK + 1); // the files table's heads
+    u = ((unsigned int*)WINDOW)[h];
+    while (u >= FILE_UNITS && files < CHECK_FILES && ++steps < 4096) {
+      Window(ASM_SYMBOL_BLOCK + (u >> 6));
+      e = WINDOW + ((u & 63) << 3);
+      next = e[0] | e[1] << 8;
+      block = e[4] | e[5] << 8;
+      kind = e[6];
+      size = (unsigned int)(e[8] | e[9] << 8) | (UVal)e[7] << 16; // unsigned: 32 KB and up mustn't sign-extend
+      n = e[10];
+      u = next;
+      if (kind != ENTRY_KIND_INCLUDE || n >= sizeof(check_path) - 1) continue; // only its end: not found again
+      for (i = 0; i < n; ++i) check_path[i] = e[11 + i];
+      check_path[n] = 0;
+      ++files;
+      load.block = ASM_IMAGE_BLOCK;
+      load.blocks = ASM_IMAGE_BLOCKS;
+      if (ModLoad(check_path, &load) || load.size != size) {
+        ++bad;
+        PutText("\n  ");
+        PutText(check_path);
+        PutText(": not read again the same size");
+        continue;
+      }
+      a = Differ(block, size);
+      b = Differ(block, size);
+      if (!a && !b) continue;
+      ++bad;
+      PutText("\n  ");
+      PutText(check_path);
+      PutText(": ");
+      PutNumber(a);
+      PutText(" bytes differ, then ");
+      PutNumber(b);
+      PutText(", first at $");
+      PutHex((unsigned char)(diff_at >> 16));
+      PutHex((unsigned char)(diff_at >> 8));
+      PutHex((unsigned char)diff_at);
+      PutText(" line ");
+      PutNumber(diff_line);
+      PutText(": ");
+      PutHex(diff_copy);
+      PutText(", card ");
+      PutHex(diff_card);
+    }
+  } while (++h);
+  PutText("\n  ");
+  PutNumber(files);
+  PutText(" files read again from the card, ");
+  PutNumber(bad);
+  PutText(" differ\n");
+  c->log_bytes = log_n | 0x8000;
+}
+
 unsigned char ModuleMain(AsmContext* c) {
   BuildUnit u;
   AsmPrep prep;
   UVal magic, at;
   unsigned char version, units, i, n, *w, loaded;
   context = c;
+  if (c->kind & ASM_CHECK) {
+    if (c->log_bytes) Check(c);
+    return 0;
+  }
   for (w = (unsigned char*)&prep, i = 0; i < sizeof(AsmPrep); ++i) *w++ = 0;
   load.block = ASM_OLD_BLOCK;
   load.blocks = BUILD_HEAD_BLOCKS; // the head and lists first: all an up-to-date build needs

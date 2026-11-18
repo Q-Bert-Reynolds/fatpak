@@ -24,6 +24,7 @@ typedef struct {
 #define ASM_PROJECT 2
 #define ASM_OLD     8 // out of PREP.MOD, before ASM.MOD: build.obj is loaded and AsmPrep says which units are unchanged
 #define ASM_CURRENT 16 // out of PREP.MOD: nothing changed and the ROM is there (name, blocks and build.log set): no ASM.MOD, LINK.MOD or ROM to write
+#define ASM_CHECK   32 // into PREP.MOD after a build stopped: each file ASM.MOD read, read from the card again and compared (build.log)
 #define ASM_PROJECT_FILE "project.gbp" // BUILD's project: the nearest one in the document's folder or above
 #define ASM_NOT_ASM 0xFF // module_status: no project, and the document isn't assembly
 

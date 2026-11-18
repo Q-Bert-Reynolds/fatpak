@@ -426,6 +426,24 @@ The device regression includes several 22 KB files to exercise that overflow.
   (seconds counted by the host from `render_frames`, 60 a second: 0.5% slow); the
   text goes to `ASM_LOG_BLOCK` and the host writes `context.log_bytes` of it with
   `FileWriteImage` (bit 15 of its count).
+- **Card check** (2026-11-18): after a build that stopped, BUILD runs PREP.MOD again
+  with `ASM_CHECK`. It reads each file in ASM.MOD's files table (up to 128) from the card
+  again into the ROM image's blocks, compares it with the copy that was assembled, twice,
+  and adds to build.log:
+
+  ```
+  card check:
+    src/hardware.inc: 3 bytes differ, then 3, first at $000a3c line 70: 2c, card 20
+    58 files read again from the card, 1 differ
+  ```
+
+  The same count twice means the PSRAM copy is damaged (on its way from the card, or since).
+  Different counts mean reads of it come back different. Nothing differing points at the
+  assembler, or at PSRAM it doesn't check (symbols, heap, macros). It's there for hardware
+  builds that stop at random early in the prelude (GBA SP, DMG, SGB and GBC, 2026-11-18:
+  `BAD INSTRUCTION` in hardware.inc's version macro, `VALUE TOO BIG`, `TOO DEEP`, with PSRAM
+  copies retried 7 times in 38 s), where Gearboy builds the same card state through. A real
+  error costs the re-read: ~24 s for 82 files on CGB.
 - **No SDCC helpers:** `*` `/` `%` are shift loops; numbers scale by shifts.
 - `tests/asm_host.c` builds the same sources for the PC with 16-bit ints
   (`-Dint=short`), a 16 MiB PSRAM array and includes from the source's folder,

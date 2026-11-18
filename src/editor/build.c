@@ -142,6 +142,13 @@ void BuildFile(unsigned char run) {
     if (!result) result = Module(&context, 1);
     level = file_level;
     if (!result && module_status != ASM_NOT_ASM) result = Module(&context, 0); // then LINK.MOD: the image, or after an error build.log
+    if (!result && module_status && module_status != ASM_NOT_ASM) { // stopped: PREP.MOD compares the files read with the card
+      unsigned char status = module_status;
+      context.kind |= ASM_CHECK;
+      file_level = level;
+      result = Module(&context, 2);
+      module_status = status;
+    }
   }
   file_level = level;
   HideBox();

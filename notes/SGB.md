@@ -960,6 +960,19 @@ branches. Measurements/logs: `build/sgb/performance-next*`. Hardware untested.
 Next large target: selection-only row updates still rasterize unchanged glyphs.
 A palette swap alone cannot recolor the paper: BG1 color zero is transparent.
 
+Startup profiling (fresh sample card, nominal GB clock) publishes the browser at
+1,560 frames (~26 s). First DATA_TRN: frame 979; JUMP: 1,285; wide geometry:
+1,327. GB package validation costs 6.3 s, including 3.7 s in per-byte CRC calls;
+upload preparation/copying costs another 4.6 s excluding called routines.
+Raw profile: `build/sgb/boot-analysis/`.
+
+Priorities: replace bootstrap CRC/window-copy loops with native GB block
+routines, keeping full validation and existing packet timing. Remove redundant
+blank startup paints. Then cache reusable/composed SNES tiles and update tile
+maps for common fixed-width text and selection changes; keep the raster path
+for proportional/overlapping glyphs. Measure first usable screen and key-to-PPU
+latency separately from transport ACKs and the replay's deliberate pauses.
+
 Menu follow-up: center dialogs against the full 256-pixel viewport. The old
 keyboard preview used a fixed 150-pixel box; its replacement uses the actual
 57-pixel main-menu dimensions. Client checks now assert measured width and
