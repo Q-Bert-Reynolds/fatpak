@@ -1,5 +1,5 @@
 // README screenshots: boots the OS in the sibling Gearboy core on a sample SD card, walks to each
-// screen, in the light and dark themes, and writes it as a 160x144 PPM (scripts/screenshots.sh turns them into PNGs).
+// screen in light/dark themes. Native pixels go to PPM; SGB LCD recordings go to Mesen.
 // usage: screenshots GBCOS.BIN GBCOS.sym EDITOR.DAT MODULES_DIR repo_root out_dir
 #include <cstdio>
 #include <cstdlib>
@@ -14,6 +14,8 @@
 #include <dirent.h>
 #include "GearboyCore.h"
 #include "Memory.h"
+#include "SGB.h"
+#include "FatPakSGBHost.h"
 
 bool g_mcp_stdio_mode = true;
 static std::vector<u16> frame(256 * 224);
@@ -47,6 +49,7 @@ static std::string Card() {
     std::string root(folder);
     mkdir((root + "/GBCSYS").c_str(), 0700); mkdir((root + "/GBCSYS/MODULES").c_str(), 0700);
     Write(root + "/GBCSYS/EDITOR.DAT", Read(data));
+    Write(root + "/GBCSYS/SGB.DAT", Read(std::string(modules) + "/../SGB.DAT"));
     DIR* dir = opendir(modules); if (!dir) Fail("modules folder");
     while (dirent* entry = readdir(dir)) {
         std::string name = entry->d_name;
@@ -101,11 +104,19 @@ static std::string Card() {
 static bool Spanish() { const char* lang = getenv("FATPAK_SHOTS_LANG"); return lang && !strcmp(lang, "es"); }
 
 struct Shot {
-    GearboyCore core; Memory* memory; std::map<std::string, unsigned> syms; bool color, dark;
-    Shot(bool color, bool dark) : color(color), dark(dark) {
+    GearboyCore core; Memory* memory; std::map<std::string, unsigned> syms; bool color, dark, sgb; std::string recording;
+    Shot(bool color, bool dark, bool sgb = false) : color(color), dark(dark), sgb(sgb) {
         core.Init(); core.SetEverdriveFolder(Card().c_str()); core.SetPS2KeyboardEnabled(true);
-        if (!core.LoadROM(image, !color)) Fail("load OS");
-        memory = core.GetMemory(); syms = Symbols(); Frames(600);
+        core.SetForceSGB(sgb);
+        if (sgb) core.GetSGB()->GetFatPakHost()->Configure(FatPakSGBHost::TerminalV1);
+        if (!core.LoadROM(image, !color && !sgb)) Fail("load OS");
+        if (sgb) {
+            static unsigned sequence = 0;
+            recording = std::string(out) + "/sgb-" + std::to_string(++sequence) + ".fph";
+            if (!core.GetSGB()->GetFatPakHost()->SetRecording(recording)) Fail("record SGB frontend");
+        }
+        memory = core.GetMemory(); syms = Symbols(); Frames(sgb ? 1800 : 600);
+        if (sgb && memory->Read(syms.at("_screen_rows")) != 28) Fail("SGB fullscreen startup");
         if (dark) { // browser START > SETTINGS > THEME, A turns dark mode on
             Pad(Start_Key); Pad(Down_Key); Pad(Down_Key); Pad(A_Key); Pad(A_Key, 180); Pad(A_Key); Pad(B_Key, 120);
             if (memory->Read(syms.at("_theme")) != 1) Fail("dark mode");
@@ -119,7 +130,13 @@ struct Shot {
         s16 audio[AUDIO_BUFFER_SIZE];
         while (count--) { int n = 0; core.RunToVBlank(frame.data(), audio, &n); }
     }
-    void Pad(Gameboy_Keys key, unsigned wait = 90) { core.KeyPressed(key); Frames(4); core.KeyReleased(key); Frames(wait); }
+    void Pad(Gameboy_Keys key, unsigned wait = 90) {
+        if (sgb) {
+            auto host=core.GetSGB()->GetFatPakHost(); unsigned bits=((unsigned(key)&15)<<4)|(unsigned(key)>>4);
+            if (!host->Inject(9,bits,bits) || !host->Inject(9,0,0)) Fail("SGB pad input");
+            Frames(wait+180);
+        } else { core.KeyPressed(key); Frames(4); core.KeyReleased(key); Frames(wait); }
+    }
     void Key(u8 code, bool extended = false) {
         if (extended) core.QueuePS2KeyboardScanCode(0xE0);
         core.QueuePS2KeyboardScanCode(code); Frames(4);
@@ -127,13 +144,13 @@ struct Shot {
         core.QueuePS2KeyboardScanCode(0xF0); core.QueuePS2KeyboardScanCode(code); Frames(60);
     }
     std::string Row(unsigned n) {
-        std::string s; for (unsigned i = 0; i < 40; ++i) s += char(memory->Read(syms.at("tile_buffer") + n * 40 + i));
+        std::string s; for (unsigned i = 0; i < 40; ++i) s += char(memory->Read(syms.at(sgb ? "wide_tile_buffer" : "tile_buffer") + n * (sgb ? 64 : 40) + i));
         return s;
     }
     // selects the browser row showing name
     void Select(const std::string& name) {
         for (unsigned tries = 0; tries < 20; ++tries) {
-            for (unsigned r = 0; r < 16; ++r)
+            for (unsigned r = 0; r < (sgb ? 26 : 16); ++r)
                 if (Row(r).find(name) != std::string::npos && memory->Read(syms.at("_render_sel") + (r + 1) * 2 + 1) == 0xFF) return;
             Pad(Down_Key, 30);
         }
@@ -141,7 +158,13 @@ struct Shot {
     }
     void Open(const std::string& name, unsigned wait = 240) { Select(name); Pad(A_Key, wait); }
     void Save(const std::string& name) {
-        Frames(30);
+        Frames(sgb ? 240 : 30);
+        if (sgb) {
+            struct stat status; if (stat(recording.c_str(), &status)) Fail("recording size");
+            std::ofstream marks((std::string(out)+"/sgb-shots.tsv").c_str(),std::ios::app);
+            marks << recording << '\t' << status.st_size << '\t' << name << "_sgb" << (dark ? "_dark" : "") << (Spanish() ? "_es" : "") << '\n';
+            return;
+        }
         std::string path = std::string(out) + "/" + name + (color ? "_gbc" : "_dmg") + (dark ? "_dark" : "") + (Spanish() ? "_es" : "") + ".ppm";
         FILE* f = fopen(path.c_str(), "wb"); if (!f) Fail("write screenshot");
         fprintf(f, "P6 160 144 255\n");
@@ -165,6 +188,12 @@ int main(int argc, char** argv) {
         { Shot s(color, dark); s.Open("hello.asm"); s.Save("assembly"); }
         { Shot s(color, dark); s.Open("module.bin", 300); s.Pad(Right_Key, 30); s.Pad(Down_Key, 60); s.Save("hex"); }
         { Shot s(color, dark); s.Open("font.tiles", 300); s.Pad(Right_Key, 120); s.Save("tiles"); }
+    }
+    for (bool dark : {false, true}) {
+        { Shot s(false,dark,true);s.Select("Welcome.md");s.Save("browser"); }
+        { Shot s(false,dark,true);s.Open("Welcome.md");s.Save("markdown");
+          s.Pad(Select_Key);s.Save("keyboard");s.Pad(Select_Key);s.Pad(Start_Key);s.Save("menu"); }
+        { Shot s(false,dark,true);s.Open("hello.asm");s.Save("assembly"); }
     }
     puts("screenshots written");
 }

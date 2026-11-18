@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Writes the README's screenshots (screenshots/*_dmg.png, *_gbc.png, *_dark.png, 2x) from the built OS
-# (make assemble first), using the sibling Gearboy core like the tests do.
+# Retake README images at 2x from the built OS (make assemble first).
+# Gearboy runs the frontend; SGB recordings are rendered by the real kernel in Mesen.
 set -euo pipefail
+export GEARBOY_EVERDRIVE_LATCH_BD03=1
 root=$(cd -- "$(dirname -- "$0")/.." && pwd)
 gearboy_root=${GEARBOY_ROOT:-"$root/../Gearboy"}
 work=$(mktemp -d /tmp/fatpak-screenshots.XXXXXX)
-trap 'rm -rf "$work"' EXIT
+trap 'shots_status=$?; if (( shots_status )); then echo "Capture files kept at $work" >&2; else rm -rf "$work"; fi' EXIT
 "${CXX:-c++}" -O2 -std=c++11 -fno-rtti -I"$gearboy_root/src" \
     "$root/scripts/screenshots.cpp" \
     "$gearboy_root"/src/*.o "$gearboy_root"/src/audio/*.o \
@@ -14,6 +15,7 @@ trap 'rm -rf "$work"' EXIT
     -latomic -o "$work/screenshots"
 "$work/screenshots" "$root/bin/GBCOS.BIN" "$root/bin/GBCOS.sym" "$root/bin/EDITOR.DAT" \
     "$root/bin/MODULES" "$root" "$work"
+python3 "$root/scripts/screenshots_sgb.py" "$work"
 mkdir -p "$root/screenshots"
 python3 - "$work" "$root/screenshots" <<'PY'
 import sys, pathlib

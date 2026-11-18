@@ -21,11 +21,11 @@ def compact(raw):
         payload+=wire.command(op,body)
     return wire.page(sequence,payload)
 
-def recording(path):
+def recording(path, end=None):
     pages=[];expected=1;active=False
     with open(path,'rb') as f:
         assert f.read(5)==b'FPH1\x01'
-        while header:=f.read(5):
+        while (end is None or f.tell()<end) and (header:=f.read(5)):
             typ,n=struct.unpack('<BI',header);data=f.read(n);assert len(data)==n
             if typ==1 and data[0]>>3==0x12: active=True
             if typ!=2 or not active:continue
@@ -67,8 +67,32 @@ def build():
     else:
         (W/'kernel-golden.png').write_bytes((W/'kernel-base-golden.png').read_bytes())
     (W/'replay.pages').write_bytes(b''.join(pages));print(f'{len(pages)} frontend pages')
+    replay_rom(pages, bool(os.environ.get('SGB_KERNEL_UI')))
+
+def replay_rom(pages, ui=False, checkpoints=()):
+    """Wrap real frontend pages in an MBC5 transport ROM for stock SGB emulation."""
+    assert 0 < len(pages) < 256
     image=(W/'kernel.bin').read_bytes();image=image.ljust((len(image)+4095)//4096*4096,b'\0');(W/'upload.bin').write_bytes(image)
-    source=('DEF UI_REPLAY EQU 1\n' if os.environ.get('SGB_KERNEL_UI') else '')+(ROOT/'tests/sgb/kernel.asm').read_text()
+    source=('DEF UI_REPLAY EQU 1\n' if ui else '')+(ROOT/'tests/sgb/kernel.asm').read_text()
+    if checkpoints:
+        source=source.replace(' jr c,.send', ' jp c,.send')
+        checks='\n'.join(f' cp {n}\n jr z,.shotPause' for n in checkpoints)
+        pause = """ inc [hl]
+ ld a,[hl]
+CHECKS
+ jr .shotContinue
+.shotPause
+ ld a,1
+ ld [$C117],a
+.shotWait
+ call Poll
+ ld a,[$C117]
+ and a
+ jr nz,.shotWait
+.shotContinue
+ ld a,[CurrentPage]
+IF DEF(UI_REPLAY)""".replace('CHECKS', checks)
+        source=source.replace(' inc [hl]\n ld a,[hl]\nIF DEF(UI_REPLAY)', pause)
     source=source.replace('UPLOAD_COUNT',str(len(image)//4096)).replace('PAGE_COUNT',str(len(pages)))
     for off in range(0,len(image),16384):
         source+=f'\nSECTION "Upload{off}", ROMX[$4000],BANK[{1+off//16384}]\nINCBIN "build/sgb/upload.bin",{off},{min(16384,len(image)-off)}\n'

@@ -21,6 +21,16 @@ FatPak is an operating system for the Game Boy that runs on the EverDrive GB X7.
 | Hex view | ![](screenshots/hex_gbc.png) | ![](screenshots/hex_dmg.png) | ![](screenshots/hex_gbc_dark.png) | ![](screenshots/hex_dmg_dark.png) |
 | Tile view | ![](screenshots/tiles_gbc.png) | ![](screenshots/tiles_dmg.png) | ![](screenshots/tiles_gbc_dark.png) | ![](screenshots/tiles_dmg_dark.png) |
 
+Super Game Boy fullscreen (light and dark themes):
+
+| | SGB | SGB (Dark) |
+| --- | --- | --- |
+| File browser | ![SGB file browser](screenshots/browser_sgb.png) | ![SGB file browser, dark theme](screenshots/browser_sgb_dark.png) |
+| Markdown | ![SGB Markdown editor](screenshots/markdown_sgb.png) | ![SGB Markdown editor, dark theme](screenshots/markdown_sgb_dark.png) |
+| On-screen keyboard | ![SGB keyboard over the document](screenshots/keyboard_sgb.png) | ![SGB keyboard over the document, dark theme](screenshots/keyboard_sgb_dark.png) |
+| Assembly | ![SGB assembly editor](screenshots/assembly_sgb.png) | ![SGB assembly editor, dark theme](screenshots/assembly_sgb_dark.png) |
+| Menu | ![SGB editor menu](screenshots/menu_sgb.png) | ![SGB editor menu, dark theme](screenshots/menu_sgb_dark.png) |
+
 # Using it
 
 FatPak reopens whatever you had open when the power went off. HELP in either menu (or F1) shows the
@@ -38,7 +48,7 @@ files in the hex viewer. Both viewers are read only; B goes back.
 | D-pad | Move the cursor, or the keyboard selection when it's open |
 | A + D-pad | Select text (keyboard closed) |
 | A | Type the selected key |
-| B | Backspace |
+| B | Backspace (keyboard open) |
 | B + D-pad | Page up/down, home, end (keyboard closed) |
 | SELECT | Show or hide the on-screen keyboard |
 | START | Open or close the menu |
@@ -54,7 +64,9 @@ F7 builds, F11 toggles full screen, Alt+Z toggles line wrap.
 menu button combo (Select+Start by default) opens Resume, Save state, Load state and Return to OS.
 See [EverDrive compatibility](notes/EVERDRIVE.md).
 
-**Super Game Boy.** FatPak detects SGB hardware and uploads its border from `EDITOR.DAT`.
+**Super Game Boy.** FatPak starts in a fullscreen SNES interface, with a centered keyboard
+over the document. Keep the matching `SGB.DAT` alongside the OS. The gamepad uses the same
+controls as DMG and GBC; see [SGB](notes/SGB.md) for setup and testing.
 A gamepad in SNES port 1 and mouse in port 2 work with **SETTINGS > KEYBOARD > SNES MOUSE**
 ([setup and testing](notes/KEYBOARD.md#snes-mouse-super-game-boy)).
 In the sibling Gearboy build, select **Emulator > Force Super Game Boy**, then reset or reload
@@ -70,11 +82,13 @@ with Pillow, and cc65 (ca65/ld65 for the SNES mouse bridge).
 
 The language (English or Spanish) is a setting: SETTINGS > LANGUAGE ([Languages](notes/LANGUAGES.md)).
 
-Copy `bin/GBCOS.BIN`, `bin/EDITOR.DAT`, `bin/MODULES/`, `bin/LANG/` and `bin/DRIVERS/` to `/GBCSYS/` on the SD card
+Copy `bin/GBCOS.BIN`, `bin/EDITOR.DAT`, `bin/SGB.DAT`, `bin/MODULES/`, `bin/LANG/` and `bin/DRIVERS/` to `/GBCSYS/` on the SD card
 (`make assemble` does this when the card is mounted at `/media/qbertreynolds/GAMEBOY`).
 
 Tests and the emulator setup are in [Architecture](notes/ARCHITECTURE.md#testing-and-debugging).
-`scripts/screenshots.sh` retakes these screenshots in the emulator.
+`scripts/screenshots.sh` retakes these screenshots using Gearboy for DMG/CGB and
+Mesen with FatPak's SNES renderer for SGB. It needs the SGB BIOS and boot ROM
+(`SGB_BIOS` and `SGB_BOOT`; defaults: `~/Downloads/program.rom` and `~/Downloads/sgb1.boot.rom`).
 
 # Notes
 
