@@ -6,7 +6,7 @@ import struct
 import sys
 from pathlib import Path
 
-KINDS = {1: 'start', 2: 'publish', 3: 'ack', 4: 'timeout', 5: 'key', 6: 'sd_write', 7: 'sd_error', 8: 'wait_state'}
+KINDS = {1: 'start', 2: 'publish', 3: 'ack', 4: 'timeout', 5: 'key', 6: 'sd_write', 7: 'sd_error', 8: 'wait_state', 9: 'pad'}
 KINDS.update(enumerate(('good', 'bad', 'miss', 'rows', 'draw_frames', 'ui_frames',
                         'page_frames', 'mail_frames', 'snes_frame'), 32))
 

@@ -20,6 +20,7 @@ u8 dirty[28],top,text_rows=28,bars,osk_rows,ring_offset;
 u8 last_page[2],expected=1;
 u16 good_pages,bad_pages,drawn_rows;
 u8 queue[64][3],qhead,qcount,event_seq=1,active_event;
+u8 sent_pad;
 u8 status_echo,status_page,status_valid;
 u16 status_frame;
 u8 palette_dirty,cursor_dirty,scan_row;
@@ -54,7 +55,7 @@ static void enqueue(u8 type,u8 a,u8 b) {
  u8 at,i,place;
  if(qcount>=64)return;
  /* Keep the held event immutable; control replies go ahead of queued keys. */
- place=(type==1 || type>=SGBFS_EVENT_DIAG_GOOD)?qcount:active_event;
+ place=(type==1 || type==SGBFS_EVENT_PAD || type>=SGBFS_EVENT_DIAG_GOOD)?qcount:active_event;
  for(i=qcount;i>place;--i){
   memcpy(queue+((qhead+i)&63),queue+((qhead+i-1)&63),3);Capture();
  }
@@ -76,6 +77,8 @@ static void events(void) {
  }
 }
 static void ui_all(void){memset(overlay_dirty,1,28);}
+static u8 osk_top(void){return 28-!!(bars&2)-7;}
+static void ui_osk(void){u8 y;if(osk_rows)for(y=osk_top();y<osk_top()+7;++y)overlay_dirty[y]=1;}
 static void ui_box(void){u8 y;for(y=0;y<box_rows;++y)overlay_dirty[box_top+y]=1;}
 /* Shadow only the state needed by validators, never the 8 KiB model. */
 static u8 commands(const u8 *p,u16 n,u8 apply) {
@@ -127,7 +130,7 @@ static u8 commands(const u8 *p,u16 n,u8 apply) {
    }break;
   case 4:
    if(len!=4 || b[0]>=28 || !b[1] || b[1]>28 || b[2]>3 || (b[3] && b[3]!=5) ||
-      (u16)b[0]+b[1]+b[3]+!!(b[2]&2)>28)return 0;
+      (u16)b[0]+b[1]+!!(b[2]&2)>28)return 0;
    shadow_rows=b[1];if(apply && (top!=b[0] || text_rows!=b[1] || bars!=b[2] || osk_rows!=b[3])){
     top=b[0];text_rows=b[1];bars=b[2];osk_rows=b[3];ui_all();
    }break;
@@ -153,7 +156,7 @@ static u8 commands(const u8 *p,u16 n,u8 apply) {
    if(apply && box_hi!=b[0]){if(box_hi<box_rows)overlay_dirty[box_top+box_hi]=1;box_hi=b[0];if(box_hi<box_rows)overlay_dirty[box_top+box_hi]=1;}break;
   case 10:
    if(len!=2 || b[0]>3 || (b[1]>=50 && b[1]!=255))return 0;
-   if(apply && (osk_layer!=b[0] || osk_key!=b[1])){osk_layer=b[0];osk_key=b[1];for(i=0;i<osk_rows;++i)overlay_dirty[top+text_rows+i]=1;}break;
+   if(apply && (osk_layer!=b[0] || osk_key!=b[1])){osk_layer=b[0];osk_key=b[1];ui_osk();}break;
   case 11:
    if(len<4 || !b[1] || b[1]>16 || b[0]+b[1]>16 || len!=2u+2u*b[1])return 0;
    for(i=0;i<b[1];++i)if(b[3+i*2]&128)return 0;
@@ -266,16 +269,26 @@ static void draw_ui(u8 row){
   glyphs(bar_lines+(row?1:0),bar_lines[row?1:0].font?1:0,256);ui_right=256;
   pixel_start=0;pixel_end=256;
  }
- if(osk_rows && row>=top+text_rows && row<top+text_rows+osk_rows){
-  memset(&keyrow,0,sizeof(keyrow));keyrow.n=20;memset(keyrow.chars,' ',20);rel=row-top-text_rows;
-  if(rel<4)for(i=0;i<10;++i){y=rel*10+i;if(keys[osk_layer==3?1:osk_layer][y])keyrow.chars[i*2]=keys[osk_layer==3?1:osk_layer][y];}
-  else{memcpy(keyrow.chars,bottom,20);if(osk_layer==3)keyrow.chars[0]=25;}
-  glyphs(&keyrow,4,256);ui_left=4;ui_right=256;
-  if(osk_key!=255 && osk_key/10==rel){pixel_start=4+(osk_key%10)*16;pixel_end=pixel_start+8;}
+ if(osk_rows && row>=osk_top() && row<osk_top()+7){
+  /* 168px panel centered on the SNES, independent of the document rows. */
+  ui_left=44;ui_right=212;
+  for(y=0;y<8;++y){memset(shade+(u16)y*256+44,0,168);Capture();}
+  rel=row-osk_top();
+  if(rel && rel<6){
+   --rel;memset(&keyrow,0,sizeof(keyrow));keyrow.n=20;memset(keyrow.chars,' ',20);
+   if(rel<4)for(i=0;i<10;++i){y=rel*10+i;if(keys[osk_layer==3?1:osk_layer][y])keyrow.chars[i*2]=keys[osk_layer==3?1:osk_layer][y];}
+   else{memcpy(keyrow.chars,bottom,20);if(osk_layer==3)keyrow.chars[0]=25;}
+   glyphs(&keyrow,52,204);
+   if(osk_key!=255 && osk_key/10==rel){pixel_start=52+(osk_key%10)*16;pixel_end=pixel_start+8;}
+  }
+  for(y=0;y<8;++y){shade[(u16)y*256+44]=1;shade[(u16)y*256+211]=1;}
+  if(row==osk_top() || row==osk_top()+6){
+   y=row==osk_top()?0:7;for(x=44;x<212;++x)shade[(u16)y*256+x]=1;
+  }
  }
  if(box_width && row>=box_top && row<box_top+box_rows){
   for(y=0;y<8;++y){memset(shade+(u16)y*256+box_x,0,box_width);Capture();}
-  glyphs(box_lines+(row-box_top),box_x,box_x+box_width);
+  glyphs(box_lines+(row-box_top),box_x+4,box_x+box_width-4);
   if(!ui_right || box_x<ui_left)ui_left=box_x;
   if(box_x+box_width>ui_right)ui_right=box_x+box_width;
   if(row-box_top==box_hi){pixel_start=box_x;pixel_end=box_x+box_width;}
@@ -318,27 +331,33 @@ static void draw_ui(u8 row){
  if(ui_left!=ui_right || (row==0 && busy) || (row==27 && total))EncodeRow();
  PresentOverlay(row);overlay_dirty[row]=0;peak(&perf_ui,start);
 }
-static void pads(void) {
- u16 e;u8 key=0;
- /* Port 2 is reserved for the mouse: its buttons share gamepad bit positions. */
- e=pad_edges[0];pad_edges[0]=pad_edges[1]=0;
- if((pad_held[0]&0x2030)==0x2030 && (e&0x2030)) {
-  debug_enabled^=1;overlay_dirty[25]=overlay_dirty[26]=overlay_dirty[27]=1;return;
- }
- if(e&0x0800)key=0x82; /* up */
- else if(e&0x0400)key=0x83;
- else if(e&0x0200)key=0x80;
- else if(e&0x0100)key=0x81;
- else if(e&0x0080)key=10;
- else if(e&0x8000)key=8;
- else if(e&0x1000)key=0x89;
- else if(e&0x0040)key=0x8D; /* X: access the Phase 8 keyboard UI */
- if(osk_rows && !box_width){
-  if(key>=0x80 && key<=0x83)key=key==0x82?0x9C:key==0x83?0x9D:key==0x80?0x9E:0x9F;
-  else if(key==10)key=0x8E;
- }
- if(key && qcount<61)enqueue(1,key,0);
+static u8 pad_bits(u16 state){
+ u8 pad=0;
+ if(state&0x0080)pad|=1;
+ if(state&0x8000)pad|=2;
+ if(state&0x2000)pad|=4;
+ if(state&0x1000)pad|=8;
+ if(state&0x0100)pad|=16;
+ if(state&0x0200)pad|=32;
+ if(state&0x0800)pad|=64;
+ if(state&0x0400)pad|=128;
+ return pad;
 }
+static void pads(void) {
+ u16 held=pad_held[0],e=pad_edges[0];u8 pad,pulse;
+ /* Keep short presses latched across drawing, with room for their release. */
+ if(qcount>=60)return;
+ pad_edges[0]=pad_edges[1]=0;
+ if((held&0x2030)==0x2030) {
+  if(e&0x2030){debug_enabled^=1;overlay_dirty[25]=overlay_dirty[26]=overlay_dirty[27]=1;}
+  held&=~0x2000u;e&=~0x2000u; /* reserve L+R+Select for diagnostics */
+ }
+ /* Port 2 belongs to the mouse. GB code interprets pad state in UI context. */
+ pad=pad_bits(held);pulse=pad|pad_bits(e);
+ if(pulse!=sent_pad){enqueue(SGBFS_EVENT_PAD,pulse,pulse&~sent_pad);sent_pad=pulse;}
+ if(pad!=sent_pad){enqueue(SGBFS_EVENT_PAD,pad,0);sent_pad=pad;}
+}
+
 void main(void) {
  u16 frame=65535u;u8 slot;
  trace_field=4; /* Start with rendering cost, then finish the counter rotation. */

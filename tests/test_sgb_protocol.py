@@ -22,7 +22,7 @@ class Protocol(unittest.TestCase):
     def test_generated_consumers_and_real_assemblers(self):
         p.generate(check=True)
         self.assertEqual(len(p.COMMANDS), 16)
-        self.assertEqual(len(p.EVENTS), 8)
+        self.assertEqual(len(p.EVENTS), 18)
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
             fixtures = {
@@ -91,7 +91,7 @@ class Protocol(unittest.TestCase):
         self.reject(p.page,1,p.command(p.SGBFS_CMD_BUSY,b'\1')*500)
         self.reject(p.command,p.SGBFS_CMD_HELLO,b'\2\0')
         self.reject(p.command,p.SGBFS_CMD_PALETTE,b'\0\1\0\x80')
-        self.reject(p.command,p.SGBFS_CMD_LAYOUT,bytes([1,26,3,5]))
+        self.reject(p.command,p.SGBFS_CMD_LAYOUT,bytes([1,27,3,5]))
         self.reject(p.command,p.SGBFS_CMD_BOX,struct.pack('<BHBB',1,256,0,1))
         self.reject(p.command,p.SGBFS_CMD_PROGRESS,struct.pack('<II',2,1))
 
@@ -114,12 +114,13 @@ class Protocol(unittest.TestCase):
 
     def test_mailbox_all_events_seqlock_and_buttons(self):
         values={'KEY':(0x81,3),'MOUSE_DOWN':(27|0x60,255),'MOUSE_DRAG':(1|0x20,4),
-                'MOUSE_UP':(0,0),'MOUSE_MOVE':(27,255),'HELLO':(1,7),'ACK':(1,255),'LAUNCH_READY':(1,0)}
+                'MOUSE_UP':(0,0),'MOUSE_MOVE':(27,255),'HELLO':(1,7),'ACK':(1,255),'LAUNCH_READY':(1,0),'PAD':(0x82,0x80)}
         for name,payload in values.items():
             data=p.mailbox(127,getattr(p,'SGBFS_EVENT_'+name),*payload)
             self.assertEqual(p.decode_mailbox(127,data,127),tuple(data))
             self.reject(p.decode_mailbox,126,data,127)
             self.reject(p.decode_mailbox,255,data,255)
+        self.reject(p.mailbox,1,p.SGBFS_EVENT_PAD,0,2)
         self.reject(p.mailbox,0,p.SGBFS_EVENT_KEY,1,0)
         self.reject(p.mailbox,1,p.SGBFS_EVENT_ACK,2,1)
         self.reject(p.mailbox,1,p.SGBFS_EVENT_MOUSE_DOWN,28,0)

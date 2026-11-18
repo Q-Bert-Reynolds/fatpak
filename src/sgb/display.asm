@@ -204,17 +204,14 @@ FsLayout:
   ld a, 3
 .bars
   call FsByte
-  ld a, [_screen_rows]
-  ld b, a
-  ld a, [_tb_rows]
-  ld c, a
-  ld a, [_bars]
-  add a
-  add c
-  ld c, a
-  ld a, b
-  sub c
+  ld a, [_osk_shown]
+  and a
+  ld a, 0
+  jr z, .keyboard
+  ld a, OSK_ROWS
+.keyboard
   jp FsByte
+
 FsScroll:
   ld a, [_ring_top]
   ld b, a
@@ -815,8 +812,7 @@ FsInput:
   dec a
   ldh [fs_log_active], a
 .loggingReady
-  xor a
-  ldh [button_state], a
+  ldh a, [button_state]
   ldh [last_button_state], a
   call FsPoll
   call FsLogFlush
@@ -1010,9 +1006,23 @@ FsPoll:
   jr z, .ack
   cp SGBFS_EVENT_KEY
   jr z, .key
+  cp SGBFS_EVENT_PAD
+  jr z, .pad
   cp SGBFS_EVENT_MOUSE_MOVE+1
   ret nc
   jr .consumed
+.pad
+  ldh a, [fs_mb+2]
+  ldh [button_state], a
+  ldh a, [fs_mb+3]
+  ld c, a
+  ldh a, [pad_latch]
+  or c
+  ldh [pad_latch], a
+  ld a, 9
+  call FsLog
+  jr .consumed
+
 .hello
   ldh a, [fs_mb+2]
   cp 1

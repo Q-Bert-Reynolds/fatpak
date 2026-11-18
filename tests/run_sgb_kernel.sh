@@ -39,4 +39,8 @@ closed=Path('config/MesenCE/kernel-closed.ppm')
 if closed.exists():
     assert ImageChops.difference(Image.open(closed),Image.open(root/'build/sgb/kernel-base-golden.png')).getbbox() is None, 'closing the menu did not restore the original image'
     print('PASS: closing the menu restores every original PPU pixel')
+keyboard_closed=Path('config/MesenCE/kernel-osk-closed.ppm')
+if keyboard_closed.exists():
+    assert ImageChops.difference(Image.open(keyboard_closed),Image.open(root/'build/sgb/kernel-base-golden.png')).getbbox() is None, 'closing the OSK did not restore the original image'
+    print('PASS: closing the keyboard restores every original PPU pixel')
 PY

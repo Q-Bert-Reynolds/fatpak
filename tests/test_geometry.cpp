@@ -67,6 +67,9 @@ static void Geometry(const char* image,const char* symbols,const char* data,bool
     char folder[]="/tmp/fatpak-geometry-XXXXXX";Check(mkdtemp(folder),"geometry SD");
     std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);
     Write(root+"/GBCSYS/EDITOR.DAT",Read(data));
+    std::vector<u8> document(70000,'a');
+    for(unsigned i=63;i<document.size();i+=64)document[i]='\n';
+    Write(root+"/Document.txt",document);
     auto syms=Symbols(symbols);
     GearboyCore core;core.Init();core.SetEverdriveFolder(folder);
     Check(core.LoadROM(image,!color),"geometry OS");Frames(core,600);
@@ -77,7 +80,43 @@ static void Geometry(const char* image,const char* symbols,const char* data,bool
     auto call=[&](const char* name,unsigned de=0,unsigned a=0,unsigned bc=0){return Call(core,syms.at(name),de,a,bc);};
     Check(byte("_screen_rows")==18 && byte("_screen_stride")==40 && byte("_screen_width")==160 && byte("_screen_header")==18,"startup retains GB geometry");
     Check(word(syms.at("_tile_attrs"))==syms.at("tile_attrs"),"GB attribute pointer");
+    auto pad=[&](Gameboy_Keys key){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,120);};
+    pad(Down_Key);pad(A_Key);Frames(core,600);
+    Check(byte("_render_text") && byte("_doc_large"),"large document opens in editor");
+    for(unsigned keyboard=0;keyboard<2;++keyboard){
+        if(keyboard)pad(Select_Key);
+        pad(Start_Key);
+        unsigned menu=word(syms.at("_render_box_text"));
+        Check(word(syms.at("_lang_count"))>0,"menu language loaded");
+        Check(byte("_render_box_w")==57,"editor menu sizes itself to SETTINGS");
+        Check(memory->Read(menu+20)==' ' && memory->Read(menu+21)=='E',"editor menu has its actual EDIT label");
+        unsigned x=byte("_render_box_x"),y=(byte("_render_box_top")+2)*8;
+        u16 paper=frame[y*160+x+2];bool ink[8][160]={};
+        unsigned at=x+4;
+        for(const char* label=" EDIT";*label;++label){
+            for(unsigned line=0;line<8;++line){unsigned bits=memory->Read(syms.at("FontVWFGlyphs")+unsigned(*label)*8+line);
+                for(unsigned bit=0;bit<8;++bit)if(bits&(128>>bit))ink[line][at+bit]=true;}
+            at+=memory->Read(syms.at("FontVWFWidths")+unsigned(*label));
+        }
+        for(unsigned line=0;line<8;++line)for(unsigned px=x+1;px<x+byte("_render_box_w")-1;++px)
+            Check((frame[(y+line)*160+px]!=paper)==ink[line][px],"menu text reaches the actual DMG/CGB pixels");
+        printf("%s editor menu pixels and sizing passed (%s keyboard)\n",color?"CGB":"DMG",keyboard?"with":"without");
+        pad(Start_Key);
+    }
+    pad(Select_Key);
     memory->Write(0xffff,0);memory->Write(0xff40,0); // logical tests do not run a video backend
+    { // Menu sizing and text storage must work through the real C/assembly ABI.
+        unsigned text=syms.at("str_buffer");const char* label="Loading...";
+        for(unsigned i=0;i<=strlen(label);++i)memory->Write(text+i,label[i]);
+        unsigned expected=0;for(unsigned i=0;i<strlen(label);++i)expected+=memory->Read(syms.at("FontVWFWidths")+label[i]);
+        unsigned measured=call("_RenderTextWidth",text);
+        Check(measured==expected,"menu font width matches glyph metrics");
+        unsigned lines=call("_BoxText",text,0);
+        call("_OpenBox__far",0,lines);
+        unsigned stored=word(syms.at("_render_box_text"));
+        Check(byte("_render_box_w")==expected+9,"menu fits its real text with symmetric padding");
+        for(unsigned i=0;i<=strlen(label);++i)Check(memory->Read(stored+i)==label[i],"menu text survives sizing");
+    }
     call("_GeometryWide");
     Check(byte("_screen_rows")==28 && byte("_screen_stride")==64 && byte("_screen_width")==248 && byte("_screen_header")==26,"wide geometry and bar slots");
     Check(word(syms.at("_tile_attrs"))==syms.at("wide_tile_attrs"),"wide attribute pointer");

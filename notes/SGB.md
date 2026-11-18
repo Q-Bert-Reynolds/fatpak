@@ -14,7 +14,9 @@ Fullscreen replaces the GB picture and border with 28 rows of SNES-rendered text
 The text area is 248 px wide. Fonts 1–6 start at x=1, leaving
 the cursor in the preceding gap; font 0 retains x=0. Rows are
 capped at 64 glyphs:
-26 text rows with both bars, or 21 with the five-row on-screen keyboard (OSK).
+26 text rows with both bars. The five-row on-screen keyboard (OSK) floats
+over the document in a centered 168×56 px bordered panel; text remains visible
+on both sides. Opening it preserves all document rows and their scroll position.
 Fonts and BGR555 colors come from the same assets as the GB/GBC UI.
 
 The GB uploads SNES code/fonts using BIOS `DATA_TRN`, then issues `JUMP` (`$12`).
@@ -39,7 +41,7 @@ and [fullsnes](https://problemkaputt.de/fullsnes.htm) for hardware references.
 SGB startup attempts fullscreen automatically after loading settings and restoring
 the session. If takeover fails, **SETTINGS → SGB FULLSCREEN** remains available
 in BIOS mode to retry. Remove or rename `SGB.DAT` to boot in BIOS mode for test ROMs.
-The current automatic-start build is OS `B12E` / `SGB.DAT` `D15B`; startup, editing/saving,
+The current automatic-start build is OS `840F` / `SGB.DAT` `FD84`; startup, editing/saving,
 timeout recovery and missing/corrupt/no-HELLO fallback checks pass in the client test.
 
 `SGBBOOT.MOD` loads and validates `/GBCSYS/SGB.DAT`, backs up video, installs the
@@ -61,7 +63,8 @@ while other modules borrow OS pages. See [OVERLAYS.md](OVERLAYS.md) and
 
 Render dispatch checks `SYS_INFO_SGBFS`; content/layout code remains shared.
 Row hashes cover glyphs, attributes, font and selection. Dirty rows stream from
-`tile_buffer`/`tile_attrs` to VRAM. Input enters the existing keyboard-event queue;
+`tile_buffer`/`tile_attrs` to VRAM. Keyboard input enters the existing event queue; pad state uses the shared
+DMG/CGB button handlers, including repeat and editor modifiers;
 queue pressure defers publication rather than losing keys or reusing an
 unacknowledged page. A runtime transport fault stops publication and preserves
 the GB document. Automatic visual recovery after SNES takeover is unproven.
@@ -115,7 +118,8 @@ and pad behavior remains Phase 9. L+R+Select toggles capture/page diagnostics.
 Palette roles are paper/highlight/dim/ink at 0–3, syntax accents at 4–7, and
 selected variants at 8–15. Accent ink becomes normal ink when selected, matching
 the GBC style rules. The GB owns OSK content, shift/symbol state and actions;
-SNES input queues logical keys for the normal editor loop.
+SNES keyboard input queues logical keys; gamepad state goes to the shared
+editor/menu input handlers.
 
 ## Wire protocol v1
 
@@ -205,7 +209,9 @@ for the right edge. Equal start/end means no selection. The reference encoder
 coalesces adjacent identical attributes; equivalent noncanonical runs decode.
 
 LAYOUT bars is bit 0 top / bit 1 bottom; OSK rows is 0 or 5. Text rows must be
-nonempty and `top + text_rows + osk_rows + bottom_bar <= 28`. BOX width is at
+nonempty and `top + text_rows + bottom_bar <= 28`. OSK rows describe its five
+key rows; its panel overlays the bottom seven screen rows above the footer.
+BOX width is at
 least 8 px, its right edge cannot exceed 256, and its rows must fit the screen.
 Stateful constraints (BOX_LINE within the open box, SCROLL within the text ring,
 OSK layer contents) are checked by the receiver model.
@@ -231,6 +237,7 @@ only equal, nonzero, nonbusy commits. Idle 0 is not an event. Sequence wraps
 | Event | A | B |
 | --- | --- | --- |
 | KEY | Existing GB ASCII/`KEY_*` code (nonzero) | Shift=1, Ctrl=2, Alt=4 |
+| PAD (`$09`) | Held GB pad bits | Newly pressed bits (subset of A) |
 | MOUSE_DOWN / MOUSE_DRAG / MOUSE_UP / MOUSE_MOVE | `(buttons << 5) \| screen_row` | Screen pixel x |
 | HELLO | Protocol version | Color=1, mouse=2, pad 2=4 |
 | ACK | Page 0=A / 1=B | Applied page sequence, 1–255 |
@@ -373,27 +380,32 @@ Hello proved execution at `$7F0000` on hardware. The bench additionally audits
 Mesen. This does not prove hardware coverage beyond hello or preservation of
 BIOS WRAM. The current allocation assumes manual reset for launch.
 
-## Planned controls (Phase 9)
+## Controls
 
-Target setup: gamepad in port 1, mouse in port 2. Full mappings, repeat, pad 2
-and both-port mouse support are pending; this table is the proposed mapping.
-Basic navigation and X-to-toggle-OSK are implemented. Conflicting proposed
-Select+R bindings must be resolved during Phase 9.
+Gamepad in port 1, mouse in port 2. PAD events report held/pressed GB button
+bits, including short presses latched while drawing. The GB uses the same
+`PadKey`/`MenuKey` handlers as DMG/CGB, so context, repeat and modifiers agree.
 
-| SNES | Action | Sent as |
+| Button | Editor, keyboard hidden | Keyboard open |
 | --- | --- | --- |
-| D-pad | Move cursor (repeat after 300 ms, then every 50 ms) | arrows |
-| Y + D-pad | Select | Shift+arrows |
-| L / R | Page up / page down | `KEY_PGUP`/`KEY_PGDN` |
-| Y + L / R | Line start / end | Home / End |
-| Select + L / R | Document start / end | Ctrl+Home / End |
-| B | Backspace | Backspace |
-| A | Type the OSK key (OSK open), otherwise newline | key / Enter |
-| X | Show/hide OSK | (existing OSK toggle) |
-| Start | Menu | Escape |
-| Select + Y / X / A | Cut / copy / paste | Ctrl+X/C/V |
-| Select + B / Select + R… | Undo / redo | Ctrl+Z / Ctrl+Y |
-| Pad 2 | Same map | |
+| D-pad | Move cursor | Move key highlight |
+| B + D-pad | Page up/down, line start/end | Move key highlight |
+| A + D-pad | Select text | Move key highlight |
+| A | No text insertion | Press highlighted key |
+| B | Navigation modifier; never delete | Backspace |
+| Select | Open keyboard | Close keyboard |
+| Start | Open menu | Open menu |
+
+Menus/browser retain their shared A=accept, B=back, Start=menu/close and
+Select=info behavior. L/R/X/Y bindings are deferred. L+R+Select still toggles
+diagnostics. The centered keyboard uses BG3 over the BG2 paper mask; BG1 keeps
+the full document. Its bounds are x=44–211, first key x=52; dialogs retain the
+GB renderer's four-pixel text inset inside their border.
+
+Future experiment: high-resolution text with the TV forced to widescreen.
+Compare readability and glyph proportions on hardware before changing display
+mode. The current resolution remains unchanged; the next hardware session is
+needed for that experiment.
 
 **Mouse:** left click places the cursor, chooses menu items, browser rows (double
 click opens) and OSK keys. Left drag selects, and dragging past the top or bottom
@@ -756,7 +768,8 @@ then remount the card; no counter transcription is needed. Decode with
 `python3 scripts/sgb_log.py /path/to/GBCSYS/SGB.LOG`.
 
 The header identifies the OS checksum and `SGB.DAT` CRC. Twelve-byte records
-capture GB frames, page publication/ACK/timeout, delivered keys and SD-write
+capture GB frames, page publication/ACK/timeout, delivered keys, pad transitions
+(record 9: held/pressed bits), and SD-write
 duration and SD error codes. After the first screen is received and drawn, an
 idle mailbox sends one timing field every two seconds: peak draw/UI/page/mail
 times, NMI frames, then GOOD/BAD/MISS/ROW. Control replies take priority.
@@ -917,6 +930,26 @@ The preceding hardware log (`9974`) contains no timeouts or SD errors. Browser
 keys waited 25–30 GB frames before publication, consistent with the frontend
 bottleneck addressed here. Its raw log is preserved in
 `build/sgb/hardware-before-speed-*`. Hardware latency for `D15B` remains untested.
+
+Hardware testing of `D15B` reports a large speed improvement, nearly usable.
+Revision `FD84` / OS `840F` replaces synthetic pad keys with shared held/pressed
+input, restores dialog padding and makes the OSK a centered independent layer.
+Document rows remain intact while it opens, changes layers and closes. Native
+pad tests cover all eight GB buttons, short taps and reserved L/R/X/Y; the GB
+client covers Select, Start, B navigation/deletion, A selection and OSK layers.
+The 113-page real-SNES replay checks all pixels and full restoration after
+closing both menus and keyboard. DMG/CGB geometry regressions also pass.
+The optional Gearboy test renderer accepts the new layout and keeps its panel
+inside the framebuffer; the real renderer remains the uploaded SNES program.
+Resolution changes are deferred to the widescreen experiment described above.
+
+Menu follow-up: center dialogs against the full 256-pixel viewport. The old
+keyboard preview used a fixed 150-pixel box; its replacement uses the actual
+57-pixel main-menu dimensions. Client checks now assert measured width and
+centering. DMG/CGB tests compare real menu pixels with font glyphs over a
+70 KB document, with and without the OSK. Those pass; the reported blank DMG
+menu remains unreproduced.
+
 Run the comparable replay with `SGB_KERNEL_UI=1 SGB_KERNEL_COMPACT=1
 SGB_KERNEL_DROP_COMMIT=1 SGB_KERNEL_PROFILE=1 make test-sgb-kernel`.
 

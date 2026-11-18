@@ -130,7 +130,7 @@ def validate_command(opcode, body):
         top, rows, bars, osk = body
         require(bars <= 3 and osk in (0, 5) and top < SGBFS_ROWS and 1 <= rows <= SGBFS_ROWS,
                 'LAYOUT fields')
-        require(top + rows + osk + bool(bars & 2) <= SGBFS_ROWS, 'LAYOUT bounds')
+        require(top + rows + bool(bars & 2) <= SGBFS_ROWS, 'LAYOUT bounds')
     elif name == 'CURSOR':
         require(n == 3 and body[0] < SGBFS_ROWS and body[2] <= SGBFS_CURSOR_WHITE, 'CURSOR')
     elif name == 'BOX':
@@ -210,6 +210,8 @@ def mailbox(sequence, event, a, b):
             require(a >> SGBFS_MOUSE_BUTTON_SHIFT == 0, 'hover buttons')
         elif name in ('MOUSE_DOWN', 'MOUSE_DRAG'):
             require(a >> SGBFS_MOUSE_BUTTON_SHIFT != 0, 'pressed mouse buttons')
+    elif name == 'PAD':
+        require(not b & ~a, 'pressed pad buttons must be held')
     elif name == 'HELLO':
         require(a == SGBFS_VERSION and b <= 7, 'HELLO version/features')
     elif name == 'ACK':

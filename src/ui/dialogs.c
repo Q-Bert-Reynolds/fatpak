@@ -33,7 +33,8 @@ void OpenBox(unsigned char lines) {
   }
   render_box_text = BoxLine(0);
   render_box_w = widest + BOX_PADDING;
-  render_box_x = (screen_width - render_box_w) >> 1;
+  // Wide text uses 248 pixels of the 256-pixel viewport; FS adds its 4-pixel half-margin.
+  render_box_x = ((screen_width - render_box_w) >> 1) + (sys_info & SYS_INFO_SGBFS);
   render_box_rows = lines + 2; // half rows above and below
   render_box_top = (screen_rows - render_box_rows) >> 1;
   render_box_first = 1;

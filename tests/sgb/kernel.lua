@@ -3,6 +3,7 @@ local fixture=assert(io.open('kernel.bin','rb'));local expected=fixture:read('*a
 local frame,entered,finished=0,nil,false
 local stable=0
 local baseline,baseline_drawn,closed_saved=nil,nil,false
+local keyboard_closed_saved=false
 local sent_at,last_good,max_ack,last_sent=nil,0,0,0
 local function finish(ok,message)
  if finished then return end;finished=true
@@ -156,6 +157,7 @@ emu.addEventCallback(function(cpu)
  if ui_test and stable>=3 then
   if good==103 and not baseline then baseline=vram();baseline_drawn=word('_drawn_rows') end
   if good==106 and not closed_saved then save_ppm('kernel-closed.ppm');closed_saved=true end
+  if good==108 and not keyboard_closed_saved then save_ppm('kernel-osk-closed.ppm');keyboard_closed_saved=true end
  end
  if emu.read(0xc100,emu.memType.gameboyMemory)==6 and stable>=3 then
   if drop_commit and (not dropped_seq or not recovered) then
@@ -163,7 +165,7 @@ emu.addEventCallback(function(cpu)
   end
   if drop_commit then result:write('PASS: held mailbox recovered after a dropped ACK commit\n') end
   if ui_test then
-   if not baseline or not closed_saved then finish(false,'UI checkpoints were not reached');return end
+   if not baseline or not closed_saved or not keyboard_closed_saved then finish(false,'UI checkpoints were not reached');return end
    if vram()~=baseline or word('_drawn_rows')~=baseline_drawn then finish(false,'overlay update redrew or changed BG1');return end
    result:write('PASS: menu open/highlight/close, OSK, bars, busy, progress and theme leave BG1 bytes and draw count unchanged\n')
   end

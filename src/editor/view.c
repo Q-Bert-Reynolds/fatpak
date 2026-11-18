@@ -10,6 +10,7 @@
 #include "../ui/render.h"
 #include "../ui/screen.h"
 #include "../ui/text.h"
+#include "../sgb/client.h"
 
 #define KEEP_LEFT  40 // pixels of text left of the cursor after scrolling sideways to the right (more near the line's end)
 #define KEEP_RIGHT 120 // after scrolling to the left, most of the screen shows where it's going
@@ -84,7 +85,7 @@ unsigned int PosAtX(unsigned char row, unsigned char x) {
 
 // text rows: all but the bars and the on screen keyboard
 static unsigned char TextRows(void) {
-  return screen_rows - (bars << 1) - (osk_shown ? OSK_ROWS : 0);
+  return screen_rows - (bars << 1) - (osk_shown && !(sys_info & SYS_INFO_SGBFS) ? OSK_ROWS : 0);
 }
 
 // scrolls one row down, only the new bottom row is scanned and drawn
@@ -235,7 +236,7 @@ void SetRows(void) {
   tb_rows = TextRows();
   Layout();
   if (osk_shown) {
-    OSKDraw(osk_layer, tb_rows);
+    if (!(sys_info & SYS_INFO_SGBFS)) OSKDraw(osk_layer, tb_rows);
     OSKSelect(osk_x, osk_y);
   }
   OSKShow(osk_shown);

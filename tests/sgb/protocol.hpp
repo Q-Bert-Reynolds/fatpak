@@ -48,6 +48,7 @@ constexpr std::uint32_t SGBFS_EVENT_HELLO = 5;
 constexpr std::uint32_t SGBFS_EVENT_ACK = 6;
 constexpr std::uint32_t SGBFS_EVENT_LAUNCH_READY = 7;
 constexpr std::uint32_t SGBFS_EVENT_MOUSE_MOVE = 8;
+constexpr std::uint32_t SGBFS_EVENT_PAD = 9;
 constexpr std::uint32_t SGBFS_EVENT_DIAG_GOOD = 32;
 constexpr std::uint32_t SGBFS_EVENT_DIAG_BAD = 33;
 constexpr std::uint32_t SGBFS_EVENT_DIAG_MISS = 34;

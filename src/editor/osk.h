@@ -4,7 +4,6 @@
 #include "../constants.h"
 
 unsigned char PadKey(void);
-unsigned char SGBOSKKey(unsigned char key); // decode queued terminal pad actions in the UI context
 void OpenKeyboard(void);
 
 extern unsigned char osk_blocks[OSK_ROWS]; // blocks the on screen keyboard's rows use

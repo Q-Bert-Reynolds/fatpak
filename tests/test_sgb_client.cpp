@@ -47,6 +47,7 @@ static void Fallback(const char* image,const std::map<std::string,unsigned>& sym
     printf("SGB fallback %u passed\n",mode);
 }
 int main(int n,char** v){
+    setvbuf(stdout,nullptr,_IOLBF,0);
     Check(n==6,"arguments: OS symbols EDITOR.DAT SGB.DAT SGBBOOT.MOD");
     char dir[]="/tmp/fatpak-client-XXXXXX";Check(mkdtemp(dir),"SD");std::string root(dir);mkdir((root+"/GBCSYS").c_str(),0700);mkdir((root+"/GBCSYS/MODULES").c_str(),0700);
     Write(root+"/GBCSYS/EDITOR.DAT",Read(v[3]));Write(root+"/GBCSYS/SGB.DAT",Read(v[4]));Write(root+"/GBCSYS/MODULES/SGBBOOT.MOD",Read(v[5]));Write(root+"/GBCSYS/MODULES/HELP.MOD",Read("bin/MODULES/HELP.MOD"));Write(root+"/GBCSYS/MODULES/KEYTEST.MOD",Read("bin/MODULES/KEYTEST.MOD"));
@@ -170,6 +171,10 @@ int main(int n,char** v){
         Frames(core,60);
         Check(!sample[0],"GB consumes optional hardware timing sample");
     }
+    auto cursor=[&](){return unsigned(m->Read(syms.at("_cursor")))|(unsigned(m->Read(syms.at("_cursor")+1))<<8);};
+    auto padTap=[&](unsigned held){
+        Check(h->Inject(9,held,held),"inject pad press");Check(h->Inject(9,0,0),"inject pad release");Frames(core,180);
+    };
     auto key=[&](unsigned code,unsigned mods=0){Check(h->Inject(1,code,mods),"inject key");Frames(core,180);};
     {
         std::vector<unsigned> selection;
@@ -211,8 +216,12 @@ int main(int n,char** v){
     puts("SGB client bootstrap/browser/open/type/save/scroll/selection passed");
     std::vector<u8> body(26*64);
     for(unsigned i=0;i<body.size();++i)body[i]=m->Read(0xD000+i);
-    key(0x89);Frames(core,180);
+    padTap(8);Frames(core,180);
     Check(h->GetModel().boxWidth>0 && h->GetModel().boxRows>=5,"file menu uses BOX overlay");
+    unsigned widest=0;
+    for(const auto& row:h->GetModel().boxLines){unsigned width=0;for(auto c:row.chars)width+=m->Read(syms.at("FontVWFWidths")+c);if(width>widest)widest=width;}
+    Check(h->GetModel().boxWidth==widest+9,"real menu width follows its text metrics plus padding");
+    Check(h->GetModel().boxX==(256-h->GetModel().boxWidth)/2,"real menu is centered on the full SNES viewport");
     bool label=false;for(const auto& r:h->GetModel().boxLines){std::string s(r.chars.begin(),r.chars.end());label|=s.find("SETTINGS")!=std::string::npos;}
     Check(label,"BOX_LINE carries actual menu labels");
     for(unsigned i=0;i<body.size();++i)Check(m->Read(0xD000+i)==body[i],"menu storage preserves every visible text row");
@@ -225,16 +234,40 @@ int main(int n,char** v){
     for(unsigned r=17;r<27;++r)for(auto c:h->GetModel().rows[r].chars)Check(c==32,"unused wide help rows do not retain document text");
     key(27);Frames(core,300);Check(Contains(h,"line30"),"return from help restores document rows");
     Check(!m->Read(syms.at("fs_fault")),"help module retains transport");
-    key(0x8D);Frames(core,180);
+    for(unsigned i=0;i<body.size();++i)body[i]=m->Read(0xD000+i);
+    unsigned before_b=m->Read(syms.at("_modified")),before_b_cursor=cursor();
+    padTap(2);Check(m->Read(syms.at("_modified"))==before_b && cursor()==before_b_cursor,"B alone does not delete text with keyboard hidden");
+    padTap(4);Frames(core,180);
     if(m->Read(syms.at("fs_fault"))){
       std::vector<u8> page(1920);for(unsigned i=0;i<page.size();++i)page[i]=m->ReadCGBLCDRAM(0x8000+i,false);Write("build/sgb/osk-rejected.page",page);
       printf("OSK rejected good=%u bad=%u error=%s seq=%u pending=%u\n",h->Good(),h->Bad(),h->LastError().c_str(),m->Read(syms.at("fs_seq")),m->Read(syms.at("fs_pending")));
     }
-    Check(h->GetModel().oskRows==5,"terminal X action opens the OSK");
-    key(0x9F);Frames(core,60);Check(h->GetModel().oskKey==1,"terminal pad action moves the OSK highlight");
-    key(0x8E);Frames(core,180);Check(Contains(h,"i2t"),"terminal A action types the selected OSK key");
-    key(0x8D);Frames(core,180);Check(!h->GetModel().oskRows,"terminal X action closes the OSK");
+    Check(h->GetModel().oskRows==5,"Select opens the OSK");
+    Check(h->GetModel().textRows==26 && m->Read(syms.at("_tb_rows"))==26,"OSK leaves the full document viewport intact");
+    for(unsigned i=0;i<body.size();++i)Check(m->Read(0xD000+i)==body[i],"opening OSK preserves document row characters");
+    padTap(16);Frames(core,60);Check(h->GetModel().oskKey==1,"terminal pad action moves the OSK highlight");
+    padTap(1);Frames(core,180);Check(Contains(h,"i2t"),"terminal A action types the selected OSK key");
+    unsigned before_delete=cursor();padTap(2);
+    Check(cursor()+1==before_delete && !Contains(h,"i2t"),"B deletes only with the keyboard open");
+    padTap(32);padTap(64);padTap(1);
+    Check(h->GetModel().oskLayer==1,"OSK shift uses the shared layer handler");
+    padTap(16);padTap(1);Check(h->GetModel().oskLayer==2,"OSK symbols layer");
+    padTap(1);Check(h->GetModel().oskLayer==0,"OSK returns to lower case");
+    padTap(4);Frames(core,180);Check(!h->GetModel().oskRows,"Select closes the OSK");
     Check(!m->Read(syms.at("fs_fault")),"OSK operations retain transport");
+    unsigned before_page=cursor();
+    Check(h->Inject(9,2,2),"hold B");Frames(core,10);
+    Check(h->Inject(9,66,64),"B plus Up");
+    for(unsigned i=0;i<90 && cursor()==before_page;++i)Frames(core,1);
+    Check(h->Inject(9,0,0),"release page navigation");Frames(core,180);
+    Check(cursor()<before_page && before_page-cursor()>64,"B plus Up pages instead of deleting or moving one row");
+    unsigned before_shift=cursor();
+    Check(h->Inject(9,1,1),"hold A");Frames(core,10);
+    Check(h->Inject(9,17,16),"A plus Right");
+    for(unsigned i=0;i<90 && cursor()==before_shift;++i)Frames(core,1);
+    Check(h->Inject(9,0,0),"release selection");Frames(core,180);
+    unsigned anchor=unsigned(m->Read(syms.at("_anchor")))|(unsigned(m->Read(syms.at("_anchor")+1))<<8);
+    Check(anchor!=cursor(),"A plus direction selects text with keyboard hidden");
     m->Write(syms.at("fs_progress_loaded"),50);m->Write(syms.at("fs_progress_total"),200);
     Frames(core,180);Check(h->GetModel().loaded==25 && h->GetModel().total==100,"GB progress emitter converts sectors to counted KiB");
     m->Write(syms.at("fs_progress_loaded"),0);m->Write(syms.at("fs_progress_total"),0);

@@ -79,7 +79,15 @@ int main(int argc,char **argv){
  /* Mouse buttons on port 2 must never become Enter/X gamepad commands. */
  empty_queue();pad_held[0]=pad_edges[0]=0;
  pad_held[1]=pad_edges[1]=0x00C1;pads();assert(!qcount && !pad_edges[1]);
- pad_edges[0]=0x0800;pads();assert(qcount==1 && queue[qhead][1]==0x82);
+ pad_held[0]=pad_edges[0]=0x0800;pads();
+ assert(qcount==1 && queue[qhead][0]==SGBFS_EVENT_PAD && queue[qhead][1]==64 && queue[qhead][2]==64);
+ pad_held[0]=0;pads();assert(qcount==2 && queue[(qhead+1)&63][1]==0);
+ empty_queue();sent_pad=0;
+ {static const u16 snes[]={0x80,0x8000,0x2000,0x1000,0x100,0x200,0x800,0x400};
+  unsigned j;for(j=0;j<8;++j){pad_held[0]=snes[j];pads();assert(queue[qhead][1]==(1u<<j));empty_queue();sent_pad=0;}}
+ pad_held[0]=0;sent_pad=0;
+ pad_edges[0]=0x80;pads();assert(qcount==2 && queue[qhead][1]==1 && queue[(qhead+1)&63][1]==0);
+ empty_queue();pad_held[0]=pad_edges[0]=0x4070;pads();assert(!qcount);pad_held[0]=0;
  /* Boxes, OSK and progress change overlay state without dirtying base rows. */
  {const u8 ui[]={6,5,0,11,120,0,5,4,7,6,0,1,1,3,'O','N','E',8,1,0,1,10,2,0,0,12,12,1,0,1,13,8,0,1,0,0,0,2,0,0,0};
   memset(dirty,0,28);assert(commands(ui,sizeof(ui),0));assert(commands(ui,sizeof(ui),1));

@@ -12,12 +12,13 @@ DARK=[3|3<<5|4<<10,6|10<<5|18<<10,13|15<<5|13<<10,27|27<<5|25<<10,
 
 def rgb(c):return tuple(((c>>s)&31)*8+(((c>>s)&31)>>2) for s in (0,5,10))
 def command(op,body):return wire.command(op,body)
-def box():return command(6,bytes((13,150,0,8,6)))+b''.join(command(7,bytes((i,1,len(s)))+s) for i,s in enumerate((b'',b'FILE',b'OPEN',b'SAVE',b'BACK',b'')))+command(8,b'\x03')
+def box():return command(6,bytes((99,57,0,10,7)))+b''.join(command(7,bytes((i,1,len(s)))+s) for i,s in enumerate((b'',b' FILE',b' EDIT',b' SETTINGS',b' HELP',b' CLOSE',b'')))+command(8,b'\x03')
 
 def pages():
     footer=b'READY'+b'\x7f'*10+b'12:34pm  '
     vectors=[b'',box(),command(8,b'\x02'),command(6,bytes(5)),
-        command(4,bytes((1,21,3,5)))+command(10,bytes((0,12))),
+        command(4,bytes((1,26,3,5)))+command(10,bytes((0,12))),
+        command(4,bytes((1,26,3,0))),command(4,bytes((1,26,3,5))),
         command(9,bytes((0,1,13))+b'FATPAK FILES '),
         command(9,bytes((1,1,len(footer)))+footer)+command(12,b'\x01')+command(13,struct.pack('<II',25,100)),
         box(),command(11,bytes((0,16))+struct.pack('<16H',*DARK))]
@@ -57,6 +58,9 @@ def golden(root,output):
     line(b'FATPAK FILES ',0,1,1,selected=True);line(b'READY',27,1,1,selected=True)
     clock=b'12:34pm';clock_x=252-sum(fonts[1][2048+c] for c in clock)
     line(clock,27,1,clock_x,selected=True)
+    # The independent keyboard panel masks only [44,212), preserving BG1 sides.
+    for y in range(160,216):
+        for x in range(44,212):pixels[x,y]=rgb(DARK[0])
     lower=b'1234567890qwertyuiopasdfghjkl;zxcvbnm,./'
     for row in range(5):
         text=bytearray(b' '*20)
@@ -64,15 +68,19 @@ def golden(root,output):
             for x in range(10):
                 if row*10+x<len(lower):text[x*2]=lower[row*10+x]
         else:text=bytes((29,32,35,32,31,32,95,95,95,95,95,95,95,95,15,32,16,32,30,32))
-        line(text,22+row,0,4)
+        line(text,21+row,0,52,204)
         if row==1:
-            for y in range((22+row)*8,(23+row)*8):
-                for x in range(36,44):
+            for y in range((21+row)*8,(22+row)*8):
+                for x in range(84,92):
                     if pixels[x,y]==rgb(DARK[0]):pixels[x,y]=rgb(DARK[1])
-    for i,text in enumerate((b'',b'FILE',b'OPEN',b'SAVE',b'BACK',b'')):
-        line(text,8+i,1,13,163,i==3)
-        for y in range((8+i)*8,(9+i)*8):pixels[13,y]=pixels[162,y]=rgb(DARK[3])
-    for x in range(13,163):pixels[x,64]=pixels[x,111]=rgb(DARK[3])
+    for y in range(160,216):pixels[44,y]=pixels[211,y]=rgb(DARK[3])
+    for x in range(44,212):pixels[x,160]=pixels[x,215]=rgb(DARK[3])
+    for i,text in enumerate((b'',b' FILE',b' EDIT',b' SETTINGS',b' HELP',b' CLOSE',b'')):
+        for y in range((10+i)*8,(11+i)*8):
+            for x in range(99,156):pixels[x,y]=rgb(DARK[1 if i==3 else 0])
+        line(text,10+i,1,103,152,i==3)
+        for y in range((10+i)*8,(11+i)*8):pixels[99,y]=pixels[155,y]=rgb(DARK[3])
+    for x in range(99,156):pixels[x,80]=pixels[x,135]=rgb(DARK[3])
     for y in range(4):
         for x in range(248,252):pixels[x,y]=rgb(DARK[3])
     for x in range(64):pixels[x,223]=rgb(DARK[3])

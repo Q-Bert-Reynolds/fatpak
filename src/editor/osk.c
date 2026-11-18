@@ -7,6 +7,7 @@
 #include "../input.h"
 #include "../ui/render.h"
 #include "../ui/screen.h"
+#include "../sgb/client.h"
 
 #define OSK_BLOCK        9 // the on screen keyboard's blocks if it can't have the rows' it covers (PickOSKBlocks), 9 to 13
 
@@ -44,7 +45,7 @@ static void PickOSKBlocks(void) {
 
 void OSKToggle(void) {
   osk_shown = !osk_shown;
-  if (osk_shown) PickOSKBlocks();
+  if (osk_shown && !(sys_info & SYS_INFO_SGBFS)) PickOSKBlocks();
   SetRows();
 }
 
@@ -60,7 +61,7 @@ static unsigned char shift_timer; // frames left for a double tap, counted down 
 // Refresh, and modal prompts (AskName) don't draw until a key is typed.
 static void SetOSKLayer(unsigned char layer) {
   osk_layer = layer;
-  OSKDraw(osk_layer, tb_rows);
+  if (!(sys_info & SYS_INFO_SGBFS)) OSKDraw(osk_layer, tb_rows);
   EditorDraw();
 }
 

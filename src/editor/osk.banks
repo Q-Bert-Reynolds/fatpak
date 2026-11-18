@@ -1,4 +1,5 @@
 # Code placement; feature ownership follows the source files.
 *: 5
-6: OSKToggle SetOSKLayer PressShift OSKPress OSKMove PadKey
+6: OSKToggle PressShift OSKPress OSKMove PadKey
 7: OpenKeyboard
+10: SetOSKLayer
