@@ -315,6 +315,21 @@ static void CopyFailure(const char* image, const char* symbols, const char* data
 // deepest the stack gets. With the include path on the stack it ran past stack_top into
 // module_wide, and the next draw went over the module's BSS (NO SECTION). The stack below what
 // the editor uses is filled first: some of it must be untouched after.
+// units (tests/test_asm.py's UNIT_FILES): each file's constants and macros its own, labels and
+// EXPORTs shared, \@ from _u1 in each; the ROM as rgbasm -E -P per file and rgblink make it.
+// Find's unit tags are assembly on the device, so only this exercises them there.
+static void Units(const char* image, const char* symbols, const char* data, const std::string& dir, bool color) {
+    std::map<std::string, std::string> lib = {{"prelude.inc", Text(dir + "/lib/prelude.inc")}, {"more.inc", Text(dir + "/lib/more.inc")}};
+    std::map<std::string, std::string> beside;
+    for (const char* name : {"b.asm", "main.asm", "project.gbp"}) beside[name] = Text(dir + "/" + name);
+    Session s(image, symbols, data, color, "a.asm", Text(dir + "/a.asm"), lib, beside); // the card lists files by name
+    unsigned frames = s.command(4, "Built ");
+    if (s.lines() != "a.gb|Built 32 KB") fprintf(stderr, "box: \"%s\"\n%s", s.lines().c_str(), Text(s.root + "/build.log").c_str());
+    Check(s.lines() == "a.gb|Built 32 KB", "three units build from the first");
+    Check(Read(s.root + "/a.gb") == Read(dir + "/../units.gb"), "the units' ROM matches rgbasm -E -P and rgblink");
+    s.pad(A_Key);
+    printf("%s three units: %u frames\n", color ? "CGB" : "DMG", frames);
+}
 static void LongReads(const char* image, const char* symbols, const char* data, const std::string& dir, bool color) {
     std::map<std::string, std::string> lib;
     for (unsigned i = 0; i < 3; ++i) lib["huge" + std::to_string(i) + ".bin"] = Text(dir + "/lib/huge" + std::to_string(i) + ".bin");
@@ -464,7 +479,7 @@ static void Project(const char* image, const char* symbols, const char* data, co
 }
 
 int main(int argc, char** argv) {
-    Check(argc == 12, "usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT hello.asm hello.gb tests/asm features.gb src gbdk.gb project.gb huge-folder");
+    Check(argc == 13, "usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT hello.asm hello.gb tests/asm features.gb src gbdk.gb project.gb huge-folder units-folder");
     for (int color = 0; color < 2; ++color) {
         Build(argv[1], argv[2], argv[3], argv[4], argv[5], color);
         Errors(argv[1], argv[2], argv[3], color);
@@ -475,6 +490,7 @@ int main(int argc, char** argv) {
         IncludeError(argv[1], argv[2], argv[3], color);
         Library(argv[1], argv[2], argv[3], argv[8], argv[9], color);
         Project(argv[1], argv[2], argv[3], argv[6] + std::string("/project"), argv[10], color);
+        Units(argv[1], argv[2], argv[3], argv[12], color);
         for (unsigned op : {32u, 38u}) CopyFailure(argv[1], argv[2], argv[3], argv[8], op, color);
         LongReads(argv[1], argv[2], argv[3], argv[11], color);
         FileAllocation(argv[1], argv[2], argv[3], color);

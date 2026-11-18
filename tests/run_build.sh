@@ -42,6 +42,20 @@ for i in range(3):
 src += ['SECTION "t", ROM0[$150]'] + [f' dw Huge{i}, After{i}, Start{i}' for i in range(3)]
 open(f'{folder}/Huge.asm', 'w').write('\n'.join(src) + '\n')
 PY
+# units: test_asm.py's three, the prelude in lib/ and the units beside project.gbp
+mkdir -p "$work/units/lib"
+python3 - "$fatpak_root/tests" "$work/units" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+from test_asm import UNIT_FILES
+for name, text in UNIT_FILES.items():
+    name = name.replace('inc/', 'lib/').replace('src/', '')
+    open(f'{sys.argv[2]}/{name}', 'w').write(text.replace('"inc/', '"lib/'))
+open(f'{sys.argv[2]}/project.gbp', 'w').write('main a.asm b.asm\nmain main.asm\nrgbasm -E -P lib/prelude.inc -D X\n')
+PY
+for unit in a b main; do (cd "$work/units" && rgbasm -E -P lib/prelude.inc -D X -o "$work/unit_$unit.o" $unit.asm); done
+rgblink -o "$work/units.gb" "$work/unit_a.o" "$work/unit_b.o" "$work/unit_main.o"
+rgbfix -v -p 0 "$work/units.gb"
 (cd "$work/huge" && rgbasm -o "$work/huge.o" Huge.asm)
 rgblink -o "$work/huge.gb" "$work/huge.o"
 rgbfix -v -p 0 "$work/huge.gb"
@@ -49,4 +63,4 @@ cd "$fatpak_root"
 python3 tests/test_asm.py
 "$work/test" "$fatpak_root/bin/GBCOS.BIN" "$fatpak_root/bin/GBCOS.sym" \
     "$fatpak_root/bin/EDITOR.DAT" "$fatpak_root/tests/asm/hello.asm" "$work/hello.gb" \
-    "$fatpak_root/tests/asm" "$work/features.gb" "$fatpak_root/src" "$work/gbdk.gb" "$work/project.gb" "$work/huge"
+    "$fatpak_root/tests/asm" "$work/features.gb" "$fatpak_root/src" "$work/gbdk.gb" "$work/project.gb" "$work/huge" "$work/units"

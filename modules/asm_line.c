@@ -317,11 +317,14 @@ void Statement(void) {
     case D_CHARMAP: case D_CHARMAP + 1: case D_CHARMAP + 2: case D_CHARMAP + 3: case D_POPC: Charmap(d - D_CHARMAP); break;
     case D_INCBIN: Incbin(); break;
     case D_ENDM: case D_ENDR: Fail(ASM_ERR_SYNTAX); break;
-    case D_PURGE:
+    case D_PURGE: case D_EXPORT: case D_GLOBAL:
       do {
         Space();
         ReadIdent();
-        if (FindDotted()) Purge();
+        if (FindDotted()) {
+          if (d == D_PURGE) Purge(10); // unfindable: its length no longer matches any name
+          else if (sym_kind) Purge(2); // a constant every unit sees: no unit tag for a scope
+        }
       } while (Comma());
       break;
     case 0xFF:
@@ -340,30 +343,49 @@ void Statement(void) {
       else Fail(ASM_ERR_UNSUPPORTED);
   }
 }
-void Pass(unsigned char p) {
-  pass = p;
+// one file (0: the document) to its end, from frame 0
+static void Unit(unsigned int file) {
+  Frame* f = frames;
   depth = 0;
-  frames[0].kind = F_TEXT;
-  frames[0].source = SRC_TEXT;
-  frames[0].file = main_file; // project.gbp's main, or the document
-  frames[0].pos = main_file ? main_at : 0;
-  frames[0].end = main_file ? main_end : context->length;
-  frames[0].line = 1;
+  f->kind = F_TEXT;
+  f->source = SRC_TEXT;
+  f->file = file;
+  f->line = 1;
+  f->pos = 0;
+  f->end = file ? 0 : context->length; // a file is included from an empty frame 0
+  if (file) {
+    FileOf(file);
+    Push(F_TEXT, SRC_TEXT, file_at, file_end);
+  }
   chunk_n = 0;
+  run_n = 0;
   arg_top = if_depth = 0;
-  unique = rs = 0;
   scope = 0;
   in_section = sect_depth = 0;
-  run_n = 0;
+  Advance();
+  while (ch && !error) Line();
+  if (!error && (if_depth || depth)) Fail(ASM_ERR_SYNTAX);
+  CloseSection();
+}
+void Pass(unsigned char p) {
+  unsigned int rs0;
+  unsigned char i = 0;
+  pass = p;
+  rs = 0;
   str_top = literal = bs_literal = 0;
   CharmapReset();
   progress_units = 0;
   Progress();
-  Advance();
-  while (ch && !error) Line();
+  unit_tag = 0;
+  if (prelude) Unit(prelude);
+  rs0 = rs;
+  do { // each starts as rgbasm would, after the prelude
+    if (nunits) unit_tag = i + 1;
+    unique = 0;
+    rs = rs0;
+    Unit(nunits ? units[i] : 0); // without a project, the document
+  } while (++i < nunits && !error);
   if (p == 1) pass1_units = progress_units;
-  if (!error && (if_depth || depth)) Fail(ASM_ERR_SYNTAX);
-  CloseSection();
 }
 // where the error is: its file's symbol and name, line and the document position
 void Report(unsigned int file, unsigned int line, Pos at) {

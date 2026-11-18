@@ -64,6 +64,7 @@ void Mark(void);
 Val Apply(unsigned char o, Val a, Val b);
 void Emit(unsigned char b);
 void Emit16(unsigned int v);
+void EmitFile(void); // INCBIN: file_at to file_end
 void Emit8(unsigned int v);
 void EmitSigned(unsigned int v);
 void Reserve(unsigned int bytes, unsigned char fill);
@@ -90,6 +91,8 @@ extern unsigned int progress_units, pass1_units;
 #define D_DB 1
 #define D_DS 3
 #define D_DEF 4
+#define D_EXPORT 6
+#define D_GLOBAL 7
 #define D_REDEF 5
 #define D_INCLUDE 8
 #define D_IF 9
@@ -222,7 +225,7 @@ unsigned int StrExpr(void);
 unsigned int StrNumber(unsigned char k);
 void DefineString(unsigned int start);
 void Interpolate(void);
-void Purge(void);
+void Purge(unsigned char at);
 void CharmapReset(void); // charmaps (asm_str.c)
 void Charmap(unsigned char d); // d: 0 CHARMAP, 1 NEWCHARMAP, 2 SETCHARMAP, 3 PUSHC, 4 POPC
 void MapEmit(unsigned int start); // str[start..str_top) through the charmap, used up
@@ -249,12 +252,17 @@ typedef struct {
 } Fix;
 extern Fix fix;
 extern char output[65]; // the ROM's path from the project's folder
-extern unsigned int main_file; // main's symbol, 0 to assemble the document
-extern Pos main_at, main_end;
+// main's files: each a unit (rgbasm runs one per file and rgblink joins them), its own symbols but
+// for labels and sections (rgbasm -E's), in link order; none: assemble the document
+#define UNITS 63 // unit_tag 1-63
+extern unsigned int units[UNITS], prelude; // their INCLUDE symbols; rgbasm -P's file (0: none)
+extern unsigned char nunits;
+extern unsigned char unit_tag; // asm_emit.c
 typedef union { Val v; UVal u; unsigned int w[2]; } Num;
 extern Num num; // asm.c: a number being read
 void Digit(unsigned char base, unsigned char d); // num = num * base + d (2, 8, 10, 16)
 unsigned char Project(void);
+void Output(void); // asm_projw.c: output gets path, as .gb
 // asm_cache.c: build.cache
 extern unsigned int cache_n, cache_files, files_read;
 extern unsigned char card_frames[4]; // 32 bits
@@ -275,6 +283,7 @@ extern unsigned int file_top; // the next free block from ASM_FILE_BLOCK
 void StepVar(unsigned int unit, Val step); // asm_emit.c: FOR's variable moves on
 void For(void); // asm_str.c
 void Incbin(void);
+void FileOf(unsigned int file); // asm_loop.c: file_at, file_size, file_end from its symbol
 void Include(void); // asm_loop.c
 void Report(unsigned int file, unsigned int line, Pos at); // asm_line.c: where the error is, into the context
 #endif

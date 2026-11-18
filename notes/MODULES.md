@@ -19,7 +19,7 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
 | `FILEINFO.MOD` | 3 | 9 | FILE > INFO, Select (`browser/info.c`) | 2,745 B + 91 B BSS |
 | `HELP.MOD` | 4 | 9 | HELP, F1 (`editor/help.c`) | 305 B + 49 B BSS |
 | `THEME.MOD` | 5 | 9 | SETTINGS > THEME (`ui/theme.c`) | 514 B + 48 B BSS |
-| `ASM.MOD` | 6 | 8 | FILE > BUILD, RUN (`editor/build.c`), [ASSEMBLER.md](ASSEMBLER.md) | wide, 5 pages: 7,387 + 7,403 + 7,400 + 7,390 + 7,384 B, 2,418 B BSS (full) |
+| `ASM.MOD` | 6 | 8 | FILE > BUILD, RUN (`editor/build.c`), [ASSEMBLER.md](ASSEMBLER.md) | wide, 5 pages: 7,404 + 7,175 + 7,308 + 7,393 + 7,400 B, 2,544 B BSS |
 | `HEXVIEW.MOD` | 7 | 9 | Opening a binary file in the browser (`browser/viewer.c`) | 2,216 B + 269 B BSS |
 | `TILEVIEW.MOD` | 8 | 9 | Opening a `.tiles` file in the browser (`browser/viewer.c`) | 2,097 B + 431 B BSS |
 

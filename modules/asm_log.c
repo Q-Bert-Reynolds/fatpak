@@ -92,8 +92,8 @@ void Log(void) {
   Frame* f;
   char text[LANG_MAX + 1];
   log_n = 0;
-  LogText(main_file ? (const char*)output : "the document");
-  LogText(main_file ? " from " ASM_PROJECT_FILE "\n" : "\n");
+  LogText(nunits ? (const char*)output : "the document");
+  LogText(nunits ? " from " ASM_PROJECT_FILE "\n" : "\n");
   for (i = 0; i < log_steps; ++i) {
     LogText(log_names[i]);
     LogTime(log_marks[i + 1] - log_marks[i]);

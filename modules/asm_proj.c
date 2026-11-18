@@ -13,11 +13,10 @@
 
 static const char proj_name[] = ASM_PROJECT_FILE;
 static const char proj_words[] = "\004main\006output\006rgbasm\006rgbfix";
-static const char proj_gb[] = ".gb";
 static char proj_token[NAME_MAX + 1], proj_value[NAME_MAX + 1];
 char output[65];
-unsigned int main_file;
-Pos main_at, main_end;
+unsigned int units[UNITS], prelude;
+unsigned char nunits;
 Fix fix;
 
 // a word of the line into dest: up to a space, a tab, ';' or the line's end; "..." may hold them.
@@ -84,7 +83,8 @@ static void ProjOptions(unsigned char fixing) {
     for (p = proj_token + 1; (c = *p) != 0 && !error; ++p) {
       if (!fixing) {
         if (c == 'W') break; // warnings: nothing to warn about
-        if (c != 'D') { Fail(ASM_ERR_UNSUPPORTED); return; }
+        if (c == 'E') continue; // every label is exported anyway
+        if (c != 'D' && c != 'P') { Fail(ASM_ERR_UNSUPPORTED); return; }
       }
       else if (c == 'v') continue; // always
       else if (c == 'C') { fix.bytes[1] = 0xC0; fix.given |= 2; continue; }
@@ -103,6 +103,10 @@ static void ProjOptions(unsigned char fixing) {
       else if (ProjWord(proj_value)) v = proj_value;
       else { Fail(ASM_ERR_SYNTAX); return; }
       if (c == 'D') ProjDefine(v);
+      else if (c == 'P') { // -P file: read before each unit
+        for (i = 0; (path[i] = v[i]) != 0; ++i);
+        if (!(prelude = LoadPath())) Fail(file_error);
+      }
       else if (c == 't' || c == 'k' || c == 'i') {
         char* dest = c == 't' ? fix.title : c == 'k' ? fix.licensee : fix.id;
         unsigned char size = c == 't' ? 16 : c == 'k' ? 2 : 4;
@@ -119,6 +123,7 @@ static void ProjOptions(unsigned char fixing) {
   }
 }
 
+
 // which of proj_words[] ident is, 0xFF if none
 static unsigned char ProjWhich(void) {
   const char* w = proj_words;
@@ -133,7 +138,6 @@ static unsigned char ProjWhich(void) {
   }
   return 0xFF;
 }
-
 // reads project.gbp if there is one: 0 if there isn't (an error is reported at its line)
 unsigned char Project(void) {
   unsigned char i, k;
@@ -156,13 +160,14 @@ unsigned char Project(void) {
     if (IsStart(ch)) {
       ReadIdent();
       k = ProjWhich();
-      if (k == 0) { // main: read now, so a missing one is reported here
-        ProjWord(path);
-        if (!error && !(main_file = LoadPath())) Fail(file_error);
-        main_at = file_at;
-        main_end = file_end;
+      if (k == 0) { // main: its files, read now so a missing one is reported here
+        while (ProjWord(path) && !error) {
+          if (nunits == UNITS) Fail(ASM_ERR_NESTING);
+          else if (!(units[nunits++] = LoadPath())) Fail(file_error);
+          else if (!output[0]) Output(); // the first one's name, unless output says
+        }
       }
-      else if (k == 1) ProjWord(output);
+      else if (k == 1) ProjWord(output); // over main's
       else if (k != 0xFF) ProjOptions(k - 2);
       else Fail(ASM_ERR_UNSUPPORTED);
     }
@@ -172,15 +177,6 @@ unsigned char Project(void) {
     else if (ch && !error) Fail(ASM_ERR_SYNTAX);
   }
   --literal;
-  if (!error && !main_file) Fail(ASM_ERR_FILE); // no main line: at the file's end
-  if (error) return 1;
-  if (!output[0]) { // main's path (still in path), as .gb
-    for (i = 0, k = 0xFF; path[i] && i < sizeof(output) - 4; ++i) {
-      if ((output[i] = path[i]) == '.') k = i;
-      else if (path[i] == '/') k = 0xFF;
-    }
-    if (k == 0xFF) k = i;
-    for (i = 0; (output[k + i] = proj_gb[i]) != 0; ++i);
-  }
+  if (!error && !nunits) Fail(ASM_ERR_FILE); // no main line: at the file's end
   return 1;
 }

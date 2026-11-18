@@ -39,24 +39,19 @@ void For(void) {
 
 // INCBIN "file"[, start[, length]]: its bytes, from the file read whole into PSRAM
 void Incbin(void) {
-  Pos at, end, n; // start and length can pass 64 KiB
+  Pos n; // start and length can pass 64 KiB
   if (!OpenFile()) return;
-  at = file_at;
-  end = file_end;
   if (Comma()) {
     n = (Pos)Constant();
     if (n > file_size) { Fail(ASM_ERR_RANGE); return; }
-    at += n;
+    file_at += n;
     if (Comma()) {
       n = (Pos)Constant();
-      if (n > end - at) { Fail(ASM_ERR_RANGE); return; }
-      end = at + n;
+      if (n > file_end - file_at) { Fail(ASM_ERR_RANGE); return; }
+      file_end = file_at + n;
     }
   }
-  for (; at < end && !error; ++at) {
-    Window(BLOCK(at));
-    Emit(WINDOW[(unsigned int)at & 511]);
-  }
+  EmitFile();
 }
 
 Pos file_at, file_size, file_end;
@@ -115,11 +110,81 @@ unsigned int LoadPath(void) {
     if (error) return 0;
     file_top += FileBlocks(load.size);
   }
-  file_at = ADDRESS(sym_value);
-  file_size = sym_extra | (Pos)sym_bank << 16;
-  file_end = file_at + file_size;
+  FileOf(found);
   return found;
 }
+// file_at, file_size and file_end of a file's symbol: its first block (bytes 4-5), its size (8, 9, 7)
+#ifdef HOST_TEST
+void FileOf(unsigned int file) {
+  unsigned char* e = Entry(file);
+  file_at = ADDRESS(e[4] | (e[5] << 8));
+  file_size = (e[8] | (e[9] << 8)) | (Pos)e[7] << 16;
+  file_end = file_at + file_size;
+}
+#else
+void FileOf(unsigned int file) __naked {
+  file; // de
+  __asm
+	call	_Entry
+	ld	hl, 4
+	add	hl, bc
+	ld	a, [hl+]
+	ld	e, a
+	ld	d, [hl]
+	ld	hl, _file_at
+	xor	a, a
+	ld	[hl+], a
+	ld	a, e
+	add	a, a
+	ld	[hl+], a
+	ld	a, d
+	adc	a, a
+	ld	[hl+], a
+	ld	a, 0
+	adc	a, a
+	ld	[hl], a
+	ld	hl, 7
+	add	hl, bc
+	ld	a, [hl+]
+	ld	d, a
+	ld	a, [hl+]
+	ld	e, a
+	ld	a, [hl]
+	ld	hl, _file_size
+	ld	[hl], e
+	inc	hl
+	ld	[hl+], a
+	ld	a, d
+	ld	[hl+], a
+	ld	[hl], 0
+	ld	bc, _file_end
+	ld	de, _file_at
+	ld	hl, _file_size
+	ld	a, [de]
+	add	a, [hl]
+	ld	[bc], a
+	inc	bc
+	inc	de
+	inc	hl
+	ld	a, [de]
+	adc	a, [hl]
+	ld	[bc], a
+	inc	bc
+	inc	de
+	inc	hl
+	ld	a, [de]
+	adc	a, [hl]
+	ld	[bc], a
+	inc	bc
+	inc	de
+	inc	hl
+	ld	a, [de]
+	adc	a, [hl]
+	ld	[bc], a
+	ret
+  __endasm;
+}
+#endif
 // INCLUDE and INCBIN's "path"
 unsigned int OpenFile(void) {
   unsigned char i;

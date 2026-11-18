@@ -203,7 +203,7 @@ static void PushArg(unsigned char n) {
   for (i = at; args[i]; ++i);
   Push(F_ARG, SRC_ARGS, at, i);
 }
-static void PushId(void) { // \@: _ and the innermost macro or repeat's number
+static void PushId(void) { // \@: _u and the innermost macro or repeat's number
   Frame* m = &frames[depth];
   unsigned int id;
   unsigned char i = 7;
@@ -211,6 +211,7 @@ static void PushId(void) { // \@: _ and the innermost macro or repeat's number
   id = m->id;
   idtext[i] = 0;
   do { id = (unsigned int)Div(id, 10); idtext[--i] = '0' + (unsigned char)div_rem; } while (id); // no SDCC helpers
+  idtext[--i] = 'u';
   idtext[--i] = '_';
   Push(F_ARG, SRC_ID, i, 7);
 }

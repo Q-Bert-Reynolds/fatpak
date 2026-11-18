@@ -48,18 +48,41 @@ assemble byte-identical to RGBDS, unmodified (`memory1.asm` calls
   file in it (a `.md` too), and from `project.gbp` itself:
 
   ```
-  ; beisbol, as its Makefile builds it
+  ; one file
   main   src/main.asm
-  output beisbol.gb
+  output game.gb
   rgbasm -D _DEMO -D LANG_EN
   rgbfix -jvcs -k 01 -l 0x33 -m 0x1B -p 255
   ```
 
   `main` and `output` are paths from the project's folder; `output` defaults to
-  main's path as `.gb`. Includes are tried from the project's folder first, as
-  `rgbasm` resolves them when a Makefile runs it there. The `rgbasm` and `rgbfix`
-  lines take those tools' options: `-D NAME[=VALUE]` (an `EQUS`, `"1"` without a
-  value) and `-W...` (ignored); `-v -j -c -C -s` and `-k -l -m -n -p -r -t -i`,
+  the first main's path as `.gb`. Includes are tried from the project's folder
+  first, as `rgbasm` resolves them when a Makefile runs it there.
+- **Units.** `main` takes several files, and may be repeated: each is a unit, as
+  a Makefile that runs `rgbasm` once per file and `rgblink` over the objects
+  builds them, in link order (sections are placed as `rgblink` places them given
+  the objects in that order). `rgbasm -P file` is read before each unit (once
+  per pass: it may define anything but code), so a project split like beisbol's
+  is:
+
+  ```
+  main   src/memory1.asm src/strings.asm src/gbdk.asm ...
+  main   src/baseball/simulation.asm src/wram.asm src/sram.asm src/main.asm
+  output beisbol.gb
+  rgbasm -D _DEMO -D LANG_EN -E -P src/beisbol.inc
+  rgbfix -jvcs -k 01 -l 0x33 -m 0x1B -p 255
+  ```
+
+  Labels and sections belong to every unit, as with `rgbasm -E` (`-E` is
+  accepted; without it labels are still shared). Constants, macros and string
+  symbols belong to the unit that defines them, unless it `EXPORT`s them (after
+  defining them); `\@` and the `RS` counter start again in each unit (from where
+  the prelude left the counter); the prelude's charmaps are every unit's. Up to
+  63 units. They are still assembled together in one build: a unit isn't kept
+  between builds (TODO.md, Stage 2).
+- The `rgbasm` and `rgbfix` lines take those tools' options: `-D NAME[=VALUE]`
+  (an `EQUS`, `"1"` without a value), `-P file`, `-E` and `-W...` (ignored);
+  `-v -j -c -C -s` and `-k -l -m -n -p -r -t -i`,
   with the value in the same word or the next, numbers as `$1B`, `0x1B`, `0b11`
   or decimal (`-m` takes numbers, not MBC names). The logo, ROM size and
   checksums are always fixed. Anything else is NOT SUPPORTED at its line, `;`
@@ -96,15 +119,16 @@ assemble byte-identical to RGBDS, unmodified (`memory1.asm` calls
 | `INCLUDE "file"` | nested, and the same file again is read from PSRAM, not the card |
 | `IF`/`ELIF`/`ELSE`/`ENDC` | nested to 15 levels; skipped lines aren't parsed |
 | `REPT n`/`ENDR`, `FOR name, [start,] stop[, step]`/`ENDR` | nested; `\@` is unique per iteration; the `FOR` variable ends one step past its last value, like RGBDS |
-| `MACRO name`/`ENDM`, invocation, `\1`-`\9`, `\@`, `_NARG`, `SHIFT` | arguments split at top-level commas, outside `()`, `[]` and quotes |
+| `MACRO name`/`ENDM`, invocation, `\1`-`\9`, `\@`, `_NARG`, `SHIFT` | arguments split at top-level commas, outside `()`, `[]` and quotes; `\@` is `_u1`, `_u2`... as in RGBDS 1.0 |
 | `DEF`/`REDEF name EQUS string`, `"""..."""` (may span lines) | a string symbol used as a word is replaced by its text, as in RGBDS: at a statement's start, in an expression, in macro arguments |
 | `{name}`, `{fmt:name}` anywhere but comments, in strings and in the middle of words | numbers default to `$` and uppercase hex; formats `[#][0][width]` and `d u x X b o`; string symbols give their text |
 | `STRCAT`, `STRUPR`, `STRLWR`, `STRSLICE` (0-based, negative from the end), `STRSUB` (1-based, deprecated in RGBDS), `STRRPL`; `STRLEN`, `STRCMP`, `STRFIND`, `STRRFIND` in expressions | `\\` in a macro body stays a backslash for the string that reads it |
-| `INCBIN "file"[, start[, length]]` | |
+| `INCBIN "file"[, start[, length]]` | copied a run at a time (up to 256 bytes), not a byte at a time |
 | `PURGE name, ...` | names can be defined again (pass 2 too) |
 | `CHARMAP "string", value, ...`, `NEWCHARMAP name[, base]`, `SETCHARMAP name`, `PUSHC`, `POPC` | strings in `DB` and character literals go through the current map: the longest entry at each position, unmapped characters as themselves; `'x'` must be one entry of one byte; 8 maps, 60 KiB of entries; `\{` `\}` are literal braces |
 | `ASSERT expr[, msg]`, `FAIL` | ASSERT is checked in pass 2 |
-| `EXPORT`, `GLOBAL`, `WARN`, `PRINT`, `PRINTLN` | accepted and ignored |
+| `EXPORT`, `GLOBAL` | a constant, macro or string symbol defined above becomes every later unit's; labels are already |
+| `WARN`, `PRINT`, `PRINTLN` | accepted and ignored |
 | Expressions | `+ - * / % & \| ^ << >> == != < > <= >= && \|\| ! ~`, unary `-`, parentheses, `@`, `HIGH()`, `LOW()`, `BANK(label or @)`, `DEF(name)`, `_NARG`, `__RGBDS_MAJOR__` etc., `$hex %bin &oct 123 'c'`, fixed point `1.5` (16.16), `_` separators |
 
 Values are 32 bits and signed, as in RGBDS: `/` rounds toward minus infinity,
@@ -186,6 +210,14 @@ The device regression includes several 22 KB files to exercise that overflow.
   (up to 79 characters). 256 hash chains whose heads fill the first block;
   entries never cross a block. Macros keep their body's address (value and bank)
   and length; files are symbols named by their path's last 79 characters.
+  `Find` is assembly on the device (every name read goes through it).
+  A unit's constants, macros and string symbols have its tag (`unit_tag`, 1-63:
+  no entry's unit is that low, those are the hash heads) where a global's scope
+  is 0, and `Find` takes a global name's scope as 0 or the current unit's tag;
+  the prelude and a lone source are tag 0. `EXPORT` sets the scope to 0. So
+  another unit's `DEF X` is invisible without a pass over the table, a unit's
+  own constants stay findable in pass 2 (forward references), and a build
+  without units is the same as before.
 - **Sections** are 32-byte records in PSRAM from `ASM_SECTION_BLOCK` (512, 32
   blocks), each found by a symbol named `"` and the section's name (so a
   FRAGMENT or pass 2 finds its own). The open one is a copy in WRAMX (`sec`),
@@ -194,15 +226,22 @@ The device regression includes several 22 KB files to exercise that overflow.
   so each pass starts from the declared one. Labels keep their section's 16-bit
   index for `Relocate`.
 - **Image** at `ASM_IMAGE_BLOCK` (up to 1 MiB, 2048 blocks); `Emit` selects the
-  block from the bank and address. Image, symbols, heap, charmaps and files are
+  block from the bank and address. `INCBIN` goes through `EmitFile` (assembly,
+  beside `Emit`): runs that end at the next 256-byte boundary of the file's
+  block or the image's (or at the file's end), copied through `str[]` between
+  the two windows; pass 1 only counts them. A byte at a time it was a far call
+  each (72 KB took ~30 s of a pass on DMG; beisbol's split has ~630 KB). Image, symbols, heap, charmaps and files are
   inside the large-file add buffer, which is unused while a text-buffer document
   is open.
 - **Projects** (`modules/asm_proj.c`): `Main` loads `project.gbp` through the
   host's search (the first file found sets `file_level`, the folder later
   searches try first and `BuildFile` takes the project's folder from), reads it
-  as a frame with the lexer's own helpers, loads main as an included file that
-  becomes frame 0 of both passes, defines the `-D` strings before them, and
-  `Header` applies the `rgbfix` bytes. The context reports the error file's path
+  as a frame with the lexer's own helpers, loads each main file (`units[]`) and
+  the `-P` prelude as included files, defines the `-D` strings before both
+  passes, and `Header` applies the `rgbfix` bytes. Each pass (`Pass`, in
+  `asm_line.c`) reads the prelude, then each unit (`Unit`: an empty frame 0 that
+  includes the file, so it reads as `INCLUDE` does), closing the unit's section
+  and starting its `\@`, `RS` counter, label scope and `IF` depth over. The context reports the error file's path
   as written (`name`, with `base` at its file name) and, on success, the output.
 - **build.cache** (`asm_cache.c`, `asm_cstart.c`, `asm_cread.c`, `asm_cbytes.c`;
   split to fit the pages): `CacheStart` (in `Project`, before main) reads the
@@ -230,9 +269,13 @@ The device regression includes several 22 KB files to exercise that overflow.
   `project.gbp`).
   Calls between pages cost a far call each; pointers never cross: each page's
   constants are read by its own code; `modules/asm_shared.h` lists what is shared
-  (globals are WRAMX BSS, readable from all five). Free bytes: page 13 ~37,
-  12 ~4, 5 ~24, 4 ~34, 15 ~40: **the module is full** (with `jr` for every jump in range,
-  `modules/peephole_jr.def`).
+  (globals are WRAMX BSS, readable from all five). Free bytes: page 13 ~20,
+  12 ~250, 5 ~115, 4 ~30, 15 ~25 (with `jr` for every jump in range,
+  `modules/peephole_jr.def`). Units cost ~490 bytes; the room came from SDCC's
+  32-bit C moved to assembly: `Find` (550 bytes in C), `StepVar` (`FOR`'s
+  variable, 312), `FileOf` (a file symbol's position and size, 219 in C, which
+  `LoadPath` shares), with `Output` (the default ROM name) in `asm_projw.c` on
+  page 12.
 - **32-bit arithmetic** is hand-written assembly on the device: SDCC's `long`
   code took `Apply` alone to 1.6 KB. `Apply` (every binary operator) and `Div`
   (unsigned, for `FOR` counts and `{}` digits) work on two 4-byte registers in
@@ -306,7 +349,7 @@ The device regression includes several 22 KB files to exercise that overflow.
 | 19 | BAD BANK | wrong bank for the region, ROMX bank 0 or > 63, `ALIGN` > 13 |
 | 20 | ASSERT FAILED | `ASSERT` false or `FAIL` |
 | 21 | NO SUCH FILE | `INCLUDE` or `INCBIN` can't read it (or it's empty) |
-| 22 | TOO DEEP | nesting, arguments, 16 includes, 8 `PUSHS` or 512 sections exceeded |
+| 22 | TOO DEEP | nesting, arguments, 16 includes, 8 `PUSHS`, 512 sections or 63 units exceeded |
 | 23 | SECTIONS OVERLAP | two sections with addresses overlap |
 
 Module load failures show the usual MODULE MISSING / DAMAGED / NEEDS NEWER OS.
@@ -357,12 +400,17 @@ from `asm_line.c` on page 5 to the lexer on page 13: `Space`, `Keyword`, `Line`,
   built from a string and `PURGE`; `loops.asm`, `FOR` (nested, negative step,
   none) and `INCBIN`; `hello.asm`), FatPak's `math.asm`, `memory1.asm` and
   `gbdk.asm`; `sections.asm` (`FRAGMENT`, `PUSHS`/`POPS` with scopes, `DS ALIGN`
-  in floating, aligned, fixed and RAM sections, `ALIGN` offsets); `values.asm`
+  in floating, aligned, fixed and RAM sections, `ALIGN` offsets); `loops.asm`
+  also `INCBIN`s 1.5 KB at odd offsets into an odd address, and to a bank's end
+  (`EmitFile`'s runs); `values.asm`
   (32-bit constants, `DL`, beisbol's `D24`/`D32`, signed `/` `%` and shifts at
   their edges, comparisons, 16.16 literals, `FOR` past 16 bits, `{}` formats of
   32-bit values); projects (`project.gbp` with defines and rgbfix options,
   built from a markdown file two folders down, against `rgbasm`/`rgbfix` with
-  the same options; ten errors at their lines), 150 random
+  the same options; ten errors at their lines), units (three files with a `-P`
+  prelude: their own constants, macros and `\@`, an `EXPORT`ed constant, labels
+  and a `FRAGMENT` across them, against `rgbasm -E -P` per file and `rgblink`;
+  another unit's constant is UNKNOWN SYMBOL), 150 random
   section layouts (with fragments, offsets and `DS ALIGN`) whose labels and banks
   go in a fixed table, and 400 ROMX sections. Then each error code's line and
   position.
@@ -374,7 +422,8 @@ from `asm_line.c` on page 5 to the lexer on page 13: `Space`, `Keyword`, `Line`,
   arithmetic) with the `lib/` folder matching RGBDS, `tests/asm/project` built
   from a markdown file (its ROM as `rgbasm`/`rgbfix` make it with the same
   options), errors in an included open document and in `project.gbp` (box,
-  cursor), its highlighting, an error inside an included
+  cursor), its highlighting, the three units (only they exercise the assembly
+  `Find`'s unit tags), an error inside an included
   file, and `gbdk.asm` with `memory1.asm` and `hardware.inc` unmodified.
 
 ## beisbolgb
@@ -402,7 +451,8 @@ two-line prelude and limits raised) worked through it as far as it could:
 | `PUSHS`/`POPS` | 6 | done |
 | 32-bit values | `D24`, `D32` (item costs) | done |
 | `-D` defines, `rgbfix` options | `_DEMO`, `LANG_EN`; `-jvcs -k 01 -l 0x33 -m 0x1B -p 255` | done: `project.gbp` |
-| Speed | ~1.8 MB read per pass | **to do**: 42 minutes on CGB in Gearboy (over an hour on DMG) |
+| Units | split into 50 (`rgbasm -E -P src/beisbol.inc` each, then `rgblink`) | done: `main` with several files |
+| Speed | ~1.1 MB of units and 110 KB of prelude read per pass, ~630 KB of `INCBIN` | 24.7 minutes on CGB in Gearboy; **to do**: keep units between builds |
 
 With a `project.gbp` (the one under Using it) beside an unmodified copy, the
 PC harness builds it from any file in it byte for byte as the Makefile's `rgbasm`
@@ -418,7 +468,31 @@ its paths start with `./`, and FatFs has no relative names (`FF_FS_RPATH` 0), so
 `OpenFile` drops a leading `./` (the PC harness now refuses `.` and `..` like
 FatFs does).
 
-Its `build.log` from Gearboy (CGB), 2026-11-13:
+**The split** (beisbolgb `49909c4`, 2026-11-16): 50 units with the
+`project.gbp` under Units above (all 50 files on its `main` lines, in the
+Makefile's `ASM_SOURCES` order). The PC harness and Gearboy (CGB) both build it
+byte for byte as the Makefile's `rgblink` and `rgbfix` do. Gearboy, 2026-11-18,
+88,891 frames from the keypress (24.7 min); again, through `build.cache`, 84,567:
+
+```
+beisbol.gb from project.gbp
+pass 1      12:04   ~14464 lines
+  card       1:37   393 files found and read, 0 through build.cache
+sections     0:34   295
+pass 2      11:28   ~14464 lines
+finishing    0:27
+total       24:33
+```
+
+```
+pass 1      10:52   ~14464 lines
+  card       0:23   394 files found and read, 392 through build.cache
+pass 2      11:28   ~14464 lines
+total       23:20
+```
+
+The rest is parsing: each unit is assembled twice every build. Before the split
+(one `main.asm`), Gearboy (CGB), 2026-11-13:
 
 ```
 beisbol.gb from project.gbp
@@ -434,15 +508,36 @@ built 512 KB
 
 ## Next steps
 
-1. **Hardware pass** for `EQUS`, `FOR` and `INCBIN` with the `Asm` folder.
-2. **Speed** (the profile above): five module loads and swaps are the biggest
+1. **Stage 2: units kept between builds** (TODO.md). Units now assemble
+   together, every build. To reassemble only a unit whose files changed:
+   - Each unit gets its own pass 1 and pass 2, back to back, with no `Link`
+     between: anything only a link can know (a label in a floating section,
+     another unit's label or `EXPORT`, `BANK()` of those, `@` in a floating
+     section) becomes a patch, an RPN expression as rgbasm writes it. On page 13
+     every operand and operator appends to an RPN buffer that's dropped when the
+     value comes out known; the emitters (`Emit8/16`, `EmitSigned`, `jr`, `DW`,
+     `DL`, `ldh`) write a patch instead of failing.
+   - The unit's object (sections with bytes, labels, `EXPORT`s, patches with
+     file and line, `ASSERT`s, and every file it read with its directory entry:
+     sector, place, date, time, size, as `build.cache` finds them) stays in
+     PSRAM; the host writes it beside `project.gbp`. A unit whose entries all
+     still match (the prelude's included) isn't assembled at all.
+   - `LINK.MOD`, run after `ASM.MOD`: reads the objects (new ones from PSRAM,
+     the rest from the card), places sections (`Link` and `Relocate` move there
+     from page 15), resolves symbols, evaluates patches and `ASSERT`s, fixes the
+     header and writes the ROM. That frees `Link`, `Relocate`, `Fill`, `Header`
+     and `Log` (~2.5 KB) from ASM.MOD for the patch code.
+   - Edited unit then: its two passes plus the prelude's (~110 KB each), and the
+     link.
+2. **Hardware pass** for `EQUS`, `FOR` and `INCBIN` with the `Asm` folder.
+3. **Speed** (the profile above): five module loads and swaps are the biggest
    fixed cost for small files; a cached backup compare (MODULES.md) or keeping
    the module installed across builds would help. For big sources: the far
    calls from `asm_line.c` to the lexer (moving `Statement`'s hot path next to
    it, or the lexer helpers it calls most into page 5 too), `Keyword` indexing
    its tables by length, comment lines skipped in assembly.
-3. **Language:** compound assignment (`+=` ...), `**`, `>>>`, `LOAD`, `UNION`,
+4. **Language:** compound assignment (`+=` ...), `**`, `>>>`, `LOAD`, `UNION`,
    anonymous labels, `STRFMT`, a symbol listing to a file. Page 15 is the last
    OS page a wide module can borrow (every other one holds FatFs or its callers),
    so further room has to come from smaller code.
-4. **Large sources:** assemble a large document from its file on the card.
+5. **Large sources:** assemble a large document from its file on the card.

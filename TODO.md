@@ -1,11 +1,10 @@
 # Priority
 
-- ASM.MOD is full (every page within 40 bytes): more features need code moved to assembly or out of the module.
-- Assembler: build beisbolgb on the device faster ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): 42 min CGB in Gearboy, over an hour on DMG.
-  - Stage 1: `build.cache` (where each file's directory entry is) is done. Left: an "up to date" check (every file's entry unchanged since the ROM was written: RUN without building), which needs entry dates and room (the module is full).
-  - Stage 2, translation units and a linker (LINK.MOD): beisbol split into units that are reassembled only when their files change.
-  - `INCBIN` emits a byte at a time through `Emit` (72 KB took ~30 s of a pass on DMG): copy whole runs a block at a time.
-  - The symbol table's 256 hash chains (`Find` is 16% of pass 2).
+- ASM.MOD has ~440 bytes free (page 12 ~250, page 5 ~115, the rest ~20-30): more features still need code moved to assembly or out of the module (Stage 2's LINK.MOD would take `Link`, `Header`, `Log`).
+- Assembler: build beisbolgb on the device faster ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): the split into 50 units builds in 24.7 min CGB in Gearboy (42 before the split); DMG not measured.
+  - Stage 1: `build.cache` (where each file's directory entry is) is done. Left: an "up to date" check (every file's entry unchanged since the ROM was written: RUN without building), which needs entry dates.
+  - Stage 2: units build together now (`main` with several files, `-P`, `-E`). Left: keep each unit's object between builds and reassemble only units whose files changed, with patches and a linker (LINK.MOD): plan in [ASSEMBLER.md](notes/ASSEMBLER.md#next-steps).
+  - The symbol table's 256 hash chains (`Find` is assembly now; the chains are as long as before).
 
 # Rendering
 

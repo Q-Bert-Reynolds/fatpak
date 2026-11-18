@@ -183,9 +183,9 @@ def main():
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '11.o', str(ROOT / 'modules/asm_proj.c')])
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '12.o', str(ROOT / 'modules/asm_log.c')])
     run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + '13.o', str(ROOT / 'modules/asm_cache.c')])
-    for n, name in ((14, 'asm_cstart.c'), (15, 'asm_cread.c'), (16, 'asm_cbytes.c')):
+    for n, name in ((14, 'asm_cstart.c'), (15, 'asm_cread.c'), (16, 'asm_cbytes.c'), (17, 'asm_projw.c')):
         run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', str(HOST) + f'{n}.o', str(ROOT / 'modules' / name)])
-    run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c')] + [str(HOST) + suffix + '.o' for suffix in ('', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16')])
+    run(['gcc', '-O1', '-DHOST_TEST', '-o', str(HOST), str(ROOT / 'tests/asm_host.c')] + [str(HOST) + suffix + '.o' for suffix in ('', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17')])
     failed = 0
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
@@ -227,6 +227,7 @@ def main():
         failed += sections(work)
         failed += many(work)
         failed += projects(work)
+        failed += units(work)
         failed += macro_log(work)
         for source, name, line in ERRORS:
             status, got, pos, _ = ours(source, work)
@@ -278,6 +279,98 @@ PROJECT_ERRORS = [ # project.gbp, error, line
     ('main src/main.asm\nrgbasm D_DEMO\n', 'SYNTAX', 2),
     ('main src/bad.asm\n', 'SYMBOL', 3),
 ]
+# units: main with several files, each assembled as rgbasm -E -P prelude would and joined
+# as rgblink joins them; constants, macros and \@ belong to a unit, labels and EXPORTs to all
+UNIT_FILES = {
+    'inc/prelude.inc': '''IF !DEF(PRELUDE)
+DEF PRELUDE EQU 1
+INCLUDE "inc/more.inc"
+MACRO shared
+  db \\1, SHARED
+ENDM
+CHARMAP "<A>", $F0
+RSRESET
+DEF FIELD_A RB 2
+ENDC
+''',
+    'inc/more.inc': 'DEF SHARED EQU $5A\n',
+    'src/a.asm': '''DEF LOCAL EQU 1
+DEF VALUE EQU $1234
+EXPORT VALUE
+MACRO mine
+  db LOCAL, "\\@"
+ENDM
+SECTION "a code", ROMX
+AStart::
+  ld a, LATER ; its own constant, defined below
+  call BStart
+.loop
+  jr .loop
+  mine
+  shared 3
+  db "<A>"
+DEF LATER EQU 7
+SECTION FRAGMENT "frag", ROM0
+  db "a1"
+SECTION "same size 1", ROMX
+  ds 16, 1
+''',
+    'src/b.asm': '''DEF LOCAL EQU 2
+MACRO mine
+  dw LOCAL, VALUE
+  db "\\@"
+ENDM
+DEF FIELD_B RB 1
+SECTION "b code", ROMX
+BStart::
+  ld hl, AStart.loop
+  mine
+  db FIELD_B, LOCAL
+IF DEF(LATER)
+  db $EE
+ENDC
+  ret
+SECTION FRAGMENT "frag", ROM0
+  db "b1"
+SECTION "same size 2", ROMX
+  ds 16, 2
+''',
+    'src/main.asm': '''SECTION "entry", ROM0[$150]
+  call AStart
+  dw VALUE, BStart
+  shared 9
+''',
+}
+def units(work):
+    root = work / 'units'
+    for name, text in UNIT_FILES.items():
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_text(text)
+    names = ['src/a.asm', 'src/b.asm', 'src/main.asm']
+    (root / 'project.gbp').write_text('main src/a.asm src/b.asm\nmain src/main.asm\nrgbasm -E -P inc/prelude.inc -D X\n')
+    out = run([str(HOST), str(root / 'src/b.asm'), str(work / 'ours.gb')]).stdout.split()
+    failed = 0
+    if out[0] != '0' or out[6] != 'src/a.gb':
+        print(f'units: FAIL {NAMES.get(int(out[0]), out[0])} line {out[1]} {out[6:]}'); failed += 1
+    else:
+        for i, name in enumerate(names):
+            run(['rgbasm', '-E', '-P', 'inc/prelude.inc', '-D', 'X', '-o', str(work / f'u{i}.o'), name], cwd=root)
+        run(['rgblink', '-o', str(work / 'u.gb')] + [str(work / f'u{i}.o') for i in range(len(names))])
+        run(['rgbfix', '-v', '-p', '0', str(work / 'u.gb')])
+        mine, expected = (work / 'ours.gb').read_bytes(), (work / 'u.gb').read_bytes()
+        if mine != expected:
+            diffs = [i for i in range(min(len(mine), len(expected))) if mine[i] != expected[i]]
+            print(f'units: FAIL sizes {len(mine)} {len(expected)}, differences at {[hex(i) for i in diffs[:8]]}'); failed += 1
+        else:
+            print(f'units: {len(names)} units, {len(mine)} bytes match')
+    # a unit's constant isn't another's unless it's EXPORTed
+    (root / 'src/c.asm').write_text('SECTION "c", ROMX\n  dw VALUE\n  db LATER\n')
+    (root / 'project.gbp').write_text('main src/a.asm src/b.asm src/c.asm\nrgbasm -E -P inc/prelude.inc\n')
+    out = run([str(HOST), str(root / 'src/b.asm'), str(work / 'ours.gb')]).stdout.split()
+    if int(out[0]) != CODES['SYMBOL'] or int(out[1]) != 3 or out[6:] != ['c.asm']:
+        print(f'units: another unit\'s constant: FAIL got {NAMES.get(int(out[0]), out[0])} line {out[1]} {out[6:]}'); failed += 1
+    return failed
+
 def projects(work):
     failed = 0
     root = work / 'proj'

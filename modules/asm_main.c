@@ -30,7 +30,8 @@ unsigned char Main(void) {
   Builtin(version_minor, 0);
   Builtin(version_patch, 1);
   nsects = 0;
-  main_file = 0;
+  nunits = 0;
+  prelude = 0;
   fix.given = fix.title_n = fix.licensee_n = fix.id_n = 0;
   output[0] = 0;
   if (Project()) context->kind |= ASM_PROJECT;
@@ -69,6 +70,6 @@ unsigned char Main(void) {
   }
   CacheEnd();
   Log();
-  if (!error && main_file) for (i = 0; (context->name[i] = output[i]) != 0; ++i);
+  if (!error && nunits) for (i = 0; (context->name[i] = output[i]) != 0; ++i);
   return error;
 }

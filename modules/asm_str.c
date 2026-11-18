@@ -213,7 +213,7 @@ void Interpolate(void) {
   Push(F_TEXT, SRC_FMT, 0, i)->file = FILE_EXPANSION;
 }
 
-void Purge(void) { Entry(found)[10] = 0; } // unfindable: its length no longer matches any name
+void Purge(unsigned char at) { Entry(found)[at] = 0; } // PURGE (10), EXPORT (2): asm_line.c
 
 
 // --- charmaps (CHARMAP, NEWCHARMAP, SETCHARMAP, PUSHC, POPC): in PSRAM from ASM_CHARMAP_BLOCK.
