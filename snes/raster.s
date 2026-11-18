@@ -92,36 +92,27 @@ _EncodeRow:
  stz $1100
  stz $1101
  stz $1102
- stz $1103
- lda #8
- sta $1104
-@pixel:
- lda _shade,x
- phx
- tax
- lda f:$7F0000+ShadeColors,x
- plx
- ; Pack eight adjacent pixels directly into their four tile-plane bytes.
- ; The raster address advances once per tile, rather than once per pixel.
- lsr
- rol $1100
- lsr
- rol $1101
- lsr
- rol $1102
- lsr
- rol $1103
- inx
- dec $1104
- bne @pixel
+ ; ShadeColors emits indices 0..7: the cleared fourth plane stays zero.
+ sty $110C ; Y becomes a color-table index while packing this tile
+ .repeat 8
+  lda _shade,x
+  tay
+  lda ShadeColors,y
+  lsr
+  rol $1100
+  lsr
+  rol $1101
+  lsr
+  rol $1102
+  inx
+ .endrepeat
+ ldy $110C
  lda $1100
  sta _raster,y
  lda $1101
  sta _raster+1,y
  lda $1102
  sta _raster+16,y
- lda $1103
- sta _raster+17,y
  ; Full pixel loop already advanced X. Blank tiles advance it here instead.
  bra @captureTile
 @capturedTile:
@@ -134,15 +125,25 @@ _EncodeRow:
  sep #$20
 .a8
 @captureTile:
+ ; Four tiles are a bounded sub-row chunk. The ICD2 retains four completed
+ ; input rows; this services it well before that window can be overwritten.
+ rep #$20
+.a16
+ txa
+ and #31
+ bne @packed
  phx
  phy
- sep #$10
+ sep #$30
+.a8
 .i8
  jsr _Capture
- rep #$10
+ rep #$30
+.a16
 .i16
  ply
  plx
+@packed:
  rep #$20
 .a16
  txa
@@ -167,6 +168,7 @@ _EncodeRow:
 @done:
  plp
  rts
+.segment "RODATA"
 ShadeColors:
  .repeat 64,I
   .if !(I & 1)
@@ -182,6 +184,7 @@ ShadeColors:
   .endif
  .endrepeat
 
+.segment "CODE"
 .import _Capture
 
 .export _BlitGlyph
@@ -324,7 +327,11 @@ _BlitGlyph:
  cpy $1116
  bcc @icon
 @rowDone:
+ lda $1110
+ and #1
+ beq @rowPolled
  jsr _Capture
+@rowPolled:
  inc $1110
  lda $1110
  cmp #8

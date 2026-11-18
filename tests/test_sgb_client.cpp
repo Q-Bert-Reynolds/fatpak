@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include "GearboyCore.h"
 #include "SGB.h"
+#include "Profiler.h"
 bool g_mcp_stdio_mode=true;
 static std::vector<u16> pixels(256*224);
 static void Check(bool b,const char* msg){if(!b){fprintf(stderr,"FAIL: %s\n",msg);exit(1);}}
@@ -17,6 +18,19 @@ static std::vector<u8> Read(const std::string& p){std::ifstream f(p,std::ios::bi
 static void Write(const std::string& p,const std::vector<u8>& b){std::ofstream f(p,std::ios::binary);f.write((const char*)b.data(),b.size());Check(f.good(),"write SD fixture");}
 static std::map<std::string,unsigned> Symbols(const char* p){std::map<std::string,unsigned> r;FILE* f=fopen(p,"r");Check(f,"symbols");char line[512],name[256];unsigned b,a;while(fgets(line,sizeof(line),f))if(sscanf(line,"%x:%x %255s",&b,&a,name)==3)r[name]=a;fclose(f);return r;}
 static void Frames(GearboyCore& c,unsigned n){s16 a[AUDIO_BUFFER_SIZE];while(n--){int count=0;c.RunToVBlank(pixels.data(),a,&count);}}
+static void ProfileStart(GearboyCore& core) {
+    if(!std::getenv("SGB_CLIENT_PROFILE"))return;
+    core.GetProfiler()->Reset();core.GetProfiler()->Enable(true);
+}
+static void ProfileEnd(GearboyCore& core,const char* name) {
+    if(!std::getenv("SGB_CLIENT_PROFILE"))return;
+    auto p=core.GetProfiler();p->Sync();p->Enable(false);
+    std::ofstream file((std::string("build/sgb/client-perf-")+name+".tsv").c_str());
+    file<<"bank\taddress\tcalls\texclusive\tinclusive\n";
+    auto f=p->GetFunctions();
+    for(unsigned i=0;i<p->GetFunctionCount();++i)
+        file<<f[i].bank<<'\t'<<f[i].address<<'\t'<<f[i].calls<<'\t'<<f[i].exclusive_cycles<<'\t'<<f[i].inclusive_cycles<<'\n';
+}
 static std::string Text(Memory* m,unsigned at){std::string s;for(unsigned i=0;i<128 && m->Read(at+i);++i)s+=char(m->Read(at+i));return s;}
 static bool Contains(FatPakSGBHost* h,const std::string& text){for(const auto& r:h->GetModel().rows){std::string s(r.chars.begin(),r.chars.end());if(s.find(text)!=std::string::npos)return true;}return false;}
 static void WaitForFullscreenStartup(GearboyCore& c,const std::map<std::string,unsigned>& syms) {
@@ -179,12 +193,14 @@ int main(int n,char** v){
     {
         std::vector<unsigned> selection;
         for(const auto& row:h->GetModel().rows)selection.push_back(unsigned(row.start)|(unsigned(row.end)<<8));
+        ProfileStart(core);
         Check(h->Inject(1,0x83,0),"inject browser Down");
         unsigned elapsed=0;bool changed=false;
         while(elapsed<180 && !changed) {
             Frames(core,1);++elapsed;unsigned row=0;
             for(const auto& value:h->GetModel().rows)changed|=selection[row++]!=(unsigned(value.start)|(unsigned(value.end)<<8));
         }
+        ProfileEnd(core,"browser");
         Check(changed,"browser Down changes the selected row");
         printf("PERF: browser Down to published highlight: %u GB frames\n",elapsed);
         Frames(core,180-elapsed);
@@ -192,8 +208,10 @@ int main(int n,char** v){
     key(10);Frames(core,300);
     Check(Text(m,syms.at("_file_name")).find("sample.c")!=std::string::npos,"open browser file using mailbox keys");
     Check(Contains(h,"counter"),"editor text rows");
+    ProfileStart(core);
     Check(h->Inject(1,'Z',0),"inject typed character");
     unsigned typed_frames=0;while(typed_frames<180 && !Contains(h,"Zint")){Frames(core,1);++typed_frames;}
+    ProfileEnd(core,"typing");
     Check(Contains(h,"Zint"),"typed text reflected in terminal model");
     printf("PERF: typed character to published text: %u GB frames\n",typed_frames);
     Frames(core,180-typed_frames);

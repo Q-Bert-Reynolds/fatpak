@@ -199,7 +199,8 @@ static void page(u8 slot) {
 static void receive(u8 slot){u16 start=Clock();page(slot);peak(&perf_page,start);}
 /* Shade planes retain overlapping italic glyphs, dim and syntax accents. */
 u16 glyph_offset,glyph_x,glyph_icon,glyph_right;u8 glyph_color;
-static void glyphs(const Row *row,u16 left,u16 right) {
+#if defined(SNES_TEST) || defined(SNES_GLYPH_CHECK)
+static void glyphs_reference(const Row *row,u16 left,u16 right) {
  u16 x=left;u8 i,c,f,style,color,j,k; signed char icon;
  for(i=0;i<row->n && x<right;++i) {
   c=row->chars[i];
@@ -215,8 +216,12 @@ static void glyphs(const Row *row,u16 left,u16 right) {
   style=row->flags?row->attrs[i]>>4:0;f=row->font;
   if(f<3) {
    if(style==5)f=2;
-   else if(style==1||style==3||style==7||style==13||style==2)
-    f=(f==2?7:10)+(style==3?2:style==2?1:0);
+   else if(style==1||style==3||style==7||style==13||style==2) {
+    /* Keep the reference explicit: cc65's optimized output miscompiles the nested ternary
+       here by reading the character slot instead of style in its last arm. */
+    if(f==2)f=7;else f=10;
+    if(style==3)f+=2;else if(style==2)++f;
+   }
   }
   color=style==4||style==8?2:3;
   if(style==5||style==11)color=5;
@@ -229,6 +234,21 @@ static void glyphs(const Row *row,u16 left,u16 right) {
   x+=row->flags?(row->attrs[i]&15):FontWidth((u16)row->font*256+c);
  }
 }
+#endif
+#ifndef SNES_TEST
+/* Native layout shares the same Row model and compositing globals as above. */
+const u8 native_row_size=sizeof(Row);
+const Row *glyph_row;
+void DrawGlyphs(void);
+static void glyphs(const Row *row,u16 left,u16 right) {
+ glyph_row=row;glyph_x=left;glyph_right=right;DrawGlyphs();
+}
+#else
+#define glyphs glyphs_reference
+#endif
+#ifdef SNES_GLYPH_CHECK
+#include "../tests/sgb/glyph_checks.h"
+#endif
 u16 pixel_start=256,pixel_end=256;
 static void pixels(const Row *row,u16 left,u16 right,u8 selected) {
  (void)left;(void)right;
@@ -360,6 +380,9 @@ static void pads(void) {
 
 void main(void) {
  u16 frame=65535u;u8 slot;
+#ifdef SNES_GLYPH_CHECK
+ GlyphChecks();
+#endif
  trace_field=4; /* Start with rendering cost, then finish the counter rotation. */
  OverlayInit();memset(dirty,1,28);ui_all();enqueue(5,1,5);
  for(;;) {

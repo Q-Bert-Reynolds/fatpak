@@ -13,4 +13,6 @@ python3 scripts/sgb_data.py --snes build/sgb/hello.bin --output build/sgb/client
     "$gearboy_root/platforms/shared/desktop/trace_logger_formatter.o" -latomic -o build/sgb/client-test
 build/sgb/client-test bin/GBCOS.BIN bin/GBCOS.sym bin/EDITOR.DAT "${SGB_CLIENT_DATA:-build/sgb/client-test.SGB.DAT}" bin/MODULES/SGBBOOT.MOD
 
-python3 tests/sgb/check_ui_stream.py build/sgb/client.fph
+if [[ ${SGB_CLIENT_PERF:-0} != 1 ]]; then
+    python3 tests/sgb/check_ui_stream.py build/sgb/client.fph
+fi

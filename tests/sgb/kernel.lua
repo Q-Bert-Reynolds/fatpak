@@ -160,6 +160,14 @@ emu.addEventCallback(function(cpu)
   if good==108 and not keyboard_closed_saved then save_ppm('kernel-osk-closed.ppm');keyboard_closed_saved=true end
  end
  if emu.read(0xc100,emu.memType.gameboyMemory)==6 and stable>=3 then
+  if symbols._glyph_checks then
+   if word('_glyph_checks')~=74 or word('_glyph_mismatches')~=0 then
+    local cases={};for i=0,73 do if emu.read(symbols._glyph_failures+i,emu.memType.snesWorkRam)~=0 then cases[#cases+1]=i end end
+    result:write('Failing glyph cases: '..table.concat(cases,',')..'\n')
+    finish(false,string.format('native glyph comparison: %d cases, %d mismatches',word('_glyph_checks'),word('_glyph_mismatches')));return
+   end
+   result:write('PASS: 74 native/C glyph comparisons: fonts, styles, clipping, icons, overlaps and clock alignment\n')
+  end
   if drop_commit and (not dropped_seq or not recovered) then
    finish(false,'dropped-commit recovery was not exercised');return
   end

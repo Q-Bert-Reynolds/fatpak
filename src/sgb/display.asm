@@ -483,6 +483,18 @@ FsEncodeRow:
   ldh [fs_sel_cols], a
   ldh a, [fs_sel_end]
   ldh [fs_sel_cols+1], a
+  ; Empty and whole-row selections need no character-to-pixel walk. These
+  ; dominate normal typing and browser navigation; partial spans keep it.
+  ldh a, [fs_sel_start]
+  and a
+  jr nz, .slowSelection
+  ldh a, [fs_sel_end]
+  and a
+  jr z, .simpleSelection
+  cp $FF
+  jr z, .simpleSelection
+.slowSelection
+  ldh a, [fs_sel_end]
   cp $FF
   jr z, .defaultEnd
   ld a, 248
@@ -521,6 +533,10 @@ FsEncodeRow:
   inc a
   ldh [fs_x], a
   jr .sel
+.simpleSelection
+  ldh [fs_sel_end], a
+  xor a
+  ldh [fs_sel_start], a
 .selectionDone
   ldh a, [fs_sel_start]
   call FsByte
@@ -578,10 +594,9 @@ FsAttr:
   jr FsAttrIndex
 FsAttrAtX:
   ldh a, [fs_x]
+; Clobbers HL/BC; DE holds the live RLE run in the emitter.
 FsAttrIndex:
-  push hl
   push de
-  push bc
   ld c, a
   ld b, 0
   ldh a, [fs_styled]
@@ -627,9 +642,7 @@ FsAttrIndex:
   add hl, de
   ld a, [hl]
 .return
-  pop bc
   pop de
-  pop hl
   ret
 FsCursor:
   ld a, SGBFS_CMD_CURSOR

@@ -943,6 +943,23 @@ The optional Gearboy test renderer accepts the new layout and keeps its panel
 inside the framebuffer; the real renderer remains the uploaded SNES program.
 Resolution changes are deferred to the widescreen experiment described above.
 
+Performance revision `5859` (OS `F463`) moves row layout to native 65816 code,
+unrolls three-plane pixel packing and services ICD2 in bounded tile/glyph chunks.
+GB encoding skips width walks for empty/full-row selections. No protocol change;
+the upload remains eleven 4 KiB blocks (43,784 bytes before padding).
+
+The 113-page Mesen replay reduces average base-row drawing from 3.18 to 2.22
+SNES frames (30%) and overlay drawing from 1.10 to 0.94 (14%). Browser input
+publishes in 9 vs 10 GB frames; typing takes 15 vs 17. Whole-replay time barely
+changes because the UI probes include fixed pauses. All PPU pixels, restoration,
+late/dropped ACKs and client edit/save checks pass. A separate SNES build checks
+74 native/C glyph cases with `SGB_GLYPH_CHECK=1`; it caught an optimized cc65
+nested-ternary error in the old style selector. The reference now uses explicit
+branches. Measurements/logs: `build/sgb/performance-next*`. Hardware untested.
+
+Next large target: selection-only row updates still rasterize unchanged glyphs.
+A palette swap alone cannot recolor the paper: BG1 color zero is transparent.
+
 Menu follow-up: center dialogs against the full 256-pixel viewport. The old
 keyboard preview used a fixed 150-pixel box; its replacement uses the actual
 57-pixel main-menu dimensions. Client checks now assert measured width and
