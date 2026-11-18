@@ -400,8 +400,9 @@ def incremental(work, root, names):
         env = dict(os.environ, ASM_LOG='1')
         done = subprocess.run([str(HOST), str(root / 'src/b.asm'), str(work / 'ours.gb')], capture_output=True, text=True, env=env)
         out = done.stdout.split()
-        assembled = next((l for l in done.stderr.splitlines() if 'units' in l and 'assembling' in l), '')
-        if done.returncode or out[0] != '0' or f'{expect_units} of {len(names)} units' not in assembled:
+        assembled = next((l for l in done.stderr.splitlines() if ('units' in l and 'assembling' in l) or 'up to date' in l), '')
+        want = 'up to date' if expect_units is None else f'{expect_units} of {len(names)} units'
+        if done.returncode or out[0] != '0' or want not in assembled:
             print(f'units, {label}: FAIL rc {done.returncode} {out[:2]} {assembled!r}'); return 1
         for i, name in enumerate(names):
             run(['rgbasm', '-E', '-P', 'inc/prelude.inc', '-D', 'X', '-o', str(work / f'u{i}.o'), name], cwd=root)
@@ -410,11 +411,13 @@ def incremental(work, root, names):
         if (work / 'ours.gb').read_bytes() != (work / 'u.gb').read_bytes():
             print(f'units, {label}: FAIL the ROM differs'); return 1
         return 0
-    failed += build(0, 'unchanged')
+    failed += build(None, 'unchanged') # up to date: neither module runs
+    (root / 'src/a.gb').unlink() # the ROM gone: linked again from build.obj's units
+    failed += build(0, 'the ROM deleted')
     b = (root / 'src/b.asm').read_text()
     (root / 'src/b.asm').write_text(b.replace('  ret\n', '  nop\n  nop\n  ret\n', 1)) # bigger: sections move
     failed += build(1, 'b.asm edited')
-    failed += build(0, 'unchanged again')
+    failed += build(None, 'unchanged again')
     prelude = (root / 'inc/prelude.inc').read_text()
     (root / 'inc/prelude.inc').write_text(prelude + '; edited\n')
     failed += build(3, 'the prelude edited')
@@ -427,7 +430,7 @@ def incremental(work, root, names):
     (root / 'src/b.asm').write_text(b)
     (root / 'inc/prelude.inc').write_text(prelude)
     (root / 'build.obj').unlink(missing_ok=True)
-    if not failed: print('units: build.obj: unchanged, edited, prelude edited, and an error in a kept unit')
+    if not failed: print('units: build.obj: up to date, the ROM deleted, edited, prelude edited, and an error in a kept unit')
     return failed
 
 # a third unit's errors that only the link finds

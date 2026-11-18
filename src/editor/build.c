@@ -137,12 +137,13 @@ void BuildFile(unsigned char run) {
   context.log_bytes = context.cache_blocks = context.obj_blocks = 0;
   module_frames = 0; // the build's time, through all three runs
   result = Module(&context, 2); // PREP.MOD first: which units build.obj has unchanged
-  if (!result) result = Module(&context, 1);
-  if (!result && module_status != ASM_NOT_ASM) { // then LINK.MOD: the image, or after an error build.log
-    level = file_level; // project.gbp's folder (RunModule forgets it)
-    result = Module(&context, 0);
-    file_level = level;
+  level = file_level; // project.gbp's folder (RunModule forgets it)
+  if (!(context.kind & ASM_CURRENT)) { // else nothing changed since the ROM was built
+    if (!result) result = Module(&context, 1);
+    level = file_level;
+    if (!result && module_status != ASM_NOT_ASM) result = Module(&context, 0); // then LINK.MOD: the image, or after an error build.log
   }
+  file_level = level;
   HideBox();
   if (result) { ShowModuleError(result); return; }
   if (module_status == ASM_NOT_ASM) { ShowMessage(Str(S_NOT_ASM_FILE)); return; }
@@ -158,10 +159,12 @@ void BuildFile(unsigned char run) {
     return;
   }
   OutputPath(path, &context);
-  ShowBusy(Str(S_WRITING));
-  result = FileWriteImage(path, context.blocks);
-  HideBox();
-  if (result) { ShowError(result, S_DISK_FULL); return; }
+  if (!(context.kind & ASM_CURRENT)) {
+    ShowBusy(Str(S_WRITING));
+    result = FileWriteImage(path, context.blocks);
+    HideBox();
+    if (result) { ShowError(result, S_DISK_FULL); return; }
+  }
   if (run) { LaunchGame(path); return; } // back only if it didn't launch
   for (end = path; *end; ++end); // the image's name
   while (end != path && end[-1] != '/') --end;

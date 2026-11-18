@@ -125,10 +125,100 @@ static unsigned char Rank(void) {
 static unsigned int Align(unsigned int at, unsigned int mask, unsigned int ofs) {
   return ((at - ofs + mask) & ~mask) + ofs;
 }
+// the next to place: the highest rank, then the biggest, then the latest (rank 0xFF: placed or
+// not on its own), NO_SECT when none is left. In assembly: it's n * n of beisbol's 295.
+#ifdef HOST_TEST
+static unsigned int Best(unsigned int n) {
+  unsigned int i, best = NO_SECT, best_size = 0;
+  unsigned char r, best_rank = 0;
+  for (i = 0; i < n; ++i) {
+    if ((r = sect_bank[i]) == 0xFF) continue;
+    if (r > best_rank || (r == best_rank && (unsigned int)sect_delta[i] >= best_size)) {
+      best = i;
+      best_rank = r;
+      best_size = sect_delta[i];
+    }
+  }
+  return best;
+}
+#else
+static unsigned int best_index, best_size;
+static unsigned char best_rank;
+static unsigned int Best(unsigned int n) __naked {
+  n; // de; the result in bc
+  __asm
+	ld	b, d
+	ld	c, e
+	ld	hl, _sect_bank
+	ld	de, _sect_delta
+	xor	a, a
+	ld	[_best_rank], a
+	ld	[_best_size], a
+	ld	[_best_size + 1], a
+	dec	a
+	ld	[_best_index], a
+	ld	[_best_index + 1], a
+.best:
+	ld	a, b
+	or	a, c
+	jr	z, .best_done
+	ld	a, [hl+]
+	cp	a, $FF
+	jr	z, .best_next
+	push	hl
+	ld	hl, _best_rank
+	cp	a, [hl]
+	jr	c, .best_pop
+	jr	nz, .best_take
+	ld	a, [_best_size]
+	ld	l, a
+	ld	a, [_best_size + 1]
+	ld	h, a
+	ld	a, [de]
+	sub	a, l
+	inc	de
+	ld	a, [de]
+	sbc	a, h
+	dec	de
+	jr	c, .best_pop
+.best_take:
+	ld	a, [de]
+	ld	[_best_size], a
+	inc	de
+	ld	a, [de]
+	ld	[_best_size + 1], a
+	dec	de
+	pop	hl
+	dec	hl
+	ld	a, [hl+]
+	ld	[_best_rank], a
+	ld	a, l
+	sub	a, LOW(_sect_bank + 1)
+	ld	[_best_index], a
+	ld	a, h
+	sbc	a, HIGH(_sect_bank + 1)
+	ld	[_best_index + 1], a
+	jr	.best_next
+.best_pop:
+	pop	hl
+.best_next:
+	inc	de
+	inc	de
+	dec	bc
+	jr	.best
+.best_done:
+	ld	a, [_best_index]
+	ld	c, a
+	ld	a, [_best_index + 1]
+	ld	b, a
+	ret
+  __endasm;
+}
+#endif
 // places every section like rgblink; NO_SECT, or the one that can't be placed
 static unsigned int Place(void) {
-  unsigned int n, i, best, at, mask, prev, t, base, end, best_size = 0;
-  unsigned char bank, last, found, r, best_rank = 0;
+  unsigned int n, i, best, at, mask, prev, t, base, end;
+  unsigned char bank, last, found;
   Sect* p;
   for (i = 0; i < HEADS; ++i) heads[i] = NO_SECT;
   for (i = 0; i < link.nsects; ++i) { // each one's rank and size in WRAM, for the order
@@ -137,16 +227,7 @@ static unsigned int Place(void) {
     sect_delta[i] = sec.size;
   }
   for (n = 0; n < link.nsects; ++n) {
-    best = NO_SECT;
-    for (i = 0; i < link.nsects; ++i) { // the first left: by rank, then size, then the later one
-      if ((r = sect_bank[i]) == 0xFF) continue;
-      if (best == NO_SECT || r > best_rank || (r == best_rank && (unsigned int)sect_delta[i] >= best_size)) {
-        best = i;
-        best_rank = r;
-        best_size = sect_delta[i];
-      }
-    }
-    if (best == NO_SECT) break; // the rest are FRAGMENTs' later pieces
+    if ((best = Best(link.nsects)) == NO_SECT) break; // the rest are FRAGMENTs' later pieces
     sect_bank[best] = 0xFF;
     SectCopy(best, 0);
     mask = (1 << sec.align) - 1;
@@ -274,11 +355,7 @@ static void Run(void) {
     sec.piece = 0;
     SectCopy(i, 1);
   }
-  for (i = 0; i < 2048; ++i) { // the names' heads (the files' entries stay, for Report)
-    Window(ASM_SYMBOL_BLOCK + (i >> 9));
-    WINDOW[i & 511] = 0;
-  }
-  name_next = 256;
+  Names();
   Phase(3);
   Walk(0);
   if (error) return;
@@ -299,12 +376,10 @@ static void Run(void) {
     }
     Placed(i);
   }
-  Walk(1);
-  if (error) return;
   for (i = 64; i < (unsigned int)(max_bank + 1) << 5; i <<= 1);
   context->blocks = i;
   Image();
-  Walk(2);
+  Walk(1);
   if (error) return;
   Header();
   Compose();

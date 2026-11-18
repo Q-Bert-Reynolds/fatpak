@@ -57,10 +57,14 @@ static unsigned char Load(const char* name, unsigned n, ModuleLoad* load) { // t
   if (!f) return 1;
   fseek(f, 0, SEEK_END); size = ftell(f); fseek(f, 0, SEEK_SET);
   load->size = size;
-  if (size >= 0x1000000 || (size + 511) / 512 > load->blocks) { fclose(f); return 2; }
+  last_loaded = Known(full);
+  if (size >= 0x1000000 || (size + 511) / 512 > load->blocks) { // its first blocks, like the OS
+    if (fread(at, 1, (size_t)load->blocks * 512, f)) {}
+    fclose(f);
+    return 2;
+  }
   if (fread(at, 1, size, f) != (size_t)size) size = 0;
   fclose(f);
-  last_loaded = Known(full);
   return 0;
 }
 static unsigned files;
@@ -115,7 +119,7 @@ unsigned char ModLoad(const char* path, ModuleLoad* load) {
     --n; // past the folder's own slash, to the one before it
     while (n && source_dir[n - 1] != '/') --n;
   }
-  if (!result && first_level < 0) first_level = n;
+  if (result != 1 && first_level < 0) first_level = n; // (too big too: PREP.MOD reads build.obj's head)
   if (result == 1 && base) result = Load(base + 1, end, load);
   if (getenv("ASM_HOST_FILES")) fprintf(stderr, "%u %s (%lu bytes at block %u)\n", ++files, path, load->size, load->block);
   return result;
@@ -125,6 +129,7 @@ int main(int argc, char** argv) {
   FILE* f = fopen(argv[1], "rb");
   AsmContext c = {0};
   unsigned char status;
+  int level;
   if (!f) return 2;
   { const char* slash = strrchr(argv[1], '/'); if (slash) snprintf(source_dir, sizeof(source_dir), "%.*s", (int)(slash - argv[1] + 1), argv[1]); }
   fseek(f, 0, SEEK_END); source_len = ftell(f); fseek(f, 0, SEEK_SET);
@@ -134,15 +139,30 @@ int main(int argc, char** argv) {
   fread(source, 1, source_len, f); fclose(f);
   progress_context = &c;
   PrepMain(&c); // PREP.MOD's check of build.obj first, as BUILD runs it
-  first_level = -1; // (each module run searches afresh)
-  status = ModuleMain(&c);
-  if (getenv("ASM_HOST_STATS")) fprintf(stderr, "ASM.MOD: %lu window moves\n", psram_selects);
-  psram_selects = 0;
-  if (status != ASM_NOT_ASM) status = LinkMain(&c); // as editor/build.c runs them
-  if (!status && c.obj_blocks && first_level >= 0) { // build.obj beside project.gbp, as WriteOutputs writes it
+  level = first_level;
+  if (c.kind & ASM_CURRENT) { // up to date: the ROM as it is (for the caller's image.gb)
     char full[2048]; FILE* o;
-    snprintf(full, sizeof(full), "%.*sbuild.obj", first_level, source_dir);
+    snprintf(full, sizeof(full), "%.*s%s", level, source_dir, c.name);
+    if ((o = fopen(full, "rb"))) { if (fread(psram + 0x0400ul * 512, 512, c.blocks, o)) {} fclose(o); }
+    status = 0;
+  }
+  else {
+    first_level = -1; // (each module run searches afresh)
+    status = ModuleMain(&c);
+    if (getenv("ASM_HOST_STATS")) fprintf(stderr, "ASM.MOD: %lu window moves\n", psram_selects);
+    psram_selects = 0;
+    if (status != ASM_NOT_ASM) status = LinkMain(&c); // as editor/build.c runs them
+    level = first_level;
+  }
+  if (!status && c.obj_blocks && level >= 0) { // build.obj beside project.gbp, as WriteOutputs writes it
+    char full[2048]; FILE* o;
+    snprintf(full, sizeof(full), "%.*sbuild.obj", level, source_dir);
     if ((o = fopen(full, "wb"))) { fwrite(psram + (unsigned long)ASM_BUILD_BLOCK * 512, 512, c.obj_blocks & 0x1FFF, o); fclose(o); }
+  }
+  if (!status && (c.kind & ASM_PROJECT) && !(c.kind & ASM_CURRENT) && level >= 0 && !getenv("ASM_NO_ROM")) { // then the ROM, as BuildFile writes it
+    char full[2048]; FILE* o;
+    snprintf(full, sizeof(full), "%.*s%s", level, source_dir, c.name);
+    if ((o = fopen(full, "wb"))) { fwrite(psram + 0x0400ul * 512, 512, c.blocks, o); fclose(o); }
   }
   if (getenv("ASM_HOST_STATS")) fprintf(stderr, "LINK.MOD: %lu window moves\n", psram_selects);
   printf("%u %u %u %u %u %u %s\n", status, c.line, c.pos, c.blocks, c.symbols, c.file,

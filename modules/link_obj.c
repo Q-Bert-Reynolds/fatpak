@@ -64,22 +64,38 @@ void Placed(unsigned int s) { // sec is section s, placed
 }
 
 // --- names: section names ('"' first), labels and exported constants, in ASM.MOD's names
-// table's blocks: 1024 hash heads in the first 4 (the files table's heads, in the second, aren't
-// needed: Report reads files by unit), units from 256, 8 bytes each: next (2), value (4), bank,
-// length, name
+// table's blocks: 4096 hash heads in the first 16 (beisbol's ~8000 names, 2 a chain; the files
+// table's heads, in the second, aren't needed: Report reads files by unit), units from 1024, 8
+// bytes each: next (2), value (4), bank, length, name
 #define L_HEADER 8
+#define LABEL_BANK 0xFF // a label's: its value is its section (high) and pass address
+#define HEAD_BLOCKS 16
 unsigned int name_next;
+void Names(void) { // empty (the files' entries stay, for Report)
+  unsigned char i;
+  for (i = 0; i < HEAD_BLOCKS; ++i) {
+    Window(ASM_SYMBOL_BLOCK + i);
+    Fill(0);
+  }
+  name_next = HEAD_BLOCKS * 64;
+}
 static unsigned char* NameAt(unsigned int unit) {
   Window(ASM_SYMBOL_BLOCK + (unit >> 6));
   return WINDOW + ((unit & 63) << 3);
 }
-// name's hash (h * 31 + each character), which Lookup keeps for Insert
+// name's hash (rotated left a bit, plus each character), which Lookup keeps for Insert; and
+// whether the name at e is name
 #ifdef HOST_TEST
 static unsigned int Hash(void) {
   unsigned int h = 0;
   unsigned char i;
-  for (i = 0; i < name_n; ++i) h = (h << 5) - h + (unsigned char)name[i];
+  for (i = 0; i < name_n; ++i) h = (unsigned int)((h << 1) | (h >> 15)) + (unsigned char)name[i];
   return h;
+}
+static unsigned char Equal(const unsigned char* e) {
+  unsigned char i;
+  for (i = 0; i < name_n; ++i) if (e[i] != (unsigned char)name[i]) return 0;
+  return 1;
 }
 #else
 static unsigned int Hash(void) __naked {
@@ -87,43 +103,57 @@ static unsigned int Hash(void) __naked {
 	ld	hl, 0
 	ld	de, _name
 	ld	a, [_name_n]
-.hash:
 	or	a, a
 	jr	z, .hashed
-	push	af
-	ld	b, h
-	ld	c, l
+	ld	c, a
+.hash:
 	add	hl, hl
-	add	hl, hl
-	add	hl, hl
-	add	hl, hl
-	add	hl, hl
-	ld	a, l
-	sub	a, c
-	ld	l, a
-	ld	a, h
-	sbc	a, b
-	ld	h, a
+	jr	nc, .rotated
+	inc	l
+.rotated:
 	ld	a, [de]
 	inc	de
 	add	a, l
 	ld	l, a
-	jr	nc, .no_carry
+	jr	nc, .added
 	inc	h
-.no_carry:
-	pop	af
-	dec	a
-	jr	.hash
+.added:
+	dec	c
+	jr	nz, .hash
 .hashed:
 	ld	b, h
 	ld	c, l
 	ret
   __endasm;
 }
+static unsigned char Equal(const unsigned char* e) __naked {
+  e; // de; the result in a
+  __asm
+	ld	hl, _name
+	ld	a, [_name_n]
+	or	a, a
+	jr	z, .equal
+	ld	c, a
+.compare:
+	ld	a, [de]
+	cp	a, [hl]
+	jr	nz, .differ
+	inc	de
+	inc	hl
+	dec	c
+	jr	nz, .compare
+.equal:
+	ld	a, 1
+	ret
+.differ:
+	xor	a, a
+	ret
+  __endasm;
+}
 #endif
 static unsigned int name_hash;
 static unsigned int* Head(void) { // name_hash's head
-  Window(ASM_SYMBOL_BLOCK + ((name_hash >> 8) & 3));
+  Window(ASM_SYMBOL_BLOCK + ((name_hash >> 8) & (HEAD_BLOCKS - 1)));
   return (unsigned int*)WINDOW + (name_hash & 255);
 }
 Val found_value;
@@ -131,13 +161,10 @@ unsigned char found_bank;
 unsigned int Lookup(void) { // name's unit, found_value and found_bank; 0: none
   unsigned int unit;
   unsigned char* e;
-  unsigned char i;
   name_hash = Hash();
   for (unit = *Head(); unit; unit = e[0] | (e[1] << 8)) {
     e = NameAt(unit);
-    if (e[7] != name_n) continue;
-    for (i = 0; i < name_n && e[L_HEADER + i] == name[i]; ++i);
-    if (i < name_n) continue;
+    if (e[7] != name_n || !Equal(e + L_HEADER)) continue;
     found_value = *(Val*)(e + 2);
     found_bank = e[6];
     return unit;
@@ -145,7 +172,7 @@ unsigned int Lookup(void) { // name's unit, found_value and found_bank; 0: none
   return 0;
 }
 unsigned char Insert(Val value, unsigned char bank) { // 0 if name is there already
-  unsigned char units = (L_HEADER + name_n + 7) >> 3, i;
+  unsigned char units = (L_HEADER + name_n + 7) >> 3;
   unsigned int head;
   unsigned char* e;
   if (Lookup()) return 0;
@@ -158,7 +185,8 @@ unsigned char Insert(Val value, unsigned char bank) { // 0 if name is there alre
   *(Val*)(e + 2) = value;
   e[6] = bank;
   e[7] = name_n;
-  for (i = 0; i < name_n; ++i) e[L_HEADER + i] = name[i];
+  copy_n = name_n;
+  Copy(e + L_HEADER, (const unsigned char*)name);
   *Head() = name_next;
   name_next += units;
   return 1;
@@ -202,6 +230,11 @@ static Val Value(void) {
       name_n = rpn[i++];
       for (j = 0; j < name_n; ++j) name[j] = rpn[i++];
       if (!Lookup()) { FailAt(ASM_ERR_SYMBOL, at_file, at_line, at_pos); return 0; }
+      if (found_bank == LABEL_BANK) { // a label: its pass address in its section, where that went
+        s = (unsigned int)(found_value >> 16);
+        found_value = (unsigned int)((unsigned int)found_value + sect_delta[s]);
+        found_bank = sect_bank[s];
+      }
       v = o == RPN_SYM ? found_value : found_bank;
     }
     else if (o >= 'a' && o != 'g' && o != 'l' && o != 'r' && o != 's') { // unary
@@ -253,9 +286,9 @@ static void Put(unsigned int s, unsigned int pc, unsigned char type) {
   if (i == 1) *(unsigned char*)&v = (unsigned char)u; // jr's distance, rst's opcode, ldh's low byte
   for (s = 0; s < i; ++s) Poke(bank, address + s, ((unsigned char*)&v)[s]);
 }
-// ASM.MOD's objects, one step at a time: 0 the section names (the first of a name is a
-// section, later FRAGMENTs join it), 1 labels and exported constants (each one's address and
-// bank, by name), 2 patches
+// ASM.MOD's objects, one step at a time: 0 the names: of sections (the first of a name is a
+// section, later FRAGMENTs join it), labels (their section and pass address, LABEL_BANK: Value
+// moves them once they're placed) and exported constants; 1 patches
 static unsigned char head[PATCH_HEAD];
 #define HEAD16(at) (head[at] | (head[(at) + 1] << 8))
 void Walk(unsigned char step) {
@@ -279,7 +312,7 @@ void Walk(unsigned char step) {
       kept = 1;
       report_unit = unit++;
       KeepAt(n);
-      if (step == 2) Phase(3);
+      if (step) Phase(3);
       continue;
     }
     if (kind == OBJ_END) {
@@ -291,7 +324,7 @@ void Walk(unsigned char step) {
       Read(head, 4);
       first = HEAD16(0);
       report_unit = unit++;
-      if (step == 2) Phase(3);
+      if (step) Phase(3);
       continue;
     }
     if (kind == OBJ_FILE) { // a file the unit read: for build.obj
@@ -301,7 +334,7 @@ void Walk(unsigned char step) {
     if (kind == OBJ_PATCH) { // section, pass address, type, file, line, pos, RPN length
       Read(head, PATCH_HEAD);
       n = head[11];
-      if (step != 2) { Skip(n); continue; }
+      if (!step) { Skip(n); continue; }
       at_file = HEAD16(5);
       at_line = HEAD16(7);
       at_pos = HEAD16(9);
@@ -313,14 +346,14 @@ void Walk(unsigned char step) {
     }
     Read(head, kind == OBJ_SECTION ? 3 : 5); // the section and length, or a label's or constant's 4 bytes too
     name_n = head[kind == OBJ_SECTION ? 2 : 4];
-    if (step == 2 || (step == 0) != (kind == OBJ_SECTION)) { Skip(name_n); continue; }
+    if (step) { Skip(name_n); continue; }
     Read((unsigned char*)name, name_n);
     s = first + HEAD16(0);
     if (kind == OBJ_SECTION) {
       if (!Insert(s, 0)) Join((unsigned int)found_value, s);
       continue;
     }
-    v = kind == OBJ_CONST ? *(Val*)head : Moved(HEAD16(0), (Val)HEAD16(2));
-    if (!Insert(v, kind == OBJ_LABEL ? sect_bank[s] : 0)) SectFail(ASM_ERR_DUPLICATE, kind == OBJ_LABEL ? s : first);
+    v = kind == OBJ_CONST ? *(Val*)head : (Val)s << 16 | (unsigned int)HEAD16(2);
+    if (!Insert(v, kind == OBJ_LABEL ? LABEL_BANK : 0)) SectFail(ASM_ERR_DUPLICATE, kind == OBJ_LABEL ? s : first);
   }
 }

@@ -104,15 +104,18 @@ typedef struct {
 
 // build.obj (beside project.gbp): each unit's object as the last build that worked left it, so an
 // unchanged unit isn't assembled again. Blocks from its start (ASM_BUILD_BLOCK as it's put
-// together, ASM_OLD_BLOCK as it's read): BuildHead, then the section records as ASM.MOD made
-// them (before the link; data counts blocks from build.obj's start), the data blocks, then each
-// unit's object stream and file list. A file's
+// together, ASM_OLD_BLOCK as it's read): BuildHead and the file lists (the prelude's, each
+// unit's) in its first BUILD_HEAD_BLOCKS, all PREP.MOD loads when nothing changed; then the
+// section records as ASM.MOD made them (before the link; data counts blocks from build.obj's
+// start), the data blocks, then each unit's object stream. A file's
 // record: its directory entry's sector (4) and place in it (2), the entry (32), the path's length
 // and the path (its symbol's name). An unchanged unit is one whose files' entries all read the
 // same (written by the clock: one dated 2026-01-01 00:00, the date without a clock, never is),
-// with project.gbp's and the prelude's.
+// with project.gbp's and the prelude's. With every unit unchanged, and the ROM there with its
+// size and dated no earlier than build.obj (both by the clock), the build is up to date: neither
+// module runs (ASM_CURRENT).
 #define OBJ_MAGIC 0x4F4B5046UL // "FPKO"
-#define OBJ_VERSION 1
+#define OBJ_VERSION 2
 #define FILE_RECORD 38 // a file record's bytes before its path
 typedef struct {
   unsigned int first, n; // its sections (in build.obj's section records)
@@ -121,7 +124,7 @@ typedef struct {
   UVal files; // its file list, from build.obj's start
   unsigned char files_n;
 } BuildUnit;
-#define BUILD_HEAD_BLOCKS 4
+#define BUILD_HEAD_BLOCKS 64 // the head and file lists (beisbol's 348 files' are 22 KB)
 typedef struct {
   UVal magic;
   unsigned char version, units;
@@ -131,6 +134,8 @@ typedef struct {
   unsigned char project[FILE_RECORD]; // project.gbp's record (no path)
   UVal prelude; // the prelude's file list
   unsigned char prelude_n;
+  unsigned int rom_blocks; // the ROM's size
+  char output[65]; // its path from project.gbp's folder (AsmContext's name)
   BuildUnit unit[63];
 } BuildHead;
 

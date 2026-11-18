@@ -41,6 +41,16 @@ static void Write(const unsigned char* p, unsigned char n) {
 static UVal Written(void) { // bytes from build.obj's start
   return ((UVal)(out_block - ASM_BUILD_BLOCK) << 9) + out_ofs;
 }
+// the file lists go in the head's blocks, after BuildHead: Lists trades out for their place
+static unsigned int list_block, list_ofs;
+static void Lists(void) {
+  unsigned int t = out_block;
+  out_block = list_block;
+  list_block = t;
+  t = out_ofs;
+  out_ofs = list_ofs;
+  list_ofs = t;
+}
 // bytes from the stream to out, through buf
 static void Move(UVal n) {
   unsigned char k;
@@ -215,6 +225,7 @@ static void UnitEnd(void) {
   unsigned int i, b = in_block, o = in_ofs, end;
   Sect* p;
   u.obj_n = Written() - u.obj;
+  Lists();
   u.files = Written();
   if (kept) {
     OldUnit(unit, &old);
@@ -229,6 +240,7 @@ static void UnitEnd(void) {
     FileRecords();
     u.files_n = list_n;
   }
+  Lists();
   u.data = 0xFFFF; // its data blocks: from the first of its ROM sections' to the end of the last's
   end = 0;
   for (i = u.first; i < u.first + u.n; ++i) {
@@ -255,16 +267,13 @@ void Compose(void) {
   if ((context->kind & ASM_OLD) && prep.all_clean) return; // it would be the same: the card keeps it
   compose_ok = 1;
   sector_ok = 0;
-  for (i = 0; i < BUILD_HEAD_BLOCKS * 512; ++i) { // the head, which is written a field at a time
-    Window(ASM_BUILD_BLOCK + (i >> 9));
-    WINDOW[i & 511] = 0;
+  list_block = ASM_BUILD_BLOCK + (sizeof(BuildHead) >> 9);
+  list_ofs = sizeof(BuildHead) & 511;
+  for (i = 0; i < BUILD_HEAD_BLOCKS; ++i) { // the head, which is written a field at a time
+    Window(ASM_BUILD_BLOCK + i);
+    Fill(0);
   }
-  // build.cache's index into the names table: a file's path to its record
-  for (i = 0; i < 2048; ++i) {
-    Window(ASM_SYMBOL_BLOCK + (i >> 9));
-    WINDOW[i & 511] = 0;
-  }
-  name_next = 256;
+  Names(); // build.cache's index into the names table: a file's path to its record
   At(ASM_CACHE_BLOCK, CACHE_HEAD);
   while (1) {
     Read(&name_n, 1);
@@ -298,6 +307,7 @@ void Compose(void) {
     if (kind == OBJ_UNIT || kind == OBJ_KEEP || kind == OBJ_END) {
       if (!started) { // the prelude's files (or the last build.obj's list, when it didn't run)
         started = 1;
+        Lists();
         at = Written();
         n = list_n;
         if (!list_n && (context->kind & ASM_OLD)) {
@@ -310,6 +320,7 @@ void Compose(void) {
           OldList(size, n);
         }
         else FileRecords();
+        Lists();
         HeadPut(OFS(prelude), &at, 4);
         HeadPut(OFS(prelude_n), &n, 1);
       }
@@ -370,11 +381,15 @@ void Compose(void) {
   }
   size = Written();
   if (!compose_ok || out_block >= ASM_OLD_BLOCK) return; // too big to put together (or a file without a record)
+  if (list_block > ASM_BUILD_BLOCK + BUILD_HEAD_BLOCKS || (list_block == ASM_BUILD_BLOCK + BUILD_HEAD_BLOCKS && list_ofs)) return; // the lists didn't fit
   HeadPut(OFS(magic), &magic, 4);
   HeadPut(OFS(version), &version, 1);
   HeadPut(OFS(units), &units, 1);
   HeadPut(OFS(nsects), &link.nsects, 2);
   HeadPut(OFS(data), &data_at, 2);
   HeadPut(OFS(size), &size, 4);
+  HeadPut(OFS(rom_blocks), &context->blocks, 2);
+  for (n = 0; context->name[n]; ++n);
+  HeadPut(OFS(output), context->name, n + 1);
   context->obj_blocks = (out_block - ASM_BUILD_BLOCK + (out_ofs != 0)) | 0x2000;
 }

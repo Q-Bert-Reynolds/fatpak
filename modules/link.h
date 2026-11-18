@@ -32,12 +32,13 @@ extern unsigned int name_next; // the names table's next unit
 extern Val found_value; // Lookup's
 extern unsigned char found_bank;
 unsigned char Insert(Val value, unsigned char bank);
-unsigned int Lookup(void); // name's unit (0: none), found_value and found_bank
+unsigned int Lookup(void);
+void Names(void); // the names table empty // name's unit (0: none), found_value and found_bank
 extern char name[160];
 extern unsigned char name_n;
 extern unsigned char buf[256]; // link.c: scratch // name; 0 if it's there already (found_value is its)
 extern unsigned int first; // the unit's first section
-void Walk(unsigned char step); // 0 section names, 1 labels and exported constants, 2 patches
+void Walk(unsigned char step); // 0 names: sections, labels and exported constants; 1 patches
 extern int sect_delta[ASM_SECTIONS];
 extern unsigned char sect_bank[ASM_SECTIONS];
 void Fill(unsigned char b); // the window's 512 bytes

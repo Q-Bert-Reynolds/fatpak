@@ -429,12 +429,13 @@ static void Project(const char* image, const char* symbols, const char* data, co
         s.pad(A_Key);
         unsigned again = s.command(4, "Built ");
         std::string log = Text(s.root + "/build.log");
-        if (log.find(", 0 of 1 units") == std::string::npos) fprintf(stderr, "build.log:\n%s", log.c_str());
+        bool current = log.find("up to date") != std::string::npos;
+        if (!current) printf("build.log:\n%s", log.c_str());
         Check(Read(s.root + "/build.obj").size() >= 2048, "build.obj goes beside project.gbp");
-        Check(log.find(", 0 of 1 units") != std::string::npos, "the next build takes the unchanged unit from build.obj");
-        Check(Read(s.root + "/game.gb") == Read(expected), "the same ROM from build.obj");
+        Check(current, "the next build is up to date: nothing changed and the ROM is there");
+        Check(s.lines() == "game.gb|Built 32 KB" && Read(s.root + "/game.gb") == Read(expected), "the ROM as it was");
         s.pad(A_Key);
-        printf("%s project.gbp builds from About.md: %u frames, again %u from build.obj\n", color ? "CGB" : "DMG", frames, again);
+        printf("%s project.gbp builds from About.md: %u frames, again %u up to date\n", color ? "CGB" : "DMG", frames, again);
     }
     {
         // an edit after build.cache is written: the build reads the file as it is now

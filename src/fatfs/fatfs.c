@@ -1177,14 +1177,14 @@ static FRESULT SnapshotFile(const char* path, BYTE write, UINT first) {
   closed = f_close(&save_file); return result ? result : closed;
 }
 // ASM.MOD's files (ModFile, ModLoad): the whole file into PSRAM, a ModuleLoad {block, blocks,
-// size}; 0 ok, 1 unreadable, 2 too big
+// size}; 0 ok, 1 unreadable, 2 too big (its first blocks are read: PREP.MOD's build.obj head)
 typedef struct { UINT block, blocks; DWORD size; } FileLoadArea;
 BYTE fs_LoadFile(const char* path, FileLoadArea* load) {
-  UINT n, count, done; DWORD size; BYTE result = 0;
+  UINT n, count, done; DWORD size; BYTE result = 0, big;
   if (fs_Mount() || f_open(&save_file, path, FA_READ)) return 1;
   size = f_size(&save_file);
   count = (UINT)((size + 511) >> 9);
-  if (size >= 0x1000000 || count > load->blocks) result = 2;
+  if ((big = size >= 0x1000000 || count > load->blocks)) count = load->blocks;
   for (n = 0; !result && n < count; ++n) {
     if (!(n & 7) && module_busy) ModuleAPIProgress(0); // the build's box keeps up with a long file
     SetWindowBlock(load->block + n);
@@ -1193,7 +1193,7 @@ BYTE fs_LoadFile(const char* path, FileLoadArea* load) {
   SetWindowBlock(TB_PSRAM_HIGH << 8);
   f_close(&save_file);
   load->size = size;
-  return result;
+  return result ? result : big ? 2 : 0;
 }
 // HEXVIEW.MOD's file (src/browser/hexview.c), read only
 unsigned char fs_ViewOpen(const char* path) {
