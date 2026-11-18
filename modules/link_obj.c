@@ -23,18 +23,60 @@ void Fill(unsigned char b) __naked {
   __endasm;
 }
 unsigned int Sum(unsigned int sum) __naked {
-  sum; // de, the result in bc
+  sum; // de, the result in bc: eight bytes a turn, each d += carry of e += it
   __asm
 	ld	hl, $BE00
+	ld	c, 64
 .sum:
 	ld	a, [hl+]
 	add	a, e
 	ld	e, a
-	jr	nc, .carry
-	inc	d
-.carry:
-	ld	a, h
-	cp	a, $C0
+	adc	a, d
+	sub	a, e
+	ld	d, a
+	ld	a, [hl+]
+	add	a, e
+	ld	e, a
+	adc	a, d
+	sub	a, e
+	ld	d, a
+	ld	a, [hl+]
+	add	a, e
+	ld	e, a
+	adc	a, d
+	sub	a, e
+	ld	d, a
+	ld	a, [hl+]
+	add	a, e
+	ld	e, a
+	adc	a, d
+	sub	a, e
+	ld	d, a
+	ld	a, [hl+]
+	add	a, e
+	ld	e, a
+	adc	a, d
+	sub	a, e
+	ld	d, a
+	ld	a, [hl+]
+	add	a, e
+	ld	e, a
+	adc	a, d
+	sub	a, e
+	ld	d, a
+	ld	a, [hl+]
+	add	a, e
+	ld	e, a
+	adc	a, d
+	sub	a, e
+	ld	d, a
+	ld	a, [hl+]
+	add	a, e
+	ld	e, a
+	adc	a, d
+	sub	a, e
+	ld	d, a
+	dec	c
 	jr	nz, .sum
 	ld	b, d
 	ld	c, e
@@ -196,7 +238,7 @@ unsigned char Insert(Val value, unsigned char bank) { // 0 if name is there alre
 unsigned int first; // the unit's first section
 unsigned int at_file, at_line, at_pos; // the patch's place
 static Val Moved(unsigned int s, Val v) { // a pass value in the unit's section s, where it went
-  return Apply('+', v, (Val)sect_delta[first + s]);
+  return v + sect_delta[first + s];
 }
 static void Poke(unsigned char bank, unsigned int address, unsigned char b) {
   Window(ASM_IMAGE_BLOCK + (bank << 5) + ((address & 0x3FFF) >> 9));
@@ -251,6 +293,7 @@ static Val Value(void) {
       v = stack[--sp];
       v = Apply(o, stack[--sp], v);
     }
+    if (!sp && i == rpn_n) return v; // one term: most of them
     if (sp == STACK) { Fail(ASM_ERR_NESTING); return 0; }
     stack[sp++] = v;
   }

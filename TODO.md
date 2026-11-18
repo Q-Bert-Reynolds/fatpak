@@ -1,12 +1,3 @@
-# Priority
-
-- Assembler: beisbolgb on the device ([ASSEMBLER.md](notes/ASSEMBLER.md#beisbolgb)): its 50 units build in 24.1 min CGB in Gearboy, and again in 2.4 s with nothing changed (up to date). Hardware (GBA SP): 25 min, 2 min unchanged before the up-to-date check.
-  - An edited unit builds in 2:07 (assembling 1:00: `build.obj`'s load, the prelude, its passes; linking 1:07). `Restore`/`Compose` move ~940 KB through a 128-byte buffer: whole block runs; a prelude snapshot in `build.obj`.
-  - Build outputs (`build.cache`, `build.log`, `build.obj`) into a folder named in `project.gbp`.
-  - Small builds pay ~300 DMG frames for PREP.MOD and LINK.MOD's loads: a cached backup compare (MODULES.md) would help every module.
-  - ASM.MOD has ~190 bytes free (page 13 ~20, 12 ~25, 5 ~15, 4 ~35, 15 ~90); the OS's page 6 51, page 7 11, page 13 63, page 15 ~65, bank 1 36.
-  - The symbol table's 256 hash chains (`Find` is assembly now; the chains are as long as before).
-
 # Rendering
 
 - Font selection (VWF, 4 px fixed, Tiny5 Mono in `img/fonts/tiny5mono_font.png`, ...) separately for text and code, saved in settings.

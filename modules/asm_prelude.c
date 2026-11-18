@@ -11,6 +11,7 @@ extern unsigned char sym_dirty[64];
 #define SNAP_CHARMAP (ASM_SNAP_BLOCK + 1) // after the heads: the charmaps' names and heads blocks
 #define SNAP_NAMES (SNAP_CHARMAP + 1 + CM_MAPS - 2) // + the names table's block (from 2)
 
+#ifdef HOST_TEST
 static void Copy(unsigned int from, unsigned int to) { // a block, through str[]
   unsigned char half = 0, i, *w;
   do {
@@ -23,6 +24,58 @@ static void Copy(unsigned int from, unsigned int to) { // a block, through str[]
     do w[i] = str[i]; while (++i);
   } while (++half < 2);
 }
+#else
+static void Copy(unsigned int from, unsigned int to) __naked { // in assembly: the prelude's ~100 blocks
+  from; to; // de, bc
+  __asm
+	ld	h, $BE
+.half:
+	push	bc
+	ld	a, d
+	ld	[$BD03], a
+	ld	a, e
+	ld	[$BD02], a
+	push	de
+	push	hl
+	ld	l, 0
+	ld	de, _str
+.in:
+	ld	a, [hl+]
+	ld	[de], a
+	inc	de
+	ld	a, l
+	or	a, a
+	jr	nz, .in
+	pop	hl
+	pop	de
+	pop	bc
+	ld	a, b
+	ld	[$BD03], a
+	ld	a, c
+	ld	[$BD02], a
+	push	bc
+	push	de
+	push	hl
+	ld	l, 0
+	ld	de, _str
+.out:
+	ld	a, [de]
+	inc	de
+	ld	[hl+], a
+	ld	a, l
+	or	a, a
+	jr	nz, .out
+	pop	hl
+	pop	de
+	pop	bc
+	inc	h
+	ld	a, h
+	cp	a, $C0
+	jr	nz, .half
+	ret
+  __endasm;
+}
+#endif
 static void Charmaps(unsigned char store) {
   unsigned char b = 0;
   do {

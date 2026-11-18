@@ -51,14 +51,31 @@ static void Lists(void) {
   out_ofs = list_ofs;
   list_ofs = t;
 }
-// bytes from the stream to out, through buf
+// bytes from the stream to out, through buf: up to 256 at a time, to either's block end
 static void Move(UVal n) {
-  unsigned char k;
+  unsigned int k, left;
   while (n) {
-    k = n > 128 ? 128 : (unsigned char)n;
-    Read(buf, k);
-    Write(buf, k);
+    k = 512 - in_ofs;
+    left = 512 - out_ofs;
+    if (left < k) k = left;
+    if (k > 256) k = 256;
+    if (n < k) k = (unsigned int)n;
+    copy_n = (unsigned char)k; // 256: 0
+    Window(in_block);
+    Copy(buf, WINDOW + in_ofs);
+    Window(out_block);
+    Copy(WINDOW + out_ofs, buf);
     n -= k;
+    in_ofs += k; // apart from the tests: see Read
+    out_ofs += k;
+    if (in_ofs == 512) {
+      in_ofs = 0;
+      ++in_block;
+    }
+    if (out_ofs == 512) {
+      out_ofs = 0;
+      ++out_block;
+    }
   }
 }
 
@@ -124,7 +141,7 @@ unsigned char OldName(unsigned char unit, unsigned int file) {
 static AsmPrep prep;
 static unsigned char Kept(unsigned char u) { return (context->kind & ASM_OLD) && (prep.clean[u >> 3] & (1 << (u & 7))); }
 // after ASM.MOD: the unchanged units' sections from build.obj where ASM.MOD numbered them (OBJ_KEEP),
-// their data blocks after the others; Walk reads their objects there (KeepAt)
+// their data where it is (Image and Compose read it there); Walk reads their objects there (KeepAt)
 void Restore(void) {
   BuildUnit u;
   unsigned int k, first;
@@ -139,15 +156,10 @@ void Restore(void) {
     first = ((unsigned int*)WINDOW)[i];
     for (k = 0; k < u.n; ++k) {
       Old(BUILD_HEAD_BLOCKS * 512UL + (UVal)(u.first + k) * SECT_SIZE, &sec, sizeof(Sect));
-      sec.data += link.data_end - u.data; // build.obj's block, now after the data ASM.MOD made
+      sec.data += ASM_OLD_BLOCK; // its block in the last build.obj, where it's loaded
       sec.rank = i; // whose list its file is in (Report)
       SectCopy(first + k, 1);
     }
-    At(ASM_OLD_BLOCK + u.data, 0);
-    out_block = link.data_end;
-    out_ofs = 0;
-    Move((UVal)u.data_n << 9);
-    link.data_end += u.data_n;
   }
 }
 // unit u's object in build.obj, past its OBJ_UNIT, for Walk: first, and where it ends
@@ -261,7 +273,8 @@ void Compose(void) {
   BuildUnit old;
   ModuleLoad load;
   UVal magic = OBJ_MAGIC, at, size;
-  unsigned int sect_blocks = (link.nsects * SECT_SIZE + 511) >> 9, data_at, i, v;
+  unsigned int sect_blocks = (link.nsects * SECT_SIZE + 511) >> 9, data_at, i, v, k;
+  Sect* p;
   unsigned char kind, units = (unsigned char)link.units, version = OBJ_VERSION, n, started = 0, *e;
   if (!units || !context->cache_blocks) return; // only a project's, with build.cache's index
   if ((context->kind & ASM_OLD) && prep.all_clean) return; // it would be the same: the card keeps it
@@ -290,14 +303,30 @@ void Compose(void) {
   if (!(e = EntryAt())) return;
   for (n = 0; n < 32; ++n) rec[6 + n] = e[n];
   HeadPut(OFS(project), rec, FILE_RECORD);
-  // the data (the unchanged units' too: Restore put theirs after), the sections' blocks counted
-  // from build.obj's start
+  // the data ASM.MOD made, then the unchanged units' from the last build.obj, the sections' blocks
+  // counted from build.obj's start
   data_at = BUILD_HEAD_BLOCKS + sect_blocks;
   At(ASM_DATA_BLOCK, 0);
   out_block = ASM_BUILD_BLOCK + data_at;
   out_ofs = 0;
   Move((UVal)(link.data_end - ASM_DATA_BLOCK) << 9);
-  for (i = 0; i < link.nsects; ++i) Snapped(i)->data += data_at - ASM_DATA_BLOCK;
+  for (i = 0; i < link.nsects; ++i) {
+    p = Snapped(i);
+    if (p->data < ASM_OLD_BLOCK) p->data += data_at - ASM_DATA_BLOCK;
+  }
+  for (n = 0; n < units; ++n) {
+    if (!Kept(n)) continue;
+    OldUnit(n, &old);
+    v = out_block - ASM_BUILD_BLOCK; // its data's first block now (whole blocks: out_ofs is 0)
+    At(ASM_OLD_BLOCK + old.data, 0);
+    Move((UVal)old.data_n << 9);
+    Window(ASM_PREP_BLOCK + 2);
+    k = ((unsigned int*)WINDOW)[n];
+    for (i = k; i < k + old.n; ++i) {
+      p = Snapped(i);
+      p->data = p->data - ASM_OLD_BLOCK - old.data + v;
+    }
+  }
   // each unit's object, its files as numbers in its list; an unchanged one's from the last build.obj
   At(ASM_OBJ_BLOCK, 0);
   unit = 0;
