@@ -331,6 +331,9 @@ _EditorRedraw::
 
 _EditorDraw::
   SGB_JUMP 3
+  ldh a, [render_background]
+  and a
+  ret nz;a module draws the BG map and its tiles (ModBackground): no text into them, the clock's included
   ld a, [_render_pending]
   cp a, 2
   jr nz, .waitScroll
@@ -958,10 +961,11 @@ ENDR
 ;C, ABI 13 (ModBackground): a = mode, d = SCY, e = SCX; returns a = the buttons held (pad and keyboard).
 ;Mode 1: the module draws the BG map and the tiles it shows itself, with SCX and SCY set here (call it in
 ;VBlank, after ModFrame) and kept: render_target_scy follows, so the LCD interrupt doesn't scroll them back.
-;GBC: in $8800 mode as always, map tiles from VRAM bank 0 $8800-$8FFF and bank 1 $9000-$97FF, which the
-;bars' blocks (8, 17) aren't in, so they stay. DMG/SGB: those are all the tiles, the bars' too: one tile
-;mode ($8800) and no window all the way down (the host's view has no bars). Mode 0: the text back
-;(BackgroundText): before a box or menu, and before the module returns.
+;GBC: in $8800 mode as always, map tiles from VRAM bank 0 $8800-$8FFF and bank 1 $9000-$97FF; DMG/SGB:
+;all the tiles, one tile mode ($8800). No bars: every call clears the LCD events that draw them, and
+;EditorDraw draws nothing meanwhile (the footer's clock, through ModFrame, included), so no text goes into
+;the module's tiles. Mode 0: the text back (BackgroundText), the bars too: before a box or menu, and
+;before the module returns.
 _ModuleAPIBackground::
   and a
   jr z, .text
@@ -973,14 +977,11 @@ _ModuleAPIBackground::
   ld a, [render_target_scy]
   ld [render_text_scy], a
 .on
-  ld a, [_render_gbc]
-  and a
-  jr nz, .scroll
-  di;DMG/SGB, every time: a Layout may have staged the text's events since
+  xor a
+  di;no bars over the background, every time: a Layout may have staged the text's events since
   ld [render_top_lcdc], a
   ld [render_event_count], a
   ei
-.scroll
   ld a, d
   ld [render_target_scy], a
   ldh [rSCY], a
@@ -999,7 +1000,8 @@ _ModuleAPIBackground::
   ld a, [render_text_scy]
   ld [render_target_scy], a
   ldh [rSCY], a
-  call FarCallInline;C on page 12: never jump to a page's address while a module has page 13
+  call FarCallInline;C on page 8: never jump to a page's address while a module has page 13. Inline,
+;FarCallInline returns to the address under its own, so this is a tail call: nothing may be pushed
   DB BANK(_BackgroundText)
   DW _BackgroundText
 

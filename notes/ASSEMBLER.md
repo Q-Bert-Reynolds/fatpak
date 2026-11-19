@@ -118,12 +118,16 @@ assemble byte-identical to RGBDS, unmodified (`memory1.asm` calls
   buffer, and no `project.gbp` is read; it's pushed as a frame like an included file
   (`DocText`, page 15, asm_line.c's page having no room). `ASM_LOOSE`: LINK.MOD links a name no
   unit defines as 0 (its `BANK()` too) instead of stopping. The browser's map view uses both:
-  `MAPVIEW.MOD` writes a wrapper (a key section at `$0000`, the nearest `project.gbp`'s
-  `rgbasm -D` and `-P` as `DEF`s and an `INCLUDE`, then the map and `map_stamps.gbstamp` in
-  `ROMX[$4000], BANK[1]`), the host runs ASM.MOD and LINK.MOD on it with `module_dir` at the
+  `MAPVIEW.MOD` writes a wrapper (a key section at `$0000`; a prelude of what maps take from
+  the game's headers, `color.inc`'s `RGB` and `map_loader.inc`'s `MAP_OBJ_*`,
+  `MAP_COLLISION_*` and `MAP_AVATAR_*`, instead of `project.gbp`'s `-P` file, whose ~2,300 lines
+  of Beisbol headers took 150 s of DMG time per build; then the map and `map_stamps.gbstamp`
+  in `ROMX[$4000], BANK[1]`), the host runs ASM.MOD and LINK.MOD on it with `module_dir` at the
   map's folder, and the image is the map's cache. Beisbol's five maps build byte for byte as
-  its own ROM has them, but for the names other units define (0) and the stamps' addresses
-  (theirs are in ROM0). On the PC: `ASM_HOST_TEXT=1 ASM_HOST_DIR=<folder> build/asm_host
+  its own ROM has them, but for the names other units define (0), the stamps' addresses
+  (theirs are in ROM0), and what the prelude leaves out: the game's other constants (0: areas'
+  encounters, tile animations' types) and `charmap.asm` (a sign's `\n` is 10, not 128). None
+  of those are drawn. On the PC: `ASM_HOST_TEXT=1 ASM_HOST_DIR=<folder> build/asm_host
   wrapper.asm image.gb`.
 - Samples: `tests/asm/` (`hello.asm`, `features.asm`, `strings.asm`,
   `loops.asm`, with `lib/`). The card's `Asm` folder has those plus `math.asm`,

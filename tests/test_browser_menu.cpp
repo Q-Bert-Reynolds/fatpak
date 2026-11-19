@@ -700,8 +700,8 @@ static void TileView(const char* image,const char* symbols,const char* data,bool
 // top left on the BG map (ModBackground). Tiles 128 and 129 are solid colours 1 and 2. Checked
 // against each other on the screen: the chunk's tile, a tile fill, a tile with a script's extra
 // byte, a stamp, a stamp fill, scrolling a tile and running into the east chunk, Start's menu and
-// back, Select's place in the header, B back to the list in the theme's colours, and the second
-// view from the cache. GBC: each object's palette, under the bars; DMG: full screen.
+// back (the bars only with the menu: the name, and where the view is in the footer), Close back to the list in the theme's colours, and the second
+// view from the cache. Full screen on both; GBC: each object's palette.
 // FATPAK_SCREENSHOT=dir saves the first view.
 static void MapView(const char* image,const char* symbols,const char* data,bool color) {
     char folder[]="/tmp/fatpak-map-XXXXXX";Check(mkdtemp(folder),"map SD");
@@ -709,11 +709,9 @@ static void MapView(const char* image,const char* symbols,const char* data,bool 
     Write(root+"/GBCSYS/EDITOR.DAT",Read(data));InstallModules(root,data);
     mkdir((root+"/img").c_str(),0700);mkdir((root+"/img/maps").c_str(),0700);mkdir((root+"/src").c_str(),0700);
     auto text=[](const std::string& s){return std::vector<u8>(s.begin(),s.end());};
-    Write(root+"/project.gbp",text("; the game's build, which the map's wrapper takes its rgbasm options from\n"
-        "main   src/main.asm\noutput test.gb\nrgbasm -D TEST -E -P src/map_loader.inc ; like Beisbol's\n"));
-    Write(root+"/src/map_loader.inc",text("DEF MAP_OBJ_TILE EQU 2\nDEF MAP_OBJ_TILE_FILL EQU 3\nDEF MAP_OBJ_STAMP EQU 4\n"
-        "DEF MAP_OBJ_STAMP_FILL EQU 5\nDEF MAP_COLLISION_NONE EQU 0\nDEF MAP_COLLISION_SCRIPT EQU 7 << 4\n"
-        "MACRO RGB ;\\1 = red, \\2 = green, \\3 = blue\n  DW (\\1) | (\\2) << 5 | (\\3) << 10\nENDM\n"));
+    Write(root+"/project.gbp",text("; the game's build: maps don't take its options (MAPVIEW defines what they need)\n"
+        "main   src/main.asm\noutput test.gb\nrgbasm -D TEST -E -P src/beisbol.inc ; like Beisbol's\n"));
+    Write(root+"/src/beisbol.inc",text("FAIL \"a map's build doesn't read project.gbp's -P file\"\n"));
     Write(root+"/map_stamps.gbstamp",text("GBStamps:: ;7 bytes\nGBStampBox: ;7 bytes\n  DB 2;width\n  DB 2;height\n"
         ".tiles\n  DB 128, 129\n  DB 129, 128\n.palette\n  DB 130\n"));
     Write(root+"/img/ui_font.tiles",std::vector<u8>(2048,0));
@@ -721,7 +719,7 @@ static void MapView(const char* image,const char* symbols,const char* data,bool 
     for(unsigned y=0;y<8;++y){tiles[y*2]=0xFF;tiles[16+y*2+1]=0xFF;} // 128: colour 1, 129: colour 2
     Write(root+"/img/maps/test.tiles",tiles);
     Write(root+"/Test.gbmap",text(
-        "IF !DEF(TEST)\n  FAIL \"project.gbp's -D TEST\"\nENDC\n"
+        "IF DEF(TEST)\n  FAIL \"a map's build doesn't take project.gbp's -D\"\nENDC\n"
         "MapTest:: ;the header, as gbmapeditor writes it\n  DB 0\n  DW MapTestPalettes\n  DW 0\n  DW 0\n"
         "  DW MapTestChunks\n  DW 0\n  DW 0\n  DW 0\n  DW 0\n  DB BANK(_TestTiles)\n  DW _TestTiles\n"
         "  DB BANK(_WorldSpritesTiles)\n  DW _WorldSpritesTiles\n\nMapTestPalettes:\n.background\n"
@@ -770,7 +768,7 @@ static void MapView(const char* image,const char* symbols,const char* data,bool 
         FILE* f=fopen(path.c_str(),"wb");fprintf(f,"P6 160 144 255\n");
         for(unsigned i=0;i<160*144;++i){u16 p=frame[i];u8 rgb[3]={u8((p>>11)<<3),u8(((p>>5)&63)<<2),u8((p&31)<<3)};fwrite(rgb,1,3,f);}
         fclose(f);}
-    Check(row(18)==" Test.gbmap" && byte("_bars")==(color?1:0),"GBC: the bars over the map; DMG: full screen");
+    Check(!byte("render_event_count") && cell(0,0)==cell(0,1) && cell(19,17)==cell(0,1),"full screen: no bars over the map");
     struct stat built;Check(!stat(cache.c_str(),&built) && built.st_size==32768,"the image is cached in /GBCSYS/CACHE");
     u16 base=cell(0,1),fill=cell(2,2),sign=cell(8,1),stamp1=cell(10,5),stamp2=cell(11,5);
     auto drawn=[&](unsigned dx){ // chunk A's objects dx tiles left of where they are
@@ -795,13 +793,13 @@ static void MapView(const char* image,const char* symbols,const char* data,bool 
     unsigned ran=scx();
     pad(Start_Key);
     Check(byte("_render_box_top")!=255 && !byte("_render_background"),"Start: the menu over the host's text");
+    Check(byte("_bars")==1 && row(18)==" Test.gbmap" && row(19).find(" chunk 0  "+std::to_string(ran>>3)+",0")==0,"with the bars: the name in the header, where the view is in the footer");
     {std::string box;for(unsigned l=0;l<8;++l)box+=Text(memory,syms.at("tile_buffer")+20*40+l*20)+"|";
      Check(box.find(" Rebuild|")!=std::string::npos && box.find(" Close the map|")!=std::string::npos && box.find("Back")==std::string::npos,"the menu: Rebuild, Close the map");}
     pad(B_Key);Frames(core,60); // B closes the menu
     Check(byte("_render_background") && scx()==ran && mapcell(32,1)==stamp2 && mapcell(31,1)==base,"and back to the map where it was");
     pad(Start_Key);pad(Start_Key);Frames(core,60);
-    Check(byte("_render_background") && scx()==ran,"Start closes it too");
-    if(color){pad(Select_Key);Frames(core,30);Check(row(18).find(" Test.gbmap  chunk 0  "+std::to_string(ran>>3)+",0")==0,"Select: where the view is, in the header");}
+    Check(byte("_render_background") && scx()==ran && !byte("render_event_count") && cell(0,0)==cell(0,1),"Start closes it too, and the bars with it");
     pad(B_Key);Frames(core,30);
     Check(byte("_module_busy") && byte("_render_background") && scx()==ran,"B alone stays on the map");
     auto close=[&](){pad(Start_Key);pad(Down_Key);pad(A_Key);}; // Close the map

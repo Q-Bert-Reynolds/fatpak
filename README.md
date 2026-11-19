@@ -39,7 +39,7 @@ controls on the Game Boy.
 **File browser.** The D-pad moves, A opens a file or folder, B goes up a folder, SELECT shows file
 info and START opens the menu (rename, cut, copy, paste, settings, help, restart). Text files open in
 the editor, `.gb` and `.gbc` files launch, `.tiles`, `.tile` and `.2bpp` files open in the tile viewer, `.gbmap` maps in the map viewer (the
-D-pad scrolls, B held runs, START opens its menu, SELECT shows where it is) and other binary files in the hex viewer. The viewers are read only; B goes back.
+D-pad scrolls full screen, B held runs, START opens its menu, with the header and footer saying where you are) and other binary files in the hex viewer. The viewers are read only; B goes back (from a map, its menu's Close).
 
 **Text editor.**
 

@@ -137,7 +137,7 @@ RAM instead when `$BD06` bit 1 is set).
 | `$01f0-$01ff` | Settings/signatures and 7,936-byte clipboard |
 | `$3d00-$3d54` | `EDITOR.DAT` v5 (85 blocks): header, fonts, SGB border, help, paired shift tables (77), VWF bold widths (84) |
 | `$3d55-$3d64` | Filename prompt undo ring (64 states) |
-| `$0200-$03ff` | `MAPVIEW.MOD`, while it runs: `project.gbp` and the wrapper `ASM.MOD` builds, then the map's cache, both files' tiles and drawn chunks; the cache's path at `$03ff` for the browser |
+| `$0200-$03ff` | `MAPVIEW.MOD`, while it runs: the wrapper `ASM.MOD` builds, then the map's cache, both files' tiles and drawn chunks; the cache's path at `$03ff` for the browser |
 | `$0400-$3cff` | Large-file add buffer (`ADD_MAX` = `$720000` bytes), bounded before protected assets |
 | `$0400-$0bff`, `$0c00-$0fff` | While a text-buffer document is open: `ASM.MOD`'s ROM image (1 MiB) and symbol table ([ASSEMBLER.md](ASSEMBLER.md)) |
 | `$3d80-$3dc5` | Module staging, page backups and the WRAMX backup ([MODULES.md](MODULES.md)) |
@@ -418,8 +418,11 @@ boot ROM). Select opens file info directly.
   folders) and runs the module again, which reports an error or views the map. The view is the
   BG map itself (`ModBackground`, ABI 13): SCX and SCY move a pixel a frame (four with B held)
   and only the column or row coming into view is drawn, from chunks drawn once into PSRAM the
-  way `map_loader.asm` draws them. GBC keeps the bars over it; DMG/SGB has no bars
-  (`ViewBegin`, page 10, bank 1 being full). `ViewMap` keeps little on the stack: it's deep in
+  way `map_loader.asm` draws them. The map is full screen on every model; the bars come back with
+  its menu (`ModBackground(0)` draws the text again): the map's name in the header, the chunk
+  and position at the footer's left. While the module draws the background, `EditorDraw` draws
+  nothing (the footer's clock redraws through `WaitFrame`, which `ModFrame` calls, and would
+  land in the map's tiles). `ViewMap` keeps little on the stack: it's deep in
   the browser's, under `RunModule`, the loader and FatFs (the cache's path goes through
   `buffer`). The host calls `EditorRedraw` after, and the browser lists its folder again.
 - **Rename** (`editor/name.c`, shared with filename prompts): edits the list row

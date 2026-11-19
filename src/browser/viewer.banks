@@ -2,6 +2,6 @@
 *: FIXED
 10: ViewBegin
 ROM0: ViewMap
-# ModBackground(0) calls it while MAPVIEW.MOD has page 13
-12: BackgroundText
+# ModBackground calls it while MAPVIEW.MOD has page 13 (any page but 13 and the wide pages 12, 5, 4, 15)
+8: BackgroundText
 14: CacheFolders

@@ -83,11 +83,11 @@ static unsigned char ViewKind(const char* name) __naked {
   __endasm;
 }
 
-// a view's rows, cleared, with bars unless it's a map (page 10: FIXED is full)
-static void ViewBegin(unsigned char kind) {
+// a view's rows, cleared, with bars (a map hides them while it's shown: ModBackground) (page 10: FIXED is full)
+static void ViewBegin(void) {
   unsigned char row, i;
   unsigned char* attrs = tile_attrs;
-  BeginView(kind != KIND_MAP || render_gbc); // DMG/SGB: a map's tiles need the bars' (ModBackground)
+  BeginView(1);
   for (row = 0; row < tb_rows; ++row) {
     DrawRow(row, 0, "");
     tb_row_states[row] = 0; // no markdown heading fonts
@@ -170,7 +170,7 @@ unsigned char ShowFileView(const char* path, const FileEntry* entry, unsigned ch
     font = kind ? FONT_VWF : FONT_FIXED;
     SetFont(font);
     render_text = !kind; // hex: styled rows, the module dims non-printing bytes
-    ViewBegin(kind);
+    ViewBegin();
     *ToLatin1(line, entry->name, FS_NAME_SIZE - 1) = 0;
     DrawRow(HEADER_LINE, 1, line);
     module_context = &view_size;

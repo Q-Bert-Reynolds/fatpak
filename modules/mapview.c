@@ -16,10 +16,11 @@
 // screen is the BG map itself (ModBackground): the view moves a pixel a frame (four with B held)
 // with SCX and SCY, and draws only the column or row of tiles coming into view, as the game does,
 // crossing into the chunk's neighbours. Tiles 0-127 are img/ui_font.tiles and 128-255 the map's
-// tileset; GBC: in the map's BG palettes, with the bars over it; DMG/SGB: full screen, in greys.
+// tileset; full screen, no bars; GBC: in the map's BG palettes, DMG/SGB: greys.
 //
 // Controls (notes/MODULES.md): the d-pad scrolls, B held runs, Start opens the
-// menu (Rebuild, Close the map; Start or B closes it), Select shows where the view is in the header bar.
+// menu (Rebuild, Close the map; Start or B closes it) with the bars: the map's name in the header,
+// where the view is at the footer's left. Select is kept for the map tools.
 #include "../build/modules/sdk.h"
 #include "lib/psram.h"
 #include "lib/text.h"
@@ -30,9 +31,8 @@
 
 // PSRAM blocks: nothing else uses $0200-$03FF while the browser runs this (the large-file add
 // buffer starts at $0400, where ASM.MOD works)
-#define PRJ 0x0200    // project.gbp while the wrapper is written, 4 blocks
-#define WRAP 0x0204   // the wrapper, 2 blocks (ASM.MOD reads it from here)
-#define WRAP_MAX 1024
+#define WRAP 0x0200   // the wrapper, 4 blocks (ASM.MOD reads it from here)
+#define WRAP_MAX 2048
 #define IMG 0x0200    // then the cache: ROM0 (the key) and bank 1 (the map), 64 blocks
 #define IMG_BLOCKS 64
 #define TIL 0x0240    // tiles 0-255, 16 bytes each, 8 blocks
@@ -82,7 +82,7 @@ static unsigned short at, chunks; // the reader's place; the chunk table
 static unsigned char count; // the chunks in it
 static unsigned char cached[SLOTS], slots[4]; // drawn chunks; the view's: here, east, south, south east
 static unsigned char slot, fill_tile, fill_pal; // Fill's
-static unsigned char chunk, tx, ty, gbc, info; // the view: its chunk, its top left tile in it
+static unsigned char chunk, tx, ty, gbc; // the view: its chunk, its top left tile in it
 static short cam_x, cam_y; // its top left pixel in the chunk, 0-255
 static unsigned short wrap_n; // the wrapper's length
 
@@ -200,73 +200,50 @@ static void Out(const char* s) {
   }
 }
 
-// rgbasm's -D (value: NAME or NAME=VALUE) and -P (value: a file) as the wrapper's lines
-static void Option(char kind, char* value) {
-  char *v = value, c;
-  if (kind == 'P') {
-    Out("INCLUDE \"");
-    Out(value);
-    Out("\"\n");
-    return;
-  }
-  while (*v && *v != '=') ++v;
-  c = *v;
-  *v = 0;
-  Out("DEF ");
-  Out(value);
-  Out(" EQUS \"");
-  Out(c ? v + 1 : "1");
-  Out("\"\n");
-}
-
-// project.gbp's rgbasm options (the nearest one, as ASM.MOD finds it for a project's units)
-static void Project(void) {
-  ModuleLoad load;
-  unsigned short i = 0, size;
-  unsigned char n, line_start = 1, rgbasm = 0;
-  char c, opt = 0;
-  load.block = PRJ;
-  load.blocks = 4;
-  if (ModLoad("project.gbp", &load)) return;
-  size = (unsigned short)load.size;
-  while (i < size) {
-    Window(PRJ + (i >> 9));
-    c = WINDOW[i & 511];
-    if (c == '\n') line_start = 1;
-    if (c == '\n' || c == ';') rgbasm = 0; // ; to the line's end is a comment
-    if (c == ';' || c == ' ' || c == '\t' || c == '\r' || c == '\n' || !rgbasm && !line_start) {
-      ++i;
-      continue;
-    }
-    for (n = 0; i < size && n < sizeof(text) - 1; ++i, ++n) { // a word
-      Window(PRJ + (i >> 9));
-      c = WINDOW[i & 511];
-      if (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == ';') break;
-      text[n] = c;
-    }
-    text[n] = 0;
-    if (line_start) rgbasm = n == 6 && text[0] == 'r' && text[1] == 'g' && text[3] == 'a' && text[5] == 'm';
-    else if (opt) { // -D NAME: the value is the next word
-      Option(opt, text);
-      opt = 0;
-    }
-    else if (text[0] == '-' && (text[1] == 'D' || text[1] == 'P')) {
-      if (text[2]) Option(text[1], text + 2);
-      else opt = text[1];
-    }
-    line_start = 0;
-  }
-}
-
 static void OutNumber(unsigned char n) {
   char digits[4];
   *PutNumber(digits, n) = 0;
   Out(digits);
 }
 
+// what a map takes from its game's headers, instead of the project's -P file (Beisbol's includes
+// every header the game has, about 2,300 lines): map_loader.inc's object types, collisions and
+// avatar directions and behaviours (value: the name's index << shift), and color.inc's RGB. Other
+// names the map doesn't define (doors' targets, scripts, teams) are linked as 0 (ASM_LOOSE)
+static const char* const prelude[4] = {
+  "MAP_OBJ_\0NONE NONE_FILL TILE TILE_FILL STAMP STAMP_FILL AVATAR META_SPRITE",
+  "MAP_COLLISION_\4NONE SOLID WATER DOOR TEXT LEDGE GRASS SCRIPT TEAM ITEM",
+  "MAP_AVATAR_\6LEFT RIGHT UP DOWN",
+  "MAP_AVATAR_\3STATIONARY WANDER",
+};
+
+static void Prelude(void) {
+  const char *group, *p;
+  char* t;
+  unsigned char i, g, shift;
+  Out("MACRO RGB\n DW \\3 << 10 | \\2 << 5 | \\1\nENDM\n");
+  for (g = 0; g < 4; ++g) {
+    group = prelude[g];
+    for (p = group; *p >= 'A'; ++p); // the prefix, then its shift
+    shift = *p++;
+    for (i = 0; *p; ++i) {
+      Out("DEF ");
+      for (t = text; *group >= 'A'; ) *t++ = *group++; // the prefix
+      for (; *p > ' '; ) *t++ = *p++; // the name
+      *t = 0;
+      group = prelude[g];
+      Out(text);
+      Out(" EQU ");
+      OutNumber(i << shift);
+      Out("\n");
+      if (*p) ++p;
+    }
+  }
+}
+
 // the wrapper ASM.MOD builds, and the build's context: the key and the tileset's path, the
-// project's options, then the map and the stamps file (if there is one) at MAP; and the cache's
-// path for the host at MAP_PATH_BLOCK. MAP_BUILD
+// prelude, then the map and the stamps file (if there is one) at MAP; and the cache's path for
+// the host at MAP_PATH_BLOCK. MAP_BUILD
 static unsigned char Wrapper(void) {
   unsigned char i;
   unsigned char* b = (unsigned char*)&m->build;
@@ -280,7 +257,7 @@ static unsigned char Wrapper(void) {
   Out("0, 0, 0\n DB \"");
   Out(tiles);
   Out("\", 0\n");
-  Project();
+  Prelude();
   Out("SECTION \"FatPak map\", ROMX[$4000], BANK[1]\nINCLUDE \"");
   Out(m->name);
   Out("\"\n");
@@ -559,16 +536,16 @@ static void Show(void) {
   for (y = ty; y != ty + ROWS; ++y) Row(y);
 }
 
-// the header bar: the map's name as the browser drew it, and with Select where the view is
-static void Header(void) {
-  char* end = PutText(PutText(text, " "), m->name);
-  if (info) {
-    end = PutNumber(ModString(PutText(end, "  "), S_MAP_CHUNK), chunk);
-    end = PutNumber(PutText(end, "  "), tx);
-    end = PutNumber(PutText(end, ","), ty);
-  }
+// the bars, with the menu (the view has none): the map's name in the header, and where the view is
+// at the footer's left, as the editor has its line and column
+static void Bars(void) {
+  char* end;
+  ModText(HEADER_LINE, 1, m->name);
+  end = PutNumber(ModString(text, S_MAP_CHUNK), chunk);
+  end = PutNumber(PutText(end, "  "), tx);
+  end = PutNumber(PutText(end, ","), ty);
   *end = 0;
-  ModText(HEADER_LINE, 0, text);
+  ModText(STATUS_LINE, 1, text);
 }
 
 // Start's menu, over the host's text: MENU_BUILD or MENU_CLOSE, or MENU_BACK when Start or B
@@ -578,6 +555,7 @@ static unsigned char Menu(void) {
   unsigned char selected = MENU_BUILD, key, i;
   for (i = 0; i < 2; ++i) *ModString(PutText(lines + i * BOX_STRIDE, " "), S_MAP_REBUILD + i) = 0;
   ModBackground(0, 0);
+  Bars();
   while (1) {
     ModMenu(lines, 2, selected);
     while (!(key = ModKey()));
@@ -586,10 +564,7 @@ static unsigned char Menu(void) {
     else if (key == KEY_ESCAPE || key == KEY_BACKSPACE || key == KEY_MENU) { selected = MENU_BACK; break; }
   }
   ModHideBox();
-  if (selected == MENU_BACK) {
-    Show();
-    if (info) Header();
-  }
+  if (selected == MENU_BACK) Show();
   return selected;
 }
 
@@ -620,7 +595,7 @@ static void Step(unsigned char held, unsigned char step) {
 // close (only the menu does either: B runs)
 static unsigned char View(void) {
   unsigned char pressed, held, step, frames, now, last;
-  chunk = tx = ty = info = 0;
+  chunk = tx = ty = 0;
   cam_x = cam_y = 0;
   Slots();
   Show();
@@ -637,13 +612,8 @@ static unsigned char View(void) {
       last = (unsigned char)ModStat(MODULE_STAT_FRAMES);
       continue;
     }
-    if (pressed & PADF_SELECT) {
-      info ^= 1;
-      if (gbc) Header();
-    }
     step = held & PADF_B ? RUN : WALK;
     if (held & PADF_DPAD) while (frames--) Step(held, step);
-    if (info && gbc && (held & PADF_DPAD)) Header();
   }
 }
 
