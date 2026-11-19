@@ -150,6 +150,35 @@ int main(int n,char** v){
         m->Write(syms.at("fs_count"),count);
         puts("SGB row cache CRC: real CPU matches independent CCITT for 16 seeds/rows");
 
+        const unsigned hashes=syms.at("wide_row_hashes");
+        unsigned saved_bars=m->Read(syms.at("_bars")),saved_rows=m->Read(syms.at("_tb_rows"));
+        std::vector<u8> saved_hashes;
+        for(unsigned i=0;i<56;++i)saved_hashes.push_back(m->Read(hashes+i));
+        for(unsigned bars=0;bars<=1;++bars)for(unsigned rows:{1u,5u,21u,26u,28u}) {
+            if(rows+bars*2>28)continue;
+            for(unsigned down=0;down<=1;++down) {
+                for(unsigned i=0;i<56;++i)m->Write(hashes+i,i+1);
+                m->Write(syms.at("_bars"),bars);m->Write(syms.at("_tb_rows"),rows);
+                m->Write((sp-2)&65535,0);m->Write((sp-1)&65535,0xc1);
+                *s->IME=false;*s->Halt=false;
+                s->SP->SetValue((sp-2)&65535);s->PC->SetValue(client.at("FsScrollHashes"));
+                s->DE->SetValue(down?0x0100:0xff00);
+                Frames(core,1);
+                for(unsigned row=0;row<28;++row)for(unsigned byte=0;byte<2;++byte) {
+                    unsigned expected=row*2+byte+1;
+                    if(row>=bars && row<bars+rows) {
+                        if(row==(down?bars+rows-1:bars))expected=255;
+                        else expected=(down?row+1:row-1)*2+byte+1;
+                    }
+                    Check(m->Read(hashes+row*2+byte)==expected,
+                          "scroll hashes retain text rows, invalidate the new row and preserve fixed UI");
+                }
+            }
+        }
+        for(unsigned i=0;i<56;++i)m->Write(hashes+i,saved_hashes[i]);
+        m->Write(syms.at("_bars"),saved_bars);m->Write(syms.at("_tb_rows"),saved_rows);
+        puts("SGB scroll cache: real CPU passes both directions and all viewport sizes");
+
         m->Write(0xc100,0x18);m->Write(0xc101,0xfe); // return to a bounded test loop
         m->Write((sp-2)&65535,0);m->Write((sp-1)&65535,0xc1);
         before=m->Read(syms.at("_render_frames"));
@@ -251,6 +280,12 @@ int main(int n,char** v){
     for(unsigned i=0;i<30;++i)Check(h->Inject(1,0x83,0),"queue scroll burst");
     Frames(core,1800);
     Check(Contains(h,"line30"),"scroll burst advances the text viewport");
+    // Let each draw finish: retained rows must stay on the native BG ring in
+    // both directions, rather than arriving again as ROW commands.
+    for(unsigned i=0;i<30;++i)key(0x82);
+    Check(Contains(h,"Zint"),"reverse scrolling restores the first document row");
+    for(unsigned i=0;i<30;++i)key(0x83);
+    Check(Contains(h,"line30"),"forward scrolling restores the original viewport");
     key(0x81,1);
     bool selected=false;for(const auto& row:h->GetModel().rows) selected|=row.start!=row.end;
     Check(selected,"shift selection has pixel boundaries");

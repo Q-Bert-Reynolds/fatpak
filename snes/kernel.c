@@ -444,7 +444,7 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
           return 0;
         }
         if (apply) {
-          /* Rotate physical slots; preserve top/bottom bars by redrawing only them. */
+          /* Rotate BG1 slots; fixed bars and dialogs live on the UI layers. */
           ring_offset = (ring_offset + delta) & RING_MASK;
           if (delta > 0) {
             for (i = 0; i < text_rows; ++i) {
@@ -481,10 +481,10 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
           for (i = top + text_rows; i < SGBFS_ROWS; ++i) {
             raster_valid[(i + ring_offset) & RING_MASK] = 0;
           }
-          if (top) {
+          if (top && !(bars & BAR_HEADER)) {
             dirty[0] = 1;
           }
-          if (top + text_rows < SGBFS_ROWS) {
+          if (top + text_rows < SGBFS_ROWS && !(bars & BAR_FOOTER)) {
             dirty[FOOTER_ROW] = 1;
           }
           scroll_target = ring_offset * TILE_HEIGHT - 1;

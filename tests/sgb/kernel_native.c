@@ -134,6 +134,18 @@ int main(int argc,char **argv){
   assert(commands(scroll,sizeof(scroll),1));
   assert(!raster_valid[1] && !raster_valid[2] && !raster_valid[27] && !raster_valid[28]);
   assert(!raster_valid[26] && raster_valid[3]);
+  /* Full-width bar overlays hide BG1; scrolling must paint only the new text
+     row, without redundant uploads underneath either fixed bar. */
+  top=1;text_rows=26;bars=3;
+  memset(dirty,0,sizeof(dirty));memset(overlay_dirty,0,sizeof(overlay_dirty));
+  assert(commands(scroll,sizeof(scroll),1));
+  for(n=0;n<28;++n)assert(dirty[n]==(n==26) && !overlay_dirty[n]);
+  memset(dirty,0,sizeof(dirty));
+  assert(commands(back,sizeof(back),1));
+  for(n=0;n<28;++n)assert(dirty[n]==(n==1) && !overlay_dirty[n]);
+  /* Without an opaque bar, keep the existing padding-row repair. */
+  bars=0;memset(dirty,0,sizeof(dirty));
+  assert(commands(scroll,sizeof(scroll),1));assert(dirty[0] && dirty[27]);
   assert(commands(reset,sizeof(reset),1));
   for(n=0;n<32;++n)assert(!raster_valid[n]);
  }

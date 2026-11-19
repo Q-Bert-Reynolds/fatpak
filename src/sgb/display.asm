@@ -232,6 +232,9 @@ FsScroll:
   ret nz
   ld d, $FF
 .emit
+  push de
+  call FsScrollHashes
+  pop de
   ld a, SGBFS_CMD_SCROLL
   ld bc, 2
   call FsTLV
@@ -239,6 +242,66 @@ FsScroll:
   call FsByte
   xor a
   jp FsByte
+
+; The SNES rotates retained text rows, so their published hashes must follow.
+; Bars and overlay rows stay fixed. Invalidate only the newly exposed row.
+FsScrollHashes: ; D = 1 (down) or $FF (up)
+  ld a, [_tb_rows]
+  dec a
+  add a
+  ld b, a
+  ld a, [_bars]
+  add a
+  ld c, a
+  ld a, d
+  cp 1
+  jr nz, .up
+  ld d, 0
+  ld e, c
+  ld hl, wide_row_hashes
+  add hl, de
+  ld d, h
+  ld e, l
+  inc de
+  inc de
+  ld a, b
+  and a
+  jr z, .invalidate
+.forward
+  ld a, [de]
+  inc de
+  ld [hli], a
+  dec b
+  jr nz, .forward
+  jr .invalidate
+.up
+  ld a, b
+  add c
+  inc a
+  ld e, a
+  ld d, 0
+  ld hl, wide_row_hashes
+  add hl, de
+  ld d, h
+  ld e, l
+  dec de
+  dec de
+  ld a, b
+  and a
+  jr z, .firstByte
+.backward
+  ld a, [de]
+  dec de
+  ld [hld], a
+  dec b
+  jr nz, .backward
+.firstByte
+  dec hl
+.invalidate
+  ld a, $FF
+  ld [hli], a
+  ld [hl], a
+  ret
 FsRedraw:
   ld a, 1
   ldh [fs_force], a
@@ -411,6 +474,7 @@ FsEncodeRow:
   ld a, [hl]
   cp d
   ret z
+  jr .changed ; HL already points at the high byte after a partial match
 .forced
   inc hl
 .changed

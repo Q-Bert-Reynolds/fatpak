@@ -1046,6 +1046,21 @@ dropped-ACK recovery pass. Client upload/padding and typing checks pass; GB
 input publication remains 9/15 frames. Browser publication is 1,049 GB frames
 versus 1,046 for the fixed-only build. Hardware untested.
 
+Scrolling now rotates the GB publisher's row hashes with the SNES BG1 ring.
+A one-line scroll retains the existing text and publishes only the exposed row;
+previously it republished all 26 text rows. Header/footer and dialog/loading/OSK
+panels already use fixed BG2/BG3 layers. Scrolling no longer uploads BG1 rows
+hidden beneath the bars. A checksum update also wrote past its entry when only
+the high byte changed; fixing it prevents repeated updates of unchanged rows.
+
+The client regression verifies one ROW for each of twelve scrolls in both
+directions, then checks that closing a menu sends no base-text commands.
+CPU checks cover cache rotation with/without bars and 1/5/21/26/28-row viewports;
+native model checks require only the exposed text row to become dirty. The
+113-page SNES replay passes all 57,344 pixels and menu/OSK restoration. The
+production image is 46,354 bytes (twelve upload blocks), with no added WRAM.
+Results: `build/sgb/scroll-after/`. Hardware timing remains unmeasured.
+
 Next: reduce changed-tile uploads and redundant blank startup paints. Shared
 VRAM tiles/tile-map updates remain a later step. Keep the raster path for proportional/overlapping glyphs.
 Measure first usable screen and key-to-PPU latency separately from transport
