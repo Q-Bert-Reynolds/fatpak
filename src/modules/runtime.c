@@ -382,6 +382,8 @@ void ModuleAPITiles(unsigned char row, const unsigned char* tiles) {
   RenderRawRow(render_text_top + row, tiles);
 }
 
+// ABI 13: ModColorTiles is ModuleAPIColorTiles in src/ui/render.asm
+
 // ABI 8: text in the busy box (a line at each '\n', wrapped at 19 characters), if 5 s have passed
 // since the module started or last drew (call it often: the rest return at once); 0 for
 // the host's own text from the module's context (module_progress). A wide module's BSS is on the

@@ -8,7 +8,8 @@ extern void psram_select(unsigned int block);
 #define Window(block) psram_select(block)
 #define WINDOW psram_window
 #else
-// high byte first, then low, like the stock OS: the low byte write is what switches the window
+// high byte first, then low, like the stock OS: the low byte write is what switches the window.
+// block is evaluated twice: no side effects (Window(block++) selects the next block's low byte)
 #define Window(block) (*(volatile unsigned char*)0xBD03 = (unsigned char)((block) >> 8), *(volatile unsigned char*)0xBD02 = (unsigned char)(block))
 #define WINDOW ((unsigned char*)0xBE00)
 #endif

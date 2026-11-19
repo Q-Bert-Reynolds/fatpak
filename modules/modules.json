@@ -11,6 +11,7 @@
     {"name": "TILEVIEW", "id": 8, "sources": ["tileview.c", "lib/text.c"]},
     {"name": "SGBBOOT", "id": 9, "sources": ["sgb_boot.c"]},
     {"name": "LINK", "id": 10, "sources": ["link.c"], "sources2": ["link_obj.c", "link_read.c"], "sources3": ["link_build.c"]},
-    {"name": "PREP", "id": 11, "sources": ["prep.c", "link_read.c"]}
+    {"name": "PREP", "id": 11, "sources": ["prep.c", "link_read.c"]},
+    {"name": "MAPVIEW", "id": 12, "sources": ["mapview.c"]}
   ]
 }

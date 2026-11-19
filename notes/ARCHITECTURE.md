@@ -137,6 +137,7 @@ RAM instead when `$BD06` bit 1 is set).
 | `$01f0-$01ff` | Settings/signatures and 7,936-byte clipboard |
 | `$3d00-$3d54` | `EDITOR.DAT` v5 (85 blocks): header, fonts, SGB border, help, paired shift tables (77), VWF bold widths (84) |
 | `$3d55-$3d64` | Filename prompt undo ring (64 states) |
+| `$0200-$03ff` | `MAPVIEW.MOD`, while it runs: the assembled map, symbols, both files' tiles and drawn chunks |
 | `$0400-$3cff` | Large-file add buffer (`ADD_MAX` = `$720000` bytes), bounded before protected assets |
 | `$0400-$0bff`, `$0c00-$0fff` | While a text-buffer document is open: `ASM.MOD`'s ROM image (1 MiB) and symbol table ([ASSEMBLER.md](ASSEMBLER.md)) |
 | `$3d80-$3dc5` | Module staging, page backups and the WRAMX backup ([MODULES.md](MODULES.md)) |
@@ -407,7 +408,12 @@ boot ROM). Select opens file info directly.
   bytes a row in hex and characters, in `FONT_FIXED` with `render_text` set so
   `ModStyle` can dim the non-printing bytes. A `.tiles`, `.tile` or `.2bpp` file opens in `TILEVIEW.MOD`,
   whose rows are all raw 2bpp (`ModTiles` → `RenderRawRow`, after `EditorDraw` so the
-  row cache keeps them): the tile 8x, 2x and 1x, and a sheet of tiles. The host calls
+  row cache keeps them): the tile 8x, 2x and 1x, and a sheet of tiles. A `.gbmap` (a
+  Beisbol map from gbmapeditor) opens in `MAPVIEW.MOD` with the screen to itself (no bars,
+  `ViewBegin` on page 10, bank 1 being full): it gets the path, assembles the map's labels,
+  `DEF`s and data, then `map_stamps.gbstamp`, into PSRAM `$0200-$03ff`, loads
+  `img/ui_font.tiles` and the map's own tiles from the folders above, and draws each chunk
+  the way `map_loader.asm` does, in the map's BG palettes (`ModColorTiles`). The host calls
   `EditorRedraw` after, and the browser lists its folder again (the reads used `buffer`).
 - **Rename** (`editor/name.c`, shared with filename prompts): edits the list row
   above the OSK, with its own 64-state undo ring at `$3d55-$3d64`.

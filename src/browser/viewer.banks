@@ -1,2 +1,3 @@
-# Code placement; the pages themselves are HEXVIEW.MOD and TILEVIEW.MOD.
+# Code placement; the pages themselves are HEXVIEW.MOD, TILEVIEW.MOD and MAPVIEW.MOD.
 *: FIXED
+10: ViewBegin

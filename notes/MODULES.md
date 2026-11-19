@@ -10,7 +10,7 @@ replacements; see [Modules and overlays](OVERLAYS.md#modules-and-overlays).
 
 Status: eight modules pass in Gearboy (DMG and CGB). KEYTEST, CLOCK, FILEINFO and
 ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
-(ABI 5), HEXVIEW and TILEVIEW haven't been tried there yet.
+(ABI 5), HEXVIEW, TILEVIEW and MAPVIEW haven't been tried there yet.
 
 | Module | ID | ABI | Host | Size |
 | --- | --- | --- | --- | --- |
@@ -23,6 +23,7 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
 | `HEXVIEW.MOD` | 7 | 9 | Opening a binary file in the browser (`browser/viewer.c`) | 2,216 B + 269 B BSS |
 | `TILEVIEW.MOD` | 8 | 9 | Opening a `.tiles`, `.tile` or `.2bpp` file in the browser (`browser/viewer.c`) | 2,097 B + 431 B BSS |
 | `LINK.MOD` | 10 | 10 | FILE > BUILD, RUN, after `ASM.MOD`: places its units' sections, patches, header, `build.log`, `build.obj` ([ASSEMBLER.md](ASSEMBLER.md)) | wide, 3 pages: 5,690 + 4,598 + 5,679 B, 2,716 B BSS |
+| `MAPVIEW.MOD` | 12 | 13 | Opening a `.gbmap` file in the browser (`browser/viewer.c`): a Beisbol map, assembled from its RGBDS source into PSRAM `$0200-$03ff` and drawn in the map's palettes (`ModColorTiles`) | 6,674 B + 547 B BSS |
 | `PREP.MOD` | 11 | 10 | FILE > BUILD, RUN, before `ASM.MOD`: which units `build.obj` has unchanged, and whether the ROM is up to date; after a build that stopped, the card check (`ASM_CHECK`) | 3,966 B + 211 B BSS |
 
 ## Rules
@@ -231,7 +232,7 @@ around `tb_Read`, since the module may have moved the window.
 
 ### ABI
 
-The table at `MODULE_TABLE` (`$7F00`, bank 1) reserves `MODULE_SLOTS` (32)
+The table at `MODULE_TABLE` (`$7F00`, bank 1) reserves `MODULE_SLOTS` (33)
 entries. Entries are append-only; changing one's meaning needs a new entry.
 
 | Entry | ABI | Does |
@@ -256,7 +257,7 @@ entries. Entries are append-only; changing one's meaning needs a new entry.
 | `ModSource(pos, dest)` | 4 | Up to `MODULE_SOURCE_CHUNK` (128) bytes of the text buffer from `pos`; returns the count, 0 past the end |
 | `ModFar` | 4 | Not called from C: the resident far call behind a wide module's thunks (`FarCallInline`) |
 | `ModFile(path, block)` | 5 | Reads a whole file (< 64 KiB) into PSRAM from `block`: the path is tried from the open document's folder, then from each folder above it, then its base name in the document's folder (the folder level that worked last is tried first, reset per module run). Returns the length, 0 if unreadable, `$FFFF` if too big |
-| `ModRead(offset, dest, length)` | 6 | Up to `MODULE_SOURCE_CHUNK` bytes from `offset` of the file the host opened with `FileViewOpen` (in `save_file`); returns the count, 0 past the end. Reads through `buffer`, so the browser lists its folder again after |
+| `ModRead(offset, dest, length)` | 6 | Up to `MODULE_SOURCE_CHUNK` bytes from `offset` of the file the host opened with `FileViewOpen` (in `save_file`); returns the count, 0 past the end. Reads through `buffer`, so the browser lists its folder again after. `ModFile` and `ModLoad` open and close `save_file` too, so read the host's file before them (MAPVIEW reads the map first) |
 | `ModStyle(row, styles)` | 6 | `TB_STRIDE` `tile_attrs` bytes (`STYLE_* << 4` \| width) for a text row; the host sets `render_text` and the font so the rows draw styled |
 | `ModSelect(row, first, end)` | 6 | Highlights columns `first` to `end` (exclusive) of one text row, clearing the other text rows |
 | `ModTiles(row, tiles)` | 6 | `EditorDraw`, then `RenderRawRow`: `TB_COLS` 2bpp tiles (320 bytes) sent as they are to a text row's block, which keeps them until the row's text, selection or a box over it changes. GBC: BG palette 7 (four greys); DMG/SGB dark mode inverts them so they keep their shades. The host calls `EditorRedraw` after |
@@ -264,6 +265,7 @@ entries. Entries are append-only; changing one's meaning needs a new entry.
 | `ModProgress(text)` | 8 | Text in the busy box (a line at each `\n`, wrapped at 19), drawn only if 5 s (`render_frames`, counted by the LCD interrupt) have passed since the module started or last drew, so call it often. `0`: the host's own text (`module_progress`, set with `module_context`; ASM.MOD's is `BuildProgress`, ROM0). For a wide module the host holds its BSS at `MODULE_BSS_HELD`, brings the editor's buffers back, draws with VBlank on, and swaps both back (~30 frames on DMG, half on CGB) |
 | `ModStat(which)` | 10 | `MODULE_STAT_SECONDS` since the module started (60 frames each, counted from `render_frames` at every `ModProgress` and `ModStat`), `MODULE_STAT_FRAMES` (their low 16 bits, to time a short step), `MODULE_STAT_RETRIES` (PSRAM block copies made again), `MODULE_STAT_FS` and `MODULE_STAT_FILE` (the addresses of FatFs's `FATFS` and of the `FIL` `ModFile`/`ModLoad` last opened, to read only). `ModFile`/`ModLoad` also draw `ModProgress(0)` between sectors, with `module_loading` set to the file's name |
 | `ModSector(sector, block)` | 10 | One card sector into PSRAM block `block` (`sd_ReadSector` into the window); 0 if read. ASM.MOD's `build.cache` reads files by their clusters with it |
+| `ModColorTiles(row, tiles)` | 13 | `ModTiles` with each cell's GBC BG palette (0-7) in the `TB_COLS` bytes after the tiles, for palettes the module wrote to `BCPS`/`BCPD` itself (`raw_colors` makes `RenderRawRow` skip the greys of palette 7). `tiles` 0: `ThemeApply`, the theme's palettes back, which a module that loaded its own must call before it returns. DMG/SGB: the same as `ModTiles` (`ModuleAPIColorTiles`, `render.asm`) |
 | `ModString(dest, id)` | 9 | String `id` (`S_*` from `src/strings.h`, or an `S_PART` piece) of the loaded language at `dest` and a 0; returns the 0's address ([LANGUAGES.md](LANGUAGES.md)) |
 
 Pointer rule: wrappers run with page 13 mapped, so they read module memory

@@ -53,6 +53,7 @@ ASM = {
     '_FooterCompose': ['FooterCompose'],
     'FooterCompose': ['_footer_Poll', '_RenderTextWidth'],
     '_RenderRawRow': [],  # resident bank 1: mem_Copy, mem_CopyVRAM (ROM0), the row upload
+    '_ModuleAPIColorTiles': ['_ThemeApply', '_ModuleAPITiles'],  # resident bank 1 (render.asm)
     '_SetWindowBlock': [], '_SettingsSave': [],  # register writes; mem_Copy and its own loop (ROM0)
     '_ThemeApply': ['EditorSetPalettes'],  # THEME_PAGE
     'EditorSetPalettes': ['sgb_SetPal', '_EditorInvertCursor'],

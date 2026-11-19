@@ -692,6 +692,91 @@ static void TileView(const char* image,const char* symbols,const char* data,bool
     printf("%s tile view of .tiles files passed\n",color?"CGB":"DMG");
 }
 
+// A .gbmap opens MAPVIEW.MOD: the module assembles the map, then map_stamps.gbstamp beside it (the
+// map's DW of the stamp is patched after), loads img/ui_font.tiles and the tiles its _TestTiles
+// names (img/maps/test.tiles), and fills the screen with chunk 0 from its top left. Tiles 128 and 129 are solid colours 1 and 2.
+// Checked against each other on the screen: the chunk's tile, a tile fill, a tile with a script's
+// extra byte, a stamp, a stamp fill, scrolling a tile and into the east chunk, and B back to the
+// list in the theme's colours. GBC: each object's palette. FATPAK_SCREENSHOT=dir saves the first view.
+static void MapView(const char* image,const char* symbols,const char* data,bool color) {
+    char folder[]="/tmp/fatpak-map-XXXXXX";Check(mkdtemp(folder),"map SD");
+    std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);
+    Write(root+"/GBCSYS/EDITOR.DAT",Read(data));InstallModules(root,data);
+    mkdir((root+"/img").c_str(),0700);mkdir((root+"/img/maps").c_str(),0700);
+    auto text=[](const std::string& s){return std::vector<u8>(s.begin(),s.end());};
+    Write(root+"/map_stamps.gbstamp",text("GBStamps:: ;7 bytes\nGBStampBox: ;7 bytes\n  DB 2;width\n  DB 2;height\n"
+        ".tiles\n  DB 128, 129\n  DB 129, 128\n.palette\n  DB 130\n"));
+    Write(root+"/img/ui_font.tiles",std::vector<u8>(2048,0));
+    std::vector<u8> tiles(2048,0);
+    for(unsigned y=0;y<8;++y){tiles[y*2]=0xFF;tiles[16+y*2+1]=0xFF;} // 128: colour 1, 129: colour 2
+    Write(root+"/img/maps/test.tiles",tiles);
+    Write(root+"/Test.gbmap",text(
+        "MapTest:: ;the header, as gbmapeditor writes it\n  DB 0\n  DW MapTestPalettes\n  DW 0\n  DW 0\n"
+        "  DW MapTestChunks\n  DW 0\n  DW 0\n  DW 0\n  DW 0\n  DB BANK(_TestTiles)\n  DW _TestTiles\n"
+        "  DB BANK(_WorldSpritesTiles)\n  DW _WorldSpritesTiles\n\nMapTestPalettes:\n.background\n"
+        "  RGB 31, 31, 31\n  RGB 31, 0, 0\n  RGB 0, 31, 0\n\n  RGB 0, 0, 31\n  RGB 31, 31, 0\n  RGB 0, 31, 31\n\n"
+        "  RGB 31, 0, 31\n  RGB 24, 12, 0\n  RGB 0, 12, 24\n\n"
+        "  RGB 1, 2, 3\n  RGB 1, 2, 3\n  RGB 1, 2, 3\n  RGB 1, 2, 3\n  RGB 1, 2, 3\n  RGB 1, 2, 3\n"
+        "  RGB 1, 2, 3\n  RGB 1, 2, 3\n  RGB 1, 2, 3\n  RGB 1, 2, 3\n  RGB 1, 2, 3\n  RGB 1, 2, 3\n"
+        "  RGB 1, 2, 3\n  RGB 1, 2, 3\n  RGB 1, 2, 3\n\n"
+        "DEF MAP_TEST_CHUNK_A EQU 0\nDEF MAP_TEST_CHUNK_B EQU 1\n\nMapTestChunks: ;4 bytes\n"
+        "  DW MapTestChunkA\n  DW MapTestChunkB\n\n"
+        "MapTestChunkA:\n.tile:    DB 0\n.palette: DB 0\n.area:    DB 0\n.north:   DB MAP_TEST_CHUNK_A\n"
+        ".east:    DB MAP_TEST_CHUNK_B\n.south:   DB MAP_TEST_CHUNK_A\n.west:    DB MAP_TEST_CHUNK_B\n"
+        "  DB MAP_OBJ_TILE_FILL | MAP_COLLISION_NONE ;Floor, 7 bytes\n  DB 2;x1\n  DB 2;y1\n  DB 128;tile\n"
+        "  DB 1;palette\n  DB 6;x2\n  DB 4;y2\n"
+        "  DB MAP_OBJ_TILE | MAP_COLLISION_SCRIPT ;Sign\n  DB 8\n  DB 1\n  DB 129\n  DB 1\n  DB 0;script\n"
+        "  DB MAP_OBJ_STAMP | MAP_COLLISION_NONE\n  DB 10;x\n  DB 5;y\n  DW GBStampBox\n"
+        "  DB MAP_OBJ_STAMP_FILL | MAP_COLLISION_NONE\n  DB 2;x1\n  DB 8;y1\n  DW GBStampBox\n  DB 6;x2\n  DB 10;y2\n"
+        "  DB 0;terminator\n  DB 0;sprites\nIF 1 != 1\n  WARN \"not read\"\nENDC\n\n"
+        "MapTestChunkB:\n.tile:    DB 129\n.palette: DB 2\n.area:    DB 0\n.north:   DB MAP_TEST_CHUNK_B\n"
+        ".east:    DB MAP_TEST_CHUNK_A\n.south:   DB MAP_TEST_CHUNK_B\n.west:    DB MAP_TEST_CHUNK_A\n"
+        "  DB 0\n  DB 0\n"));
+    GearboyCore core;core.Init();core.SetEverdriveFolder(folder);
+    Check(core.LoadROM(image,!color),"map OS");auto memory=core.GetMemory();auto syms=Symbols(symbols);
+    auto byte=[&](const char* name){return memory->Read(syms.at(name));};
+    auto pad=[&](Gameboy_Keys key){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,60);};
+    auto row=[&](unsigned n){std::string s;for(unsigned i=0;i<40;++i)s+=char(memory->Read(syms.at("tile_buffer")+n*40+i));
+        while(!s.empty() && s.back()==' ')s.pop_back();return s;};
+    auto cell=[&](unsigned x,unsigned y){return frame[(y*8+3)*160+x*8+3];}; // no bars: text row 0 is the top
+    Frames(core,600);
+    u16 paper=frame[130*160+156];
+    pad(Down_Key);pad(Down_Key);pad(Down_Key); // GBCSYS, img, map_stamps.gbstamp, Test.gbmap
+    core.KeyPressed(A_Key);Frames(core,4);core.KeyReleased(A_Key);
+    // drawn once the module hides its "Reading map..." box (the host's "Loading..." screen isn't a box)
+    unsigned waited=0;
+    while(!(byte("_module_busy") && byte("_render_box_top")!=255) && waited<3000){Frames(core,1);++waited;}
+    while(byte("_render_box_top")!=255 && waited<6000){Frames(core,1);++waited;}
+    Check(waited<6000,"the map is read");
+    Frames(core,60);
+    if(const char* dir=getenv("FATPAK_SCREENSHOT")){ // 160x144 RGB565
+        std::string path=std::string(dir)+(color?"/map_cgb.ppm":"/map_dmg.ppm");
+        FILE* f=fopen(path.c_str(),"wb");fprintf(f,"P6 160 144 255\n");
+        for(unsigned i=0;i<160*144;++i){u16 p=frame[i];u8 rgb[3]={u8((p>>11)<<3),u8(((p>>5)&63)<<2),u8((p&31)<<3)};fwrite(rgb,1,3,f);}
+        fclose(f);}
+    Check(byte("_bars")==0 && row(18)==" Test.gbmap","the map fills the screen, no bars");
+    u16 base=cell(0,0),fill=cell(2,2),sign=cell(8,1),stamp1=cell(10,5),stamp2=cell(11,5);
+    Check(base!=fill && base!=sign && fill!=sign,"the chunk's tile, a tile fill and a tile differ");
+    for(unsigned y=2;y<4;++y)for(unsigned x=2;x<6;++x)Check(cell(x,y)==fill,"the tile fill covers [2,6) x [2,4)");
+    Check(cell(6,2)==base && cell(2,4)==base && cell(1,2)==base && cell(9,1)==base,"and nothing past it");
+    Check(cell(10,6)==stamp2 && cell(11,6)==stamp1 && stamp1!=stamp2 && cell(12,5)==base && cell(10,7)==base,"a 2x2 stamp");
+    for(unsigned y=8;y<10;++y)for(unsigned x=2;x<6;++x)Check(cell(x,y)==((x+y)&1?stamp2:stamp1),"a stamp fill repeats it over [2,6) x [8,10)");
+    Check(cell(6,8)==base && cell(2,10)==base,"the fill stops at its end");
+    if(color)Check(stamp1!=fill && stamp2!=sign,"GBC: the stamp's palette, not the fill's");
+    else Check(stamp1==fill && stamp2==sign,"DMG: colours 1 and 2 are the same greys everywhere");
+    pad(Right_Key);
+    Check(cell(1,2)==fill && cell(5,2)==base && cell(0,2)==base,"right scrolls a tile");
+    for(unsigned i=0;i<12;++i)pad(Right_Key);
+    Check(cell(19,0)!=base && cell(19,17)==cell(19,0) && cell(18,0)==base,"the east chunk from column 32");
+    Check(cell(19,0)==stamp2,"chunk B: its tile, 129, in its palette, 2, as the stamp has it");
+    pad(B_Key);
+    for(unsigned waited=0;byte("_render_box_top")!=255 && waited<300;++waited)Frames(core,1);
+    Frames(core,90);
+    Check(byte("_bars")==1 && row(18)==" /" && (row(0)+row(1)+row(2)+row(3)).find("Test.gbmap")!=std::string::npos,"B returns to the browser");
+    Check(frame[130*160+156]==paper,"in the theme's paper again");
+    printf("%s map view of .gbmap files passed\n",color?"CGB":"DMG");
+}
+
 // FILE > OPEN AS forces a view, DELETE asks first and removes files and empty folders only, and A
 // on the info page opens the file. Deletions are checked in the OS's own listing: Gearboy's
 // VirtualFat copies new and changed files to the host folder but doesn't remove deleted ones.
@@ -745,5 +830,6 @@ int main(int argc,char** argv) {
     Theme(argv[1],argv[2],argv[3],false);Theme(argv[1],argv[2],argv[3],true);
     HexView(argv[1],argv[2],argv[3],false);HexView(argv[1],argv[2],argv[3],true);
     TileView(argv[1],argv[2],argv[3],false);TileView(argv[1],argv[2],argv[3],true);
+    MapView(argv[1],argv[2],argv[3],false);MapView(argv[1],argv[2],argv[3],true);
     FileMenu(argv[1],argv[2],argv[3],false);FileMenu(argv[1],argv[2],argv[3],true);
 }
