@@ -294,17 +294,29 @@ static unsigned char Wrapper(void) {
   return MAP_BUILD;
 }
 
+// a box's two lines: strings id and id + 1
+static char* Lines(unsigned int id) {
+  char* end = ModString(text, id);
+  *end++ = '\n';
+  return ModString(end, id + 1);
+}
+
 // what the host's build said, in a box until a key
 static unsigned char Report(void) {
   char* end;
-  if (m->state == MAP_LARGE) end = PutText(text, "Close the large\nfile to view maps");
+  if (m->state == MAP_LARGE) end = Lines(S_MAP_LARGE);
   else if (!m->result) { // status is only set when ASM.MOD and LINK.MOD ran // the file, line and error, as FILE > BUILD shows them
-    end = PutText(text, m->build.file ? m->build.name + m->build.base : "(wrapper)");
-    end = PutNumber(PutText(end, "\nLine "), m->build.line);
+    end = m->build.file ? PutText(text, m->build.name + m->build.base) : ModString(text, S_MAP_WRAPPER);
+    *end++ = '\n';
+    end = ModString(PutNumber(ModString(end, S_PART(S_BUILD_LINE, 0)), m->build.line), S_PART(S_BUILD_LINE, 1));
     *end++ = '\n';
     end = ModString(end, S_ERR_SYNTAX + m->status - 1);
   }
-  else end = PutNumber(PutText(text, "Can't build the\nmap: error "), m->result);
+  else {
+    end = ModString(text, S_MAP_CANT_BUILD);
+    *end++ = '\n';
+    end = ModString(PutNumber(ModString(end, S_PART(S_MAP_ERROR_N, 0)), m->result), S_PART(S_MAP_ERROR_N, 1));
+  }
   *end = 0;
   ModBox(text);
   while (!ModKey());
@@ -551,7 +563,7 @@ static void Show(void) {
 static void Header(void) {
   char* end = PutText(PutText(text, " "), m->name);
   if (info) {
-    end = PutNumber(PutText(end, "  chunk "), chunk);
+    end = PutNumber(ModString(PutText(end, "  "), S_MAP_CHUNK), chunk);
     end = PutNumber(PutText(end, "  "), tx);
     end = PutNumber(PutText(end, ","), ty);
   }
@@ -562,10 +574,9 @@ static void Header(void) {
 // Start's menu, over the host's text: MENU_BUILD or MENU_CLOSE, or MENU_BACK when Start or B
 // closes it (the map again, where it was)
 static unsigned char Menu(void) {
-  static const char* const items[2] = {" Rebuild", " Close the map"};
   char lines[2 * BOX_STRIDE];
   unsigned char selected = MENU_BUILD, key, i;
-  for (i = 0; i < 2; ++i) *PutText(lines + i * BOX_STRIDE, items[i]) = 0;
+  for (i = 0; i < 2; ++i) *ModString(PutText(lines + i * BOX_STRIDE, " "), S_MAP_REBUILD + i) = 0;
   ModBackground(0, 0);
   while (1) {
     ModMenu(lines, 2, selected);
@@ -640,7 +651,7 @@ unsigned char ModuleMain(MapContext* context) {
   unsigned char i;
   m = context;
   if (m->state == MAP_LARGE || (m->state == MAP_BUILT && (m->result || m->status))) return Report();
-  ModBox("Reading map...");
+  ModBox(Str(S_MAP_READING));
   key[0] = 'F'; key[1] = 'P'; key[2] = 'M'; key[3] = 'C'; key[4] = KEY_VERSION;
   for (i = KEY_ENTRY; i < KEY_SIZE; ++i) key[i] = 0;
   if (m->state == MAP_NEW) {

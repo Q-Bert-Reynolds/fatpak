@@ -208,3 +208,12 @@ DRIVER_PS2,item,,PS/2 KEYBOARD,TECLADO PS/2
 DRIVER_IGKB,item,,iGKB USB,iGKB USB
 DRIVER_SNES_MOUSE,item,,SNES MOUSE,RATÓN SNES
 KB_PAUSED,row,,PAUSED (A resumes),PAUSA (A continúa)
+MAP_REBUILD,item,map viewer menu: these 2 in order,Rebuild,Reconstruir
+MAP_CLOSE,item,,Close the map,Cerrar el mapa
+MAP_READING,box,map viewer: busy box,Reading map...,Leyendo mapa...
+MAP_LARGE,box,"map viewer: a large file is open; a box's 2 lines, these 2 in order",Close the large,Cierra el archivo
+MAP_LARGE2,box,,file to view maps,grande primero
+MAP_CANT_BUILD,box,"map viewer: a build that failed outside the assembler; a box's 2 lines, these 2 in order",Can't build the,No se pudo compilar
+MAP_ERROR_N,box,the error's number,map: error {},el mapa: error {}
+MAP_WRAPPER,box,map viewer: a build error's file when it's the generated wrapper,(wrapper),(envoltorio)
+MAP_CHUNK,row,map viewer header (Select): the chunk's number follows,chunk ,bloque 

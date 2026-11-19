@@ -23,7 +23,7 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
 | `HEXVIEW.MOD` | 7 | 9 | Opening a binary file in the browser (`browser/viewer.c`) | 2,216 B + 269 B BSS |
 | `TILEVIEW.MOD` | 8 | 9 | Opening a `.tiles`, `.tile` or `.2bpp` file in the browser (`browser/viewer.c`) | 2,097 B + 431 B BSS |
 | `LINK.MOD` | 10 | 10 | FILE > BUILD, RUN, after `ASM.MOD`: places its units' sections, patches, header, `build.log`, `build.obj` ([ASSEMBLER.md](ASSEMBLER.md)) | wide, 3 pages: 5,690 + 4,598 + 5,679 B, 2,716 B BSS |
-| `MAPVIEW.MOD` | 12 | 13 | Opening a `.gbmap` file in the browser (`browser/viewer.c`'s `ViewMap`): a Beisbol map, from a cache `ASM.MOD` and `LINK.MOD` build (`/GBCSYS/CACHE/<path>.cache`), scrolled on the BG map (`ModBackground`) a pixel a frame, four with B held; Start: Rebuild, Close the map | 6,876 B + 447 B BSS |
+| `MAPVIEW.MOD` | 12 | 13 | Opening a `.gbmap` file in the browser (`browser/viewer.c`'s `ViewMap`): a Beisbol map, from a cache `ASM.MOD` and `LINK.MOD` build (`/GBCSYS/CACHE/<path>.cache`), scrolled on the BG map (`ModBackground`) a pixel a frame, four with B held; Start: Rebuild, Close the map | 6,826 B + 447 B BSS |
 | `PREP.MOD` | 11 | 10 | FILE > BUILD, RUN, before `ASM.MOD`: which units `build.obj` has unchanged, and whether the ROM is up to date; after a build that stopped, the card check (`ASM_CHECK`) | 3,966 B + 211 B BSS |
 
 ## Rules
@@ -66,7 +66,6 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
 - **Text goes through the language pipeline**: every string a module shows (menu
   items, box text, header text, errors) is a row in `data/strings/strings.csv`
   read with `ModString`, never a literal in the module ([LANGUAGES.md](LANGUAGES.md)).
-  MAPVIEW's menu, header and errors still break this (TODO.md).
 
 ## Controls
 
