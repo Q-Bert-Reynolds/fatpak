@@ -7,7 +7,7 @@
 // directives and the line parser. asm_emit.c has the symbol table, instruction encoders
 // and the image.
 #include "asm_shared.h"
-#include "lib/psram.h"
+#include "../lib/psram.h"
 
 #define CHUNK MODULE_SOURCE_CHUNK
 

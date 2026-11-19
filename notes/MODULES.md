@@ -64,6 +64,22 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
   and does anything that needs page 13 (THEME's host saves the swap file when
   `module_status` says the theme changed).
 
+## Controls
+
+Every module with its own screen (a viewer, an editor, a tool) uses the same
+buttons, so a user who knows one knows them all. The text editor is the model.
+
+| Button | Does |
+| --- | --- |
+| Start | Opens the module's menu (save, options, help, exit, ...). |
+| Select | Opens or closes the module's tool overlay: the OSK for text, a drawing tool in an image editor, map tools in the map editor. |
+| B (held) | Speeds up navigation: the arrows move by a page, or to the start or end, the way B turns them into Page Up/Down and Home/End in the text editor. In a smooth-scrolling view it's the run button. |
+| A | Selects: starts and ends an area selection, or picks the thing under the cursor. |
+| B (tapped) | Backs out: closes the menu or overlay, else leaves the module. |
+
+While the tool overlay is open, A and B belong to the tool. Draw the header and
+footer (with the clock) like the host does, unless the user picked full screen.
+
 ## Single sources
 
 | What | Where | Read by |

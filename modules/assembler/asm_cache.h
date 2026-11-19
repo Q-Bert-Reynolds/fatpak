@@ -5,7 +5,7 @@
 // asm_cbytes.c, byte work in assembly). See asm_cache.c.
 #include "asm_shared.h"
 #ifndef HOST_TEST
-#include "../src/fatfs/lib/ff.h" // FATFS, FIL: the host's, read through ModStat's pointers
+#include "../../src/fatfs/lib/ff.h" // FATFS, FIL: the host's, read through ModStat's pointers
 extern FATFS* cache_volume;
 #endif
 

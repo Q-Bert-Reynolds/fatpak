@@ -28,8 +28,8 @@ void Copy(unsigned char* to, const unsigned char* from) __naked {
 	srl	a
 	jr	nz, .four_n
 	or	a, b
-	ret	nz ; fewer than 4
-	ld	a, 64 ; copy_n 0: 256
+	ret	nz ;// fewer than 4
+	ld	a, 64 ;// copy_n 0: 256
 .four_n:
 	ld	c, a
 .four:
@@ -61,7 +61,7 @@ void Read(unsigned char* p, unsigned char n) __naked {
   __asm
 	or	a, a
 	ret	z
-	ld	c, a ; bytes left
+	ld	c, a ;// bytes left
 .run:
 	ld	a, [_in_block + 1]
 	ld	[$BD03], a
@@ -70,14 +70,14 @@ void Read(unsigned char* p, unsigned char n) __naked {
 	ld	a, [_in_ofs]
 	ld	l, a
 	ld	a, [_in_ofs + 1]
-	ld	b, c ; this run: all of it, unless the block ends first
+	ld	b, c ;// this run: all of it, unless the block ends first
 	or	a, a
-	jr	z, .low ; in_ofs < 256: 256 or more left
+	jr	z, .low ;// in_ofs < 256: 256 or more left
 	ld	a, l
 	or	a, a
-	jr	z, .high ; 256 left
+	jr	z, .high ;// 256 left
 	cpl
-	inc	a ; 512 - in_ofs
+	inc	a ;// 512 - in_ofs
 	cp	a, c
 	jr	nc, .high
 	ld	b, a
@@ -97,7 +97,7 @@ void Read(unsigned char* p, unsigned char n) __naked {
 	adc	a, 0
 	cp	a, 2
 	jr	nz, .same
-	ld	a, [_in_block] ; the block's end: the next one from its start
+	ld	a, [_in_block] ;// the block's end: the next one from its start
 	add	a, 1
 	ld	[_in_block], a
 	ld	a, [_in_block + 1]

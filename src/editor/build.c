@@ -13,7 +13,7 @@
 #include "../modules/runtime.h"
 #include "../ui/dialogs.h"
 #include "../ui/text.h"
-#include "../../modules/asm.h"
+#include "../../modules/assembler/asm.h"
 
 // ASM_ERR_*'s names are the strings from S_ERR_SYNTAX, shown on their own line in the result box
 typedef char error_names_match[S_ERR_OVERLAP - S_ERR_SYNTAX + 1 == ASM_ERR_COUNT ? 1 : -1];

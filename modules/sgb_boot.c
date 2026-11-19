@@ -43,7 +43,7 @@ static void CRCBlock(const unsigned char* from, unsigned int count) __naked {
     swap a
     and $0F
     xor d
-    ld d, a ; x = (high ^ byte) ^ ((high ^ byte) >> 4)
+    ld d, a ;// x = (high ^ byte) ^ ((high ^ byte) >> 4)
     swap a
     and $F0
     xor l

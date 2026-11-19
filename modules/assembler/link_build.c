@@ -5,7 +5,7 @@
 // together over the files.
 #include "link.h"
 #ifndef HOST_TEST
-#include "../src/fatfs/lib/ff.h" // FATFS, FIL: the host's, read through ModStat's pointers
+#include "../../src/fatfs/lib/ff.h" // FATFS, FIL: the host's, read through ModStat's pointers
 #endif
 
 #define CACHE_HEAD 14 // build.cache's index (asm_cache.h): a head, then per file its path and 17 bytes

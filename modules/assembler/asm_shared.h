@@ -4,10 +4,10 @@
 // words, expressions, operands, directives, lines. asm_emit.c: symbols, arithmetic,
 // instruction encoders, the image. Calls between them go through ModFar thunks, so the
 // split keeps them to a few per statement; pointers never cross pages.
-#include "../build/modules/sdk.h"
+#include "../../build/modules/sdk.h"
 #include "asm.h"
 #include "asm_obj.h"
-#include "lib/psram.h"
+#include "../lib/psram.h"
 
 // Advance's fast path: run_n bytes from run_p belong to the current frame without a check.
 // Anything that moves the window or changes the frames drops it (run_n = 0).

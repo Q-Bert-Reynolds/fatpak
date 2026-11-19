@@ -7,7 +7,7 @@
 // One page, so a build without a project pays little.
 #include "link.h"
 #ifndef HOST_TEST
-#include "../src/fatfs/lib/ff.h" // FATFS, FIL: the host's, read through ModStat's pointers
+#include "../../src/fatfs/lib/ff.h" // FATFS, FIL: the host's, read through ModStat's pointers
 #endif
 
 AsmContext* context;

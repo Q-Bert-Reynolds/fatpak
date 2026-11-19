@@ -96,7 +96,7 @@ STRINGS_INPUTS = data/strings/strings.csv $(wildcard data/help/*.txt) scripts/st
 $(SRC_DIR)/strings.h: $(STRINGS_INPUTS)
 	$(PYTHON) scripts/strings.py
 
-$(BUILD_DIR)/c/%.asm: %.c $(C_HEADERS) $(SRC_DIR)/strings.h $(C_LIBS) $(MODULE_HEADERS) $(wildcard modules/*.h)
+$(BUILD_DIR)/c/%.asm: %.c $(C_HEADERS) $(SRC_DIR)/strings.h $(C_LIBS) $(MODULE_HEADERS) $(wildcard modules/*.h modules/*/*.h)
 	@mkdir -p $(dir $@)
 	sdcc $< -msm83 --asm=rgbds --opt-code-size --dataseg WRAM0 --no-peep --peep-file peephole.def $(DEFINES) --disable-warning 218 -S -o $@
 	@sed -i 's/^\t\.byte /\tDB /' $@ # SDCC writes long constants as .byte

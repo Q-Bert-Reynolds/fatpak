@@ -19,7 +19,7 @@ INCLUDE "src/interrupts.asm"
 INCLUDE "src/rtc/rtc.asm"
 
 INCLUDE "src/ui/color.asm"
-INCLUDE "src/ui/sgb.asm"
+INCLUDE "src/sgb/sgb.asm"
 INCLUDE "src/core.asm"
 
 INCLUDE "src/ui/theme.asm"

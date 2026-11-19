@@ -62,7 +62,7 @@ static unsigned char ViewKind(const char* name) __naked {
 	cp	a, 32
 	jr	nz, .skip
 	ld	a, [hl]
-	cp	a, 32 ; the list's end
+	cp	a, 32 ;// the list's end
 	jr	nz, .next
 	xor	a, a
 	ret

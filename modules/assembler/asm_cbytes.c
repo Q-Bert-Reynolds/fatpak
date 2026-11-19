@@ -215,8 +215,8 @@ void FatPlace(void) __naked {
 	ld	[_cache_at + 1], a
 	ld	hl, _cache_head + 6
 	ld	de, _cache_fnew
-	; fall through
-; the 4 bytes at de += those at hl
+	;// fall through
+;// the 4 bytes at de += those at hl
 CacheAdd:
 	ld	c, 4
 	and	a, a

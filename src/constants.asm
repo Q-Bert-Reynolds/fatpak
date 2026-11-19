@@ -97,7 +97,7 @@ DEF MODULE_BSS_BACKUP EQU $3D68;below the staging blocks: $3E00 and up broke the
 DEF MODULE_BSS_HELD EQU $3D70;a wide module's BSS while ModProgress draws with the editor's buffers back
 DEF MODULE_FAIL_BLOCK EQU $3D6E;a restore that never read back, recorded before restarting (ShowModuleRestart)
 DEF MODULE_SOURCE_CHUNK EQU 128;bytes ModSource copies at most
-;ASM.MOD (modules/asm.c): inside the large-file add buffer, so only text-buffer documents assemble
+;ASM.MOD (modules/assembler/asm.c): inside the large-file add buffer, so only text-buffer documents assemble
 DEF ASM_IMAGE_BLOCK  EQU $0400;the ROM image, up to ASM_IMAGE_BLOCKS
 DEF ASM_IMAGE_BLOCKS EQU 2048;1 MiB, 64 banks
 DEF ASM_SYMBOL_BLOCK EQU $0C00;the symbol table, 1024 blocks (65536 8-byte units); the first holds the 256 hash heads
@@ -106,13 +106,13 @@ DEF ASM_CHARMAP_BLOCK EQU $1080;names, 8 maps' heads, then a 60 KiB pool (129 bl
 DEF ASM_SECTION_BLOCK EQU $1110;the section table, 32 blocks (512 32-byte records)
 DEF ASM_DATA_BLOCK   EQU $1130;each ROM section's bytes as pass 2 assembles them, before LINK.MOD places them (1 MiB)
 DEF ASM_DATA_END     EQU $1930
-DEF ASM_OBJ_BLOCK    EQU $1930;each unit's patches, section names, labels and exports for LINK.MOD (modules/asm_obj.h), 1 MiB
+DEF ASM_OBJ_BLOCK    EQU $1930;each unit's patches, section names, labels and exports for LINK.MOD (modules/assembler/asm_obj.h), 1 MiB
 DEF ASM_FILE_BLOCK   EQU $2130;included and INCBIN files, packed whole from here
 DEF ASM_FILE_END     EQU $387E;then build.cache's new index, and the build log
-DEF ASM_CACHE_BLOCK  EQU $387E;build.cache: where pass 1 found each file, 128 blocks (modules/asm_cache.c)
+DEF ASM_CACHE_BLOCK  EQU $387E;build.cache: where pass 1 found each file, 128 blocks (modules/assembler/asm_cache.c)
 DEF ASM_CACHE_BLOCKS EQU 128
 DEF ASM_LOG_BLOCK    EQU $38FE;build.log's text, 2 blocks (up to ADD_MAX / 512); in pass 1, the cache's directory and FAT sectors
-DEF ASM_LINK_BLOCK   EQU $3900;what ASM.MOD hands LINK.MOD (AsmLink in modules/asm_obj.h)
+DEF ASM_LINK_BLOCK   EQU $3900;what ASM.MOD hands LINK.MOD (AsmLink in modules/assembler/asm_obj.h)
 DEF ASM_SNAP_BLOCK   EQU $3901;the symbol table and charmaps after the prelude, put back for each unit (255 blocks)
 DEF ASM_SNAP_END     EQU $3A00
 DEF ASM_PREP_BLOCK   EQU $3A00;LINK.MOD's check of build.obj before ASM.MOD runs: which units are unchanged (3 blocks, AsmPrep)
@@ -187,7 +187,7 @@ DEF LANG_PLAIN   EQU 0;how text is styled, from the file name's extension
 DEF LANG_MD      EQU 1
 DEF LANG_C       EQU 2;.c, .h
 DEF LANG_ASM     EQU 3;.asm, .inc, .s (RGBDS)
-DEF LANG_PROJECT EQU 4;project.gbp: FILE > BUILD's project (modules/asm_proj.c), lexed as asm
+DEF LANG_PROJECT EQU 4;project.gbp: FILE > BUILD's project (modules/assembler/asm_proj.c), lexed as asm
 DEF PATH_SIZE    EQU 128;the open file's folder (file_dir)
 DEF FS_NAME_SIZE EQU 65;src/fatfs/file_api.h
 

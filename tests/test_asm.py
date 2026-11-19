@@ -1,4 +1,4 @@
-"""ASM.MOD against RGBDS: builds modules/asm.c for the PC (tests/asm_host.c), assembles each
+"""ASM.MOD against RGBDS: builds modules/assembler/asm.c for the PC (tests/asm_host.c), assembles each
 tests/asm/*.asm with both and compares the ROMs byte for byte; then checks error reporting.
 usage: python3 tests/test_asm.py"""
 import json, os, subprocess, sys, tempfile
@@ -178,20 +178,20 @@ def main():
     # the same program, its ModuleMain renamed: tests/asm_host.c runs one, then the other
     objs = []
     for name in ASM_SOURCES:
-        objs.append(str(HOST) + '-' + name + '.o')
+        objs.append(str(HOST) + '-' + Path(name).name + '.o')
         run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-c', '-o', objs[-1], str(ROOT / 'modules' / name)])
     # LINK.MOD's pages as one object whose only global is LinkMain: its names stay its own
     link_objs = []
     for name in ('link.c', 'link_obj.c', 'link_build.c', 'link_read.c'):
-        link_objs.append(str(HOST) + '-' + name + '.o')
-        run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-DModuleMain=LinkMain', '-c', '-o', link_objs[-1], str(ROOT / 'modules' / name)])
+        link_objs.append(str(HOST) + '-' + Path(name).name + '.o')
+        run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-DModuleMain=LinkMain', '-c', '-o', link_objs[-1], str(ROOT / 'modules/assembler' / name)])
     objs.append(str(HOST) + '-link.o')
     run(['ld', '-r', '-o', objs[-1]] + link_objs)
     run(['objcopy', '--keep-global-symbol=LinkMain', objs[-1]])
     prep_objs = []
     for name in ('prep.c', 'link_read.c'): # PREP.MOD, the same way
         prep_objs.append(str(HOST) + '-prep-' + name + '.o')
-        run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-DModuleMain=PrepMain', '-c', '-o', prep_objs[-1], str(ROOT / 'modules' / name)])
+        run(['gcc', '-O1', '-DHOST_TEST', '-Dint=short', '-DModuleMain=PrepMain', '-c', '-o', prep_objs[-1], str(ROOT / 'modules/assembler' / name)])
     objs.append(str(HOST) + '-prep.o')
     run(['ld', '-r', '-o', objs[-1]] + prep_objs)
     run(['objcopy', '--keep-global-symbol=PrepMain', objs[-1]])

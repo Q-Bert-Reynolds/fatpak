@@ -1,5 +1,5 @@
 #define _XOPEN_SOURCE 700 // nftw
-// Runs modules/asm.c on a PC: tests/test_asm.py compares its ROM with RGBDS's.
+// Runs modules/assembler/asm.c on a PC: tests/test_asm.py compares its ROM with RGBDS's.
 // usage: asm_host source.asm image.gb  (prints "status line pos blocks symbols")
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,7 +8,7 @@
 #include <time.h>
 #include <ftw.h>
 #define int short // the module is built with 16-bit ints, like SDCC
-#include "../modules/asm.h"
+#include "../modules/assembler/asm.h"
 #include "../src/constants.h"
 #undef int
 
@@ -39,8 +39,8 @@ unsigned char ModSource(unsigned short pos, char* dest) {
   return (unsigned char)n;
 }
 unsigned char ModuleMain(AsmContext* c);
-unsigned char LinkMain(AsmContext* c); // LINK.MOD's ModuleMain (modules/link.c)
-unsigned char PrepMain(AsmContext* c); // PREP.MOD's (modules/prep.c)
+unsigned char LinkMain(AsmContext* c); // LINK.MOD's ModuleMain (modules/assembler/link.c)
+unsigned char PrepMain(AsmContext* c); // PREP.MOD's (modules/assembler/prep.c)
 
 static char source_dir[1024];
 typedef struct { unsigned short block, blocks; unsigned long size; } ModuleLoad; // sdk.h's, with 16-bit ints

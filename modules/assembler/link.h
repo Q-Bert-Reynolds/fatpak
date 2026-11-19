@@ -2,10 +2,10 @@
 #define FATPAK_MODULE_LINK_H
 // LINK.MOD's two pages share these (link.c: placing, the image, header and log; link_obj.c:
 // reading the objects, names and patches). Calls between them go through ModFar thunks.
-#include "../build/modules/sdk.h"
+#include "../../build/modules/sdk.h"
 #include "asm.h"
 #include "asm_obj.h"
-#include "lib/psram.h"
+#include "../lib/psram.h"
 
 // link.c
 extern AsmContext* context;

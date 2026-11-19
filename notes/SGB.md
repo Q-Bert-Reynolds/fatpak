@@ -82,7 +82,7 @@ module title/status rows are translated to the active geometry; unused rows are
 cleared. Raw tile graphics cannot be represented by v1 and show a GB-mode notice.
 Fullscreen game launch is blocked pending Phase 10.
 
-The BIOS fallback uses `src/ui/sgb.asm` for detection, palettes and the border
+The BIOS fallback uses `src/sgb/sgb.asm` for detection, palettes and the border
 from `EDITOR.DAT`. Border upload saves `$8800–$9FFF` in PSRAM `$3C00–$3C0B`, masks
 interrupts during transfer, and restores tiles/maps/registers before unmasking.
 `gbdk_DisplayOff` waits for VBlank before disabling the LCD.

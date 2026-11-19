@@ -209,7 +209,7 @@ before pass 1 the hash heads, which drops the last unit's symbols.
   long, `jr` distance, `ldh` address, `rst` opcode or `sp+e8`), or `ASSERT`;
   anywhere else it's NOT YET DEFINED. Beisbol has 12,039 (rgbasm writes 13,418:
   it patches every `jr` to a label).
-- **Objects** (`modules/asm_obj.h`). Pass 2 writes each ROM section's bytes in
+- **Objects** (`modules/assembler/asm_obj.h`). Pass 2 writes each ROM section's bytes in
   its own blocks from `ASM_DATA_BLOCK` (`UnitData` gives them out after pass 1;
   the block for `pc` is `sec_dbase + pc / 512`), and the unit's records to the
   object stream at `ASM_OBJ_BLOCK`: a unit header, its patches (section, offset,
@@ -219,7 +219,7 @@ before pass 1 the hash heads, which drops the last unit's symbols.
   stay in the build's section table. Beisbol: 699 data
   blocks (of 2,048), 1,105 object blocks (of 2,048), the prelude's snapshot 105
   (of 255).
-- **build.obj** (`modules/prep.c`, `link_build.c`). PREP.MOD (one page) runs
+- **build.obj** (`modules/assembler/prep.c`, `link_build.c`). PREP.MOD (one page) runs
   first: it loads the last `build.obj`'s head and file lists (its first 64
   blocks; `ModLoad` reads a file's first blocks when the rest doesn't fit) at
   `ASM_OLD_BLOCK`, above where the files are packed, and reads the directory
@@ -248,7 +248,7 @@ before pass 1 the hash heads, which drops the last unit's symbols.
   `build.cache`'s index (so only with one), and the entry as `ModSector` reads it
   now. The host writes it with `FileWriteImage`'s `$2000` count. When every unit
   was clean it isn't rewritten. Beisbol's is ~940 KB.
-- **LINK.MOD** (`modules/link.c`, `link_obj.c` with `link_read.c`,
+- **LINK.MOD** (`modules/assembler/link.c`, `link_obj.c` with `link_read.c`,
   `link_build.c`; three pages, 13, 12 and 5). It reads
   `ASM_LINK_BLOCK` (`AsmLink`: ASM.MOD's result, counts, times and `rgbfix`
   options) and, unless the assembly failed, walks the object stream twice:
@@ -334,7 +334,7 @@ The device regression includes several 22 KB files to exercise that overflow.
   each (72 KB took ~30 s of a pass on DMG; beisbol's split has ~630 KB). Image, symbols, heap, charmaps and files are
   inside the large-file add buffer, which is unused while a text-buffer document
   is open.
-- **Projects** (`modules/asm_proj.c`): `Main` loads `project.gbp` through the
+- **Projects** (`modules/assembler/asm_proj.c`): `Main` loads `project.gbp` through the
   host's search (the first file found sets `file_level`, the folder later
   searches try first and `BuildFile` takes the project's folder from), reads it
   as a frame with the lexer's own helpers, loads each main file (`units[]`) and
@@ -359,7 +359,7 @@ The device regression includes several 22 KB files to exercise that overflow.
   the cache was 3.7 KB, here it's about 1.8 KB. Making room also moved `FOR`'s
   count, `Progress`'s percent and the 16.16 fraction into `Apply` calls.
 - **Pages.** A five-page wide module ([MODULES.md](MODULES.md)):
-  `modules/asm.c` (page 13: the stream, words, expressions, word tables, a
+  `modules/assembler/asm.c` (page 13: the stream, words, expressions, word tables, a
   `ModuleMain` that calls `Main`), `asm_emit.c` with `asm_pushs.c`,
   `asm_main.c`, `asm_projw.c` and `asm_cbytes.c` (page 12: 32-bit arithmetic,
   the symbol table, instruction encoders, the data blocks; `PUSHS`/`POPS`;
@@ -372,7 +372,7 @@ The device regression includes several 22 KB files to exercise that overflow.
   `asm_cache.c`, `asm_rel.c` and `asm_prelude.c` (page 15: sections;
   `project.gbp`; relocation and patches; the prelude's snapshot and the exports).
   Calls between pages cost a far call each; pointers never cross: each page's
-  constants are read by its own code; `modules/asm_shared.h` lists what is shared
+  constants are read by its own code; `modules/assembler/asm_shared.h` lists what is shared
   (globals are WRAMX BSS, readable from all five). Free bytes: page 13 18,
   12 27, 5 17, 4 37, 15 237 (with `jr` for every jump in range,
   `modules/peephole_jr.def`). Units and patches came out of SDCC's 32-bit C

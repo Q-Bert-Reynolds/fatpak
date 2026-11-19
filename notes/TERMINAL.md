@@ -29,7 +29,7 @@ does not change the current ABI or project syntax.
   points/IDs; they are not arbitrary executable files with a C `main(argc,argv)`.
 - The host already invokes `ASM.MOD`, then `LINK.MOD`, and writes build outputs.
   This is a useful model for command orchestration.
-- `modules/asm_proj.c` parses `project.gbp`: `main`, `output`, `rgbasm` options
+- `modules/assembler/asm_proj.c` parses `project.gbp`: `main`, `output`, `rgbasm` options
   and `rgbfix` options. These lines are declarative build settings, not shell
   invocations. They do not currently execute the desktop programs or provide
   pipes, general commands, variables or exit-status semantics.

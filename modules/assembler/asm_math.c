@@ -109,7 +109,7 @@ MATH_STATIC Val Apply(unsigned char o, Val a, Val b) __naked {
 	jr	z, .both
 	cp	a, $4C
 	jr	z, .either
-; comparisons, signed: which of x < y, x == y, x > y (bits 0-2) make each one true
+;// comparisons, signed: which of x < y, x == y, x > y (bits 0-2) make each one true
 	ld	b, 1
 	cp	a, $3C
 	jr	z, .compare
@@ -232,7 +232,7 @@ MATH_STATIC Val Apply(unsigned char o, Val a, Val b) __naked {
 	pop	hl
 	add	sp, 8
 	jp	hl
-; x * y: y shifts out to the right, x left, adding x into div_rem for each 1
+;// x * y: y shifts out to the right, x left, adding x into div_rem for each 1
 .mul:
 	ld	hl, _div_rem
 	xor	a, a
@@ -267,8 +267,8 @@ MATH_STATIC Val Apply(unsigned char o, Val a, Val b) __naked {
 	ld	de, _t
 	call	ArithCopy
 	jr	.done
-; / and %: the magnitudes divided, then the signs: a negative quotient rounds down, and the
-; remainder takes y's sign
+;// / and %: the magnitudes divided, then the signs: a negative quotient rounds down, and the
+;// remainder takes y's sign
 .div:
 	ld	hl, _t+4
 	call	ArithZero
@@ -320,7 +320,7 @@ MATH_STATIC Val Apply(unsigned char o, Val a, Val b) __naked {
 	bit	7, b
 	call	nz, ArithNeg
 	jr	.result
-; << and >>: y's magnitude, up to 32, steps one bit at a time
+;// << and >>: y's magnitude, up to 32, steps one bit at a time
 .shift:
 	ld	a, [_t+7]
 	rlca
@@ -367,7 +367,7 @@ MATH_STATIC Val Apply(unsigned char o, Val a, Val b) __naked {
 	jr	nz, .right
 	jr	.done
 
-; the 4 bytes at de += (-=) those at hl; both move past them
+;// the 4 bytes at de += (-=) those at hl; both move past them
 ArithAdd:
 	ld	b, 4
 	and	a, a
@@ -392,7 +392,7 @@ ArithSub:
 	dec	b
 	jr	nz, .sub
 	ret
-; the 4 bytes at hl to de
+;// the 4 bytes at hl to de
 ArithCopy:
 	ld	b, 4
 .copy:
@@ -402,7 +402,7 @@ ArithCopy:
 	dec	b
 	jr	nz, .copy
 	ret
-; z (and a = 0) if the 4 bytes at hl are; hl moves past them
+;// z (and a = 0) if the 4 bytes at hl are; hl moves past them
 ArithZero:
 	ld	a, [hl+]
 	or	a, [hl]
@@ -412,7 +412,7 @@ ArithZero:
 	or	a, [hl]
 	inc	hl
 	ret
-; the 4 bytes at hl: negated, plus 1, shifted left (the bit out in carry)
+;// the 4 bytes at hl: negated, plus 1, shifted left (the bit out in carry)
 ArithNeg:
 	ld	b, 4
 	and	a, a
@@ -446,8 +446,8 @@ ArithRl:
 	inc	hl
 	rl	[hl]
 	ret
-; t[0] / t[1], unsigned: the quotient in t[0], the remainder in div_rem. The dividend's zero
-; top bytes shift out at once; then a bit at a time, comparing before subtracting
+;// t[0] / t[1], unsigned: the quotient in t[0], the remainder in div_rem. The dividend's zero
+;// top bytes shift out at once; then a bit at a time, comparing before subtracting
 ArithDiv:
 	ld	hl, _div_rem
 	xor	a, a

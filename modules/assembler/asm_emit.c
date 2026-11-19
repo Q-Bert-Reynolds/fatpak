@@ -2,7 +2,7 @@
 // image (asm.c parses; see asm_shared.h). Values are 32 bits; * / % are loops here
 // because modules can't import SDCC's helpers.
 #include "asm_shared.h"
-#include "lib/psram.h"
+#include "../lib/psram.h"
 
 #include "asm_math.c"
 
@@ -328,7 +328,7 @@ void EmitFile(void) __naked {
 	ld	a, [_error]
 	or	a, a
 	ret	nz
-; c = n - 1: a run stops at the next 256-byte boundary of the file or the image (one block each)
+;// c = n - 1: a run stops at the next 256-byte boundary of the file or the image (one block each)
 	ld	a, [_file_at]
 	ld	b, a
 	ld	a, [_pc]
@@ -338,7 +338,7 @@ void EmitFile(void) __naked {
 .max:
 	cpl
 	ld	c, a
-; and at file_end, when it's in the same 256 bytes; at it: done
+;// and at file_end, when it's in the same 256 bytes; at it: done
 	ld	hl, _file_at+3
 	ld	de, _file_end+3
 	ld	b, 3
@@ -365,7 +365,7 @@ void EmitFile(void) __naked {
 	ld	a, [_sec_rom]
 	or	a, a
 	jr	z, .section
-; the run's last byte past sec_last: full
+;// the run's last byte past sec_last: full
 	ld	hl, _pc
 	ld	a, [hl+]
 	ld	h, [hl]
@@ -381,7 +381,7 @@ void EmitFile(void) __naked {
 	ld	a, [_pass]
 	cp	a, 2
 	jr	nz, .count
-; pass 2: the file's block (file_at >> 9) in the window, its bytes to str
+;// pass 2: the file's block (file_at >> 9) in the window, its bytes to str
 	xor	a, a
 	ld	[_run_n], a
 	ld	hl, _file_at+3
@@ -412,7 +412,7 @@ void EmitFile(void) __naked {
 	inc	de
 	dec	b
 	jr	nz, .in
-; then the section's data block for pc: sec_dbase + pc / 512
+;// then the section's data block for pc: sec_dbase + pc / 512
 	ld	a, [_pc+1]
 	srl	a
 	ld	hl, _sec_dbase
@@ -439,7 +439,7 @@ void EmitFile(void) __naked {
 	ld	[hl+], a
 	dec	b
 	jr	nz, .out
-; pc and file_at move on
+;// pc and file_at move on
 .count:
 	pop	hl
 	ld	a, l

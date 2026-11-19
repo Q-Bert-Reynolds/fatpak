@@ -100,7 +100,7 @@
 #define MODULE_BSS_HELD 0x3D70u//a wide module's BSS while ModProgress draws with the editor's buffers back
 #define MODULE_FAIL_BLOCK 0x3D6Eu//a restore that never read back, recorded before restarting (ShowModuleRestart)
 #define MODULE_SOURCE_CHUNK 128//bytes ModSource copies at most
-//ASM.MOD (modules/asm.c): inside the large-file add buffer, so only text-buffer documents assemble
+//ASM.MOD (modules/assembler/asm.c): inside the large-file add buffer, so only text-buffer documents assemble
 #define ASM_IMAGE_BLOCK  0x0400u//the ROM image, up to ASM_IMAGE_BLOCKS
 #define ASM_IMAGE_BLOCKS 2048//1 MiB, 64 banks
 #define ASM_SYMBOL_BLOCK 0x0C00u//the symbol table, 1024 blocks (65536 8-byte units)// the first holds the 256 hash heads
@@ -109,13 +109,13 @@
 #define ASM_SECTION_BLOCK 0x1110u//the section table, 32 blocks (512 32-byte records)
 #define ASM_DATA_BLOCK   0x1130u//each ROM section's bytes as pass 2 assembles them, before LINK.MOD places them (1 MiB)
 #define ASM_DATA_END     0x1930u
-#define ASM_OBJ_BLOCK    0x1930u//each unit's patches, section names, labels and exports for LINK.MOD (modules/asm_obj.h), 1 MiB
+#define ASM_OBJ_BLOCK    0x1930u//each unit's patches, section names, labels and exports for LINK.MOD (modules/assembler/asm_obj.h), 1 MiB
 #define ASM_FILE_BLOCK   0x2130u//included and INCBIN files, packed whole from here
 #define ASM_FILE_END     0x387Eu//then build.cache's new index, and the build log
-#define ASM_CACHE_BLOCK  0x387Eu//build.cache: where pass 1 found each file, 128 blocks (modules/asm_cache.c)
+#define ASM_CACHE_BLOCK  0x387Eu//build.cache: where pass 1 found each file, 128 blocks (modules/assembler/asm_cache.c)
 #define ASM_CACHE_BLOCKS 128
 #define ASM_LOG_BLOCK    0x38FEu//build.log's text, 2 blocks (up to ADD_MAX / 512)// in pass 1, the cache's directory and FAT sectors
-#define ASM_LINK_BLOCK   0x3900u//what ASM.MOD hands LINK.MOD (AsmLink in modules/asm_obj.h)
+#define ASM_LINK_BLOCK   0x3900u//what ASM.MOD hands LINK.MOD (AsmLink in modules/assembler/asm_obj.h)
 #define ASM_SNAP_BLOCK   0x3901u//the symbol table and charmaps after the prelude, put back for each unit (255 blocks)
 #define ASM_SNAP_END     0x3A00u
 #define ASM_PREP_BLOCK   0x3A00u//LINK.MOD's check of build.obj before ASM.MOD runs: which units are unchanged (3 blocks, AsmPrep)
@@ -190,7 +190,7 @@
 #define LANG_MD      1
 #define LANG_C       2//.c, .h
 #define LANG_ASM     3//.asm, .inc, .s (RGBDS)
-#define LANG_PROJECT 4//project.gbp: FILE > BUILD's project (modules/asm_proj.c), lexed as asm
+#define LANG_PROJECT 4//project.gbp: FILE > BUILD's project (modules/assembler/asm_proj.c), lexed as asm
 #define PATH_SIZE    128//the open file's folder (file_dir)
 #define FS_NAME_SIZE 65//src/fatfs/file_api.h
 
