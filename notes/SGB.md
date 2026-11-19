@@ -96,7 +96,17 @@ draws UI layers. Code/fonts run in bank `$7F`; model state is in `$7E`.
 `cache.s` retains unselected rows in `$7E:6000–9FFF` (slots 0–15) and
 `$7F:C000–FFFF` (slots 16–31). The linker caps model storage below `$7E:6000`
 and the uploaded image below `$7F:C000`, reserving both cache ranges. Stack,
-ICD2 buffers and snapshot storage remain outside these ranges.
+ICD2 buffers and snapshot storage remain outside these ranges. `fixed.s` uses
+`$7E:DC00–DFFF` for 128 composed-tile keys and `$7E:E000–EFFF` for their
+4bpp data (5 KiB total), above the snapshot ending at `$D87F`.
+
+Fixed-width styled rows with four-pixel cells compose directly into tile planes,
+reusing tiles keyed by three neighboring character/style pairs. Three fragments
+are needed because of the one-pixel text inset. Spaces share a blank key;
+complete keys are checked after hashing. Normal/bold bitmaps must fit their
+cells (the build checks this). Italic, proportional and unusual-width rows use
+the original glyph/shade compositor. Both paths feed the same row cache and
+selection recoloring.
 
 Capture drains up to four completed ICD2 buffers between bounded work slices.
 A separate 1920-byte snapshot protects validation from concurrent capture.
@@ -106,8 +116,8 @@ backpressure, sequence ordering and duplicate suppression protect transactions.
 BG1 uses a 32-row ring. Text/style changes rasterize and refresh its tile cache;
 selection changes restore cached tiles and recolor their bitplanes. Cache slots
 follow physical rows during scrolling; revealed rows and fixed bars invalidate
-the affected slots. Scrolling waits for DMA and the smooth flag requests 2 px steps. Glyph overhangs are ORed; selection
-uses pixel boundaries. BG3 draws bars, boxes, dialogs and OSK over a high-priority
+the affected slots. Scrolling waits for DMA and the smooth flag requests 2 px
+steps. Glyph overhangs are ORed; selection uses pixel boundaries. BG3 draws bars, boxes, dialogs and OSK over a high-priority
 BG2 paper mask. Closing a menu restores the underlying text without BG1 redraw.
 Uploads wait for the start of VBlank. An OBJ draws the text cursor; full mouse
 and pad behavior remains Phase 9. L+R+Select toggles capture/page diagnostics.
@@ -977,7 +987,7 @@ duration is effectively unchanged; fresh text still rasterizes and fills its
 cache, and scripted
 pauses dominate this replay. Browser/typing publication remains 9/15 GB frames.
 Results: `build/sgb/selection-before/` and `build/sgb/selection-after/`.
-The production image still takes eleven upload blocks. Hardware untested.
+That row-cache revision takes eleven upload blocks. Hardware untested.
 
 Startup profiling (fresh sample card, nominal GB clock) publishes the browser at
 1,560 frames (~26 s). First DATA_TRN: frame 979; JUMP: 1,285; wide geometry:
@@ -1002,11 +1012,27 @@ reports boot milestones and checks CRC rejection at the stored checksum and
 both sides of a cartridge-window boundary, alongside upload bytes, zero padding,
 editing/saving and rollback. Hardware testing is pending.
 
-Next: remove redundant blank startup paints, then cache glyph/composed tiles
-and update tile maps for common fixed-width text. Row tiles already cover
-selection changes. Keep the raster path for proportional/overlapping glyphs. Measure first usable
-screen and key-to-PPU latency separately from transport ACKs and the replay's
-deliberate pauses.
+The fixed-width composed-tile path now passes 144 native comparisons against
+the original compositor: all character codes, styles, row lengths, final-column
+clipping, mixed colors and cache reuse. Dense fresh text takes 8 rather than 57
+SNES frames for eight rows (about 7x faster). Test with
+`SGB_TILE_ONLY=1 make test-sgb-kernel`. The production image is 45,740 bytes,
+requiring twelve upload blocks; the row-cache build used eleven. The native
+comparisons are in `build/sgb/tiles-after/native-result.txt`.
+
+The complete 113-page replay reduces base-row drawing from 2.2 to 1.5 SNES
+frames on average (32%); it records 1,646 tile hits and 82 misses. All 57,344
+PPU pixels, menu/OSK restoration and dropped-ACK recovery pass. Replay duration
+falls from 3,764 to 3,704 frames; fixed UI pauses dominate the total. Logs and
+comparison data: `build/sgb/tiles-after/`. The client verifies the full upload,
+padding, edit/save/scroll, menus/OSK and all six fallback cases. GB input
+publication stays at 9/15 frames; browser startup rises from 1,033 to 1,046 GB
+frames (~0.2 s) with the extra upload block. Hardware untested.
+
+Next: reduce changed-tile uploads and redundant blank startup paints. Shared
+VRAM tiles/tile-map updates remain a later step. Keep the raster path for proportional/overlapping glyphs.
+Measure first usable screen and key-to-PPU latency separately from transport
+ACKs and the replay's deliberate pauses.
 
 Menu follow-up: center dialogs against the full 256-pixel viewport. The old
 keyboard preview used a fixed 150-pixel box; its replacement uses the actual

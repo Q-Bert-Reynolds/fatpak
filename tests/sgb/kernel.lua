@@ -141,6 +141,11 @@ emu.addEventCallback(function(cpu)
    finish(false,string.format('stalled mailbox did not display diagnostics: tick %d enabled %d dirty %d',word('_tick'),byte('_debug_enabled'),emu.read(symbols._overlay_dirty+27,emu.memType.snesWorkRam)));return
   end
  end
+ if os.getenv('SGB_TILE_ONLY')=='1' and byte('_tile_finished')~=0 then
+  result:write(string.format('TILES %d checks, %d mismatches; first case %d offset %d actual %02X expected %02X\n',word('_tile_checks'),word('_tile_mismatches'),word('_tile_first_case'),word('_tile_first_offset'),byte('_tile_first_actual'),byte('_tile_first_expected')))
+  result:write(string.format('FRESH eight legacy rows %d vs tiles %d SNES frames; hits %d misses %d\n',word('_tile_legacy_frames'),word('_tile_cached_frames'),word('_fixed_hits'),word('_fixed_misses')))
+  finish(word('_tile_checks')==144 and word('_tile_mismatches')==0,'fixed tile checks');return
+ end
  if os.getenv('SGB_CACHE_ONLY')=='1' and byte('_cache_finished')~=0 then
   local failures={};for i=0,111 do if emu.read(symbols._cache_failures+i,emu.memType.snesWorkRam)~=0 then failures[#failures+1]=i end end
   result:write('Cache failures: '..table.concat(failures,',')..'\n')
@@ -182,6 +187,7 @@ emu.addEventCallback(function(cpu)
    result:write('PASS: 112 native cache/selection comparisons: all slots, shade classes and pixel alignments\n')
    result:write(string.format('SELECTION eight cold rows %d vs cached %d SNES frames\n',word('_cache_cold_frames'),word('_cache_warm_frames')))
   end
+  result:write(string.format('TILES hits %d misses %d\n',word('_fixed_hits'),word('_fixed_misses')))
   result:write(string.format('CACHE hits %d misses %d\n',word('_raster_hits'),word('_raster_misses')))
   if drop_commit and (not dropped_seq or not recovered) then
    finish(false,'dropped-commit recovery was not exercised');return

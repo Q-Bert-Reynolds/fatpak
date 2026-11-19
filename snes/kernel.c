@@ -176,6 +176,9 @@ u8 dirty[SGBFS_ROWS];
 u8 raster_valid[RING_ROWS];
 u16 raster_hits;
 u16 raster_misses;
+u8 fixed_ready;
+u16 fixed_hits;
+u16 fixed_misses;
 u8 top;
 u8 text_rows = SGBFS_ROWS;
 u8 bars;
@@ -792,6 +795,12 @@ static void glyphs_reference(const Row *row, u16 left, u16 right) {
 const u8 native_row_size = sizeof(Row);
 const Row *glyph_row;
 void DrawGlyphs(void);
+u8 DrawFixedTiles(void);
+
+static u8 fixed_tiles(const Row *row) {
+  glyph_row = row;
+  return DrawFixedTiles();
+}
 
 static void glyphs(const Row *row, u16 left, u16 right) {
   glyph_row = row;
@@ -801,6 +810,7 @@ static void glyphs(const Row *row, u16 left, u16 right) {
 }
 #else
 #define glyphs glyphs_reference
+#define fixed_tiles(row) 0
 #endif
 
 #ifdef SNES_GLYPH_CHECK
@@ -838,10 +848,12 @@ static void draw(u8 row) {
   }
   else {
     ClearRaster();
-    glyphs(source, source->font ? TEXT_INSET : 0,
-           source->font ? SGBFS_TEXT_WIDTH + TEXT_INSET : SGBFS_TEXT_WIDTH);
-    pixel_start = pixel_end = SGBFS_WIDTH;
-    EncodeRow();
+    if (!fixed_tiles(source)) {
+      glyphs(source, source->font ? TEXT_INSET : 0,
+             source->font ? SGBFS_TEXT_WIDTH + TEXT_INSET : SGBFS_TEXT_WIDTH);
+      pixel_start = pixel_end = SGBFS_WIDTH;
+      EncodeRow();
+    }
     CacheRaster(slot);
     raster_valid[slot] = 1;
     ++raster_misses;
@@ -1105,6 +1117,10 @@ static void pads(void) {
 #include "../tests/sgb/cache_checks.h"
 #endif
 
+#ifdef SNES_TILE_CHECK
+#include "../tests/sgb/tile_checks.h"
+#endif
+
 void main(void) {
   u16 frame = FRAME_UNSET;
   u8 slot;
@@ -1113,6 +1129,9 @@ void main(void) {
 #endif
 #ifdef SNES_CACHE_CHECK
   CacheChecks();
+#endif
+#ifdef SNES_TILE_CHECK
+  TileChecks();
 #endif
 
   trace_field = TRACE_DRAW; /* Start with rendering cost, then finish the counter rotation. */

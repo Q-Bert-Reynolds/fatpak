@@ -1,7 +1,7 @@
 ; Native row layout. Row ABI is asserted in kernel.c; scratch $1140..1153
 ; is separate from raster.s, ICD2 scratch and cc65's direct-page runtime.
 .setcpu "65816"
-.export _DrawGlyphs
+.export _DrawGlyphs, StyleFonts, StyleColors
 .import _glyph_row,_glyph_x,_glyph_right,_glyph_offset,_glyph_color,_glyph_icon
 .import _Capture,_FontWidth,_BlitGlyph
 .segment "CODE"
