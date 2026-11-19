@@ -172,6 +172,10 @@ typedef struct {
 Row rows[SGBFS_ROWS];
 u8 row_attrs[SGBFS_STRIDE];
 u8 dirty[SGBFS_ROWS];
+/* Cache entries follow physical BG1 ring slots, independent of selection. */
+u8 raster_valid[RING_ROWS];
+u16 raster_hits;
+u16 raster_misses;
 u8 top;
 u8 text_rows = SGBFS_ROWS;
 u8 bars;
@@ -396,18 +400,23 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
             Capture();
           }
           out = rows + b[0];
-          if (out->font == b[1] && out->flags == b[2] && out->start == b[3] && out->end == b[4] &&
-              out->n == b[5] && !memcmp(out->chars, b + SGBFS_ROW_HEADER, b[5]) &&
+          if (out->font == b[1] && out->flags == b[2] && out->n == b[5] &&
+              !memcmp(out->chars, b + SGBFS_ROW_HEADER, b[5]) &&
               !memcmp(out->attrs, row_attrs, b[5])) {
-            break;
+            if (out->start == b[3] && out->end == b[4]) {
+              break;
+            }
           }
-          out->font = b[1];
-          out->flags = b[2];
+          else {
+            out->font = b[1];
+            out->flags = b[2];
+            out->n = b[5];
+            memcpy(out->chars, b + SGBFS_ROW_HEADER, b[5]);
+            memcpy(out->attrs, row_attrs, b[5]);
+            raster_valid[(b[0] + ring_offset) & RING_MASK] = 0;
+          }
           out->start = b[3];
           out->end = b[4];
-          out->n = b[5];
-          memcpy(out->chars, b + SGBFS_ROW_HEADER, b[5]);
-          memcpy(out->attrs, row_attrs, b[5]);
           dirty[b[0]] = 1;
         }
         break;
@@ -417,6 +426,7 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
         }
         if (apply) {
           rows[b[0]] = rows[b[1]];
+          raster_valid[(b[0] + ring_offset) & RING_MASK] = 0;
           dirty[b[0]] = 1;
         }
         break;
@@ -440,6 +450,7 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
               }
               else {
                 memset(rows + top + i, 0, sizeof(Row));
+                raster_valid[(top + i + ring_offset) & RING_MASK] = 0;
                 dirty[top + i] = 1;
               }
               Capture();
@@ -453,10 +464,18 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
               }
               else {
                 memset(rows + top + i - 1, 0, sizeof(Row));
+                raster_valid[(top + i - 1 + ring_offset) & RING_MASK] = 0;
                 dirty[top + i - 1] = 1;
               }
               Capture();
             }
+          }
+          /* Rows outside the scrolling viewport did not rotate their model. */
+          for (i = 0; i < top; ++i) {
+            raster_valid[(i + ring_offset) & RING_MASK] = 0;
+          }
+          for (i = top + text_rows; i < SGBFS_ROWS; ++i) {
+            raster_valid[(i + ring_offset) & RING_MASK] = 0;
           }
           if (top) {
             dirty[0] = 1;
@@ -615,6 +634,7 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
         }
         if (apply) {
           memset(rows, 0, sizeof(rows));
+          memset(raster_valid, 0, sizeof(raster_valid));
           memset(dirty, 1, SGBFS_ROWS);
           top = 0;
           text_rows = SGBFS_ROWS;
@@ -796,7 +816,7 @@ static void pixels(const Row *row, u16 left, u16 right, u8 selected) {
   pixel_start = selected ? left : row->start == row->end ? SGBFS_WIDTH : row->start;
   pixel_end = selected ? right : row->start == row->end ? SGBFS_WIDTH
                                   : row->end == ROW_END_FULL_WIDTH ? SGBFS_WIDTH : row->end;
-  EncodeRow();
+  SelectRaster();
 }
 
 static void hex4(u8 *p, u16 v) {
@@ -811,11 +831,23 @@ static void hex4(u8 *p, u16 v) {
 static void draw(u8 row) {
   u16 start = Clock();
   const Row *source = rows + row;
-  ClearRaster();
-  glyphs(source, source->font ? TEXT_INSET : 0,
-         source->font ? SGBFS_TEXT_WIDTH + TEXT_INSET : SGBFS_TEXT_WIDTH);
+  u8 slot = (row + ring_offset) & RING_MASK;
+  if (raster_valid[slot]) {
+    RestoreRaster(slot);
+    ++raster_hits;
+  }
+  else {
+    ClearRaster();
+    glyphs(source, source->font ? TEXT_INSET : 0,
+           source->font ? SGBFS_TEXT_WIDTH + TEXT_INSET : SGBFS_TEXT_WIDTH);
+    pixel_start = pixel_end = SGBFS_WIDTH;
+    EncodeRow();
+    CacheRaster(slot);
+    raster_valid[slot] = 1;
+    ++raster_misses;
+  }
   pixels(source, 0, SGBFS_WIDTH, 0);
-  PresentRow((row + ring_offset) & RING_MASK);
+  PresentRow(slot);
   dirty[row] = 0;
   ++drawn_rows;
   peak(&perf_draw, start);
@@ -1069,11 +1101,18 @@ static void pads(void) {
   }
 }
 
+#ifdef SNES_CACHE_CHECK
+#include "../tests/sgb/cache_checks.h"
+#endif
+
 void main(void) {
   u16 frame = FRAME_UNSET;
   u8 slot;
 #ifdef SNES_GLYPH_CHECK
   GlyphChecks();
+#endif
+#ifdef SNES_CACHE_CHECK
+  CacheChecks();
 #endif
 
   trace_field = TRACE_DRAW; /* Start with rendering cost, then finish the counter rotation. */

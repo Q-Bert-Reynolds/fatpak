@@ -141,6 +141,13 @@ emu.addEventCallback(function(cpu)
    finish(false,string.format('stalled mailbox did not display diagnostics: tick %d enabled %d dirty %d',word('_tick'),byte('_debug_enabled'),emu.read(symbols._overlay_dirty+27,emu.memType.snesWorkRam)));return
   end
  end
+ if os.getenv('SGB_CACHE_ONLY')=='1' and byte('_cache_finished')~=0 then
+  local failures={};for i=0,111 do if emu.read(symbols._cache_failures+i,emu.memType.snesWorkRam)~=0 then failures[#failures+1]=i end end
+  result:write('Cache failures: '..table.concat(failures,',')..'\n')
+  result:write(string.format('First diff: offset %d actual %02X cached %02X\n',word('_cache_first_offset'),byte('_cache_first_actual'),byte('_cache_first_expected')))
+  result:write(string.format('SELECTION eight cold rows %d vs cached %d SNES frames\n',word('_cache_cold_frames'),word('_cache_warm_frames')))
+  finish(word('_cache_checks')==112 and word('_cache_mismatches')==0,'cache checks '..word('_cache_checks')..' mismatches '..word('_cache_mismatches'));return
+ end
  if frame%1000==0 then
   result:write(string.format('frame %d stage %d page %d good %d bad %d rows %d missed %d drawn %d queue %d\n',frame,emu.read(0xc100,emu.memType.gameboyMemory),emu.read(0xc111,emu.memType.gameboyMemory),word('_good_pages'),word('_bad_pages'),word('_capture_rows'),word('_capture_missed'),word('_drawn_rows'),byte('_qcount')));result:flush()
  end
@@ -168,6 +175,14 @@ emu.addEventCallback(function(cpu)
    end
    result:write('PASS: 74 native/C glyph comparisons: fonts, styles, clipping, icons, overlaps and clock alignment\n')
   end
+  if symbols._cache_checks then
+   if word('_cache_checks')~=112 or word('_cache_mismatches')~=0 then
+    finish(false,string.format('raster cache comparison: %d cases, %d mismatches',word('_cache_checks'),word('_cache_mismatches')));return
+   end
+   result:write('PASS: 112 native cache/selection comparisons: all slots, shade classes and pixel alignments\n')
+   result:write(string.format('SELECTION eight cold rows %d vs cached %d SNES frames\n',word('_cache_cold_frames'),word('_cache_warm_frames')))
+  end
+  result:write(string.format('CACHE hits %d misses %d\n',word('_raster_hits'),word('_raster_misses')))
   if drop_commit and (not dropped_seq or not recovered) then
    finish(false,'dropped-commit recovery was not exercised');return
   end

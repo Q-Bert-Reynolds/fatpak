@@ -17,6 +17,10 @@ void Snapshot(u8 slot){(void)slot;++snapshots;if(snapshot_seq>=0)test_snapshot[0
 u8 FontWidth(u16 at){unsigned font=at>>8;assert(font<7);return font==1?fonts[FONT_WIDTHS+(at&255)]:font==0?8:font==2?4:11-font;}
 void ClearRaster(void){memset(raster,0,sizeof(raster));memset(shade,0,sizeof(shade));}
 void EncodeRow(void){++encodes;}
+static u8 cached_raster[32][1024];
+void CacheRaster(u8 slot){memcpy(cached_raster[slot],raster,sizeof(raster));}
+void RestoreRaster(u8 slot){memcpy(raster,cached_raster[slot],sizeof(raster));}
+void SelectRaster(void){}
 void BlitGlyph(void){}
 void PpuInit(void){}
 void OverlayInit(void){}
@@ -103,6 +107,35 @@ int main(int argc,char **argv){
   dirty[0]=0;assert(commands(row,sizeof(row),1));assert(!dirty[0]);
   row[10]='B';assert(commands(row,sizeof(row),1));assert(dirty[0]);
   dirty[0]=0;row[15]=0x14;assert(commands(row,sizeof(row),1));assert(dirty[0]);
+ }
+ /* Selection-only rows reuse glyphs; text/style/copy/reset invalidate them. */
+ {
+  const u8 row[]={1,10,0,0,2,0,0,0,1,1,'A',1,4};
+  const u8 select[]={1,10,0,0,2,0,1,5,1,1,'A',1,4};
+  const u8 style[]={1,10,0,0,2,0,1,5,1,1,'A',1,0x14};
+  const u8 copy[]={2,2,0,1,0};
+  const u8 scroll[]={3,2,0,1,0};
+  const u8 back[]={3,2,0,255,0};
+  const u8 reset[]={16,2,0,1,0};
+  ring_offset=0;memset(raster_valid,0,sizeof(raster_valid));
+  assert(commands(row,sizeof(row),1));draw(0);n=encodes;
+  assert(raster_valid[0]);
+  assert(commands(select,sizeof(select),1));draw(0);
+  assert(encodes==n && raster_hits && pixel_start==1 && pixel_end==5);
+  assert(commands(style,sizeof(style),1));assert(!raster_valid[0]);
+  draw(0);assert(encodes==n+1u);
+  assert(commands(copy,sizeof(copy),1));assert(!raster_valid[1]);draw(1);
+  top=0;text_rows=28;assert(commands(scroll,sizeof(scroll),1));
+  assert(ring_offset==1 && raster_valid[1] && !raster_valid[28]);
+  n=encodes;draw(0);assert(encodes==n); /* Old row 1 retained its physical slot. */
+  assert(commands(back,sizeof(back),1));assert(ring_offset==0 && !raster_valid[0]);
+  draw(1);assert(encodes==n); /* It survives the reverse scroll too. */
+  top=2;text_rows=24;memset(raster_valid,1,sizeof(raster_valid));
+  assert(commands(scroll,sizeof(scroll),1));
+  assert(!raster_valid[1] && !raster_valid[2] && !raster_valid[27] && !raster_valid[28]);
+  assert(!raster_valid[26] && raster_valid[3]);
+  assert(commands(reset,sizeof(reset),1));
+  for(n=0;n<32;++n)assert(!raster_valid[n]);
  }
  /* The local diagnostic shortcut changes the top layer, preserving base rows. */
  memset(dirty,0,28);memset(overlay_dirty,0,28);debug_enabled=0;

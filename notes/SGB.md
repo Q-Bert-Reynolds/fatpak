@@ -92,16 +92,21 @@ interrupts during transfer, and restores tiles/maps/registers before unmasking.
 `snes/kernel.c` implements protocol validation and the display model using cc65's
 native 65816 8-bit accumulator/index ABI. `hardware.s` owns startup, ICD2 DMA,
 mailbox, pad sampling and PPU writes; `raster.s` composes glyphs; `overlay.s`
-draws UI layers. Code/fonts run in bank `$7F`; mutable state is in `$7E`.
-`snes/kernel.cfg` asserts the image fits below `$7F:FF00`.
+draws UI layers. Code/fonts run in bank `$7F`; model state is in `$7E`.
+`cache.s` retains unselected rows in `$7E:6000–9FFF` (slots 0–15) and
+`$7F:C000–FFFF` (slots 16–31). The linker caps model storage below `$7E:6000`
+and the uploaded image below `$7F:C000`, reserving both cache ranges. Stack,
+ICD2 buffers and snapshot storage remain outside these ranges.
 
 Capture drains up to four completed ICD2 buffers between bounded work slices.
 A separate 1920-byte snapshot protects validation from concurrent capture.
 The whole command stream is validated before any model changes. Mailbox
 backpressure, sequence ordering and duplicate suppression protect transactions.
 
-BG1 uses a 32-row ring. Only changed/revealed rows rasterize; scrolling waits for
-DMA and the smooth flag requests 2 px steps. Glyph overhangs are ORed; selection
+BG1 uses a 32-row ring. Text/style changes rasterize and refresh its tile cache;
+selection changes restore cached tiles and recolor their bitplanes. Cache slots
+follow physical rows during scrolling; revealed rows and fixed bars invalidate
+the affected slots. Scrolling waits for DMA and the smooth flag requests 2 px steps. Glyph overhangs are ORed; selection
 uses pixel boundaries. BG3 draws bars, boxes, dialogs and OSK over a high-priority
 BG2 paper mask. Closing a menu restores the underlying text without BG1 redraw.
 Uploads wait for the start of VBlank. An OBJ draws the text cursor; full mouse
@@ -957,8 +962,22 @@ late/dropped ACKs and client edit/save checks pass. A separate SNES build checks
 nested-ternary error in the old style selector. The reference now uses explicit
 branches. Measurements/logs: `build/sgb/performance-next*`. Hardware untested.
 
-Next large target: selection-only row updates still rasterize unchanged glyphs.
-A palette swap alone cannot recolor the paper: BG1 color zero is transparent.
+Selection-only row updates now reuse unselected 4bpp row tiles. Native bitplane
+recoloring preserves paper, dim ink, syntax accents and icons without repeating
+glyph layout or shade conversion. This uses 32 KiB of reserved SNES WRAM and
+32 validity bytes; it adds no GB state or protocol commands. Text/style changes,
+ROW_SAME, reset and newly revealed scroll rows invalidate their cache slots.
+
+The real-65816 dense-row selection benchmark takes 64 frames for eight cold
+redraws versus 9 with cached tiles (about 7x faster). All 112 cache/color/mask
+checks pass, including every slot and partial-tile selections. Run them with
+`SGB_CACHE_CHECK=1 SGB_CACHE_ONLY=1 make test-sgb-kernel`. The ordinary 113-page
+PPU replay still matches all pixels and restores menus/OSK exactly. Its total
+duration is effectively unchanged; fresh text still rasterizes and fills its
+cache, and scripted
+pauses dominate this replay. Browser/typing publication remains 9/15 GB frames.
+Results: `build/sgb/selection-before/` and `build/sgb/selection-after/`.
+The production image still takes eleven upload blocks. Hardware untested.
 
 Startup profiling (fresh sample card, nominal GB clock) publishes the browser at
 1,560 frames (~26 s). First DATA_TRN: frame 979; JUMP: 1,285; wide geometry:
@@ -983,9 +1002,9 @@ reports boot milestones and checks CRC rejection at the stored checksum and
 both sides of a cartridge-window boundary, alongside upload bytes, zero padding,
 editing/saving and rollback. Hardware testing is pending.
 
-Next: remove redundant blank startup paints, then cache reusable/composed SNES
-tiles and update tile maps for common fixed-width text and selection changes.
-Keep the raster path for proportional/overlapping glyphs. Measure first usable
+Next: remove redundant blank startup paints, then cache glyph/composed tiles
+and update tile maps for common fixed-width text. Row tiles already cover
+selection changes. Keep the raster path for proportional/overlapping glyphs. Measure first usable
 screen and key-to-PPU latency separately from transport ACKs and the replay's
 deliberate pauses.
 

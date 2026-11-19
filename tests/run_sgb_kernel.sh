@@ -2,6 +2,7 @@
 set -euo pipefail
 root=$(cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$root"
+if [[ ${SGB_CACHE_ONLY:-0} == 1 ]]; then export SGB_CACHE_CHECK=1; fi
 python3 tests/sgb/kernel_build.py
 "${CC:-cc}" -O2 -std=c99 -Wall -Wextra -Werror -Wno-main tests/sgb/kernel_native.c -o build/sgb/kernel-native
 build/sgb/kernel-native build/sgb/replay-base.pages
@@ -25,7 +26,7 @@ XDG_CONFIG_HOME="$work/config" dotnet "${MESEN_DLL:-$root/../MesenCE/bin/linux-x
 cat config/MesenCE/result.txt
 
 # This fault deliberately prevents the replay from reaching its final picture.
-if [[ ${SGB_KERNEL_STALL:-0} == 1 ]]; then exit 0; fi
+if [[ ${SGB_KERNEL_STALL:-0} == 1 || ${SGB_CACHE_ONLY:-0} == 1 ]]; then exit 0; fi
 
 python3 - "$root" <<'PY'
 from pathlib import Path
