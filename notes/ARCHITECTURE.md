@@ -405,7 +405,7 @@ boot ROM). Select opens file info directly.
 - **File views** (`browser/viewer.c` opens the file in `save_file`; `ModRead` seeks and
   reads it). A file whose first sector has a NUL opens in `HEXVIEW.MOD`: read only, 8
   bytes a row in hex and characters, in `FONT_FIXED` with `render_text` set so
-  `ModStyle` can dim the non-printing bytes. A `.tiles` file opens in `TILEVIEW.MOD`,
+  `ModStyle` can dim the non-printing bytes. A `.tiles`, `.tile` or `.2bpp` file opens in `TILEVIEW.MOD`,
   whose rows are all raw 2bpp (`ModTiles` → `RenderRawRow`, after `EditorDraw` so the
   row cache keeps them): the tile 8x, 2x and 1x, and a sheet of tiles. The host calls
   `EditorRedraw` after, and the browser lists its folder again (the reads used `buffer`).

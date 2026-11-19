@@ -1,4 +1,4 @@
-// Read only views of files the editor can't show: .tiles (2bpp Game Boy tiles, as img2rgbds.py
+// Read only views of files the editor can't show: .tiles, .tile and .2bpp (2bpp Game Boy tiles, as img2rgbds.py
 // writes them) in TILEVIEW.MOD (modules/tileview.c), and binary files (a NUL in the first sector;
 // text never has one) in HEXVIEW.MOD (modules/hexview.c). Both read the file through ModRead.
 #include "viewer.h"
@@ -11,13 +11,54 @@
 
 extern unsigned char buffer[512]; // FileViewRead's
 
-static unsigned char IsTiles(const char* name) {
-  const char* dot = 0;
-  const char* tiles = "tiles";
-  for (; *name; ++name) if (*name == '.') dot = name;
-  if (!dot) return 0;
-  for (++dot; *tiles; ++dot, ++tiles) if ((*dot | 0x20) != *tiles) return 0;
-  return !*dot;
+// 1 for a .tiles, .tile or .2bpp name, any case. Each candidate ends in a space, which an
+// extension's NUL matches after the | $20 that lower cases it (FAT names can't end in a space).
+static unsigned char IsTiles(const char* name) __naked {
+  name;
+  __asm
+	ld	h, d
+	ld	l, e
+	ld	bc, 0
+.find:
+	ld	a, [hl+]
+	or	a, a
+	jr	z, .found
+	cp	a, 46
+	jr	nz, .find
+	ld	b, h
+	ld	c, l
+	jr	.find
+.found:
+	or	a, b
+	ret	z
+	ld	hl, .exts
+.next:
+	ld	d, b
+	ld	e, c
+.cmp:
+	ld	a, [de]
+	inc	de
+	or	a, 32
+	cp	a, [hl]
+	jr	nz, .skip
+	inc	hl
+	cp	a, 32
+	jr	nz, .cmp
+	ld	a, 1
+	ret
+.skip:
+	ld	a, [hl+]
+	cp	a, 32
+	jr	nz, .skip
+	ld	a, [hl]
+	cp	a, 32 ; the list's end
+
+	jr	nz, .next
+	xor	a, a
+	ret
+.exts:
+	db	"tiles tile 2bpp ", 32
+  __endasm;
 }
 
 unsigned char ShowFileView(const char* path, const FileEntry* entry, unsigned char mode) {

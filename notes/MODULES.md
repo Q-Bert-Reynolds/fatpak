@@ -21,7 +21,7 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
 | `THEME.MOD` | 5 | 9 | SETTINGS > THEME (`ui/theme.c`) | 514 B + 48 B BSS |
 | `ASM.MOD` | 6 | 10 | FILE > BUILD, RUN (`editor/build.c`), [ASSEMBLER.md](ASSEMBLER.md) | wide, 5 pages: 7,406 + 7,336 + 7,405 + 7,387 + 7,320 B, 2,649 B BSS |
 | `HEXVIEW.MOD` | 7 | 9 | Opening a binary file in the browser (`browser/viewer.c`) | 2,216 B + 269 B BSS |
-| `TILEVIEW.MOD` | 8 | 9 | Opening a `.tiles` file in the browser (`browser/viewer.c`) | 2,097 B + 431 B BSS |
+| `TILEVIEW.MOD` | 8 | 9 | Opening a `.tiles`, `.tile` or `.2bpp` file in the browser (`browser/viewer.c`) | 2,097 B + 431 B BSS |
 | `LINK.MOD` | 10 | 10 | FILE > BUILD, RUN, after `ASM.MOD`: places its units' sections, patches, header, `build.log`, `build.obj` ([ASSEMBLER.md](ASSEMBLER.md)) | wide, 3 pages: 5,690 + 4,598 + 5,679 B, 2,716 B BSS |
 | `PREP.MOD` | 11 | 10 | FILE > BUILD, RUN, before `ASM.MOD`: which units `build.obj` has unchanged, and whether the ROM is up to date; after a build that stopped, the card check (`ASM_CHECK`) | 3,966 B + 211 B BSS |
 

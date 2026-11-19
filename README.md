@@ -7,7 +7,7 @@ FatPak is an operating system for the Game Boy that runs on the EverDrive GB X7.
 - Markdown is styled; C and RGBDS assembly are syntax highlighted
 - Assemble an `.asm` file into a `.gb` ROM on the Game Boy, and run it
 - Launch games with battery saves, RTC, save states and cheats compatible with the stock EverDrive OS
-- View binary files as hex, and `.tiles` files as tiles
+- View binary files as hex, and `.tiles`, `.tile` and `.2bpp` files as tiles
 - Light and dark themes
 
 | | Game Boy Color | Game Boy | GBC (Dark) | DMG (Dark)
@@ -38,7 +38,7 @@ controls on the Game Boy.
 
 **File browser.** The D-pad moves, A opens a file or folder, B goes up a folder, SELECT shows file
 info and START opens the menu (rename, cut, copy, paste, settings, help, restart). Text files open in
-the editor, `.gb` and `.gbc` files launch, `.tiles` files open in the tile viewer and other binary
+the editor, `.gb` and `.gbc` files launch, `.tiles`, `.tile` and `.2bpp` files open in the tile viewer and other binary
 files in the hex viewer. Both viewers are read only; B goes back.
 
 **Text editor.**
