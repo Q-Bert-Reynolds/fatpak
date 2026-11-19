@@ -295,6 +295,7 @@ void StepVar(unsigned int unit, Val step); // asm_emit.c: FOR's variable moves o
 void For(void); // asm_str.c
 void Incbin(void);
 void FileOf(unsigned int file); // asm_loop.c: file_at, file_size, file_end from its symbol
+void DocText(void); // asm_fileof.c: with ASM_TEXT, the document pushed as a frame like an included file
 void Include(void); // asm_loop.c
 void Report(unsigned int file, unsigned int line, unsigned int pos); // asm_main.c: where the error is, into the context
 void ReportWhere(void); // Where, into the context

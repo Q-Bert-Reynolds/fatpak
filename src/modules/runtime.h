@@ -11,6 +11,7 @@ void ShowModuleError(unsigned char result);
 void ShowModuleRestart(void); // at startup: a restore that failed before the last restart // for a nonzero RunModule result
 extern unsigned char module_busy, module_status;
 extern unsigned int module_entry;
+extern const char* module_dir; // ModFile/ModLoad's folder instead of file_dir, while a host sets it (browser/viewer.c's ViewMap); 0: file_dir
 extern unsigned char file_level; // ModFile/ModLoad: the folder level (characters of file_dir) of the first file found
 extern void (*module_progress)(char* text);
 extern const char* module_loading; // ModFile/ModLoad: the name of the file being read, else 0

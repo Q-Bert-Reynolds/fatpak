@@ -1,3 +1,7 @@
 # Code placement; the pages themselves are HEXVIEW.MOD, TILEVIEW.MOD and MAPVIEW.MOD.
 *: FIXED
 10: ViewBegin
+ROM0: ViewMap
+# ModBackground(0) calls it while MAPVIEW.MOD has page 13
+12: BackgroundText
+14: CacheFolders

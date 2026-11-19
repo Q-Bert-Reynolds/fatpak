@@ -692,18 +692,28 @@ static void TileView(const char* image,const char* symbols,const char* data,bool
     printf("%s tile view of .tiles files passed\n",color?"CGB":"DMG");
 }
 
-// A .gbmap opens MAPVIEW.MOD: the module assembles the map, then map_stamps.gbstamp beside it (the
-// map's DW of the stamp is patched after), loads img/ui_font.tiles and the tiles its _TestTiles
-// names (img/maps/test.tiles), and fills the screen with chunk 0 from its top left. Tiles 128 and 129 are solid colours 1 and 2.
-// Checked against each other on the screen: the chunk's tile, a tile fill, a tile with a script's
-// extra byte, a stamp, a stamp fill, scrolling a tile and into the east chunk, and B back to the
-// list in the theme's colours. GBC: each object's palette. FATPAK_SCREENSHOT=dir saves the first view.
+// A .gbmap opens MAPVIEW.MOD. The first time, ASM.MOD and LINK.MOD build it into
+// /GBCSYS/CACHE/Test.gbmap.cache: the module's wrapper INCLUDEs project.gbp's -P file (constants
+// and an RGB macro here) after its -D (the map FAILs without it), then the map and
+// map_stamps.gbstamp beside it; names nothing defines (_TestTiles) are 0. It loads
+// img/ui_font.tiles and the tiles _TestTiles names (img/maps/test.tiles) and shows chunk 0 from its
+// top left on the BG map (ModBackground). Tiles 128 and 129 are solid colours 1 and 2. Checked
+// against each other on the screen: the chunk's tile, a tile fill, a tile with a script's extra
+// byte, a stamp, a stamp fill, scrolling a tile and running into the east chunk, Start's menu and
+// back, Select's place in the header, B back to the list in the theme's colours, and the second
+// view from the cache. GBC: each object's palette, under the bars; DMG: full screen.
+// FATPAK_SCREENSHOT=dir saves the first view.
 static void MapView(const char* image,const char* symbols,const char* data,bool color) {
     char folder[]="/tmp/fatpak-map-XXXXXX";Check(mkdtemp(folder),"map SD");
     std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);
     Write(root+"/GBCSYS/EDITOR.DAT",Read(data));InstallModules(root,data);
-    mkdir((root+"/img").c_str(),0700);mkdir((root+"/img/maps").c_str(),0700);
+    mkdir((root+"/img").c_str(),0700);mkdir((root+"/img/maps").c_str(),0700);mkdir((root+"/src").c_str(),0700);
     auto text=[](const std::string& s){return std::vector<u8>(s.begin(),s.end());};
+    Write(root+"/project.gbp",text("; the game's build, which the map's wrapper takes its rgbasm options from\n"
+        "main   src/main.asm\noutput test.gb\nrgbasm -D TEST -E -P src/map_loader.inc ; like Beisbol's\n"));
+    Write(root+"/src/map_loader.inc",text("DEF MAP_OBJ_TILE EQU 2\nDEF MAP_OBJ_TILE_FILL EQU 3\nDEF MAP_OBJ_STAMP EQU 4\n"
+        "DEF MAP_OBJ_STAMP_FILL EQU 5\nDEF MAP_COLLISION_NONE EQU 0\nDEF MAP_COLLISION_SCRIPT EQU 7 << 4\n"
+        "MACRO RGB ;\\1 = red, \\2 = green, \\3 = blue\n  DW (\\1) | (\\2) << 5 | (\\3) << 10\nENDM\n"));
     Write(root+"/map_stamps.gbstamp",text("GBStamps:: ;7 bytes\nGBStampBox: ;7 bytes\n  DB 2;width\n  DB 2;height\n"
         ".tiles\n  DB 128, 129\n  DB 129, 128\n.palette\n  DB 130\n"));
     Write(root+"/img/ui_font.tiles",std::vector<u8>(2048,0));
@@ -711,6 +721,7 @@ static void MapView(const char* image,const char* symbols,const char* data,bool 
     for(unsigned y=0;y<8;++y){tiles[y*2]=0xFF;tiles[16+y*2+1]=0xFF;} // 128: colour 1, 129: colour 2
     Write(root+"/img/maps/test.tiles",tiles);
     Write(root+"/Test.gbmap",text(
+        "IF !DEF(TEST)\n  FAIL \"project.gbp's -D TEST\"\nENDC\n"
         "MapTest:: ;the header, as gbmapeditor writes it\n  DB 0\n  DW MapTestPalettes\n  DW 0\n  DW 0\n"
         "  DW MapTestChunks\n  DW 0\n  DW 0\n  DW 0\n  DW 0\n  DB BANK(_TestTiles)\n  DW _TestTiles\n"
         "  DB BANK(_WorldSpritesTiles)\n  DW _WorldSpritesTiles\n\nMapTestPalettes:\n.background\n"
@@ -736,44 +747,74 @@ static void MapView(const char* image,const char* symbols,const char* data,bool 
     Check(core.LoadROM(image,!color),"map OS");auto memory=core.GetMemory();auto syms=Symbols(symbols);
     auto byte=[&](const char* name){return memory->Read(syms.at(name));};
     auto pad=[&](Gameboy_Keys key){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,60);};
+    auto hold=[&](Gameboy_Keys key,unsigned frames){core.KeyPressed(key);Frames(core,frames);core.KeyReleased(key);Frames(core,10);};
     auto row=[&](unsigned n){std::string s;for(unsigned i=0;i<40;++i)s+=char(memory->Read(syms.at("tile_buffer")+n*40+i));
         while(!s.empty() && s.back()==' ')s.pop_back();return s;};
-    auto cell=[&](unsigned x,unsigned y){return frame[(y*8+3)*160+x*8+3];}; // no bars: text row 0 is the top
+    auto cell=[&](unsigned x,unsigned y){return frame[(y*8+3)*160+x*8+3];}; // SCX, SCY 0: the BG map's cells
+    auto viewing=[&](unsigned limit){ // the module's view on the BG map, after its boxes: the frames it took
+        unsigned waited=0;
+        while(!(byte("_module_busy") && byte("_render_background")) && waited<limit){Frames(core,1);++waited;}
+        Frames(core,120);return waited;}; // ModBackground(1) comes before the tiles and cells are drawn
+    std::string cache=root+"/GBCSYS/CACHE/Test.gbmap.cache";
     Frames(core,600);
     u16 paper=frame[130*160+156];
-    pad(Down_Key);pad(Down_Key);pad(Down_Key); // GBCSYS, img, map_stamps.gbstamp, Test.gbmap
+    for(unsigned i=0;i<5;++i)pad(Down_Key); // GBCSYS, img, src, map_stamps.gbstamp, project.gbp, Test.gbmap
     core.KeyPressed(A_Key);Frames(core,4);core.KeyReleased(A_Key);
-    // drawn once the module hides its "Reading map..." box (the host's "Loading..." screen isn't a box)
-    unsigned waited=0;
-    while(!(byte("_module_busy") && byte("_render_box_top")!=255) && waited<3000){Frames(core,1);++waited;}
-    while(byte("_render_box_top")!=255 && waited<6000){Frames(core,1);++waited;}
-    Check(waited<6000,"the map is read");
-    Frames(core,60);
+    if(viewing(6000)>=6000){ // what's on the screen instead
+        for(unsigned r=0;r<20;++r)fprintf(stderr,"row %u: %s\n",r,row(r).c_str());
+        for(unsigned l=0;l<8;++l)fprintf(stderr,"box %u: %s\n",l,Text(memory,syms.at("tile_buffer")+20*40+l*20).c_str());
+        fprintf(stderr,"busy %u box %u status %u\n",byte("_module_busy"),byte("_render_box_top"),byte("_module_status"));}
+    Check(byte("_render_background"),"the map is built and shown");
     if(const char* dir=getenv("FATPAK_SCREENSHOT")){ // 160x144 RGB565
         std::string path=std::string(dir)+(color?"/map_cgb.ppm":"/map_dmg.ppm");
         FILE* f=fopen(path.c_str(),"wb");fprintf(f,"P6 160 144 255\n");
         for(unsigned i=0;i<160*144;++i){u16 p=frame[i];u8 rgb[3]={u8((p>>11)<<3),u8(((p>>5)&63)<<2),u8((p&31)<<3)};fwrite(rgb,1,3,f);}
         fclose(f);}
-    Check(byte("_bars")==0 && row(18)==" Test.gbmap","the map fills the screen, no bars");
-    u16 base=cell(0,0),fill=cell(2,2),sign=cell(8,1),stamp1=cell(10,5),stamp2=cell(11,5);
-    Check(base!=fill && base!=sign && fill!=sign,"the chunk's tile, a tile fill and a tile differ");
-    for(unsigned y=2;y<4;++y)for(unsigned x=2;x<6;++x)Check(cell(x,y)==fill,"the tile fill covers [2,6) x [2,4)");
-    Check(cell(6,2)==base && cell(2,4)==base && cell(1,2)==base && cell(9,1)==base,"and nothing past it");
-    Check(cell(10,6)==stamp2 && cell(11,6)==stamp1 && stamp1!=stamp2 && cell(12,5)==base && cell(10,7)==base,"a 2x2 stamp");
-    for(unsigned y=8;y<10;++y)for(unsigned x=2;x<6;++x)Check(cell(x,y)==((x+y)&1?stamp2:stamp1),"a stamp fill repeats it over [2,6) x [8,10)");
-    Check(cell(6,8)==base && cell(2,10)==base,"the fill stops at its end");
+    Check(row(18)==" Test.gbmap" && byte("_bars")==(color?1:0),"GBC: the bars over the map; DMG: full screen");
+    struct stat built;Check(!stat(cache.c_str(),&built) && built.st_size==32768,"the image is cached in /GBCSYS/CACHE");
+    u16 base=cell(0,1),fill=cell(2,2),sign=cell(8,1),stamp1=cell(10,5),stamp2=cell(11,5);
+    auto drawn=[&](unsigned dx){ // chunk A's objects dx tiles left of where they are
+        Check(base!=fill && base!=sign && fill!=sign,"the chunk's tile, a tile fill and a tile differ");
+        for(unsigned y=2;y<4;++y)for(unsigned x=2;x<6;++x)Check(cell(x-dx,y)==fill,"the tile fill covers [2,6) x [2,4)");
+        Check(cell(6-dx,2)==base && cell(2-dx,4)==base && cell(9-dx,1)==base,"and nothing past it");
+        Check(cell(10-dx,6)==stamp2 && cell(11-dx,6)==stamp1 && stamp1!=stamp2 && cell(12-dx,5)==base && cell(10-dx,7)==base,"a 2x2 stamp");
+        for(unsigned y=8;y<10;++y)for(unsigned x=2;x<6;++x)Check(cell(x-dx,y)==((x+y)&1?stamp2:stamp1),"a stamp fill repeats it over [2,6) x [8,10)");
+        Check(cell(6-dx,8)==base && cell(2-dx,10)==base,"the fill stops at its end");};
+    drawn(0);
     if(color)Check(stamp1!=fill && stamp2!=sign,"GBC: the stamp's palette, not the fill's");
     else Check(stamp1==fill && stamp2==sign,"DMG: colours 1 and 2 are the same greys everywhere");
-    pad(Right_Key);
-    Check(cell(1,2)==fill && cell(5,2)==base && cell(0,2)==base,"right scrolls a tile");
-    for(unsigned i=0;i<12;++i)pad(Right_Key);
-    Check(cell(19,0)!=base && cell(19,17)==cell(19,0) && cell(18,0)==base,"the east chunk from column 32");
-    Check(cell(19,0)==stamp2,"chunk B: its tile, 129, in its palette, 2, as the stamp has it");
-    pad(B_Key);
-    for(unsigned waited=0;byte("_render_box_top")!=255 && waited<300;++waited)Frames(core,1);
+    auto scx=[&](){return unsigned(memory->Read(0xFF43));};
+    auto mapcell=[&](unsigned x,unsigned y){return frame[(y*8+3)*160+x*8+3-scx()];}; // map tile x (0-63: 32 on are chunk B), y; SCY 0
+    hold(Right_Key,8); // a pixel a frame (the view counts frames, so its loop's rate doesn't matter)
+    Check(scx()>=7 && scx()<=9,"a pixel a frame");
+    Check(mapcell(2,2)==fill && mapcell(6,2)==base && mapcell(1,2)==base,"right scrolls the map");
+    unsigned from=scx();
+    core.KeyPressed(B_Key);hold(Right_Key,26);core.KeyReleased(B_Key);Frames(core,10); // B runs, 4 pixels a frame
+    Check(scx()>=from+96 && scx()<=from+112,"B held runs: 4 pixels a frame");
+    Check(mapcell(32,1)==stamp2 && mapcell(32,16)==stamp2 && mapcell(31,1)==base,"the east chunk from column 32: its tile, 129, in its palette, 2");
+    unsigned ran=scx();
+    pad(Start_Key);
+    Check(byte("_render_box_top")!=255 && !byte("_render_background"),"Start: the menu over the host's text");
+    {std::string box;for(unsigned l=0;l<8;++l)box+=Text(memory,syms.at("tile_buffer")+20*40+l*20)+"|";
+     Check(box.find(" Rebuild|")!=std::string::npos && box.find(" Close the map|")!=std::string::npos && box.find("Back")==std::string::npos,"the menu: Rebuild, Close the map");}
+    pad(B_Key);Frames(core,60); // B closes the menu
+    Check(byte("_render_background") && scx()==ran && mapcell(32,1)==stamp2 && mapcell(31,1)==base,"and back to the map where it was");
+    pad(Start_Key);pad(Start_Key);Frames(core,60);
+    Check(byte("_render_background") && scx()==ran,"Start closes it too");
+    if(color){pad(Select_Key);Frames(core,30);Check(row(18).find(" Test.gbmap  chunk 0  "+std::to_string(ran>>3)+",0")==0,"Select: where the view is, in the header");}
+    pad(B_Key);Frames(core,30);
+    Check(byte("_module_busy") && byte("_render_background") && scx()==ran,"B alone stays on the map");
+    auto close=[&](){pad(Start_Key);pad(Down_Key);pad(A_Key);}; // Close the map
+    close();
+    for(unsigned waited=0;(byte("_module_busy") || byte("_render_box_top")!=255) && waited<300;++waited)Frames(core,1);
     Frames(core,90);
-    Check(byte("_bars")==1 && row(18)==" /" && (row(0)+row(1)+row(2)+row(3)).find("Test.gbmap")!=std::string::npos,"B returns to the browser");
-    Check(frame[130*160+156]==paper,"in the theme's paper again");
+    Check(byte("_bars")==1 && row(18)==" /" && row(5)==" Test.gbmap","Close the map returns to the browser");
+    Check(frame[130*160+156]==paper && memory->Read(0xFF43)==0,"in the theme's paper again, unscrolled");
+    core.KeyPressed(A_Key);Frames(core,4);core.KeyReleased(A_Key); // again: from the cache
+    viewing(3000);
+    struct stat again;Check(!stat(cache.c_str(),&again) && again.st_mtime==built.st_mtime,"the second view reads the cache, not a build");
+    Check(cell(0,1)==base && cell(2,2)==fill && cell(11,5)==stamp2,"the same map");
+    close();Frames(core,90);
     printf("%s map view of .gbmap files passed\n",color?"CGB":"DMG");
 }
 

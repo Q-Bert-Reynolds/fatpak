@@ -118,7 +118,7 @@ static void BuildProgress(char* text) {
 }
 
 // PREP.MOD (which 2), ASM.MOD (1) or LINK.MOD (0) with the context, the box's progress BuildProgress's
-static unsigned char Module(AsmContext* c, unsigned char which) {
+unsigned char BuildModule(AsmContext* c, unsigned char which) {
   module_context = c;
   module_progress = BuildProgress;
   return which == 2 ? RUN_MODULE(PREP) : which ? RUN_MODULE(ASM) : RUN_MODULE(LINK);
@@ -136,17 +136,17 @@ void BuildFile(unsigned char run) {
   context.kind = tb_lang == LANG_ASM ? ASM_DOC : 0; // anything builds under a project.gbp
   context.log_bytes = context.cache_blocks = context.obj_blocks = 0;
   module_frames = 0; // the build's time, through all three runs
-  result = Module(&context, 2); // PREP.MOD first: which units build.obj has unchanged
+  result = BuildModule(&context, 2); // PREP.MOD first: which units build.obj has unchanged
   level = file_level; // project.gbp's folder (RunModule forgets it)
   if (!(context.kind & ASM_CURRENT)) { // else nothing changed since the ROM was built
-    if (!result) result = Module(&context, 1);
+    if (!result) result = BuildModule(&context, 1);
     level = file_level;
-    if (!result && module_status != ASM_NOT_ASM) result = Module(&context, 0); // then LINK.MOD: the image, or after an error build.log
+    if (!result && module_status != ASM_NOT_ASM) result = BuildModule(&context, 0); // then LINK.MOD: the image, or after an error build.log
     if (!result && module_status && module_status != ASM_NOT_ASM) { // stopped: PREP.MOD compares the files read with the card
       unsigned char status = module_status;
       context.kind |= ASM_CHECK;
       file_level = level;
-      result = Module(&context, 2);
+      result = BuildModule(&context, 2);
       module_status = status;
     }
   }

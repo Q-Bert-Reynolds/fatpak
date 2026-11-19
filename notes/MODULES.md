@@ -23,7 +23,7 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
 | `HEXVIEW.MOD` | 7 | 9 | Opening a binary file in the browser (`browser/viewer.c`) | 2,216 B + 269 B BSS |
 | `TILEVIEW.MOD` | 8 | 9 | Opening a `.tiles`, `.tile` or `.2bpp` file in the browser (`browser/viewer.c`) | 2,097 B + 431 B BSS |
 | `LINK.MOD` | 10 | 10 | FILE > BUILD, RUN, after `ASM.MOD`: places its units' sections, patches, header, `build.log`, `build.obj` ([ASSEMBLER.md](ASSEMBLER.md)) | wide, 3 pages: 5,690 + 4,598 + 5,679 B, 2,716 B BSS |
-| `MAPVIEW.MOD` | 12 | 13 | Opening a `.gbmap` file in the browser (`browser/viewer.c`): a Beisbol map, assembled from its RGBDS source into PSRAM `$0200-$03ff` and drawn in the map's palettes (`ModColorTiles`) | 6,674 B + 547 B BSS |
+| `MAPVIEW.MOD` | 12 | 13 | Opening a `.gbmap` file in the browser (`browser/viewer.c`'s `ViewMap`): a Beisbol map, from a cache `ASM.MOD` and `LINK.MOD` build (`/GBCSYS/CACHE/<path>.cache`), scrolled on the BG map (`ModBackground`) a pixel a frame, four with B held; Start: Rebuild, Close the map | 6,876 B + 447 B BSS |
 | `PREP.MOD` | 11 | 10 | FILE > BUILD, RUN, before `ASM.MOD`: which units `build.obj` has unchanged, and whether the ROM is up to date; after a build that stopped, the card check (`ASM_CHECK`) | 3,966 B + 211 B BSS |
 
 ## Rules
@@ -63,6 +63,10 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
   or replaces the box when it draws. The host restores layout and flags after,
   and does anything that needs page 13 (THEME's host saves the swap file when
   `module_status` says the theme changed).
+- **Text goes through the language pipeline**: every string a module shows (menu
+  items, box text, header text, errors) is a row in `data/strings/strings.csv`
+  read with `ModString`, never a literal in the module ([LANGUAGES.md](LANGUAGES.md)).
+  MAPVIEW's menu, header and errors still break this (TODO.md).
 
 ## Controls
 
@@ -71,11 +75,11 @@ buttons, so a user who knows one knows them all. The text editor is the model.
 
 | Button | Does |
 | --- | --- |
-| Start | Opens the module's menu (save, options, help, exit, ...). |
+| Start | Opens the module's menu (save, options, help, close, ...); Start or B closes it again, so the menu has no "back" item. |
 | Select | Opens or closes the module's tool overlay: the OSK for text, a drawing tool in an image editor, map tools in the map editor. |
 | B (held) | Speeds up navigation: the arrows move by a page, or to the start or end, the way B turns them into Page Up/Down and Home/End in the text editor. In a smooth-scrolling view it's the run button. |
 | A | Selects: starts and ends an area selection, or picks the thing under the cursor. |
-| B (tapped) | Backs out: closes the menu or overlay, else leaves the module. |
+| B (tapped) | Backs out of the menu or overlay. It never leaves the module: only the menu's close item does. |
 
 While the tool overlay is open, A and B belong to the tool. Draw the header and
 footer (with the clock) like the host does, unless the user picked full screen.
@@ -272,7 +276,7 @@ entries. Entries are append-only; changing one's meaning needs a new entry.
 | `ModTheme(theme)` | 3 | `0xFF` reads it; otherwise sets light/dark, `ThemeApply`, `SettingsSave`. Returns the theme |
 | `ModSource(pos, dest)` | 4 | Up to `MODULE_SOURCE_CHUNK` (128) bytes of the text buffer from `pos`; returns the count, 0 past the end |
 | `ModFar` | 4 | Not called from C: the resident far call behind a wide module's thunks (`FarCallInline`) |
-| `ModFile(path, block)` | 5 | Reads a whole file (< 64 KiB) into PSRAM from `block`: the path is tried from the open document's folder, then from each folder above it, then its base name in the document's folder (the folder level that worked last is tried first, reset per module run). Returns the length, 0 if unreadable, `$FFFF` if too big |
+| `ModFile(path, block)` | 5 | Reads a whole file (< 64 KiB) into PSRAM from `block`: the path is tried from the open document's folder (`module_dir` instead while a host sets it: the browser's `ViewMap` gives the map's), then from each folder above it, then its base name in the document's folder (the folder level that worked last is tried first, reset per module run). Returns the length, 0 if unreadable, `$FFFF` if too big |
 | `ModRead(offset, dest, length)` | 6 | Up to `MODULE_SOURCE_CHUNK` bytes from `offset` of the file the host opened with `FileViewOpen` (in `save_file`); returns the count, 0 past the end. Reads through `buffer`, so the browser lists its folder again after. `ModFile` and `ModLoad` open and close `save_file` too, so read the host's file before them (MAPVIEW reads the map first) |
 | `ModStyle(row, styles)` | 6 | `TB_STRIDE` `tile_attrs` bytes (`STYLE_* << 4` \| width) for a text row; the host sets `render_text` and the font so the rows draw styled |
 | `ModSelect(row, first, end)` | 6 | Highlights columns `first` to `end` (exclusive) of one text row, clearing the other text rows |
@@ -281,7 +285,7 @@ entries. Entries are append-only; changing one's meaning needs a new entry.
 | `ModProgress(text)` | 8 | Text in the busy box (a line at each `\n`, wrapped at 19), drawn only if 5 s (`render_frames`, counted by the LCD interrupt) have passed since the module started or last drew, so call it often. `0`: the host's own text (`module_progress`, set with `module_context`; ASM.MOD's is `BuildProgress`, ROM0). For a wide module the host holds its BSS at `MODULE_BSS_HELD`, brings the editor's buffers back, draws with VBlank on, and swaps both back (~30 frames on DMG, half on CGB) |
 | `ModStat(which)` | 10 | `MODULE_STAT_SECONDS` since the module started (60 frames each, counted from `render_frames` at every `ModProgress` and `ModStat`), `MODULE_STAT_FRAMES` (their low 16 bits, to time a short step), `MODULE_STAT_RETRIES` (PSRAM block copies made again), `MODULE_STAT_FS` and `MODULE_STAT_FILE` (the addresses of FatFs's `FATFS` and of the `FIL` `ModFile`/`ModLoad` last opened, to read only). `ModFile`/`ModLoad` also draw `ModProgress(0)` between sectors, with `module_loading` set to the file's name |
 | `ModSector(sector, block)` | 10 | One card sector into PSRAM block `block` (`sd_ReadSector` into the window); 0 if read. ASM.MOD's `build.cache` reads files by their clusters with it |
-| `ModColorTiles(row, tiles)` | 13 | `ModTiles` with each cell's GBC BG palette (0-7) in the `TB_COLS` bytes after the tiles, for palettes the module wrote to `BCPS`/`BCPD` itself (`raw_colors` makes `RenderRawRow` skip the greys of palette 7). `tiles` 0: `ThemeApply`, the theme's palettes back, which a module that loaded its own must call before it returns. DMG/SGB: the same as `ModTiles` (`ModuleAPIColorTiles`, `render.asm`) |
+| `ModBackground(mode, scroll)` | 13 | Mode 1: the module draws the BG map (`$9800`) and its tiles itself, scrolled to `scroll` (SCX low byte, SCY high), applied at once (call it in VBlank, after `ModFrame`) and kept (`render_target_scy` follows, so the LCD interrupt doesn't scroll it back); returns the buttons held, pad and keyboard. The text rows' tiles are the module's: GBC `$8800` mode as always, VRAM bank 0 `$8800-$8FFF` and bank 1 `$9000-$97FF`, which the bars' blocks (8, 17) aren't in, so the bars stay (palette 0 is the module's too). DMG/SGB: those are all the tiles, the bars' too, so one tile mode and no window; the host's view has no bars. Mode 0: the text back (`BackgroundText`: every map row re-pointed, every row drawn again, `ThemeApply`), before a box or menu, and before the module returns (`ModuleAPIBackground`, `render.asm`) |
 | `ModString(dest, id)` | 9 | String `id` (`S_*` from `src/strings.h`, or an `S_PART` piece) of the loaded language at `dest` and a 0; returns the 0's address ([LANGUAGES.md](LANGUAGES.md)) |
 
 Pointer rule: wrappers run with page 13 mapped, so they read module memory

@@ -88,7 +88,6 @@ stage_mode: DB;RenderStage
 stage_win: DB
 stage_shared: DB;first of the rows since the last one that needs a mode, $FF = none
 render_map_row: DS TB_COLS
-_raw_colors:: DB;RenderRawRow: nonzero while ModColorTiles draws (each cell's palette after the tiles)
 _render_sel:: DS MAX_SCREEN_ROWS*2;selected columns of each screen row (first, end), end $FF = right edge, first = end for none
 render_sel_first: DB
 render_sel_end: DB
@@ -159,6 +158,11 @@ RenderIcon:
   ld hl, render_inked
   set 2, [hl]
   ret
+
+SECTION "Render HRAM", HRAM;WRAM0 is full
+_render_background::;(tests)
+render_background: DB;ModBackground: 1 while a module draws the BG map itself
+render_text_scy: DB;then the text's SCY, back after
 
 SECTION "Render ROM0", ROM0
 
@@ -951,6 +955,54 @@ ELSE
 ENDC
 ENDR
 
+;C, ABI 13 (ModBackground): a = mode, d = SCY, e = SCX; returns a = the buttons held (pad and keyboard).
+;Mode 1: the module draws the BG map and the tiles it shows itself, with SCX and SCY set here (call it in
+;VBlank, after ModFrame) and kept: render_target_scy follows, so the LCD interrupt doesn't scroll them back.
+;GBC: in $8800 mode as always, map tiles from VRAM bank 0 $8800-$8FFF and bank 1 $9000-$97FF, which the
+;bars' blocks (8, 17) aren't in, so they stay. DMG/SGB: those are all the tiles, the bars' too: one tile
+;mode ($8800) and no window all the way down (the host's view has no bars). Mode 0: the text back
+;(BackgroundText): before a box or menu, and before the module returns.
+_ModuleAPIBackground::
+  and a
+  jr z, .text
+  ld hl, render_background
+  ld a, [hl]
+  and a
+  jr nz, .on
+  inc [hl]
+  ld a, [render_target_scy]
+  ld [render_text_scy], a
+.on
+  ld a, [_render_gbc]
+  and a
+  jr nz, .scroll
+  di;DMG/SGB, every time: a Layout may have staged the text's events since
+  ld [render_top_lcdc], a
+  ld [render_event_count], a
+  ei
+.scroll
+  ld a, d
+  ld [render_target_scy], a
+  ldh [rSCY], a
+  ld a, e
+  ldh [rSCX], a
+  ldh a, [button_state]
+  ret
+.text
+  ld hl, render_background
+  ld a, [hl]
+  and a
+  ret z
+  ld [hl], 0
+  xor a
+  ldh [rSCX], a
+  ld a, [render_text_scy]
+  ld [render_target_scy], a
+  ldh [rSCY], a
+  call FarCallInline;C on page 12: never jump to a page's address while a module has page 13
+  DB BANK(_BackgroundText)
+  DW _BackgroundText
+
 SECTION "Render", ROMX, BANK[1]
 _RenderOverlayStart::
 ASSERT LOW(render_bitmap) == 0, "render_bitmap must be page aligned"
@@ -1447,28 +1499,9 @@ RenderRowUpload:;GBC: render_dma_buffer to render_block, attributes already writ
 ;C: a = screen row, de = 20 tiles of 2bpp (TB_WIDTH*2 bytes): sends them to the row's block as they are,
 ;over what EditorDraw drew there (call it first). The row's cache still says that, so EditorDraw leaves
 ;them until the row's text, font, selection or a box over it changes; EditorRedraw puts the text back.
-;GBC: the row's cells use BG palette 7, four greys, or with raw_colors set, the TB_COLS palettes (0-7)
-;after the tiles, which the module loaded itself. DMG/SGB: dark mode inverts BGP (and SGB's colours),
+;GBC: the row's cells use BG palette 7, four greys. DMG/SGB: dark mode inverts BGP (and SGB's colours),
 ;so the tiles are inverted to keep their shades.
 DEF RAW_PALETTE EQU 7;GBC BG palette of raw rows (the theme sets 0-4)
-
-;C, ABI 13 (ModColorTiles): a = text row, de = TB_COLS tiles of 2bpp then each cell's GBC BG palette
-;(0-7, loaded by the module itself), drawn like ModTiles. de = 0 puts the theme's palettes back, which a
-;module that loaded its own must do before it returns.
-_ModuleAPIColorTiles::
-  ld c, a
-  ld a, d
-  or a, e
-  jp z, _ThemeApply
-  ld hl, _raw_colors
-  inc [hl]
-  push hl
-  ld a, c
-  call _ModuleAPITiles
-  pop hl
-  dec [hl]
-  ret
-
 _RenderRawRow::
   push de
   ld c, a
@@ -1511,11 +1544,6 @@ _RenderRawRow::
   ld d, [hl]
   jp RenderCopyTiles
 .gbc
-  ld d, h
-  ld e, l;the cells' palettes (raw_colors), past the tiles
-  ld a, [_raw_colors]
-  and a
-  jr nz, .colors;the module's palettes, not the greys
   ld a, BCPSF_AUTOINC | (RAW_PALETTE * 8)
   ldh [rBCPS], a
   ld hl, RawPalette
@@ -1526,7 +1554,6 @@ _RenderRawRow::
     ldh [rBCPD], a
     dec c
     jr nz, .palette
-.colors
   ld a, [render_block]
   ld c, a
   ld b, 0
@@ -1541,23 +1568,13 @@ _RenderRawRow::
   push af
   ld a, c
   cp a, GBC_BANK1_BLOCK
-  ld a, 0
+  ld a, RAW_PALETTE
   jr c, .bank
-  ld a, %00001000
+  or a, %00001000
 .bank
-  ld c, a;the tiles' VRAM bank
   ld hl, render_map_row
   ld b, TB_COLS
 .attribute
-    ld a, [_raw_colors]
-    and a
-    ld a, RAW_PALETTE
-    jr z, .grey
-    ld a, [de]
-    inc de
-    and a, 7
-.grey
-    or a, c
     ld [hli], a
     dec b
     jr nz, .attribute

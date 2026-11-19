@@ -132,13 +132,21 @@ int main(int argc, char** argv) {
   int level;
   if (!f) return 2;
   { const char* slash = strrchr(argv[1], '/'); if (slash) snprintf(source_dir, sizeof(source_dir), "%.*s", (int)(slash - argv[1] + 1), argv[1]); }
+  if (getenv("ASM_HOST_DIR")) snprintf(source_dir, sizeof(source_dir), "%s/", getenv("ASM_HOST_DIR")); // the document's folder (MAPVIEW's map's)
   fseek(f, 0, SEEK_END); source_len = ftell(f); fseek(f, 0, SEEK_SET);
   c.length = (unsigned short)source_len;
   c.kind = strstr(argv[1], ".asm") || strstr(argv[1], ".inc") ? ASM_DOC : 0;
   source = malloc(source_len + 1);
   fread(source, 1, source_len, f); fclose(f);
   progress_context = &c;
-  PrepMain(&c); // PREP.MOD's check of build.obj first, as BUILD runs it
+  if (getenv("ASM_HOST_TEXT")) { // MAPVIEW.MOD's way: the source in PSRAM (ASM_TEXT), names nothing defines as 0
+    memcpy(psram + 0x0200ul * 512, source, source_len);
+    c.kind = ASM_DOC | ASM_TEXT | ASM_LOOSE;
+    c.text_block = 0x0200;
+    c.text_length = c.length;
+    c.length = 0;
+  }
+  else PrepMain(&c); // PREP.MOD's check of build.obj first, as BUILD runs it
   level = first_level;
   if (c.kind & ASM_CURRENT) { // up to date: the ROM as it is (for the caller's image.gb)
     char full[2048]; FILE* o;

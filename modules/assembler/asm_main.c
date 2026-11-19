@@ -96,7 +96,7 @@ unsigned char Main(void) {
   prelude = 0;
   fix.given = fix.title_n = fix.licensee_n = fix.id_n = 0;
   output[0] = 0;
-  if (Project()) context->kind |= ASM_PROJECT;
+  if (!(context->kind & ASM_TEXT) && Project()) context->kind |= ASM_PROJECT;
   else if (!(context->kind & ASM_DOC)) return ASM_NOT_ASM;
   if (!error) Assemble();
   if (!error && !rom_used) Fail(ASM_ERR_EMPTY);

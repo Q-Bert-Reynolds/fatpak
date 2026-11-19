@@ -74,3 +74,18 @@ void FileOf(unsigned int file) __naked {
   __endasm;
 }
 #endif
+
+// ASM_TEXT (asm_line.c's Unit): the document is text_length bytes of PSRAM from text_block
+// (MAPVIEW.MOD writes it there), read like an included file's text, in a frame over the empty
+// frame 0 (length is 0). Its errors still name the document (file 0). Here because asm_line.c's
+// page has no room; ADDRESS() a byte at a time, which SDCC's 32-bit shift isn't.
+void DocText(void) {
+  unsigned char* at = (unsigned char*)&file_at;
+  unsigned int block = context->text_block;
+  if (!(context->kind & ASM_TEXT)) return; // the text buffer's document
+  at[0] = at[3] = 0;
+  at[1] = (unsigned char)block << 1;
+  at[2] = (unsigned char)(block >> 7);
+  file_end = file_at + context->text_length;
+  Push(F_TEXT, SRC_TEXT, file_at, file_end);
+}

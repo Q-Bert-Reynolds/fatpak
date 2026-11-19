@@ -1,43 +1,5 @@
 // SDCC runtime helpers, its libraries aren't linked in the rgbds pipeline.
 // (string.h maps memcpy to __memcpy, so fatfs.c's memcpy covers that one)
-// Shift and add versions, they must not use * or / on longs themselves.
-
-long _mullong(long a, long b) {
-  unsigned long x = a, y = b, result = 0;
-  while (y) {
-    if (y & 1) result += x;
-    x <<= 1;
-    y >>= 1;
-  }
-  return result;
-}
-
-unsigned long _divulong(unsigned long x, unsigned long y) {
-  unsigned long quotient = 0, remainder = 0;
-  unsigned char i;
-  for (i = 32; i; --i) {
-    remainder = (remainder << 1) | (x >> 31);
-    x <<= 1;
-    quotient <<= 1;
-    if (remainder >= y) {
-      remainder -= y;
-      quotient |= 1;
-    }
-  }
-  return quotient;
-}
-
-unsigned int _divuint(unsigned int x, unsigned int y) {
-  unsigned int quotient = 0, remainder = 0;
-  unsigned char i;
-  for (i = 16; i; --i) {
-    remainder = (remainder << 1) | (x >> 15);
-    x <<= 1;
-    quotient <<= 1;
-    if (remainder >= y) {
-      remainder -= y;
-      quotient |= 1;
-    }
-  }
-  return quotient;
-}
+// None are left: FatFs's divisions are by powers of 2 (cluster and sector sizes), 2 FATs or 13
+// (LFN entries), written as shifts and loops in ff.c, so _mullong, _divulong and _divuint aren't
+// in ROM0. A new * or / on a long or int here fails the link: write it the same way.

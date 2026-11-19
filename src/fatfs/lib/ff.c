@@ -2561,7 +2561,8 @@ static FRESULT dir_register (	/* FR_OK:succeeded, FR_DENIED:no free entry or too
 	}
 
 	/* Create an SFN with/without LFNs. */
-	n_ent = (sn[NSFLAG] & NS_LFN) ? (len + 12) / 13 + 1 : 1;	/* Number of entries to allocate */
+	n_ent = 1;							/* Number of entries to allocate: (len + 12) / 13 + 1 with LFN (no _divuint) */
+	if (sn[NSFLAG] & NS_LFN) for (BYTE l = (BYTE)len + 12; l >= 13; l -= 13) n_ent++;	/* len <= FF_MAX_LFN (64) */
 	res = dir_alloc(dp, n_ent);		/* Allocate entries */
 	if (res == FR_OK && --n_ent) {	/* Set LFN entry if needed */
 		res = dir_sdi(dp, dp->dptr - n_ent * SZDIRE);
@@ -3599,7 +3600,7 @@ static FRESULT mount_volume (	/* FR_OK(0): successful, !=0: an error occurred */
 
 		fs->n_fats = fs->win[BPB_NumFATs];				/* Number of FATs */
 		if (fs->n_fats != 1 && fs->n_fats != 2) return FR_NO_FILESYSTEM;	/* (Must be 1 or 2) */
-		fasize *= fs->n_fats;							/* Number of sectors for FAT area */
+		if (fs->n_fats == 2) fasize <<= 1;				/* Number of sectors for FAT area (no _mullong) */
 
 		fs->csize = fs->win[BPB_SecPerClus];			/* Cluster size */
 		if (fs->csize == 0 || (fs->csize & (fs->csize - 1))) return FR_NO_FILESYSTEM;	/* (Must be power of 2) */
@@ -3616,7 +3617,8 @@ static FRESULT mount_volume (	/* FR_OK(0): successful, !=0: an error occurred */
 		/* Determine the FAT sub type */
 		sysect = nrsv + fasize + fs->n_rootdir / (SS(fs) / SZDIRE);	/* RSV + FAT + DIR */
 		if (tsect < sysect) return FR_NO_FILESYSTEM;	/* (Invalid volume size) */
-		nclst = (tsect - sysect) / fs->csize;			/* Number of clusters */
+		nclst = tsect - sysect;							/* Number of clusters: / csize, a power of 2 (no _divulong) */
+		for (fmt = fs->csize; fmt > 1; fmt >>= 1) nclst >>= 1;
 		if (nclst == 0) return FR_NO_FILESYSTEM;		/* (Invalid volume size) */
 		fmt = 0;
 		if (nclst <= MAX_FAT32) fmt = FS_FAT32;
@@ -3639,7 +3641,7 @@ static FRESULT mount_volume (	/* FR_OK(0): successful, !=0: an error occurred */
 			if (fs->n_rootdir == 0)	return FR_NO_FILESYSTEM;	/* (BPB_RootEntCnt must not be 0) */
 			fs->dirbase = fs->fatbase + fasize;			/* Root directory start sector */
 			szbfat = (fmt == FS_FAT16) ?				/* (Needed FAT size) */
-				fs->n_fatent * 2 : fs->n_fatent * 3 / 2 + (fs->n_fatent & 1);
+				fs->n_fatent * 2 : fs->n_fatent + (fs->n_fatent >> 1) + (fs->n_fatent & 1);	/* * 3 / 2 (no _mullong) */
 		}
 		if (fs->fsize < (szbfat + (SS(fs) - 1)) / SS(fs)) return FR_NO_FILESYSTEM;	/* (BPB_FATSz must not be less than the size needed) */
 
@@ -4648,7 +4650,7 @@ FRESULT f_lseek (
 		if (ofs > 0) {
 			bcs = (DWORD)fs->csize * SS(fs);	/* Cluster size (byte) */
 			if (ifptr > 0 &&
-				(ofs - 1) / bcs >= (ifptr - 1) / bcs) {	/* When seek to same or following cluster, */
+				((ofs - 1) & ~(bcs - 1)) >= ((ifptr - 1) & ~(bcs - 1))) {	/* When seek to same or following cluster (bcs is a power of 2: no _divulong), */
 				fp->fptr = (ifptr - 1) & ~(FSIZE_t)(bcs - 1);	/* start from the current cluster */
 				ofs -= fp->fptr;
 				clst = fp->clust;

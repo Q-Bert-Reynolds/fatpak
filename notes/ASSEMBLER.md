@@ -113,6 +113,18 @@ assemble byte-identical to RGBDS, unmodified (`memory1.asm` calls
   `.gbp` files are highlighted like assembly with their four words as
   directives. Without a project, BUILD on anything but assembly says NOT AN ASM
   FILE (after the module looked for one).
+- **Builds for other modules** (`AsmContext.kind`, `modules/assembler/asm.h`). `ASM_TEXT`: the
+  document is `text_length` bytes of PSRAM from `text_block` (with `length` 0), not the text
+  buffer, and no `project.gbp` is read; it's pushed as a frame like an included file
+  (`DocText`, page 15, asm_line.c's page having no room). `ASM_LOOSE`: LINK.MOD links a name no
+  unit defines as 0 (its `BANK()` too) instead of stopping. The browser's map view uses both:
+  `MAPVIEW.MOD` writes a wrapper (a key section at `$0000`, the nearest `project.gbp`'s
+  `rgbasm -D` and `-P` as `DEF`s and an `INCLUDE`, then the map and `map_stamps.gbstamp` in
+  `ROMX[$4000], BANK[1]`), the host runs ASM.MOD and LINK.MOD on it with `module_dir` at the
+  map's folder, and the image is the map's cache. Beisbol's five maps build byte for byte as
+  its own ROM has them, but for the names other units define (0) and the stamps' addresses
+  (theirs are in ROM0). On the PC: `ASM_HOST_TEXT=1 ASM_HOST_DIR=<folder> build/asm_host
+  wrapper.asm image.gb`.
 - Samples: `tests/asm/` (`hello.asm`, `features.asm`, `strings.asm`,
   `loops.asm`, with `lib/`). The card's `Asm` folder has those plus `math.asm`,
   `gbdk.asm`, `memory1.asm` and `hardware.inc`.

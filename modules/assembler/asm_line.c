@@ -356,12 +356,13 @@ static void Unit(unsigned int file) {
   f->file = file;
   f->line = 1;
   f->pos = 0;
-  f->end = file ? 0 : context->length; // a file is included from an empty frame 0
+  f->end = file ? 0 : context->length; // a file is included from an empty frame 0 (as is ASM_TEXT's: length 0)
   if (file) {
     Opened(file);
     FileOf(file);
     Push(F_TEXT, SRC_TEXT, file_at, file_end);
   }
+  else DocText(); // so is ASM_TEXT's PSRAM text
   chunk_n = 0;
   run_n = 0;
   arg_top = if_depth = 0;

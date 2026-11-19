@@ -1,37 +1,53 @@
-// MAPVIEW: a Beisbol .gbmap (RGBDS source from gbmapeditor), read only. It assembles the parts it
-// draws from: the host opens the map and passes its path; the module reads the map first (ModRead
-// needs the host's file, and ModLoad closes it), then map_stamps.gbstamp from the map's folder or
-// one above it. Labels, DEF ... EQU, DB, DW and RGB are assembled into PSRAM, with map_loader.inc's
-// MAP_OBJ_ and MAP_COLLISION_ constants built in; IF, WARN and the rest are ignored, a DW of a label
-// further on (a stamp's) is patched at the end, and symbols defined nowhere (other maps, scripts,
-// BANK()) are 0. The map's first _...Tiles label, _BusinessesTiles say, names
-// img/maps/businesses.tiles for tiles 128-255, and img/ui_font.tiles has 0-127, as Beisbol loads them.
+// MAPVIEW: a Beisbol .gbmap (RGBDS source from gbmapeditor), read only, scrolled the way the game
+// scrolls it. The browser runs it with the map's folder as module_dir (src/browser/viewer.c's ViewMap,
+// MapContext in mapview.h), so every name here is found as the map's own INCLUDEs would be: in its
+// folder or one above it.
+//
+// The map is viewed from a cache, /GBCSYS/CACHE/<its path>.cache: ASM.MOD and LINK.MOD's image of a
+// wrapper this module writes (Wrapper): a key at $0000 (the map's directory entry, so an edited map
+// is built again, and its tileset's path), the project's rgbasm -D and -P (project.gbp, as ASM.MOD
+// would build it), then the map and map_stamps.gbstamp at $4000 of bank 1. Names the map uses that
+// those don't define (scripts, text, other maps) are 0 (ASM_LOOSE). The first view and one after
+// the map changed return MAP_BUILD; the host builds it and runs this again, which reports an error
+// or views it.
 //
 // Each chunk (32x32 tiles) is drawn once into PSRAM the way map_loader.asm's DrawMapChunk draws it
-// to the screen: the chunk's tile, then its background objects in order. Sprites aren't drawn.
-// The view fills the screen, no bars, from chunk 0's top left; the d-pad scrolls a tile at a time
-// into the neighbouring chunks as the game does. GBC: the map's background palettes, through
-// ModColorTiles; DMG/SGB: the tiles' greys.
+// to the screen: the chunk's tile, then its background objects in order. Sprites aren't drawn. The
+// screen is the BG map itself (ModBackground): the view moves a pixel a frame (four with B held)
+// with SCX and SCY, and draws only the column or row of tiles coming into view, as the game does,
+// crossing into the chunk's neighbours. Tiles 0-127 are img/ui_font.tiles and 128-255 the map's
+// tileset; GBC: in the map's BG palettes, with the bars over it; DMG/SGB: full screen, in greys.
+//
+// Controls (notes/MODULES.md): the d-pad scrolls, B held runs, Start opens the
+// menu (Rebuild, Close the map; Start or B closes it), Select shows where the view is in the header bar.
 #include "../build/modules/sdk.h"
 #include "lib/psram.h"
+#include "lib/text.h"
+#include "mapview.h"
+#ifndef HOST_TEST
+#include "../src/fatfs/lib/ff.h" // FIL and FATFS, read through ModStat's pointers
+#endif
 
-// PSRAM blocks: nothing else uses $0200-$03FF (the large-file add buffer starts at $0400)
-#define IMG 0x0200 // the assembled bytes, 16 KiB
-#define IMG_SIZE 0x4000u
-#define SYM 0x0220 // 256 hash heads, then 8-byte symbols from block 1
-#define SYM_MAX (31 * 64)
-#define FIX 0x0240 // a DW of a symbol not yet defined: where, which symbol (4 bytes each)
-#define FIX_MAX (4 * 128)
-#define TXT 0x0244 // an included file, whole
-#define TXT_BLOCKS 60
-#define TIL 0x0280 // tiles 0-255, 16 bytes each
-#define CHK 0x0288 // chunks as drawn: 4 blocks each, a row of 32 tiles then its 32 palettes
-#define SLOTS 90 // chunk numbers below this keep theirs; the 4 after are drawn again each time
+// PSRAM blocks: nothing else uses $0200-$03FF while the browser runs this (the large-file add
+// buffer starts at $0400, where ASM.MOD works)
+#define PRJ 0x0200    // project.gbp while the wrapper is written, 4 blocks
+#define WRAP 0x0204   // the wrapper, 2 blocks (ASM.MOD reads it from here)
+#define WRAP_MAX 1024
+#define IMG 0x0200    // then the cache: ROM0 (the key) and bank 1 (the map), 64 blocks
+#define IMG_BLOCKS 64
+#define TIL 0x0240    // tiles 0-255, 16 bytes each, 8 blocks
+#define SECTOR 0x0240 // the map's directory sector, before the tiles are read
+#define CHK 0x0248    // chunks as drawn: 4 blocks each, a row of 32 tiles then its 32 palettes
+#define SLOTS 100     // chunk numbers below this keep theirs; the 4 after are drawn again each time
 
-// map_loader.inc, the format the game reads, and its names for the parts the map files use: an object
-// type is its index in objects, a collision 16 times its index in collisions
-static const char objects[] = "NONE\0NONE_FILL\0TILE\0TILE_FILL\0STAMP\0STAMP_FILL\0AVATAR\0META_SPRITE\0";
-static const char collisions[] = "NONE\0SOLID\0WATER\0DOOR\0TEXT\0LEDGE\0GRASS\0SCRIPT\0TEAM\0ITEM\0";
+// the cache's key, at image address 0: magic, version, the map's directory entry (time, date and
+// size), then the tileset's path from KEY_TILES, NUL ended
+#define KEY_VERSION 1
+#define KEY_ENTRY 5
+#define KEY_SIZE 13
+#define KEY_TILES 16
+
+// map_loader.inc's format
 #define OBJ_TILE 2
 #define OBJ_TILE_FILL 3
 #define OBJ_STAMP 4
@@ -40,39 +56,45 @@ static const char collisions[] = "NONE\0SOLID\0WATER\0DOOR\0TEXT\0LEDGE\0GRASS\0
 #define COLLISION_TEXT 0x40
 #define COLLISION_LEDGE 0x50
 #define COLLISION_SCRIPT 0x70
+#define MAP 0x4000 // where the wrapper puts the map
 #define H_PALETTES 1 // header words
 #define H_CHUNKS 7
 #define NORTH 3 // a chunk's neighbours
 #define EAST 4
 #define SOUTH 5
 #define WEST 6
-
-#define LINE_MAX 160 // the maps' longest is under 80
 #define CHUNK 32
 
-// a row of tiles then their palettes for ModColorTiles, once the files are read; before, a line of
-// source or a path to look for, and the reader's buffer
-static unsigned char area[TB_COLS * 16 + TB_COLS];
-#define out area
-#define line ((char*)area)
-#define buf (area + LINE_MAX + 1)
-typedef char area_fits[LINE_MAX + 1 + MODULE_SOURCE_CHUNK <= sizeof(area) && PATH_SIZE + 1 + 72 <= sizeof(area) - 72 ? 1 : -1];
-static char* p; // the parser's place in line
-static const char* map_path; // the host's, from the root
-static unsigned char dir_len; // the map's folder: map_path's first dir_len characters
-static char tiles_label[32]; // the map's first undefined _...Tiles symbol
-#define TILES_PATH ((char*)area + sizeof(area) - 72) // its file: past what Find writes in line, a
-// folder (at most PATH_SIZE) and a name; "img/maps/", at most 50 of snake_case, ".tiles"
-static unsigned char from_map, buf_n, buf_i, cur_len;
-static unsigned long map_pos; // the map is read as it's assembled, an included file from TXT
-static unsigned short txt_pos, txt_size;
-static const char* cur_name;
-static unsigned short cur_h, cur_h2, pc, symbols, fixups, fwd, map_base, lines, at;
-static unsigned char row_tiles[TB_COLS], row_pals[TB_COLS];
-static unsigned char cached[SLOTS];
-static unsigned short chunks; // the chunk table
+#define WALK 1 // pixels a frame
+#define RUN 4  // with B held
+#define COLS (TB_COLS + 1) // BG map columns and rows kept drawn: the screen's and the one it's part way into
+#define ROWS (TB_ROWS + 1)
+
+#define MENU_BUILD 0 // Menu's items
+#define MENU_CLOSE 1
+#define MENU_BACK 2 // Start or B: back to the map
+
+static MapContext* m;
+static char text[MAP_CACHE_SIZE]; // the cache's path, a box's text, a word of project.gbp
+static char tiles[48]; // the tileset's path: "img/maps/", the label's snake case, ".tiles"
+static unsigned char key[KEY_SIZE];
+static unsigned short at, chunks; // the reader's place; the chunk table
+static unsigned char count; // the chunks in it
+static unsigned char cached[SLOTS], slots[4]; // drawn chunks; the view's: here, east, south, south east
 static unsigned char slot, fill_tile, fill_pal; // Fill's
-static unsigned char chunk, x, y; // the view's top left: in chunk, tile x, y
+static unsigned char chunk, tx, ty, gbc, info; // the view: its chunk, its top left tile in it
+static short cam_x, cam_y; // its top left pixel in the chunk, 0-255
+static unsigned short wrap_n; // the wrapper's length
+
+#ifdef HOST_TEST
+extern unsigned char host_vbk, host_bgp; // the tests' registers
+#define VBK host_vbk
+#define BGP host_bgp
+#else
+#define VBK (*(volatile unsigned char*)0xFF4F)
+#define BGP (*(volatile unsigned char*)0xFF47)
+#endif
+#define BG_MAP ((unsigned char*)0x9800)
 
 // --- PSRAM ---------------------------------------------------------------------------------------
 
@@ -80,356 +102,216 @@ static unsigned char Byte(unsigned short a) {
   Window(IMG + (a >> 9));
   return WINDOW[a & 511];
 }
-
 static unsigned char Get(void) { return Byte(at++); } // at's byte
 static unsigned short GetWord(void) { unsigned char lo = Get(); return lo | (unsigned short)Get() << 8; }
 
-static void Emit(unsigned char b) {
-  if (pc < IMG_SIZE) {
-    Window(IMG + (pc >> 9));
-    WINDOW[pc & 511] = b;
-  }
-  ++pc;
+// a name's file, from the map's folder or one above it: 0 there, 1 not, 2 bigger than blocks
+static unsigned char Load(const char* name, unsigned short block, unsigned char blocks) {
+  ModuleLoad load;
+  load.block = block;
+  load.blocks = blocks;
+  return ModLoad(name, &load);
 }
 
-static char* Put(char* dest, const char* text) { // text and its NUL; returns where the NUL went
-  while ((*dest = *text++)) ++dest;
-  return dest;
-}
+// --- The cache's key -----------------------------------------------------------------------------
 
-static void Clear(unsigned short block, unsigned char blocks) {
-  unsigned char* w;
-  while (blocks--) {
-    Window(block); // a macro: block once
-    ++block;
-    for (w = WINDOW; w != WINDOW + 512; ++w) *w = 0;
-  }
-}
-
-// --- Symbols -------------------------------------------------------------------------------------
-
-static unsigned char* Entry(unsigned short i) { // next, h2, value, length, defined
-  Window(SYM + 1 + (i >> 6));
-  return WINDOW + ((i & 63) << 3);
-}
-
-static unsigned short* Head(void) {
-  Window(SYM);
-  return (unsigned short*)WINDOW + (unsigned char)(cur_h ^ cur_h >> 8);
-}
-
-// cur's symbol, made (undefined) if it's new; 0 if the table is full
-static unsigned short Symbol(void) {
-  unsigned short i = *Head(), head = i;
-  unsigned char* e;
-  while (i) {
-    e = Entry(i);
-    if (*(unsigned short*)(e + 2) == cur_h2 && e[6] == cur_len) return i;
-    i = *(unsigned short*)e;
-  }
-  if (symbols == SYM_MAX - 1) return 0;
-  e = Entry(i = ++symbols);
-  *(unsigned short*)e = head;
-  *(unsigned short*)(e + 2) = cur_h2;
-  e[6] = cur_len;
-  e[7] = 0;
-  *Head() = i;
-  return i;
-}
-
-static void Define(unsigned short value) {
-  unsigned short i = Symbol();
-  unsigned char* e;
-  if (!i) return;
-  e = Entry(i);
-  *(unsigned short*)(e + 4) = value;
-  e[7] = 1;
-}
-
-static unsigned short Value(unsigned short i) { // 0 if it's undefined
-  unsigned char* e = Entry(i);
-  return e[7] ? *(unsigned short*)(e + 4) : 0;
-}
-
-// --- Reading -------------------------------------------------------------------------------------
-
-static char Next(void) { // the next character, 0 at the end
-  unsigned char* w;
-  if (buf_i == buf_n) {
-    buf_i = buf_n = 0;
-    if (from_map) {
-      if (!(buf_n = ModRead(map_pos, (char*)buf, MODULE_SOURCE_CHUNK))) return 0;
-      map_pos += buf_n;
+// the map's tileset: the first _...Tiles name in its first 4 KiB (the header's), as
+// img/maps/snake_case.tiles in tiles, else "". ModRead (into text): before anything closes the map
+static void TilesPath(void) {
+  char name[40], *dst, c;
+  unsigned char n = 0, got, i;
+  unsigned long pos = 0;
+  tiles[0] = 0;
+  while (pos < 4096 && (got = ModRead(pos, text, MODULE_SOURCE_CHUNK))) {
+    for (i = 0; i < got; ++i) {
+      c = text[i];
+      if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_') {
+        if (n < sizeof(tiles) - 16 && (n || c == '_')) name[n++] = c;
+        continue;
+      }
+      if (n > 6 && name[n - 5] == 'T' && name[n - 4] == 'i' && name[n - 3] == 'l' && name[n - 2] == 'e' && name[n - 1] == 's') {
+        dst = PutText(tiles, "img/maps/"); // _WorldSpritesTiles: img/maps/world_sprites.tiles
+        for (i = 1; i < n - 5; ++i) {
+          c = name[i];
+          if (c >= 'A' && c <= 'Z') {
+            if (i > 1) *dst++ = '_';
+            c |= 0x20;
+          }
+          *dst++ = c;
+        }
+        *PutText(dst, ".tiles") = 0;
+        return;
+      }
+      n = 0;
     }
-    else {
-      Window(TXT + (txt_pos >> 9));
-      w = WINDOW + (txt_pos & 511);
-      while (txt_pos != txt_size && buf_n != MODULE_SOURCE_CHUNK) { buf[buf_n++] = *w++; ++txt_pos; }
-      if (!buf_n) return 0;
-    }
+    pos += got;
   }
-  return buf[buf_i++];
 }
 
-// a line into line without its comment; 0 at the end of the file
-static unsigned char GetLine(void) {
-  unsigned char n = 0, quote = 0, comment = 0;
-  char c;
-  while ((c = Next()) && c != '\n') {
-    if (c == '"') quote ^= 1;
-    else if (c == ';' && !quote) comment = 1;
-    if (!comment && c != '\r' && n < LINE_MAX) line[n++] = c;
-  }
-  line[n] = 0;
-  return c || n;
+// the map's directory entry (time, date and size) into key, from the host's file (the map until a
+// ModLoad closes it). HOST_TEST: none
+static void Entry(void) {
+#ifndef HOST_TEST
+  FIL* f = (FIL*)(unsigned short)ModStat(MODULE_STAT_FILE);
+  FATFS* fs = (FATFS*)(unsigned short)ModStat(MODULE_STAT_FS);
+  unsigned char i, *e;
+  if (ModSector(f->dir_sect, SECTOR)) return;
+  Window(SECTOR);
+  e = WINDOW + (unsigned short)(f->dir_ptr - fs->win) + 22;
+  for (i = 0; i < 4; ++i) key[KEY_ENTRY + i] = e[i]; // time, date
+  for (i = 0; i < 4; ++i) key[KEY_ENTRY + 4 + i] = e[6 + i]; // size
+#endif
 }
 
-// --- Expressions ---------------------------------------------------------------------------------
-
-static unsigned char IsIdent(char c) {
-  return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '#' || c == '@';
+// the loaded cache's key and tileset's path into key and tiles
+static void FromKey(void) {
+  unsigned char i;
+  Window(IMG);
+  for (i = 0; i < KEY_SIZE; ++i) key[i] = WINDOW[i];
+  for (i = 0; i < sizeof(tiles) - 1 && (tiles[i] = WINDOW[KEY_TILES + i]) != 0; ++i);
+  tiles[i] = 0;
 }
 
-static void Spaces(void) { while (*p == ' ' || *p == '\t') ++p; }
+// /GBCSYS/CACHE/<the map's path>.cache into text
+static void CachePath(void) {
+  *PutText(PutText(PutText(PutText(PutText(text, "/GBCSYS/CACHE"), m->dir), "/"), m->name), ".cache") = 0;
+}
 
-static unsigned char Comma(void) { // skips one
-  Spaces();
-  if (*p != ',') return 0;
-  ++p;
+// the cache into IMG, if it's there and its key is the map's (or the host just wrote it); its key
+// and tileset's path into key and tiles
+static unsigned char Cached(void) {
+  unsigned char i;
+  CachePath();
+  if (Load(text + 1, IMG, IMG_BLOCKS)) return 0;
+  Window(IMG);
+  for (i = 0; i < KEY_ENTRY; ++i) if (WINDOW[i] != key[i]) return 0; // magic and version
+  if (m->state != MAP_BUILT) for (; i < KEY_SIZE; ++i) if (WINDOW[i] != key[i]) return 0;
+  FromKey();
   return 1;
 }
 
-// the identifier at p into cur; its length
-static unsigned char Ident(void) {
-  char c;
-  cur_name = p;
-  cur_h = cur_h2 = 0;
-  while (IsIdent(c = *p)) {
-    cur_h = (cur_h << 4 | cur_h >> 12) ^ c;
-    cur_h2 = (cur_h2 << 3 | cur_h2 >> 13) + c;
-    ++p;
+// --- The wrapper ---------------------------------------------------------------------------------
+
+static void Out(const char* s) {
+  while (*s && wrap_n < WRAP_MAX) {
+    Window(WRAP + (wrap_n >> 9));
+    WINDOW[wrap_n & 511] = *s++;
+    ++wrap_n;
   }
-  return cur_len = (unsigned char)(p - cur_name);
 }
 
-static unsigned char Is(const char* keyword) { // cur is keyword (upper case)
-  unsigned char i;
-  for (i = 0; i < cur_len; ++i) if ((cur_name[i] & 0xDF) != keyword[i]) return 0;
-  return !keyword[i];
+// rgbasm's -D (value: NAME or NAME=VALUE) and -P (value: a file) as the wrapper's lines
+static void Option(char kind, char* value) {
+  char *v = value, c;
+  if (kind == 'P') {
+    Out("INCLUDE \"");
+    Out(value);
+    Out("\"\n");
+    return;
+  }
+  while (*v && *v != '=') ++v;
+  c = *v;
+  *v = 0;
+  Out("DEF ");
+  Out(value);
+  Out(" EQUS \"");
+  Out(c ? v + 1 : "1");
+  Out("\"\n");
 }
 
-static unsigned short Expr(void);
-
-// the map's tileset: the first _...Tiles it uses
-static void TilesLabel(void) {
-  const char *n = cur_name, *t = "Tiles";
-  unsigned char i;
-  if (!from_map || tiles_label[0] || cur_len < 7 || cur_len >= sizeof(tiles_label) || *n != '_') return;
-  for (i = cur_len - 5; *t; ++i) if (n[i] != *t++) return;
-  for (i = 0; i < cur_len; ++i) tiles_label[i] = n[i];
-  tiles_label[i] = 0;
-}
-
-static unsigned short Term(void) {
-  unsigned short v = 0, i;
-  unsigned char base = 0, d;
-  char c;
-  Spaces();
-  c = *p++;
-  if (c == '(') {
-    v = Expr();
-    Spaces();
-    if (*p == ')') ++p;
-  }
-  else if (c == '-') v = -Term();
-  else if (c == '~') v = ~Term();
-  else if (c == '!') v = !Term();
-  else if (c == '$') base = 4;
-  else if (c == '%') base = 1;
-  else if (c >= '0' && c <= '9') { --p; base = 10; }
-  else if (IsIdent(c)) {
-    --p;
-    Ident();
-    Spaces();
-    if (*p == '(') { // BANK(x), DEF(x): 0
-      ++p;
-      Spaces();
-      Ident();
-      TilesLabel();
-      while (*p && *p++ != ')');
-      return 0;
-    }
-    TilesLabel();
-    if ((i = Symbol())) {
-      if (Entry(i)[7]) return Value(i);
-      if (!fwd) fwd = i;
-    }
-  }
-  else if (!c) --p;
-  while (base) { // the digits of a number
-    c = *p | 0x20;
-    if (c >= '0' && c <= '9') d = c - '0';
-    else if (c >= 'a' && c <= 'f') d = c - 'a' + 10;
-    else break;
-    if (base == 10) {
-      if (d > 9) break;
-      v = (v << 3) + (v << 1) + d;
-    }
-    else {
-      if (d >> base) break;
-      v = v << base | d;
-    }
-    ++p;
-  }
-  return v;
-}
-
-static unsigned short Expr(void) {
-  unsigned short v = Term(), t;
-  char op;
-  while (1) {
-    Spaces();
-    op = *p;
-    if (op == '<' || op == '>') {
-      if (p[1] != op) break;
-      ++p;
-    }
-    else if (op != '|' && op != '&' && op != '^' && op != '+' && op != '-') break;
-    ++p;
-    t = Term();
-    if (op == '|') v |= t;
-    else if (op == '&') v &= t;
-    else if (op == '^') v ^= t;
-    else if (op == '+') v += t;
-    else if (op == '-') v -= t;
-    else if (op == '<') v <<= t;
-    else v >>= t;
-  }
-  return v;
-}
-
-// --- Lines ---------------------------------------------------------------------------------------
-
-static void Data(unsigned char kind) { // 1 DB, 2 DW, 3 RGB
-  unsigned short v;
-  char c;
-  do {
-    Spaces();
-    if (*p == '"') { // DB's text
-      while ((c = *++p) && c != '"') {
-        if (c == '\\' && p[1] && *++p == 'n') c = '\n';
-        else if (c == '\\') c = *p;
-        Emit(c);
-      }
-      if (c) ++p;
+// project.gbp's rgbasm options (the nearest one, as ASM.MOD finds it for a project's units)
+static void Project(void) {
+  ModuleLoad load;
+  unsigned short i = 0, size;
+  unsigned char n, line_start = 1, rgbasm = 0;
+  char c, opt = 0;
+  load.block = PRJ;
+  load.blocks = 4;
+  if (ModLoad("project.gbp", &load)) return;
+  size = (unsigned short)load.size;
+  while (i < size) {
+    Window(PRJ + (i >> 9));
+    c = WINDOW[i & 511];
+    if (c == '\n') line_start = 1;
+    if (c == '\n' || c == ';') rgbasm = 0; // ; to the line's end is a comment
+    if (c == ';' || c == ' ' || c == '\t' || c == '\r' || c == '\n' || !rgbasm && !line_start) {
+      ++i;
       continue;
     }
-    fwd = 0;
-    v = Expr();
-    if (kind == 3) {
-      Comma();
-      v |= Expr() << 5;
-      Comma();
-      v |= Expr() << 10;
+    for (n = 0; i < size && n < sizeof(text) - 1; ++i, ++n) { // a word
+      Window(PRJ + (i >> 9));
+      c = WINDOW[i & 511];
+      if (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == ';') break;
+      text[n] = c;
     }
-    else if (kind == 2 && fwd && fixups < FIX_MAX) {
-      Window(FIX + (fixups >> 7));
-      ((unsigned short*)WINDOW)[(fixups & 127) << 1] = pc;
-      ((unsigned short*)WINDOW)[((fixups & 127) << 1) + 1] = fwd;
-      ++fixups;
+    text[n] = 0;
+    if (line_start) rgbasm = n == 6 && text[0] == 'r' && text[1] == 'g' && text[3] == 'a' && text[5] == 'm';
+    else if (opt) { // -D NAME: the value is the next word
+      Option(opt, text);
+      opt = 0;
     }
-    Emit((unsigned char)v);
-    if (kind != 1) Emit((unsigned char)(v >> 8));
-  } while (Comma());
-}
-
-static void Line(void) {
-  const char* n;
-  unsigned char len;
-  unsigned short h, h2, v;
-  p = line;
-  if (*p == '.') { // a local label: nothing refers to them
-    ++p;
-    Ident();
-    while (*p == ':') ++p;
-  }
-  else if (IsIdent(*p)) {
-    Ident();
-    if (*p == ':') {
-      Define(pc);
-      while (*p == ':') ++p;
+    else if (text[0] == '-' && (text[1] == 'D' || text[1] == 'P')) {
+      if (text[2]) Option(text[1], text + 2);
+      else opt = text[1];
     }
-    else p = line; // a directive in the first column
-  }
-  Spaces();
-  if (!Ident()) return;
-  if (Is("DB")) Data(1);
-  else if (Is("DW")) Data(2);
-  else if (Is("RGB")) Data(3);
-  else if (Is("DEF")) { // DEF name EQU value, or =
-    Spaces();
-    Ident();
-    n = cur_name;
-    len = cur_len;
-    h = cur_h;
-    h2 = cur_h2;
-    Spaces();
-    if (*p == '=') ++p;
-    else {
-      Ident();
-      if (!Is("EQU")) return;
-    }
-    v = Expr();
-    cur_name = n;
-    cur_len = len;
-    cur_h = h;
-    cur_h2 = h2;
-    Define(v);
+    line_start = 0;
   }
 }
 
-// prefix and each name in names (NUL after each, an empty one at the end), step apart from 0
-static void Constants(const char* prefix, const char* names, unsigned char step) {
-  unsigned short v = 0;
-  while (*names) {
-    Put(Put(line, prefix), names);
-    while (*names++);
-    p = line;
-    Ident();
-    Define(v);
-    v += step;
-  }
+static void OutNumber(unsigned char n) {
+  char digits[4];
+  *PutNumber(digits, n) = 0;
+  Out(digits);
 }
 
-static void Assemble(void) {
-  buf_i = buf_n = 0;
-  txt_pos = 0;
-  while (GetLine()) {
-    Line();
-    if (!(++lines & 63)) ModProgress("Reading map...");
+// the wrapper ASM.MOD builds, and the build's context: the key and the tileset's path, the
+// project's options, then the map and the stamps file (if there is one) at MAP; and the cache's
+// path for the host at MAP_PATH_BLOCK. MAP_BUILD
+static unsigned char Wrapper(void) {
+  unsigned char i;
+  unsigned char* b = (unsigned char*)&m->build;
+  for (i = 0; i < sizeof(AsmContext); ++i) b[i] = 0;
+  wrap_n = 0;
+  Out("SECTION \"FatPak map key\", ROM0[0]\n DB ");
+  for (i = 0; i < KEY_SIZE; ++i) {
+    OutNumber(key[i]);
+    Out(", ");
   }
+  Out("0, 0, 0\n DB \"");
+  Out(tiles);
+  Out("\", 0\n");
+  Project();
+  Out("SECTION \"FatPak map\", ROMX[$4000], BANK[1]\nINCLUDE \"");
+  Out(m->name);
+  Out("\"\n");
+  if (Load("map_stamps.gbstamp", TIL, 0) == 2) Out("INCLUDE \"map_stamps.gbstamp\"\n");
+  m->build.kind = ASM_DOC | ASM_TEXT | ASM_LOOSE;
+  m->build.text_block = WRAP;
+  m->build.text_length = wrap_n;
+  CachePath();
+  Window(MAP_PATH_BLOCK);
+  for (i = 0; (WINDOW[i] = text[i]) != 0; ++i);
+  return MAP_BUILD;
 }
 
-// file, from the map's folder or one above it, into PSRAM from block, at most blocks; 0 if it's there
-static unsigned char Find(const char* file, unsigned short block, unsigned char blocks) {
-  ModuleLoad load;
-  unsigned char n = dir_len, i, result;
-  while (1) {
-    for (i = 0; i < n; ++i) line[i] = map_path[i];
-    if (n) line[i++] = '/';
-    Put(line + i, file);
-    load.block = block;
-    load.blocks = blocks;
-    if ((result = ModLoad(line, &load)) != 1) {
-      txt_size = (unsigned short)load.size;
-      return result;
-    }
-    if (!n) return 1;
-    while (n && map_path[--n] != '/'); // up a folder
+// what the host's build said, in a box until a key
+static unsigned char Report(void) {
+  char* end;
+  if (m->state == MAP_LARGE) end = PutText(text, "Close the large\nfile to view maps");
+  else if (!m->result) { // status is only set when ASM.MOD and LINK.MOD ran // the file, line and error, as FILE > BUILD shows them
+    end = PutText(text, m->build.file ? m->build.name + m->build.base : "(wrapper)");
+    end = PutNumber(PutText(end, "\nLine "), m->build.line);
+    *end++ = '\n';
+    end = ModString(end, S_ERR_SYNTAX + m->status - 1);
   }
+  else end = PutNumber(PutText(text, "Can't build the\nmap: error "), m->result);
+  *end = 0;
+  ModBox(text);
+  while (!ModKey());
+  return 0;
 }
 
-// --- Drawing -------------------------------------------------------------------------------------
+// --- Drawing chunks ------------------------------------------------------------------------------
 
 // tiles [x1, x2) x [y1, y2) of slot's chunk, clipped to it, to fill_tile and fill_pal
 static void Fill(unsigned char x1, unsigned char y1, unsigned char x2, unsigned char y2) {
@@ -466,8 +348,9 @@ static void Stamp(unsigned char sx, unsigned char sy, unsigned short s) {
 }
 
 static unsigned short ChunkAt(unsigned char index) {
+  if (index >= count) return 0;
   at = chunks + ((unsigned short)index << 1);
-  return chunks ? GetWord() : 0;
+  return GetWord();
 }
 
 static void DrawChunk(unsigned char index) {
@@ -524,7 +407,7 @@ static unsigned char Neighbour(unsigned char index, unsigned char side) {
   return a ? Byte(a + side) : index;
 }
 
-// sets slot to the one with chunk index drawn; scratch (0-3) for one past the cache
+// the slot with chunk index drawn in it; scratch (0-3) for one past the cache
 static unsigned char Slot(unsigned char index, unsigned char scratch) {
   slot = index;
   if (index >= SLOTS) slot = SLOTS + scratch;
@@ -534,56 +417,71 @@ static unsigned char Slot(unsigned char index, unsigned char scratch) {
   return slot;
 }
 
-// n tiles of row ty of slot s's chunk from tx, into row_tiles and row_pals at col
-static void Copy(unsigned char s, unsigned char ty, unsigned char tx, unsigned char col, unsigned char n) {
-  unsigned char* row;
-  Window(CHK + ((unsigned short)s << 2) + (ty >> 3));
-  row = WINDOW + ((ty & 7) << 6) + tx;
-  while (n--) {
-    row_tiles[col] = *row;
-    row_pals[col++] = row[CHUNK];
-    ++row;
-  }
+// the view's chunk and its neighbours to the east, south and south east
+static void Slots(void) {
+  unsigned char south = Neighbour(chunk, SOUTH);
+  slots[0] = Slot(chunk, 0);
+  slots[1] = Slot(Neighbour(chunk, EAST), 1);
+  slots[2] = Slot(south, 2);
+  slots[3] = Slot(Neighbour(south, EAST), 3);
 }
 
-static void Draw(void) {
-  unsigned char r, ty, here, i, t, *src, *dst, slots[4];
-  unsigned char first = CHUNK - x < TB_COLS ? CHUNK - x : TB_COLS;
-  here = chunk;
-  slots[0] = Slot(here, 0);
-  slots[1] = Slot(Neighbour(here, EAST), 1);
-  here = Neighbour(here, SOUTH);
-  slots[2] = Slot(here, 2);
-  slots[3] = Slot(Neighbour(here, EAST), 3);
-  for (r = 0; r < TB_ROWS; ++r) {
-    ty = y + r;
-    here = 0;
-    if (ty >= CHUNK) { ty -= CHUNK; here = 2; }
-    Copy(slots[here], ty, x, 0, first);
-    if (first < TB_COLS) Copy(slots[here + 1], ty, 0, first, TB_COLS - first);
-    dst = out;
-    for (i = 0; i < TB_COLS; ++i) {
-      t = row_tiles[i];
-      Window(TIL + (t >> 5));
-      src = WINDOW + ((t & 31) << 4);
-      for (t = 0; t < 16; ++t) *dst++ = *src++;
-      out[TB_COLS * 16 + i] = row_pals[i];
-    }
-    ModColorTiles(r, out);
-  }
-}
+// --- The screen ----------------------------------------------------------------------------------
 
-// the BG palettes, 64 bytes
 #ifdef HOST_TEST
-void LoadPalettes(const unsigned char* colors); // tests' harness
+void VPut(unsigned char* to, unsigned char value); // the tests' harness
+void VTile(unsigned char* to, const unsigned char* from);
+void LoadPalettes(const unsigned char* colors);
 #else
+// a byte to VRAM outside mode 3
+static void VPut(unsigned char* to, unsigned char value) __naked {
+  to; value;
+  __asm
+	ld	b, a
+	ld	h, d
+	ld	l, e
+	di
+.vput:
+	ldh	a, [$FF41] ;// STAT: mode 2 or 3 has bit 1
+	and	a, 2
+	jr	nz, .vput
+	ld	[hl], b
+	ei
+	ret
+  __endasm;
+}
+
+// a tile's 16 bytes to VRAM, each outside mode 3 (C's loop of VPut took most of a second for 256)
+static void VTile(unsigned char* to, const unsigned char* from) __naked {
+  to; from;
+  __asm
+	ld	h, b
+	ld	l, c
+	ld	c, 16
+.vtile:
+	di
+.vtwait:
+	ldh	a, [$FF41]
+	and	a, 2
+	jr	nz, .vtwait
+	ld	a, [hl+]
+	ld	[de], a
+	ei
+	inc	de
+	dec	c
+	jr	nz, .vtile
+	ret
+  __endasm;
+}
+
+// the 8 BG palettes, 64 bytes
 static void LoadPalettes(const unsigned char* colors) __naked {
   colors;
   __asm
 	ld	h, d
 	ld	l, e
 	ld	a, $80
-	ldh	[$FF68], a
+	ldh	[$FF68], a ;// BCPS: palette 0, auto increment
 	ld	c, 64
 .colour:
 	di
@@ -601,86 +499,182 @@ static void LoadPalettes(const unsigned char* colors) __naked {
 }
 #endif
 
-static unsigned char Fail(const char* text) {
-  ModBox(text);
-  ModKey();
-  return 1;
+// tile x, y of the view's chunk (0-63: past 31 are the neighbours') onto its BG map cell
+static void Cell(unsigned char x, unsigned char y) {
+  unsigned char s = slots[(y >= CHUNK) << 1 | (x >= CHUNK)], tile, pal, *row;
+  unsigned char* to = BG_MAP + ((unsigned short)(y & 31) << 5) + (x & 31);
+  y &= 31;
+  Window(CHK + ((unsigned short)s << 2) + (y >> 3));
+  row = WINDOW + ((y & 7) << 6) + (x & 31);
+  tile = *row;
+  pal = row[CHUNK] & 7;
+  VPut(to, tile);
+  if (gbc) {
+    VBK = 1;
+    VPut(to, tile < 128 ? pal | 8 : pal); // the font's tiles are in bank 1
+    VBK = 0;
+  }
+}
+static void Column(unsigned char x) { unsigned char y; for (y = ty; y != ty + ROWS; ++y) Cell(x, y); }
+static void Row(unsigned char y) { unsigned char x; for (x = tx; x != tx + COLS; ++x) Cell(x, y); }
+
+// the map over the screen: tiles 128-255 at $8800 (bank 0), 0-127 at $9000 (bank 1 on GBC), in
+// the text's $8800 mode; the palettes; every cell in view. After the host has drawn its rows
+static void Show(void) {
+  unsigned short t;
+  unsigned char i, y, colors[64];
+  ModDraw(); // the host's rows, then a frame or two for a box's rows to go back to their map rows
+  ModFrame();
+  ModFrame();
+  ModBackground(1, (unsigned short)cam_y << 8 | (unsigned char)cam_x);
+  for (t = 0; t < 256; ++t) {
+    if (gbc) VBK = t < 128;
+    Window(TIL + (t >> 5));
+    VTile((unsigned char*)(t < 128 ? 0x9000 + (t << 4) : 0x8000 + (t << 4)), WINDOW + ((t & 31) << 4));
+  }
+  VBK = 0;
+  if (gbc) { // 8 palettes of 3 colours, the fourth black as the game loads them
+    at = MAP + H_PALETTES;
+    at = GetWord();
+    for (i = 0, y = 0; i < 8; ++i) {
+      for (t = 0; t < 6; ++t) colors[y++] = Get();
+      colors[y++] = 0;
+      colors[y++] = 0;
+    }
+    LoadPalettes(colors);
+  }
+  else BGP = 0xE4;
+  for (y = ty; y != ty + ROWS; ++y) Row(y);
 }
 
-unsigned char ModuleMain(const char* path) {
-  unsigned char i, k, key;
-  unsigned short a, a2, end_pc, *w;
-  map_path = path + (*path == '/');
-  for (i = dir_len = 0; map_path[i]; ++i) if (map_path[i] == '/') dir_len = i;
-  ModBox("Reading map...");
-  Clear(SYM, 1);
-  Clear(TIL, 8);
-  symbols = fixups = lines = 0;
-  pc = 1; // 0 is an address nothing has
-  tiles_label[0] = from_map = 0;
-  for (i = 0; i < SLOTS; ++i) cached[i] = 0;
-  Constants("MAP_OBJ_", objects, 1);
-  Constants("MAP_COLLISION_", collisions, 16);
-  from_map = 1;
-  map_pos = 0;
-  map_base = pc;
-  Assemble();
-  from_map = 0;
-  if (!Find("map_stamps.gbstamp", TXT, TXT_BLOCKS)) Assemble();
-  for (a = 0, end_pc = pc; a < fixups; ++a) { // the DWs of labels below them
-    Window(FIX + (a >> 7));
-    w = (unsigned short*)WINDOW + ((a & 127) << 1);
-    pc = w[0];
-    a2 = Value(w[1]);
-    Emit((unsigned char)a2);
-    Emit((unsigned char)(a2 >> 8));
+// the header bar: the map's name as the browser drew it, and with Select where the view is
+static void Header(void) {
+  char* end = PutText(PutText(text, " "), m->name);
+  if (info) {
+    end = PutNumber(PutText(end, "  chunk "), chunk);
+    end = PutNumber(PutText(end, "  "), tx);
+    end = PutNumber(PutText(end, ","), ty);
   }
-  pc = end_pc;
-  if (pc >= IMG_SIZE || pc == map_base) return Fail("Not a map");
-  at = map_base + H_CHUNKS;
-  chunks = GetWord();
-  Find("img/ui_font.tiles", TIL, 4);
-  if (tiles_label[0]) { // _ForestTiles: img/maps/forest.tiles, _WorldSpritesTiles: world_sprites
-    char *src = tiles_label + 1, *dst = Put(TILES_PATH, "img/maps/");
-    for (; src[5]; ++src) {
-      key = *src;
-      if (key >= 'A' && key <= 'Z') {
-        if (src != tiles_label + 1) *dst++ = '_';
-        key |= 0x20;
-      }
-      *dst++ = key;
-    }
-    Put(dst, ".tiles");
-    Find(TILES_PATH, TIL + 4, 4);
+  *end = 0;
+  ModText(HEADER_LINE, 0, text);
+}
+
+// Start's menu, over the host's text: MENU_BUILD or MENU_CLOSE, or MENU_BACK when Start or B
+// closes it (the map again, where it was)
+static unsigned char Menu(void) {
+  static const char* const items[2] = {" Rebuild", " Close the map"};
+  char lines[2 * BOX_STRIDE];
+  unsigned char selected = MENU_BUILD, key, i;
+  for (i = 0; i < 2; ++i) *PutText(lines + i * BOX_STRIDE, items[i]) = 0;
+  ModBackground(0, 0);
+  while (1) {
+    ModMenu(lines, 2, selected);
+    while (!(key = ModKey()));
+    if (key == KEY_UP || key == KEY_DOWN) selected ^= 1;
+    else if (key == KEY_ENTER) break;
+    else if (key == KEY_ESCAPE || key == KEY_BACKSPACE || key == KEY_MENU) { selected = MENU_BACK; break; }
   }
-  at = map_base + H_PALETTES;
-  at = GetWord(); // 8 palettes of 3 colours, the fourth black as the game loads them
-  for (i = 0, k = 0; i < 8; ++i) { // in out, which Draw uses after
-    for (key = 0; key < 6; ++key) out[k++] = Get();
-    out[k++] = 0;
-    out[k++] = 0;
-  }
-  chunk = x = y = 0;
   ModHideBox();
-  LoadPalettes(out);
-  Draw();
-  while ((key = ModKey()) != KEY_BACKSPACE && key != KEY_ESCAPE) {
-    i = chunk;
-    if (key == KEY_LEFT) {
-      if (!x--) { chunk = Neighbour(i, WEST); x = CHUNK - 1; }
-    }
-    else if (key == KEY_RIGHT) {
-      if (++x == CHUNK) { chunk = Neighbour(i, EAST); x = 0; }
-    }
-    else if (key == KEY_UP) {
-      if (!y--) { chunk = Neighbour(i, NORTH); y = CHUNK - 1; }
-    }
-    else if (key == KEY_DOWN) {
-      if (++y == CHUNK) { chunk = Neighbour(i, SOUTH); y = 0; }
-    }
-    else continue;
-    Draw();
+  if (selected == MENU_BACK) {
+    Show();
+    if (info) Header();
   }
-  ModColorTiles(0, 0); // the theme's palettes back
+  return selected;
+}
+
+// a step of the view (to the d-pad's held directions): step pixels, a column or row drawn as it
+// comes into view (before the scroll that shows it)
+static void Step(unsigned char held, unsigned char step) {
+  unsigned char nt;
+  if (held & PADF_RIGHT) {
+    if ((cam_x += step) >= 256) { cam_x -= 256; tx -= CHUNK; chunk = Neighbour(chunk, EAST); Slots(); }
+    if ((nt = (unsigned char)(cam_x >> 3)) != tx) { tx = nt; Column(tx + COLS - 1); }
+  }
+  else if (held & PADF_LEFT) {
+    if ((cam_x -= step) < 0) { cam_x += 256; tx += CHUNK; chunk = Neighbour(chunk, WEST); Slots(); }
+    if ((nt = (unsigned char)(cam_x >> 3)) != tx) { tx = nt; Column(tx); }
+  }
+  if (held & PADF_DOWN) {
+    if ((cam_y += step) >= 256) { cam_y -= 256; ty -= CHUNK; chunk = Neighbour(chunk, SOUTH); Slots(); }
+    if ((nt = (unsigned char)(cam_y >> 3)) != ty) { ty = nt; Row(ty + ROWS - 1); }
+  }
+  else if (held & PADF_UP) {
+    if ((cam_y -= step) < 0) { cam_y += 256; ty += CHUNK; chunk = Neighbour(chunk, NORTH); Slots(); }
+    if ((nt = (unsigned char)(cam_y >> 3)) != ty) { ty = nt; Row(ty); }
+  }
+}
+
+// the view, from chunk 0's top left: a pixel a frame, RUN with B held, steps for each frame since
+// the last pass (one can take two when a column or row is drawn); 1 to build the cache again, 0 to
+// close (only the menu does either: B runs)
+static unsigned char View(void) {
+  unsigned char pressed, held, step, frames, now, last;
+  chunk = tx = ty = info = 0;
+  cam_x = cam_y = 0;
+  Slots();
+  Show();
+  last = (unsigned char)ModStat(MODULE_STAT_FRAMES);
+  while (1) {
+    pressed = ModFrame();
+    held = ModBackground(1, (unsigned short)cam_y << 8 | (unsigned char)cam_x);
+    now = (unsigned char)ModStat(MODULE_STAT_FRAMES);
+    frames = now - last;
+    last = now;
+    if (frames > 4) frames = 4;
+    if (pressed & PADF_START) {
+      if ((step = Menu()) != MENU_BACK) return step == MENU_BUILD;
+      last = (unsigned char)ModStat(MODULE_STAT_FRAMES);
+      continue;
+    }
+    if (pressed & PADF_SELECT) {
+      info ^= 1;
+      if (gbc) Header();
+    }
+    step = held & PADF_B ? RUN : WALK;
+    if (held & PADF_DPAD) while (frames--) Step(held, step);
+    if (info && gbc && (held & PADF_DPAD)) Header();
+  }
+}
+
+unsigned char ModuleMain(MapContext* context) {
+  unsigned char i;
+  m = context;
+  if (m->state == MAP_LARGE || (m->state == MAP_BUILT && (m->result || m->status))) return Report();
+  ModBox("Reading map...");
+  key[0] = 'F'; key[1] = 'P'; key[2] = 'M'; key[3] = 'C'; key[4] = KEY_VERSION;
+  for (i = KEY_ENTRY; i < KEY_SIZE; ++i) key[i] = 0;
+  if (m->state == MAP_NEW) {
+    Entry();
+    TilesPath();
+  }
+  if (!Cached()) {
+    if (m->state != MAP_NEW) { m->result = 0xFF; return Report(); } // built, but not readable
+    return Wrapper();
+  }
+  for (i = 0; i < SLOTS; ++i) cached[i] = 0;
+  at = MAP + H_CHUNKS;
+  chunks = at = GetWord();
+  count = 0; // the table's words, up to the first chunk's own bytes
+  if (chunks) for (at = GetWord(); count < 255 && chunks + ((unsigned short)count << 1) < at; ++count);
+  for (at = 0; at < 8 * 512; ++at) { // tiles: none until a file has them
+    Window(TIL + (at >> 9));
+    WINDOW[at & 511] = 0;
+  }
+  Load("img/ui_font.tiles", TIL, 4);
+  if (tiles[0]) Load(tiles, TIL + 4, 4);
+  VBK = 0;
+  gbc = VBK != 0xFF; // DMG's reads $FF; GBC's the bank, the rest of it set
+  ModHideBox();
+  i = View();
+  ModBackground(0, 0);
+  if (i) { // Start's "build it again": the key and tileset from the cache
+    m->state = MAP_NEW;
+    FromKey();
+    return Wrapper();
+  }
   return 0;
 }
+
+#ifdef HOST_TEST
+void HostRedraw(void) { Show(); } // the tests compare what scrolling drew with a fresh draw
+#endif

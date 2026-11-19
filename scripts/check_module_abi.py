@@ -53,7 +53,8 @@ ASM = {
     '_FooterCompose': ['FooterCompose'],
     'FooterCompose': ['_footer_Poll', '_RenderTextWidth'],
     '_RenderRawRow': [],  # resident bank 1: mem_Copy, mem_CopyVRAM (ROM0), the row upload
-    '_ModuleAPIColorTiles': ['_ThemeApply', '_ModuleAPITiles'],  # resident bank 1 (render.asm)
+    '_ModuleAPIBackground': ['_BackgroundText'],  # resident ROM0 (render.asm); browser/viewer.c's C
+    '_EditorRedraw': ['mem_Set'],  # ROM0 (render.asm); SGB_JUMP's client path is resident
     '_SetWindowBlock': [], '_SettingsSave': [],  # register writes; mem_Copy and its own loop (ROM0)
     '_ThemeApply': ['EditorSetPalettes'],  # THEME_PAGE
     'EditorSetPalettes': ['sgb_SetPal', '_EditorInvertCursor'],

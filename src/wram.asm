@@ -63,6 +63,7 @@ _str_buffer::
 str_buffer::        DS STR_BUFFER_SIZE
 _name_buffer::
 name_buffer::       DS NAME_BUFFER_SIZE
+_module_dir::       DW;ModFile/ModLoad's folder when a host sets it, else file_dir (src/modules/runtime.c); WRAM0 is full
 ASSERT tile_buffer == MODULE_BSS
 ASSERT wide_tile_buffer == MODULE_BSS
 ASSERT gb_row_offsets >= MODULE_BSS+MODULE_BSS_SIZE

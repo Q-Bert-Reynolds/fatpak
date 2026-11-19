@@ -271,8 +271,11 @@ static Val Value(void) {
     else if (o == RPN_SYM || o == RPN_BANKSYM) {
       name_n = rpn[i++];
       for (j = 0; j < name_n; ++j) name[j] = rpn[i++];
-      if (!Lookup()) { FailAt(ASM_ERR_SYMBOL, at_file, at_line, at_pos); return 0; }
-      if (found_bank == LABEL_BANK) { // a label: its pass address in its section, where that went
+      if (!Lookup()) {
+        if (!(context->kind & ASM_LOOSE)) { FailAt(ASM_ERR_SYMBOL, at_file, at_line, at_pos); return 0; }
+        found_value = found_bank = 0; // ASM_LOOSE: another program's name, 0 here
+      }
+      else if (found_bank == LABEL_BANK) { // a label: its pass address in its section, where that went
         s = (unsigned int)(found_value >> 16);
         found_value = (unsigned int)((unsigned int)found_value + sect_delta[s]);
         found_bank = sect_bank[s];

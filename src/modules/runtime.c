@@ -291,10 +291,11 @@ unsigned char ModuleAPISource(unsigned int pos, char* dest) {
 // module_wide. The draw's text uses buffer's first 80 bytes; FatFs doesn't use buffer (FF_FS_TINY).
 #define FILE_PATH ((char*)buffer + 256)
 typedef char file_path_fits[PATH_SIZE + FS_NAME_SIZE <= 256 ? 1 : -1];
-static unsigned char FileTry(unsigned char n, const char* name, ModuleLoad* load) { // file_dir's first n characters, "/", name
+static unsigned char FileTry(unsigned char n, const char* name, ModuleLoad* load) { // the folder's first n characters, "/", name
   char* full = FILE_PATH; // name is in the module's WRAMX BSS, readable throughout
+  const char* dir = module_dir ? module_dir : file_dir;
   unsigned char i;
-  for (i = 0; i < n; ++i) full[i] = file_dir[i];
+  for (i = 0; i < n; ++i) full[i] = dir[i];
   full[i++] = '/';
   module_loading = full + i; // the progress box names it (full is the host's: the module's BSS may be swapped out)
   while (*name) {
@@ -307,9 +308,9 @@ static unsigned char FileTry(unsigned char n, const char* name, ModuleLoad* load
   return i;
 }
 static unsigned char FileSearch(const char* path, ModuleLoad* load) {
-  const char *base = path, *p;
+  const char *base = path, *p, *dir = module_dir ? module_dir : file_dir;
   unsigned char n = 0, end, result;
-  while (file_dir[n]) ++n;
+  while (dir[n]) ++n;
   end = n;
   if (file_level <= end && (result = FileTry(file_level, path, load)) != 1) return result;
   while (1) {
@@ -318,7 +319,7 @@ static unsigned char FileSearch(const char* path, ModuleLoad* load) {
       return result;
     }
     if (!n) break;
-    while (n && file_dir[--n] != '/'); // up a folder
+    while (n && dir[--n] != '/'); // up a folder
   }
   for (p = path; *p; ++p) if (*p == '/') base = p + 1;
   return base != path ? FileTry(end, base, load) : 1;
@@ -382,7 +383,7 @@ void ModuleAPITiles(unsigned char row, const unsigned char* tiles) {
   RenderRawRow(render_text_top + row, tiles);
 }
 
-// ABI 13: ModColorTiles is ModuleAPIColorTiles in src/ui/render.asm
+// ABI 13: ModBackground is ModuleAPIBackground in src/ui/render.asm
 
 // ABI 8: text in the busy box (a line at each '\n', wrapped at 19 characters), if 5 s have passed
 // since the module started or last drew (call it often: the rest return at once); 0 for

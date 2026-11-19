@@ -12,6 +12,6 @@
     {"name": "SGBBOOT", "id": 9, "sources": ["sgb_boot.c"]},
     {"name": "LINK", "id": 10, "sources": ["assembler/link.c"], "sources2": ["assembler/link_obj.c", "assembler/link_read.c"], "sources3": ["assembler/link_build.c"]},
     {"name": "PREP", "id": 11, "sources": ["assembler/prep.c", "assembler/link_read.c"]},
-    {"name": "MAPVIEW", "id": 12, "sources": ["mapview.c"]}
+    {"name": "MAPVIEW", "id": 12, "sources": ["mapview.c", "lib/text.c"]}
   ]
 }

@@ -40,6 +40,14 @@
 - delete should move files to trash unless deleting trash
 - show hidden files and folders in settings
 
+# Map Viewer (MAPVIEW.MOD)
+
+- Move its literal strings (the menu, "Close the large file...", "Can't build the map", "(wrapper)", "Line", "chunk") into `strings.csv` and read them with `ModString`.
+- Keep SGB full screen (as DMG is now): the map needs every tile the bars use, and SGB colours come from ATTR/PAL packets, not the bars' palettes.
+- Reuse the C map loader (`modules/mapview.c`'s chunk, object and stamp drawing) for the SNES version of Beisbol instead of a second port of `map_loader.asm`: pull it into a shared source that builds for sm83 here and for the SNES toolchain there.
+- Footer hints for the map (it shows the browser's).
+- The cache key covers the map only: changes to `map_stamps.gbstamp` or the project's includes need Start > Rebuild.
+
 # Peripherals
 
 - Re-detect a PS/2 keyboard plugged in after boot.

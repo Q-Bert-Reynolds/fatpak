@@ -18,6 +18,7 @@ typedef struct {
   unsigned int progress; // and pass 1's lines in thousands or pass 2's percent; pass 5: a project's
                          // percent of its units' passes; 3 and 4: LINK.MOD placing sections, finishing
   unsigned int obj_blocks; // out: build.obj's blocks at ASM_BUILD_BLOCK | $2000 (FileWriteImage's count); 0: none
+  unsigned int text_block, text_length; // in with ASM_TEXT: the document's PSRAM block and length (length is 0)
 } AsmContext;
 
 #define ASM_DOC     1
@@ -25,6 +26,9 @@ typedef struct {
 #define ASM_OLD     8 // out of PREP.MOD, before ASM.MOD: build.obj is loaded and AsmPrep says which units are unchanged
 #define ASM_CURRENT 16 // out of PREP.MOD: nothing changed and the ROM is there (name, blocks and build.log set): no ASM.MOD, LINK.MOD or ROM to write
 #define ASM_CHECK   32 // into PREP.MOD after a build stopped: each file ASM.MOD read, read from the card again and compared (build.log)
+#define ASM_TEXT    64 // in: the document is text_length bytes of PSRAM from text_block, not the text buffer, and no
+                       // project.gbp is read (MAPVIEW.MOD's wrapper around a .gbmap)
+#define ASM_LOOSE   128 // in, LINK.MOD: a name no unit defines links as 0 (and its BANK() 0), not ASM_ERR_SYMBOL
 #define ASM_PROJECT_FILE "project.gbp" // BUILD's project: the nearest one in the document's folder or above
 #define ASM_NOT_ASM 0xFF // module_status: no project, and the document isn't assembly
 
