@@ -1,5 +1,6 @@
 # Rendering
 
+- SGB resolutions: shared tiles first, then Mode 5 probe and 160×144 / 256×224 / 512×224 / 512×448 selection; Fullscreen toggles bars independently ([roadmap](notes/SGB.md#resolution-roadmap)).
 - Font selection (VWF, 4 px fixed, Tiny5 Mono in `img/fonts/tiny5mono_font.png`, ...) separately for text and code, saved in settings.
 - Redraw the accented/UI glyphs in `vwf_font.png` (copied from `ui_font.png`) and hand-touch the derived styled fonts.
 - DMG row draw spends ~18K cycles waiting on 40 HBlanks: interleave glyph drawing with the waits, or buffer tiles and stagger VRAM writes.
@@ -45,6 +46,8 @@
 - Header and footer on SGB (BIOS mode): DMG and SGB now drop the bars because the map's tileset can use all 256 tiles; remap the map's tiles (or cap the tileset) to keep the bars' tiles.
 - SGB fullscreen (the SNES's native 256x224 mode): views with raw tiles (TILEVIEW, MAPVIEW) don't work there yet (the SNES draws text rows only). The map should draw natively on the SNES, built from the same C loader as the SNES port below.
 - Reuse the C map loader (`modules/mapview.c`'s chunk, object and stamp drawing) for the SNES version of Beisbol instead of a second port of `map_loader.asm`: pull it into a shared source that builds for sm83 here and for the SNES toolchain there.
+- SGB fullscreen 512x448 (mode 5 + interlace) as a zoomed-out toggle, after 256x224: 64x56 GB tiles on screen at full detail. Mode 5 draws tiles N and N+1 side by side per map entry, so it needs a cache of the screen's tile pairs (2bpp BG2: 512 pairs, eight 4-colour palettes like the GBC's); a pair of different palettes needs a combined 16-colour palette. Interlace flickers on 1-px lines (CRT, upscalers vary). Bars stay normal-size text via an HDMA mode switch (untested). The map view has to free the kernel's row caches in SNES WRAM. Order: SGB fullscreen on hardware (Phase 7), 256x224 map view in mode 1, then this.
+- Zoom levels on every platform, built from the same composed-tile cache: 1/4 (each GB tile sampled to 4x4, 2x2 tiles per output tile), 1/16 (2x2 per tile, 4x4 tiles per output tile) and 1/64 (one pixel per tile, its most common colour; really a bitmap of the screen's tiles, not a cache). Precompute each source tile's reduced form once; one palette per output tile (GB) makes mixed-palette blocks lossy; the zoomed view walks the chunk neighbour graph, which isn't a grid everywhere.
 - Footer hints for the map (it shows the browser's).
 - The cache key covers the map only: changes to `map_stamps.gbstamp` or the project's includes need Start > Rebuild.
 

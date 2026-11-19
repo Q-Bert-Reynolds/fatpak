@@ -6,9 +6,11 @@
 ; This is above snapshot $D100..D87F and separate from the stack/row caches.
 ; Scratch $1180..11BF; row pointer DP $E4..E5 is shared with DrawGlyphs.
 .setcpu "65816"
+.macpack longbranch
 .export _DrawFixedTiles
 .import _glyph_row, _raster, Fonts, StyleFonts, StyleColors, _Capture
-.import _fixed_ready, _fixed_hits, _fixed_misses, _ClearTiles
+.import _fixed_ready, _fixed_hits, _fixed_misses, _fixed_hints, _ClearTiles
+.import _fixed_direct, _fixed_slot, _SharedBeginRow, _SharedFixedTile, _SharedFixedEnd, _SharedFixedReuse
 .segment "CODE"
 .a8
 .i8
@@ -77,6 +79,17 @@ _DrawFixedTiles:
  rep #$30
 .a16
 .i16
+.ifdef SHARED_RENDER
+ sep #$20
+.a8
+ lda _fixed_direct
+ beq :+
+ lda _fixed_slot
+ jsr _SharedBeginRow
+:
+ rep #$20
+.a16
+.endif
  lda _fixed_ready
  and #255
  bne @initialized
@@ -151,14 +164,43 @@ _DrawFixedTiles:
 @valid:
  lda $DC00,x
  cmp $1180
+.ifdef SHARED_RENDER
+ jne @miss
+.else
  bne @miss
+.endif
  lda $DC02,x
  cmp $1182
+.ifdef SHARED_RENDER
+ jne @miss
+.else
  bne @miss
+.endif
  lda $DC04,x
  cmp $1184
+.ifdef SHARED_RENDER
+ jne @miss
+.else
  bne @miss
+.endif
  inc _fixed_hits
+.ifdef SHARED_RENDER
+ lda _fixed_direct
+ and #255
+ beq :+
+ sep #$30
+.a8
+.i8
+ jsr _SharedFixedReuse
+ cmp #0
+ rep #$30
+.a16
+.i16
+ beq :+
+ jmp @published
+:
+ ldx $119C
+.endif
  txa
  asl
  asl
@@ -279,6 +321,15 @@ _DrawFixedTiles:
  cpy #16
  bcc @clip
 @key:
+.ifdef SHARED_RENDER
+ ldx $119C
+ txa
+ lsr
+ lsr
+ tax
+ lda #$FFFF
+ sta $B580,x ; replacement invalidates this fixed key's VRAM association
+.endif
  ldx $119C
  lda $1180
  sta $DC00,x
@@ -298,6 +349,20 @@ _DrawFixedTiles:
   sta $E000+I*2,x
  .endrepeat
 @next:
+.ifdef SHARED_RENDER
+ lda _fixed_direct
+ and #255
+ beq :+
+ sep #$30
+.a8
+.i8
+ jsr _SharedFixedTile
+ rep #$30
+.a16
+.i16
+:
+.endif
+@published:
  sep #$30
 .a8
 .i8
@@ -320,6 +385,15 @@ _DrawFixedTiles:
  bcc @more
  beq @more
 @done:
+.ifdef SHARED_RENDER
+ sep #$30
+.a8
+.i8
+ lda _fixed_direct
+ beq :+
+ jsr _SharedFixedEnd
+:
+.endif
  plp
 .a8
 .i8

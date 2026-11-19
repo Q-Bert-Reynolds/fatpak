@@ -177,9 +177,19 @@ u8 raster_valid[RING_ROWS];
 u16 raster_hits;
 u16 raster_misses;
 u8 fixed_ready;
+/* The fixed compositor can prepare a shared map alongside the raster. */
+u8 fixed_hints;
+u8 fixed_direct;
+u8 fixed_slot;
 u16 fixed_hits;
 u16 fixed_misses;
 u16 plain_rows;
+u16 shared_hits;
+u16 shared_hint_hits;
+u8 shared_reused_blank;
+u16 shared_misses;
+u32 shared_tile_bytes;
+u32 shared_map_bytes;
 u8 top;
 u8 text_rows = SGBFS_ROWS;
 u8 bars;
@@ -850,11 +860,19 @@ static void draw(u8 row) {
   u16 start = Clock();
   const Row *source = rows + row;
   u8 slot = (row + ring_offset) & RING_MASK;
+#ifdef SNES_SHARED_RENDER
+  fixed_hints = 0;
+  fixed_direct = 0;
+#endif
   if (raster_valid[slot]) {
     RestoreRaster(slot);
     ++raster_hits;
   }
   else {
+#ifdef SNES_SHARED_RENDER
+    fixed_slot = slot;
+    fixed_direct = source->start == source->end;
+#endif
     if (!fixed_tiles(source) && !plain_tiles(source)) {
       ClearRaster();
       glyphs(source, source->font ? TEXT_INSET : 0,
@@ -862,11 +880,25 @@ static void draw(u8 row) {
       pixel_start = pixel_end = SGBFS_WIDTH;
       EncodeRow();
     }
-    CacheRaster(slot);
-    raster_valid[slot] = 1;
+#ifdef SNES_SHARED_RENDER
+    if (!fixed_hints) {
+#endif
+      CacheRaster(slot);
+      raster_valid[slot] = 1;
+#ifdef SNES_SHARED_RENDER
+    }
+    else {
+      raster_valid[slot] = 0;
+    }
+#endif
     ++raster_misses;
   }
+#ifdef SNES_SHARED_RENDER
+  if (!fixed_hints) pixels(source, 0, SGBFS_WIDTH, 0);
+  if (source->start != source->end) fixed_hints = 0;
+#else
   pixels(source, 0, SGBFS_WIDTH, 0);
+#endif
   PresentRow(slot);
   dirty[row] = 0;
   ++drawn_rows;
@@ -1132,6 +1164,9 @@ static void pads(void) {
 #ifdef SNES_PLAIN_CHECK
 #include "../tests/sgb/plain_checks.h"
 #endif
+#ifdef SNES_SHARED_CHECK
+#include "../tests/sgb/shared_checks.h"
+#endif
 
 void main(void) {
   u16 frame = FRAME_UNSET;
@@ -1147,6 +1182,9 @@ void main(void) {
 #endif
 #ifdef SNES_PLAIN_CHECK
   PlainChecks();
+#endif
+#ifdef SNES_SHARED_CHECK
+  SharedChecks();
 #endif
 
   trace_field = TRACE_DRAW; /* Start with rendering cost, then finish the counter rotation. */

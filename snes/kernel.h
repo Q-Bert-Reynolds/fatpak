@@ -15,9 +15,13 @@ void __fastcall__ CacheRaster(u8 slot);
 void __fastcall__ RestoreRaster(u8 slot);
 void BlitGlyph(void);
 void PpuInit(void);
+void SharedInit(void);
 void OverlayInit(void);
 void __fastcall__ PresentOverlay(u8 row);
 void __fastcall__ PresentRow(u8 slot);
+#ifdef SNES_SHARED_CHECK
+void __fastcall__ PresentRasterRow(u8 slot);
+#endif
 void PresentPalette(void);
 void PresentCursor(void);
 void __fastcall__ SetScroll(u16 scroll);

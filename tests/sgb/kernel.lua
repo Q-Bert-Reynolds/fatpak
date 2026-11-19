@@ -27,6 +27,41 @@ if os.getenv('SGB_KERNEL_PROFILE')=='1' then
   end,emu.callbackType.exec,0x7f0000+symbols[done],0x7f0000+symbols[done],emu.cpuType.snes)
  end
  measure('_draw','_PresentRow');measure('_draw_ui','_PresentOverlay')
+ measure('_PresentRow','_SharedPrepared')
+end
+local shared_verified,shared_started=0,false
+if os.getenv('SGB_SHARED_CHECK')=='1' then
+ emu.addMemoryCallback(function()shared_started=true end,emu.callbackType.exec,0x7f0000+symbols._SharedChecks,0x7f0000+symbols._SharedChecks,emu.cpuType.snes)
+ emu.addMemoryCallback(function()
+  local function ram(at)return emu.read(at,emu.memType.snesWorkRam)end
+  if ram(symbols._shared_finished)==1 then return end
+  local function word(at)return ram(at)+ram(at+1)*256 end
+  local counts={}
+  for i=0,1023 do
+   local tile=word(0xa800+i*2)
+   if tile>=1024 then finish(false,'shared map tile out of range');return end
+   counts[tile]=(counts[tile] or 0)+1
+   local at=0xe000+i*2
+   local actual=emu.read(at,emu.memType.snesVideoRam)+emu.read(at+1,emu.memType.snesVideoRam)*256
+   if actual~=tile then finish(false,string.format('shared WRAM/VRAM map case %d at %d: %04X != %04X (row %d source %04X)',word(symbols._shared_cases),i,actual,tile,word(0xb504),word(0xb502)));return end
+  end
+  for tile=0,1023 do
+   if word(0xa000+tile*2)~=(counts[tile] or 0) then finish(false,'shared reference mismatch for tile '..tile);return end
+  end
+  local row=word(0xb504)
+  local expected_base=ram(symbols._shared_compare_expected)==1 and symbols._shared_expected or symbols._raster
+  for column=0,31 do
+   local tile=word(0xa800+row+column*2)
+   for offset=0,31 do
+    local actual=emu.read(tile*32+offset,emu.memType.snesVideoRam)
+    local expected=ram(expected_base+column*32+offset)
+    if actual~=expected then
+     finish(false,string.format('shared tile pixels case %d col %d byte %d: %02X != %02X',word(symbols._shared_cases),column,offset,actual,expected));return
+    end
+   end
+  end
+  shared_verified=shared_verified+1
+ end,emu.callbackType.exec,0x7f0000+symbols._SharedCommitted,0x7f0000+symbols._SharedCommitted,emu.cpuType.snes)
 end
 local drop_commit=os.getenv('SGB_KERNEL_DROP_COMMIT')=='1'
 local stall_mailbox=os.getenv('SGB_KERNEL_STALL')=='1'
@@ -146,6 +181,11 @@ emu.addEventCallback(function(cpu)
   result:write(string.format('PROPORTIONAL eight legacy rows %d vs direct %d SNES frames\n',word('_plain_legacy_frames'),word('_plain_direct_frames')))
   finish(word('_plain_checks')==256 and word('_plain_mismatches')==0,'plain tile checks');return
  end
+ if os.getenv('SGB_SHARED_ONLY')=='1' and shared_started and byte('_shared_finished')==1 then
+  result:write(string.format('SHARED %d PPU/map/reference checks, %d row-cache errors\n',shared_verified,word('_shared_cache_errors')))
+  result:write(string.format('CODE sixteen legacy rows %d vs shared %d SNES frames; %d exact-key hits; %d reused blanks\n',word('_shared_legacy_frames'),word('_shared_upload_frames'),word('_shared_hint_hits'),byte('_shared_reused_blank')))
+  finish(shared_verified==217 and word('_shared_cases')==217 and word('_shared_cache_errors')==0 and word('_shared_hint_hits')>0,'shared tiles: full pool, hash collisions, reuse, all fonts/styles and selection');return
+ end
  if os.getenv('SGB_TILE_ONLY')=='1' and byte('_tile_finished')~=0 then
   result:write(string.format('TILES %d checks, %d mismatches; first case %d offset %d actual %02X expected %02X\n',word('_tile_checks'),word('_tile_mismatches'),word('_tile_first_case'),word('_tile_first_offset'),byte('_tile_first_actual'),byte('_tile_first_expected')))
   result:write(string.format('FRESH eight legacy rows %d vs tiles %d SNES frames; hits %d misses %d\n',word('_tile_legacy_frames'),word('_tile_cached_frames'),word('_fixed_hits'),word('_fixed_misses')))
@@ -195,6 +235,8 @@ emu.addEventCallback(function(cpu)
   result:write(string.format('PLAIN rows %d\n',word('_plain_rows')))
   result:write(string.format('TILES hits %d misses %d\n',word('_fixed_hits'),word('_fixed_misses')))
   result:write(string.format('CACHE hits %d misses %d\n',word('_raster_hits'),word('_raster_misses')))
+  local function dword(name)return word(name)+emu.read(symbols[name]+2,emu.memType.snesWorkRam)*65536+emu.read(symbols[name]+3,emu.memType.snesWorkRam)*16777216 end
+  result:write(string.format('SHARED hits %d misses %d key hits %d tile bytes %d map bytes %d\n',word('_shared_hits'),word('_shared_misses'),word('_shared_hint_hits'),dword('_shared_tile_bytes'),dword('_shared_map_bytes')))
   if drop_commit and (not dropped_seq or not recovered) then
    finish(false,'dropped-commit recovery was not exercised');return
   end

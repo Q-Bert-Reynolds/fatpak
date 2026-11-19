@@ -4,7 +4,8 @@
 .export Entry, Nmi, Irq, _WaitBlank, Fonts
 .export __STARTUP__ : absolute = 1
 .export _Capture, _Snapshot, _FontWidth, _ClearRaster, _ClearTiles, _PpuInit
-.export _PresentRow, _PresentPalette, _PresentCursor, _SetScroll, _PublishMailbox
+.export _PresentRasterRow, _PresentPalette, _PresentCursor, _SetScroll, _PublishMailbox
+.import _SharedInit
 .import _main, zerobss
 .importzp sp
 .import __RODATA_LOAD__, __RODATA_RUN__, __RODATA_SIZE__
@@ -38,6 +39,10 @@ Boot:
  lda #0
  sta f:$004200
  sta f:$00420C
+.ifdef SHARED_RENDER
+ lda #$FF
+ sta f:$004201 ; enable software H/V latching; controller output pins idle high
+.endif
  ldx #0
 @rodata:
  cpx #__RODATA_SIZE__
@@ -489,7 +494,7 @@ _PpuInit:
  sta f:$004314
  lda #2
  sta f:$00420B
- ; Identity BG1 map: each physical ring row has its own 32 tiles.
+ ; Shared builds start on paper; the standard renderer keeps identity slots.
  rep #$30
 .a16
 .i16
@@ -497,11 +502,24 @@ _PpuInit:
  sta f:$002116
  ldx #0
 @map:
+.ifdef SHARED_RENDER
+ lda #0
+.else
  txa
+.endif
  sta f:$002118
  inx
  cpx #1024
  bne @map
+.ifdef SHARED_RENDER
+ sep #$30
+.a8
+.i8
+ jsr _SharedInit
+ rep #$30
+.a16
+.i16
+.endif
  ; One cursor tile: color 1 in the left column.
  lda #$6000
  sta f:$002116
@@ -542,10 +560,10 @@ _WaitBlank:
  bpl @next
  rts
 
-; Wait for VBlank while servicing ICD2, then DMA one 1KiB ring row.
+; Reference 1KiB row upload for native benchmarks. Production uses shared.s.
 .a8
 .i8
-_PresentRow:
+_PresentRasterRow:
  sta $100D
  jsr _WaitBlank
  lda #$80

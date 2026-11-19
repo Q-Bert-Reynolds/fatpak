@@ -100,6 +100,28 @@ ICD2 buffers and snapshot storage remain outside these ranges. `fixed.s` uses
 `$7E:DC00–DFFF` for 128 composed-tile keys and `$7E:E000–EFFF` for their
 4bpp data (5 KiB total), above the snapshot ending at `$D87F`.
 
+`shared.s` is an experimental shared-map backend, built with
+`SGB_SHARED_RENDER=1`. The standard 256×224 build keeps identity-mapped row
+uploads: the shared backend reduces DMA but its code-row CPU cost is still
+higher. Do not enable it by default until code redraw/scroll timing improves.
+`SGB_SHARED_RENDER=1 make assemble` packages the experimental backend; omit
+the flag for the standard build.
+
+In shared builds, completed tiles are published through a shared BG1 map. A 128-entry
+WRAM lookup compares all 32 bitmap bytes; hash collisions only reduce reuse.
+Reference counts pin every mapped tile. Released IDs can be reused only for
+new tiles committed with their map during VBlank. Even 1,024 distinct mapped
+tiles fit, so code and proportional/italic Markdown keep identical pixels.
+Blank paper shares a canonical tile, and unchanged blank rows need no upload.
+
+Shared metadata and fixed-font VRAM IDs occupy `$7E:A000–B67F`; the software
+stack retains `$B680–BFFF`. Lookup bitmaps use `$7E:F000–FFFF`. Fixed code rows
+build map references while composing each tile, using the already-validated
+character/style key. Existing VRAM tiles skip raster copies, and only new glyph tiles are composed.
+Key replacements and slot ownership invalidate old IDs. Direct code rows do
+not populate the unselected raster cache; selection rebuilds one full raster
+when needed. Other rows retain that cache. UI layers are unchanged.
+
 Fixed-width styled rows with four-pixel cells compose directly into tile planes,
 reusing tiles keyed by three neighboring character/style pairs. Three fragments
 are needed because of the one-pixel text inset. Spaces share a blank key;
@@ -108,8 +130,8 @@ cells (the build checks this). `plain.s` packs ordinary text directly into
 planes 0/1 across all seven fonts, including proportional widths and overlapping
 normal glyphs. Both direct compositors clear only the 1 KiB tile buffer, leaving
 shade scratch untouched. Icons, right-aligned clocks and unsupported text styles
-fall back before changing the output. All paths feed the same row cache and
-selection recoloring.
+fall back before changing the output. Standard paths retain unselected row
+rasters; shared code uses map references until selection needs a bitmap.
 
 Capture drains up to four completed ICD2 buffers between bounded work slices.
 A separate 1920-byte snapshot protects validation from concurrent capture.
@@ -122,12 +144,13 @@ follow physical rows during scrolling; revealed rows and fixed bars invalidate
 the affected slots. Scrolling waits for DMA and the smooth flag requests 2 px
 steps. Glyph overhangs are ORed; selection uses pixel boundaries. BG3 draws bars, boxes, dialogs and OSK over a high-priority
 BG2 paper mask. Closing a menu restores the underlying text without BG1 redraw.
-Uploads wait for the start of VBlank. An OBJ draws the text cursor; full mouse
+Uploads use VBlank. Shared graphics always get a fresh blank; map-only commits
+may reuse the current blank after checking the latched scanline. An OBJ draws the text cursor; full mouse
 and pad behavior remains Phase 9. L+R+Select toggles capture/page diagnostics.
 
 | SNES VRAM byte range | Use |
 | --- | --- |
-| `$0000–$7FFF` | BG1 4bpp text tiles |
+| `$0000–$7FFF` | BG1 4bpp rows, or 1,024 shared tiles in experimental builds |
 | `$8000–$BFFF` | BG3 2bpp UI tiles |
 | `$C000–$C7FF` | OBJ tiles |
 | `$C800–$C9FF` | BG2 clipped paper-mask tiles |
@@ -420,10 +443,29 @@ diagnostics. The centered keyboard uses BG3 over the BG2 paper mask; BG1 keeps
 the full document. Its bounds are x=44–211, first key x=52; dialogs retain the
 GB renderer's four-pixel text inset inside their border.
 
-Future experiment: high-resolution text with the TV forced to widescreen.
-Compare readability and glyph proportions on hardware before changing display
-mode. The current resolution remains unchanged; the next hardware session is
-needed for that experiment.
+### Resolution roadmap
+
+Fullscreen will toggle header/footer visibility on every platform. SGB alone
+will expose a separate Resolution list: 160×144, 256×224, 512×224, 512×448.
+Resolution and header/footer visibility are independent; persist both choices.
+Do not expose unsupported modes as selectable options.
+
+1. Share completed tiles in the existing 256×224 renderer, preserving code,
+   Markdown, selection, scrolling and overlays. Measure CPU and DMA separately.
+2. Build a standalone Mode 5 font/UI probe with 512×224 and 512×448 interlace.
+   Compare code fonts, proportions and flicker on the TV, including widescreen.
+3. Mode 5 needs a pool of 16×8 tile pairs, not independent 8×8 IDs. Combine UI
+   text and opaque paper into one of its two BGs, preserving shades/transparency.
+   Keep document scrolling independent of bars, dialogs and keyboard.
+4. Extend negotiated geometry and horizontal coordinates beyond 255. More text
+   needs new GB row storage/streaming: 128×56 character/style bytes total 14 KiB,
+   versus the current 3.5 KiB. Preserve efficient code editing and define tile
+   pool exhaustion behavior for the larger map before enabling it.
+5. Add the SGB-only Resolution menu and persistence. Returning to 160×144 must
+   restore the GB renderer, SGB BIOS display/border and input ownership safely.
+
+The shared-tile work keeps the current resolution and menu behavior unchanged;
+the high-resolution modes remain future work.
 
 **Mouse:** left click places the cursor, chooses menu items, browser rows (double
 click opens) and OSK keys. Left drag selects, and dragging past the top or bottom
@@ -1061,8 +1103,20 @@ native model checks require only the exposed text row to become dirty. The
 production image is 46,354 bytes (twelve upload blocks), with no added WRAM.
 Results: `build/sgb/scroll-after/`. Hardware timing remains unmeasured.
 
-Next: reduce changed-tile uploads and redundant blank startup paints. Shared
-VRAM tiles/tile-map updates remain a later step. Keep the raster path for proportional/overlapping glyphs.
+Shared-map prototype: `SGB_SHARED_ONLY=1 make test-sgb-kernel` runs 217
+native PPU/map/reference checks, including all 1,024 slots, lookup collisions,
+release/reuse, every font/style, selection and row-cache/stack guards. The
+113-page replay passes all 57,344 pixels, menu/OSK restoration and dropped ACK
+recovery with `SGB_SHARED_RENDER=1 SGB_KERNEL_UI=1 SGB_KERNEL_DROP_COMMIT=1
+SGB_KERNEL_PROFILE=1 make test-sgb-kernel`. Background DMA totals 8,320 bytes,
+versus 96,256 in the standard identity-map replay. This is a bandwidth saving,
+not a CPU speedup: sixteen code rows take 22 rather than 17 SNES frames, and
+the full replay takes 3,704 frames versus 3,681 for the standard backend. Keep the standard
+backend as the default. Results: `build/sgb/shared-after/`; hardware untested.
+
+Next: reduce fixed-code map publication cost before enabling shared tiles by
+default, then build the Mode 5 readability probe. Keep the raster path for
+proportional/overlapping glyphs.
 Measure first usable screen and key-to-PPU latency separately from transport
 ACKs and the replay's deliberate pauses.
 
