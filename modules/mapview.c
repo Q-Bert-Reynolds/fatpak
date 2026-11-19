@@ -16,11 +16,11 @@
 // screen is the BG map itself (ModBackground): the view moves a pixel a frame (four with B held)
 // with SCX and SCY, and draws only the column or row of tiles coming into view, as the game does,
 // crossing into the chunk's neighbours. Tiles 0-127 are img/ui_font.tiles and 128-255 the map's
-// tileset; full screen, no bars; GBC: in the map's BG palettes, DMG/SGB: greys.
+// tileset; the bars over it unless full screen; GBC: in the map's BG palettes, DMG/SGB: greys.
 //
-// Controls (notes/MODULES.md): the d-pad scrolls, B held runs, Start opens the
-// menu (Rebuild, Close the map; Start or B closes it) with the bars: the map's name in the header,
-// where the view is at the footer's left. Select is kept for the map tools.
+// Controls (notes/MODULES.md): the d-pad scrolls, B held runs, Start opens the menu (Rebuild, Full
+// screen, Close; Start or B closes it). The bars: the map's name in the header, where the view is at
+// the footer's left. Select is kept for the map tools.
 #include "../build/modules/sdk.h"
 #include "lib/psram.h"
 #include "lib/text.h"
@@ -71,8 +71,10 @@
 #define ROWS (TB_ROWS + 1)
 
 #define MENU_BUILD 0 // Menu's items
-#define MENU_CLOSE 1
-#define MENU_BACK 2 // Start or B: back to the map
+#define MENU_FULL 1
+#define MENU_CLOSE 2
+#define MENU_ITEMS 3
+#define MENU_BACK 3 // Start or B (or Full screen): back to the map
 
 static MapContext* m;
 static char text[MAP_CACHE_SIZE]; // the cache's path, a box's text, a word of project.gbp
@@ -83,6 +85,7 @@ static unsigned char count; // the chunks in it
 static unsigned char cached[SLOTS], slots[4]; // drawn chunks; the view's: here, east, south, south east
 static unsigned char slot, fill_tile, fill_pal; // Fill's
 static unsigned char chunk, tx, ty, gbc; // the view: its chunk, its top left tile in it
+static unsigned char full, moved; // no bars (ModBackground's mode 2); the footer is behind the view
 static short cam_x, cam_y; // its top left pixel in the chunk, 0-255
 static unsigned short wrap_n; // the wrapper's length
 
@@ -507,6 +510,18 @@ static void Cell(unsigned char x, unsigned char y) {
 static void Column(unsigned char x) { unsigned char y; for (y = ty; y != ty + ROWS; ++y) Cell(x, y); }
 static void Row(unsigned char y) { unsigned char x; for (x = tx; x != tx + COLS; ++x) Cell(x, y); }
 
+// the bars: the map's name in the header, and where the view is at the footer's left, as the editor
+// has its line and column
+static void Bars(void) {
+  char* end;
+  ModText(HEADER_LINE, 1, m->name);
+  end = PutNumber(ModString(text, S_MAP_CHUNK), chunk);
+  end = PutNumber(PutText(end, "  "), tx);
+  end = PutNumber(PutText(end, ","), ty);
+  *end = 0;
+  ModText(STATUS_LINE, 1, text);
+}
+
 // the map over the screen: tiles 128-255 at $8800 (bank 0), 0-127 at $9000 (bank 1 on GBC), in
 // the text's $8800 mode; the palettes; every cell in view. After the host has drawn its rows
 static void Show(void) {
@@ -515,7 +530,8 @@ static void Show(void) {
   ModDraw(); // the host's rows, then a frame or two for a box's rows to go back to their map rows
   ModFrame();
   ModFrame();
-  ModBackground(1, (unsigned short)cam_y << 8 | (unsigned char)cam_x);
+  ModBackground(1 + full, (unsigned short)cam_y << 8 | (unsigned char)cam_x);
+  Bars();
   for (t = 0; t < 256; ++t) {
     if (gbc) VBK = t < 128;
     Window(TIL + (t >> 5));
@@ -536,34 +552,27 @@ static void Show(void) {
   for (y = ty; y != ty + ROWS; ++y) Row(y);
 }
 
-// the bars, with the menu (the view has none): the map's name in the header, and where the view is
-// at the footer's left, as the editor has its line and column
-static void Bars(void) {
-  char* end;
-  ModText(HEADER_LINE, 1, m->name);
-  end = PutNumber(ModString(text, S_MAP_CHUNK), chunk);
-  end = PutNumber(PutText(end, "  "), tx);
-  end = PutNumber(PutText(end, ","), ty);
-  *end = 0;
-  ModText(STATUS_LINE, 1, text);
-}
-
-// Start's menu, over the host's text: MENU_BUILD or MENU_CLOSE, or MENU_BACK when Start or B
-// closes it (the map again, where it was)
+// Start's menu, over the host's text with the bars: MENU_BUILD or MENU_CLOSE, or MENU_BACK when Start
+// or B closes it or Full screen turns the bars off or on (the map again, where it was)
 static unsigned char Menu(void) {
-  char lines[2 * BOX_STRIDE];
+  char lines[MENU_ITEMS * BOX_STRIDE];
   unsigned char selected = MENU_BUILD, key, i;
-  for (i = 0; i < 2; ++i) *ModString(PutText(lines + i * BOX_STRIDE, " "), S_MAP_REBUILD + i) = 0;
+  for (i = 0; i < MENU_ITEMS; ++i) *ModString(PutText(lines + i * BOX_STRIDE, " "), S_MAP_REBUILD + i) = 0;
   ModBackground(0, 0);
   Bars();
   while (1) {
-    ModMenu(lines, 2, selected);
+    ModMenu(lines, MENU_ITEMS, selected);
     while (!(key = ModKey()));
-    if (key == KEY_UP || key == KEY_DOWN) selected ^= 1;
+    if (key == KEY_UP) selected = selected ? selected - 1 : MENU_ITEMS - 1;
+    else if (key == KEY_DOWN) selected = selected == MENU_ITEMS - 1 ? 0 : selected + 1;
     else if (key == KEY_ENTER) break;
     else if (key == KEY_ESCAPE || key == KEY_BACKSPACE || key == KEY_MENU) { selected = MENU_BACK; break; }
   }
   ModHideBox();
+  if (selected == MENU_FULL) {
+    full ^= 1;
+    selected = MENU_BACK;
+  }
   if (selected == MENU_BACK) Show();
   return selected;
 }
@@ -591,8 +600,9 @@ static void Step(unsigned char held, unsigned char step) {
 }
 
 // the view, from chunk 0's top left: a pixel a frame, RUN with B held, steps for each frame since
-// the last pass (one can take two when a column or row is drawn); 1 to build the cache again, 0 to
-// close (only the menu does either: B runs)
+// the last pass (one can take two when a column or row is drawn); the footer says where once the
+// d-pad is let go (a row of text each step would slow it). 1 to build the cache again, 0 to close
+// (only the menu does either: B runs)
 static unsigned char View(void) {
   unsigned char pressed, held, step, frames, now, last;
   chunk = tx = ty = 0;
@@ -602,18 +612,25 @@ static unsigned char View(void) {
   last = (unsigned char)ModStat(MODULE_STAT_FRAMES);
   while (1) {
     pressed = ModFrame();
-    held = ModBackground(1, (unsigned short)cam_y << 8 | (unsigned char)cam_x);
+    held = ModBackground(1 + full, (unsigned short)cam_y << 8 | (unsigned char)cam_x);
     now = (unsigned char)ModStat(MODULE_STAT_FRAMES);
     frames = now - last;
     last = now;
     if (frames > 4) frames = 4;
-    if (pressed & PADF_START) {
+    if ((pressed & PADF_START) || (unsigned char)ModEvent() == KEY_ESCAPE) { // the keyboard's queue too, so it's not stale
       if ((step = Menu()) != MENU_BACK) return step == MENU_BUILD;
       last = (unsigned char)ModStat(MODULE_STAT_FRAMES);
       continue;
     }
     step = held & PADF_B ? RUN : WALK;
-    if (held & PADF_DPAD) while (frames--) Step(held, step);
+    if (held & PADF_DPAD) {
+      while (frames--) Step(held, step);
+      moved = 1;
+    }
+    else if (moved && !full) {
+      Bars();
+      moved = 0;
+    }
   }
 }
 

@@ -16,11 +16,11 @@ unsigned char DpadRepeat(unsigned char pressed) {
 }
 
 // waits a frame, returns a key from the keyboard or d-pad (A = enter, B = backspace, START = menu,
-// which closes menus; Select = file info)
+// which closes menus; Select = file info). Escape is START, everywhere
 unsigned char MenuKey(void) {
   unsigned char key, pressed, held;
   WaitFrame();
-  if ((key = (unsigned char)KBPopEvent())) return key;
+  if ((key = (unsigned char)KBPopEvent())) return key == KEY_ESCAPE ? KEY_MENU : key;
   pressed = PadPressed();
   if (pressed & PADF_A) return KEY_ENTER;
   if (pressed & PADF_B) return KEY_BACKSPACE;

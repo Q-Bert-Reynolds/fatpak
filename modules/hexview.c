@@ -80,7 +80,7 @@ unsigned char ModuleMain(const unsigned long* file_size) {
   Show();
   while (1) {
     key = ModKey(); // every frame, 0 for none: redraw only after a move
-    if (key == KEY_BACKSPACE || key == KEY_ESCAPE) break;
+    if (key == KEY_BACKSPACE || key == KEY_MENU) break; // B, Start or Escape: no menu here
     next = cursor;
     if (key == KEY_LEFT) { if (next) --next; }
     else if (key == KEY_RIGHT) { if (next < last) ++next; }

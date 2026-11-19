@@ -26,7 +26,7 @@ unsigned char ModuleMain(const unsigned char* browser) {
   for (row = 0; row < HELP_ROWS; ++row) Record(row, row + 1);
   while (1) {
     key = ModKey();
-    if (key == KEY_BACKSPACE || key == KEY_ESCAPE) break;
+    if (key == KEY_BACKSPACE || key == KEY_MENU) break; // B, Start or Escape: no menu here
     next = first;
     if (key == KEY_UP && first) --next;
     else if (key == KEY_DOWN && first < HELP_LINES - 1 - HELP_ROWS) ++next;

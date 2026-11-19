@@ -2,6 +2,8 @@
 *: FIXED
 10: ViewBegin
 ROM0: ViewMap
-# ModBackground calls it while MAPVIEW.MOD has page 13 (any page but 13 and the wide pages 12, 5, 4, 15)
+# ModBackground calls them while MAPVIEW.MOD has page 13 (any page but 13; 15 is a wide page, fine for
+# MAPVIEW, which isn't wide: check_module_abi.py keeps wide modules off ModBackground)
 8: BackgroundText
+15: BackgroundBars
 14: CacheFolders

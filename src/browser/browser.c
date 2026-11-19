@@ -388,7 +388,6 @@ unsigned char Browse(void) {
       if (selected >= list_count) selected = list_count ? list_count - 1 : 0;
       drawn = LIST_ALL;
     }
-    else if (key == KEY_ESCAPE) break;
   }
   font = editor_font;
   SetFont(font);

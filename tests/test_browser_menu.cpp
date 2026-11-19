@@ -266,8 +266,7 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     Check(row(7)==" Words: 1" && row(8)==" Lines: 1","info counts text without trailing empty line");
     Check(row(3).find(" Created: ")==0 && row(4).find(" Accessed: ")==0 && row(5).find(" Modified: ")==0,"info displays all FAT timestamps");
     Check(row(19).find("\001Open \002Exit")!=std::string::npos && memory->Read(syms.at("tile_buffer")+19*40+32)==127,"info footer includes open and exit hints and clock");
-    pad(Start_Key);Check(row(18).find("Document.txt")!=std::string::npos,"only A, B or Esc dismisses file info");
-    pad(B_Key);Check(byte("_render_text")==0 && byte("_render_box_top")==255,"info returns to browser");
+    pad(Start_Key);Check(byte("_render_text")==0 && byte("_render_box_top")==255 && row(0)!=" Type: Plain Text","Start (like Escape) leaves file info: it has no menu");
     menu();pad(A_Key);for(unsigned i=0;i<3;++i)pad(Down_Key);pad(A_Key); // rename prompt
     Check(byte("_osk_shown")==1,"rename automatically opens on-screen keyboard");
     Check(row(1).find("Document.txt_")!=std::string::npos,"rename edits selected row in place");
@@ -328,7 +327,14 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     Check(row(18)==" /","B goes up to root");
     pad(B_Key);key(0x66);pad(Left_Key);
     Check(byte("_render_text")==0 && row(18)==" /","B, Backspace and Left stay in browser at root");
-    key(0x76); // Escape still returns to the editor
+    key(0x76); // Escape: the same as Start, the browser's menu
+    Check(byte("_render_box_top")!=255 && Text(memory,syms.at("tile_buffer")+20*40)==" FILE","Escape opens the browser menu like Start");
+    key(0x76);Check(byte("_render_box_top")==255 && byte("_render_text")==0,"and closes it, staying in the browser");
+    for(unsigned i=0;i<4;++i)pad(Up_Key);
+    pad(Down_Key);pad(A_Key); // a: the editor
+    for(unsigned waited=0;!byte("_render_text") && waited<300;++waited)Frames(core,1);
+    Check(byte("_render_text")==1,"opening a file goes to the editor");
+    const unsigned len0=memory->Read(syms.at("tb_len"));
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
     Check(byte("_render_box_rows")==8,"editor has six settings");
     Check(Text(memory,syms.at("tile_buffer")+20*40)==" LINE WRAP","line wrap is an editor setting");
@@ -343,9 +349,9 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     pad(B_Key);Check(byte("_render_text")==1,"B returns from help to editor");
     key(0x1C);pad(Select_Key);
     memory->Write(syms.at("_osk_y"),4);memory->Write(syms.at("_osk_x"),7);pad(A_Key);
-    Check(memory->Read(syms.at("tb_len"))==0,"editor OSK undo still edits the document");
+    Check(memory->Read(syms.at("tb_len"))==len0,"editor OSK undo still edits the document");
     memory->Write(syms.at("_osk_x"),8);pad(A_Key);
-    Check(memory->Read(syms.at("tb_len"))==1,"editor OSK redo still edits the document");
+    Check(memory->Read(syms.at("tb_len"))==len0+1,"editor OSK redo still edits the document");
     pad(Select_Key);ctrl(0x1A);
     ctrl(0x44);Check(byte("_render_text")==0,"reopen browser");
     for(unsigned i=0;i<32;++i) Check(memory->Read(syms.at("stack_top")+i)==0xA5,"menu and transfers stay within stack");
@@ -700,8 +706,8 @@ static void TileView(const char* image,const char* symbols,const char* data,bool
 // top left on the BG map (ModBackground). Tiles 128 and 129 are solid colours 1 and 2. Checked
 // against each other on the screen: the chunk's tile, a tile fill, a tile with a script's extra
 // byte, a stamp, a stamp fill, scrolling a tile and running into the east chunk, Start's menu and
-// back (the bars only with the menu: the name, and where the view is in the footer), Close back to the list in the theme's colours, and the second
-// view from the cache. Full screen on both; GBC: each object's palette.
+// back, the bars over the map (the name, and where the view is in the footer), Full screen without them, Close back to the list in the theme's colours, and the second
+// view from the cache. GBC: each object's palette.
 // FATPAK_SCREENSHOT=dir saves the first view.
 static void MapView(const char* image,const char* symbols,const char* data,bool color) {
     char folder[]="/tmp/fatpak-map-XXXXXX";Check(mkdtemp(folder),"map SD");
@@ -741,7 +747,7 @@ static void MapView(const char* image,const char* symbols,const char* data,bool 
         "MapTestChunkB:\n.tile:    DB 129\n.palette: DB 2\n.area:    DB 0\n.north:   DB MAP_TEST_CHUNK_B\n"
         ".east:    DB MAP_TEST_CHUNK_A\n.south:   DB MAP_TEST_CHUNK_B\n.west:    DB MAP_TEST_CHUNK_A\n"
         "  DB 0\n  DB 0\n"));
-    GearboyCore core;core.Init();core.SetEverdriveFolder(folder);
+    GearboyCore core;core.Init();core.SetEverdriveFolder(folder);core.SetPS2KeyboardEnabled(true);
     Check(core.LoadROM(image,!color),"map OS");auto memory=core.GetMemory();auto syms=Symbols(symbols);
     auto byte=[&](const char* name){return memory->Read(syms.at(name));};
     auto pad=[&](Gameboy_Keys key){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,60);};
@@ -768,7 +774,9 @@ static void MapView(const char* image,const char* symbols,const char* data,bool 
         FILE* f=fopen(path.c_str(),"wb");fprintf(f,"P6 160 144 255\n");
         for(unsigned i=0;i<160*144;++i){u16 p=frame[i];u8 rgb[3]={u8((p>>11)<<3),u8(((p>>5)&63)<<2),u8((p&31)<<3)};fwrite(rgb,1,3,f);}
         fclose(f);}
-    Check(!byte("render_event_count") && cell(0,0)==cell(0,1) && cell(19,17)==cell(0,1),"full screen: no bars over the map");
+    auto inked=[&](unsigned y0){unsigned n=0;for(unsigned y=y0;y<y0+8;++y)for(unsigned x=8;x<80;++x)n+=frame[y*160+x]!=frame[y0*160+159];return n;}; // text in a bar
+    auto barsShown=[&](){return byte("render_event_count")==2 && inked(0)>20 && inked(136)>20;};
+    Check(barsShown() && row(18)==" Test.gbmap" && row(19).find(" chunk 0  0,0")==0,"the bars over the map: its name, where the view is");
     struct stat built;Check(!stat(cache.c_str(),&built) && built.st_size==32768,"the image is cached in /GBCSYS/CACHE");
     u16 base=cell(0,1),fill=cell(2,2),sign=cell(8,1),stamp1=cell(10,5),stamp2=cell(11,5);
     auto drawn=[&](unsigned dx){ // chunk A's objects dx tiles left of where they are
@@ -785,6 +793,7 @@ static void MapView(const char* image,const char* symbols,const char* data,bool 
     auto mapcell=[&](unsigned x,unsigned y){return frame[(y*8+3)*160+x*8+3-scx()];}; // map tile x (0-63: 32 on are chunk B), y; SCY 0
     hold(Right_Key,8); // a pixel a frame (the view counts frames, so its loop's rate doesn't matter)
     Check(scx()>=7 && scx()<=9,"a pixel a frame");
+    Check(row(19).find(" chunk 0  "+std::to_string(scx()>>3)+",0")==0,"the footer says where once the d-pad is let go");
     Check(mapcell(2,2)==fill && mapcell(6,2)==base && mapcell(1,2)==base,"right scrolls the map");
     unsigned from=scx();
     core.KeyPressed(B_Key);hold(Right_Key,26);core.KeyReleased(B_Key);Frames(core,10); // B runs, 4 pixels a frame
@@ -795,18 +804,38 @@ static void MapView(const char* image,const char* symbols,const char* data,bool 
     Check(byte("_render_box_top")!=255 && !byte("_render_background"),"Start: the menu over the host's text");
     Check(byte("_bars")==1 && row(18)==" Test.gbmap" && row(19).find(" chunk 0  "+std::to_string(ran>>3)+",0")==0,"with the bars: the name in the header, where the view is in the footer");
     {std::string box;for(unsigned l=0;l<8;++l)box+=Text(memory,syms.at("tile_buffer")+20*40+l*20)+"|";
-     Check(box.find(" Rebuild|")!=std::string::npos && box.find(" Close the map|")!=std::string::npos && box.find("Back")==std::string::npos,"the menu: Rebuild, Close the map");}
+     Check(box.find(" Rebuild|")!=std::string::npos && box.find(" Full screen|")!=std::string::npos && box.find(" Close|")!=std::string::npos && box.find("Back")==std::string::npos,"the menu: Rebuild, Full screen, Close");}
     pad(B_Key);Frames(core,60); // B closes the menu
     Check(byte("_render_background") && scx()==ran && mapcell(32,1)==stamp2 && mapcell(31,1)==base,"and back to the map where it was");
     pad(Start_Key);pad(Start_Key);Frames(core,60);
-    Check(byte("_render_background") && scx()==ran && !byte("render_event_count") && cell(0,0)==cell(0,1),"Start closes it too, and the bars with it");
+    Check(byte("_render_background") && scx()==ran && barsShown(),"Start closes it too, the bars still over the map");
+    pad(Start_Key);pad(Down_Key);pad(A_Key);Frames(core,60); // Full screen
+    Check(byte("_render_background") && scx()==ran && !byte("render_event_count") && cell(0,0)==cell(0,1) && cell(0,17)==cell(0,1),"Full screen: the map without the bars");
+    pad(Start_Key);Check(byte("_bars")==1 && row(18)==" Test.gbmap","the menu still has them");
+    pad(Down_Key);pad(A_Key);Frames(core,60);
+    Check(scx()==ran && barsShown(),"Full screen again: the bars back");
+    const unsigned STATUS_ROW=19;
+    for(unsigned i=0;i<24;++i){ // the clock's minute ticking while the view scrolls: the footer redrawn just after VBlank
+        core.KeyPressed(i&1?Left_Key:Right_Key); // (WaitFrame's FooterTick), by HBlank DMA on GBC, while columns are drawn
+        for(unsigned f=0;f<4+i%5;++f){ // a changed footer at the tick, as a new minute is
+            memory->Write(syms.at("tile_buffer")+STATUS_ROW*40+1,f&1?'C':'c');memory->Write(syms.at("_footer_ready"),0);Frames(core,1);}
+        core.KeyReleased(i&1?Left_Key:Right_Key);Frames(core,2);}
+    Frames(core,30);
+    {const u8* bank0=memory->GetVRAMBank0();const u8* font=color?memory->GetVRAMBank1():bank0;
+     Check(!memcmp(bank0+0x800,tiles.data(),2048),"the map's tiles are untouched by the bars' rows ($8800, bank 0)");
+     bool blank=true;for(unsigned i=0;i<2048;++i)blank&=font[0x1000+i]==0;
+     Check(blank,"and so are the font's ($9000, bank 1 on GBC)");}
+    ran=scx(); // where the steps left it
     pad(B_Key);Frames(core,30);
     Check(byte("_module_busy") && byte("_render_background") && scx()==ran,"B alone stays on the map");
-    auto close=[&](){pad(Start_Key);pad(Down_Key);pad(A_Key);}; // Close the map
+    auto esc=[&](){core.QueuePS2KeyboardScanCode(0x76);Frames(core,4);core.QueuePS2KeyboardScanCode(0xF0);core.QueuePS2KeyboardScanCode(0x76);Frames(core,60);};
+    esc();Check(byte("_render_box_top")!=255 && !byte("_render_background"),"Escape opens the menu, like Start");
+    esc();Check(byte("_render_background") && scx()==ran && barsShown(),"and closes it");
+    auto close=[&](){pad(Start_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);}; // Close
     close();
     for(unsigned waited=0;(byte("_module_busy") || byte("_render_box_top")!=255) && waited<300;++waited)Frames(core,1);
     Frames(core,90);
-    Check(byte("_bars")==1 && row(18)==" /" && row(5)==" Test.gbmap","Close the map returns to the browser");
+    Check(byte("_bars")==1 && row(18)==" /" && row(5)==" Test.gbmap","Close returns to the browser");
     Check(frame[130*160+156]==paper && memory->Read(0xFF43)==0,"in the theme's paper again, unscrolled");
     core.KeyPressed(A_Key);Frames(core,4);core.KeyReleased(A_Key); // again: from the cache
     viewing(3000);

@@ -112,7 +112,7 @@ unsigned char ModuleMain(InfoContext* info) {
     }
     else Value(7, S_INFO_COUNTS, details->status == 2 ? S_BINARY_FILE : S_SKIPPED);
   }
-  do { key = ModKey(); } while (key != KEY_BACKSPACE && key != KEY_ESCAPE && key != KEY_ENTER);
+  do { key = ModKey(); } while (key != KEY_BACKSPACE && key != KEY_MENU && key != KEY_ENTER); // Start or Escape too: no menu here
   info->open = key == KEY_ENTER;
   return 0;
 }

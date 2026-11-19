@@ -331,9 +331,6 @@ _EditorRedraw::
 
 _EditorDraw::
   SGB_JUMP 3
-  ldh a, [render_background]
-  and a
-  ret nz;a module draws the BG map and its tiles (ModBackground): no text into them, the clock's included
   ld a, [_render_pending]
   cp a, 2
   jr nz, .waitScroll
@@ -356,6 +353,15 @@ _EditorDraw::
 .loop
     ld [draw_row], a
     ld c, a
+    ldh a, [render_background]
+    and a
+    jr z, .row
+    ld a, c;a module has the BG map and the text rows' tiles (ModBackground): only the bars
+    and a
+    jr z, .row
+    cp a, TB_ROWS-1
+    jr nz, .skip
+.row
     ld b, 0
     ld hl, _render_row_fonts
     add hl, bc
@@ -383,6 +389,7 @@ _EditorDraw::
 .font
     ld a, [draw_row]
     call RenderRow
+.skip
     ld a, [draw_row]
     inc a
     cp a, TB_ROWS
@@ -962,13 +969,18 @@ ENDR
 ;Mode 1: the module draws the BG map and the tiles it shows itself, with SCX and SCY set here (call it in
 ;VBlank, after ModFrame) and kept: render_target_scy follows, so the LCD interrupt doesn't scroll them back.
 ;GBC: in $8800 mode as always, map tiles from VRAM bank 0 $8800-$8FFF and bank 1 $9000-$97FF; DMG/SGB:
-;all the tiles, one tile mode ($8800). No bars: every call clears the LCD events that draw them, and
-;EditorDraw draws nothing meanwhile (the footer's clock, through ModFrame, included), so no text goes into
-;the module's tiles. Mode 0: the text back (BackgroundText), the bars too: before a box or menu, and
-;before the module returns.
+;all the tiles, one tile mode ($8800). Mode 1 keeps the bars over it, mode 2 is full screen: every call
+;stages the bars' LCD events (or none). Meanwhile EditorDraw draws only the bars (the footer's clock, through
+;ModFrame, included), never text rows, whose tiles are the module's; DMG/SGB: the bars move to blocks 0 and 1,
+;$8000 only, on their first call (BackgroundBars). Mode 0: the text back (BackgroundText): before a box or
+;menu, and before the module returns. A module writes VRAM only after mode 1 or 2 each frame: the host's rows
+;go by HBlank DMA into the bank VBK has, so writes that switch VBK wait for it (RenderWaitDMA, at the top).
 _ModuleAPIBackground::
   and a
   jr z, .text
+  ld c, a;1: with the bars, 2: full screen
+  call RenderWaitDMA;GBC: a row EditorDraw sent (the footer's clock) may still be going by HBlank DMA into
+;whichever bank VBK has: done before the module's VRAM writes switch it (they come after this call)
   ld hl, render_background
   ld a, [hl]
   and a
@@ -976,11 +988,41 @@ _ModuleAPIBackground::
   inc [hl]
   ld a, [render_target_scy]
   ld [render_text_scy], a
-.on
+  push bc
+  push de
+  call BackgroundBars
+  pop de
+  pop bc
+.on;the bars' LCD events, every time: a Layout may have staged the text's since
+  ld a, [_render_gbc]
+  and a
+  ld b, LCDCF_WINON
+  jr nz, .events
+  ld b, LCDCF_WINON | LCDCF_BG8000;DMG/SGB: the bars' blocks are $8000 only meanwhile (BackgroundBars)
+.events
+  ld hl, render_events
+  di
+  ld a, c
+  cp a, 2
+  jr z, .full
+  ld a, 8;the header, then from line 8 no window and the module's $8800 tiles
+  ld [hli], a
   xor a
-  di;no bars over the background, every time: a Layout may have staged the text's events since
-  ld [render_top_lcdc], a
+  ld [hli], a
+  ld a, SCRN_Y - 8;the window again, carrying on at its next row: the status bar
+  ld [hli], a
+  ld [hl], b
+  ld a, 2
+  jr .count
+.full
+  ld b, a;a = 0
+  xor a
+.count
   ld [render_event_count], a
+  ld a, b
+  ld [render_top_lcdc], a
+  xor a
+  ldh [rWY], a
   ei
   ld a, d
   ld [render_target_scy], a
@@ -1004,6 +1046,11 @@ _ModuleAPIBackground::
 ;FarCallInline returns to the address under its own, so this is a tail call: nothing may be pushed
   DB BANK(_BackgroundText)
   DW _BackgroundText
+
+BackgroundBars:;a thunk, since FarCallInline returns to the address under its own (its caller's)
+  call FarCallInline
+  DB BANK(_BackgroundBars)
+  DW _BackgroundBars
 
 SECTION "Render", ROMX, BANK[1]
 _RenderOverlayStart::

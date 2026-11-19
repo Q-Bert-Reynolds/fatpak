@@ -132,7 +132,7 @@ unsigned char ModuleMain(const unsigned long* file_size) {
   for (r = 0; r < SHEET_ROWS; ++r) SheetRow(r);
   while (1) {
     key = ModKey();
-    if (key == KEY_BACKSPACE || key == KEY_ESCAPE) break;
+    if (key == KEY_BACKSPACE || key == KEY_MENU) break; // B, Start or Escape: no menu here
     next = current;
     if (key == KEY_LEFT) { if (next) --next; }
     else if (key == KEY_RIGHT) { if (next + 1 < count) ++next; }

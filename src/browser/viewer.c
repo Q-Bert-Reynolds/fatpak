@@ -95,11 +95,26 @@ static void ViewBegin(void) {
   }
 }
 
-// ModBackground(0) (ABI 13, src/ui/render.asm): the text back after a module drew the BG map itself.
-// Each BG map row points at its block again, every row is drawn again, and the theme's palettes
+// ModBackground(1 or 2)'s first call (ABI 13, src/ui/render.asm): the bars drawn again, the only rows
+// EditorDraw draws meanwhile. DMG/SGB: the module has the $8800 tiles, the bars' blocks (8, 17) too, so
+// they use blocks 0 and 1 ($8000 only), in window map rows 0 and 1, until BackgroundText
+void BackgroundBars(void) {
+  if (!render_gbc) {
+    render_row_blocks[0] = 0;
+    render_row_blocks[screen_rows - 1] = 1;
+    map_blocks[BG_MAP_ROWS] = 0;
+    map_blocks[BG_MAP_ROWS + 1] = 1;
+    RenderSetMapRow(BG_MAP_ROWS, 0);
+    RenderSetMapRow(BG_MAP_ROWS + 1, 1);
+  }
+  EditorRedraw();
+}
+
+// ModBackground(0): the text back after a module drew the BG map itself. Each BG and window map row
+// points at its block again, every row is drawn again, and the theme's palettes
 void BackgroundText(void) {
   unsigned char i;
-  for (i = 0; i < BG_MAP_ROWS; ++i) map_blocks[i] = 0xFF;
+  for (i = 0; i < BG_MAP_ROWS + WIN_MAP_ROWS; ++i) map_blocks[i] = 0xFF;
   Layout();
   EditorRedraw();
   ThemeApply();
