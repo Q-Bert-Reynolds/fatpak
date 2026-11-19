@@ -141,6 +141,11 @@ emu.addEventCallback(function(cpu)
    finish(false,string.format('stalled mailbox did not display diagnostics: tick %d enabled %d dirty %d',word('_tick'),byte('_debug_enabled'),emu.read(symbols._overlay_dirty+27,emu.memType.snesWorkRam)));return
   end
  end
+ if os.getenv('SGB_PLAIN_ONLY')=='1' and byte('_plain_finished')~=0 then
+  result:write(string.format('PLAIN %d checks, %d mismatches; first case %d offset %d actual %02X expected %02X\n',word('_plain_checks'),word('_plain_mismatches'),word('_plain_first_case'),word('_plain_first_offset'),byte('_plain_first_actual'),byte('_plain_first_expected')))
+  result:write(string.format('PROPORTIONAL eight legacy rows %d vs direct %d SNES frames\n',word('_plain_legacy_frames'),word('_plain_direct_frames')))
+  finish(word('_plain_checks')==256 and word('_plain_mismatches')==0,'plain tile checks');return
+ end
  if os.getenv('SGB_TILE_ONLY')=='1' and byte('_tile_finished')~=0 then
   result:write(string.format('TILES %d checks, %d mismatches; first case %d offset %d actual %02X expected %02X\n',word('_tile_checks'),word('_tile_mismatches'),word('_tile_first_case'),word('_tile_first_offset'),byte('_tile_first_actual'),byte('_tile_first_expected')))
   result:write(string.format('FRESH eight legacy rows %d vs tiles %d SNES frames; hits %d misses %d\n',word('_tile_legacy_frames'),word('_tile_cached_frames'),word('_fixed_hits'),word('_fixed_misses')))
@@ -187,6 +192,7 @@ emu.addEventCallback(function(cpu)
    result:write('PASS: 112 native cache/selection comparisons: all slots, shade classes and pixel alignments\n')
    result:write(string.format('SELECTION eight cold rows %d vs cached %d SNES frames\n',word('_cache_cold_frames'),word('_cache_warm_frames')))
   end
+  result:write(string.format('PLAIN rows %d\n',word('_plain_rows')))
   result:write(string.format('TILES hits %d misses %d\n',word('_fixed_hits'),word('_fixed_misses')))
   result:write(string.format('CACHE hits %d misses %d\n',word('_raster_hits'),word('_raster_misses')))
   if drop_commit and (not dropped_seq or not recovered) then

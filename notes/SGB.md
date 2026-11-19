@@ -104,8 +104,11 @@ Fixed-width styled rows with four-pixel cells compose directly into tile planes,
 reusing tiles keyed by three neighboring character/style pairs. Three fragments
 are needed because of the one-pixel text inset. Spaces share a blank key;
 complete keys are checked after hashing. Normal/bold bitmaps must fit their
-cells (the build checks this). Italic, proportional and unusual-width rows use
-the original glyph/shade compositor. Both paths feed the same row cache and
+cells (the build checks this). `plain.s` packs ordinary text directly into
+planes 0/1 across all seven fonts, including proportional widths and overlapping
+normal glyphs. Both direct compositors clear only the 1 KiB tile buffer, leaving
+shade scratch untouched. Icons, right-aligned clocks and unsupported text styles
+fall back before changing the output. All paths feed the same row cache and
 selection recoloring.
 
 Capture drains up to four completed ICD2 buffers between bounded work slices.
@@ -1028,6 +1031,20 @@ comparison data: `build/sgb/tiles-after/`. The client verifies the full upload,
 padding, edit/save/scroll, menus/OSK and all six fallback cases. GB input
 publication stays at 9/15 frames; browser startup rises from 1,033 to 1,046 GB
 frames (~0.2 s) with the extra upload block. Hardware untested.
+
+The plain-text path passes 256 native comparisons against the original
+compositor: all fonts/character codes, structured and unstructured text,
+widths 1–15, clipped/spanning glyphs and unchanged output on fallback. The
+proportional-row benchmark takes 15 rather than 44 SNES frames for eight rows
+(about 3x faster). The fixed-width regression still passes all 144 cases;
+with tile-only clearing its benchmark takes 7 rather than 56 legacy frames.
+Run `SGB_PLAIN_ONLY=1 make test-sgb-kernel`; results are in
+`build/sgb/plain-after/`. The production image is 46,340 bytes, still twelve
+upload blocks. The complete replay lowers average base-row drawing from 1.5
+to 1.125 SNES frames (25%); all 57,344 pixels, menu/OSK restoration and
+dropped-ACK recovery pass. Client upload/padding and typing checks pass; GB
+input publication remains 9/15 frames. Browser publication is 1,049 GB frames
+versus 1,046 for the fixed-only build. Hardware untested.
 
 Next: reduce changed-tile uploads and redundant blank startup paints. Shared
 VRAM tiles/tile-map updates remain a later step. Keep the raster path for proportional/overlapping glyphs.

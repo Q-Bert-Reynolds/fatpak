@@ -1,13 +1,14 @@
 ; Four-pixel styled text: three neighboring glyph fragments form each tile
 ; because the document has a one-pixel left inset. Normal/bold bitmaps stay
 ; inside their cells; italic and non-four-pixel rows use the original compositor.
+; Accepted rows clear their packed output without touching shade scratch.
 ; Cache: $7E:DC00..DFFF keys (128 * 8), $7E:E000..EFFF tiles (128 * 32).
 ; This is above snapshot $D100..D87F and separate from the stack/row caches.
 ; Scratch $1180..11BF; row pointer DP $E4..E5 is shared with DrawGlyphs.
 .setcpu "65816"
 .export _DrawFixedTiles
 .import _glyph_row, _raster, Fonts, StyleFonts, StyleColors, _Capture
-.import _fixed_ready, _fixed_hits, _fixed_misses
+.import _fixed_ready, _fixed_hits, _fixed_misses, _ClearTiles
 .segment "CODE"
 .a8
 .i8
@@ -69,6 +70,13 @@ _DrawFixedTiles:
 @validationPolled:
  bra @validate
 @eligible:
+ sep #$30
+.a8
+.i8
+ jsr _ClearTiles
+ rep #$30
+.a16
+.i16
  lda _fixed_ready
  and #255
  bne @initialized

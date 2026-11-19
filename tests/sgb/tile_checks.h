@@ -14,7 +14,7 @@ static void TileCase(Row *row, u8 eligible) {
   EncodeRow();
   memcpy(tile_expected, raster, sizeof(raster));
   for (pass = 0; pass < 2; ++pass) {
-    ClearRaster();
+    memset(raster, 0xA5, sizeof(raster));
     accepted = fixed_tiles(row);
     if (accepted != eligible || (accepted && memcmp(raster, tile_expected, sizeof(raster)))) {
       if (!tile_mismatches) {
@@ -83,7 +83,7 @@ static void TileChecks(void) {
   }
   for (batch = 0; batch < 8; ++batch) {
     start = Clock();
-    ClearRaster();fixed_tiles(&row);
+    fixed_tiles(&row);
     tile_cached_frames += Clock() - start;
   }
   tile_finished = 1;

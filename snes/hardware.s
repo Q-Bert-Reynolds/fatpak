@@ -3,7 +3,7 @@
 .setcpu "65816"
 .export Entry, Nmi, Irq, _WaitBlank, Fonts
 .export __STARTUP__ : absolute = 1
-.export _Capture, _Snapshot, _FontWidth, _ClearRaster, _PpuInit
+.export _Capture, _Snapshot, _FontWidth, _ClearRaster, _ClearTiles, _PpuInit
 .export _PresentRow, _PresentPalette, _PresentCursor, _SetScroll, _PublishMailbox
 .import _main, zerobss
 .importzp sp
@@ -395,7 +395,10 @@ _FontWidth:
 
 .a8
 .i8
-_ClearRaster:
+.macro ClearBuffer Name, Size
+.a8
+.i8
+Name:
  .assert _shade = _raster+1024, lderror, "raster/shade must be contiguous"
  php
  rep #$30
@@ -421,10 +424,14 @@ _ClearRaster:
 .a16
 .i16
  plx
- cpx #3072
+ cpx #Size
  bcc @chunk
  plp
  rts
+
+.endmacro
+ClearBuffer _ClearRaster, 3072
+ClearBuffer _ClearTiles, 1024
 
 .a8
 .i8

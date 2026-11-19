@@ -22,7 +22,7 @@ def build():
     assert len(assets)==27584
     (WORK/'fonts.bin').write_bytes(assets)
     def run(*args): subprocess.run(args,cwd=ROOT,check=True)
-    checks=[flag for flag in ('SNES_GLYPH_CHECK','SNES_CACHE_CHECK','SNES_TILE_CHECK') if os.environ.get(flag.replace('SNES_', 'SGB_'))]
+    checks=[flag for flag in ('SNES_GLYPH_CHECK','SNES_CACHE_CHECK','SNES_TILE_CHECK','SNES_PLAIN_CHECK') if os.environ.get(flag.replace('SNES_', 'SGB_'))]
     run('cc65',*[arg for flag in checks for arg in ('-D',flag)],'-g','-t','none','-Oirs','--cpu','6502','-o',str(WORK/'kernel.s'),'snes/kernel.c')
     run('ca65','-g','-o',str(WORK/'kernel.o'),str(WORK/'kernel.s'))
     run('ca65','-o',str(WORK/'hardware.o'),'snes/hardware.s')
@@ -31,8 +31,9 @@ def build():
     run('ca65','-o',str(WORK/'overlay.o'),'snes/overlay.s')
     run('ca65','-o',str(WORK/'cache.o'),'snes/cache.s')
     run('ca65','-o',str(WORK/'fixed.o'),'snes/fixed.s')
+    run('ca65','-o',str(WORK/'plain.o'),'snes/plain.s')
     run('ld65','-C','snes/kernel.cfg','-m',str(WORK/'kernel.map'),'-Ln',str(WORK/'kernel.lbl'),
-        '-o',str(WORK/'kernel.bin'),str(WORK/'hardware.o'),str(WORK/'kernel.o'),str(WORK/'raster.o'),str(WORK/'glyphs.o'),str(WORK/'overlay.o'),str(WORK/'cache.o'),str(WORK/'fixed.o'),'/usr/share/cc65/lib/none.lib')
+        '-o',str(WORK/'kernel.bin'),str(WORK/'hardware.o'),str(WORK/'kernel.o'),str(WORK/'raster.o'),str(WORK/'glyphs.o'),str(WORK/'overlay.o'),str(WORK/'cache.o'),str(WORK/'fixed.o'),str(WORK/'plain.o'),'/usr/share/cc65/lib/none.lib')
     labels={name.lstrip('.'):int(at,16) for _,at,name in (line.split() for line in (WORK/'kernel.lbl').read_text().splitlines())}
     image=(WORK/'kernel.bin').read_bytes();split=labels['__FONTS_LOAD__']
     row_size=labels['_native_row_size']-labels['__RODATA_RUN__']+labels['__RODATA_LOAD__']
