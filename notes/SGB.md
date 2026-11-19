@@ -966,12 +966,28 @@ Startup profiling (fresh sample card, nominal GB clock) publishes the browser at
 upload preparation/copying costs another 4.6 s excluding called routines.
 Raw profile: `build/sgb/boot-analysis/`.
 
-Priorities: replace bootstrap CRC/window-copy loops with native GB block
-routines, keeping full validation and existing packet timing. Remove redundant
-blank startup paints. Then cache reusable/composed SNES tiles and update tile
-maps for common fixed-width text and selection changes; keep the raster path
-for proportional/overlapping glyphs. Measure first usable screen and key-to-PPU
-latency separately from transport ACKs and the replay's deliberate pauses.
+Bootstrap now uses native GB block loops for package CRC, upload copies and
+VRAM save/restore. CRC still covers the entire file with its checksum field
+zeroed logically; copies stop at each 512-byte window boundary. The DATA_TRN
+tile map is prepared once, while packet timing and upload block count stay the
+same.
+
+With the same production package and fresh sample card, browser publication
+falls from 1,560 to 1,030 GB frames (~26 to ~17 s, 34% faster). First DATA_TRN:
+979 to 673; JUMP: 1,285 to 755; wide geometry: 1,327 to 797. These are GB CPU
+emulator measurements, not hardware or first-visible-SNES-frame timings.
+Input publication remains 9 frames for browser Down and 15 for typing; this
+change targets startup rather than drawing. Comparisons/logs:
+`build/sgb/startup-before/` and `build/sgb/startup-after/`. The client test now
+reports boot milestones and checks CRC rejection at the stored checksum and
+both sides of a cartridge-window boundary, alongside upload bytes, zero padding,
+editing/saving and rollback. Hardware testing is pending.
+
+Next: remove redundant blank startup paints, then cache reusable/composed SNES
+tiles and update tile maps for common fixed-width text and selection changes.
+Keep the raster path for proportional/overlapping glyphs. Measure first usable
+screen and key-to-PPU latency separately from transport ACKs and the replay's
+deliberate pauses.
 
 Menu follow-up: center dialogs against the full 256-pixel viewport. The old
 keyboard preview used a fixed 150-pixel box; its replacement uses the actual

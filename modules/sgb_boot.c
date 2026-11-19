@@ -22,15 +22,108 @@ static unsigned char Read(unsigned long pos) {
 static unsigned long Long(const unsigned char* p) {
   return p[0]|((unsigned long)p[1]<<8)|((unsigned long)p[2]<<16)|((unsigned long)p[3]<<24);
 }
-static void CRC(unsigned char a) {
-  // CRC-16/CCITT byte update, equivalent to the transport's FsCRC.
-  a^=(unsigned char)(crc>>8);
-  a^=a>>4;
-  crc=(crc<<8)^((unsigned int)a<<12)^((unsigned int)a<<5)^a;
+// Each native loop stays within the selected 512-byte cartridge window.
+// These use SDCC's SM83 register ABI: first pointer in DE, second word in BC.
+static void CRCBlock(const unsigned char* from, unsigned int count) __naked {
+  from; count;
+  __asm
+    ld a, b
+    or c
+    ret z
+    ld a, [_crc]
+    ld l, a
+    ld a, [_crc+1]
+    ld h, a
+.byte:
+    ld a, [de]
+    inc de
+    push de
+    xor h
+    ld d, a
+    swap a
+    and $0F
+    xor d
+    ld d, a ; x = (high ^ byte) ^ ((high ^ byte) >> 4)
+    swap a
+    and $F0
+    xor l
+    ld e, a
+    ld a, d
+    rrca
+    rrca
+    rrca
+    ld l, a
+    and $1F
+    xor e
+    ld h, a
+    ld a, l
+    and $E0
+    xor d
+    ld l, a
+    pop de
+    dec bc
+    ld a, b
+    or c
+    jr nz, .byte
+    ld a, l
+    ld [_crc], a
+    ld a, h
+    ld [_crc+1], a
+    ret
+  __endasm;
 }
+
+static unsigned int copy_count;
+static void CopyVideo(unsigned char* to, const unsigned char* from) __naked {
+  to; from;
+  __asm
+    ld h, b
+    ld l, c
+    ld a, [_copy_count]
+    ld c, a
+    ld a, [_copy_count+1]
+    ld b, a
+    or c
+    ret z
+.byte:
+    ld a, [hl+]
+    ld [de], a
+    inc de
+    dec bc
+    ld a, b
+    or c
+    jr nz, .byte
+    ret
+  __endasm;
+}
+
+// Exchange a whole window with VRAM while the LCD is off, for rollback.
+static void SwapWindow(unsigned char* video) __naked {
+  video;
+  __asm
+    ld hl, $BE00
+    ld b, 2
+.byte:
+    ld a, [de]
+    ld c, a
+    ld a, [hl]
+    ld [de], a
+    ld [hl], c
+    inc hl
+    inc de
+    ld a, l
+    or a
+    jr nz, .byte
+    dec b
+    jr nz, .byte
+    ret
+  __endasm;
+}
+
 static unsigned char Validate(void) {
   unsigned long i,p,f,o,load,entry;
-  unsigned int block,count,j;
+  unsigned int block,count,offset;
+  static const unsigned char zero_crc[2]={0,0};
   if(file.size<32) return 1;
   for(i=0;i<32;++i) header[i]=Read(i);
   p=Long(header+14);f=Long(header+18);o=Long(header+22);
@@ -40,12 +133,13 @@ static unsigned char Validate(void) {
      p>0x800000-load||f>0x800000-load-p||entry<load||entry>=load+p||o!=0x1D00||
      file.size!=32+p+f+o||header[28]!=REG(0x14E)||header[29]!=REG(0x14F)||header[30]!=1||header[31]!=1) return 1;
   crc=0xFFFF;
-  // Walk the window in blocks: no 32-bit address calculation per file byte.
-  i=file.size;block=SGB_FILE_BLOCK;
+  // The stored CRC field contributes two zero bytes, without changing PSRAM.
+  CRCBlock(header,26);CRCBlock(zero_crc,2);
+  i=file.size-28;block=SGB_FILE_BLOCK;offset=28;
   while(i) {
-    count=i>512?512:(unsigned int)i;Block(block);
-    for(j=0;j<count;++j)CRC(block==SGB_FILE_BLOCK&&(j==26||j==27)?0:WINDOW[j]);
-    i-=count;++block;
+    count=512-offset;if(i<count)count=(unsigned int)i;
+    Block(block);CRCBlock((const unsigned char*)WINDOW+offset,count);
+    i-=count;++block;offset=0;
   }
   return crc!=(header[26]|((unsigned int)header[27]<<8));
 }
@@ -58,10 +152,8 @@ static void Send(unsigned char code) {
 }
 static void SwapVideo(void) {
   unsigned int i;
-  unsigned char value;
-  for(i=0;i<0x2000;++i) {
-    Block(SNAP+(i>>9));value=REG(0x8000+i);
-    REG(0x8000+i)=WINDOW[i&511];WINDOW[i&511]=value;
+  for(i=0;i<0x2000;i+=512) {
+    Block(SNAP+(i>>9));SwapWindow((unsigned char*)(0x8000+i));
   }
 }
 static void Off(void) {
@@ -81,24 +173,28 @@ static void Restore(void) {
 }
 static void Upload(void) {
   unsigned long n=Long(header+14)+Long(header+18),load=Long(header+8)&0xFFFFFF;
-  unsigned int i,map,count,source=SGB_FILE_BLOCK,offset=32;
+  unsigned int i,map,count,run,source=SGB_FILE_BLOCK,offset=32;
   unsigned char row,column,tile;
+  // DATA_TRN reads this same tile map each time; only its tile data changes.
+  Off();
+  for(i=0;i<1024;++i) REG(0x9800+i)=255;
+  tile=0;
+  for(row=0;row<13;++row)for(column=0;column<20;++column) {
+    map=((unsigned int)row<<5)+column;REG(0x9800+map)=tile++;
+    if(!tile)goto mapped;
+  }
+mapped:
   while(n) {
     Off();
-    count=n>4096?4096:(unsigned int)n;Block(source);
-    for(i=0;i<count;++i) {
-      REG(0x8000+i)=WINDOW[offset++];
-      if(offset==512){offset=0;Block(++source);}
+    count=n>4096?4096:(unsigned int)n;
+    for(i=0;i<count;i+=run) {
+      run=512-offset;if(run>count-i)run=count-i;
+      Block(source);copy_count=run;
+      CopyVideo((unsigned char*)(0x8000+i),(const unsigned char*)WINDOW+offset);
+      offset+=run;if(offset==512){offset=0;++source;}
     }
     for(;i<4096;++i)REG(0x8000+i)=0;
     n-=count;
-    for(i=0;i<1024;++i) REG(0x9800+i)=255;
-    tile=0;
-    for(row=0;row<13;++row)for(column=0;column<20;++column) {
-      map=((unsigned int)row<<5)+column;REG(0x9800+map)=tile++;
-      if(!tile)goto mapped;
-    }
-mapped:
     REG(0xFF42)=REG(0xFF43)=0;REG(0xFF47)=0xE4;REG(0xFF40)=0x91;
     packet[1]=load;packet[2]=load>>8;packet[3]=load>>16;Send(0x10);load+=4096;
   }

@@ -33,10 +33,28 @@ static void ProfileEnd(GearboyCore& core,const char* name) {
 }
 static std::string Text(Memory* m,unsigned at){std::string s;for(unsigned i=0;i<128 && m->Read(at+i);++i)s+=char(m->Read(at+i));return s;}
 static bool Contains(FatPakSGBHost* h,const std::string& text){for(const auto& r:h->GetModel().rows){std::string s(r.chars.begin(),r.chars.end());if(s.find(text)!=std::string::npos)return true;}return false;}
-static void WaitForFullscreenStartup(GearboyCore& c,const std::map<std::string,unsigned>& syms) {
+static void WaitForFullscreenStartup(GearboyCore& c,const std::map<std::string,unsigned>& syms,bool record_boot=false) {
     auto m=c.GetMemory();
+    bool first=false,jump=false,wide=false,published=false;
+    if(record_boot)ProfileStart(c);
     for(unsigned i=0;i<4000;++i) {
         Frames(c,1);
+        auto h=c.GetSGB()->GetFatPakHost();
+        if(record_boot) {
+            if(!first && h->UploadBytes()) {
+                printf("BOOT first upload: %u GB frames\n",i+1);first=true;
+            }
+            if(!jump && h->Active()) {
+                printf("BOOT JUMP: %u GB frames, %u uploaded bytes\n",i+1,h->UploadBytes());jump=true;
+            }
+            if(jump && !wide && m->Read(syms.at("_screen_rows"))==28) {
+                printf("BOOT wide: %u GB frames\n",i+1);wide=true;
+            }
+            if(wide && !published && Contains(h,"sample.c")) {
+                printf("BOOT browser published: %u GB frames\n",i+1);published=true;
+                ProfileEnd(c,"boot");
+            }
+        }
         if(c.GetSGB()->GetFatPakHost()->Active() && m->Read(syms.at("_screen_rows"))==28)
             Check(m->Read(syms.at("sys_info"))&4,
                   "fullscreen owns VBlank before the initial wide redraw");
@@ -47,7 +65,14 @@ static void Fallback(const char* image,const std::map<std::string,unsigned>& sym
     char dir[]="/tmp/fatpak-client-fallback-XXXXXX";Check(mkdtemp(dir),"fallback SD");
     std::string root(dir);mkdir((root+"/GBCSYS").c_str(),0700);mkdir((root+"/GBCSYS/MODULES").c_str(),0700);
     Write(root+"/GBCSYS/EDITOR.DAT",Read(data));Write(root+"/GBCSYS/MODULES/SGBBOOT.MOD",Read(module));
-    if(mode) {auto b=file;if(mode==1)b.back()^=1;Write(root+"/GBCSYS/SGB.DAT",b);}
+    if(mode) {
+        auto b=file;
+        if(mode==1)b.back()^=1;
+        if(mode==3)b[26]^=1; // Stored checksum field, excluded from the computed CRC.
+        if(mode==4)b[511]^=1; // Last byte before a cartridge-window boundary.
+        if(mode==5)b[512]^=1; // First byte after the boundary.
+        Write(root+"/GBCSYS/SGB.DAT",b);
+    }
     GearboyCore c;c.Init();c.SetForceSGB(true);c.SetEverdriveFolder(dir);
     if(mode!=2)c.GetSGB()->GetFatPakHost()->Configure(FatPakSGBHost::TerminalV1);
     Check(c.LoadROM(image,false),"fallback OS");
@@ -70,7 +95,7 @@ int main(int n,char** v){
     core.GetSGB()->GetFatPakHost()->Configure(FatPakSGBHost::TerminalV1);Check(core.LoadROM(v[1],false),"load OS");
     Check(core.GetSGB()->GetFatPakHost()->SetRecording("build/sgb/client.fph"),"record real frontend LCD stream");
     auto h=core.GetSGB()->GetFatPakHost();auto m=core.GetMemory();
-    WaitForFullscreenStartup(core,syms);
+    WaitForFullscreenStartup(core,syms,true);
     printf("boot PC=%04x sys=%02x geometry=%u host=%d good=%u bad=%u error=%s fault=%u row=%u pending=%u ack=%u mailbox=%u/%u/%u/%u file=%s\n",
         core.GetProcessor()->GetState()->PC->GetValue(),m->Read(syms.at("sys_info")),m->Read(syms.at("_screen_rows")),h->Active(),h->Good(),h->Bad(),h->LastError().c_str(),
         m->Read(syms.at("fs_fault")),m->Read(syms.at("fs_row")),m->Read(syms.at("fs_pending")),m->Read(syms.at("fs_ack")),
@@ -348,5 +373,5 @@ int main(int n,char** v){
         Write("build/sgb/hardware-test.SGB.LOG",log);
         puts("SGB hardware log: durable bounded records, SNES timing sample and ACKs passed");
     }
-    for(unsigned mode=0;mode<3;++mode)Fallback(v[1],syms,v[3],v[5],Read(v[4]),mode);
+    for(unsigned mode=0;mode<6;++mode)Fallback(v[1],syms,v[3],v[5],Read(v[4]),mode);
 }
