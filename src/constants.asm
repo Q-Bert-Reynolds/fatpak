@@ -153,6 +153,7 @@ DEF MODULE_STAT_FRAMES EQU 1;the frames since the module started, their low 16 b
 DEF MODULE_STAT_RETRIES EQU 3;PSRAM block copies that read back wrong and were copied again
 DEF MODULE_STAT_FS EQU 4;the address of FatFs's volume (FATFS), to read only
 DEF MODULE_STAT_FILE EQU 5;and of the file ModFile and ModLoad last opened (FIL: its directory entry's sector and place)
+DEF MODULE_STAT_BOX EQU 6;the address of the box ModMenu opened: its top screen row, rows, x and width in pixels (to read only)
 
 ;fonts
 DEF FONT_MONO EQU 0

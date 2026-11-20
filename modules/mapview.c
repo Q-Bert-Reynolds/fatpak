@@ -86,7 +86,7 @@ static unsigned char cached[SLOTS], slots[4]; // drawn chunks; the view's: here,
 static unsigned char slot, fill_tile, fill_pal; // Fill's
 static unsigned char chunk, tx, ty, gbc; // the view: its chunk, its top left tile in it
 static unsigned char full, moved; // no bars (ModBackground's mode 2); the footer is behind the view
-static short cam_x, cam_y; // its top left pixel in the chunk, 0-255
+static unsigned char cam_x, cam_y; // its top left pixel in the chunk
 static unsigned short wrap_n; // the wrapper's length
 
 #ifdef HOST_TEST
@@ -120,19 +120,24 @@ static unsigned char Load(const char* name, unsigned short block, unsigned char 
 
 // the map's tileset: the first _...Tiles name in its first 4 KiB (the header's), as
 // img/maps/snake_case.tiles in tiles, else "". ModRead (into text): before anything closes the map
+static unsigned char Same(const char* a, const char* b) { // a starts with b
+  while (*b) if (*a++ != *b++) return 0;
+  return 1;
+}
 static void TilesPath(void) {
   char name[40], *dst, c;
   unsigned char n = 0, got, i;
-  unsigned long pos = 0;
+  unsigned short pos = 0;
   tiles[0] = 0;
   while (pos < 4096 && (got = ModRead(pos, text, MODULE_SOURCE_CHUNK))) {
     for (i = 0; i < got; ++i) {
       c = text[i];
-      if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_') {
+      if (c == '_' || (unsigned char)((c | 0x20) - 'a') < 26 || (unsigned char)(c - '0') < 10) { // a name's
         if (n < sizeof(tiles) - 16 && (n || c == '_')) name[n++] = c;
         continue;
       }
-      if (n > 6 && name[n - 5] == 'T' && name[n - 4] == 'i' && name[n - 3] == 'l' && name[n - 2] == 'e' && name[n - 1] == 's') {
+      name[n] = 0;
+      if (n > 6 && Same(name + n - 5, "Tiles")) {
         dst = PutText(tiles, "img/maps/"); // _WorldSpritesTiles: img/maps/world_sprites.tiles
         for (i = 1; i < n - 5; ++i) {
           c = name[i];
@@ -552,14 +557,38 @@ static void Show(void) {
   for (y = ty; y != ty + ROWS; ++y) Row(y);
 }
 
-// Start's menu, over the host's text with the bars: MENU_BUILD or MENU_CLOSE, or MENU_BACK when Start
-// or B closes it or Full screen turns the bars off or on (the map again, where it was)
+// GBC: the host's box (ModMenu) over the map. While the module has the BG map, the host draws text row r
+// into block r + 4 (a box of up to 6 lines: blocks 9-16, tiles the map's leave); its cells are pointed at
+// them, palette 0 like the bars. ModStat(MODULE_STAT_BOX): its top row, rows, x and width in pixels
+static void BoxCells(void) {
+  const unsigned char* box = (const unsigned char*)(unsigned short)ModStat(MODULE_STAT_BOX);
+  unsigned char r, c, b, id, *to;
+  for (r = box[0]; r != box[0] + box[1]; ++r) {
+    b = r + 4;
+    if (b >= 12) b -= 12; // bank 1's blocks
+    id = 128 + (b << 4) + (b << 2); // block b's first tile, $8800 mode (past 255: $9000 on)
+    for (c = box[2] >> 3; c <= (unsigned char)(box[2] + box[3] - 1) >> 3; ++c) {
+      to = BG_MAP + ((unsigned short)((ty + r) & 31) << 5) + ((tx + c) & 31);
+      VPut(to, id + c);
+      VBK = 1;
+      VPut(to, r + 4 >= 12 ? 8 : 0);
+      VBK = 0;
+    }
+  }
+}
+
+// Start's menu with the bars, over the map on GBC (BoxCells), the host's text on DMG/SGB (the map has every
+// tile the background reaches): MENU_BUILD or MENU_CLOSE, or MENU_BACK when Start or B closes it or Full
+// screen turns the bars off or on (the map again, where it was)
 static unsigned char Menu(void) {
   char lines[MENU_ITEMS * BOX_STRIDE];
   unsigned char selected = MENU_BUILD, key, i;
   for (i = 0; i < MENU_ITEMS; ++i) *ModString(PutText(lines + i * BOX_STRIDE, " "), S_MAP_REBUILD + i) = 0;
-  ModBackground(0, 0);
+  if (gbc) ModBackground(1, (unsigned short)cam_y << 8 | (unsigned char)cam_x); // the bars, full screen or not
+  else ModBackground(0, 0);
   Bars();
+  ModMenu(lines, MENU_ITEMS, selected);
+  if (gbc) BoxCells();
   while (1) {
     ModMenu(lines, MENU_ITEMS, selected);
     while (!(key = ModKey()));
@@ -573,29 +602,40 @@ static unsigned char Menu(void) {
     full ^= 1;
     selected = MENU_BACK;
   }
-  if (selected == MENU_BACK) Show();
+  if (selected == MENU_BACK) {
+    if (!gbc) Show();
+    else for (i = 0; i != ROWS; ++i) Row(ty + i); // the box's cells: the map again
+  }
   return selected;
 }
 
 // a step of the view (to the d-pad's held directions): step pixels, a column or row drawn as it
 // comes into view (before the scroll that shows it)
+static void Cross(unsigned char side) { // into the chunk's neighbour
+  chunk = Neighbour(chunk, side);
+  Slots();
+}
 static void Step(unsigned char held, unsigned char step) {
   unsigned char nt;
   if (held & PADF_RIGHT) {
-    if ((cam_x += step) >= 256) { cam_x -= 256; tx -= CHUNK; chunk = Neighbour(chunk, EAST); Slots(); }
-    if ((nt = (unsigned char)(cam_x >> 3)) != tx) { tx = nt; Column(tx + COLS - 1); }
+    if ((unsigned char)(cam_x + step) < cam_x) { tx -= CHUNK; Cross(EAST); }
+    cam_x += step;
+    if ((nt = cam_x >> 3) != tx) { tx = nt; Column(tx + COLS - 1); }
   }
   else if (held & PADF_LEFT) {
-    if ((cam_x -= step) < 0) { cam_x += 256; tx += CHUNK; chunk = Neighbour(chunk, WEST); Slots(); }
-    if ((nt = (unsigned char)(cam_x >> 3)) != tx) { tx = nt; Column(tx); }
+    if (step > cam_x) { tx += CHUNK; Cross(WEST); }
+    cam_x -= step;
+    if ((nt = cam_x >> 3) != tx) { tx = nt; Column(tx); }
   }
   if (held & PADF_DOWN) {
-    if ((cam_y += step) >= 256) { cam_y -= 256; ty -= CHUNK; chunk = Neighbour(chunk, SOUTH); Slots(); }
-    if ((nt = (unsigned char)(cam_y >> 3)) != ty) { ty = nt; Row(ty + ROWS - 1); }
+    if ((unsigned char)(cam_y + step) < cam_y) { ty -= CHUNK; Cross(SOUTH); }
+    cam_y += step;
+    if ((nt = cam_y >> 3) != ty) { ty = nt; Row(ty + ROWS - 1); }
   }
   else if (held & PADF_UP) {
-    if ((cam_y -= step) < 0) { cam_y += 256; ty += CHUNK; chunk = Neighbour(chunk, NORTH); Slots(); }
-    if ((nt = (unsigned char)(cam_y >> 3)) != ty) { ty = nt; Row(ty); }
+    if (step > cam_y) { ty += CHUNK; Cross(NORTH); }
+    cam_y -= step;
+    if ((nt = cam_y >> 3) != ty) { ty = nt; Row(ty); }
   }
 }
 

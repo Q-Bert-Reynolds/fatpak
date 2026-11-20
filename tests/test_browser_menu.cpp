@@ -800,13 +800,19 @@ static void MapView(const char* image,const char* symbols,const char* data,bool 
     Check(scx()>=from+96 && scx()<=from+112,"B held runs: 4 pixels a frame");
     Check(mapcell(32,1)==stamp2 && mapcell(32,16)==stamp2 && mapcell(31,1)==base,"the east chunk from column 32: its tile, 129, in its palette, 2");
     unsigned ran=scx();
+    std::vector<u16> seen(frame.begin(),frame.end());
+    auto same=[&](unsigned y0,unsigned y1){for(unsigned i=y0*160;i<y1*160;++i)if(frame[i]!=seen[i])return false;return true;};
+    auto menuShown=[&](){ // GBC: the box over the map (rows 6-10); DMG/SGB: over the host's text, the map has every tile
+        auto corner=[&](){unsigned x0=byte("_render_box_x"),y0=byte("_render_box_top")*8;bool ink=false; // the top left cell: the border, not the map
+            for(unsigned y=y0;y<y0+8;++y)for(unsigned x=x0;x<x0+4;++x)ink|=frame[y*160+x]!=seen[y*160+x];return ink;};
+        return byte("_render_box_top")!=255 && (color ? byte("_render_background") && same(8,44) && same(92,136) && !same(60,84) && corner() : !byte("_render_background"));};
     pad(Start_Key);
-    Check(byte("_render_box_top")!=255 && !byte("_render_background"),"Start: the menu over the host's text");
+    Check(menuShown(),color?"Start: the menu over the map":"Start: the menu over the host's text");
     Check(byte("_bars")==1 && row(18)==" Test.gbmap" && row(19).find(" chunk 0  "+std::to_string(ran>>3)+",0")==0,"with the bars: the name in the header, where the view is in the footer");
     {std::string box;for(unsigned l=0;l<8;++l)box+=Text(memory,syms.at("tile_buffer")+20*40+l*20)+"|";
      Check(box.find(" Rebuild|")!=std::string::npos && box.find(" Full screen|")!=std::string::npos && box.find(" Close|")!=std::string::npos && box.find("Back")==std::string::npos,"the menu: Rebuild, Full screen, Close");}
     pad(B_Key);Frames(core,60); // B closes the menu
-    Check(byte("_render_background") && scx()==ran && mapcell(32,1)==stamp2 && mapcell(31,1)==base,"and back to the map where it was");
+    Check(byte("_render_background") && scx()==ran && same(8,136),"and back to the map where it was, as it was");
     pad(Start_Key);pad(Start_Key);Frames(core,60);
     Check(byte("_render_background") && scx()==ran && barsShown(),"Start closes it too, the bars still over the map");
     pad(Start_Key);pad(Down_Key);pad(A_Key);Frames(core,60); // Full screen
@@ -829,7 +835,8 @@ static void MapView(const char* image,const char* symbols,const char* data,bool 
     pad(B_Key);Frames(core,30);
     Check(byte("_module_busy") && byte("_render_background") && scx()==ran,"B alone stays on the map");
     auto esc=[&](){core.QueuePS2KeyboardScanCode(0x76);Frames(core,4);core.QueuePS2KeyboardScanCode(0xF0);core.QueuePS2KeyboardScanCode(0x76);Frames(core,60);};
-    esc();Check(byte("_render_box_top")!=255 && !byte("_render_background"),"Escape opens the menu, like Start");
+    seen.assign(frame.begin(),frame.end());
+    esc();Check(menuShown(),"Escape opens the menu, like Start");
     esc();Check(byte("_render_background") && scx()==ran && barsShown(),"and closes it");
     auto close=[&](){pad(Start_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);}; // Close
     close();

@@ -156,6 +156,7 @@
 #define MODULE_STAT_RETRIES 3//PSRAM block copies that read back wrong and were copied again
 #define MODULE_STAT_FS 4//the address of FatFs's volume (FATFS), to read only
 #define MODULE_STAT_FILE 5//and of the file ModFile and ModLoad last opened (FIL: its directory entry's sector and place)
+#define MODULE_STAT_BOX 6//the address of the box ModMenu opened: its top screen row, rows, x and width in pixels (to read only)
 
 //fonts
 #define FONT_MONO 0

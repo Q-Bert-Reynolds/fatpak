@@ -356,11 +356,17 @@ _EditorDraw::
     ldh a, [render_background]
     and a
     jr z, .row
-    ld a, c;a module has the BG map and the text rows' tiles (ModBackground): only the bars
+    ld a, c;a module has the BG map and the text rows' tiles (ModBackground): only the bars and a box
     and a
     jr z, .row
     cp a, TB_ROWS-1
-    jr nz, .skip
+    jr z, .row
+    ld hl, _render_box_top
+    sub a, [hl]
+    jr c, .skip
+    inc hl
+    cp a, [hl];render_box_rows
+    jr nc, .skip
 .row
     ld b, 0
     ld hl, _render_row_fonts
@@ -965,6 +971,7 @@ ELSE
 ENDC
 ENDR
 
+
 ;C, ABI 13 (ModBackground): a = mode, d = SCY, e = SCX; returns a = the buttons held (pad and keyboard).
 ;Mode 1: the module draws the BG map and the tiles it shows itself, with SCX and SCY set here (call it in
 ;VBlank, after ModFrame) and kept: render_target_scy follows, so the LCD interrupt doesn't scroll them back.
@@ -980,7 +987,9 @@ _ModuleAPIBackground::
   jr z, .text
   ld c, a;1: with the bars, 2: full screen
   call RenderWaitDMA;GBC: a row EditorDraw sent (the footer's clock) may still be going by HBlank DMA into
-;whichever bank VBK has: done before the module's VRAM writes switch it (they come after this call)
+;whichever bank VBK has: done before the module's VRAM writes switch it (they come after this call), and
+  xor a;VBK back to 0, where the host leaves the last row's bank
+  ldh [rVBK], a
   ld hl, render_background
   ld a, [hl]
   and a
@@ -990,6 +999,7 @@ _ModuleAPIBackground::
   ld [render_text_scy], a
   push bc
   push de
+  call MapBoxLayout
   call BackgroundBars
   pop de
   pop bc
@@ -2489,6 +2499,9 @@ RenderEncode:
 ;GBC: writes the palette of each of the row's tiles (its accent's, 0 if it has selected pixels) to
 ;its map row's attributes, if it or the block's last row used accents
 RenderWritePalettes:
+  ldh a, [render_background]
+  and a
+  ret nz;a module has the BG map (ModBackground): no palettes into its rows
   ld a, [render_block]
   ld c, a
   ld b, 0
@@ -2566,3 +2579,21 @@ ASSERT DATA_BLOCK + DATA_BLOCKS + 16 <= $3E2F, "assets and name undo must preced
 ASSERT ADD_BLOCK + (ADD_MAX >> 9) == SGB_FILE_BLOCK, "large edits must stop before assets"
 
 _RenderOverlayEnd::
+
+SECTION "Map box layout", ROMX, BANK[1]
+;GBC, while a module has the BG map (ModBackground's first call): text row r draws into block r + 4, so a
+;box of up to 6 lines (rows 5-12: blocks 9-16, in bank 0 $9340-$96FF and bank 1 $8800-$8E3F) uses tiles the
+;module's ($8800-$8FFF bank 0, $9000-$97FF bank 1) leave. EditorDraw draws only the bars and a box meanwhile
+MapBoxLayout:
+  ld a, [_render_gbc]
+  and a
+  ret z
+  ld hl, _render_row_blocks+1
+  ld a, 5
+  ld b, TB_ROWS-2
+.block
+    ld [hli], a
+    inc a
+    dec b
+    jr nz, .block
+  ret

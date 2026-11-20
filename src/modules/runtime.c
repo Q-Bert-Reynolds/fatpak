@@ -436,6 +436,7 @@ unsigned long ModuleAPIStat(unsigned char which) {
   if (which == MODULE_STAT_FRAMES) return module_frames;
   if (which == MODULE_STAT_FS) return (unsigned int)&fs;
   if (which == MODULE_STAT_FILE) return (unsigned int)&save_file;
+  if (which == MODULE_STAT_BOX) return (unsigned int)&render_box_top;
   return module_retries;
 }
 // ABI 10: ModSector, a card sector into PSRAM block (ASM.MOD's build.cache reads files by their
