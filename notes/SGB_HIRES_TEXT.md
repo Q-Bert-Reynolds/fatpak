@@ -36,7 +36,25 @@ Mode 5 + interlace, no drawing:
   - The kernel has about 160 bytes free, so it still needs space: a second program loaded on
     entering 512×448, or code moved out.
 
-## GB side (the blocker)
+## Progress (2026-11-20)
+
+- Built: the fullscreen row model is in PSRAM (`SGB_ROWS_BLOCK`, four rows a block). One staging row in
+  WRAM (`wide_staging`) acts as a write-back cache: `RenderRowAddress` stages the row asked for,
+  writing the previous one back first. `RenderRowRead` stages for reading only (the fullscreen
+  sender's). `tb_RenderRows` stages and blanks each row as it starts (`RowBegin`), and
+  `tb_ScrollRows` moves rows through the staging row (`RowsShift`).
+- Built: the per-row tables are sized for 56 rows (`MAX_SCREEN_ROWS`). That made room in WRAM:
+  - the GB renderer's 760-byte cache of drawn characters is now a hash per block (`block_hashes`);
+  - the browser reads an entry's kind from its row's text, so `list_kinds` is gone;
+  - the GB-only tables (`render_row_blocks`, `ring_blocks`) stay at `GB_MAX_ROWS`.
+  Fullscreen still uses 28 rows (`WIDE_ROWS`) until the SNES side exists.
+- Next: a kernel extension the GB sends on entering a 512×448 mode (the kernel has 159 bytes free).
+  - It's built with the kernel and kept in `SGB.DAT`, and loads into `$7E:DC00+`: the 4 px fixed
+    compositor's cache, used only at 256×224, so `fixed_ready` is cleared to rebuild it after.
+  - The 512×448 map engine moves into it, freeing about 1.2 KiB of kernel.
+  - Then the character-tile text mode, the protocol's 56 rows, and the GB switching to 56 rows.
+
+## GB side (was the blocker)
 
 The fullscreen row model is characters and styles per cell, kept in WRAMX:
 - today: 28 rows × 64 × 2 = 3.5 KiB, in a 3,744-byte union;

@@ -402,7 +402,7 @@ FsEncodeRow:
   ldh [fs_font], a
 .fontChosen
   pop af
-  call RenderRowAddress
+  call RenderRowRead;(staged from PSRAM, for reading)
   ld de, tile_buffer
   add hl, de
   ld a, l
@@ -1080,14 +1080,7 @@ FsInit:
   sub b
   ld [_tb_rows], a
   call _Layout__far
-  ld hl, wide_tile_buffer
-  ld bc, 28*64
-  ld a, ' '
-  call mem_Set
-  ld hl, wide_tile_attrs
-  ld bc, 28*64
-  ld a, 4
-  call mem_Set
+  call RowsClear;(the rows are in PSRAM)
   call FsRedraw
   xor a
   ldh [fs_fault], a

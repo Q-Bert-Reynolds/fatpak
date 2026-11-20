@@ -484,7 +484,7 @@ static void RenameEdges(const char* image,const char* symbols,const char* data,b
     printf("%s bottom-row and folder rename with joypad keyboard passed\n",color?"CGB":"DMG");
 }
 // The OSK's shift key in the editor and in the rename prompt, which only draws
-// when a key is typed: the screen (bkg_buffer) must follow every layer change.
+// when a key is typed: the screen (each block's drawn row, by its hash) must follow every layer change.
 static void OSKShift(const char* image,const char* symbols,const char* data,bool color) {
     for(bool rename : {false,true}) {
         char folder[]="/tmp/fatpak-shift-XXXXXX";Check(mkdtemp(folder),"shift SD");
@@ -495,9 +495,17 @@ static void OSKShift(const char* image,const char* symbols,const char* data,bool
         auto byte=[&](const char* name){return memory->Read(syms.at(name));};
         auto tap=[&](Gameboy_Keys key,unsigned wait){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,wait);};
         auto pad=[&](Gameboy_Keys key){tap(key,70);};
+        auto drawn=[&](unsigned block){ // the row a block shows, if its hash says it was drawn (render.asm)
+            unsigned line=255;
+            for(unsigned r=0;r<18;++r)if(memory->Read(syms.at("_render_row_blocks")+r)==block)line=memory->Read(syms.at("_render_row_lines")+r);
+            Check(line!=255,"the keyboard row is on screen");
+            unsigned at=syms.at("tile_buffer")+line*40,d=0,e=0;
+            for(unsigned i=0;i<40;++i){unsigned c=memory->Read(at+i);unsigned carry=(e>>7)&1;e=(e<<1)&255;d=((d<<1)|carry)&511;
+                if(d&256){d&=255;e|=1;}e^=c;d=(d+c)&255;}
+            Check(memory->Read(syms.at("block_hashes")+block*2)==e && memory->Read(syms.at("block_hashes")+block*2+1)==d,"the block shows its row");
+            return Text(memory,at);};
         auto shown=[&](unsigned osk_row){ // what the screen shows for a keyboard row
-            unsigned block=memory->Read(syms.at("_osk_blocks")+osk_row);
-            return Text(memory,syms.at("bkg_buffer")+block*40).substr(0,19);};
+            return drawn(memory->Read(syms.at("_osk_blocks")+osk_row)).substr(0,19);};
         auto at=[&](unsigned x,unsigned y){memory->Write(syms.at("_osk_x"),x);memory->Write(syms.at("_osk_y"),y);};
         Frames(core,600);pad(Down_Key); // Document.txt
         if(rename){pad(Start_Key);pad(A_Key);for(unsigned i=0;i<3;++i)pad(Down_Key);pad(A_Key);} else {pad(A_Key);pad(Select_Key);}
@@ -511,7 +519,7 @@ static void OSKShift(const char* image,const char* symbols,const char* data,bool
         Check(byte("_osk_layer")==0 && shown(1)=="q w e r t y u i o p","shift is one shot, screen follows");
         at(0,4);tap(A_Key,8);tap(A_Key,70); // double tap
         Check(byte("_osk_layer")==3 && shown(1)=="Q W E R T Y U I O P","double tap locks capitals");
-        Check((u8)Text(memory,syms.at("bkg_buffer")+memory->Read(syms.at("_osk_blocks")+4)*40)[0]==25,"caps lock shows its glyph on the shift key");
+        Check((u8)drawn(memory->Read(syms.at("_osk_blocks")+4))[0]==25,"caps lock shows its glyph on the shift key");
         at(1,1);pad(A_Key);at(2,1);pad(A_Key);
         Check(typed().find("QWE")!=std::string::npos && byte("_osk_layer")==3,"caps lock stays on while typing");
         at(0,4);pad(A_Key);

@@ -56,6 +56,8 @@ DEF SGB_FILE_BLOCK     EQU $3B00
 DEF SGB_FILE_BLOCKS    EQU $90
 DEF OVERLAY_BACKUP     EQU $3B90
 DEF SGB_BOX_BLOCK      EQU $3BA0;one protected sector: 19 menu lines, independent of wide rows
+DEF SGB_ROWS_BLOCK     EQU $3BB0;fullscreen rows: 64 characters then 64 styles, four rows a block (src/ui/geometry.asm's RowStage)
+DEF SGB_ROWS_BLOCKS    EQU 14;56 rows
 DEF ADD_MAX            EQU $6E0000;stop before the persistent fullscreen image
 DEF TB_SIZE      EQU (TB_BANK_SIZE*TB_BANKS)
 DEF TB_CLIP_OFFSET EQU $0100;the clipboard's text in PSRAM blocks 240-255 (src/sram.asm)
@@ -66,7 +68,9 @@ DEF TB_COLS   EQU 20;tiles per row
 DEF TB_ROWS   EQU 18
 DEF TB_WIDTH  EQU TB_COLS*8;pixels per row
 DEF TB_STRIDE EQU 40;characters per row in tile_buffer
-DEF MAX_SCREEN_ROWS EQU 28;logical row capacity (the GB renderer remains 18 rows)
+DEF MAX_SCREEN_ROWS EQU 56;logical row capacity: 512x448's (SGB fullscreen); the GB renderer remains 18 rows
+DEF WIDE_ROWS EQU 28;SGB fullscreen's rows at 256x224
+DEF GB_MAX_ROWS EQU 28;the GB renderer's tables (render_row_blocks, ring_blocks), filled only in its layout
 DEF MAX_ROW_STRIDE EQU 64
 DEF BOX_STRIDE EQU 20;characters per line of the menu box's text, 0 ends a line
 DEF HEADER_LINE EQU TB_ROWS;tile_buffer rows of the file name and status bars

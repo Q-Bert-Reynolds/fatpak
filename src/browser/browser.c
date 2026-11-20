@@ -35,7 +35,6 @@
 static FileEntry entry;
 static unsigned int list_count; // file browser entries, with .. below the root
 static unsigned char list_result; // FRESULT of listing the folder or reading an entry
-static unsigned char list_kinds[MAX_SCREEN_ROWS - 2]; // file browser rows
 static unsigned char clipboard_cut;
 // Keep the active viewport out of Browse's deep filesystem stack.
 static unsigned int selected, first;
@@ -73,21 +72,25 @@ static void ListRows(const char* path, unsigned int first, unsigned char row, un
     DrawRow(row, 0, "");
     if (first + row >= list_count) continue;
     if ((kind = ListEntry(path, first + row)) == 0xFF) return;
-    list_kinds[row] = kind;
     dest = ToLatin1(RowAddress(row) + 1, entry.name, screen_stride - 3);
     if (kind == KIND_FOLDER) *dest = '/';
   }
 }
 
+// the kind of the entry a list row shows, from its text: " ..", a name ending in /, or another
+// (the rows are the list's only copy: no table of them, which 512x448's 54 rows would need)
+static unsigned char RowKind(unsigned char row) {
+  const char* name = RowAddress(row) + 1;
+  unsigned char i = screen_stride - 2;
+  while (i && name[i - 1] == ' ') --i;
+  if (i == 2 && name[0] == '.' && name[1] == '.') return KIND_UP;
+  return i && name[i - 1] == '/' ? KIND_FOLDER : KIND_FILE;
+}
+
 // scrolls the file browser one row (down = 1 when first went up by one), only the new row is read and drawn
 static void ScrollList(const char* path, unsigned int first, unsigned char down) {
-  unsigned char i, from, to;
+  unsigned char i;
   ScrollRows(down);
-  for (i = 1; i < LIST_ROWS; ++i) {
-    to = down ? i - 1 : LIST_ROWS - i;
-    from = down ? i : to - 1;
-    list_kinds[to] = list_kinds[from];
-  }
   i = down ? LIST_ROWS - 1 : 0;
   ListRows(path, first, i, i + 1);
 }
@@ -281,7 +284,7 @@ unsigned char Browse(void) {
   char name[FS_NAME_SIZE];
   char clipboard[PATH_SIZE + FS_NAME_SIZE];
   unsigned int drawn = LIST_ALL;
-  unsigned char key, result, row, opened = 0, editor_font = font, length, editor_osk = osk_shown;
+  unsigned char key, result, row, kind, opened = 0, editor_font = font, length, editor_osk = osk_shown;
   unsigned char action = 0, view; // a menu's OPEN runs as A on the selection
   selected = first = 0;
   clipboard[0] = 0;
@@ -335,6 +338,7 @@ unsigned char Browse(void) {
       action = 0;
     }
     else while (!(key = MenuKey()));
+    kind = list_count ? RowKind(row) : KIND_FILE;
     if (key >= KEY_MOUSE_ROW) selected = first + (unsigned char)(key - KEY_MOUSE_ROW);
     else if (key == KEY_UP && selected) --selected;
     else if (key == KEY_DOWN && selected + 1 < list_count) ++selected;
@@ -342,8 +346,8 @@ unsigned char Browse(void) {
     else if (key == KEY_PAGE_DOWN && list_count) selected = selected + LIST_ROWS < list_count ? selected + LIST_ROWS : list_count - 1;
     else if (key == KEY_HOME) selected = 0;
     else if (key == KEY_END && list_count) selected = list_count - 1;
-    else if ((key == KEY_ENTER || key == KEY_RIGHT) && list_count && list_kinds[row] != KIND_UP) {
-      if (list_kinds[row] == KIND_FOLDER) ListLoading(path, row);
+    else if ((key == KEY_ENTER || key == KEY_RIGHT) && list_count && kind != KIND_UP) {
+      if (kind == KIND_FOLDER) ListLoading(path, row);
       else ShowBusy(Str(S_LOADING));
       if (ListEntry(path, selected) == 0xFF) continue; // its full name
       for (length = 0; path[length]; ++length);
@@ -385,7 +389,7 @@ unsigned char Browse(void) {
       }
     }
     else if (path[0] && (key == KEY_LEFT || key == KEY_BACKSPACE ||
-                         ((key == KEY_ENTER || key == KEY_RIGHT) && list_count && list_kinds[row] == KIND_UP))) {
+                         ((key == KEY_ENTER || key == KEY_RIGHT) && list_count && kind == KIND_UP))) {
       for (length = 0; path[length]; ++length);
       while (path[--length] != '/');
       CopyName(name, path + length + 1);
@@ -396,7 +400,7 @@ unsigned char Browse(void) {
     }
     else if (key == KEY_MENU || key == KEY_F1 || key == KEY_INFO) {
       entry.name[0] = 0;
-      if (list_count && list_kinds[row] != KIND_UP && ListEntry(path, selected) == 0xFF) continue;
+      if (list_count && kind != KIND_UP && ListEntry(path, selected) == 0xFF) continue;
       if (key == KEY_INFO && !entry.name[0]) continue;
       name_row = row;
       if (key == KEY_F1) ShowBrowserHelp();

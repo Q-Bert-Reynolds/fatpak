@@ -12,7 +12,7 @@ extern void RenderRawRow(unsigned char row, const unsigned char* tiles); // scre
 extern unsigned char RenderCursorX(unsigned char col); // x of col in tb_found_row
 extern void RenderSetMapRow(unsigned char map_row, unsigned char block);
 extern unsigned char block_map_rows[]; // map row each block was last set to (RenderSetMapRow)
-extern unsigned char render_row_blocks[MAX_SCREEN_ROWS]; // block each screen row draws into
+extern unsigned char render_row_blocks[GB_MAX_ROWS]; // block each screen row draws into (the GB renderer's)
 extern unsigned char render_row_lines[MAX_SCREEN_ROWS]; // tile_buffer row each screen row shows
 extern unsigned char render_row_fonts[MAX_SCREEN_ROWS]; // font each screen row uses
 extern unsigned char render_text_top; // screen row of text row 0

@@ -177,8 +177,8 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     // Continue waiting through the real shared frame handler without requiring
     // any key, cursor movement or menu redraw to refresh the time.
     unsigned wait=syms.at("_WaitFrame");const u8 loop[]={0xCD,u8(wait),u8(wait>>8),0x18,0xFB};
-    for(unsigned i=0;i<sizeof(loop);++i) memory->Write(0xFFF0+i,loop[i]);
-    auto cpu=core.GetProcessor()->GetState();cpu->SP->SetValue(syms.at("stack_bottom"));cpu->PC->SetValue(0xFFF0);*cpu->IME=true;*cpu->Halt=false;
+    for(unsigned i=0;i<sizeof(loop);++i) memory->Write(0xFFF8+i,loop[i]);
+    auto cpu=core.GetProcessor()->GetState();cpu->SP->SetValue(syms.at("stack_bottom"));cpu->PC->SetValue(0xFFF8);*cpu->IME=true;*cpu->Halt=false;
     Frames(core,120);
     Check(Time(memory,syms.at("_footer_time"))=="10:42pm","clock refreshes while idle");
     Pixels(core,syms,color);

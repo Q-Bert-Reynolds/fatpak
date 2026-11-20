@@ -10,6 +10,12 @@ screen_attr_delta:: DW
 screen_scratch:: DW
 screen_chunk:: DW
 
+SECTION "Row stage vars", WRAMX;WRAM0 is full (not HRAM: its top isn't free)
+screen_psram:: DB;wide (SGB fullscreen) rows are in PSRAM (SGB_ROWS_BLOCK), staged one at a time
+staged_row: DB;the row wide_staging holds, $FF none
+staged_dirty: DB;and it may have been written: it goes back to PSRAM before another row is staged
+row_write: DB;RowStage's caller may write the row
+
 FIXED "Geometry dispatch"
 _GeometryGB::
   call FarCallInline
@@ -22,6 +28,8 @@ _GeometryWide::
 DEF GEOMETRY_PAGE EQU 6
 PAGE GEOMETRY_PAGE
 GeometryGB:
+  xor a
+  ld [screen_psram], a
   ld a, TB_ROWS
   ld [_screen_rows], a
   ld a, TB_WIDTH
@@ -38,17 +46,32 @@ GeometryGB:
 GeometryWide:
   xor a
   ld [_render_gbc], a
-  ld a, MAX_SCREEN_ROWS
+  ld a, WIDE_ROWS
   ld [_screen_rows], a
   ld a, 248
   ld [_screen_width], a
-  ld a, MAX_SCREEN_ROWS-2
+  ld a, WIDE_ROWS-2
   ld [_screen_header], a
   ld hl, wide_row_offsets
-  ld de, wide_tile_attrs
+  ld de, tile_buffer+MAX_ROW_STRIDE
   ld bc, wide_scratch
   ld a, MAX_ROW_STRIDE
   call GeometrySet
+  ld a, 1;rows in PSRAM: every row is the staging row (RowStage), its styles 64 bytes on
+  ld [screen_psram], a
+  ld a, $FF
+  ld [staged_row], a
+  xor a
+  ld [staged_dirty], a
+  ld hl, tile_buffer+MAX_ROW_STRIDE
+  ld a, l
+  ld [_tile_attrs], a
+  ld a, h
+  ld [_tile_attrs+1], a
+  ld a, MAX_ROW_STRIDE
+  ld [screen_attr_delta], a
+  xor a
+  ld [screen_attr_delta+1], a
   ld hl, 32
 GeometryChunk:
   ST_HL_VAR screen_chunk
@@ -93,6 +116,10 @@ FIXED "Row address"
 ; one-past-end offset used by range clearing and scrolling.
 RenderRowAddress::
   ld l, a
+  ld a, [screen_psram]
+  and a
+  jr nz, RowStageWrite
+  ld a, l
   ld h, 0
   add hl, hl
   LD_DE_VAR _screen_offsets
@@ -112,6 +139,178 @@ GeometryAddress:
   add hl, de
   ld b, h
   ld c, l
+  ret
+
+; Wide rows in PSRAM: row A in wide_staging, HL its offset from tile_buffer (RenderRowAddress's), BC kept.
+; The row staged before goes back to PSRAM first if it may have been written. RenderRowRead stages
+; a row for reading only (the fullscreen client's). Every access restores the window
+RenderRowRead::
+  ld l, a
+  ld a, [screen_psram]
+  and a
+  ld a, l
+  jp z, RenderRowAddress
+  xor a
+  jr RowStage
+RowStageWrite:
+  ld a, 1
+RowStage:;l = the row, a = row_write
+  ld [row_write], a
+  ld a, [staged_row]
+  cp l
+  jr z, .staged
+  push bc
+  push hl
+  ld a, [EDX_CONFIG];the window on PSRAM, not save RAM
+  push af
+  and ~2
+  ld [EDX_CONFIG], a
+  ld a, [EDX_BLOCK]
+  ld c, a
+  ld a, [EDX_BLOCK+1]
+  ld b, a
+  push bc
+  ld a, [staged_dirty]
+  and a
+  jr z, .fetch
+  ld a, [staged_row]
+  call RowWindow
+  ld d, h
+  ld e, l
+  ld hl, wide_staging
+  call RowCopy
+.fetch
+  pop bc
+  pop af
+  pop hl
+  push af
+  push bc
+  ld a, l
+  ld [staged_row], a
+  call RowWindow
+  ld de, wide_staging
+  call RowCopy
+  pop de
+  call _SetWindowBlock
+  pop af
+  ld [EDX_CONFIG], a
+  pop bc
+  xor a
+  ld [staged_dirty], a
+.staged
+  ld hl, staged_dirty
+  ld a, [row_write]
+  or [hl]
+  ld [hl], a
+  ld hl, wide_staging-tile_buffer
+  ret
+RowCopy:;hl to de, a row's 128 bytes
+  ld b, MAX_ROW_STRIDE*2
+.copy
+  ld a, [hli]
+  ld [de], a
+  inc de
+  dec b
+  jr nz, .copy
+  ret
+RowWindow:;a = row: the window shows its block, hl = its 128 bytes there
+  ld e, a
+  srl a
+  srl a
+  add LOW(SGB_ROWS_BLOCK)
+  ld l, a
+  ld a, HIGH(SGB_ROWS_BLOCK)
+  ld [EDX_BLOCK+1], a
+  ld a, l
+  ld [EDX_BLOCK], a
+  ld a, e
+  and 2
+  rrca
+  add HIGH(TB_BASE)
+  ld h, a
+  ld a, e
+  rrca
+  and $80
+  ld l, a
+  ret
+
+; the PSRAM rows blank: spaces, style 4 (plain, 4 px: as the fullscreen client clears them)
+RowsClear::
+  ld hl, wide_staging
+  ld b, MAX_ROW_STRIDE
+  ld a, ' '
+.chars
+  ld [hli], a
+  dec b
+  jr nz, .chars
+  ld b, MAX_ROW_STRIDE
+  ld a, 4
+.attrs
+  ld [hli], a
+  dec b
+  jr nz, .attrs
+  ld a, [EDX_BLOCK]
+  ld c, a
+  ld a, [EDX_BLOCK+1]
+  ld b, a
+  push bc
+  xor a
+.row
+  push af
+  call RowWindow
+  ld d, h
+  ld e, l
+  ld hl, wide_staging
+  call RowCopy
+  pop af
+  inc a
+  cp SGB_ROWS_BLOCKS*4
+  jr nz, .row
+  pop de
+  call _SetWindowBlock
+  ld a, $FF
+  ld [staged_row], a
+  xor a
+  ld [staged_dirty], a
+  ret
+
+; tb_ScrollRows' rows: a = 1 moves rows 1 to [_tb_rows] - 1 up a row, 0 moves rows 0 to [_tb_rows] - 2
+; down. Wide PSRAM rows move through the staging row: each is staged, then named the row it moves
+; to and left dirty, to go back there. Returns carry if it moved them (else tile_buffer's are moved)
+RowsShift::
+  ld b, a
+  ld a, [screen_psram]
+  and a
+  ret z
+  ld a, [_tb_rows]
+  dec a
+  ld c, a;rows to move
+  ret z
+  ld a, b
+  and a
+  ld a, 1;up: row 1 to 0, 2 to 1, ...
+  ld b, 1
+  jr nz, .move
+  ld a, [_tb_rows]
+  sub 2;down: rows - 2 to rows - 1, ...
+  ld b, $FF
+.move
+  push af
+  push bc
+  ld l, a
+  call RowStageWrite
+  pop bc
+  pop af
+  push af
+  sub b
+  ld [staged_row], a
+  ld a, 1
+  ld [staged_dirty], a
+  pop af
+  add a, b
+  dec c
+  jr nz, .move
+  scf
   ret
 
 FIXED "Draw row dispatch"
@@ -254,4 +453,61 @@ BoxMap:
   add hl, de
   ld d, b
   ld e, c
+  ret
+
+; tb_RenderRows' rows [tb_row, tb_end) blank before they're drawn, or (wide PSRAM rows) none: RowBegin
+; stages and blanks each as it starts
+FIXED "Row blanking"
+RowsBlank::
+  ld a, [screen_psram]
+  and a
+  ret nz
+  ld a, [tb_row]
+  call RenderRowAddress
+  ld de, tile_buffer
+  add hl, de
+  push hl
+  ld a, [tb_row]
+  ld b, a
+  ld a, [tb_end]
+  sub a, b
+  call RenderRowAddress
+  ld b, h
+  ld c, l;rows * screen_stride
+  pop hl
+  push hl
+  push bc
+  ld a, ' '
+  call mem_Set
+  pop bc
+  pop hl
+  LD_DE_VAR screen_attr_delta
+  add hl, de
+  xor a
+  jp mem_Set
+RowBegin::;keeps BC and DE (the text's place)
+  ld a, [screen_psram]
+  and a
+  ret z
+  push bc
+  push de
+  ld a, [tb_row]
+  call RenderRowAddress
+  ld de, tile_buffer
+  add hl, de
+  ST_HL_VAR tb_row_ptr
+  ld b, MAX_ROW_STRIDE
+  ld a, ' '
+.chars
+  ld [hli], a
+  dec b
+  jr nz, .chars
+  ld b, MAX_ROW_STRIDE
+  xor a
+.attrs
+  ld [hli], a
+  dec b
+  jr nz, .attrs
+  pop de
+  pop bc
   ret

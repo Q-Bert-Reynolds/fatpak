@@ -18,7 +18,6 @@ UNION
 _tile_buffer::
 tile_buffer::       DS BUFFER_SIZE
 win_buffer::        DS 256;PSRAM staging, and the GBC accent plane
-bkg_buffer::        DS (TB_ROWS+1)*TB_STRIDE
 tile_attrs::        DS TB_ROWS*TB_STRIDE
                     DS (-@) & 15
 _render_dma_buffer::
@@ -31,17 +30,21 @@ block_map_rows::    DS TB_ROWS+1
 block_accents::     DS TB_ROWS+1
 block_sel::         DS (TB_ROWS+1)*2
 block_box::         DS TB_ROWS+1
-gb_row_offsets::    DS 32*2
-                    DS $DD00-@
+block_hashes::      DS (TB_ROWS+1)*2;the characters each block shows, hashed (render.asm)
+                    DS (-@) & 255
 cmd_buffer::        DS $1A0;bitmap/masks/palettes and dim plane, both page-aligned
+                    DS MODULE_BSS+MODULE_BSS_SIZE-@
+gb_row_offsets::    DS 32*2;past the wide modules' BSS: their ModText draws rows
 NEXTU
-wide_tile_buffer:: DS MAX_SCREEN_ROWS*MAX_ROW_STRIDE
-wide_tile_attrs::  DS MAX_SCREEN_ROWS*MAX_ROW_STRIDE
+                   DS MODULE_BSS_SIZE;the wide modules' BSS (rows are in PSRAM: geometry.asm's RowStage)
+wide_staging::     DS MAX_ROW_STRIDE*2;the PSRAM row being worked on
 wide_row_offsets:: DS 32*2
-wide_row_hashes::  DS MAX_SCREEN_ROWS*2
 wide_scratch::     DS 32;PSRAM staging while the GB bitmap renderer is absent
-                    DS $DEA0-@
 ENDU
+; Rows' tables, MAX_SCREEN_ROWS (512x448's) of each in either layout
+_tb_row_starts::    DS (MAX_SCREEN_ROWS+1)*2;start of each rendered row, then _tb_bottom (text_buffer.asm)
+_tb_row_counts::    DS MAX_SCREEN_ROWS;characters drawn in each rendered row
+wide_row_hashes::   DS MAX_SCREEN_ROWS*2;the fullscreen client's: each row as last sent
 _tb_row_states::
 tb_row_states::     DS (MAX_SCREEN_ROWS+1)*2
 tb_state::          DS 2;lexer state (see TBLex)
@@ -65,10 +68,9 @@ _name_buffer::
 name_buffer::       DS NAME_BUFFER_SIZE
 _module_dir::       DW;ModFile/ModLoad's folder when a host sets it, else file_dir (src/modules/runtime.c); WRAM0 is full
 ASSERT tile_buffer == MODULE_BSS
-ASSERT wide_tile_buffer == MODULE_BSS
 ASSERT gb_row_offsets >= MODULE_BSS+MODULE_BSS_SIZE
 ASSERT wide_row_offsets >= MODULE_BSS+MODULE_BSS_SIZE
-ASSERT wide_tile_attrs-wide_tile_buffer == MAX_SCREEN_ROWS*MAX_ROW_STRIDE
+ASSERT wide_staging >= MODULE_BSS+MODULE_BSS_SIZE
 ASSERT LOW(win_buffer) == 0
 ASSERT LOW(cmd_buffer) == 0
 ASSERT render_dma_buffer % 16 == 0

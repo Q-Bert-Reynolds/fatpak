@@ -66,7 +66,7 @@ render_w: DB
 render_col: DB
 draw_row: DB
 render_block: DB
-_render_row_blocks:: DS MAX_SCREEN_ROWS;block each screen row draws into
+_render_row_blocks:: DS GB_MAX_ROWS;block each screen row draws into (the GB renderer's)
 _render_row_lines:: DS MAX_SCREEN_ROWS;tile_buffer row each screen row shows
 _render_row_fonts:: DS MAX_SCREEN_ROWS;font each screen row uses
 _render_text_top:: DB;screen row of text row 0
@@ -1243,12 +1243,6 @@ RenderRow:
   ld [render_src], a
   ld a, h
   ld [render_src+1], a
-  ld a, [render_block]
-  call RenderRowAddress
-  ld de, bkg_buffer;characters the block shows
-  add hl, de
-  ld d, h
-  ld e, l
 
 .checkSelection;a change makes the font check fail
   ld a, [render_row]
@@ -1359,29 +1353,25 @@ RenderRow:
   cp a, [hl]
   ld [hl], a
   jr nz, .changed
-.checkChars
-  LD_HL_VAR render_src
-  ld b, TB_STRIDE
-.compare
-    ld a, [de]
-    cp a, [hl]
-    jr nz, .changed
-    inc hl
-    inc de
-    dec b
-    jr nz, .compare
-  ret
+.checkChars;the characters' hash against the block's (a collision keeps a stale row: 1 in 65536)
+  call RenderBlockHash
+  ld a, [hl]
+  ld [hl], e
+  cp e
+  inc hl
+  ld a, [hl]
+  ld [hl], d
+  jr nz, .redraw
+  cp d
+  ret z
+  jr .redraw
 
-.changed
-  ld a, [render_block]
-  call RenderRowAddress
-  ld de, bkg_buffer
-  add hl, de
-  ld d, h
-  ld e, l
-  LD_HL_VAR render_src
-  ld bc, TB_STRIDE
-  call mem_Copy
+.changed;(by its font, selection, box or state: its characters' hash for next time)
+  call RenderBlockHash
+  ld [hl], e
+  inc hl
+  ld [hl], d
+.redraw
 
   xor a
   ld hl, render_bitmap
@@ -2759,4 +2749,34 @@ ENDR
 .back
   ld a, [de]
   ld [hl], a
+  ret
+
+FIXED "Block hash"
+;de = the hash of render_src's TB_STRIDE characters, hl = render_block's slot in block_hashes
+RenderBlockHash:
+  LD_HL_VAR render_src
+  ld de, 0
+  ld b, TB_STRIDE
+.hash
+    sla e
+    rl d
+    jr nc, .rotated
+    inc e
+.rotated
+    ld a, [hli]
+    ld c, a
+    xor e
+    ld e, a
+    ld a, c
+    add d
+    ld d, a
+    dec b
+    jr nz, .hash
+  ld a, [render_block]
+  add a
+  add LOW(block_hashes)
+  ld l, a
+  ld a, HIGH(block_hashes)
+  adc 0
+  ld h, a
   ret

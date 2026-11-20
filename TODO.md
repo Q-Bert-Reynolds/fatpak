@@ -68,6 +68,8 @@
 
 # Other
 
+- Something writes the top of HRAM (found 2026-11-20: a byte placed at `$FFF5` read 160 after a BUILD, and `tests/test_footer_clock.cpp` ran a stub at `$FFF0`). Find it before putting anything up there.
+
 - Small-C style compiler matching SDCC's calling convention, multi-pass via SD temp files
 - Document real differences of other X-series carts rather than assuming X7 SD/RTC/button behavior.
 - Ports to other cartridges need a loader, SD access and a new memory layout; the PSRAM window is assumed everywhere.

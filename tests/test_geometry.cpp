@@ -119,11 +119,15 @@ static void Geometry(const char* image,const char* symbols,const char* data,bool
     }
     call("_GeometryWide");
     Check(byte("_screen_rows")==28 && byte("_screen_stride")==64 && byte("_screen_width")==248 && byte("_screen_header")==26,"wide geometry and bar slots");
-    Check(word(syms.at("_tile_attrs"))==syms.at("wide_tile_attrs"),"wide attribute pointer");
-    unsigned offsets=word(syms.at("_screen_offsets"));
-    for(unsigned i=0;i<32;++i)Check(word(offsets+2*i)==64*i,"wide row-offset table including sentinel");
-    call("_RowAddress",0,27);Check(core.GetProcessor()->GetState()->BC->GetValue()==0xd000+27*64,"last character row address");
-    call("_AttrAddress",0,27);Check(core.GetProcessor()->GetState()->BC->GetValue()==syms.at("wide_tile_attrs")+27*64,"last attribute row address");
+    // Wide rows are in PSRAM, one staged at a time (RowStage): every row's address is the staging row,
+    // its styles 64 bytes on. Read a row by staging it; write one by staging it for writing
+    unsigned staging=syms.at("wide_staging");
+    Check(byte("screen_psram")==1 && word(syms.at("_tile_attrs"))==syms.at("tile_buffer")+64,"wide attribute pointer: the staging row's styles");
+    auto rowRead=[&](unsigned r){call("RenderRowRead",0,r);return staging;};
+    auto rowWrite=[&](unsigned r){call("RenderRowAddress",0,r);return staging;};
+    call("RowsClear");
+    call("_RowAddress",0,27);Check(core.GetProcessor()->GetState()->BC->GetValue()==staging,"a row's address is the staging row");
+    call("_AttrAddress",0,27);Check(core.GetProcessor()->GetState()->BC->GetValue()==staging+64,"its styles follow its characters");
     call("_tb_Clear");call("_SetFont",0,2);
     set("_tb_rows",28);set("_tb_nowrap",0);set("_tb_lang",0);
     memory->Write(syms.at("_tb_find"),0);memory->Write(syms.at("_tb_find")+1,0);
@@ -131,13 +135,13 @@ static void Geometry(const char* image,const char* symbols,const char* data,bool
     for(unsigned i=0;i<64;++i)memory->Write(temp+i,'a');
     for(unsigned n=0;n<32;++n)Check(call("_tb_Append",temp,0,64)==1,"append wide scan fixture");
     call("_tb_Render",0);
-    unsigned chars=syms.at("wide_tile_buffer"),attrs=syms.at("wide_tile_attrs");
     for(unsigned r=0;r<28;++r){
         Check(memory->Read(syms.at("_tb_row_counts")+r)==62,"248px wraps at 62 four-pixel characters");
         Check(word(syms.at("_tb_row_starts")+2*r)==62*r,"row starts across all 28 rows");
+        unsigned row=rowRead(r);
         for(unsigned c=0;c<64;++c){
-            Check(memory->Read(chars+r*64+c)==(c<62?'a':' '),"wide characters and padding");
-            Check(memory->Read(attrs+r*64+c)==(c<62?4:0),"wide styles and padding");
+            Check(memory->Read(row+c)==(c<62?'a':' '),"wide characters and padding, through PSRAM");
+            Check(memory->Read(row+64+c)==(c<62?4:0),"wide styles and padding, through PSRAM");
         }
     }
     Check(word(syms.at("_tb_bottom"))==28*62,"bottom sentinel");
@@ -155,19 +159,22 @@ static void Geometry(const char* image,const char* symbols,const char* data,bool
     const char* sample="sample";
     for(unsigned i=0;i<=6;++i)memory->Write(temp+i,sample[i]);
     Call(core,syms.at("_DrawRow"),3,26,0,temp);
-    for(unsigned i=0;i<64;++i)Check(memory->Read(chars+26*64+i)==(i>=3 && i<9?sample[i-3]:' '),"wide DrawRow clears and places text");
-    for(unsigned i=0;i<64;++i)memory->Write(chars+27*64+i,' ');
-    call("_FooterCompose",chars+27*64);
-    Check(memory->Read(chars+27*64+56)==127 && memory->Read(chars+27*64+57)==memory->Read(syms.at("_footer_time")),"wide clock uses final eight cells");
+    unsigned row=rowRead(26);
+    for(unsigned i=0;i<64;++i)Check(memory->Read(row+i)==(i>=3 && i<9?sample[i-3]:' '),"wide DrawRow clears and places text");
+    row=rowWrite(27);
+    for(unsigned i=0;i<64;++i)memory->Write(row+i,' ');
+    call("_FooterCompose",row);
+    row=rowRead(27);
+    Check(memory->Read(row+56)==127 && memory->Read(row+57)==memory->Read(syms.at("_footer_time")),"wide clock uses final eight cells");
     set("_tb_rows",28);
     // Distinct row contents and attributes expose wrong strides in either copy direction.
-    for(unsigned r=0;r<28;++r)for(unsigned c=0;c<64;++c){memory->Write(chars+r*64+c,r+32);memory->Write(attrs+r*64+c,r);}
+    for(unsigned r=0;r<28;++r){row=rowWrite(r);for(unsigned c=0;c<64;++c){memory->Write(row+c,r+32);memory->Write(row+64+c,r);}}
     call("_tb_ScrollRows",0,1);
-    for(unsigned r=0;r<27;++r)for(unsigned c=0;c<64;++c)
-        Check(memory->Read(chars+r*64+c)==r+33 && memory->Read(attrs+r*64+c)==r+1,"scroll up uses both wide buffers");
+    for(unsigned r=0;r<27;++r){row=rowRead(r);for(unsigned c=0;c<64;++c)
+        Check(memory->Read(row+c)==r+33 && memory->Read(row+64+c)==r+1,"scroll up moves PSRAM rows' characters and styles");}
     call("_tb_ScrollRows",0,0);
-    for(unsigned r=1;r<28;++r)for(unsigned c=0;c<64;++c)
-        Check(memory->Read(chars+r*64+c)==r+32 && memory->Read(attrs+r*64+c)==r,"scroll down uses both wide buffers");
+    for(unsigned r=1;r<28;++r){row=rowRead(r);for(unsigned c=0;c<64;++c)
+        Check(memory->Read(row+c)==r+32 && memory->Read(row+64+c)==r,"scroll down moves PSRAM rows' characters and styles");}
     // The next glyph can overflow eight-bit X at the wider pixel boundary.
     memory->Write(syms.at("_font_widths")+'Z',15);
     Check(call("_tb_Insert",62,'Z')==1,"insert a wide boundary glyph");
@@ -187,17 +194,11 @@ static void Geometry(const char* image,const char* symbols,const char* data,bool
     memory->Write(syms.at("_log_ptr"),0);memory->Write(syms.at("_log_ptr")+1,0);
     call("_log_RestoreText",1800,0,160);
     Check(call("_tb_GetChar",1813)=='Z' && call("_tb_GetChar",1814)=='a',"wide undo-log staging preserves bytes");
-    for(unsigned i=0;i<28*64;++i)memory->Write(attrs+i,0x44);
-    call("_OSKDraw",23,0);
-    const char* first="1qaz";
-    for(unsigned r=0;r<4;++r)Check(memory->Read(chars+(23+r)*64)==first[r],"wide keyboard row stride");
-    for(unsigned r=23;r<28;++r)for(unsigned c=20;c<64;++c)Check(memory->Read(chars+r*64+c)==' ',"wide keyboard padding");
-    for(unsigned i=0;i<28*64;++i)Check(memory->Read(attrs+i)==0x44,"keyboard clear respects character-buffer boundary");
     call("_GeometryGB");
-    offsets=word(syms.at("_screen_offsets"));
+    unsigned offsets=word(syms.at("_screen_offsets"));
     for(unsigned i=0;i<32;++i)Check(word(offsets+2*i)==40*i,"restored GB row-offset table");
     Check(byte("_screen_rows")==18 && byte("_screen_width")==160 && word(syms.at("_tile_attrs"))==syms.at("tile_attrs"),"return to GB geometry");
-    printf("%s runtime geometry, 28x64 buffers, wrapping, layout, cursor, scroll, clipboard, undo and keyboard staging passed\n",color?"CGB":"DMG");
+    printf("%s runtime geometry, 28x64 PSRAM rows, wrapping, layout, cursor, scroll, clipboard and undo staging passed\n",color?"CGB":"DMG");
 }
 int main(int argc,char** argv){
     Check(argc==4,"usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT");

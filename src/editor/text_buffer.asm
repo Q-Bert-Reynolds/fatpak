@@ -43,8 +43,6 @@ _tb_found_col:: DB;$FF = not found
 _tb_found_row:: DB;$FF = not found
 _tb_bottom:: DW;start of the row after the last rendered row
 _tb_rows:: DB;visible rows
-_tb_row_starts:: DS (MAX_SCREEN_ROWS+1)*2;start of each rendered row, then _tb_bottom
-_tb_row_counts:: DS MAX_SCREEN_ROWS;characters drawn in each rendered row
 tb_row_chars: DB
 tb_end: DB
 _tb_end_row:: DB;rendered row the end of the text is on, $FF = not on screen
@@ -2534,23 +2532,7 @@ _tb_RenderRows::;a = first row, e = end row, scans rows [first, end) from _tb_ro
   ld de, tile_buffer
   add hl, de
   ST_HL_VAR tb_row_ptr
-  ld a, [tb_row]
-  ld b, a
-  ld a, [tb_end]
-  sub a, b
-  call RenderRowAddress
-  ld b, h
-  ld c, l;rows * screen_stride
-  push bc
-  LD_HL_VAR tb_row_ptr
-  ld a, ' '
-  call mem_Set
-  pop bc
-  LD_HL_VAR tb_row_ptr
-  LD_DE_VAR screen_attr_delta
-  add hl, de
-  xor a
-  call mem_Set
+  call RowsBlank
   ld a, [tb_row]
   add a, a
   add a, LOW(_tb_row_starts)
@@ -2577,6 +2559,7 @@ _tb_RenderRows::;a = first row, e = end row, scans rows [first, end) from _tb_ro
   ld a, [hl]
   ld [tb_state+1], a
 .rowLoop
+    call RowBegin;(wide PSRAM rows: staged and blanked)
     call TBStoreRowStart
     call TBScanRow
     call TBRowStateAddress;the row's heading, found at its line's first char
@@ -2641,6 +2624,15 @@ TBCopyBack:
   ret
 
 _tb_ScrollRows::;a = 1 to move rows up (scroll down) or 0 to move them down, shifts tile_buffer and the row tables
+  push af
+  call RowsShift;wide PSRAM rows
+  pop bc
+  ld a, b
+  jr nc, .buffer
+  and a
+  jp z, .downTables
+  jr .upTables
+.buffer
   and a
   jr z, .moveDown
 .moveUp
@@ -2665,6 +2657,7 @@ _tb_ScrollRows::;a = 1 to move rows up (scroll down) or 0 to move them down, shi
   add hl, de
   LD_DE_VAR _tile_attrs
   call mem_Copy
+.upTables
   ld a, [_tb_rows]
   add a, a
   ld c, a
@@ -2731,6 +2724,7 @@ _tb_ScrollRows::;a = 1 to move rows up (scroll down) or 0 to move them down, shi
   add hl, bc
   pop bc
   call TBCopyBack
+.downTables
   ld a, [_tb_rows]
   add a, a
   ld c, a

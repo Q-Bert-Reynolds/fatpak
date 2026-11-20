@@ -16,7 +16,7 @@ _theme:: DB;0 light, 1 dark (src/ui/theme.asm)
 _language:: DB;the UI's language: its column in data/strings/strings.csv, 0 English (src/app/language.c)
 _resolution:: DB;SGB: RESOLUTION_256 (fullscreen), RESOLUTION_160 (the BIOS's, no takeover at boot) or RESOLUTION_512 (maps)
 
-SECTION "Settings HRAM", HRAM;WRAM0 and WRAMX are full
+SECTION "Settings WRAMX", WRAMX;WRAM0 is full
 _font_tiles:: DB;SETTINGS > FONT: 1 for 8x8 tiles (the mono font for the editor and browser, src/app/menu.c)
 
 SECTION "Settings Code", ROM0

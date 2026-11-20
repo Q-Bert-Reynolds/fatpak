@@ -7,7 +7,7 @@
 
 unsigned char ring_top; // BG map row of text row 0
 unsigned char ring_pos; // index in ring_blocks of text row 0's block
-unsigned char ring_blocks[MAX_SCREEN_ROWS + 1]; // blocks text rows use
+unsigned char ring_blocks[GB_MAX_ROWS + 1]; // blocks text rows use (the GB renderer's: Layout fills them only for it)
 unsigned char map_blocks[BG_MAP_ROWS + WIN_MAP_ROWS]; // block each BG map row, then window map row, shows, 0xFF = none
 unsigned char bars; // bars are shown now (not in menus)
 unsigned char font;
@@ -28,7 +28,7 @@ static unsigned char IsOSKBlock(unsigned char block) {
 void Layout(void) {
   unsigned char row, line, block, map_row, i = 0, win_row = BG_MAP_ROWS, osk = screen_rows - (bars << 1) - tb_rows;
   unsigned char length = tb_rows + render_gbc, first = ring_blocks[ring_pos];
-  for (block = 0; block < screen_rows + render_gbc; ++block) {
+  if (screen_rows == TB_ROWS) for (block = 0; block < screen_rows + render_gbc; ++block) {
     if (bars && (block == HEADER_BLOCK || block == STATUS_BLOCK)) continue;
     if (osk && IsOSKBlock(block)) continue;
     if (block == first) ring_pos = i;
@@ -58,11 +58,13 @@ void Layout(void) {
         render_row_fonts[row] = FONT_MONO;
       }
     }
-    render_row_blocks[row] = block;
     render_row_lines[row] = line;
-    if (screen_rows == TB_ROWS && (map_blocks[map_row] != block || block_map_rows[block] != map_row)) { // a block can still be listed in a map row it left
-      map_blocks[map_row] = block;
-      RenderSetMapRow(map_row, block);
+    if (screen_rows == TB_ROWS) {
+      render_row_blocks[row] = block;
+      if (map_blocks[map_row] != block || block_map_rows[block] != map_row) { // a block can still be listed in a map row it left
+        map_blocks[map_row] = block;
+        RenderSetMapRow(map_row, block);
+      }
     }
   }
   render_pending_scy = (ring_top - bars) << 3;

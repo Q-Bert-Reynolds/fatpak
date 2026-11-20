@@ -59,6 +59,8 @@
 #define SGB_FILE_BLOCKS    0x90
 #define OVERLAY_BACKUP     0x3B90u
 #define SGB_BOX_BLOCK      0x3BA0u//one protected sector: 19 menu lines, independent of wide rows
+#define SGB_ROWS_BLOCK     0x3BB0u//fullscreen rows: 64 characters then 64 styles, four rows a block (src/ui/geometry.asm's RowStage)
+#define SGB_ROWS_BLOCKS    14//56 rows
 #define ADD_MAX            0x6E0000//stop before the persistent fullscreen image
 #define TB_SIZE      (TB_BANK_SIZE*TB_BANKS)
 #define TB_CLIP_OFFSET 0x0100u//the clipboard's text in PSRAM blocks 240-255 (src/sram.asm)
@@ -69,7 +71,9 @@
 #define TB_ROWS   18
 #define TB_WIDTH  TB_COLS*8//pixels per row
 #define TB_STRIDE 40//characters per row in tile_buffer
-#define MAX_SCREEN_ROWS 28//logical row capacity (the GB renderer remains 18 rows)
+#define MAX_SCREEN_ROWS 56//logical row capacity: 512x448's (SGB fullscreen)// the GB renderer remains 18 rows
+#define WIDE_ROWS 28//SGB fullscreen's rows at 256x224
+#define GB_MAX_ROWS 28//the GB renderer's tables (render_row_blocks, ring_blocks), filled only in its layout
 #define MAX_ROW_STRIDE 64
 #define BOX_STRIDE 20//characters per line of the menu box's text, 0 ends a line
 #define HEADER_LINE TB_ROWS//tile_buffer rows of the file name and status bars

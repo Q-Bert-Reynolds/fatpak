@@ -18,7 +18,7 @@ void ClearScreen(void);
 
 extern unsigned char ring_top; // BG map row of text row 0
 extern unsigned char ring_pos; // index in ring_blocks of text row 0's block
-extern unsigned char ring_blocks[MAX_SCREEN_ROWS + 1]; // blocks text rows use
+extern unsigned char ring_blocks[GB_MAX_ROWS + 1]; // blocks text rows use (the GB renderer's)
 extern unsigned char map_blocks[BG_MAP_ROWS + WIN_MAP_ROWS]; // block each BG map row, then window map row, shows, 0xFF = none
 extern unsigned char bars; // bars are shown now (not in menus)
 extern unsigned char font;
