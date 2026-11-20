@@ -36,10 +36,11 @@ def build():
     run('ca65',*asm_shared,'-o',str(WORK/'fixed.o'),'snes/fixed.s')
     run('ca65','-o',str(WORK/'plain.o'),'snes/plain.s')
     run('ca65','-o',str(WORK/'map.o'),'snes/map.s')
+    run('ca65','-o',str(WORK/'char.o'),'snes/char.s')
     run('ca65','-o',str(WORK/'ext.o'),'snes/ext.s')
     run('ca65',*asm_shared,'-o',str(WORK/'shared.o'),'snes/shared.s')
     run('ld65','-C','snes/kernel.cfg','-m',str(WORK/'kernel.map'),'-Ln',str(WORK/'kernel.lbl'),
-        '-o',str(WORK/'kernel.bin'),str(WORK/'hardware.o'),str(WORK/'kernel.o'),str(WORK/'raster.o'),str(WORK/'glyphs.o'),str(WORK/'overlay.o'),str(WORK/'cache.o'),str(WORK/'fixed.o'),str(WORK/'plain.o'),str(WORK/'map.o'),str(WORK/'ext.o'),str(WORK/'shared.o'),'/usr/share/cc65/lib/none.lib')
+        '-o',str(WORK/'kernel.bin'),str(WORK/'hardware.o'),str(WORK/'kernel.o'),str(WORK/'raster.o'),str(WORK/'glyphs.o'),str(WORK/'overlay.o'),str(WORK/'cache.o'),str(WORK/'fixed.o'),str(WORK/'plain.o'),str(WORK/'map.o'),str(WORK/'char.o'),str(WORK/'ext.o'),str(WORK/'shared.o'),'/usr/share/cc65/lib/none.lib')
     labels={name.lstrip('.'):int(at,16) for _,at,name in (line.split() for line in (WORK/'kernel.lbl').read_text().splitlines())}
     image=(WORK/'kernel.bin').read_bytes();split=labels['__FONTS_LOAD__']
     row_size=labels['_native_row_size']-labels['__RODATA_RUN__']+labels['__RODATA_LOAD__']

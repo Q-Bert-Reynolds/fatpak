@@ -11,6 +11,7 @@
 #define RASTER_BPP 4
 #define RING_ROWS 32
 #define RING_MASK (RING_ROWS - 1)
+#define CHAR_RING_MASK 63 /* character mode's: BG1/BG2's 32x64 maps */
 #define HEADER_ROW 0
 #define FOOTER_ROW 27
 #define BAR_HEADER 1
@@ -169,15 +170,27 @@ typedef struct {
   u8 attrs[SGBFS_STRIDE];
 } Row;
 
-Row rows[SGBFS_ROWS];
+/* The text's rows: 256x224's here, 512x448's (TEXT 1, char.s) in the row cache's WRAM, which it doesn't use */
+Row raster_rows[SGBFS_ROWS];
+#ifdef SNES_TEST
+Row char_rows[SGBFS_TEXT_ROWS];
+#define CHAR_ROWS char_rows
+#else
+#define CHAR_ROWS ((Row *)0x6000)
+#endif
+Row *rows = raster_rows;
+u8 text_mode; /* TEXT: 0 the raster, 1 character tiles at 512x448 (the extension's) */
+u8 screen_rows = SGBFS_ROWS;
+u8 ring_mask = RING_MASK; /* BG1's ring of rows: 32, or 64 in character mode */
 u8 row_attrs[SGBFS_STRIDE];
-u8 dirty[SGBFS_ROWS];
+u8 dirty[SGBFS_TEXT_ROWS];
 /* Cache entries follow physical BG1 ring slots, independent of selection. */
 u8 raster_valid[RING_ROWS];
 u16 raster_hits;
 u16 raster_misses;
 u8 fixed_ready;
-u8 ext_ready; /* the extension (map.s) at $7E:DC00 whole, over the 4 px cache's WRAM: fixed.s clears it */
+u8 ext_ready; /* the extension (map.s, char.s) at $7E:DC00 whole, over the 4 px cache's WRAM: fixed.s clears it */
+u8 ext_wanted; /* from CODE to the MAP or TEXT using it: raster text rows wait (they'd rebuild that cache) */
 #ifdef SNES_TEST
 u8 ext_area[SGBFS_CODE_SIZE];
 #define EXT_AREA ext_area
@@ -235,7 +248,7 @@ u16 box_width;
 /* Overlay storage is independent of the base rows, even when closed. */
 Row box_lines[SGBFS_ROWS];
 Row bar_lines[BAR_COUNT];
-u8 overlay_dirty[SGBFS_ROWS];
+u8 overlay_dirty[SGBFS_TEXT_ROWS];
 u8 osk_layer;
 u8 osk_key = NO_SELECTION;
 u8 busy;
@@ -350,11 +363,34 @@ static void events(void) {
 }
 
 static void ui_all(void) {
-  memset(overlay_dirty, 1, SGBFS_ROWS);
+  memset(overlay_dirty, 1, SGBFS_TEXT_ROWS);
 }
 
 static u8 osk_top(void) {
-  return SGBFS_ROWS - !!(bars & BAR_FOOTER) - OSK_PANEL_ROWS;
+  return screen_rows - !!(bars & BAR_FOOTER) - OSK_PANEL_ROWS;
+}
+
+/* TEXT: the text's mode, its rows cleared (the GB sends them again), its layout the whole screen */
+static void text_switch(u8 mode) {
+  CharLayer(mode);
+  text_mode = mode;
+  screen_rows = mode ? SGBFS_TEXT_ROWS : SGBFS_ROWS;
+  ring_mask = mode ? CHAR_RING_MASK : RING_MASK;
+  rows = mode ? CHAR_ROWS : raster_rows;
+  memset(rows, 0, sizeof(Row) * screen_rows);
+  memset(raster_valid, 0, sizeof(raster_valid));
+  memset(dirty, 1, SGBFS_TEXT_ROWS);
+  top = ring_offset = box_rows = scan_row = 0;
+  box_width = 0;
+  box_hi = NO_SELECTION;
+  text_rows = screen_rows;
+  scroll_pending = 0;
+  scroll_current = SCROLL_ORIGIN;
+  if (!mode) {
+    SetScroll(SCROLL_ORIGIN); /* character mode's is CharLayer's */
+  }
+  palette_dirty = cursor_dirty = 1;
+  ui_all();
 }
 
 static void ui_osk(void) {
@@ -376,6 +412,7 @@ static void ui_box(void) {
 /* The map on BG1 (1, 2, either 512x448) or the text again: every text row drawn again (512x448's tables
    were in the row cache), the accents' colours back. Changing resolution starts the map again */
 static void map_enter(u8 mode) {
+  ext_wanted = 0;
   if (!ext_ready) {
     mode = 0; /* the map engine is the extension's */
   }
@@ -409,6 +446,9 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
   u8 r;
   u8 shadow_rows = text_rows;
   u8 shadow_box = box_rows;
+  u8 shadow_text = text_mode;
+  u8 shadow_screen = screen_rows;
+  u8 shadow_ext = ext_ready;
   signed char delta;
   Row *out;
   while (at < n) {
@@ -426,9 +466,10 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
     at += len;
     switch (op) {
       case SGBFS_CMD_ROW:
-        if (len < SGBFS_ROW_HEADER || b[0] >= SGBFS_ROWS || b[1] > FONT_H4 ||
-            b[2] > SGBFS_ROW_STYLED || b[3] > SGBFS_TEXT_WIDTH ||
-            (b[4] != ROW_END_FULL_WIDTH && (b[4] < b[3] || b[4] > SGBFS_TEXT_WIDTH)) ||
+        w = shadow_text ? SGBFS_TEXT_COLS : SGBFS_TEXT_WIDTH; /* character mode's selection is in columns */
+        if (len < SGBFS_ROW_HEADER || b[0] >= shadow_screen || b[1] > FONT_H4 ||
+            b[2] > SGBFS_ROW_STYLED || b[3] > w ||
+            (b[4] != ROW_END_FULL_WIDTH && (b[4] < b[3] || b[4] > w)) ||
             b[5] > SGBFS_STRIDE ||
             len != SGBFS_ROW_HEADER + b[5] + SGBFS_RLE_PAIR * b[6]) {
           return 0;
@@ -443,7 +484,7 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
           k += b[i];
           Capture();
         }
-        if (k != b[5] || width > SGBFS_TEXT_WIDTH) {
+        if (k != b[5] || (width > SGBFS_TEXT_WIDTH && !shadow_text)) {
           return 0;
         }
         if (apply) {
@@ -475,7 +516,7 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
         }
         break;
       case SGBFS_CMD_ROW_SAME:
-        if (len != 2 || b[0] >= SGBFS_ROWS || b[1] >= SGBFS_ROWS) {
+        if (len != 2 || b[0] >= shadow_screen || b[1] >= shadow_screen) {
           return 0;
         }
         if (apply) {
@@ -490,12 +531,12 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
         }
         delta = (signed char)b[0];
         r = delta < 0 ? -delta : delta;
-        if (!r || r > SGBFS_ROWS - 1 || r > shadow_rows || b[1] > 1) {
+        if (!r || r > shadow_screen - 1 || r > shadow_rows || b[1] > 1) {
           return 0;
         }
         if (apply) {
           /* Rotate BG1 slots; fixed bars and dialogs live on the UI layers. */
-          ring_offset = (ring_offset + delta) & RING_MASK;
+          ring_offset = (ring_offset + delta) & ring_mask;
           if (delta > 0) {
             for (i = 0; i < text_rows; ++i) {
               if (i + r < text_rows) {
@@ -528,14 +569,22 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
           for (i = 0; i < top; ++i) {
             raster_valid[(i + ring_offset) & RING_MASK] = 0;
           }
-          for (i = top + text_rows; i < SGBFS_ROWS; ++i) {
+          for (i = top + text_rows; i < screen_rows; ++i) {
             raster_valid[(i + ring_offset) & RING_MASK] = 0;
+          }
+          if (text_mode) {
+            /* the rows outside the view moved with the ring, and with a box or the OSK their cells did too */
+            for (i = 0; i < screen_rows; ++i) {
+              if (box_rows || osk_rows || i < top || i >= top + text_rows) {
+                dirty[i] = 1;
+              }
+            }
           }
           if (top && !(bars & BAR_HEADER)) {
             dirty[0] = 1;
           }
-          if (top + text_rows < SGBFS_ROWS && !(bars & BAR_FOOTER)) {
-            dirty[FOOTER_ROW] = 1;
+          if (top + text_rows < screen_rows && !(bars & BAR_FOOTER)) {
+            dirty[screen_rows - 1] = 1;
           }
           scroll_target = ring_offset * TILE_HEIGHT - 1;
           scroll_smooth = b[1];
@@ -543,9 +592,9 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
         }
         break;
       case SGBFS_CMD_LAYOUT:
-        if (len != 4 || b[0] >= SGBFS_ROWS || !b[1] || b[1] > SGBFS_ROWS ||
+        if (len != 4 || b[0] >= shadow_screen || !b[1] || b[1] > shadow_screen ||
             b[2] > BAR_MASK || (b[3] && b[3] != OSK_ROWS) ||
-            (u16)b[0] + b[1] + !!(b[2] & BAR_FOOTER) > (int)SGBFS_ROWS) {
+            (u16)b[0] + b[1] + !!(b[2] & BAR_FOOTER) > shadow_screen) {
           return 0;
         }
         shadow_rows = b[1];
@@ -558,7 +607,7 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
         }
         break;
       case SGBFS_CMD_CURSOR:
-        if (len != 3 || b[0] >= SGBFS_ROWS || b[2] > SGBFS_CURSOR_WHITE) {
+        if (len != 3 || b[0] >= shadow_screen || b[2] > SGBFS_CURSOR_WHITE) {
           return 0;
         }
         if (apply) {
@@ -580,7 +629,7 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
           }
         }
         else if (w < BOX_MIN_WIDTH || b[0] + w > SGBFS_WIDTH ||
-                 !b[4] || (u16)b[3] + b[4] > SGBFS_ROWS) {
+                 !b[4] || b[4] > SGBFS_ROWS || (u16)b[3] + b[4] > shadow_screen) {
           return 0;
         }
         shadow_box = b[4];
@@ -611,7 +660,7 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
           out->n = b[2];
           memcpy(out->chars, b + 3, b[2]);
           overlay_dirty[op == SGBFS_CMD_BOX_LINE ? box_top + b[0]
-                                               : b[0] ? FOOTER_ROW : HEADER_ROW] = 1;
+                                               : b[0] ? screen_rows - 1 : HEADER_ROW] = 1;
         }
         break;
       case SGBFS_CMD_BOX_HI:
@@ -671,11 +720,11 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
         if (apply) {
           loaded = dword(b);
           total = dword(b + 4);
-          overlay_dirty[FOOTER_ROW] = 1;
+          overlay_dirty[screen_rows - 1] = 1;
         }
         break;
       case SGBFS_CMD_MAP:
-        if (len != 1 || (b[0] & ~SGBFS_MAP_HIRES) > 2 || b[0] == SGBFS_MAP_HIRES) {
+        if (len != 1 || (b[0] & ~SGBFS_MAP_HIRES) > 2 || b[0] == SGBFS_MAP_HIRES || (b[0] && shadow_text)) {
           return 0;
         }
         if (apply && map_mode != b[0]) {
@@ -728,10 +777,30 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
         if (len < 4 || len > 3u + SGBFS_CODE_MAX || b[0] > 1 || word(b + 1) > SGBFS_CODE_SIZE - (u16)(len - 3)) {
           return 0;
         }
-        if (apply && !map_mode) {
-          fixed_ready = 0;
-          memcpy(EXT_AREA + word(b + 1), b + 3, len - 3);
-          ext_ready = b[0];
+        if (!map_mode && !text_mode) { /* either runs the extension */
+          shadow_ext = b[0];
+          if (apply) {
+            fixed_ready = 0;
+            memcpy(EXT_AREA + word(b + 1), b + 3, len - 3);
+            ext_ready = b[0];
+            ext_wanted = 1;
+          }
+        }
+        break;
+      case SGBFS_CMD_TEXT:
+        if (len != 1 || b[0] > 1 || map_mode || (b[0] && !shadow_ext)) {
+          return 0;
+        }
+        if (apply) {
+          ext_wanted = 0;
+        }
+        if (shadow_text != b[0]) {
+          shadow_text = b[0];
+          shadow_screen = shadow_rows = b[0] ? SGBFS_TEXT_ROWS : SGBFS_ROWS;
+          shadow_box = 0;
+          if (apply) {
+            text_switch(b[0]);
+          }
         }
         break;
       case SGBFS_CMD_MAP_SCROLL:
@@ -762,7 +831,11 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
           return 0;
         }
         if (apply) {
-          memset(rows, 0, sizeof(rows));
+          if (text_mode) {
+            text_switch(0); /* a new session starts at 256x224 */
+          }
+          ext_wanted = 0;
+          memset(rows, 0, sizeof(Row) * SGBFS_ROWS);
           memset(raster_valid, 0, sizeof(raster_valid));
           memset(dirty, 1, SGBFS_ROWS);
           top = 0;
@@ -1024,7 +1097,7 @@ u16 ui_left;
 
 u16 ui_right;
 
-static u16 progress_width(void) {
+u16 progress_width(void) {
   u8 i;
   u16 result = 0;
   u32 rem = loaded;
@@ -1385,7 +1458,18 @@ void main(void) {
         MapGlide();
       }
 
-      if (scroll_pending && !map_mode) {
+      if (scroll_pending && text_mode) {
+        u8 i;
+        u8 waiting = 0;
+        for (i = 0; i < screen_rows; ++i) {
+          waiting |= dirty[i];
+        }
+        if (!waiting) {
+          CharScroll(); /* no glide: a jump to the ring's row */
+          scroll_pending = 0;
+        }
+      }
+      else if (scroll_pending && !map_mode) {
         u8 i;
         u8 waiting = 0;
         for (i = top; i < top + text_rows; ++i) {
@@ -1412,17 +1496,23 @@ void main(void) {
       }
     }
 
-    /* A fault report must not wait behind the initial 28-row repaint. */
-    if (debug_enabled && overlay_dirty[DEBUG_COUNTS_ROW]) draw_ui(DEBUG_COUNTS_ROW);
-    if (debug_enabled && overlay_dirty[DEBUG_COST_ROW]) draw_ui(DEBUG_COST_ROW);
-    if (debug_enabled && overlay_dirty[DEBUG_MAIL_ROW]) draw_ui(DEBUG_MAIL_ROW);
-
-    slot = scan_row++;
-    if (scan_row == SGBFS_ROWS) {
+    if (scan_row >= screen_rows) { /* (a TEXT 0 can leave it past 28) */
       scan_row = 0;
     }
+    slot = scan_row++;
 
-    if (dirty[slot] && !map_mode) { /* the map has BG1: text rows wait for it to go */
+    if (text_mode) {
+      /* character tiles: the bars, a box and the OSK are cells too, so either flag composes the row; every row
+         waiting goes now, together, and their map rows in as few VBlanks as fit */
+      if (dirty[slot] | overlay_dirty[slot]) {
+        CharRows();
+      }
+    }
+    /* A fault report must not wait behind the initial 28-row repaint. */
+    else if (debug_enabled && overlay_dirty[DEBUG_COUNTS_ROW]) draw_ui(DEBUG_COUNTS_ROW);
+    else if (debug_enabled && overlay_dirty[DEBUG_COST_ROW]) draw_ui(DEBUG_COST_ROW);
+    else if (debug_enabled && overlay_dirty[DEBUG_MAIL_ROW]) draw_ui(DEBUG_MAIL_ROW);
+    else if (dirty[slot] && !map_mode && !ext_wanted) { /* the map has BG1: text rows wait for it to go */
       draw(slot);
     }
     else if (overlay_dirty[slot]) {
@@ -1436,10 +1526,16 @@ void main(void) {
         if (map_mode) {
           MapColors(); /* CGRAM 4-7: map palette 0 over the accents */
         }
+        else if (text_mode) {
+          CharColors(); /* the 8 colour classes over CGRAM 0-127 */
+        }
         palette_dirty = 0;
       }
       if (cursor_dirty) {
         PresentCursor();
+        if (text_mode) {
+          CharCursor(); /* half its height, a row 4 lines */
+        }
         cursor_dirty = 0;
       }
     }

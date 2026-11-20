@@ -99,45 +99,48 @@ def rle_decode(data, length):
     return bytes(result)
 
 
-def row(number, font, flags, selection_start, selection_end, chars, attrs):
+def row(number, font, flags, selection_start, selection_end, chars, attrs, text=0):
     chars, attrs = bytes(chars), bytes(attrs)
     require(len(chars) == len(attrs), 'character/style count mismatch')
     runs = rle_encode(attrs)
     body = bytes((number, font, flags, selection_start, selection_end, len(chars), len(runs)//2)) + chars + runs
-    return command(SGBFS_CMD_ROW, body)
+    return command(SGBFS_CMD_ROW, body, text)
 
 
-def validate_command(opcode, body):
+def validate_command(opcode, body, text=0):
+    """text: the mode the kernel is in (TEXT): 1's rows, columns and selection in columns"""
     require(opcode in COMMANDS, 'unknown opcode')
     name, n = COMMANDS[opcode], len(body)
+    R = SGBFS_TEXT_ROWS if text else SGBFS_ROWS
     if name == 'ROW':
         require(n >= 7, 'short ROW')
         y, font, flags, start, end, count, runs = body[:7]
-        require(y < SGBFS_ROWS and font <= 6 and flags <= SGBFS_ROW_STYLED, 'ROW geometry/font/flags')
-        require(start <= SGBFS_TEXT_WIDTH and (end <= SGBFS_TEXT_WIDTH or end == 255), 'ROW selection')
+        require(y < R and font <= 6 and flags <= SGBFS_ROW_STYLED, 'ROW geometry/font/flags')
+        right = SGBFS_TEXT_COLS if text else SGBFS_TEXT_WIDTH
+        require(start <= right and (end <= right or end == 255), 'ROW selection')
         require(end == 255 or start <= end, 'reversed ROW selection')
         require(count <= SGBFS_STRIDE and n == 7 + count + 2*runs, 'ROW size')
         attrs = rle_decode(body[7+count:], count)
-        require(sum(a & 15 for a in attrs) <= SGBFS_TEXT_WIDTH, 'ROW pixel width')
+        require(text or sum(a & 15 for a in attrs) <= SGBFS_TEXT_WIDTH, 'ROW pixel width')
     elif name == 'ROW_SAME':
-        require(n == 2 and max(body) < SGBFS_ROWS, 'ROW_SAME')
+        require(n == 2 and max(body) < R, 'ROW_SAME')
     elif name == 'SCROLL':
         require(n == 2 and body[1] <= 1, 'SCROLL')
         delta = struct.unpack('b', body[:1])[0]
-        require(0 < abs(delta) < SGBFS_ROWS, 'SCROLL delta')
+        require(0 < abs(delta) < R, 'SCROLL delta')
     elif name == 'LAYOUT':
         require(n == 4, 'LAYOUT length')
         top, rows, bars, osk = body
-        require(bars <= 3 and osk in (0, 5) and top < SGBFS_ROWS and 1 <= rows <= SGBFS_ROWS,
+        require(bars <= 3 and osk in (0, 5) and top < R and 1 <= rows <= R,
                 'LAYOUT fields')
-        require(top + rows + bool(bars & 2) <= SGBFS_ROWS, 'LAYOUT bounds')
+        require(top + rows + bool(bars & 2) <= R, 'LAYOUT bounds')
     elif name == 'CURSOR':
-        require(n == 3 and body[0] < SGBFS_ROWS and body[2] <= SGBFS_CURSOR_WHITE, 'CURSOR')
+        require(n == 3 and body[0] < R and body[2] <= SGBFS_CURSOR_WHITE, 'CURSOR')
     elif name == 'BOX':
         require(n == 5, 'BOX length')
         x, width, top, rows = struct.unpack('<BHBB', body)
         require((not width and not any(body)) or
-                (width >= 8 and x + width <= SGBFS_WIDTH and rows and top + rows <= SGBFS_ROWS), 'BOX geometry')
+                (width >= 8 and x + width <= SGBFS_WIDTH and 1 <= rows <= SGBFS_ROWS and top + rows <= R), 'BOX geometry')
     elif name in ('BOX_LINE', 'BAR'):
         require(n >= 3 and body[1] <= 6 and body[2] <= SGBFS_STRIDE and n == 3 + body[2], 'text line length/font')
         require(body[0] < (SGBFS_ROWS if name == 'BOX_LINE' else 2), 'text line index')
@@ -174,17 +177,19 @@ def validate_command(opcode, body):
     elif name == 'CODE':
         require(4 <= n <= 3 + SGBFS_CODE_MAX and body[0] <= 1 and
                 struct.unpack_from('<H', body, 1)[0] + n - 3 <= SGBFS_CODE_SIZE, 'CODE size')
+    elif name == 'TEXT':
+        require(n == 1 and body[0] <= 1, 'TEXT mode')
     elif name in ('HELLO', 'RESET'):
         require(body == bytes((SGBFS_VERSION, SGBFS_PROFILE)), 'version/profile mismatch')
 
 
-def command(opcode, body=b''):
+def command(opcode, body=b'', text=0):
     body = bytes(body)
-    validate_command(opcode, body)
+    validate_command(opcode, body, text)
     return struct.pack('<BH', opcode, len(body)) + body
 
 
-def commands(data):
+def commands(data, text=0):
     result, offset = [], 0
     while offset < len(data):
         require(offset + 3 <= len(data), 'truncated command header')
@@ -192,28 +197,30 @@ def commands(data):
         offset += 3
         require(offset + size <= len(data), 'truncated command payload')
         body = bytes(data[offset:offset+size])
-        validate_command(opcode, body)
+        validate_command(opcode, body, text)
+        if opcode == SGBFS_CMD_TEXT:
+            text = body[0]
         result.append((opcode, body))
         offset += size
     return result
 
 
-def page(sequence, encoded_commands):
+def page(sequence, encoded_commands, text=0):
     require(1 <= sequence <= SGBFS_PAGE_SEQ_MAX, 'invalid page sequence')
     payload = bytes(encoded_commands)
     require(len(payload) <= SGBFS_PAGE_PAYLOAD, 'page overflow')
-    commands(payload)  # validate the complete transaction before publication
+    commands(payload, text)  # validate the complete transaction before publication
     data = struct.pack('<BH', sequence, len(payload)) + payload
     return (data + struct.pack('<H', crc(data))).ljust(SGBFS_PAGE_SIZE, b'\0')
 
 
-def decode_page(data):
+def decode_page(data, text=0):
     require(len(data) == SGBFS_PAGE_SIZE, 'page size')
     sequence, length = struct.unpack_from('<BH', data)
     require(sequence and length <= SGBFS_PAGE_PAYLOAD, 'uncommitted/oversized page')
     end = SGBFS_PAGE_HEADER + length
     require(crc(data[:end]) == struct.unpack_from('<H', data, end)[0], 'page CRC')
-    return sequence, commands(data[SGBFS_PAGE_HEADER:end])
+    return sequence, commands(data[SGBFS_PAGE_HEADER:end], text)
 
 
 def mailbox(sequence, event, a, b):

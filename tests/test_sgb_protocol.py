@@ -21,7 +21,7 @@ class Protocol(unittest.TestCase):
 
     def test_generated_consumers_and_real_assemblers(self):
         p.generate(check=True)
-        self.assertEqual(len(p.COMMANDS), 22)
+        self.assertEqual(len(p.COMMANDS), 23)
         self.assertEqual(len(p.EVENTS), 18)
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
@@ -55,7 +55,7 @@ class Protocol(unittest.TestCase):
             'MAP': b'\2', 'MAP_TILES': bytes([255,1])+bytes(range(16)),
             'MAP_COLORS': bytes([7,1])+struct.pack('<4H',0x7fff,0x1234,0,0x0421),
             'MAP_CELLS': bytes([127,63,1,2,128,7,0,0]), 'MAP_SCROLL': struct.pack('<HH',1023,511),
-            'CODE': bytes([1])+struct.pack('<H',p.SGBFS_CODE_SIZE-2)+b'\x6b\x60',
+            'CODE': bytes([1])+struct.pack('<H',p.SGBFS_CODE_SIZE-2)+b'\x6b\x60', 'TEXT': b'\0',
         }
         return [row]+[p.command(getattr(p,'SGBFS_CMD_'+name), body) for name, body in bodies.items()]
 
@@ -90,6 +90,28 @@ class Protocol(unittest.TestCase):
         p.row(0,2,1,0,255,b'x'*62,bytes([4]*62))
         self.reject(p.row, 28,2,1,0,0,b'',b'')
         self.reject(p.row, 0,7,1,0,0,b'',b'')
+
+    def test_text_mode_limits(self):
+        # TEXT 1: 56 rows, a character a column (widths unchecked), selection in columns
+        self.reject(p.command,p.SGBFS_CMD_TEXT,b'\2')
+        self.reject(p.command,p.SGBFS_CMD_TEXT,b'')
+        p.row(55,0,1,0,64,b'x'*64,bytes([8]*64),text=1)
+        self.reject(p.row,56,0,1,0,0,b'',b'',text=1)
+        self.reject(p.row,0,0,1,65,255,b'',b'',text=1)
+        self.reject(p.row,0,0,1,0,65,b'',b'',text=1)
+        self.reject(p.row,0,0,0,0,0,b'x'*65,bytes(65),text=1)
+        for name,body in [('SCROLL',bytes([55,0])),('LAYOUT',bytes([1,54,3,0])),('CURSOR',bytes([55,252,1])),
+                          ('BOX',struct.pack('<BHBB',0,256,28,28)),('ROW_SAME',bytes([55,0]))]:
+            p.command(getattr(p,'SGBFS_CMD_'+name),body,text=1)
+            self.reject(p.command,getattr(p,'SGBFS_CMD_'+name),body)
+        for name,body in [('SCROLL',bytes([56,0])),('LAYOUT',bytes([1,55,3,0])),('BOX',struct.pack('<BHBB',0,256,27,29)),
+                          ('BOX_LINE',bytes([28,0,0])),('BOX',struct.pack('<BHBB',16,240,0,0))]:
+            self.reject(p.command,getattr(p,'SGBFS_CMD_'+name),body,text=1)
+        # a TEXT in a page changes the rest of it
+        payload=p.command(p.SGBFS_CMD_TEXT,b'\1')+p.row(40,0,0,0,0,b'',b'',text=1)
+        self.reject(p.commands,p.row(40,0,0,0,0,b'',b'',text=1))
+        self.assertEqual(len(p.commands(payload)),2)
+        self.reject(p.commands,p.command(p.SGBFS_CMD_TEXT,b'\0',text=1)+p.row(40,0,0,0,0,b'',b'',text=1),text=1)
 
     def test_tears_corruption_truncation_and_atomic_parse(self):
         encoded = p.page(42,b''.join(self.examples()))

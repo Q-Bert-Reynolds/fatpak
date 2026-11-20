@@ -35,20 +35,25 @@ void MapGlide(void){}
 void MapCells(void){}
 void MapColors(void){}
 void MapScroll(void){}
+void CharLayer(u8 on){(void)on;}
+void CharRows(void){}
+void CharScroll(void){}
+void CharColors(void){}
+void CharCursor(void){}
 void PublishMailbox(void){}
 void WaitBlank(void){}
 u16 Clock(void){return hw_frames;}
 static void reseal(u16 n){u16 c;test_snapshot[1]=n;test_snapshot[2]=n>>8;c=crc(test_snapshot,n+3);test_snapshot[n+3]=c;test_snapshot[n+4]=c>>8;}
 static void empty_queue(void){qcount=qhead=active_event=0;}
 int main(int argc,char **argv){
- FILE *f;unsigned count=0;u16 n;u8 saved[sizeof(rows)],pal[sizeof(palette)];
+ FILE *f;unsigned count=0;u16 n;u8 saved[sizeof(raster_rows)],pal[sizeof(palette)];
  assert(argc==2);(void)fonts;(void)screen;
  /* A valid ROW followed by an unknown opcode must reject atomically. */
  memset(test_snapshot,0,1920);test_snapshot[0]=1;
  {const u8 payload[]={1,10,0,0,2,0,0,0,1,1,'A',1,4,255,0,0};
  memcpy(test_snapshot+3,payload,sizeof(payload));reseal(sizeof(payload));}
- memcpy(saved,rows,sizeof(rows));memcpy(pal,palette,sizeof(palette));
- page(0);assert(!good_pages && !memcmp(saved,rows,sizeof(rows)) && !memcmp(pal,palette,sizeof(palette)));
+ memcpy(saved,rows,sizeof(raster_rows));memcpy(pal,palette,sizeof(palette));
+ page(0);assert(!good_pages && !memcmp(saved,rows,sizeof(raster_rows)) && !memcmp(pal,palette,sizeof(palette)));
  /* Repair exactly that transaction; CRC errors and sequence gaps cannot ACK. */
  reseal(13);test_snapshot[17]^=1;page(0);assert(!good_pages);test_snapshot[17]^=1;
  test_snapshot[0]=2;reseal(13);page(0);assert(!good_pages);
@@ -62,7 +67,7 @@ int main(int argc,char **argv){
  /* RLE width/range failures, even with a valid page CRC, preserve the model. */
  test_snapshot[0]=2;test_snapshot[15]=0;reseal(13);page(0);assert(good_pages==1);
  /* Replay the real GB frontend transactions. */
- memset(rows,0,sizeof(rows));memset(bar_lines,0,sizeof(bar_lines));
+ memset(rows,0,sizeof(raster_rows));memset(bar_lines,0,sizeof(bar_lines));
  last_page[0]=last_page[1]=0;expected=1;good_pages=bad_pages=0;empty_queue();
  f=fopen(argv[1],"rb");assert(f);
  while(fread(test_snapshot,1,1920,f)==1920){

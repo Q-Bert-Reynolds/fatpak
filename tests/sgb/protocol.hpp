@@ -46,6 +46,7 @@ constexpr std::uint32_t SGBFS_CMD_MAP_COLORS = 19;
 constexpr std::uint32_t SGBFS_CMD_MAP_CELLS = 20;
 constexpr std::uint32_t SGBFS_CMD_MAP_SCROLL = 21;
 constexpr std::uint32_t SGBFS_CMD_CODE = 22;
+constexpr std::uint32_t SGBFS_CMD_TEXT = 23;
 constexpr std::uint32_t SGBFS_EVENT_KEY = 1;
 constexpr std::uint32_t SGBFS_EVENT_MOUSE_DOWN = 2;
 constexpr std::uint32_t SGBFS_EVENT_MOUSE_DRAG = 3;
@@ -101,4 +102,6 @@ constexpr std::uint32_t SGBFS_MAP_HIRES = 16;
 constexpr std::uint32_t SGBFS_MAP_PALETTES = 8;
 constexpr std::uint32_t SGBFS_CODE_MAX = 1024;
 constexpr std::uint32_t SGBFS_CODE_SIZE = 9216;
+constexpr std::uint32_t SGBFS_TEXT_ROWS = 56;
+constexpr std::uint32_t SGBFS_TEXT_COLS = 64;
 }

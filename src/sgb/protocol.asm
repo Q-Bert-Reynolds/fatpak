@@ -46,6 +46,11 @@ DEF SGBFS_CMD_MAP_CELLS EQU $14 ; x 0-127, y 0-63 (256x224 keeps x & 63, y & 31)
 DEF SGBFS_CMD_MAP_SCROLL EQU $15 ; x:u16 0-1023, y:u16 0-511: the map's top left pixel (256x224 keeps x & 511, y & 255)
 ; The kernel's extension (SGB.DAT's last part: the map engine) into $7E:DC00, the 4 px cache's WRAM, before a map
 DEF SGBFS_CMD_CODE EQU $16 ; last 0/1 (the extension may run), offset:u16, then 1-SGBFS_CODE_MAX bytes, within SGBFS_CODE_SIZE
+; The text's mode: 0 256x224's raster rows, 1 512x448's character tiles (the extension's: after CODE, no map open).
+; In mode 1 rows go to SGBFS_TEXT_ROWS, a character a column (a row's widths are ignored), ROW's selection is in
+; columns (end 255: the right edge), the cursor's and a box's x stay 256x224 pixels (4 a column). Each switch
+; clears the rows (the GB sends them again) and closes a box. A map opens only in mode 0 (its overlay is 28 rows')
+DEF SGBFS_CMD_TEXT EQU $17 ; mode 0/1
 DEF SGBFS_EVENT_KEY EQU $01
 DEF SGBFS_EVENT_MOUSE_DOWN EQU $02
 DEF SGBFS_EVENT_MOUSE_DRAG EQU $03
@@ -102,3 +107,5 @@ DEF SGBFS_MAP_HIRES EQU $10 ; MAP's mode: 512x448 (mode 5 + interlace), a GB pix
 DEF SGBFS_MAP_PALETTES EQU 8
 DEF SGBFS_CODE_MAX EQU 1024
 DEF SGBFS_CODE_SIZE EQU $2400 ; $7E:DC00-FFFF
+DEF SGBFS_TEXT_ROWS EQU 56 ; TEXT 1's rows and columns
+DEF SGBFS_TEXT_COLS EQU 64

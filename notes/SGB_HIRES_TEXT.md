@@ -8,29 +8,32 @@ At 512×448 that font is the only one: 64 columns (the same physical width as to
 The 128×56 grid of 4 px cells was set aside: a cache of tile pairs overflows on code screens, and
 a bitmap needs four HDMA bands of VRAM, a compositor and a 14 KiB GB model.
 
-## SNES side (not built)
+## SNES side (built: `snes/char.s`, notes/SGB.md's "512x448 character text")
 
 Mode 5 + interlace, no drawing:
 
 - **Layers:** a mode 5 entry shows tiles N and N+1 side by side. BG1 shows the even columns and BG2
   the odd ones (scrolled 8 px), and each glyph is followed by a blank tile so the other layer shows
   through.
-- **Fonts:** uploaded once.
+- **Fonts:** uploaded on each switch to TEXT 1.
   - Each glyph tile has the glyph in plane 0 and its background in plane 1, so paper is opaque and
     a palette picks paper and ink.
-  - Two sets per layer, each glyph followed by its blank: 1,024 tiles per layer.
-  - BG1 (4bpp) 32 KiB, BG2 (2bpp) 16 KiB, two 32×64 maps 8 KiB: 56 KiB.
+  - One set per layer, each glyph followed by its blank, plus 6 box-drawing pieces: 524 tiles.
+  - BG1 (4bpp) 16.4 KiB, BG2 (2bpp) 8.2 KiB, two 32×64 maps 8 KiB, in VRAM bytes `$0000–$A7FF`.
 - **Colours:** palettes per entry, so every character has its own colour.
-  - Six ink classes (the style colours 2–7) plus one selected palette (selected text is drawn in
-    plain ink).
-  - BG2 uses palettes 4–7, two classes each through a second tile set; BG1 uses palettes 2–7.
-  - This keeps clear of the UI's CGRAM 0–15.
+  - 8 classes: the six ink classes (style colours 2–7), selected (plain ink on the selection
+    colour) and inverse (progress, busy).
+  - BG2's palette q is class q. BG1's 4bpp palettes 0 and 1 share their colours 2–3 with BG2's
+    palettes 0 and 4, so BG1 gives those classes palettes 0–1 and the others 2–7: no second set.
+  - The UI's CGRAM 0–15 isn't needed in TEXT 1 (no BG3); TEXT 0 restores it.
 - **UI:**
-  - The UI can't use BG3 and HDMA bands as the map does: VRAM is full, and the bands would hide
-    text across a box's whole rows.
-  - Bars, boxes and the OSK are composed into the same character grid by the kernel, in the mono
-    font, at the text's size.
-  - The GB must lay boxes out in 8 px cells meanwhile.
+  - The UI can't use BG3 and HDMA bands as the map does: the bands would hide text across a
+    box's whole rows.
+  - Bars, boxes and the OSK are composed into the same character grid by the extension, in the
+    mono font, at the text's size; frames are box-drawing cells (a frame line fills the spaces of
+    a box's first and last lines). The cursor is OBJ tile 1, half height.
+  - The GB must lay boxes out in 4 px (one column) units meanwhile, leaving the frame's columns.
+- **Maps:** not in TEXT 1 (the map's overlay is 28 rows'): the GB switches to TEXT 0 around one.
 - **Code size:** small next to a compositor: mode setup, the font upload, map writes per row, UI
   composition.
   - It goes in the kernel extension (built, see Progress); the kernel itself keeps only stubs.
@@ -52,9 +55,15 @@ Mode 5 + interlace, no drawing:
   fixed cache's WRAM, so a rebuild of that cache clears `ext_ready`. The map engine (`map.s`,
   2 KiB) moved there: the kernel program went from 21,404 to 19,681 bytes, and the extension
   is 2,009 of its 9,216.
-- Next: the character-tile text mode in the extension, the protocol's 56 rows, and the GB
-  switching to 56 rows. The GB sends the extension before a map today; it will send it before
-  512×448 text too.
+- Built: the character-tile text mode (`snes/char.s`, 2.2 KiB of the extension, now 4,277 bytes;
+  the kernel program 20,590 bytes) and TEXT in the protocol, the kernel and `sgb_protocol.py`
+  (mode-aware: `text=1` for TEXT 1's limits). `tests/run_sgb_text_kernel.sh` checks bars, styled
+  rows, selections, right alignment, a box, the OSK, busy, progress, the cursor and a scroll at
+  512×448 pixel for pixel in Mesen, and TEXT 0 giving back the raster text.
+- Next, the GB: send the extension and TEXT 1 when RESOLUTION is 512×448 with 8X8 TILES (and
+  TEXT 0 around a map); 56-row geometry with 4 px columns (64 of them); FsDraw/FsUI over
+  `screen_rows`; ROW's selection in columns; boxes laid out in columns; the hash ring at 56.
+  Then the Gearboy model's TEXT (its header has the constants).
 
 ## GB side (was the blocker)
 
@@ -95,12 +104,10 @@ Access sites to change: `tb_RenderRows`, `tb_ScrollRows` and one attribute write
 the mouse driver's row read. The GB renderer's own paths (`render.asm`, `color.asm`, the OSK's
 rows, the window macros) aren't used in fullscreen.
 
-## Protocol (not built)
+## Protocol (built)
 
-- A geometry command for 512×448 text: rows 0–55.
-- LAYOUT up to 56 rows; SCROLL ±55.
-- Boxes laid out in cells.
-- ROW unchanged: 64 characters at most.
+- TEXT `mode` 0/1. In 1: rows 0–55, LAYOUT up to 56 rows, SCROLL ±55, ROW's selection in
+  columns, widths ignored, 64 characters at most. Details in notes/SGB.md.
 
 ## Risks
 

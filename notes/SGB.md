@@ -247,6 +247,8 @@ have a one-pixel glyph inset and occupy up to 248 px.
 | MAP_COLORS | `first` palette, `count` (`first + count <= 8`), then `BGR555:u16[count * 4]`, bit 15 clear |
 | MAP_CELLS | `x` (0–127), `y` (0–63), `vertical` (0/1), `n` (1–128), then `(tile, palette 0–7)[n]`, wrapping in the map (256x224 keeps `x & 63`, `y & 31`) |
 | MAP_SCROLL | `x:u16` (0–1023), `y:u16` (0–511): the map's top left pixel (256x224 keeps `x & 511`, `y & 255`) |
+| CODE | `last` (0/1), `offset:u16`, then 1–1024 bytes of the kernel extension (within `$2400`); ignored with a map open or in TEXT 1 |
+| TEXT | `mode`: 0 the 256x224 raster text, 1 512x448 character tiles (needs the extension, no map open) |
 
 ROW flag bit 0 means styled text; other bits are zero. An attribute contains
 width 1–15 in its low nibble and the existing `STYLE_*` 0–14 in its high nibble.
@@ -265,6 +267,45 @@ Stateful constraints (BOX_LINE within the open box, SCROLL within the text ring,
 OSK layer contents) are checked by the receiver model.
 ROW_SAME copies the model row, not a VRAM address. BOX/BAR/OSK do not erase the
 underlying SNES text model.
+
+### 512x448 character text (TEXT 1)
+
+TEXT 1 switches the text to character tiles (`snes/char.s`, in the kernel extension): mode 5
+with interlace, 64 columns × 56 rows, each character an 8×8 hi-res cell from the mono font.
+Nothing is drawn: a row is map entries. Mode 5 shows an entry's tiles N and N+1 side by side,
+so BG1 holds the even columns and BG2 the odd ones (scrolled 8 pixels), each glyph tile
+followed by a blank one the other layer shows through. A glyph tile has the glyph in plane 0
+on paper in plane 1, so the entry's palette gives the cell its paper and ink. There are 8
+colour classes (text, dim, keyword, string, number, label, selected, inverse): BG2's palette q
+is class q, and BG1 uses palettes 0 and 1 for classes 0 and 4 (the same CGRAM words as BG2's
+palettes 0 and 4) and 2–7 for the rest, so one tile set a layer does.
+
+In TEXT 1:
+- rows, ROW_SAME, LAYOUT, CURSOR and a box's rows go to 56, SCROLL to ±55; BOX_LINE stays
+  under 28 lines;
+- a row is a character a column, its widths ignored; ROW's selection is in columns (0–64,
+  end `$FF` to the right edge); the 127 marker in an unstyled row puts the rest against
+  column 63;
+- the cursor's x and a box's x and width stay 256x224 pixels, 4 a column;
+- the bars, a box and the OSK are composed into the same cells: bars and the selection in
+  the selected class, a box and the OSK framed by box-drawing tiles (a frame line fills the
+  spaces of the first and last lines), BUSY the top right cell and PROGRESS the footer's
+  first cells in the inverse class;
+- the cursor is OBJ tile 1, 4 lines tall (8 hi-res lines).
+
+VRAM: BG1's tiles at word `$0000`, BG2's at `$3000`, the two 32×64 maps at `$4400` and
+`$4C00` (to byte `$A7FF`): the raster ring's and BG3's tiles in 256x224, which come back
+when TEXT 0 draws every row again. WRAM: the 56 rows at `$7E:6000`, the maps as written at
+`$8000` and `$9000` (the row cache's). Rows waiting are composed together and sent up to 8
+map rows a VBlank, each only while the VBlank lasts; a SCROLL moves the ring (64 rows) and
+sets the new vertical scroll after the last.
+
+Each TEXT switch clears the rows (the GB sends them again), the box and the scroll. A map
+opens only in TEXT 0: the map's overlay is 28 rows'. From a CODE to the TEXT or MAP that
+uses it, raster text rows wait: drawing one would rebuild the 4 px cache over the extension.
+`tests/run_sgb_text_kernel.sh` replays pages made by `tests/sgb/text_replay.py` on the real
+kernel in Mesen and checks each 512x448 picture against a reference drawn from the same
+model, pixel for pixel, then TEXT 0 against the raster text before it.
 
 ### A module's map (MAPVIEW)
 
@@ -435,8 +476,8 @@ header. The extension's first word is its own length for the same reason. The ke
 (`snes/ext.s`) calls it through stubs (`jsl $7E:…`, the extension's `Far*` entries `jsr` then
 `rtl`) and it calls back through `Far*` trampolines in bank `$7F`; its BSS stays in the
 kernel's. A CODE command clears `fixed_ready`, and the last one sets `ext_ready`. The fixed
-cache's rebuild clears `ext_ready`, and MAP stays on the text without it. Today it holds the
-map engine (`snes/map.s`, 2 KiB); 512×448 text goes there next.
+cache's rebuild clears `ext_ready`, and MAP stays on the text without it. It holds the map
+engine (`snes/map.s`, 2 KiB) and 512×448 character text (`snes/char.s`, 2.2 KiB): 4,277 bytes.
 
 ## Memory budget
 
