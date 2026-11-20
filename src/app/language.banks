@@ -1,3 +1,4 @@
 # Code placement; feature ownership follows the source files.
 # ROM0: the OS pages are full
 *: ROM0
+FIXED: LanguageSetup

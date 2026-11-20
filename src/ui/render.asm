@@ -383,6 +383,9 @@ _EditorDraw::
     ld d, a
     call RenderLineStyled
     jr nc, .font
+    ld a, e;the mono font (8x8 tiles) has no heading fonts
+    and a
+    jr z, .font
     ld a, d
     add a, a;markdown headings 1-4 have their own fonts
     add a, LOW(tb_row_states+1)
@@ -1074,7 +1077,10 @@ ASSERT LOW(render_bitmap) == 0, "render_bitmap must be page aligned"
 ;bc = glyph, returns the glyph styled by [render_look] and [render_head] in bc (render_glyph if it
 ;changed, copied from its styled font)
 RenderStyleGlyph:
-;the styled fonts come from the data file
+;the styled fonts come from the data file; the mono font (8x8 tiles) has none
+  ld a, [render_row_font]
+  and a
+  ret z
   ld a, [_data_loaded]
   and a
   ret z
@@ -2102,6 +2108,9 @@ RenderGlyph:
   ld a, [render_head]
   and a
   jr nz, .rowFont
+  ld a, [render_row_font];(in the mono font too)
+  and a
+  jr z, .rowFont
   ld a, [render_attr]
   and a, $F0
   cp a, STYLE_CODE << 4

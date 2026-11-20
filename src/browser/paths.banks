@@ -1,6 +1,5 @@
 # Code placement; feature ownership follows the source files.
 *: 5
 4: PutPath JoinPath
-FIXED: FileMoved ToLatin1
+FIXED: FileMoved
 
-FIXED: ToUtf8

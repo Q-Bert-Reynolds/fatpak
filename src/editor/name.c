@@ -86,7 +86,7 @@ unsigned char AskName(char* value, unsigned int prompt) {
     changed = 1;
   }
   if (!changed) return 2;
-  ToUtf8(value, name);
+  ToFileName(value, name);
   dirty = 1;
   return 1;
 }

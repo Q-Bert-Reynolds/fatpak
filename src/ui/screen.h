@@ -22,6 +22,8 @@ extern unsigned char ring_blocks[MAX_SCREEN_ROWS + 1]; // blocks text rows use
 extern unsigned char map_blocks[BG_MAP_ROWS + WIN_MAP_ROWS]; // block each BG map row, then window map row, shows, 0xFF = none
 extern unsigned char bars; // bars are shown now (not in menus)
 extern unsigned char font;
+extern unsigned char font_tiles; // SETTINGS > FONT: 8x8 tiles, the mono font for documents and the browser
+#define TEXT_FONT(f) (font_tiles ? FONT_MONO : (f)) // the font the setting gives for f
 extern void WaitFrame(void); // waits for vblank, updates input
 extern unsigned char data_loaded; // the styled fonts and SGB border are in PSRAM
 extern void SGBSetDefaultBorder(void);

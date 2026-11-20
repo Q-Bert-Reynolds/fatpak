@@ -10,7 +10,7 @@
 
 static void HelpView(unsigned char browser) {
   unsigned char result, old_font = font, styled = render_text, old_osk = osk_shown;
-  font = FONT_VWF;
+  font = TEXT_FONT(FONT_VWF);
   SetFont(font);
   render_text = 0;
   BeginView(1);

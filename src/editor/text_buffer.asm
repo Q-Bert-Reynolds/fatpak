@@ -1100,6 +1100,9 @@ TBLex:
   ld a, ' '
 .char
   ld c, a
+  ld a, [_font];the mono font (8x8 tiles): 8 pixels for everything
+  and a
+  jr z, .fontWidth
   ld a, [tb_next_state+1]
   and a, MD_HEADING
   jr z, .notHeading

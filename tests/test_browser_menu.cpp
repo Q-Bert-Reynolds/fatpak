@@ -293,7 +293,8 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     menu();pad(Down_Key);pad(A_Key);pad(Down_Key);pad(Down_Key);pad(A_Key); // Paste
     Check(Read(root+"/GBCSYS/a")==std::vector<u8>({'h','i','\n'}),"browser clipboard pastes in another directory");
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
-    Check(byte("_render_box_rows")==7,"browser has five settings");
+    Check(byte("_render_box_rows")==8,"browser has six settings");
+    Check(Text(memory,syms.at("tile_buffer")+20*40+100)==" FONT","font is a browser setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40)==" FULL SCREEN","full screen is a browser setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" THEME","theme is a browser setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40+40)==" LANGUAGE","language is a browser setting");
@@ -343,11 +344,22 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     Check(byte("_render_text")==1,"opening a file goes to the editor");
     const unsigned len0=memory->Read(syms.at("tb_len"));
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
-    Check(byte("_render_box_rows")==8,"editor has six settings");
+    Check(byte("_render_box_rows")==9,"editor has seven settings");
     Check(Text(memory,syms.at("tile_buffer")+20*40)==" LINE WRAP","line wrap is an editor setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" FULL SCREEN","full screen is an editor setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40+40)==" THEME","theme is an editor setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40+60)==" LANGUAGE","language is an editor setting");
+    // SETTINGS > FONT > 8X8 TILES: the document in the mono font, a character an 8 pixel cell
+    for(unsigned i=0;i<6;++i)pad(Down_Key);
+    Check(Text(memory,syms.at("tile_buffer")+20*40+120)==" FONT","font is an editor setting");
+    pad(A_Key);Check(Text(memory,syms.at("tile_buffer")+20*40)==" STANDARD" && Text(memory,syms.at("tile_buffer")+20*40+20)==" 8X8 TILES","FONT: STANDARD, 8X8 TILES");
+    pad(Down_Key);pad(A_Key);Frames(core,60);
+    Check(byte("_font_tiles")==1 && byte("_font")==0 && memory->Read(syms.at("_font_widths")+'a')==8,"8X8 TILES: the mono font, 8 pixels a character");
+    menu();pad(Down_Key);pad(Down_Key);pad(A_Key);for(unsigned i=0;i<6;++i)pad(Down_Key);pad(A_Key);
+    Check(byte("_render_box_sel")==2,"FONT starts on the current one");
+    pad(Up_Key);pad(A_Key);Frames(core,60);
+    Check(byte("_font_tiles")==0 && byte("_font")!=0,"STANDARD: the document's font again");
+    menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
     pad(B_Key);pad(Down_Key);pad(A_Key); // HELP.MOD: wait for its page
     for(unsigned waited=0;row(18).find("TEXT EDITOR")==std::string::npos && waited<300;++waited)Frames(core,1);
     Frames(core,150);
@@ -531,7 +543,7 @@ static void Theme(const char* image,const char* symbols,const char* data,bool co
         auto line=[&](){return Text(memory,syms.at("tile_buffer")+20*40);};
         Check(light(core),"light theme by default");
         pad(Start_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);
-        Check(line()==" FULL SCREEN" && memory->Read(syms.at("_render_box_rows"))==7,"full screen is the browser's first setting");
+        Check(line()==" FULL SCREEN" && memory->Read(syms.at("_render_box_rows"))==8,"full screen is the browser's first setting");
         pad(Down_Key);pad(A_Key);Frames(core,120);
         Check(line()==" Dark mode  Off","theme module shows the dark mode toggle");
         pad(A_Key);

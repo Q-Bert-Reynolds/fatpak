@@ -1,0 +1,3 @@
+# Code placement; FatFs freed this page's room (code page 850 names, not UTF-8).
+*: 11
+DATA: 11

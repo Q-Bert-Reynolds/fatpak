@@ -519,6 +519,8 @@ Do not expose unsupported modes as selectable options.
    returning from fullscreen to 160×144 at run time must restore the GB renderer, SGB BIOS
    display/border and input ownership safely (today 160×144 only takes effect at boot).
 
+Text at 512×448 (128×56): design and open decisions in [SGB_HIRES_TEXT.md](SGB_HIRES_TEXT.md).
+
 The shared-tile work keeps the current resolution and menu behavior unchanged;
 the high-resolution modes remain future work.
 

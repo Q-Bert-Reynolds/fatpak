@@ -44,7 +44,7 @@ unsigned char FileLanguage(const char* name) {
 
 void SetLang(void) {
   unsigned char i, lang = FileLanguage(file_name);
-  font = lang >= LANG_C ? FONT_FIXED : FONT_VWF; // code, asm and project.gbp
+  font = TEXT_FONT(lang >= LANG_C ? FONT_FIXED : FONT_VWF); // code, asm and project.gbp
   if (lang == tb_lang) return;
   tb_lang = lang;
   tb_ResetChecks();

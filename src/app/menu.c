@@ -4,6 +4,8 @@
 #include "language.h"
 #include "../editor/build.h"
 #include "../editor/document.h"
+#include "../editor/text_buffer.h"
+#include "../ui/screen.h"
 #include "../editor/editor.h"
 #include "../editor/help.h"
 #include "../editor/state.h"
@@ -35,13 +37,27 @@ static unsigned char ResolutionMenu(unsigned char maps) {
   return item;
 }
 
+// SETTINGS > FONT: standard (proportional text, 4 px code) or 8x8 tiles (the mono font); saved. The
+// editor's rows are laid out again in it (the browser sets its font after the menu)
+static unsigned char FontMenu(unsigned char browser) {
+  unsigned char item = Choose(0, S_FONT_STANDARD, 2, font_tiles);
+  if (item >= BACK) return item;
+  font_tiles = item;
+  SettingsSave();
+  if (!browser) {
+    tb_lang = 0xFF; // (SetLang lays out only a changed language)
+    SetLang();
+  }
+  return item;
+}
+
 // Shared by the editor (0), the browser and the viewers (1, the map viewer 2); B returns to their
 // enclosing menu.
 unsigned char PreferencesMenu(unsigned char browser) {
   unsigned char item = Choose(0, browser ? S_SUB_FULL_SCREEN : S_SUB_LINE_WRAP,
-    (browser ? 5 : 6) + (sys_info & SYS_INFO_SGB), 0);
+    (browser ? 6 : 7) + (sys_info & SYS_INFO_SGB), 0);
   if (item >= BACK) return item;
-  if (browser) ++item; // FULL SCREEN, THEME, LANGUAGE, CLOCK, KEYBOARD
+  if (browser) ++item; // FULL SCREEN, THEME, LANGUAGE, CLOCK, KEYBOARD, FONT
   if (!item) ToggleWrap();
   else if (item == 1) {
     if (!browser) ToggleBars();
@@ -50,7 +66,8 @@ unsigned char PreferencesMenu(unsigned char browser) {
       SettingsSave();
     }
   }
-  else if (item == 6) return ResolutionMenu(browser >> 1);
+  else if (item == 6) return FontMenu(browser);
+  else if (item == 7) return ResolutionMenu(browser >> 1);
   else {
     ModuleAPIBackground(0, 0); // a viewer's map: the text back for a whole screen
     if (item == 2) ThemeSetup();

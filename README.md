@@ -54,10 +54,11 @@ D-pad scrolls, B held runs, the header and footer say where you are, START opens
 | START | Open or close the menu |
 
 The menu has FILE (open, save, save as, new, build, run), EDIT (undo, redo, cut, copy, paste,
-select all), SETTINGS (line wrap, full screen, theme, language, clock, keyboard; resolution on an SGB),
+select all), SETTINGS (line wrap, full screen, theme, language, clock, keyboard, font; resolution on an SGB),
 HELP and CLOSE. Every screen's menu has FILE, EDIT, SETTINGS, HELP and CLOSE (RESTART in the browser);
 in the viewers FILE is open as and info (and rebuild for a map), EDIT is copy. Full screen only hides the
-header and footer. Resolution lists what works there: 160x144 (the SGB's own, kept at boot) and 256x224 in
+header and footer. Font is standard (proportional text, 4 px code) or 8x8 tiles: every document and the
+browser in the 8 px mono font, a character a cell. Resolution lists what works there: 160x144 (the SGB's own, kept at boot) and 256x224 in
 the SGB's BIOS mode, 256x224 in fullscreen, and 512x448 too in the map viewer.
 
 A PS/2 keyboard works like a PC's: arrows, home/end, page up/down, Ctrl to move by word,

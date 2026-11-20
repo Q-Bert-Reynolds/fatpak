@@ -1,7 +1,7 @@
 # Rendering
 
 - SGB resolutions: shared tiles first, then Mode 5 probe and 160×144 / 256×224 / 512×224 / 512×448 selection; Fullscreen toggles bars independently ([roadmap](notes/SGB.md#resolution-roadmap)).
-- Font selection (VWF, 4 px fixed, Tiny5 Mono in `img/fonts/tiny5mono_font.png`, ...) separately for text and code, saved in settings.
+- Font selection: SETTINGS > FONT has STANDARD and 8X8 TILES (the mono font). Still to do: tile-mapped drawing for 8X8 TILES (GB renderer: font tiles in VRAM, no row bitmaps; SNES: map entries, not rasters), 512x448 text with it (64x56; the GB's 56-row model needs PSRAM: [SGB_HIRES_TEXT.md](notes/SGB_HIRES_TEXT.md)), more fonts (Tiny5 Mono in `img/fonts/tiny5mono_font.png`), separately for text and code.
 - Redraw the accented/UI glyphs in `vwf_font.png` (copied from `ui_font.png`) and hand-touch the derived styled fonts.
 - DMG row draw spends ~18K cycles waiting on 40 HBlanks: interleave glyph drawing with the waits, or buffer tiles and stagger VRAM writes.
 - Page up/down redraws every row (~0.9M cycles); page up also rescans 17 rows from PSRAM.

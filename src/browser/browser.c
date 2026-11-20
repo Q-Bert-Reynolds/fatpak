@@ -286,7 +286,7 @@ unsigned char Browse(void) {
   selected = first = 0;
   clipboard[0] = 0;
   CopyName(path, file_dir);
-  font = FONT_VWF;
+  font = TEXT_FONT(FONT_VWF);
   SetFont(font);
   render_text = 0;
   EditorShowCursor(0);
@@ -368,7 +368,7 @@ unsigned char Browse(void) {
         if ((action = ShowFileView(path, &entry, view, clipboard))) { // tiles or binary: read only, back to the list after
           if (action == 1) action = 0; // (else OPEN AS or INFO's: open it again)
           path[length] = 0;
-          font = FONT_VWF;
+          font = TEXT_FONT(FONT_VWF);
           SetFont(font);
           render_text = 0;
           bars = 1;
@@ -403,7 +403,7 @@ unsigned char Browse(void) {
       else if ((action = BrowserMenu(path, clipboard, key == KEY_INFO ? MENU_INFO_KEY : MENU_BROWSER)) == ACTION_RENAME) RenameSelected(path, selected);
       if (osk_shown) OSKShow(0);
       osk_shown = 0;
-      font = FONT_VWF;
+      font = TEXT_FONT(FONT_VWF);
       SetFont(font);
       render_text = 0;
       bars = 1;
