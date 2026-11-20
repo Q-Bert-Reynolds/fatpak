@@ -18,22 +18,6 @@ char* PutNumber(char* dest, unsigned long n) {
   return dest;
 }
 
-char* PutNumber2(char* dest, unsigned char n) {
-  unsigned char digit = '0';
-  while (n >= 10) { n -= 10; ++digit; }
-  *dest++ = digit;
-  *dest++ = '0' + n;
-  return dest;
-}
-
-char* PutHex(char* dest, unsigned char n) {
-  unsigned char digit = n >> 4;
-  *dest++ = digit < 10 ? '0' + digit : 'A' - 10 + digit;
-  digit = n & 15;
-  *dest++ = digit < 10 ? '0' + digit : 'A' - 10 + digit;
-  return dest;
-}
-
 static char str_buffer[LANG_MAX + 1];
 const char* Str(unsigned int id) {
   ModString(str_buffer, id);

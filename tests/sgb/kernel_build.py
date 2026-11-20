@@ -71,13 +71,12 @@ def build():
 
 def replay_rom(pages, ui=False, checkpoints=()):
     """Wrap real frontend pages in an MBC5 transport ROM for stock SGB emulation."""
-    assert 0 < len(pages) < 256
+    assert 0 < len(pages) < 1800 # (page banks below 256)
     image=(W/'kernel.bin').read_bytes();image=image.ljust((len(image)+4095)//4096*4096,b'\0');(W/'upload.bin').write_bytes(image)
     source=('DEF UI_REPLAY EQU 1\n' if ui else '')+(ROOT/'tests/sgb/kernel.asm').read_text()
     if checkpoints:
-        source=source.replace(' jr c,.send', ' jp c,.send')
-        checks='\n'.join(f' cp {n}\n jr z,.shotPause' for n in checkpoints)
-        pause = """ inc [hl]
+        checks='\n'.join(f' ld a,[CurrentPageHigh]\n cp {n >> 8}\n jr nz,.not{n}\n ld a,[CurrentPage]\n cp {n & 255}\n jr z,.shotPause\n.not{n}' for n in checkpoints)
+        pause = """.low
  ld a,[hl]
 CHECKS
  jr .shotContinue
@@ -92,7 +91,7 @@ CHECKS
 .shotContinue
  ld a,[CurrentPage]
 IF DEF(UI_REPLAY)""".replace('CHECKS', checks)
-        source=source.replace(' inc [hl]\n ld a,[hl]\nIF DEF(UI_REPLAY)', pause)
+        source=source.replace('.low\n ld a,[hl]\nIF DEF(UI_REPLAY)', pause)
     source=source.replace('UPLOAD_COUNT',str(len(image)//4096)).replace('PAGE_COUNT',str(len(pages)))
     for off in range(0,len(image),16384):
         source+=f'\nSECTION "Upload{off}", ROMX[$4000],BANK[{1+off//16384}]\nINCBIN "build/sgb/upload.bin",{off},{min(16384,len(image)-off)}\n'

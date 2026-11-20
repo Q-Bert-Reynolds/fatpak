@@ -157,7 +157,7 @@ def validate_command(opcode, body):
     elif name == 'LAUNCH':
         require(body == bytes((SGBFS_LAUNCH_RESET_REQUIRED,)), 'LAUNCH mode')
     elif name == 'MAP':
-        require(n == 1 and body[0] <= 2, 'MAP mode')
+        require(n == 1 and body[0] & ~SGBFS_MAP_HIRES <= 2 and body[0] != SGBFS_MAP_HIRES, 'MAP mode')
     elif name == 'MAP_TILES':
         require(n >= 2 and 1 <= body[1] <= SGBFS_MAP_TILES_MAX and body[0] + body[1] <= 256 and
                 n == 2 + 16*body[1], 'MAP_TILES size')
@@ -170,7 +170,7 @@ def validate_command(opcode, body):
                 1 <= body[3] <= SGBFS_MAP_CELLS_MAX and n == 4 + 2*body[3], 'MAP_CELLS size')
         require(all(p < SGBFS_MAP_PALETTES for p in body[5::2]), 'MAP_CELLS palette')
     elif name == 'MAP_SCROLL':
-        require(n == 3 and struct.unpack_from('<H', body)[0] < 512, 'MAP_SCROLL')
+        require(n == 4 and struct.unpack_from('<H', body)[0] < 1024 and struct.unpack_from('<H', body, 2)[0] < 512, 'MAP_SCROLL')
     elif name in ('HELLO', 'RESET'):
         require(body == bytes((SGBFS_VERSION, SGBFS_PROFILE)), 'version/profile mismatch')
 

@@ -2,7 +2,7 @@
 ; beneath it, so all four UI colors survive while unopened areas stay transparent.
 .setcpu "65816"
 .export _OverlayInit,_PresentOverlay
-.import _raster,_ui_left,_ui_right,_Capture,_WaitBlank,_palette
+.import _raster,_ui_left,_ui_right,_Capture,_WaitBlank,_palette,MapRow
 .segment "CODE"
 .a8
 .i8
@@ -205,4 +205,4 @@ _PresentOverlay:
  sep #$30
 .a8
 .i8
- rts
+ jmp MapRow ; (map.s: 512x448 shows this row's UI in mode 1)

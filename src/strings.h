@@ -4,8 +4,8 @@
 // PutStr(dest, id) and Str(id) (src/strings.asm), ModString in modules; S_PART(id, n) is the
 // text after its nth {}, up to the next
 #define S_PART(id, n) ((id) | ((n) << 12))
-#define STR_COUNT 219
-#define STR_HASH 0x61EDu
+#define STR_COUNT 220
+#define STR_HASH 0x3FB3u
 #define LANGUAGES 2
 #define LANG_CODES "ENES" // 2 characters each: /GBCSYS/LANG/<code>.DAT
 #define S_MENU_FILE 0 // FILE
@@ -219,12 +219,13 @@
 #define S_KB_PAUSED 208 // PAUSED (A resumes)
 #define S_MAP_REBUILD 209 // Rebuild
 #define S_MAP_FULL_SCREEN 210 // Full screen
-#define S_MAP_CLOSE 211 // Close
-#define S_MAP_READING 212 // Reading map...
-#define S_MAP_LARGE 213 // Close the large
-#define S_MAP_LARGE2 214 // file to view maps
-#define S_MAP_CANT_BUILD 215 // Can't build the
-#define S_MAP_ERROR_N 216 // map: error {}
-#define S_MAP_WRAPPER 217 // (wrapper)
-#define S_MAP_CHUNK 218 // chunk
+#define S_MAP_HIRES 211 // Hi-res
+#define S_MAP_CLOSE 212 // Close
+#define S_MAP_READING 213 // Reading map...
+#define S_MAP_LARGE 214 // Close the large
+#define S_MAP_LARGE2 215 // file to view maps
+#define S_MAP_CANT_BUILD 216 // Can't build the
+#define S_MAP_ERROR_N 217 // map: error {}
+#define S_MAP_WRAPPER 218 // (wrapper)
+#define S_MAP_CHUNK 219 // chunk
 #endif

@@ -2,8 +2,10 @@
 // Gearboy's protocol model of the SNES side. The browser opens a .gbmap, ASM.MOD and LINK.MOD build it, and
 // the view sends the map's 256 tiles, its 8 palettes and the cells in view: every one checked against the
 // map. Holding Right scrolls and draws the incoming columns, B runs east into the next chunk (the second
-// screen of the SNES's 64-wide map), Start's menu is over the map, Full screen hides the bars and Close
-// gives the text back. The page stream goes to build/sgb/map.fph for the real kernel (Mesen).
+// screen of the SNES's 64-wide map), Start's menu is over the map, Full screen hides the bars, Hi-res sends
+// it again at 512x448 (65x57 cells of a 128x64 map), running south there crosses into the 64-row map's
+// second half, Hi-res again gives 256x224 back and Close the text. The page stream goes to
+// build/sgb/map.fph for the real kernel (Mesen).
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -14,6 +16,7 @@
 #include <sys/stat.h>
 #include "gearboy.h"
 bool g_mcp_stdio_mode=true;
+using sgbfs::SGBFS_MAP_HIRES;
 
 static std::vector<u16> pixels(256*224);
 static void Check(bool b,const char* msg){if(!b){fprintf(stderr,"FAIL: %s\n",msg);exit(1);}}
@@ -90,17 +93,21 @@ int main(int n,char** v){
     Check(selected().find("Test.gbmap")!=std::string::npos,"browser selects Test.gbmap");
     key(10);
     unsigned waited=0;
-    for(;waited<30000 && !(model.mapMode==1 && model.mapCells[28*64+32]);++waited)Frames(core,1);
+    for(;waited<30000 && !(model.mapMode==1 && model.mapCells[28*128+32]);++waited)Frames(core,1);
     printf("map built and sent: %u GB frames\n",waited);
     Frames(core,120);
     Check(model.mapMode==1,"MAP 1: the map under the bars");
     for(unsigned i=0;i<16;++i)Check(model.mapTiles[128*16+i]==tiles[i] && model.mapTiles[129*16+i]==tiles[16+i],"the tileset's tiles");
     Check(model.mapColors[0]==0x7FFF && model.mapColors[1]==31 && model.mapColors[4]==31<<10 && model.mapColors[9]==(24|12<<5),"the map's palettes");
-    auto view=[&](const char* what){ // the 33x29 cells in view, the SNES's 64-wide map from mapX
-        unsigned x0=model.mapX>>3,y0=model.mapY>>3,ox=0;
-        for(unsigned y=y0;y<y0+29;++y)for(unsigned x=x0;x<x0+33;++x){
-            unsigned got=model.mapCells[(y&31)*64+(x&63)];
-            if(got!=Expected(x+ox,y)){fprintf(stderr,"cell %u,%u: %04x, not %04x\n",x&63,y&31,got,Expected(x,y));Check(false,what);}}};
+    // the cells in view from mapX, mapY: 33x29 of the SNES's 64x32 map, 65x57 of 128x64 at 512x448. The
+    // fixture's chunks repeat every 64 columns and 32 rows, so a cell of the map is the fixture's at its place
+    auto matches=[&](bool report){
+        unsigned hi=model.mapMode&SGBFS_MAP_HIRES?1:0,x0=model.mapX>>3,y0=model.mapY>>3;
+        for(unsigned y=y0;y<y0+(hi?57:29);++y)for(unsigned x=x0;x<x0+(hi?65:33);++x){
+            unsigned got=model.mapCells[(y&(hi?63:31))*128+(x&(hi?127:63))];
+            if(got!=Expected(x,y)){if(report)fprintf(stderr,"cell %u,%u: %04x, not %04x\n",x,y,got,Expected(x,y));return false;}}
+        return true;};
+    auto view=[&](const char* what){Check(matches(true),what);};
     view("the first view: every cell");
     Check(model.mapX==0 && model.mapY==0 && (model.barFlags&1),"at the top left, the bars over it");
     h->Render(pixels.data());
@@ -125,7 +132,30 @@ int main(int n,char** v){
     Check(h->WritePPM("build/sgb/map-menu.ppm"),"menu screenshot");
     key(0x83);key(10); // Full screen
     Check(model.mapMode==2 && !model.boxWidth,"Full screen: the map without the bars");
-    pad(8,4);key(0x83);key(0x83);key(10); // Close
+
+    pad(8,4); // Start: Hi-res, 512x448
+    box.clear();for(unsigned i=0;i<model.boxRows;++i)box+=Chars(model.boxLines[i])+"|";
+    Check(box.find(" Hi-res|")!=std::string::npos,"SGB's menu: Hi-res");
+    key(0x83);key(0x83);key(10);
+    waited=0;
+    for(;waited<3000 && !(model.mapMode==(2|SGBFS_MAP_HIRES) && matches(false));++waited)Frames(core,1);
+    printf("512x448 sent: %u GB frames\n",waited);
+    Check(model.mapMode==(2|SGBFS_MAP_HIRES),"Hi-res: MAP 2 at 512x448");
+    view("512x448: every cell of 65x57");
+    Check(h->WritePPM("build/sgb/map-hires.ppm"),"512x448 screenshot");
+    unsigned east=model.mapX;
+    pad(128|2,150); // Down, running: past the chunk's south edge, the 64-row map's second half
+    printf("512x448 ran to %u,%u px\n",model.mapX,model.mapY);
+    Check(model.mapY>=256 && model.mapX==east,"512x448 running south: the next chunk, y past 256");
+    view("512x448: the rows that came into view, in the second half");
+    pad(16|2,60); // and east: the next screen of the 128-wide map
+    view("512x448: the columns that came into view");
+    pad(8,4);key(0x83);key(0x83);key(10); // Hi-res again: 256x224
+    for(waited=0;waited<3000 && !(model.mapMode==2 && matches(false));++waited)Frames(core,1);
+    Check(model.mapMode==2,"Hi-res again: 256x224");
+    view("256x224 again: every cell");
+
+    pad(8,4);key(0x83);key(0x83);key(0x83);key(10); // Close
     for(unsigned i=0;i<300 && model.mapMode;++i)Frames(core,1);
     Frames(core,180);
     Check(model.mapMode==0 && selected().find("Test.gbmap")!=std::string::npos,"Close: the browser's text again");

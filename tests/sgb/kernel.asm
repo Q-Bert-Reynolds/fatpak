@@ -4,6 +4,7 @@ INCLUDE "build/sgb/replay.inc"
 DEF Stage EQU $C100
 DEF Upload EQU $C110
 DEF CurrentPage EQU $C111
+DEF CurrentPageHigh EQU $C11F ; (a replay of more than 255 pages)
 DEF Event EQU $C112
 DEF Ack EQU $C113
 DEF Frame EQU $C114
@@ -175,10 +176,15 @@ Main:
  add $40
  ld h,a
  ld l,0
+ ld a,[CurrentPageHigh]
+ ld b,a
  ld a,[CurrentPage]
- srl a
- srl a
- srl a
+ srl b
+ rra
+ srl b
+ rra
+ srl b
+ rra
  add FIRST_PAGE_BANK
  ld [$2000],a
  ld a,[hl]
@@ -221,6 +227,11 @@ Main:
  jr nz,.waitAck
  ld hl,CurrentPage
  inc [hl]
+ jr nz,.low
+ ld a,[CurrentPageHigh]
+ inc a
+ ld [CurrentPageHigh],a
+.low
  ld a,[hl]
 IF DEF(UI_REPLAY)
  cp 102
@@ -238,8 +249,14 @@ IF DEF(UI_REPLAY)
 .noPause
  ld a,[CurrentPage]
 ENDC
- cp PAGE_COUNT
- jr c,.send
+ ld a,[CurrentPageHigh]
+ cp HIGH(PAGE_COUNT)
+ jp c,.send
+ jr nz,.finished
+ ld a,[CurrentPage]
+ cp LOW(PAGE_COUNT)
+ jp c,.send
+.finished
  ld a,6
  ld [Stage],a
 .done

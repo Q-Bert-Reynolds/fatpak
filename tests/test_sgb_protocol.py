@@ -54,7 +54,7 @@ class Protocol(unittest.TestCase):
             'RESET': bytes([p.SGBFS_VERSION,p.SGBFS_PROFILE]),
             'MAP': b'\2', 'MAP_TILES': bytes([255,1])+bytes(range(16)),
             'MAP_COLORS': bytes([7,1])+struct.pack('<4H',0x7fff,0x1234,0,0x0421),
-            'MAP_CELLS': bytes([63,31,1,2,128,7,0,0]), 'MAP_SCROLL': struct.pack('<HB',511,255),
+            'MAP_CELLS': bytes([127,63,1,2,128,7,0,0]), 'MAP_SCROLL': struct.pack('<HH',1023,511),
         }
         return [row]+[p.command(getattr(p,'SGBFS_CMD_'+name), body) for name, body in bodies.items()]
 
@@ -68,11 +68,11 @@ class Protocol(unittest.TestCase):
         self.assertEqual(p.crc(b'123456789'), 0x29b1)
 
     def test_map_limits(self):
-        for name, body in [('MAP',b'\3'),('MAP_TILES',bytes([255,2])+bytes(32)),('MAP_TILES',bytes([0,65])+bytes(1040)),
+        for name, body in [('MAP',b'\3'),('MAP',b'\x10'),('MAP',b'\x13'),('MAP',b'\x21'),('MAP_TILES',bytes([255,2])+bytes(32)),('MAP_TILES',bytes([0,65])+bytes(1040)),
                            ('MAP_TILES',bytes([0,1])+bytes(15)),('MAP_COLORS',bytes([7,2])+bytes(16)),
-                           ('MAP_COLORS',bytes([0,1])+struct.pack('<4H',0x8000,0,0,0)),('MAP_CELLS',bytes([64,0,0,1,0,0])),
-                           ('MAP_CELLS',bytes([0,32,0,1,0,0])),('MAP_CELLS',bytes([0,0,2,1,0,0])),('MAP_CELLS',bytes([0,0,0,1,0,8])),
-                           ('MAP_CELLS',bytes([0,0,0,2,0,0])),('MAP_SCROLL',struct.pack('<HB',512,0))]:
+                           ('MAP_COLORS',bytes([0,1])+struct.pack('<4H',0x8000,0,0,0)),('MAP_CELLS',bytes([128,0,0,1,0,0])),
+                           ('MAP_CELLS',bytes([0,64,0,1,0,0])),('MAP_CELLS',bytes([0,0,2,1,0,0])),('MAP_CELLS',bytes([0,0,0,1,0,8])),
+                           ('MAP_CELLS',bytes([0,0,0,2,0,0])),('MAP_SCROLL',struct.pack('<HH',1024,0)),('MAP_SCROLL',struct.pack('<HH',0,512)),('MAP_SCROLL',struct.pack('<HB',0,0))]:
             self.reject(p.command,getattr(p,'SGBFS_CMD_'+name),body)
 
     def test_rle_random_and_limits(self):

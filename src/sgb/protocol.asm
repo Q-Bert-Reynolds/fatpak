@@ -39,11 +39,11 @@ DEF SGBFS_CMD_LAUNCH EQU $0E
 DEF SGBFS_CMD_HELLO EQU $0F
 DEF SGBFS_CMD_RESET EQU $10
 ; A module's background (MAPVIEW: a Beisbol map) on BG1 instead of the text, the bars and box still over it
-DEF SGBFS_CMD_MAP EQU $11 ; mode: 0 the text again, 1 the map under the bars, 2 the map full screen
+DEF SGBFS_CMD_MAP EQU $11 ; mode: 0 the text again, 1 the map under the bars, 2 the map full screen; | SGBFS_MAP_HIRES
 DEF SGBFS_CMD_MAP_TILES EQU $12 ; first tile, count 1-SGBFS_MAP_TILES_MAX, then count GB 2bpp tiles (16 bytes)
 DEF SGBFS_CMD_MAP_COLORS EQU $13 ; first palette 0-7, count 1-8, then count*4 BGR555 colours
-DEF SGBFS_CMD_MAP_CELLS EQU $14 ; x 0-63, y 0-31, vertical 0/1, count 1-SGBFS_MAP_CELLS_MAX, then (tile, palette 0-7)
-DEF SGBFS_CMD_MAP_SCROLL EQU $15 ; x:u16 0-511, y 0-255: the map's top left pixel
+DEF SGBFS_CMD_MAP_CELLS EQU $14 ; x 0-127, y 0-63 (256x224 keeps x & 63, y & 31), vertical 0/1, count 1-SGBFS_MAP_CELLS_MAX, then (tile, palette 0-7)
+DEF SGBFS_CMD_MAP_SCROLL EQU $15 ; x:u16 0-1023, y:u16 0-511: the map's top left pixel (256x224 keeps x & 511, y & 255)
 DEF SGBFS_EVENT_KEY EQU $01
 DEF SGBFS_EVENT_MOUSE_DOWN EQU $02
 DEF SGBFS_EVENT_MOUSE_DRAG EQU $03
@@ -93,7 +93,8 @@ DEF SGBFS_COMMAND_HEADER EQU 3
 DEF SGBFS_ROW_HEADER EQU 7
 DEF SGBFS_RLE_PAIR EQU 2
 DEF SGBFS_MAP_TILES_MAX EQU 64
-DEF SGBFS_MAP_CELLS_MAX EQU 64
-DEF SGBFS_MAP_WIDTH EQU 64 ; cells: two 32x32 screens, the view (33 columns) never meets itself
-DEF SGBFS_MAP_HEIGHT EQU 32
+DEF SGBFS_MAP_CELLS_MAX EQU 128
+DEF SGBFS_MAP_WIDTH EQU 128 ; cells: 512x448's, 128x64 (65x57 in view); 256x224's 64x32 (33x29)
+DEF SGBFS_MAP_HEIGHT EQU 64
+DEF SGBFS_MAP_HIRES EQU $10 ; MAP's mode: 512x448 (mode 5 + interlace), a GB pixel a hi-res one
 DEF SGBFS_MAP_PALETTES EQU 8

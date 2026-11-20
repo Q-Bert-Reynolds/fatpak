@@ -30,7 +30,8 @@ void PresentPalette(void){}
 void PresentCursor(void){}
 void SetScroll(u16 v){(void)v;}
 void MapLayer(u8 on){(void)on;}
-void MapUpload(void){}
+void MapTiles(void){}
+void MapGlide(void){}
 void MapCells(void){}
 void MapColors(void){}
 void MapScroll(void){}

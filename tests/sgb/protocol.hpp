@@ -93,8 +93,9 @@ constexpr std::uint32_t SGBFS_COMMAND_HEADER = 3;
 constexpr std::uint32_t SGBFS_ROW_HEADER = 7;
 constexpr std::uint32_t SGBFS_RLE_PAIR = 2;
 constexpr std::uint32_t SGBFS_MAP_TILES_MAX = 64;
-constexpr std::uint32_t SGBFS_MAP_CELLS_MAX = 64;
-constexpr std::uint32_t SGBFS_MAP_WIDTH = 64;
-constexpr std::uint32_t SGBFS_MAP_HEIGHT = 32;
+constexpr std::uint32_t SGBFS_MAP_CELLS_MAX = 128;
+constexpr std::uint32_t SGBFS_MAP_WIDTH = 128;
+constexpr std::uint32_t SGBFS_MAP_HEIGHT = 64;
+constexpr std::uint32_t SGBFS_MAP_HIRES = 16;
 constexpr std::uint32_t SGBFS_MAP_PALETTES = 8;
 }

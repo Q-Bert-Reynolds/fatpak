@@ -39,7 +39,7 @@
 #define TIL 0x0240    // tiles 0-255, 16 bytes each, 8 blocks
 #define SECTOR 0x0240 // the map's directory sector, before the tiles are read
 #define CHK 0x0248    // chunks as drawn: 4 blocks each, a row of 32 tiles then its 32 palettes
-#define SLOTS 100     // chunk numbers below this keep theirs; the 4 after are drawn again each time
+#define SLOTS 100     // chunk numbers below this keep theirs; the 9 after are drawn again each time
 
 // the cache's key, at image address 0: magic, version, the map's directory entry (time, date and
 // size), then the tileset's path from KEY_TILES, NUL ended
@@ -72,6 +72,8 @@
 #define ROWS (TB_ROWS + 1)
 #define SGB_COLS (SGBFS_WIDTH / 8 + 1) // SGB fullscreen's: 256x224 on the SNES (src/sgb/protocol.h)
 #define SGB_ROWS (SGBFS_HEIGHT / 8 + 1)
+#define HI_COLS (SGB_COLS * 2 - 1) // 512x448's (Hi-res): 65x57 of a 128x64 map
+#define HI_ROWS (SGB_ROWS * 2 - 1)
 #define SYS_INFO_SGBFS 4 // ModDriver(0x43)'s sys_info: the fullscreen terminal
 // ModBackground's modes in SGB fullscreen (src/sgb/display.asm's FsBackground): the SNES's map
 #define SNES_CELLS 4 // a row (x << 8 | y) or column (| 0x8000) of the view's cells, each a SNES_CELL
@@ -79,11 +81,12 @@
 #define SNES_TILES 6 // the PSRAM window's 32 tiles, the first one's number
 #define SNES_COLORS 7 // 8 palettes of 4 colours, their address
 
-#define MENU_BUILD 0 // Menu's items
+#define MENU_BUILD 0 // Menu's items (MENU_HIRES only in SGB fullscreen)
 #define MENU_FULL 1
-#define MENU_CLOSE 2
-#define MENU_ITEMS 3
-#define MENU_BACK 3 // Start or B (or Full screen): back to the map
+#define MENU_HIRES 2
+#define MENU_CLOSE 3
+#define MENU_ITEMS 4
+#define MENU_BACK 4 // Start or B (or a toggle): back to the map
 
 static MapContext* m;
 static char text[MAP_CACHE_SIZE]; // the cache's path, a box's text, a word of project.gbp
@@ -91,14 +94,15 @@ static char tiles[48]; // the tileset's path: "img/maps/", the label's snake cas
 static unsigned char key[KEY_SIZE];
 static unsigned short at, chunks; // the reader's place; the chunk table
 static unsigned char count; // the chunks in it
-static unsigned char cached[SLOTS], slots[4]; // drawn chunks; the view's: here, east, south, south east
+static unsigned char cached[SLOTS], slots[11]; // drawn chunks; the view's, y >> 5 << 2 | x >> 5: 2x2, 3x3 at 512x448
 static unsigned char slot, fill_tile, fill_pal; // Fill's
 static unsigned char chunk, tx, ty, gbc; // the view: its chunk, its top left tile in it
 static unsigned char full, moved; // no bars (ModBackground's mode 2); the footer is behind the view
 static unsigned char cam_x, cam_y; // its top left pixel in the chunk
-// SGB fullscreen: the SNES has the background (SNES_*); its 64-wide map's column of x is x + ox, which
-// crossing east or west moves by 32, so the 33 columns in view never meet themselves
-static unsigned char sgb, ox, cols, rows;
+// SGB fullscreen: the SNES has the background (SNES_*); its map's column of x is x + ox (& xmask: 64 wide,
+// 128 at 512x448), which crossing east or west moves by 32, so the columns in view never meet themselves;
+// rows the same at 512x448 (64 tall) with oy
+static unsigned char sgb, hires, ox, oy, xmask, ymask, cols, rows;
 static unsigned short wrap_n; // the wrapper's length
 
 #ifdef HOST_TEST
@@ -391,13 +395,17 @@ static unsigned char Slot(unsigned char index, unsigned char scratch) {
   return slot;
 }
 
-// the view's chunk and its neighbours to the east, south and south east
+// the view's chunk and its neighbours to the east and south: 2x2, 3x3 at 512x448
 static void Slots(void) {
-  unsigned char south = Neighbour(chunk, SOUTH);
-  slots[0] = Slot(chunk, 0);
-  slots[1] = Slot(Neighbour(chunk, EAST), 1);
-  slots[2] = Slot(south, 2);
-  slots[3] = Slot(Neighbour(south, EAST), 3);
+  unsigned char r, c, k = 0, row = chunk, at;
+  for (r = 0; r != 2 + hires; ++r) {
+    at = row;
+    for (c = 0; c != 2 + hires; ++c) {
+      slots[r << 2 | c] = Slot(at, k++);
+      at = Neighbour(at, EAST);
+    }
+    row = Neighbour(row, SOUTH);
+  }
 }
 
 // --- The screen ----------------------------------------------------------------------------------
@@ -473,9 +481,9 @@ static void LoadPalettes(const unsigned char* colors) __naked {
 }
 #endif
 
-// tile x, y of the view's chunk (0-63: past 31 are the neighbours') onto its BG map cell
+// tile x, y of the view's chunk (0-63, 0-95 at 512x448: past 31 are the neighbours') onto its BG map cell
 static void Cell(unsigned char x, unsigned char y) {
-  unsigned char s = slots[(y >= CHUNK) << 1 | (x >= CHUNK)], tile, pal, *row;
+  unsigned char s = slots[(y >> 5) << 2 | x >> 5], tile, pal, *row;
   unsigned char* to = BG_MAP + ((unsigned short)(y & 31) << 5) + (x & 31);
   y &= 31;
   Window(CHK + ((unsigned short)s << 2) + (y >> 3));
@@ -495,7 +503,7 @@ static void Cell(unsigned char x, unsigned char y) {
 }
 // SGB fullscreen: a row or column of cells from x, y on (each Cell a SNES_CELL)
 static void Cells(unsigned char x, unsigned char y, unsigned char column) {
-  if (sgb) ModBackground(SNES_CELLS, (unsigned short)(((x + ox) & (SGBFS_MAP_WIDTH - 1)) | column) << 8 | (y & 31));
+  if (sgb) ModBackground(SNES_CELLS, (unsigned short)(((x + ox) & xmask) | column) << 8 | ((y + oy) & ymask));
 }
 static void Column(unsigned char x) {
   unsigned char y;
@@ -507,8 +515,8 @@ static void Row(unsigned char y) {
   Cells(tx, y, 0);
   for (x = tx; x != tx + cols; ++x) Cell(x, y);
 }
-// ModBackground's mode (bit 7: SGB's x + 256, past the 64-wide map's first screen) and scroll
-static unsigned char Mode(unsigned char mode) { return ox ? mode | 0x80 : mode; }
+// ModBackground's mode and scroll: SGB's map at 512x448 (SGBFS_MAP_HIRES), bits 6-7 its x's 256s, bit 5 y's
+static unsigned char Mode(unsigned char mode) { return mode | hires << 4 | (ox & 0x60) << 1 | (oy & CHUNK); }
 #define SCROLL ((unsigned short)cam_y << 8 | (unsigned char)cam_x)
 static unsigned char Background(void) { return ModBackground(Mode(1 + full), SCROLL); } // the view: the buttons held
 
@@ -582,27 +590,44 @@ static void BoxCells(void) {
   }
 }
 
+// the view's size and the SNES map's wrap: GB, SGB 256x224 or 512x448
+static void Size(void) {
+  cols = sgb ? (hires ? HI_COLS : SGB_COLS) : COLS;
+  rows = sgb ? (hires ? HI_ROWS : SGB_ROWS) : ROWS;
+  xmask = 63 | hires << 6;
+  ymask = 31 | hires << 5;
+}
+
 // Start's menu with the bars, over the map on GBC (BoxCells), the host's text on DMG/SGB (the map has every
 // tile the background reaches): MENU_BUILD or MENU_CLOSE, or MENU_BACK when Start or B closes it or Full
-// screen turns the bars off or on (the map again, where it was)
+// screen turns the bars off or on (the map again, where it was), or Hi-res (SGB only) its resolution
 static unsigned char Menu(void) {
   char lines[MENU_ITEMS * BOX_STRIDE];
-  unsigned char selected = MENU_BUILD, key, i;
-  for (i = 0; i < MENU_ITEMS; ++i) *ModString(PutText(lines + i * BOX_STRIDE, " "), S_MAP_REBUILD + i) = 0;
+  unsigned char selected = MENU_BUILD, key, i, items = sgb ? MENU_ITEMS : MENU_ITEMS - 1;
+  for (i = 0; i < items; ++i)
+    *ModString(PutText(lines + i * BOX_STRIDE, " "), S_MAP_REBUILD + (i == MENU_HIRES && !sgb ? MENU_CLOSE : i)) = 0;
   if (gbc || sgb) ModBackground(Mode(1), SCROLL); // the bars, full screen or not
   else ModBackground(0, 0);
   Bars();
-  ModMenu(lines, MENU_ITEMS, selected);
+  ModMenu(lines, items, selected);
   if (gbc) BoxCells();
   while (1) {
-    ModMenu(lines, MENU_ITEMS, selected);
+    ModMenu(lines, items, selected);
     while (!(key = ModKey()));
-    if (key == KEY_UP) selected = selected ? selected - 1 : MENU_ITEMS - 1;
-    else if (key == KEY_DOWN) selected = selected == MENU_ITEMS - 1 ? 0 : selected + 1;
+    if (key == KEY_UP) selected = selected ? selected - 1 : items - 1;
+    else if (key == KEY_DOWN) selected = selected == items - 1 ? 0 : selected + 1;
     else if (key == KEY_ENTER) break;
     else if (key == KEY_ESCAPE || key == KEY_BACKSPACE || key == KEY_MENU) { selected = MENU_BACK; break; }
   }
   ModHideBox();
+  if (selected == MENU_HIRES && !sgb) selected = MENU_CLOSE;
+  if (selected == MENU_HIRES) { // the SNES's map again, in the other size
+    hires ^= 1;
+    Size();
+    Slots();
+    Show();
+    return MENU_BACK;
+  }
   if (selected == MENU_FULL) {
     full ^= 1;
     selected = MENU_BACK;
@@ -623,22 +648,22 @@ static void Cross(unsigned char side) { // into the chunk's neighbour
 static void Step(unsigned char held, unsigned char step) {
   unsigned char nt;
   if (held & PADF_RIGHT) {
-    if ((unsigned char)(cam_x + step) < cam_x) { tx -= CHUNK; ox ^= CHUNK; Cross(EAST); }
+    if ((unsigned char)(cam_x + step) < cam_x) { tx -= CHUNK; ox += CHUNK; Cross(EAST); }
     cam_x += step;
     if ((nt = cam_x >> 3) != tx) { tx = nt; Column(tx + cols - 1); }
   }
   else if (held & PADF_LEFT) {
-    if (step > cam_x) { tx += CHUNK; ox ^= CHUNK; Cross(WEST); }
+    if (step > cam_x) { tx += CHUNK; ox -= CHUNK; Cross(WEST); }
     cam_x -= step;
     if ((nt = cam_x >> 3) != tx) { tx = nt; Column(tx); }
   }
   if (held & PADF_DOWN) {
-    if ((unsigned char)(cam_y + step) < cam_y) { ty -= CHUNK; Cross(SOUTH); }
+    if ((unsigned char)(cam_y + step) < cam_y) { ty -= CHUNK; oy += CHUNK; Cross(SOUTH); }
     cam_y += step;
     if ((nt = cam_y >> 3) != ty) { ty = nt; Row(ty + rows - 1); }
   }
   else if (held & PADF_UP) {
-    if (step > cam_y) { ty += CHUNK; Cross(NORTH); }
+    if (step > cam_y) { ty += CHUNK; oy -= CHUNK; Cross(NORTH); }
     cam_y -= step;
     if ((nt = cam_y >> 3) != ty) { ty = nt; Row(ty); }
   }
@@ -650,7 +675,7 @@ static void Step(unsigned char held, unsigned char step) {
 // (only the menu does either: B runs)
 static unsigned char View(void) {
   unsigned char pressed, held = 0, step, frames, now, last;
-  chunk = tx = ty = ox = 0;
+  chunk = tx = ty = ox = oy = 0;
   cam_x = cam_y = 0;
   Slots();
   Show();
@@ -711,8 +736,7 @@ unsigned char ModuleMain(MapContext* context) {
   VBK = 0;
   gbc = VBK != 0xFF; // DMG's reads $FF; GBC's the bank, the rest of it set
   sgb = *(const unsigned char*)ModDriver(0x43) & SYS_INFO_SGBFS;
-  cols = sgb ? SGB_COLS : COLS;
-  rows = sgb ? SGB_ROWS : ROWS;
+  Size();
   ModHideBox();
   i = View();
   ModBackground(0, 0);

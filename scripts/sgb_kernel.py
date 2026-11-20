@@ -26,7 +26,7 @@ def build():
     shared = os.environ.get('SGB_SHARED_RENDER') == '1' or 'SNES_SHARED_CHECK' in checks
     if shared: checks.append('SNES_SHARED_RENDER')
     asm_shared = ('-D', 'SHARED_RENDER=1') if shared else ()
-    run('cc65',*[arg for flag in checks for arg in ('-D',flag)],'-g','-t','none','-Oirs','--cpu','6502','-o',str(WORK/'kernel.s'),'snes/kernel.c')
+    run('cc65',*[arg for flag in checks for arg in ('-D',flag)],'-g','-t','none','-Oirs','-Cl','--cpu','6502','-o',str(WORK/'kernel.s'),'snes/kernel.c')
     run('ca65','-g','-o',str(WORK/'kernel.o'),str(WORK/'kernel.s'))
     run('ca65',*asm_shared,'-o',str(WORK/'hardware.o'),'snes/hardware.s')
     run('ca65','-o',str(WORK/'raster.o'),'snes/raster.s')

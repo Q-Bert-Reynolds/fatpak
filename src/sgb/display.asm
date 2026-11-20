@@ -769,9 +769,11 @@ FsDark:
 
 ; ModBackground in fullscreen (render.asm's _ModuleAPIBackground jumps here): the GB's LCD is the transport,
 ; so the module's background is the SNES's (SGBFS_CMD_MAP*), never the GB's VRAM. A = mode:
-;   0 the text again, 1 the map under the bars, 2 full screen (bit 7: x + 256), D = y, E = x: with what modes
-;     4-7 added to the page, sent before anything else draws (FsDraw starts a page)
-;   4 a row of cells from x = D, y = E (D bit 7: a column), 33 or 29 cells (the view's), each one mode 5's
+;   0 the text again, 1 the map under the bars, 2 full screen, | SGBFS_MAP_HIRES for 512x448 (bits 6-7: x's
+;     256s, bit 5: y's), D = y, E = x: with what modes 4-7 added to the page, sent before anything else draws
+;     (FsDraw starts a page)
+;   4 a row of cells from x = D, y = E (D bit 7: a column), 33 or 29 cells (the view's; 65 or 57 at 512x448),
+;     each one mode 5's
 ;   5 a cell: D = tile, E = palette
 ;   6 32 tiles from the PSRAM window, the first E
 ;   7 8 palettes of 4 colours from DE
@@ -779,11 +781,14 @@ FsDark:
 ; held.
 DEF FS_MAP_COLS EQU SGBFS_WIDTH / 8 + 1
 DEF FS_MAP_ROWS EQU SGBFS_HEIGHT / 8 + 1
+DEF FS_MAP_COLS_HI EQU FS_MAP_COLS * 2 - 1
 FsBackground:
   ld b, a
-  and $7F
+  and $0F
   cp 4
   jr nc, FsMapData
+  ld a, b
+  and 3 | SGBFS_MAP_HIRES
   ld c, a
   call FsMapReady
   jr c, .buttons
@@ -803,15 +808,25 @@ FsBackground:
   ld a, c
   and a
   jr z, .flush
-  ld a, b
-  rlca
-  and 1
+  ld a, b ; bits 6-7: x's 256s, bit 5: y's
+  swap a
+  ld c, a
+  rrca
+  rrca
+  and 3
   ld b, a
+  ld a, c
+  rrca
+  and 1
+  ld c, a
   ldh a, [fs_map_x]
   cp e
   jr nz, .moved
   ldh a, [fs_map_x+1]
   cp b
+  jr nz, .moved
+  ldh a, [fs_map_y+1]
+  cp c
   jr nz, .moved
   ldh a, [fs_map_y]
   cp d
@@ -823,9 +838,11 @@ FsBackground:
   ldh [fs_map_x+1], a
   ld a, d
   ldh [fs_map_y], a
+  ld a, c
+  ldh [fs_map_y+1], a
   ld a, SGBFS_CMD_MAP_SCROLL
   push bc
-  ld bc, 3
+  ld bc, 4
   call FsTLV
   pop bc
   ld a, e
@@ -833,6 +850,8 @@ FsBackground:
   ld a, b
   call FsByte
   ld a, d
+  call FsByte
+  ld a, c
   call FsByte
 .flush
   call FsFlush ; returns at once if the page is empty
@@ -853,7 +872,7 @@ FsMapData:
   jr z, .room
   ld hl, 3 + 2 + 64
   jr nc, .room
-  ld hl, 3 + 4 + 2 * FS_MAP_COLS ; enough for a column's 29 too
+  ld hl, 3 + 4 + 2 * FS_MAP_COLS_HI ; enough for any row or column
 .room
   push bc
   push de
@@ -870,8 +889,16 @@ FsMapData:
   and 1
   ld c, a ; vertical
   ld b, FS_MAP_COLS
-  jr z, .cells
+  jr z, .row
   ld b, FS_MAP_ROWS
+.row
+  ldh a, [fs_map]
+  and SGBFS_MAP_HIRES
+  jr z, .cells
+  ld a, b ; 512x448's: 65 and 57
+  add a
+  dec a
+  ld b, a
 .cells
   push bc
   ld a, b

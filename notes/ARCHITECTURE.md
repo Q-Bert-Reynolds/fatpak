@@ -425,7 +425,7 @@ boot ROM). Select opens file info directly.
   DMG/SGB the bars move to blocks 0 and 1, `$8000` only, which the map's `$8800` tiles leave
   free (`BackgroundBars`, page 15). On GBC its menu stays over the map: text rows draw into blocks
   9-16 meanwhile (`MapBoxLayout`), the box's tiles, which MAPVIEW points its cells at. In SGB
-  fullscreen the map is the SNES's, 256x224 (the MAP commands, [SGB.md](SGB.md)). `ViewMap` keeps little on the stack: it's deep in
+  fullscreen the map is the SNES's, 256x224 or 512x448 (the MAP commands, [SGB.md](SGB.md)). `ViewMap` keeps little on the stack: it's deep in
   the browser's, under `RunModule`, the loader and FatFs (the cache's path goes through
   `buffer`). The host calls `EditorRedraw` after, and the browser lists its folder again.
 - **Rename** (`editor/name.c`, shared with filename prompts): edits the list row

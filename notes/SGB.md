@@ -156,6 +156,7 @@ and pad behavior remains Phase 9. L+R+Select toggles capture/page diagnostics.
 | `$C800–$C9FF` | BG2 clipped paper-mask tiles |
 | `$E000` / `$E800` / `$F000` | BG1 / BG3 / BG2 maps |
 | `$0000–$1FFF`, `$2000–$2FFF` | In map mode: the map's 256 tiles (4bpp) and BG1's 64x32 map, over the text rows' |
+| `$0000–$5FFF`, `$6000–$7FFF` | 512x448 map mode: 383 tile pairs (pair 0 blank) and BG1's 64x64 map of pairs |
 
 Palette roles are paper/highlight/dim/ink at 0–3, syntax accents at 4–7, and
 selected variants at 8–15. Accent ink becomes normal ink when selected, matching
@@ -241,11 +242,11 @@ have a one-pixel glyph inset and occupy up to 248 px.
 | PROGRESS | `loaded_KiB:u32, total_KiB:u32`, loaded ≤ total |
 | LAUNCH | mode 1: `RESET_REQUIRED` (see launch policy) |
 | HELLO / RESET | `version` (1), `profile` (0) |
-| MAP | `mode`: 0 the text, 1 a module's map under the bars, 2 the map full screen |
+| MAP | `mode`: 0 the text, 1 a module's map under the bars, 2 the map full screen; `\| $10` (`SGBFS_MAP_HIRES`) for 512x448 |
 | MAP_TILES | `first, count` (1–64, `first + count <= 256`), then `count` GB 2bpp tiles of 16 bytes |
 | MAP_COLORS | `first` palette, `count` (`first + count <= 8`), then `BGR555:u16[count * 4]`, bit 15 clear |
-| MAP_CELLS | `x` (0–63), `y` (0–31), `vertical` (0/1), `n` (1–64), then `(tile, palette 0–7)[n]`, wrapping in the map |
-| MAP_SCROLL | `x:u16` (0–511), `y`: the map's top left pixel |
+| MAP_CELLS | `x` (0–127), `y` (0–63), `vertical` (0/1), `n` (1–128), then `(tile, palette 0–7)[n]`, wrapping in the map (256x224 keeps `x & 63`, `y & 31`) |
+| MAP_SCROLL | `x:u16` (0–1023), `y:u16` (0–511): the map's top left pixel (256x224 keeps `x & 511`, `y & 255`) |
 
 ROW flag bit 0 means styled text; other bits are zero. An attribute contains
 width 1–15 in its low nibble and the existing `STYLE_*` 0–14 in its high nibble.
@@ -279,17 +280,37 @@ whole. MAP_SCROLL sets a target the scroll glides to, half the remaining way eac
 frame: a page's few pixels of movement show smoothly, lagging under 12 pixels, inside the 3
 rows the 32-row map keeps past the 29 in view.
 
+**512x448** (`SGBFS_MAP_HIRES`, MAPVIEW's Hi-res): BG mode 5 with interlace, a GB pixel a hi-res
+one, 64x56 GB tiles on screen. Mode 5 draws a map entry's tiles N and N+1 side by side, so each of
+BG1's 64x64 entries (VRAM word `$3000`) is a pair of GB cells, and the GB's 128x64 cells map onto
+it by column pairs. The kernel keeps the GB's cells (`$7F:C000`, the row cache's), its 256 2bpp
+tiles and a cache of pairs (`$7E:6000–9FFF`, the row cache's too: leaving, the cache is emptied
+and every text row drawn again): a pair is found by hashing its two cells (128 chains), counted
+by the entries using it, and reused (the next one no entry uses) once none do; 383 fit (tiles
+2–767), past that an entry gets the blank pair 0. Its two cells may have different palettes:
+CGRAM palettes 1–7 each hold three GB palettes (slots 1–3, colours 4–15), given out as pairs need
+them (one no pair uses is emptied when none has room), and a pair's tiles take its palette's
+slots in planes 2–3. Composed pairs (16) and entry writes (64) go out together in a VBlank.
+HDMA (channels 6 and 7: BGMODE and TM) switches the rows with the bars, a box or the OSK
+(`PresentOverlay` records them) to mode 1 with BG2/BG3 and no BG1, so the text UI is drawn
+as always and the map is hidden across those rows. Horizontal scroll in mode 5 counts 2
+pixels, so the map moves 2 at a time sideways; vertical scroll is per line of 448. Interlace
+flickers on 1-pixel horizontal lines (CRT; upscalers vary). Untried on hardware; the first
+5A22 revision can crash when general DMA (the ICD2 capture) meets HDMA.
+
 On the GB the module never touches VRAM in fullscreen (it's the transport). `ModBackground`
-jumps to the overlay's `FsBackground` (entry 9): modes 0–2 send MAP and MAP_SCROLL (bit 7
-of the mode is x's ninth bit) and flush; 4 starts a row or column of cells (33 or 29, the
-256x224 view's), 5 adds one, 6 sends the PSRAM window's 32 tiles, 7 the 8 palettes. Those
-are added to the page, whole (flushed first if one can't fit), and go with the next mode
-0–2 call, which the module makes before anything else draws (`FsDraw` starts a page). A
-map's commands can't wait for a full key queue, so `FsMapReady` empties it. Each pass of
-the view waits for its page's ACK, so the view counts the frames it took (up to 16) and
-skips `ModFrame`'s idle page while it moves. Tests: `tests/run_sgb_map.sh` (the frontend
-and Gearboy's protocol model: every cell checked) and `tests/run_sgb_map_kernel.sh` (its
-recorded pages on the real kernel in Mesen: the map pixel for pixel, the text after it).
+jumps to the overlay's `FsBackground` (entry 9): modes 0–2 send MAP and MAP_SCROLL (`| $10`
+512x448; bits 6–7 of the mode are x's 256s, bit 5 y's) and flush; 4 starts a row or column of
+cells (33 or 29, the 256x224 view's; 65 or 57 at 512x448), 5 adds one, 6 sends the PSRAM
+window's 32 tiles, 7 the 8 palettes. Those are added to the page, whole (flushed first if one
+can't fit), and go with the next mode 0–2 call, which the module makes before anything else
+draws (`FsDraw` starts a page). A map's commands can't wait for a full key queue, so
+`FsMapReady` empties it. Each pass of the view waits for its page's ACK, so the view counts the
+frames it took (up to 16) and skips `ModFrame`'s idle page while it moves. Tests:
+`tests/run_sgb_map.sh` (the frontend and Gearboy's protocol model: every cell checked, at both
+sizes) and `tests/run_sgb_map_kernel.sh` (its recorded pages on the real kernel in Mesen: the
+map pixel for pixel at 256x224 and, sampled, at 512x448, the rows its menu turns to mode 1, the
+text after it).
 
 ### Mailbox and input acknowledgement
 
