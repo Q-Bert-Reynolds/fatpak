@@ -221,6 +221,7 @@ static void InstallModules(const std::string& root,const char* data)
     std::string lang=bin.substr(0,bin.size()-8)+"LANG/"; // bin/LANG: the languages, like make assemble's card
     mkdir((root+"/GBCSYS/LANG").c_str(),0700);
     for(const char* name:{"EN.DAT","ES.DAT"})Write(root+"/GBCSYS/LANG/"+name,Read(lang+name));
+    Write(root+"/GBCSYS/MAPVIEW.INC",Read(bin.substr(0,bin.size()-8)+"MAPVIEW.INC")); // a map's build includes it
 }
 
 static void UI(const char* image,const char* symbols,const char* data,bool color) {

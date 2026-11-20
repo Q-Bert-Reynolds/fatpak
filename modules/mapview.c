@@ -24,6 +24,7 @@
 #include "../build/modules/sdk.h"
 #include "lib/psram.h"
 #include "lib/text.h"
+#include "../src/sgb/protocol.h"
 #include "mapview.h"
 #ifndef HOST_TEST
 #include "../src/fatfs/lib/ff.h" // FIL and FATFS, read through ModStat's pointers
@@ -69,6 +70,14 @@
 #define RUN 4  // with B held
 #define COLS (TB_COLS + 1) // BG map columns and rows kept drawn: the screen's and the one it's part way into
 #define ROWS (TB_ROWS + 1)
+#define SGB_COLS (SGBFS_WIDTH / 8 + 1) // SGB fullscreen's: 256x224 on the SNES (src/sgb/protocol.h)
+#define SGB_ROWS (SGBFS_HEIGHT / 8 + 1)
+#define SYS_INFO_SGBFS 4 // ModDriver(0x43)'s sys_info: the fullscreen terminal
+// ModBackground's modes in SGB fullscreen (src/sgb/display.asm's FsBackground): the SNES's map
+#define SNES_CELLS 4 // a row (x << 8 | y) or column (| 0x8000) of the view's cells, each a SNES_CELL
+#define SNES_CELL 5 // tile << 8 | palette
+#define SNES_TILES 6 // the PSRAM window's 32 tiles, the first one's number
+#define SNES_COLORS 7 // 8 palettes of 4 colours, their address
 
 #define MENU_BUILD 0 // Menu's items
 #define MENU_FULL 1
@@ -87,6 +96,9 @@ static unsigned char slot, fill_tile, fill_pal; // Fill's
 static unsigned char chunk, tx, ty, gbc; // the view: its chunk, its top left tile in it
 static unsigned char full, moved; // no bars (ModBackground's mode 2); the footer is behind the view
 static unsigned char cam_x, cam_y; // its top left pixel in the chunk
+// SGB fullscreen: the SNES has the background (SNES_*); its 64-wide map's column of x is x + ox, which
+// crossing east or west moves by 32, so the 33 columns in view never meet themselves
+static unsigned char sgb, ox, cols, rows;
 static unsigned short wrap_n; // the wrapper's length
 
 #ifdef HOST_TEST
@@ -214,44 +226,9 @@ static void OutNumber(unsigned char n) {
   Out(digits);
 }
 
-// what a map takes from its game's headers, instead of the project's -P file (Beisbol's includes
-// every header the game has, about 2,300 lines): map_loader.inc's object types, collisions and
-// avatar directions and behaviours (value: the name's index << shift), and color.inc's RGB. Other
-// names the map doesn't define (doors' targets, scripts, teams) are linked as 0 (ASM_LOOSE)
-static const char* const prelude[4] = {
-  "MAP_OBJ_\0NONE NONE_FILL TILE TILE_FILL STAMP STAMP_FILL AVATAR META_SPRITE",
-  "MAP_COLLISION_\4NONE SOLID WATER DOOR TEXT LEDGE GRASS SCRIPT TEAM ITEM",
-  "MAP_AVATAR_\6LEFT RIGHT UP DOWN",
-  "MAP_AVATAR_\3STATIONARY WANDER",
-};
-
-static void Prelude(void) {
-  const char *group, *p;
-  char* t;
-  unsigned char i, g, shift;
-  Out("MACRO RGB\n DW \\3 << 10 | \\2 << 5 | \\1\nENDM\n");
-  for (g = 0; g < 4; ++g) {
-    group = prelude[g];
-    for (p = group; *p >= 'A'; ++p); // the prefix, then its shift
-    shift = *p++;
-    for (i = 0; *p; ++i) {
-      Out("DEF ");
-      for (t = text; *group >= 'A'; ) *t++ = *group++; // the prefix
-      for (; *p > ' '; ) *t++ = *p++; // the name
-      *t = 0;
-      group = prelude[g];
-      Out(text);
-      Out(" EQU ");
-      OutNumber(i << shift);
-      Out("\n");
-      if (*p) ++p;
-    }
-  }
-}
-
-// the wrapper ASM.MOD builds, and the build's context: the key and the tileset's path, the
-// prelude, then the map and the stamps file (if there is one) at MAP; and the cache's path for
-// the host at MAP_PATH_BLOCK. MAP_BUILD
+// the wrapper ASM.MOD builds, and the build's context: the key and the tileset's path,
+// /GBCSYS/MAPVIEW.INC (found from the map's folder up, like any include), then the map and the stamps file
+// (if there is one) at MAP; and the cache's path for the host at MAP_PATH_BLOCK. MAP_BUILD
 static unsigned char Wrapper(void) {
   unsigned char i;
   unsigned char* b = (unsigned char*)&m->build;
@@ -265,7 +242,7 @@ static unsigned char Wrapper(void) {
   Out("0, 0, 0\n DB \"");
   Out(tiles);
   Out("\", 0\n");
-  Prelude();
+  Out("INCLUDE \"GBCSYS/MAPVIEW.INC\"\n"); // what maps take from the game's headers (data/mapview.inc)
   Out("SECTION \"FatPak map\", ROMX[$4000], BANK[1]\nINCLUDE \"");
   Out(m->name);
   Out("\"\n");
@@ -505,6 +482,10 @@ static void Cell(unsigned char x, unsigned char y) {
   row = WINDOW + ((y & 7) << 6) + (x & 31);
   tile = *row;
   pal = row[CHUNK] & 7;
+  if (sgb) {
+    ModBackground(SNES_CELL, (unsigned short)tile << 8 | pal);
+    return;
+  }
   VPut(to, tile);
   if (gbc) {
     VBK = 1;
@@ -512,8 +493,24 @@ static void Cell(unsigned char x, unsigned char y) {
     VBK = 0;
   }
 }
-static void Column(unsigned char x) { unsigned char y; for (y = ty; y != ty + ROWS; ++y) Cell(x, y); }
-static void Row(unsigned char y) { unsigned char x; for (x = tx; x != tx + COLS; ++x) Cell(x, y); }
+// SGB fullscreen: a row or column of cells from x, y on (each Cell a SNES_CELL)
+static void Cells(unsigned char x, unsigned char y, unsigned char column) {
+  if (sgb) ModBackground(SNES_CELLS, (unsigned short)(((x + ox) & (SGBFS_MAP_WIDTH - 1)) | column) << 8 | (y & 31));
+}
+static void Column(unsigned char x) {
+  unsigned char y;
+  Cells(x, ty, 0x80);
+  for (y = ty; y != ty + rows; ++y) Cell(x, y);
+}
+static void Row(unsigned char y) {
+  unsigned char x;
+  Cells(tx, y, 0);
+  for (x = tx; x != tx + cols; ++x) Cell(x, y);
+}
+// ModBackground's mode (bit 7: SGB's x + 256, past the 64-wide map's first screen) and scroll
+static unsigned char Mode(unsigned char mode) { return ox ? mode | 0x80 : mode; }
+#define SCROLL ((unsigned short)cam_y << 8 | (unsigned char)cam_x)
+static unsigned char Background(void) { return ModBackground(Mode(1 + full), SCROLL); } // the view: the buttons held
 
 // the bars: the map's name in the header, and where the view is at the footer's left, as the editor
 // has its line and column
@@ -535,15 +532,21 @@ static void Show(void) {
   ModDraw(); // the host's rows, then a frame or two for a box's rows to go back to their map rows
   ModFrame();
   ModFrame();
-  ModBackground(1 + full, (unsigned short)cam_y << 8 | (unsigned char)cam_x);
+  Background();
   Bars();
-  for (t = 0; t < 256; ++t) {
-    if (gbc) VBK = t < 128;
-    Window(TIL + (t >> 5));
-    VTile((unsigned char*)(t < 128 ? 0x9000 + (t << 4) : 0x8000 + (t << 4)), WINDOW + ((t & 31) << 4));
+  if (sgb) for (i = 0; i < 8; ++i) { // the SNES's tiles: 8 blocks of 32 from PSRAM
+    Window(TIL + i);
+    ModBackground(SNES_TILES, i << 5);
   }
-  VBK = 0;
-  if (gbc) { // 8 palettes of 3 colours, the fourth black as the game loads them
+  else {
+    for (t = 0; t < 256; ++t) {
+      if (gbc) VBK = t < 128;
+      Window(TIL + (t >> 5));
+      VTile((unsigned char*)(t < 128 ? 0x9000 + (t << 4) : 0x8000 + (t << 4)), WINDOW + ((t & 31) << 4));
+    }
+    VBK = 0;
+  }
+  if (gbc || sgb) { // 8 palettes of 3 colours, the fourth black as the game loads them
     at = MAP + H_PALETTES;
     at = GetWord();
     for (i = 0, y = 0; i < 8; ++i) {
@@ -551,10 +554,12 @@ static void Show(void) {
       colors[y++] = 0;
       colors[y++] = 0;
     }
-    LoadPalettes(colors);
+    if (sgb) ModBackground(SNES_COLORS, (unsigned short)colors);
+    else LoadPalettes(colors);
   }
   else BGP = 0xE4;
-  for (y = ty; y != ty + ROWS; ++y) Row(y);
+  for (y = ty; y != ty + rows; ++y) Row(y);
+  if (sgb) Background(); // sent before anything else draws
 }
 
 // GBC: the host's box (ModMenu) over the map. While the module has the BG map, the host draws text row r
@@ -584,7 +589,7 @@ static unsigned char Menu(void) {
   char lines[MENU_ITEMS * BOX_STRIDE];
   unsigned char selected = MENU_BUILD, key, i;
   for (i = 0; i < MENU_ITEMS; ++i) *ModString(PutText(lines + i * BOX_STRIDE, " "), S_MAP_REBUILD + i) = 0;
-  if (gbc) ModBackground(1, (unsigned short)cam_y << 8 | (unsigned char)cam_x); // the bars, full screen or not
+  if (gbc || sgb) ModBackground(Mode(1), SCROLL); // the bars, full screen or not
   else ModBackground(0, 0);
   Bars();
   ModMenu(lines, MENU_ITEMS, selected);
@@ -603,8 +608,8 @@ static unsigned char Menu(void) {
     selected = MENU_BACK;
   }
   if (selected == MENU_BACK) {
-    if (!gbc) Show();
-    else for (i = 0; i != ROWS; ++i) Row(ty + i); // the box's cells: the map again
+    if (gbc) for (i = 0; i != ROWS; ++i) Row(ty + i); // the box's cells: the map again
+    else if (!sgb) Show(); // (SGB: the SNES's box is over the map, which it keeps)
   }
   return selected;
 }
@@ -618,19 +623,19 @@ static void Cross(unsigned char side) { // into the chunk's neighbour
 static void Step(unsigned char held, unsigned char step) {
   unsigned char nt;
   if (held & PADF_RIGHT) {
-    if ((unsigned char)(cam_x + step) < cam_x) { tx -= CHUNK; Cross(EAST); }
+    if ((unsigned char)(cam_x + step) < cam_x) { tx -= CHUNK; ox ^= CHUNK; Cross(EAST); }
     cam_x += step;
-    if ((nt = cam_x >> 3) != tx) { tx = nt; Column(tx + COLS - 1); }
+    if ((nt = cam_x >> 3) != tx) { tx = nt; Column(tx + cols - 1); }
   }
   else if (held & PADF_LEFT) {
-    if (step > cam_x) { tx += CHUNK; Cross(WEST); }
+    if (step > cam_x) { tx += CHUNK; ox ^= CHUNK; Cross(WEST); }
     cam_x -= step;
     if ((nt = cam_x >> 3) != tx) { tx = nt; Column(tx); }
   }
   if (held & PADF_DOWN) {
     if ((unsigned char)(cam_y + step) < cam_y) { ty -= CHUNK; Cross(SOUTH); }
     cam_y += step;
-    if ((nt = cam_y >> 3) != ty) { ty = nt; Row(ty + ROWS - 1); }
+    if ((nt = cam_y >> 3) != ty) { ty = nt; Row(ty + rows - 1); }
   }
   else if (held & PADF_UP) {
     if (step > cam_y) { ty += CHUNK; Cross(NORTH); }
@@ -644,19 +649,21 @@ static void Step(unsigned char held, unsigned char step) {
 // d-pad is let go (a row of text each step would slow it). 1 to build the cache again, 0 to close
 // (only the menu does either: B runs)
 static unsigned char View(void) {
-  unsigned char pressed, held, step, frames, now, last;
-  chunk = tx = ty = 0;
+  unsigned char pressed, held = 0, step, frames, now, last;
+  chunk = tx = ty = ox = 0;
   cam_x = cam_y = 0;
   Slots();
   Show();
   last = (unsigned char)ModStat(MODULE_STAT_FRAMES);
   while (1) {
-    pressed = ModFrame();
-    held = ModBackground(1 + full, (unsigned short)cam_y << 8 | (unsigned char)cam_x);
+    // SGB: while it moves, its own page each pass paces it, not ModFrame's (the host's rows, a page too);
+    // a press meanwhile stays latched for the next ModFrame
+    pressed = sgb && (held & PADF_DPAD) ? 0 : ModFrame();
+    held = Background();
     now = (unsigned char)ModStat(MODULE_STAT_FRAMES);
     frames = now - last;
     last = now;
-    if (frames > 4) frames = 4;
+    if (frames > (sgb ? 16 : 4)) frames = sgb ? 16 : 4; // SGB: a pass waits for its page's ACK, a few frames
     if ((pressed & PADF_START) || (unsigned char)ModEvent() == KEY_ESCAPE) { // the keyboard's queue too, so it's not stale
       if ((step = Menu()) != MENU_BACK) return step == MENU_BUILD;
       last = (unsigned char)ModStat(MODULE_STAT_FRAMES);
@@ -665,6 +672,7 @@ static unsigned char View(void) {
     step = held & PADF_B ? RUN : WALK;
     if (held & PADF_DPAD) {
       while (frames--) Step(held, step);
+      if (sgb) Background(); // the new cells and scroll, one page
       moved = 1;
     }
     else if (moved && !full) {
@@ -702,6 +710,9 @@ unsigned char ModuleMain(MapContext* context) {
   if (tiles[0]) Load(tiles, TIL + 4, 4);
   VBK = 0;
   gbc = VBK != 0xFF; // DMG's reads $FF; GBC's the bank, the rest of it set
+  sgb = *(const unsigned char*)ModDriver(0x43) & SYS_INFO_SGBFS;
+  cols = sgb ? SGB_COLS : COLS;
+  rows = sgb ? SGB_ROWS : ROWS;
   ModHideBox();
   i = View();
   ModBackground(0, 0);

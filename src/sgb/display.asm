@@ -8,9 +8,7 @@ FsEntry:
   jp FsInit
   jp FsDraw
   jp FsRedraw
-  ret ; reserved stage dispatch
-  nop
-  nop
+  jp FsBackground ; ModBackground (module ABI 13)
   jp FsInput
   jp FsInterrupt
   jp FsPalette
@@ -768,6 +766,200 @@ FsLight:
 FsDark:
   DW 3|3<<5|4<<10,6|10<<5|18<<10,13|15<<5|13<<10,27|27<<5|25<<10
   DW 13|19<<5|31<<10,31|15<<5|13<<10,25|14<<5|30<<10,31|22<<5|10<<10
+
+; ModBackground in fullscreen (render.asm's _ModuleAPIBackground jumps here): the GB's LCD is the transport,
+; so the module's background is the SNES's (SGBFS_CMD_MAP*), never the GB's VRAM. A = mode:
+;   0 the text again, 1 the map under the bars, 2 full screen (bit 7: x + 256), D = y, E = x: with what modes
+;     4-7 added to the page, sent before anything else draws (FsDraw starts a page)
+;   4 a row of cells from x = D, y = E (D bit 7: a column), 33 or 29 cells (the view's), each one mode 5's
+;   5 a cell: D = tile, E = palette
+;   6 32 tiles from the PSRAM window, the first E
+;   7 8 palettes of 4 colours from DE
+; Each of 4, 6 and 7 is one command, whole on a page (flushed first if it can't fit). Returns A = the buttons
+; held.
+DEF FS_MAP_COLS EQU SGBFS_WIDTH / 8 + 1
+DEF FS_MAP_ROWS EQU SGBFS_HEIGHT / 8 + 1
+FsBackground:
+  ld b, a
+  and $7F
+  cp 4
+  jr nc, FsMapData
+  ld c, a
+  call FsMapReady
+  jr c, .buttons
+  ldh a, [fs_map]
+  cp c
+  jr z, .scroll
+  ld a, c
+  ldh [fs_map], a
+  ld a, SGBFS_CMD_MAP
+  push bc
+  ld bc, 1
+  call FsTLV
+  pop bc
+  ld a, c
+  call FsByte
+.scroll
+  ld a, c
+  and a
+  jr z, .flush
+  ld a, b
+  rlca
+  and 1
+  ld b, a
+  ldh a, [fs_map_x]
+  cp e
+  jr nz, .moved
+  ldh a, [fs_map_x+1]
+  cp b
+  jr nz, .moved
+  ldh a, [fs_map_y]
+  cp d
+  jr z, .flush
+.moved
+  ld a, e
+  ldh [fs_map_x], a
+  ld a, b
+  ldh [fs_map_x+1], a
+  ld a, d
+  ldh [fs_map_y], a
+  ld a, SGBFS_CMD_MAP_SCROLL
+  push bc
+  ld bc, 3
+  call FsTLV
+  pop bc
+  ld a, e
+  call FsByte
+  ld a, b
+  call FsByte
+  ld a, d
+  call FsByte
+.flush
+  call FsFlush ; returns at once if the page is empty
+.buttons
+  ldh a, [button_state]
+  ret
+FsMapData:
+  cp 5
+  jr nz, .command
+  ld a, d ; a cell, in the room its row's command made
+  call FsByte
+  ld a, e
+  jp FsByte
+.command
+  ld c, a
+  cp 6
+  ld hl, 3 + 2 + 512
+  jr z, .room
+  ld hl, 3 + 2 + 64
+  jr nc, .room
+  ld hl, 3 + 4 + 2 * FS_MAP_COLS ; enough for a column's 29 too
+.room
+  push bc
+  push de
+  call FsMapRoom
+  pop de
+  pop bc
+  ret c
+  ld a, c
+  cp 6
+  jr z, .tiles
+  jr nc, .colors
+  ld a, d
+  rlca
+  and 1
+  ld c, a ; vertical
+  ld b, FS_MAP_COLS
+  jr z, .cells
+  ld b, FS_MAP_ROWS
+.cells
+  push bc
+  ld a, b
+  add a
+  add 4
+  ld c, a
+  ld b, 0
+  ld a, SGBFS_CMD_MAP_CELLS
+  call FsTLV
+  pop bc
+  ld a, d
+  and $7F
+  call FsByte
+  ld a, e
+  call FsByte
+  ld a, c
+  call FsByte
+  ld a, b
+  jp FsByte
+.tiles
+  ld a, SGBFS_CMD_MAP_TILES
+  ld bc, 2 + 512
+  call FsTLV
+  ld a, e
+  call FsByte
+  ld a, 32
+  call FsByte
+  ld de, TB_BASE
+  ld bc, 512
+  jr .copy
+.colors
+  push de
+  ld a, SGBFS_CMD_MAP_COLORS
+  ld bc, 2 + 64
+  call FsTLV
+  xor a
+  call FsByte
+  ld a, SGBFS_MAP_PALETTES
+  call FsByte
+  pop de
+  ld bc, 64
+.copy
+  ld a, [de]
+  inc de
+  call FsByte
+  dec bc
+  ld a, b
+  or c
+  jr nz, .copy
+  ret
+; HL = a command's bytes: the page flushed first if they don't fit; carry if the transport faulted
+FsMapRoom:
+  call FsMapReady
+  ret c
+  ldh a, [fs_write]
+  ld c, a
+  ldh a, [fs_write+1]
+  ld b, a
+  add hl, bc
+  ld a, l
+  sub LOW($8003 + SGBFS_PAGE_PAYLOAD + 1)
+  ld a, h
+  sbc HIGH($8003 + SGBFS_PAGE_PAYLOAD + 1)
+  ccf
+  ret nc
+  call FsFlush
+; carry if the transport faulted (nothing may be sent), else no page waiting for its ACK. A map's commands
+; can't wait for the module to read a full key queue (FsWait's way out for the editor): it's emptied
+FsMapReady:
+  ldh a, [fs_fault]
+  and a
+  scf
+  ret nz
+  ldh a, [fs_pending]
+  and a
+  ret z
+  call FsWait
+  ldh a, [fs_pending]
+  and a
+  ret z
+  ldh a, [fs_fault]
+  and a
+  scf
+  ret nz
+  ld a, [kb_event_write]
+  ld [kb_event_read], a
+  jr FsMapReady
+
 ASSERT @ <= FontVWFWidths, "terminal head overlaps retained font metrics"
 
 SECTION "Terminal tail", ROMX[FontVWFWidths+256], BANK[1]

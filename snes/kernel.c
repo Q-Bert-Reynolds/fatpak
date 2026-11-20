@@ -234,6 +234,17 @@ u8 osk_key = NO_SELECTION;
 u8 busy;
 u32 loaded;
 u32 total;
+/* A module's background on BG1 (SGBFS_CMD_MAP*, map.s): 0 the text, 1 the map under the bars, 2 full screen */
+u8 map_mode;
+u16 map_x; /* BG1's scroll now (MapScroll) */
+u8 map_y;
+u16 map_tx; /* the latest MAP_SCROLL: map_x and map_y glide to it */
+u8 map_ty;
+u8 map_scrolled;
+u16 map_vram;
+u16 map_bytes;
+u8 map_count;
+u16 map_colors[SGBFS_MAP_PALETTES * 4];
 
 static u16 word(const u8 *p) {
   return p[0] | ((u16)p[1] << 8);
@@ -354,6 +365,84 @@ static void ui_box(void) {
   for (y = 0; y < box_rows; ++y) {
     overlay_dirty[box_top + y] = 1;
   }
+}
+
+/* The map on BG1 (1, 2) or the text again (0): every text row drawn again, the accents' colours back */
+static void map_enter(u8 mode) {
+  if (!map_mode) {
+    MapLayer(1);
+    map_scrolled = 0;
+  }
+  else if (!mode) {
+    MapLayer(0);
+    SetScroll(scroll_current);
+    memset(dirty, 1, SGBFS_ROWS);
+    palette_dirty = 1;
+  }
+  map_mode = mode;
+  ui_all();
+}
+
+/* A frame of the map's scroll: half the way to the latest MAP_SCROLL (the last pixel whole), so a page's
+   step of a few pixels (its round trip's frames) shows as a glide. It lags under 12 pixels: the GB draws
+   rows and columns as its view reaches them, and the 32-row map keeps only 3 past the 29 in view */
+static void map_glide(void) {
+  int dx = (int)((map_tx - map_x) & 511);
+  int dy = (signed char)(map_ty - map_y);
+  if (dx >= 256) {
+    dx -= 512;
+  }
+  map_x = (map_x + (dx / 2 ? dx / 2 : dx)) & 511;
+  map_y += dy / 2 ? dy / 2 : dy;
+  MapScroll();
+}
+
+/* GB 2bpp tiles as 4bpp, plane 2 set, 32 at a time through the raster buffer */
+static void map_tiles(u8 first, u8 count, const u8 *src) {
+  u8 n;
+  u8 t;
+  u8 i;
+  u8 *out;
+  while (count) {
+    n = count > 32 ? 32 : count;
+    out = raster;
+    for (t = 0; t < n; ++t) {
+      memcpy(out, src, 16);
+      src += 16;
+      out += 16;
+      for (i = 0; i < 8; ++i) {
+        *out++ = 0xFF;
+        *out++ = 0;
+      }
+    }
+    map_vram = (u16)first << 4;
+    map_bytes = (u16)n << 5;
+    MapUpload();
+    first += n;
+    count -= n;
+  }
+}
+
+/* A row or column of cells, wrapping in the 64x32 map: VRAM address and word for each */
+static void map_cells(const u8 *b) {
+  u8 x = b[0];
+  u8 y = b[1];
+  u8 i;
+  u16 *out = (u16 *)raster;
+  const u8 *cell = b + 4;
+  for (i = 0; i < b[3]; ++i) {
+    *out++ = 0x1000 + ((x & 32) ? 0x400 : 0) + ((u16)y << 5) + (x & 31);
+    *out++ = cell[0] | ((u16)cell[1] << 10);
+    cell += 2;
+    if (b[2]) {
+      y = (y + 1) & (SGBFS_MAP_HEIGHT - 1);
+    }
+    else {
+      x = (x + 1) & (SGBFS_MAP_WIDTH - 1);
+    }
+  }
+  map_count = b[3];
+  MapCells();
 }
 
 /* Shadow only the state needed by validators, never the 8 KiB model. */
@@ -632,6 +721,69 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
           loaded = dword(b);
           total = dword(b + 4);
           overlay_dirty[FOOTER_ROW] = 1;
+        }
+        break;
+      case SGBFS_CMD_MAP:
+        if (len != 1 || b[0] > 2) {
+          return 0;
+        }
+        if (apply && map_mode != b[0]) {
+          map_enter(b[0]);
+        }
+        break;
+      case SGBFS_CMD_MAP_TILES:
+        if (len < 2 || !b[1] || b[1] > SGBFS_MAP_TILES_MAX || (u16)b[0] + b[1] > 256 ||
+            len != 2u + 16u * b[1]) {
+          return 0;
+        }
+        if (apply && map_mode) {
+          map_tiles(b[0], b[1], b + 2);
+        }
+        break;
+      case SGBFS_CMD_MAP_COLORS:
+        if (len < 2 || !b[1] || b[1] > SGBFS_MAP_PALETTES || b[0] + b[1] > SGBFS_MAP_PALETTES ||
+            len != 2u + 8u * b[1]) {
+          return 0;
+        }
+        for (i = 0; i < 4u * b[1]; ++i) {
+          if (b[3 + i * 2] & COLOR_RESERVED_BIT) {
+            return 0;
+          }
+        }
+        if (apply) {
+          memcpy(map_colors + b[0] * 4, b + 2, 8u * b[1]);
+          if (map_mode) {
+            MapColors();
+          }
+        }
+        break;
+      case SGBFS_CMD_MAP_CELLS:
+        if (len < 4 || b[0] >= SGBFS_MAP_WIDTH || b[1] >= SGBFS_MAP_HEIGHT || b[2] > 1 || !b[3] ||
+            b[3] > SGBFS_MAP_CELLS_MAX || len != 4u + 2u * b[3]) {
+          return 0;
+        }
+        for (i = 0; i < b[3]; ++i) {
+          if (b[5 + i * 2] >= SGBFS_MAP_PALETTES) {
+            return 0;
+          }
+        }
+        if (apply && map_mode) {
+          map_cells(b);
+        }
+        break;
+      case SGBFS_CMD_MAP_SCROLL:
+        if (len != 3 || word(b) >= 512) {
+          return 0;
+        }
+        if (apply && map_mode) {
+          map_tx = word(b);
+          map_ty = b[2];
+          if (!map_scrolled) { /* the first one is where the map starts: no glide */
+            map_scrolled = 1;
+            map_x = map_tx;
+            map_y = map_ty;
+            MapScroll();
+          }
         }
         break;
       /* Launch is intentionally held for Phase 10, never arm a cartridge here. */
@@ -955,7 +1107,8 @@ static void draw_ui(u8 row) {
   pixel_start = pixel_end = SGBFS_WIDTH;
   ui_left = ui_right = 0;
 
-  if ((row == HEADER_ROW && (bars & BAR_HEADER)) || (row == FOOTER_ROW && (bars & BAR_FOOTER))) {
+  y = map_mode == 2 ? 0 : bars; /* a full screen map hides them */
+  if ((row == HEADER_ROW && (y & BAR_HEADER)) || (row == FOOTER_ROW && (y & BAR_FOOTER))) {
     glyphs(bar_lines + (row ? 1 : 0), bar_lines[row ? 1 : 0].font ? TEXT_INSET : 0, SGBFS_WIDTH);
     ui_right = SGBFS_WIDTH;
     pixel_start = 0;
@@ -1265,7 +1418,11 @@ void main(void) {
           overlay_dirty[DEBUG_COUNTS_ROW] = 1;
       }
 
-      if (scroll_pending) {
+      if (map_mode && (map_x != map_tx || map_y != map_ty)) {
+        map_glide();
+      }
+
+      if (scroll_pending && !map_mode) {
         u8 i;
         u8 waiting = 0;
         for (i = top; i < top + text_rows; ++i) {
@@ -1302,7 +1459,7 @@ void main(void) {
       scan_row = 0;
     }
 
-    if (dirty[slot]) {
+    if (dirty[slot] && !map_mode) { /* the map has BG1: text rows wait for it to go */
       draw(slot);
     }
     else if (overlay_dirty[slot]) {
@@ -1313,6 +1470,9 @@ void main(void) {
       WaitBlank();
       if (palette_dirty) {
         PresentPalette();
+        if (map_mode) {
+          MapColors(); /* CGRAM 4-7: map palette 0 over the accents */
+        }
         palette_dirty = 0;
       }
       if (cursor_dirty) {

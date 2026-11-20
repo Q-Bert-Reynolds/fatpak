@@ -156,6 +156,21 @@ def validate_command(opcode, body):
         require(loaded <= total, 'PROGRESS range')
     elif name == 'LAUNCH':
         require(body == bytes((SGBFS_LAUNCH_RESET_REQUIRED,)), 'LAUNCH mode')
+    elif name == 'MAP':
+        require(n == 1 and body[0] <= 2, 'MAP mode')
+    elif name == 'MAP_TILES':
+        require(n >= 2 and 1 <= body[1] <= SGBFS_MAP_TILES_MAX and body[0] + body[1] <= 256 and
+                n == 2 + 16*body[1], 'MAP_TILES size')
+    elif name == 'MAP_COLORS':
+        require(n >= 2 and 1 <= body[1] <= SGBFS_MAP_PALETTES and body[0] + body[1] <= SGBFS_MAP_PALETTES and
+                n == 2 + 8*body[1], 'MAP_COLORS size')
+        require(all(not v & 0x8000 for v in struct.unpack('<'+'H'*4*body[1], body[2:])), 'MAP_COLORS color')
+    elif name == 'MAP_CELLS':
+        require(n >= 4 and body[0] < SGBFS_MAP_WIDTH and body[1] < SGBFS_MAP_HEIGHT and body[2] <= 1 and
+                1 <= body[3] <= SGBFS_MAP_CELLS_MAX and n == 4 + 2*body[3], 'MAP_CELLS size')
+        require(all(p < SGBFS_MAP_PALETTES for p in body[5::2]), 'MAP_CELLS palette')
+    elif name == 'MAP_SCROLL':
+        require(n == 3 and struct.unpack_from('<H', body)[0] < 512, 'MAP_SCROLL')
     elif name in ('HELLO', 'RESET'):
         require(body == bytes((SGBFS_VERSION, SGBFS_PROFILE)), 'version/profile mismatch')
 

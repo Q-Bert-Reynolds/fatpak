@@ -983,9 +983,12 @@ ENDR
 ;menu, and before the module returns. A module writes VRAM only after mode 1 or 2 each frame: the host's rows
 ;go by HBlank DMA into the bank VBK has, so writes that switch VBK wait for it (RenderWaitDMA, at the top).
 _ModuleAPIBackground::
+  ld hl, sys_info
+  bit 2, [hl]
+  jp nz, _RenderOverlayStart+9;fullscreen: the SNES has the background (FsBackground), the GB's LCD is the transport
+  ld c, a;1: with the bars, 2: full screen
   and a
   jr z, .text
-  ld c, a;1: with the bars, 2: full screen
   call RenderWaitDMA;GBC: a row EditorDraw sent (the footer's clock) may still be going by HBlank DMA into
 ;whichever bank VBK has: done before the module's VRAM writes switch it (they come after this call), and
   xor a;VBK back to 0, where the host leaves the last row's bank
@@ -996,11 +999,10 @@ _ModuleAPIBackground::
   jr nz, .on
   inc [hl]
   ld a, [render_target_scy]
-  ld [render_text_scy], a
+  ldh [render_text_scy], a
   push bc
   push de
-  call MapBoxLayout
-  call BackgroundBars
+  call MapBoxLayout;then BackgroundBars
   pop de
   pop bc
 .on;the bars' LCD events, every time: a Layout may have staged the text's since
@@ -1012,9 +1014,8 @@ _ModuleAPIBackground::
 .events
   ld hl, render_events
   di
-  ld a, c
-  cp a, 2
-  jr z, .full
+  bit 1, c;mode 2
+  jr nz, .full
   ld a, 8;the header, then from line 8 no window and the module's $8800 tiles
   ld [hli], a
   xor a
@@ -1025,8 +1026,8 @@ _ModuleAPIBackground::
   ld a, 2
   jr .count
 .full
-  ld b, a;a = 0
   xor a
+  ld b, a
 .count
   ld [render_event_count], a
   ld a, b
@@ -1042,14 +1043,13 @@ _ModuleAPIBackground::
   ldh a, [button_state]
   ret
 .text
-  ld hl, render_background
-  ld a, [hl]
+  ldh a, [render_background]
   and a
   ret z
-  ld [hl], 0
   xor a
+  ldh [render_background], a
   ldh [rSCX], a
-  ld a, [render_text_scy]
+  ldh a, [render_text_scy]
   ld [render_target_scy], a
   ldh [rSCY], a
   call FarCallInline;C on page 8: never jump to a page's address while a module has page 13. Inline,
@@ -2587,7 +2587,7 @@ SECTION "Map box layout", ROMX, BANK[1]
 MapBoxLayout:
   ld a, [_render_gbc]
   and a
-  ret z
+  jr z, .bars
   ld hl, _render_row_blocks+1
   ld a, 5
   ld b, TB_ROWS-2
@@ -2596,4 +2596,5 @@ MapBoxLayout:
     inc a
     dec b
     jr nz, .block
-  ret
+.bars
+  jp BackgroundBars

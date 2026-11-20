@@ -39,7 +39,7 @@ controls on the Game Boy.
 **File browser.** The D-pad moves, A opens a file or folder, B goes up a folder, SELECT shows file
 info and START opens the menu (rename, cut, copy, paste, settings, help, restart). Text files open in
 the editor, `.gb` and `.gbc` files launch, `.tiles`, `.tile` and `.2bpp` files open in the tile viewer, `.gbmap` maps in the map viewer (the
-D-pad scrolls, B held runs, the header and footer say where you are, START opens its menu: Rebuild, Full screen, Close) and other binary files in the hex viewer. The viewers are read only; B goes back (from a map, its menu's Close). On a keyboard, Escape is START everywhere.
+D-pad scrolls, B held runs, the header and footer say where you are, START opens its menu: Rebuild, Full screen, Close; in SGB fullscreen the SNES draws it at 256x224) and other binary files in the hex viewer. The viewers are read only; B goes back (from a map, its menu's Close). On a keyboard, Escape is START everywhere.
 
 **Text editor.**
 
