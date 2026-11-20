@@ -5,6 +5,7 @@
 // passes the file's size; the footer shows the tile's number and offset.
 #include "../build/modules/sdk.h"
 #include "lib/text.h"
+#include "view.h"
 
 #define ZOOM 2 // first column of the 8x tile, text rows 1-8 (rows 0 and 9 frame it)
 #define BIG_COL 13 // 2x tile, beside zoom rows BIG_Y and BIG_Y + 1
@@ -119,12 +120,14 @@ static void Show(void) {
   ModText(STATUS_LINE, 1, text);
 }
 
-unsigned char ModuleMain(const unsigned long* file_size) {
-  unsigned long tiles = (*file_size + 15) >> 4; // the host only opens files with something in them
+// Start (or Escape): the host's menu (VIEW_MENU), where the view is kept in context; B stays
+unsigned char ModuleMain(ViewContext* context) {
+  unsigned long tiles = (context->size + 15) >> 4; // the host only opens files with something in them
   unsigned int next, old, top;
   unsigned char key, r;
   count = tiles > 0xFFFF ? 0xFFFF : (unsigned int)tiles;
-  current = first = 0;
+  first = (unsigned int)context->top;
+  current = (unsigned int)context->cursor;
   ModHideBox(); // the host's loading box; hiding it redraws text rows, so before the tiles
   Frame(0, 7);
   Frame(9, 0);
@@ -132,7 +135,11 @@ unsigned char ModuleMain(const unsigned long* file_size) {
   for (r = 0; r < SHEET_ROWS; ++r) SheetRow(r);
   while (1) {
     key = ModKey();
-    if (key == KEY_BACKSPACE || key == KEY_MENU) break; // B, Start or Escape: no menu here
+    if (key == KEY_MENU) {
+      context->top = first;
+      context->cursor = current;
+      return VIEW_MENU;
+    }
     next = current;
     if (key == KEY_LEFT) { if (next) --next; }
     else if (key == KEY_RIGHT) { if (next + 1 < count) ++next; }
@@ -155,5 +162,4 @@ unsigned char ModuleMain(const unsigned long* file_size) {
     }
     Show();
   }
-  return 0;
 }

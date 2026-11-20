@@ -9,7 +9,7 @@ BMENU_EDIT,item,,EDIT,EDITAR
 BMENU_SETTINGS,item,,SETTINGS,AJUSTES
 BMENU_HELP,item,,HELP,AYUDA
 BMENU_RESTART,item,,RESTART,REINICIAR
-SUB_OPEN,item,"editor FILE, EDIT and SETTINGS submenus: consecutive through SUB_SGB_FULLSCREEN",OPEN,ABRIR
+SUB_OPEN,item,"editor FILE, EDIT and SETTINGS submenus: consecutive through SUB_RESOLUTION",OPEN,ABRIR
 SUB_SAVE,item,,SAVE,GUARDAR
 SUB_SAVE_AS,item,,SAVE AS,GUARDAR COMO
 SUB_NEW,item,,NEW,NUEVO
@@ -21,13 +21,13 @@ SUB_CUT,item,,CUT,CORTAR
 SUB_COPY,item,,COPY,COPIAR
 SUB_PASTE,item,,PASTE,PEGAR
 SUB_SELECT_ALL,item,,SELECT ALL,SELECCIONAR TODO
-SUB_LINE_WRAP,item,editor SETTINGS: these 6,LINE WRAP,AJUSTE DE LÍNEA
-SUB_FULL_SCREEN,item,,FULL SCREEN,PANTALLA COMPLETA
-SUB_THEME,item,browser SETTINGS: these 4,THEME,TEMA
+SUB_LINE_WRAP,item,"editor SETTINGS: these 6, then RESOLUTION on SGB",LINE WRAP,AJUSTE DE LÍNEA
+SUB_FULL_SCREEN,item,"browser and viewer SETTINGS: these 5, then RESOLUTION on SGB",FULL SCREEN,PANTALLA COMPLETA
+SUB_THEME,item,,THEME,TEMA
 SUB_LANGUAGE,item,,LANGUAGE,IDIOMA
 SUB_CLOCK,item,,CLOCK,RELOJ
 SUB_KEYBOARD,item,,KEYBOARD,TECLADO
-SUB_SGB_FULLSCREEN,item,SGB BIOS mode only: explicit renderer takeover,SGB FULLSCREEN,PANTALLA SGB
+SUB_RESOLUTION,item,SGB only,RESOLUTION,RESOLUCIÓN
 SUB_KEYBOARD_TEST,item,keyboard submenu,TEST,PRUEBA
 FILE_OPEN,item,browser FILE: these 5 in order,OPEN,ABRIR
 FILE_OPEN_AS,item,,OPEN AS,ABRIR COMO
@@ -37,6 +37,12 @@ FILE_DELETE,item,,DELETE,ELIMINAR
 VIEW_TEXT,item,OPEN AS: these 3 in order,TEXT,TEXTO
 VIEW_HEX,item,,HEX,HEX
 VIEW_TILES,item,,TILES,TILES
+RES_160,item,"RESOLUTION: these 3 in order, the ones that work there listed",160x144,160x144
+RES_256,item,,256x224,256x224
+RES_512,item,,512x448,512x448
+VFILE_REBUILD,item,"viewer FILE: these 3 in order (REBUILD only in the map viewer)",REBUILD,RECONSTRUIR
+VFILE_OPEN_AS,item,,OPEN AS,ABRIR COMO
+VFILE_INFO,item,,INFO,INFORMACIÓN
 BEDIT_CUT,item,browser EDIT: these 3 in order,CUT,CORTAR
 BEDIT_COPY,item,,COPY,COPIAR
 BEDIT_PASTE,item,,PASTE,PEGAR
@@ -76,7 +82,7 @@ SELECT_FILE,bar,,Select file/folder,Elige archivo/carpeta
 PATH_TOO_LONG,bar,,Path is too long,Ruta demasiado larga
 LANGUAGE_MISSING,bar,/GBCSYS/LANG/xx.DAT couldn't be loaded,Language file missing,Falta el idioma
 BROWSER_HINT,bar,browser footer,<A>Open <SELECT>Info <START>Menu,<A>Abrir <SELECT>Info <START>Menú
-INFO_HINT,bar,file info footer,<A>Open <B>Exit,<A>Abrir <B>Salir
+INFO_HINT,bar,file info footer,<A>Open <START>Menu,<A>Abrir <START>Menú
 LOADING,box,busy boxes,Loading...,Cargando...
 DELETING,box,,Deleting...,Eliminando...
 RESTARTING,box,,Restarting...,Reiniciando...
@@ -208,10 +214,6 @@ DRIVER_PS2,item,,PS/2 KEYBOARD,TECLADO PS/2
 DRIVER_IGKB,item,,iGKB USB,iGKB USB
 DRIVER_SNES_MOUSE,item,,SNES MOUSE,RATÓN SNES
 KB_PAUSED,row,,PAUSED (A resumes),PAUSA (A continúa)
-MAP_REBUILD,item,map viewer menu: these 4 in order (Hi-res only in SGB fullscreen),Rebuild,Reconstruir
-MAP_FULL_SCREEN,item,,Full screen,Pantalla completa
-MAP_HIRES,item,SGB fullscreen: the 512x448 map,Hi-res,Alta resolución
-MAP_CLOSE,item,,Close,Cerrar
 MAP_READING,box,map viewer: busy box,Reading map...,Leyendo mapa...
 MAP_LARGE,box,"map viewer: a large file is open; a box's 2 lines, these 2 in order",Close the large,Cierra el archivo
 MAP_LARGE2,box,,file to view maps,grande primero

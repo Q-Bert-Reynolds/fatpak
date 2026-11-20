@@ -1,5 +1,5 @@
 ;text buffer, see src/editor/text_buffer.asm
-DEF SETTINGS_SIZE EQU 7+PATH_SIZE+FS_NAME_SIZE;SettingsTable
+DEF SETTINGS_SIZE EQU 8+PATH_SIZE+FS_NAME_SIZE;SettingsTable
 ;PSRAM through the window: the text buffer and undo log are blocks (see constants.asm),
 ;this is PSRAM block MAIN_SRAM_BANK and the clipboard's text starts at offset $100 of it (TB_CLIP_SIZE)
 DEF sram_tb_signature EQU TB_BASE
@@ -14,10 +14,11 @@ SECTION "Settings Vars", WRAM0
 settings_load: DB;SettingsCopy's direction
 _theme:: DB;0 light, 1 dark (src/ui/theme.asm)
 _language:: DB;the UI's language: its column in data/strings/strings.csv, 0 English (src/app/language.c)
+_resolution:: DB;SGB: RESOLUTION_256 (fullscreen), RESOLUTION_160 (the BIOS's, no takeover at boot) or RESOLUTION_512 (maps)
 
 SECTION "Settings Code", ROM0
 
-SettingsSignature: DB "SET5";SET1 had the font, SET2 is SET3 without the theme, SET3 is SET4 without the language
+SettingsSignature: DB "SET6";SET1 had the font, SET2 is SET3 without the theme, SET3 is SET4 without the language, SET5 is SET6 without the resolution
 
 MACRO SETTING ;\1 = C variable, \2 = size
   DW \1
@@ -34,6 +35,7 @@ SettingsTable:
   SETTING _theme, 1;SET3: keep new settings last, so older tables are a prefix
   SETTING _language, 1;SET4
   SETTING _kb_driver, 1;SET5
+  SETTING _resolution, 1;SET6
   DW 0
 
 ;C functions (src/editor/settings.h)
@@ -122,12 +124,20 @@ _SettingsLoad::
   jr z, .load
   cp a, '4'
   jr z, .load
+  cp a, '5'
+  jr z, .load
   cp a, '3'
   jr nz, .never
 .load
   push af
   ld a, 1
   call SettingsCopy
+  pop af
+  cp a, '6'
+  jr z, .loaded
+  push af
+  xor a;SET5 ended at the keyboard driver
+  ld [_resolution], a
   pop af
   cp a, '5'
   jr z, .loaded

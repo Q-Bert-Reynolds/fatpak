@@ -124,23 +124,26 @@ int main(int n,char** v){
     view("the east chunk's columns, in the second screen");
     Check(h->WritePPM("build/sgb/map.ppm"),"screenshot");
 
-    pad(8,4); // Start: the menu, over the map
+    auto box=[&](){std::string b;for(unsigned i=0;i<model.boxRows;++i)b+=Chars(model.boxLines[i])+"|";return b;};
+    auto settings=[&](){key(0x83);key(0x83);key(10); // SETTINGS: FULL SCREEN ... RESOLUTION (an SGB's)
+        Check(box().find("| FULL SCREEN|")!=std::string::npos && box().find(" RESOLUTION|")!=std::string::npos,"SETTINGS: FULL SCREEN first, RESOLUTION on an SGB");};
+    pad(8,4); // Start: the host's menu, over the map the SNES keeps
     Check(model.mapMode==1 && model.boxWidth,"Start: the menu over the map");
-    std::string box;for(unsigned i=0;i<model.boxRows;++i)box+=Chars(model.boxLines[i])+"|";
-    Check(box.find(" Rebuild|")!=std::string::npos && box.find(" Full screen|")!=std::string::npos && box.find(" Close|")!=std::string::npos,"Rebuild, Full screen, Close");
+Check(box().find("| FILE| EDIT| SETTINGS| HELP| CLOSE|")!=std::string::npos,"FILE, EDIT, SETTINGS, HELP, CLOSE");
     Check(model.bars[1].chars.size() && Chars(model.bars[1]).find("chunk 1")!=std::string::npos,"the footer: where the view is");
     Check(h->WritePPM("build/sgb/map-menu.ppm"),"menu screenshot");
-    key(0x83);key(10); // Full screen
+    settings();key(10); // FULL SCREEN
+    for(waited=0;waited<600 && !(model.mapMode==2 && !model.boxWidth);++waited)Frames(core,1);
     Check(model.mapMode==2 && !model.boxWidth,"Full screen: the map without the bars");
 
-    pad(8,4); // Start: Hi-res, 512x448
-    box.clear();for(unsigned i=0;i<model.boxRows;++i)box+=Chars(model.boxLines[i])+"|";
-    Check(box.find(" Hi-res|")!=std::string::npos,"SGB's menu: Hi-res");
-    key(0x83);key(0x83);key(10);
+    pad(8,4);settings();key(0x82);key(10); // RESOLUTION: in a map, 256x224 and 512x448
+    Check(box().find("| 256x224| 512x448|")!=std::string::npos,"RESOLUTION in the map viewer: 256x224, 512x448");
+    key(0x83);key(10);
     waited=0;
     for(;waited<3000 && !(model.mapMode==(2|SGBFS_MAP_HIRES) && matches(false));++waited)Frames(core,1);
     printf("512x448 sent: %u GB frames\n",waited);
-    Check(model.mapMode==(2|SGBFS_MAP_HIRES),"Hi-res: MAP 2 at 512x448");
+    Check(model.mapMode==(2|SGBFS_MAP_HIRES),"512x448: MAP 2 at 512x448");
+    Check(m->Read(syms.at("_resolution"))==2,"saved as the RESOLUTION setting");
     view("512x448: every cell of 65x57");
     Check(h->WritePPM("build/sgb/map-hires.ppm"),"512x448 screenshot");
     unsigned east=model.mapX;
@@ -150,12 +153,12 @@ int main(int n,char** v){
     view("512x448: the rows that came into view, in the second half");
     pad(16|2,60); // and east: the next screen of the 128-wide map
     view("512x448: the columns that came into view");
-    pad(8,4);key(0x83);key(0x83);key(10); // Hi-res again: 256x224
+    pad(8,4);settings();key(0x82);key(10);key(0x82);key(10); // RESOLUTION > 256x224
     for(waited=0;waited<3000 && !(model.mapMode==2 && matches(false));++waited)Frames(core,1);
-    Check(model.mapMode==2,"Hi-res again: 256x224");
+    Check(model.mapMode==2 && m->Read(syms.at("_resolution"))==0,"256x224 again");
     view("256x224 again: every cell");
 
-    pad(8,4);key(0x83);key(0x83);key(0x83);key(10); // Close
+    pad(8,4);key(0x82);key(10); // CLOSE
     for(unsigned i=0;i<300 && model.mapMode;++i)Frames(core,1);
     Frames(core,180);
     Check(model.mapMode==0 && selected().find("Test.gbmap")!=std::string::npos,"Close: the browser's text again");

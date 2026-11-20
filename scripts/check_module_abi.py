@@ -52,6 +52,7 @@ ASM = {
     'DrawRow': ['RenderRowAddress', 'mem_Set', '_FooterCompose'],
     '_FooterCompose': ['FooterCompose'],
     'FooterCompose': ['_footer_Poll', '_RenderTextWidth'],
+    '_BoxCells': ['RenderWaitDMA'], 'RenderWaitDMA': [],  # resident bank 1 (render.asm): VRAM writes
     '_RenderRawRow': [],  # resident bank 1: mem_Copy, mem_CopyVRAM (ROM0), the row upload
     '_ModuleAPIBackground': ['_BackgroundText', '_BackgroundBars'],  # resident ROM0 (render.asm); browser/viewer.c's C
     '_EditorRedraw': ['mem_Set'],  # ROM0 (render.asm); SGB_JUMP's client path is resident

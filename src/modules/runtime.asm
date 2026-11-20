@@ -139,15 +139,16 @@ _ModuleSwapRAM::
   call mem_Set
   jp ModuleSwapEnd
 
-;disables everything but the LCD interrupt, saves the bank, $BD06 and the window block on
-;the stack (under its return address) and starts the sector count, returns [module_operation] in a
+;disables everything but the LCD and serial interrupts (a PS/2 keyboard's: its handler only buffers the
+;scan code, resident, and a byte missed loses its framing), saves the bank, $BD06 and the window block
+;on the stack (under its return address) and starts the sector count, returns [module_operation] in a
 ModuleSwapBegin:
   pop hl
   call RenderWaitDMA
   di
   ldh a, [rIE]
   push af
-  and IEF_STAT
+  and IEF_STAT | IEF_SERIAL
   ldh [rIE], a
   ldh a, [rIF]
   push af
@@ -231,6 +232,10 @@ ModuleSwapEnd:
   pop af
   SET_BANK
   pop af
+  ld b, a
+  ldh a, [rIF]
+  and IEF_SERIAL;(a byte that's just arrived)
+  or b
   ldh [rIF], a
   pop af
   ldh [rIE], a

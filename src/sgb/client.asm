@@ -37,6 +37,7 @@ fs_busy:: DB
 fs_progress_loaded:: DS 2
 fs_progress_total:: DS 2
 fs_progress_sent:: DS 4
+_fs_map::
 fs_map:: DB ; ModBackground's map mode on the SNES (FsBackground): 0 off, 1 under the bars, 2 full screen, | SGBFS_MAP_HIRES
 fs_map_x:: DW
 fs_map_y:: DW

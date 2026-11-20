@@ -39,8 +39,8 @@ and [fullsnes](https://problemkaputt.de/fullsnes.htm) for hardware references.
 ### Game Boy frontend
 
 SGB startup attempts fullscreen automatically after loading settings and restoring
-the session. If takeover fails, **SETTINGS → SGB FULLSCREEN** remains available
-in BIOS mode to retry. Remove or rename `SGB.DAT` to boot in BIOS mode for test ROMs.
+the session, unless **SETTINGS → RESOLUTION** is 160x144. If takeover fails,
+**SETTINGS → RESOLUTION → 256x224** remains available in BIOS mode to retry. Remove or rename `SGB.DAT` to boot in BIOS mode for test ROMs.
 The current automatic-start build is OS `840F` / `SGB.DAT` `FD84`; startup, editing/saving,
 timeout recovery and missing/corrupt/no-HELLO fallback checks pass in the client test.
 
@@ -514,8 +514,10 @@ Do not expose unsupported modes as selectable options.
    needs new GB row storage/streaming: 128×56 character/style bytes total 14 KiB,
    versus the current 3.5 KiB. Preserve efficient code editing and define tile
    pool exhaustion behavior for the larger map before enabling it.
-5. Add the SGB-only Resolution menu and persistence. Returning to 160×144 must
-   restore the GB renderer, SGB BIOS display/border and input ownership safely.
+5. Done (2026-11-20): SETTINGS > RESOLUTION, saved, listing only what works where it's opened
+   (BIOS mode: 160×144, 256×224; fullscreen: 256×224; the map viewer: 512×448 too). Still to do:
+   returning from fullscreen to 160×144 at run time must restore the GB renderer, SGB BIOS
+   display/border and input ownership safely (today 160×144 only takes effect at boot).
 
 The shared-tile work keeps the current resolution and menu behavior unchanged;
 the high-resolution modes remain future work.

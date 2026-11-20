@@ -43,7 +43,7 @@
 
 # Map Viewer (MAPVIEW.MOD)
 
-- SGB fullscreen: MAPVIEW is done at 256x224 and 512x448 (Start > Hi-res; the GB sends cells, the SNES draws them; untried on hardware). TILEVIEW still doesn't work there (raw rows). Each pass of the view waits for a page's ACK, so it moves a few pixels per page and the kernel glides between them: a SNES-side loader (below) would remove the round trip. The assembler's log doesn't update in SGB fullscreen while a map builds, so a long build looks frozen.
+- SGB fullscreen: MAPVIEW is done at 256x224 and 512x448 (SETTINGS > RESOLUTION; the GB sends cells, the SNES draws them; untried on hardware). TILEVIEW still doesn't work there (raw rows). Each pass of the view waits for a page's ACK, so it moves a few pixels per page and the kernel glides between them: a SNES-side loader (below) would remove the round trip. The assembler's log doesn't update in SGB fullscreen while a map builds, so a long build looks frozen.
 - 512x448 limits: 383 tile pairs (VRAM `$0000-$5FFF`, the map at `$6000`); past that an entry is blank. CGRAM palettes 1-7 hold 3 GB palettes each, given out as pairs need them. The bars, a box or the OSK hide the map across their rows (HDMA puts them in mode 1). Horizontal scroll moves 2 pixels at a time (mode 5). HDMA and the ICD2 capture's DMA together can crash the first 5A22 revision. Check flicker and the HDMA switch on hardware.
 - Reuse the C map loader (`modules/mapview.c`'s chunk, object and stamp drawing) for the SNES version of Beisbol instead of a second port of `map_loader.asm`: pull it into a shared source that builds for sm83 here and for the SNES toolchain there.
 - Zoom levels on every platform, built from the same composed-tile cache: 1/4 (each GB tile sampled to 4x4, 2x2 tiles per output tile), 1/16 (2x2 per tile, 4x4 tiles per output tile) and 1/64 (one pixel per tile, its most common colour; really a bitmap of the screen's tiles, not a cache). Precompute each source tile's reduced form once; one palette per output tile (GB) makes mixed-palette blocks lossy; the zoomed view walks the chunk neighbour graph, which isn't a grid everywhere.
@@ -52,6 +52,10 @@
 - The cache key covers the map only: a changed `map_stamps.gbstamp` needs Start > Rebuild.
 
 # Browser
+
+- SETTINGS > FULL SCREEN hides the editor's bars and the map viewer's, not the browser's (its path and hints are there) nor HEXVIEW's and TILEVIEW's (their rows are fixed at 16).
+- RESOLUTION: 160x144 from fullscreen at run time (today it's saved for the next boot only, and not listed there); text at 512x448.
+- The viewers' menu after Start runs the viewer again: HEXVIEW/TILEVIEW redraw their page, DMG's map is drawn again (no tiles for a box over it).
 
 - Escape is START now, so a keyboard has no way back from the browser to the open document without opening a file (B at the root stays): a menu item for it.
 

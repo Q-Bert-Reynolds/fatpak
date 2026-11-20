@@ -5,6 +5,7 @@
 // views a cache of the map assembled (ViewMap): the first time, or after the map changes, ASM.MOD and
 // LINK.MOD build it from a wrapper the module writes, and it goes to /GBCSYS/CACHE.
 #include "viewer.h"
+#include "../input.h"
 #include "paths.h"
 #include "../app/dialogs.h"
 #include "../editor/state.h"
@@ -19,7 +20,11 @@
 #include "../ui/text.h"
 #include "../ui/theme.h"
 #include "../../modules/mapview.h"
+#include "../../modules/view.h"
 #include "../editor/build.h"
+#include "../sgb/client.h"
+
+extern unsigned char render_background, fs_map; // ModBackground's, on the GB or the SNES (still on: the map's on screen)
 
 extern unsigned char buffer[512]; // FileViewRead's, and ViewMap's cache path
 extern void SetWindowBlock(unsigned int block);
@@ -138,41 +143,39 @@ static void CacheFolders(void) {
 
 // MAPVIEW.MOD, with the map's folder as module_dir: when the module asks, ASM.MOD and LINK.MOD
 // build its wrapper, the image goes to the cache's path, its folders made as needed, and the
-// module runs again to show the map or what went wrong. Not while a large file is open: its add
-// buffer is where the assembler works. path's last / is a NUL meanwhile
-static unsigned char ViewMap(char* path) {
-  MapContext m;
-  unsigned char result, i;
-  char* slash = path;
-  for (i = 0; path[i]; ++i) if (path[i] == '/') slash = path + i;
-  *slash = 0;
-  module_dir = m.dir = path;
-  m.name = slash + 1;
-  m.state = MAP_NEW;
+// module runs again to show the map or what went wrong (until VIEW_MENU: ShowFileView's). Not while a
+// large file is open: its add buffer is where the assembler works. m's dir and name set
+static unsigned char ViewMap(MapContext* m) {
+  unsigned char result;
+  module_dir = m->dir;
   while (1) {
-    module_context = &m;
+    module_context = m;
     if ((result = RUN_MODULE(MAPVIEW)) || module_status != MAP_BUILD) break;
-    m.state = MAP_LARGE;
+    m->state = MAP_LARGE;
     if (doc_large) continue;
     ShowBusy(Str(S_ASSEMBLING));
     module_frames = 0;
-    if (!(m.result = BuildModule(&m.build, BUILD_ASM)) && !module_status) m.result = BuildModule(&m.build, BUILD_LINK);
-    if (!m.result && !(m.status = module_status)) {
+    if (!(m->result = BuildModule(&m->build, BUILD_ASM)) && !module_status) m->result = BuildModule(&m->build, BUILD_LINK);
+    if (!m->result && !(m->status = module_status)) {
       CacheFolders();
-      m.result = FileWriteImage((char*)buffer, m.build.blocks);
+      m->result = FileWriteImage((char*)buffer, m->build.blocks);
     }
     HideBox();
-    m.state = MAP_BUILT;
+    m->state = MAP_BUILT;
   }
   module_dir = 0;
-  *slash = '/';
   return result;
 }
 
-unsigned char ShowFileView(const char* path, const FileEntry* entry, unsigned char mode) {
+// Start in a viewer (VIEW_MENU): BrowserMenu (MENU_VIEWER, MENU_MAP), and the view again where it was;
+// a map still on screen (only the menu's boxes covered it) isn't drawn again, the map's REBUILD builds it
+unsigned char ShowFileView(char* path, const FileEntry* entry, unsigned char mode, char* clipboard) {
   char line[FS_NAME_SIZE];
-  unsigned char result, kind = mode == VIEW_TILES ? KIND_TILES : mode ? KIND_HEX : ViewKind(entry->name), shown;
+  ViewContext v;
+  MapContext m;
+  unsigned char result, kind = mode == VIEW_TILES ? KIND_TILES : mode ? KIND_HEX : ViewKind(entry->name), shown, action = 0;
   unsigned int n;
+  char* slash = path;
   if (mode == VIEW_TEXT || FileViewOpen(path)) return 0; // opening it as text reports the error
   shown = view_size != 0; // an empty one opens as text
   if (!kind && !mode) {
@@ -182,17 +185,48 @@ unsigned char ShowFileView(const char* path, const FileEntry* entry, unsigned ch
     while (n) if (!buffer[--n]) { shown = 1; break; }
   }
   if (shown) {
-    font = kind ? FONT_VWF : FONT_FIXED;
-    SetFont(font);
-    render_text = !kind; // hex: styled rows, the module dims non-printing bytes
-    ViewBegin();
-    *ToLatin1(line, entry->name, FS_NAME_SIZE - 1) = 0;
-    DrawRow(HEADER_LINE, 1, line);
-    module_context = &view_size;
-    result = kind == KIND_MAP ? ViewMap((char*)path) : kind ? RUN_MODULE(TILEVIEW) : RUN_MODULE(HEXVIEW);
-    if (result) ShowModuleError(result);
+    v.size = view_size;
+    v.top = v.cursor = 0;
+    m.state = MAP_NEW;
+    m.kept = 0;
+    for (n = 0; path[n]; ++n) if (path[n] == '/') slash = path + n;
+    while (1) {
+      if (!m.kept) {
+        font = kind ? FONT_VWF : FONT_FIXED;
+        SetFont(font);
+        render_text = !kind; // hex: styled rows, the module dims non-printing bytes
+        ViewBegin();
+        *ToLatin1(line, entry->name, FS_NAME_SIZE - 1) = 0;
+        DrawRow(HEADER_LINE, 1, line);
+      }
+      module_context = &v;
+      if (kind == KIND_MAP) {
+        m.full = !bars_on;
+        m.hires = resolution == RESOLUTION_512;
+        *slash = 0; // the map's folder
+        m.dir = path;
+        m.name = slash + 1;
+        result = ViewMap(&m);
+        *slash = '/';
+      }
+      else result = kind ? RUN_MODULE(TILEVIEW) : RUN_MODULE(HEXVIEW);
+      if (result) ShowModuleError(result);
+      if (result || module_status != VIEW_MENU) break;
+      FileViewClose(); // (INFO reads it)
+      *slash = 0;
+      action = BrowserMenu(path, clipboard, kind == KIND_MAP ? MENU_MAP : MENU_VIEWER);
+      *slash = '/';
+      PadPressed(); // (Escape latched a Start too: not the view's)
+      m.state = MAP_RESUME;
+      if (action == ACTION_REBUILD) m.state = MAP_REBUILD;
+      else if (action) break;
+      m.kept = render_background | fs_map;
+      action = 0;
+      if (FileViewOpen(path)) break;
+    }
+    ModuleAPIBackground(0, 0); // (a map the menu left on)
     EditorRedraw(); // the modules' rows aren't text
   }
   FileViewClose();
-  return shown;
+  return action >= ACTION_OPEN && action < ACTION_CLOSE ? action : shown;
 }

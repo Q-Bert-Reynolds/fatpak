@@ -2,6 +2,7 @@
 // host inspects the file and draws the header and footer before calling this.
 #include "../build/modules/sdk.h"
 #include "lib/text.h"
+#include "view.h"
 #include "info.h"
 
 static char line[TB_STRIDE + 1];
@@ -112,7 +113,7 @@ unsigned char ModuleMain(InfoContext* info) {
     }
     else Value(7, S_INFO_COUNTS, details->status == 2 ? S_BINARY_FILE : S_SKIPPED);
   }
-  do { key = ModKey(); } while (key != KEY_BACKSPACE && key != KEY_MENU && key != KEY_ENTER); // Start or Escape too: no menu here
+  do { key = ModKey(); } while (key != KEY_MENU && key != KEY_ENTER); // A opens it, Start (or Escape) the host's menu, B stays
   info->open = key == KEY_ENTER;
-  return 0;
+  return info->open ? 0 : VIEW_MENU;
 }

@@ -15,28 +15,53 @@
 #include "../ui/text.h"
 #include "../ui/theme.h"
 #include "../sgb/client.h"
+#include "../editor/settings.h"
 
 // FILE and EDIT's items: the strings from S_SUB_OPEN (SETTINGS: the editor's 6 from S_SUB_LINE_WRAP,
-// the browser's 4 from S_SUB_THEME; SGB BIOS mode adds SGB FULLSCREEN to each)
+// the browser's and viewers' 5 from S_SUB_FULL_SCREEN; an SGB adds RESOLUTION to each)
 static const unsigned char submenu_starts[] = {0, 6, 12};
 
-// Shared by the editor and browser; B returns to their enclosing menu.
-unsigned char PreferencesMenu(unsigned char browser) {
-  unsigned char item = Choose(0, browser ? S_SUB_THEME : S_SUB_LINE_WRAP,
-    (browser ? 4 : 6) + ((sys_info & 7) == 1), 0);
+// SETTINGS > RESOLUTION: the sizes that work here (an SGB's): its BIOS's 160x144 and the fullscreen
+// 256x224 before the takeover, then 256x224, and 512x448 too in a map (maps). Saved; 160x144 stays
+// in the BIOS's at boot, 256x224 takes over now. Returns BACK, CANCEL or what was chosen
+static unsigned char ResolutionMenu(unsigned char maps) {
+  unsigned char fs = sys_info & SYS_INFO_SGBFS ? 1 : 0, item;
+  item = Choose(0, S_RES_160 + fs, 2 - fs + (fs & maps), fs && maps && resolution == RESOLUTION_512);
   if (item >= BACK) return item;
-  if (browser) item += 2; // THEME, LANGUAGE, CLOCK, KEYBOARD
+  item += fs; // 160, 256 or 512 (the strings' order)
+  resolution = item == 1 ? RESOLUTION_256 : item ? RESOLUTION_512 : RESOLUTION_160;
+  SettingsSave();
+  SGBBegin(); // (only in the BIOS's, not at 160x144)
+  return item;
+}
+
+// Shared by the editor (0), the browser and the viewers (1, the map viewer 2); B returns to their
+// enclosing menu.
+unsigned char PreferencesMenu(unsigned char browser) {
+  unsigned char item = Choose(0, browser ? S_SUB_FULL_SCREEN : S_SUB_LINE_WRAP,
+    (browser ? 5 : 6) + (sys_info & SYS_INFO_SGB), 0);
+  if (item >= BACK) return item;
+  if (browser) ++item; // FULL SCREEN, THEME, LANGUAGE, CLOCK, KEYBOARD
   if (!item) ToggleWrap();
-  else if (item == 1) ToggleBars();
-  else if (item == 2) ThemeSetup();
-  else if (item == 3) LanguageSetup();
-  else if (item == 4) ClockSetup();
-  else if (item == 5) {
-    module_status = 0;
-    KeyboardSetup(1);
-    if (module_status == 2) KeyboardTest(); // TEST selected in the keyboard submenu
+  else if (item == 1) {
+    if (!browser) ToggleBars();
+    else { // the browser keeps its bars; a viewer has its own (the editor's are laid out when it's back)
+      bars_on ^= 1;
+      SettingsSave();
+    }
   }
-  else SGBBegin();
+  else if (item == 6) return ResolutionMenu(browser >> 1);
+  else {
+    ModuleAPIBackground(0, 0); // a viewer's map: the text back for a whole screen
+    if (item == 2) ThemeSetup();
+    else if (item == 3) LanguageSetup();
+    else if (item == 4) ClockSetup();
+    else {
+      module_status = 0;
+      KeyboardSetup(1);
+      if (module_status == 2) KeyboardTest(); // TEST selected in the keyboard submenu
+    }
+  }
   return item;
 }
 

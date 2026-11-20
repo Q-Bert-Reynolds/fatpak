@@ -252,7 +252,11 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     Frames(core,10);
     Check(row(18).find("Document.txt")!=std::string::npos,"Select directly opens file info");
     Check(row(19).find("Esc")==std::string::npos,"info footer has no keyboard shortcut hints");
-    pad(B_Key);
+    pad(B_Key);Check(row(0)==" Type: Plain Text","B doesn't leave the info page");
+    pad(Start_Key);Check(byte("_render_box_rows")==7 && Text(memory,syms.at("tile_buffer")+20*40)==" FILE",
+        "the info page's Start: the standard menu");
+    pad(Up_Key);Check(Text(memory,syms.at("tile_buffer")+20*40+80)==" CLOSE" && byte("_render_box_sel")==5,"the viewer menu's CLOSE");
+    pad(A_Key);Frames(core,60);
     menu();pad(A_Key);Check(byte("_render_box_rows")==7,"file submenu");
     Check(Text(memory,syms.at("tile_buffer")+20*40)==" OPEN" && Text(memory,syms.at("tile_buffer")+20*40+20)==" OPEN AS" &&
           Text(memory,syms.at("tile_buffer")+20*40+80)==" DELETE","file menu: OPEN, OPEN AS, INFO, RENAME, DELETE");
@@ -266,8 +270,9 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     Check(row(0)==" Type: Plain Text" && row(1)==" Size: 3B","info type and byte size");
     Check(row(7)==" Words: 1" && row(8)==" Lines: 1","info counts text without trailing empty line");
     Check(row(3).find(" Created: ")==0 && row(4).find(" Accessed: ")==0 && row(5).find(" Modified: ")==0,"info displays all FAT timestamps");
-    Check(row(19).find("\001Open \002Exit")!=std::string::npos && memory->Read(syms.at("tile_buffer")+19*40+32)==127,"info footer includes open and exit hints and clock");
-    pad(Start_Key);Check(byte("_render_text")==0 && byte("_render_box_top")==255 && row(0)!=" Type: Plain Text","Start (like Escape) leaves file info: it has no menu");
+    Check(row(19).find("\001Open \004Menu")!=std::string::npos && memory->Read(syms.at("tile_buffer")+19*40+32)==127,"info footer includes open and menu hints and clock");
+    pad(Start_Key);pad(Up_Key);pad(A_Key);Frames(core,60);
+    Check(byte("_render_text")==0 && byte("_render_box_top")==255 && row(0)!=" Type: Plain Text","the info page's menu: CLOSE leaves it");
     menu();pad(A_Key);for(unsigned i=0;i<3;++i)pad(Down_Key);pad(A_Key); // rename prompt
     Check(byte("_osk_shown")==1,"rename automatically opens on-screen keyboard");
     Check(row(1).find("Document.txt_")!=std::string::npos,"rename edits selected row in place");
@@ -288,12 +293,13 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     menu();pad(Down_Key);pad(A_Key);pad(Down_Key);pad(Down_Key);pad(A_Key); // Paste
     Check(Read(root+"/GBCSYS/a")==std::vector<u8>({'h','i','\n'}),"browser clipboard pastes in another directory");
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
-    Check(byte("_render_box_rows")==6,"browser has four settings");
-    Check(Text(memory,syms.at("tile_buffer")+20*40)==" THEME","theme is a browser setting");
-    Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" LANGUAGE","language is a browser setting");
-    Check(Text(memory,syms.at("tile_buffer")+20*40+40)==" CLOCK","clock is a browser setting");
-    Check(Text(memory,syms.at("tile_buffer")+20*40+60)==" KEYBOARD","keyboard is a browser setting");
-    pad(Down_Key);pad(Down_Key);pad(A_Key);Frames(core,120); // clock settings
+    Check(byte("_render_box_rows")==7,"browser has five settings");
+    Check(Text(memory,syms.at("tile_buffer")+20*40)==" FULL SCREEN","full screen is a browser setting");
+    Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" THEME","theme is a browser setting");
+    Check(Text(memory,syms.at("tile_buffer")+20*40+40)==" LANGUAGE","language is a browser setting");
+    Check(Text(memory,syms.at("tile_buffer")+20*40+60)==" CLOCK","clock is a browser setting");
+    Check(Text(memory,syms.at("tile_buffer")+20*40+80)==" KEYBOARD","keyboard is a browser setting");
+    pad(Down_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);Frames(core,120); // clock settings
     Check(row(19).find("\201 Edit \001Set \002Back")!=std::string::npos,"clock footer uses direction and action icons");
     auto field=[&](unsigned line){return Text(memory,syms.at("tile_buffer")+20*40+line*20);};
     Check(field(0).find(" Year 20")==0 && field(5).find(" Second ")==0 && byte("_render_box_rows")==8,"clock module lists six fields in a box");
@@ -302,18 +308,18 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     pad(Right_Key);Check(field(1)!=month && field(1).find(" Month ")==0,"right adjusts the selected field");
     pad(B_Key);Check(byte("_render_box_top")==255,"B exits clock settings as advertised");
     // SETTINGS > LANGUAGE: Spanish from /GBCSYS/LANG/ES.DAT, then English again
-    menu();pad(Down_Key);pad(Down_Key);pad(A_Key);pad(Down_Key);pad(A_Key);
+    menu();pad(Down_Key);pad(Down_Key);pad(A_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);
     Check(Text(memory,syms.at("tile_buffer")+20*40)==" ENGLISH" && Text(memory,syms.at("tile_buffer")+20*40+20)==" ESPA\xD1OL","LANGUAGE lists each language in its own");
     pad(Down_Key);pad(A_Key);Frames(core,120);
     Check(byte("_language")==1 && row(19).find("Abrir")!=std::string::npos,"Spanish browser footer");
     pad(Start_Key);Check(Text(memory,syms.at("tile_buffer")+20*40)==" ARCHIVO" && Text(memory,syms.at("tile_buffer")+20*40+80)==" REINICIAR","Spanish browser menu");
     pad(Down_Key);pad(Down_Key);pad(A_Key);
-    Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" IDIOMA","Spanish settings");
-    pad(Down_Key);pad(A_Key);Check(byte("_render_box_sel")==2,"LANGUAGE starts on the current one");
+    Check(Text(memory,syms.at("tile_buffer")+20*40+40)==" IDIOMA","Spanish settings");
+    pad(Down_Key);pad(Down_Key);pad(A_Key);Check(byte("_render_box_sel")==2,"LANGUAGE starts on the current one");
     pad(Up_Key);pad(A_Key);Frames(core,120);
     Check(byte("_language")==0 && row(19).find("Open")!=std::string::npos,"back to English");
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
-    pad(Down_Key);pad(Down_Key);pad(Down_Key);pad(A_Key); // KEYBOARD
+    pad(Down_Key);pad(Down_Key);pad(Down_Key);pad(Down_Key);pad(A_Key); // KEYBOARD
     Check(byte("_render_box_rows")==6 && Text(memory,syms.at("tile_buffer")+20*40+60)=="TEST","keyboard submenu contains TEST");
     pad(Down_Key);pad(Down_Key);pad(A_Key);Frames(core,180);Check(row(0)=="KEYBOARD TEST","keyboard submenu launches test");pad(B_Key);
     Check(byte("_render_text")==0 && byte("_tb_rows")==16 && byte("_bars")==1,"settings restore browser layout");
@@ -407,9 +413,10 @@ static void GameProperties(const char* image,const char* symbols,const char* dat
     auto row=[&](unsigned n){std::string s;for(unsigned i=0;i<40;++i)s+=char(memory->Read(syms.at("tile_buffer")+n*40+i));
         while(!s.empty() && s.back()==' ')s.pop_back();return s;};
     auto info=[&](){pad(Select_Key);Frames(core,120);};
+    auto close=[&](){pad(Start_Key);pad(Up_Key);pad(A_Key);Frames(core,60);}; // the viewer menu's CLOSE
     Frames(core,600);info();
     Check(row(0)==" Type: Folder" && row(1)==" Size: --","folder properties avoid misleading total size");
-    pad(B_Key);pad(A_Key); // enter GBCSYS, select its parent row
+    close();pad(A_Key); // enter GBCSYS, select its parent row
     pad(Select_Key);Check(row(18).find("GBCSYS")!=std::string::npos && row(0).find(" ..")==0,"Select ignores parent navigation row");
     pad(B_Key);pad(Down_Key);info();
     Check(row(18)==" Crystal.gbc" && row(0)==" Type: Game Boy ROM" && row(1)==" Size: 1.5KB","game properties filename, type and scaled size");
@@ -417,19 +424,22 @@ static void GameProperties(const char* image,const char* symbols,const char* dat
     Check(row(10)==" Mapper: MBC3" && row(11)==" ROM: 2MB" && row(12)==" RAM: 32KB","mapper and declared cartridge sizes");
     Check(row(13)==" Region: Overseas" && row(14)==" Revision: 2" && row(15)==" Header checksum: OK","cartridge region, version and checksum");
     Check(memory->Read(syms.at("_render_row_lines"))==18 && memory->Read(syms.at("_render_row_lines")+17)==19,"game info keeps header and footer");
-    // Esc exits through the same input path as B.
+    // Esc is Start: the menu, then its CLOSE
     core.QueuePS2KeyboardScanCode(0x76);Frames(core,4);
     core.QueuePS2KeyboardScanCode(0xF0);core.QueuePS2KeyboardScanCode(0x76);Frames(core,70);
-    Check(row(18).find("Crystal.gbc")==std::string::npos,"Esc returns to file browser");
+    pad(Up_Key);pad(A_Key);Frames(core,60);
+    Check(row(18).find("Crystal.gbc")==std::string::npos,"Esc's menu closes to the file browser");
     // The module formats whatever header the host read: rewrite the ROM in place.
-    auto reopen=[&](){pad(B_Key);info();};
+    auto reopen=[&](){info();}; // (from the browser: CLOSE after each)
     for(unsigned flag : {0u,0x80u}) {
         game[0x143]=flag;game[0x14D]=0;for(unsigned i=0x134;i<=0x14C;++i)game[0x14D]-=game[i]+1;
         Write(root+"/Crystal.gbc",game);reopen();
         Check(row(8)==(flag?" Platform: GB / Color":" Platform: Game Boy"),"DMG and dual-platform cartridge flags");
+        close();
     }
     game[0x147]=5;game[0x149]=0;game[0x14D]^=1;Write(root+"/Crystal.gbc",game);reopen();
     Check(row(10)==" Mapper: MBC2" && row(12)==" RAM: 512 x 4 bits" && row(15)==" Header checksum: Bad","MBC2 RAM and invalid header checksum");
+    close();
     printf("%s full-screen folder and cartridge properties passed\n",color?"CGB":"DMG");
 }
 
@@ -521,8 +531,8 @@ static void Theme(const char* image,const char* symbols,const char* data,bool co
         auto line=[&](){return Text(memory,syms.at("tile_buffer")+20*40);};
         Check(light(core),"light theme by default");
         pad(Start_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);
-        Check(line()==" THEME" && memory->Read(syms.at("_render_box_rows"))==6,"theme is the browser's first setting");
-        pad(A_Key);Frames(core,120);
+        Check(line()==" FULL SCREEN" && memory->Read(syms.at("_render_box_rows"))==7,"full screen is the browser's first setting");
+        pad(Down_Key);pad(A_Key);Frames(core,120);
         Check(line()==" Dark mode  Off","theme module shows the dark mode toggle");
         pad(A_Key);
         Check(memory->Read(syms.at("_theme"))==1 && dark(core) && line()==" Dark mode  On ","A turns dark mode on at once");
@@ -534,7 +544,7 @@ static void Theme(const char* image,const char* symbols,const char* data,bool co
         GearboyCore core;boot(core);auto memory=core.GetMemory();auto syms=Symbols(symbols);
         Check(memory->Read(syms.at("_theme"))==1 && dark(core),"dark mode comes back after a power cycle");
         auto pad=[&](Gameboy_Keys key){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,70);};
-        pad(Start_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);pad(A_Key);Frames(core,120);pad(Right_Key);
+        pad(Start_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);pad(Down_Key);pad(A_Key);Frames(core,120);pad(Right_Key);
         Check(memory->Read(syms.at("_theme"))==0 && light(core),"turning it off restores the light palettes");
         pad(B_Key);Frames(core,60);
     }
@@ -620,7 +630,11 @@ static void HexView(const char* image,const char* symbols,const char* data,bool 
     Check(row(19).find(footer(0))==0 && row(0)==expected(0),"Home goes back to the start");
     extended(0x7A); // Page down
     Check(row(19).find(footer(128))==0 && row(15)==expected(128),"Page down moves 16 rows");
-    pad(B_Key); // the browser lists the folder again
+    pad(B_Key);Check(row(19).find(footer(128))==0,"B stays in the viewer");
+    pad(Start_Key);Check(byte("_render_box_rows")==7,"Start: the viewer's menu");
+    pad(B_Key);Frames(core,120);
+    Check(row(19).find(footer(128))==0 && row(15)==expected(128),"closing the menu goes on where the view was");
+    pad(Start_Key);pad(Up_Key);pad(A_Key); // CLOSE: the browser lists the folder again
     for(unsigned waited=0;byte("_render_box_top")!=255 && waited<300;++waited)Frames(core,1);
     Check(byte("_render_text")==0 && row(18)==" /" && (row(0)+row(1)+row(2)).find("Data.bin")!=std::string::npos,"B returns to the browser");
     unsigned text_row=row(1).find("Text.txt")!=std::string::npos?1:2;
@@ -691,7 +705,9 @@ static void TileView(const char* image,const char* symbols,const char* data,bool
     extended(0x69); // End: the sheet scrolls to show the last row
     Check(row(19).find(" Tile 255/256  $0FF0")==0,"End selects the last tile");
     check(255,160);
-    pad(B_Key); // the browser lists the folder again
+    pad(Start_Key);pad(B_Key);Frames(core,120);
+    Check(row(19).find(" Tile 255/256  $0FF0")==0,"after the menu, the same tile");
+    pad(Start_Key);pad(Up_Key);pad(A_Key); // CLOSE: the browser lists the folder again
     for(unsigned waited=0;byte("_render_box_top")!=255 && waited<300;++waited)Frames(core,1);
     Frames(core,90);
     Check(byte("_render_text")==0 && row(18)==" /" && (row(0)+row(1)).find("Font.TILES")!=std::string::npos,"B returns to the browser");
@@ -803,24 +819,34 @@ static void MapView(const char* image,const char* symbols,const char* data,bool 
     unsigned ran=scx();
     std::vector<u16> seen(frame.begin(),frame.end());
     auto same=[&](unsigned y0,unsigned y1){for(unsigned i=y0*160;i<y1*160;++i)if(frame[i]!=seen[i])return false;return true;};
-    auto menuShown=[&](){ // GBC: the box over the map (rows 6-10); DMG/SGB: over the host's text, the map has every tile
+    // the host's menu over the map: its scroll snapped to the tiles (k pixels back: the map k to the right)
+    auto shifted=[&](unsigned y0,unsigned y1,unsigned k){for(unsigned y=y0;y<y1;++y)for(unsigned x=k;x<160;++x)
+        if(frame[y*160+x]!=seen[y*160+x-k])return false;return true;};
+    auto menuShown=[&](){ // GBC: the host's box over the map (rows 5-11); DMG: over the text, the map has every tile
+        unsigned k=ran&7;
         auto corner=[&](){unsigned x0=byte("_render_box_x"),y0=byte("_render_box_top")*8;bool ink=false; // the top left cell: the border, not the map
-            for(unsigned y=y0;y<y0+8;++y)for(unsigned x=x0;x<x0+4;++x)ink|=frame[y*160+x]!=seen[y*160+x];return ink;};
-        return byte("_render_box_top")!=255 && (color ? byte("_render_background") && same(8,44) && same(92,136) && !same(60,84) && corner() : !byte("_render_background"));};
+            for(unsigned y=y0;y<y0+8;++y)for(unsigned x=x0;x<x0+4;++x)ink|=frame[y*160+x]!=seen[y*160+x-k];return ink;};
+        return byte("_render_box_top")!=255 && (color ? byte("_render_background") && scx()==ran-k && shifted(8,40,k) && shifted(96,136,k) &&
+            !shifted(60,84,k) && corner() : !byte("_render_background"));};
+    auto boxText=[&](){std::string box;for(unsigned l=0;l<8;++l)box+=Text(memory,syms.at("tile_buffer")+20*40+l*20)+"|";return box;};
     pad(Start_Key);
-    Check(menuShown(),color?"Start: the menu over the map":"Start: the menu over the host's text");
+    Check(menuShown(),color?"Start: the host's menu over the map":"Start: the host's menu over its text");
     Check(byte("_bars")==1 && row(18)==" Test.gbmap" && row(19).find(" chunk 0  "+std::to_string(ran>>3)+",0")==0,"with the bars: the name in the header, where the view is in the footer");
-    {std::string box;for(unsigned l=0;l<8;++l)box+=Text(memory,syms.at("tile_buffer")+20*40+l*20)+"|";
-     Check(box.find(" Rebuild|")!=std::string::npos && box.find(" Full screen|")!=std::string::npos && box.find(" Close|")!=std::string::npos && box.find("Back")==std::string::npos,"the menu: Rebuild, Full screen, Close");}
-    pad(B_Key);Frames(core,60); // B closes the menu
+    Check(boxText().find(" FILE| EDIT| SETTINGS| HELP| CLOSE|")==0,"the menu: FILE, EDIT, SETTINGS, HELP, CLOSE");
+    pad(A_Key);Check(boxText().find(" REBUILD| OPEN AS| INFO|")==0 && (!color || byte("_render_background")),"FILE: REBUILD, OPEN AS, INFO, over the map");
+    pad(B_Key);pad(Down_Key);pad(A_Key);Check(boxText().find(" COPY|")==0,"EDIT: COPY");
+    pad(B_Key);pad(B_Key);viewing(3000); // B back to the menu, B again closes it
     Check(byte("_render_background") && scx()==ran && same(8,136),"and back to the map where it was, as it was");
     pad(Start_Key);pad(Start_Key);Frames(core,60);
     Check(byte("_render_background") && scx()==ran && barsShown(),"Start closes it too, the bars still over the map");
-    pad(Start_Key);pad(Down_Key);pad(A_Key);Frames(core,60); // Full screen
+    auto fullScreen=[&](){pad(Start_Key);pad(Down_Key);pad(Down_Key);pad(A_Key); // SETTINGS
+        Check(Text(memory,syms.at("tile_buffer")+20*40)==" FULL SCREEN","SETTINGS starts with FULL SCREEN");
+        pad(A_Key);Frames(core,60);};
+    fullScreen();
     Check(byte("_render_background") && scx()==ran && !byte("render_event_count") && cell(0,0)==cell(0,1) && cell(0,17)==cell(0,1),"Full screen: the map without the bars");
-    pad(Start_Key);Check(byte("_bars")==1 && row(18)==" Test.gbmap","the menu still has them");
-    pad(Down_Key);pad(A_Key);Frames(core,60);
-    Check(scx()==ran && barsShown(),"Full screen again: the bars back");
+    Check(byte("_bars_on")==0,"saved as the FULL SCREEN setting");
+    fullScreen();
+    Check(scx()==ran && barsShown() && byte("_bars_on")==1,"Full screen again: the bars back");
     const unsigned STATUS_ROW=19;
     for(unsigned i=0;i<24;++i){ // the clock's minute ticking while the view scrolls: the footer redrawn just after VBlank
         core.KeyPressed(i&1?Left_Key:Right_Key); // (WaitFrame's FooterTick), by HBlank DMA on GBC, while columns are drawn
@@ -838,8 +864,10 @@ static void MapView(const char* image,const char* symbols,const char* data,bool 
     auto esc=[&](){core.QueuePS2KeyboardScanCode(0x76);Frames(core,4);core.QueuePS2KeyboardScanCode(0xF0);core.QueuePS2KeyboardScanCode(0x76);Frames(core,60);};
     seen.assign(frame.begin(),frame.end());
     esc();Check(menuShown(),"Escape opens the menu, like Start");
-    esc();Check(byte("_render_background") && scx()==ran && barsShown(),"and closes it");
-    auto close=[&](){pad(Start_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);}; // Close
+    auto kbd=[&](const char* w){fprintf(stderr,"%s: ints %u errs %u bufw %u bufr %u evw %u evr %u box %u busy %u\n",w,byte("kb_interrupt_count"),byte("kb_error_count"),byte("kb_buffer_write"),byte("kb_buffer_read"),byte("kb_event_write"),byte("kb_event_read"),byte("_render_box_top"),byte("_module_busy"));};
+    esc();viewing(3000); // DMG: the map drawn again
+    Check(byte("_render_background") && scx()==ran && barsShown(),"and closes it");
+    auto close=[&](){pad(Start_Key);pad(Up_Key);pad(A_Key);}; // CLOSE
     close();
     for(unsigned waited=0;(byte("_module_busy") || byte("_render_box_top")!=255) && waited<300;++waited)Frames(core,1);
     Frames(core,90);
@@ -880,7 +908,13 @@ static void FileMenu(const char* image,const char* symbols,const char* data,bool
     select("Text.txt");file(1);pad(Down_Key);pad(A_Key); // OPEN AS > HEX
     wait(" $000000",1);
     Check(row(0).find("  68 69 0A")==0 && byte("_tb_rows")==16,"OPEN AS HEX shows a text file in hex");
-    pad(B_Key);Frames(core,60);Check(byte("_render_text")==0 && listed("Text.txt")>=0,"B returns to the list");
+    pad(B_Key);Frames(core,60);Check(row(0).find("  68 69 0A")==0,"B stays in the viewer");
+    pad(Start_Key);pad(A_Key);Check(line(0)==" OPEN AS" && line(1)==" INFO" && byte("_render_box_rows")==4,"a viewer's FILE: OPEN AS, INFO");
+    pad(A_Key);pad(Down_Key);pad(Down_Key);pad(A_Key); // OPEN AS > TILES, from the viewer
+    wait(" Tile 0/1",1);
+    Check(row(19).find(" Tile 0/1")==0,"the viewer's OPEN AS opens it again in another viewer");
+    pad(Start_Key);pad(Up_Key);pad(A_Key);Frames(core,60); // CLOSE
+    Check(byte("_render_text")==0 && listed("Text.txt")>=0,"CLOSE returns to the list");
     select("Gone.txt");file(4); // DELETE asks, NO first
     Check(line(0)=="DELETE Gone.txt?" && line(1)==" NO" && line(2)==" YES" && byte("_render_box_rows")==5,"DELETE asks with the name");
     pad(A_Key);Frames(core,60);Check(listed("Gone.txt")>=0,"NO keeps the file");

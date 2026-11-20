@@ -23,7 +23,7 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
 | `HEXVIEW.MOD` | 7 | 9 | Opening a binary file in the browser (`browser/viewer.c`) | 2,216 B + 269 B BSS |
 | `TILEVIEW.MOD` | 8 | 9 | Opening a `.tiles`, `.tile` or `.2bpp` file in the browser (`browser/viewer.c`) | 2,097 B + 431 B BSS |
 | `LINK.MOD` | 10 | 10 | FILE > BUILD, RUN, after `ASM.MOD`: places its units' sections, patches, header, `build.log`, `build.obj` ([ASSEMBLER.md](ASSEMBLER.md)) | wide, 3 pages: 5,690 + 4,598 + 5,679 B, 2,716 B BSS |
-| `MAPVIEW.MOD` | 12 | 13 | Opening a `.gbmap` file in the browser (`browser/viewer.c`'s `ViewMap`): a Beisbol map, from a cache `ASM.MOD` and `LINK.MOD` build (`/GBCSYS/CACHE/<path>.cache`), scrolled full screen on the BG map (`ModBackground`) a pixel a frame, four with B held; the bars over it (the name; chunk and position at the footer's left); Start: Rebuild, Full screen, Close, over the map on GBC; SGB fullscreen: on the SNES at 256x224, Start's Hi-res for 512x448 | 6,937 B + 461 B BSS |
+| `MAPVIEW.MOD` | 12 | 13 | Opening a `.gbmap` file in the browser (`browser/viewer.c`'s `ViewMap`): a Beisbol map, from a cache `ASM.MOD` and `LINK.MOD` build (`/GBCSYS/CACHE/<path>.cache`), scrolled full screen on the BG map (`ModBackground`) a pixel a frame, four with B held; the bars over it (the name; chunk and position at the footer's left); Start: the host's menu (FILE > REBUILD; SETTINGS > FULL SCREEN, RESOLUTION), over the map on GBC; SGB fullscreen: on the SNES at 256x224, or 512x448 (RESOLUTION) | 6,478 B + 461 B BSS |
 | `PREP.MOD` | 11 | 10 | FILE > BUILD, RUN, before `ASM.MOD`: which units `build.obj` has unchanged, and whether the ROM is up to date; after a build that stopped, the card check (`ASM_CHECK`) | 3,966 B + 211 B BSS |
 
 ## Rules
@@ -74,7 +74,7 @@ buttons, so a user who knows one knows them all. The text editor is the model.
 
 | Button | Does |
 | --- | --- |
-| Start | Opens the module's menu (save, options, help, close, ...); Start or B closes it again, so the menu has no "back" item. A screen without a menu (a viewer, info, help) leaves on Start, like B. A keyboard's Escape is Start everywhere (`MenuKey` turns it into `KEY_MENU`; a loop that reads the pad itself checks `ModEvent` for `KEY_ESCAPE`). |
+| Start | Opens the menu: always FILE, EDIT, SETTINGS, HELP and CLOSE (RESTART in the browser); Start or B closes it again, so the menu has no "back" item. The read only viewers (HEXVIEW, TILEVIEW, MAPVIEW, FILEINFO) don't draw it: they return `VIEW_MENU` (`modules/view.h`), keeping where they are in their context, the host shows its menu (`BrowserMenu`'s viewer modes: FILE is OPEN AS and INFO, the map's REBUILD too; EDIT is COPY, to the browser's file clipboard) and runs them again to go on. A map stays under the menu's boxes on GBC (the host points the box's cells at its rows: `BoxCells`) and in SGB fullscreen; HELP, INFO and a setting's own screen take it down. Help leaves on Start or B. A keyboard's Escape is Start everywhere (`MenuKey` turns it into `KEY_MENU`; a loop that reads the pad itself checks `ModEvent` for `KEY_ESCAPE`). |
 | Select | Opens or closes the module's tool overlay: the OSK for text, a drawing tool in an image editor, map tools in the map editor. |
 | B (held) | Speeds up navigation: the arrows move by a page, or to the start or end, the way B turns them into Page Up/Down and Home/End in the text editor. In a smooth-scrolling view it's the run button. |
 | A | Selects: starts and ends an area selection, or picks the thing under the cursor. |

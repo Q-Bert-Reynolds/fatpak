@@ -15,6 +15,8 @@
 #define MAP_NEW   0 // state: the first run
 #define MAP_BUILT 1 // the host built it: result and status say how that went
 #define MAP_LARGE 2 // it didn't: a large file is open (the assembler works in its add buffer)
+#define MAP_RESUME 3 // after Start's menu (VIEW_MENU, modules/view.h): the view where it was
+#define MAP_REBUILD 4 // the menu's FILE > REBUILD: build it again
 
 typedef struct {
   const char* dir;      // in: the map's folder from the root ("/beisbolgb/maps", "" at the root)
@@ -23,5 +25,9 @@ typedef struct {
   unsigned char result; // in with MAP_BUILT: RunModule's for ASM.MOD or LINK.MOD, else FileWriteImage's (FRESULT)
   unsigned char status; // in with MAP_BUILT and result 0: their module_status (an ASM_ERR_*), 0 if it built
   AsmContext build;     // out with MAP_BUILD: ASM.MOD's, ASM_TEXT | ASM_LOOSE, the wrapper in PSRAM
+  unsigned char full;   // in: SETTINGS > FULL SCREEN: no bars
+  unsigned char hires;  // in: SETTINGS > RESOLUTION is 512x448 (SGB fullscreen)
+  unsigned char kept;   // in with MAP_RESUME: the map is still on screen (GBC, SGB fullscreen), only a box covered it
+  unsigned char view[8]; // in with MAP_RESUME, out with VIEW_MENU: where the view is (its chunk, tile, pixel, map offsets, resolution)
 } MapContext;
 #endif

@@ -382,11 +382,17 @@ only draw after typing (`AskName`) still show them.
 
 ### Menus, browser and dialogs
 
-`Choose` draws untitled menu boxes. Editor menu: FILE (open, save, save as,
-new, build, run), EDIT, SETTINGS (line wrap, full screen, theme), HELP, CLOSE. Browser menu: FILE
-(info, rename), EDIT (cut, copy, paste), SETTINGS (theme, clock, keyboard test), HELP,
-RESTART (saves the swap, then `$BD06=$10` for a full cartridge reset through the
-boot ROM). Select opens file info directly.
+`Choose` draws untitled menu boxes. Every menu is FILE, EDIT, SETTINGS, HELP and CLOSE (RESTART in
+the browser). Editor menu: FILE (open, save, save as, new, build, run), EDIT, SETTINGS (line wrap,
+full screen, theme, language, clock, keyboard, resolution on an SGB: `PreferencesMenu`), HELP,
+CLOSE. Browser menu: FILE (open, open as, info, rename, delete), EDIT (cut, copy, paste), SETTINGS
+(full screen, which only hides the bars and keeps the browser's, theme, language, clock, keyboard,
+resolution), HELP, RESTART (saves the swap, then `$BD06=$10` for a full cartridge reset through the
+boot ROM). Select opens file info directly. The viewers' (and the info page's) Start is the same
+`BrowserMenu` (`MENU_VIEWER`, `MENU_INFO`, `MENU_MAP`): FILE (open as, info; the map's rebuild), EDIT
+(copy), CLOSE; the module returns `VIEW_MENU` and runs again where it was (`ShowFileView`).
+RESOLUTION (saved, `SET6`) lists only what works: in the SGB's BIOS mode 160x144 (no takeover at
+boot) and 256x224 (takes over now), in fullscreen 256x224, and in a map 512x448 too.
 
 - **Help** (`editor/help.c` sets up the view, `HELP.MOD` draws): context-specific
   text from `data/help/*.txt`, packed as 32-byte rows. `BeginView(1)` keeps the

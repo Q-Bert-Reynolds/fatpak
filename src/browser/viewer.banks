@@ -7,3 +7,5 @@ ROM0: ViewMap
 8: BackgroundText
 15: BackgroundBars
 14: CacheFolders
+12: ShowFileView
+12: ViewKind

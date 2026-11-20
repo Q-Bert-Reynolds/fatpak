@@ -3,7 +3,7 @@
 SETTINGS > KEYBOARD is available in both the editor and browser. Select
 NONE, PS/2 KEYBOARD or iGKB USB; SGB also offers SNES MOUSE. TEST opens the packet diagnostic screen. The single iGKB option represents the adapter;
 mouse packet decoding awaits hardware capture. A saved mouse-only selection (3)
-loads this same driver. The selection takes effect immediately and is stored with the settings (SET5, with SET2–SET4 migration).
+loads this same driver. The selection takes effect immediately and is stored with the settings (SET6, with SET2–SET5 migration).
 Small documents also save the setting to EDITOR.SWP before the menu returns.
 A large document keeps it in PSRAM, like the existing theme setting.
 

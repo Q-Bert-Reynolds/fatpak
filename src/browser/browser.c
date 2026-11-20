@@ -21,14 +21,14 @@
 #include "../ui/screen.h"
 #include "../ui/text.h"
 #include "../ui/icons.h"
+#include "../modules/runtime.h"
+#include "../sgb/client.h"
 
 #define LIST_ROWS      ((unsigned char)(screen_rows - 2)) // file browser rows between the bars
 #define LIST_ALL       0xFFFF
 #define KIND_UP        0
 #define KIND_FOLDER    1
 #define KIND_FILE      2
-#define ACTION_RENAME  1 // BrowserMenu's results besides 0
-#define ACTION_OPEN    2 // + a VIEW_* mode
 #define FR_DENIED      7 // FRESULTs for DELETE's messages (fatfs/lib/ff.h)
 #define FR_LOCKED      16
 
@@ -155,15 +155,19 @@ static void DeleteSelected(const char* path) {
 
 // Paths in the file clipboard are independent of the editor's text clipboard.
 // The caller reloads the directory after this, because transfers borrow its marks.
-// Returns 0, ACTION_RENAME, or ACTION_OPEN + a VIEW_* mode for the selection.
-static unsigned char BrowserMenu(char* path, char* clipboard, unsigned char info) {
-  unsigned char menu = 0, item = 2, view = 0, length = 0, result;
+// Returns 0, ACTION_RENAME, or ACTION_OPEN + a VIEW_* mode for the selection; a viewer's (mode, viewer.h)
+// 0 to go on, ACTION_CLOSE, ACTION_REBUILD or ACTION_OPEN + a mode. A viewer's map stays under its boxes
+// (GBC, SGB fullscreen; DMG has no tiles for them) until a whole screen of text: HELP, INFO, a setting's
+unsigned char BrowserMenu(char* path, char* clipboard, unsigned char mode) {
+  unsigned char menu = 0, item = 2, view = 0, length = 0, result, viewer = mode >= MENU_VIEWER, first, count, off;
   const char* name;
   while (path[length]) ++length;
-  if (!info) while (1) {
-    menu = Choose(0, S_BMENU_FILE, 5, menu);
+  if (viewer && !render_gbc && !(sys_info & SYS_INFO_SGBFS)) ModuleAPIBackground(0, 0);
+  if (mode != MENU_INFO_KEY) while (1) {
+    menu = Choose(0, viewer ? S_MENU_FILE : S_BMENU_FILE, 5, menu);
     if (menu >= BACK) return 0;
     if (menu == 4) {
+      if (viewer) return ACTION_CLOSE;
       if (doc_large) {
         FileCloseLarge();
         tb_Clear();
@@ -177,14 +181,33 @@ static unsigned char BrowserMenu(char* path, char* clipboard, unsigned char info
       BrowserError(result);
       return 0;
     }
-    if (menu == 3) { ShowBrowserHelp(); return 0; }
-    if (menu == 2) {
-      if (PreferencesMenu(1) == BACK) continue;
+    if (menu == 3) {
+      ModuleAPIBackground(0, 0);
+      ShowBrowserHelp();
       return 0;
     }
+    if (menu == 2) {
+      if (PreferencesMenu(mode == MENU_MAP ? 2 : 1) == BACK) continue;
+      return 0;
+    }
+    // FILE: OPEN, OPEN AS, INFO, RENAME, DELETE; a viewer's OPEN AS, INFO (the map's REBUILD first, at
+    // OPEN's index). EDIT: CUT, COPY, PASTE; a viewer's COPY
+    first = menu ? S_BEDIT_CUT : S_FILE_OPEN;
+    count = menu ? 3 : 5;
+    off = 0;
+    if (viewer) {
+      off = 1;
+      first = menu ? S_BEDIT_COPY : S_VFILE_OPEN_AS;
+      count = menu ? 1 : 2;
+      if (!menu && mode == MENU_MAP) {
+        off = 0;
+        first = S_VFILE_REBUILD;
+        count = 3;
+      }
+    }
     item = 0;
-    while ((item = Choose(0, menu ? S_BEDIT_CUT : S_FILE_OPEN, menu ? 3 : 5, item)) == 1 && !menu &&
-           (view = Choose(0, S_VIEW_TEXT, 3, 0)) == BACK); // OPEN AS's B goes back to FILE
+    while (((item = Choose(0, first, count, item)) < BACK ? (item += off) : item) == 1 && !menu &&
+           (view = Choose(0, S_VIEW_TEXT, 3, 0)) == BACK) item -= off; // OPEN AS's B goes back to FILE
     if (item == BACK) continue;
     if (item == CANCEL || view == CANCEL) return 0;
     break;
@@ -201,11 +224,13 @@ static unsigned char BrowserMenu(char* path, char* clipboard, unsigned char info
   else {
     if (!entry.name[0]) { ListMessage(S_SELECT_FILE); return 0; }
     if (!menu) {
+      if (mode == MENU_MAP && !item) return ACTION_REBUILD;
       if (item < 2) return ACTION_OPEN + (item ? view + 1 : VIEW_AUTO);
       if (item == 3) return ACTION_RENAME;
+      if (mode == MENU_INFO) return 0; // (its own page)
       result = JoinPath(path + length, "", entry.name, FS_NAME_SIZE + 1);
       if (item == 2) {
-        if (result) result = ShowFileInfo(path, &entry) ? ACTION_OPEN : 0;
+        if (result) result = ShowFileInfo(path, &entry, clipboard);
         path[length] = 0;
         return result;
       }
@@ -340,7 +365,8 @@ unsigned char Browse(void) {
           drawn = LIST_ALL;
           continue;
         }
-        if (ShowFileView(path, &entry, view)) { // tiles or binary: read only, back to the list after
+        if ((action = ShowFileView(path, &entry, view, clipboard))) { // tiles or binary: read only, back to the list after
+          if (action == 1) action = 0; // (else OPEN AS or INFO's: open it again)
           path[length] = 0;
           font = FONT_VWF;
           SetFont(font);
@@ -374,7 +400,7 @@ unsigned char Browse(void) {
       if (key == KEY_INFO && !entry.name[0]) continue;
       name_row = row;
       if (key == KEY_F1) ShowBrowserHelp();
-      else if ((action = BrowserMenu(path, clipboard, key == KEY_INFO)) == ACTION_RENAME) RenameSelected(path, selected);
+      else if ((action = BrowserMenu(path, clipboard, key == KEY_INFO ? MENU_INFO_KEY : MENU_BROWSER)) == ACTION_RENAME) RenameSelected(path, selected);
       if (osk_shown) OSKShow(0);
       osk_shown = 0;
       font = FONT_VWF;

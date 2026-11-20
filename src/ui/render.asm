@@ -163,6 +163,11 @@ SECTION "Render HRAM", HRAM;WRAM0 is full
 _render_background::;(tests)
 render_background: DB;ModBackground: 1 while a module draws the BG map itself
 render_text_scy: DB;then the text's SCY, back after
+box_stash: DW;_BoxCells'
+box_first: DB
+box_last: DB
+box_tile: DB
+box_attr: DB
 
 SECTION "Render ROM0", ROM0
 
@@ -2598,3 +2603,151 @@ MapBoxLayout:
     jr nz, .block
 .bars
   jp BackgroundBars
+
+;OpenBox (a = 1) and HideBox (a = 0) while a module's map has the BG map on GBC: a box of up to 6 lines
+;(MapBoxLayout's blocks) over it. Opening, the scroll snaps to the tiles (the module scrolls it back), the
+;cells under the box are saved at $9F00 (window map rows 24-31: unused) and pointed at its rows' blocks
+;(row r's block r + 4, palette 0); closing, they're put back
+_BoxCells::
+  ld c, a
+  ldh a, [render_background]
+  and a
+  ret z
+  ld a, [_render_gbc]
+  and a
+  ret z
+  ld a, [_render_box_rows]
+  cp 9
+  ret nc
+  ld b, a
+  ld a, [_render_box_top]
+  ld e, a
+  inc a
+  ret z
+  push bc
+  call RenderWaitDMA;(a row's HBlank DMA goes into whichever bank VBK holds)
+  pop bc
+  dec c
+  jr nz, .cells;c: 0 save, $FF put back
+  ldh a, [rSCX]
+  and $F8
+  ldh [rSCX], a
+  ldh a, [rSCY]
+  and $F8
+  ldh [rSCY], a
+  ld [render_target_scy], a
+.cells
+  xor a
+  ldh [box_stash], a
+  ld a, $9F
+  ldh [box_stash+1], a
+  ld a, [_render_box_x]
+  ld d, a
+  rrca
+  rrca
+  rrca
+  and 31
+  ldh [box_first], a
+  ld a, [_render_box_w]
+  add d
+  dec a
+  rrca
+  rrca
+  rrca
+  and 31
+  ldh [box_last], a
+.row;e the screen row, b rows left
+  push bc
+  ld a, e
+  add 4;its block, in bank 1 from 12
+  ld d, 0
+  cp 12
+  jr c, .bank0
+  sub 12
+  ld d, 8
+.bank0
+  ld b, a
+  add a
+  add a
+  add b
+  add a
+  add a
+  add 128;its first tile, $8800 mode
+  ldh [box_tile], a
+  ld a, d
+  ldh [box_attr], a
+  ldh a, [box_first]
+  ld d, a
+.col;d the column
+  ldh a, [rSCY]
+  rrca
+  rrca
+  rrca
+  add e
+  and 31
+  ld l, a
+  ld h, 0
+REPT 5
+  add hl, hl
+ENDR
+  ld a, h
+  add HIGH($9800)
+  ld h, a
+  ldh a, [rSCX]
+  rrca
+  rrca
+  rrca
+  add d
+  and 31
+  or l
+  ld l, a
+  push de
+  ldh a, [box_tile]
+  add d
+  ld b, a
+  ldh a, [box_stash]
+  ld e, a
+  ldh a, [box_stash+1]
+  ld d, a
+  xor a
+  ldh [rVBK], a
+  call .cell
+  ld a, 1
+  ldh [rVBK], a
+  ldh a, [box_attr]
+  ld b, a
+  call .cell
+  xor a
+  ldh [rVBK], a
+  inc de
+  ld a, e
+  ldh [box_stash], a
+  ld a, d
+  ldh [box_stash+1], a
+  pop de
+  ldh a, [box_last]
+  cp d
+  jr z, .rowDone
+  inc d
+  jr .col
+.rowDone
+  pop bc
+  inc e
+  dec b
+  jr nz, .row
+  ret
+.cell;hl the cell, de its saved copy, b what it shows, c 0 to save, $FF to put back
+  ldh a, [rSTAT]
+  and STATF_BUSY
+  jr nz, .cell
+  inc c
+  dec c
+  jr nz, .back
+  ld a, [hl]
+  ld [de], a
+  ld [hl], b
+  ret
+.back
+  ld a, [de]
+  ld [hl], a
+  ret

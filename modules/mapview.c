@@ -26,6 +26,7 @@
 #include "lib/text.h"
 #include "../src/sgb/protocol.h"
 #include "mapview.h"
+#include "view.h"
 #ifndef HOST_TEST
 #include "../src/fatfs/lib/ff.h" // FIL and FATFS, read through ModStat's pointers
 #endif
@@ -80,13 +81,6 @@
 #define SNES_CELL 5 // tile << 8 | palette
 #define SNES_TILES 6 // the PSRAM window's 32 tiles, the first one's number
 #define SNES_COLORS 7 // 8 palettes of 4 colours, their address
-
-#define MENU_BUILD 0 // Menu's items (MENU_HIRES only in SGB fullscreen)
-#define MENU_FULL 1
-#define MENU_HIRES 2
-#define MENU_CLOSE 3
-#define MENU_ITEMS 4
-#define MENU_BACK 4 // Start or B (or a toggle): back to the map
 
 static MapContext* m;
 static char text[MAP_CACHE_SIZE]; // the cache's path, a box's text, a word of project.gbp
@@ -570,73 +564,12 @@ static void Show(void) {
   if (sgb) Background(); // sent before anything else draws
 }
 
-// GBC: the host's box (ModMenu) over the map. While the module has the BG map, the host draws text row r
-// into block r + 4 (a box of up to 6 lines: blocks 9-16, tiles the map's leave); its cells are pointed at
-// them, palette 0 like the bars. ModStat(MODULE_STAT_BOX): its top row, rows, x and width in pixels
-static void BoxCells(void) {
-  const unsigned char* box = (const unsigned char*)(unsigned short)ModStat(MODULE_STAT_BOX);
-  unsigned char r, c, b, id, *to;
-  for (r = box[0]; r != box[0] + box[1]; ++r) {
-    b = r + 4;
-    if (b >= 12) b -= 12; // bank 1's blocks
-    id = 128 + (b << 4) + (b << 2); // block b's first tile, $8800 mode (past 255: $9000 on)
-    for (c = box[2] >> 3; c <= (unsigned char)(box[2] + box[3] - 1) >> 3; ++c) {
-      to = BG_MAP + ((unsigned short)((ty + r) & 31) << 5) + ((tx + c) & 31);
-      VPut(to, id + c);
-      VBK = 1;
-      VPut(to, r + 4 >= 12 ? 8 : 0);
-      VBK = 0;
-    }
-  }
-}
-
 // the view's size and the SNES map's wrap: GB, SGB 256x224 or 512x448
 static void Size(void) {
   cols = sgb ? (hires ? HI_COLS : SGB_COLS) : COLS;
   rows = sgb ? (hires ? HI_ROWS : SGB_ROWS) : ROWS;
   xmask = 63 | hires << 6;
   ymask = 31 | hires << 5;
-}
-
-// Start's menu with the bars, over the map on GBC (BoxCells), the host's text on DMG/SGB (the map has every
-// tile the background reaches): MENU_BUILD or MENU_CLOSE, or MENU_BACK when Start or B closes it or Full
-// screen turns the bars off or on (the map again, where it was), or Hi-res (SGB only) its resolution
-static unsigned char Menu(void) {
-  char lines[MENU_ITEMS * BOX_STRIDE];
-  unsigned char selected = MENU_BUILD, key, i, items = sgb ? MENU_ITEMS : MENU_ITEMS - 1;
-  for (i = 0; i < items; ++i)
-    *ModString(PutText(lines + i * BOX_STRIDE, " "), S_MAP_REBUILD + (i == MENU_HIRES && !sgb ? MENU_CLOSE : i)) = 0;
-  if (gbc || sgb) ModBackground(Mode(1), SCROLL); // the bars, full screen or not
-  else ModBackground(0, 0);
-  Bars();
-  ModMenu(lines, items, selected);
-  if (gbc) BoxCells();
-  while (1) {
-    ModMenu(lines, items, selected);
-    while (!(key = ModKey()));
-    if (key == KEY_UP) selected = selected ? selected - 1 : items - 1;
-    else if (key == KEY_DOWN) selected = selected == items - 1 ? 0 : selected + 1;
-    else if (key == KEY_ENTER) break;
-    else if (key == KEY_ESCAPE || key == KEY_BACKSPACE || key == KEY_MENU) { selected = MENU_BACK; break; }
-  }
-  ModHideBox();
-  if (selected == MENU_HIRES && !sgb) selected = MENU_CLOSE;
-  if (selected == MENU_HIRES) { // the SNES's map again, in the other size
-    hires ^= 1;
-    Size();
-    Slots();
-    Show();
-    return MENU_BACK;
-  }
-  if (selected == MENU_FULL) {
-    full ^= 1;
-    selected = MENU_BACK;
-  }
-  if (selected == MENU_BACK) {
-    if (gbc) for (i = 0; i != ROWS; ++i) Row(ty + i); // the box's cells: the map again
-    else if (!sgb) Show(); // (SGB: the SNES's box is over the map, which it keeps)
-  }
-  return selected;
 }
 
 // a step of the view (to the d-pad's held directions): step pixels, a column or row drawn as it
@@ -669,16 +602,29 @@ static void Step(unsigned char held, unsigned char step) {
   }
 }
 
-// the view, from chunk 0's top left: a pixel a frame, RUN with B held, steps for each frame since
-// the last pass (one can take two when a column or row is drawn); the footer says where once the
-// d-pad is let go (a row of text each step would slow it). 1 to build the cache again, 0 to close
-// (only the menu does either: B runs)
-static unsigned char View(void) {
-  unsigned char pressed, held = 0, step, frames, now, last;
-  chunk = tx = ty = ox = oy = 0;
-  cam_x = cam_y = 0;
+// the view, from chunk 0's top left or (resume) where m->view says: a pixel a frame, RUN with B held,
+// steps for each frame since the last pass (one can take two when a column or row is drawn); the footer
+// says where once the d-pad is let go (a row of text each step would slow it). Until Start (or Escape):
+// where it is into m->view, for the host's menu (B runs). A map the host kept on screen (only its boxes
+// covered it, and it put back what they did) isn't drawn again unless it's another size
+static void View(unsigned char resume) {
+  unsigned char pressed, held = 0, step, frames, now, last, *v = m->view;
+  chunk = tx = ty = ox = oy = cam_x = cam_y = 0;
+  if (resume) {
+    chunk = v[0];
+    tx = v[1];
+    ty = v[2];
+    cam_x = v[3];
+    cam_y = v[4];
+    ox = v[5];
+    oy = v[6];
+  }
   Slots();
-  Show();
+  if (resume && m->kept && v[7] == hires) {
+    Background();
+    Bars();
+  }
+  else Show();
   last = (unsigned char)ModStat(MODULE_STAT_FRAMES);
   while (1) {
     // SGB: while it moves, its own page each pass paces it, not ModFrame's (the host's rows, a page too);
@@ -690,9 +636,15 @@ static unsigned char View(void) {
     last = now;
     if (frames > (sgb ? 16 : 4)) frames = sgb ? 16 : 4; // SGB: a pass waits for its page's ACK, a few frames
     if ((pressed & PADF_START) || (unsigned char)ModEvent() == KEY_ESCAPE) { // the keyboard's queue too, so it's not stale
-      if ((step = Menu()) != MENU_BACK) return step == MENU_BUILD;
-      last = (unsigned char)ModStat(MODULE_STAT_FRAMES);
-      continue;
+      v[0] = chunk;
+      v[1] = tx;
+      v[2] = ty;
+      v[3] = cam_x;
+      v[4] = cam_y;
+      v[5] = ox;
+      v[6] = oy;
+      v[7] = hires;
+      return;
     }
     step = held & PADF_B ? RUN : WALK;
     if (held & PADF_DPAD) {
@@ -707,45 +659,50 @@ static unsigned char View(void) {
   }
 }
 
+// Start: VIEW_MENU (modules/view.h), the host's menu, after which it runs again with MAP_RESUME (the map,
+// tiles and drawn chunks still in PSRAM) or MAP_REBUILD
 unsigned char ModuleMain(MapContext* context) {
-  unsigned char i;
+  unsigned char i, resume;
   m = context;
   if (m->state == MAP_LARGE || (m->state == MAP_BUILT && (m->result || m->status))) return Report();
-  ModBox(Str(S_MAP_READING));
-  key[0] = 'F'; key[1] = 'P'; key[2] = 'M'; key[3] = 'C'; key[4] = KEY_VERSION;
-  for (i = KEY_ENTRY; i < KEY_SIZE; ++i) key[i] = 0;
-  if (m->state == MAP_NEW) {
-    Entry();
-    TilesPath();
-  }
-  if (!Cached()) {
-    if (m->state != MAP_NEW) { m->result = 0xFF; return Report(); } // built, but not readable
+  if (m->state == MAP_REBUILD) { // FILE > REBUILD: the key and tileset from the cache
+    m->state = MAP_NEW;
+    FromKey();
     return Wrapper();
+  }
+  if (!(resume = m->state == MAP_RESUME)) {
+    ModBox(Str(S_MAP_READING));
+    key[0] = 'F'; key[1] = 'P'; key[2] = 'M'; key[3] = 'C'; key[4] = KEY_VERSION;
+    for (i = KEY_ENTRY; i < KEY_SIZE; ++i) key[i] = 0;
+    if (m->state == MAP_NEW) {
+      Entry();
+      TilesPath();
+    }
+    if (!Cached()) {
+      if (m->state != MAP_NEW) { m->result = 0xFF; return Report(); } // built, but not readable
+      return Wrapper();
+    }
+    for (at = 0; at < 8 * 512; ++at) { // tiles: none until a file has them
+      Window(TIL + (at >> 9));
+      WINDOW[at & 511] = 0;
+    }
+    Load("img/ui_font.tiles", TIL, 4);
+    if (tiles[0]) Load(tiles, TIL + 4, 4);
   }
   for (i = 0; i < SLOTS; ++i) cached[i] = 0;
   at = MAP + H_CHUNKS;
   chunks = at = GetWord();
   count = 0; // the table's words, up to the first chunk's own bytes
   if (chunks) for (at = GetWord(); count < 255 && chunks + ((unsigned short)count << 1) < at; ++count);
-  for (at = 0; at < 8 * 512; ++at) { // tiles: none until a file has them
-    Window(TIL + (at >> 9));
-    WINDOW[at & 511] = 0;
-  }
-  Load("img/ui_font.tiles", TIL, 4);
-  if (tiles[0]) Load(tiles, TIL + 4, 4);
   VBK = 0;
   gbc = VBK != 0xFF; // DMG's reads $FF; GBC's the bank, the rest of it set
   sgb = *(const unsigned char*)ModDriver(0x43) & SYS_INFO_SGBFS;
+  full = m->full; // SETTINGS > FULL SCREEN and RESOLUTION
+  hires = sgb && m->hires;
   Size();
-  ModHideBox();
-  i = View();
-  ModBackground(0, 0);
-  if (i) { // Start's "build it again": the key and tileset from the cache
-    m->state = MAP_NEW;
-    FromKey();
-    return Wrapper();
-  }
-  return 0;
+  if (!resume) ModHideBox();
+  View(resume);
+  return VIEW_MENU;
 }
 
 #ifdef HOST_TEST

@@ -17,6 +17,8 @@ extern unsigned char render_row_lines[MAX_SCREEN_ROWS]; // tile_buffer row each 
 extern unsigned char render_row_fonts[MAX_SCREEN_ROWS]; // font each screen row uses
 extern unsigned char render_text_top; // screen row of text row 0
 extern unsigned char render_text; // 1 = text rows are styled (tile_attrs), 0 while the browser or help draw their own rows
+// OpenBox (1) and HideBox (0): a box over a module's map on GBC points its cells at its rows (render.asm)
+void BoxCells(unsigned char open);
 extern unsigned char render_gbc; // 1 on GBC: the text ring has a spare block and scrolls smoothly
 extern unsigned char render_box_top; // menu box over the text: screen row, 0xFF = none
 extern unsigned char render_box_rows;

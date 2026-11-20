@@ -11,13 +11,21 @@
 #include "../ui/screen.h"
 #include "../ui/text.h"
 #include "../../modules/info.h"
+#include "../../modules/view.h"
+#include "viewer.h"
+#include "../input.h"
 
 static char line[FS_NAME_SIZE];
 static FileDetails details;
 
-unsigned char ShowFileInfo(const char* path, const FileEntry* entry) {
+// Start on the page: BrowserMenu (MENU_INFO), then the page again; returns 0 or ACTION_OPEN + a mode
+// (A: VIEW_AUTO, or the menu's OPEN AS)
+unsigned char ShowFileInfo(char* path, const FileEntry* entry, char* clipboard) {
   InfoContext context;
-  unsigned char result;
+  unsigned char result, i;
+  char* slash = path;
+  for (i = 0; path[i]; ++i) if (path[i] == '/') slash = path + i;
+  ModuleAPIBackground(0, 0); // (from a map's menu)
   context.entry = entry;
   context.details = &details;
   context.language = FileLanguage(entry->name);
@@ -26,11 +34,21 @@ unsigned char ShowFileInfo(const char* path, const FileEntry* entry) {
   details.status = 0;
   ShowBusy(Str(S_READING_INFO)); // stays up until the module draws its page
   if (!entry->dir) context.result = FileInspect(path, &details);
-  BeginView(1);
-  *ToLatin1(line, entry->name, FS_NAME_SIZE - 1) = 0;
-  DrawRow(HEADER_LINE, 1, line);
-  DrawRow(STATUS_LINE, 1, Str(S_INFO_HINT));
-  module_context = &context;
-  if ((result = RUN_MODULE(FILEINFO))) ShowModuleError(result);
-  return context.open;
+  while (1) {
+    BeginView(1);
+    *ToLatin1(line, entry->name, FS_NAME_SIZE - 1) = 0;
+    DrawRow(HEADER_LINE, 1, line);
+    DrawRow(STATUS_LINE, 1, Str(S_INFO_HINT));
+    module_context = &context;
+    if ((result = RUN_MODULE(FILEINFO))) {
+      ShowModuleError(result);
+      return 0;
+    }
+    if (module_status != VIEW_MENU) return context.open ? ACTION_OPEN : 0;
+    *slash = 0;
+    result = BrowserMenu(path, clipboard, MENU_INFO);
+    *slash = '/';
+    PadPressed(); // (Escape latched a Start too: not the page's)
+    if (result) return result == ACTION_CLOSE ? 0 : result;
+  }
 }

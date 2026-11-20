@@ -25,6 +25,7 @@ void WaitDismiss(void) {
 void OpenBox(unsigned char lines) {
   char* line;
   unsigned char i, width, widest = 0;
+  BoxCells(0); // a box already open over a module's map: its cells back first
   if (lines > 19) lines = 19;
   for (i = 0; i < lines; ++i) {
     line = BoxLine(i);
@@ -40,6 +41,7 @@ void OpenBox(unsigned char lines) {
   render_box_first = 1;
   render_box_sel = 0xFF;
   ++render_box_gen;
+  BoxCells(1);
 }
 
 // copies text into the box's lines from line on, starting a line at each '\n' and after every
@@ -69,6 +71,7 @@ void ShowBusy(const char* text) {
 }
 
 void HideBox(void) {
+  BoxCells(0);
   SGBProgress(0, 0);
   render_box_top = 0xFF;
 }

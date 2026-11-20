@@ -87,12 +87,14 @@ def check(work):
     print(f'PASS: the real kernel draws the 512x448 map (full screen): all {224*256} sampled pixels match its pages')
     want=expected(pages[:hibox]);got=ppm(Path(work)/f'map-{hibox}.ppm');top,end=box(pages[:hibox])
     assert 0<top<end<27, f'no box: rows {top}-{end}'
-    rows=[r for r in range(1,27) if not top<=r<end]
+    mode=[b[0] for p in pages[:hibox] for op,b in wire.decode_page(p)[1] if op==wire.SGBFS_CMD_MAP][-1]
+    bars=[0,27] if mode&3==1 else [] # full screen: no bars
+    rows=[r for r in range(28) if not top<=r<end and r not in bars]
     bad=[(i%256,i//256) for r in rows for i in range(r*8*256,(r+1)*8*256) if got[i]!=want[i]]
     assert not bad, f'512x448 pixels around the menu differ from its pages: {len(bad)}, first at {bad[0]}'
-    ui=[r for r in [0,27]+list(range(top,end)) if got[r*8*256:(r+1)*8*256]==want[r*8*256:(r+1)*8*256]]
+    ui=[r for r in bars+list(range(top,end)) if got[r*8*256:(r+1)*8*256]==want[r*8*256:(r+1)*8*256]]
     assert not ui, f'512x448 rows {ui} show the map, not the bars or the box (mode 1)'
-    print(f'PASS: 512x448 with its menu: the bars and box rows ({top}-{end-1}) in mode 1, the map in the {len(rows)} others')
+    print(f'PASS: 512x448 with its menu: the box rows ({top}-{end-1}){" and bars" if bars else ""} in mode 1, the map in the {len(rows)} others')
     before,after=ppm(Path(work)/f'map-{first}.ppm'),ppm(Path(work)/'map-end.ppm')
     bad=[i for i in range(8*256,216*256) if before[i]!=after[i]]
     assert not bad, f'closing the map changed {len(bad)} text pixels'

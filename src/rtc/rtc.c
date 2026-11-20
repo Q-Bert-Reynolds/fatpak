@@ -38,12 +38,19 @@ unsigned char rtc_Write(const ClockDate* date) {
   i = RTCWrite(raw);
   return i;
 }
+// t * k + a by adding (k is at most 60): no SDCC library multiply, which these helpers can't call outside
+// FatFs's page, and smaller than unrolled shifts
+static unsigned long MulAdd(unsigned long t, unsigned char k, unsigned char a) {
+  unsigned long r = a;
+  while (k--) r += t;
+  return r;
+}
+// d days, h hours, m minutes and s seconds in seconds
+static unsigned long Seconds(unsigned int d, unsigned char h, unsigned char m, unsigned char s) {
+  return MulAdd(MulAdd(MulAdd(d, 24, h), 60, m), 60, s);
+}
 unsigned long rtc_Seconds(const ClockDate* date) {
-  unsigned long d = Days(date);
-  unsigned int h = date->hour, m = date->minute;
-  // No SDCC library multiply/divide: these helpers also run outside FatFs's page.
-  return (d << 16) + (d << 14) + (d << 12) + (d << 8) + (d << 7) +
-    (h << 11) + (h << 10) + (h << 9) + (h << 4) + (m << 6) - (m << 2) + date->second;
+  return Seconds(Days(date), date->hour, date->minute, date->second);
 }
 unsigned long rtc_FatTime(void) {
   ClockDate date;
@@ -52,10 +59,7 @@ unsigned long rtc_FatTime(void) {
     ((unsigned long)date.day << 16) | ((unsigned long)date.hour << 11) | ((unsigned int)date.minute << 5) | (date.second >> 1);
 }
 static unsigned long GameSeconds(const unsigned char* r) {
-  unsigned long d = r[3] | ((unsigned int)(r[4] & 1) << 8);
-  unsigned int h = r[2], m = r[1];
-  return (d << 16) + (d << 14) + (d << 12) + (d << 8) + (d << 7) +
-    (h << 11) + (h << 10) + (h << 9) + (h << 4) + (m << 6) - (m << 2) + r[0];
+  return Seconds(r[3] | ((unsigned int)(r[4] & 1) << 8), r[2], r[1], r[0]);
 }
 unsigned char rtc_Advance(unsigned char* r) {
   ClockDate date;

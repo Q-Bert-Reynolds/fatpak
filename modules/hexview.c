@@ -4,6 +4,7 @@
 // shows the selected byte's address, binary and decimal.
 #include "../build/modules/sdk.h"
 #include "lib/text.h"
+#include "view.h"
 
 #define ROWS (TB_ROWS - 2)
 #define PAGE (ROWS * 8)
@@ -69,18 +70,24 @@ static void Show(void) {
   ModText(STATUS_LINE, 1, text);
 }
 
-unsigned char ModuleMain(const unsigned long* file_size) {
+// Start (or Escape): the host's menu (VIEW_MENU), where the view is kept in context; B stays
+unsigned char ModuleMain(ViewContext* context) {
   unsigned long next, last, first;
   unsigned char key, down;
-  size = *file_size;
+  size = context->size;
   last = size - 1; // the host only opens files with a NUL in them
-  top = cursor = 0;
+  top = context->top;
+  cursor = context->cursor;
   Page();
   ModHideBox(); // the host's loading box
   Show();
   while (1) {
     key = ModKey(); // every frame, 0 for none: redraw only after a move
-    if (key == KEY_BACKSPACE || key == KEY_MENU) break; // B, Start or Escape: no menu here
+    if (key == KEY_MENU) {
+      context->top = top;
+      context->cursor = cursor;
+      return VIEW_MENU;
+    }
     next = cursor;
     if (key == KEY_LEFT) { if (next) --next; }
     else if (key == KEY_RIGHT) { if (next < last) ++next; }
@@ -109,5 +116,4 @@ unsigned char ModuleMain(const unsigned long* file_size) {
     }
     Show();
   }
-  return 0;
 }

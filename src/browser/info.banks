@@ -1,2 +1,3 @@
 # Code placement; the page itself is FILEINFO.MOD.
 *: 15
+12: ShowFileInfo
