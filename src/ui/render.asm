@@ -283,9 +283,13 @@ _SetFont::;a = font
   jr z, .copy
   ld a, b
   and a
-  ld a, 8
-  jr z, .fill
   ld a, 4
+  jr nz, .fill
+  ld a, [_screen_cells];the mono font: 8 pixels, a 4-pixel column at 512x448
+  and a
+  ld a, 4
+  jr nz, .fill
+  ld a, 8
 .fill
   ld hl, _font_widths
   ld bc, 256
@@ -300,7 +304,25 @@ _SetFont::;a = font
   SET_BANK
   ret
 
-_RenderTextWidth::;de = text (0 ends it), returns its width in the variable width font in a
+_RenderTextWidth::;de = text (0 ends it), returns its width in the variable width font in a (4 a character
+;in 512x448's columns)
+  ld a, [_screen_cells]
+  and a
+  jr z, .vwf
+  ld b, 0
+.cells
+  ld a, [de]
+  and a
+  jr z, .counted
+  inc de
+  ld a, b
+  add 4
+  ld b, a
+  jr .cells
+.counted
+  ld a, b
+  ret
+.vwf
   ldh a, [loaded_bank]
   push af
   ld a, BANK(FontVWFWidths)

@@ -12,6 +12,9 @@ screen_chunk:: DW
 
 SECTION "Row stage vars", WRAMX;WRAM0 is full (not HRAM: its top isn't free)
 screen_psram:: DB;wide (SGB fullscreen) rows are in PSRAM (SGB_ROWS_BLOCK), staged one at a time
+_screen_cells:: DB;512x448 character text (SGB fullscreen, RESOLUTION 512x448 and 8X8 TILES): 56 rows, 4 px a column
+_cells_held:: DB;a module's map is open: 512x448 text gave way to 256x224's (src/sgb/client.c)
+_cells_map:: DB;_SGBCellsMap's A
 staged_row: DB;the row wide_staging holds, $FF none
 staged_dirty: DB;and it may have been written: it goes back to PSRAM before another row is staged
 row_write: DB;RowStage's caller may write the row
@@ -25,11 +28,21 @@ _GeometryWide::
   call FarCallInline
   DB BANK(GeometryWide)
   DW GeometryWide
+_SGBCellsMap::;A = a map opens (1) or the text is back (0): the fullscreen client's (FsBackground)
+  ld [_cells_map], a
+  call FarCallInline
+  DB BANK(_SGBCellsMapC)
+  DW _SGBCellsMapC
+_SGBText::;A = TEXT's mode: the fullscreen client sends it (the extension before 1) and every row again
+  jp _RenderOverlayStart+21
+_RowsClear::
+  jp RowsClear
 DEF GEOMETRY_PAGE EQU 6
 PAGE GEOMETRY_PAGE
 GeometryGB:
   xor a
   ld [screen_psram], a
+  ld [_screen_cells], a
   ld a, TB_ROWS
   ld [_screen_rows], a
   ld a, TB_WIDTH
@@ -43,15 +56,29 @@ GeometryGB:
   call GeometrySet
   ld hl, 256
   jr GeometryChunk
-GeometryWide:
+GeometryWide:;256x224's 28 rows of 248 pixels, or 512x448's 56 of 62 4-pixel columns (the settings')
   xor a
   ld [_render_gbc], a
+  ld a, [_resolution]
+  cp RESOLUTION_512
+  jr nz, .cells
+  ld a, [_font_tiles]
+  and a
+  jr z, .cells
+  ld a, [_cells_held]
+  xor 1
+.cells
+  ld [_screen_cells], a
+  and a;(248 pixels in either: the cursor's sprite x, 8 on, fits a byte)
   ld a, WIDE_ROWS
+  jr z, .size
+  ld a, MAX_SCREEN_ROWS
+.size
   ld [_screen_rows], a
+  sub 2
+  ld [_screen_header], a
   ld a, 248
   ld [_screen_width], a
-  ld a, WIDE_ROWS-2
-  ld [_screen_header], a
   ld hl, wide_row_offsets
   ld de, tile_buffer+MAX_ROW_STRIDE
   ld bc, wide_scratch

@@ -303,6 +303,10 @@ sets the new vertical scroll after the last.
 Each TEXT switch clears the rows (the GB sends them again), the box and the scroll. A map
 opens only in TEXT 0: the map's overlay is 28 rows'. From a CODE to the TEXT or MAP that
 uses it, raster text rows wait: drawing one would rebuild the 4 px cache over the extension.
+The GB sends TEXT 1 when SETTINGS > RESOLUTION is 512x448 with FONT > 8X8 TILES (at boot, or
+from those menus: `SGBCells`), with the extension just before it, and lays its text out in 56
+rows of 4-pixel columns (notes/SGB_HIRES_TEXT.md). A map drops it to TEXT 0 and 28 rows while
+the map is open (`_SGBCellsMap` from `FsBackground`).
 `tests/run_sgb_text_kernel.sh` replays pages made by `tests/sgb/text_replay.py` on the real
 kernel in Mesen and checks each 512x448 picture against a reference drawn from the same
 model, pixel for pixel, then TEXT 0 against the raster text before it.

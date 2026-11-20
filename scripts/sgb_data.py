@@ -29,7 +29,7 @@ def client(no_log=False):
     internal=set(re.findall(r'^(Fs\w+):',code,re.M))
     branches=set(re.findall(r'^\s*(?:call|jp)\s+(?:(?:n?[zc]),\s*)?([A-Za-z_]\w*)(?=\s*(?:;[^\n]*)?$)',code,re.M|re.I))
     allowed={'mem_Set','RenderLineStyled','RenderRowAddress','RenderRowRead','RowsClear','_GeometryWide','_Layout__far',
-             'Trampoline','UpdateInputReturn','VBLContinue','_BoxLine','_FileWriteImage'}
+             'Trampoline','UpdateInputReturn','VBLContinue','_BoxLine','_FileWriteImage','_SGBCellsMap'}
     unknown=branches-internal-allowed
     if unknown: raise ValueError('unaudited terminal imports: '+str(sorted(unknown)))
     if values['ProcessKeyCodes']<0xA000:

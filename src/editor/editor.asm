@@ -70,7 +70,13 @@ _EditorShowCursor::;a = show
   add a, [hl]
   add a, a
   add a, a
+  ld e, a
+  ld a, [_screen_cells];512x448's 56 rows: 4 lines a row (the fullscreen client's FsCursor reads it back)
+  and a
+  ld a, e
+  jr nz, .cells
   add a, a
+.cells
   add a, OAM_Y_OFS
   ld e, a;y
   push de

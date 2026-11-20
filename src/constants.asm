@@ -70,6 +70,7 @@ DEF TB_WIDTH  EQU TB_COLS*8;pixels per row
 DEF TB_STRIDE EQU 40;characters per row in tile_buffer
 DEF MAX_SCREEN_ROWS EQU 56;logical row capacity: 512x448's (SGB fullscreen); the GB renderer remains 18 rows
 DEF WIDE_ROWS EQU 28;SGB fullscreen's rows at 256x224
+DEF RESOLUTION_512 EQU 2;SETTINGS > RESOLUTION's 512x448 (src/sgb/client.h)
 DEF GB_MAX_ROWS EQU 28;the GB renderer's tables (render_row_blocks, ring_blocks), filled only in its layout
 DEF MAX_ROW_STRIDE EQU 64
 DEF BOX_STRIDE EQU 20;characters per line of the menu box's text, 0 ends a line

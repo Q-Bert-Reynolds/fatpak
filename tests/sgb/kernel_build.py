@@ -41,7 +41,9 @@ def recording(path, end=None):
                         pixels=data[(y*8+line)*160+x*8:(y*8+line)*160+x*8+8]
                         for plane in (0,1):page.append(sum(((v>>plane)&1)<<(7-i) for i,v in enumerate(pixels)))
                 try:wire.decode_page(page)
-                except ValueError:continue
+                except ValueError:
+                    try:wire.decode_page(page,1) # (a page of 512x448 text's, TEXT 1)
+                    except ValueError:continue
                 assert slot==0,'fixture currently streams page A'
                 pages.append(bytes(page));expected=1 if expected==255 else expected+1
     assert pages

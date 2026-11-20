@@ -1,3 +1,6 @@
 *: 7
 THUNKS: FIXED
 12: SGBBegin
+6: SGBCells
+6: SGBCellsMapC
+6: CellsSwitch

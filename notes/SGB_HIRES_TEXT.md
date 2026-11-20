@@ -60,10 +60,27 @@ Mode 5 + interlace, no drawing:
   (mode-aware: `text=1` for TEXT 1's limits). `tests/run_sgb_text_kernel.sh` checks bars, styled
   rows, selections, right alignment, a box, the OSK, busy, progress, the cursor and a scroll at
   512×448 pixel for pixel in Mesen, and TEXT 0 giving back the raster text.
-- Next, the GB: send the extension and TEXT 1 when RESOLUTION is 512×448 with 8X8 TILES (and
-  TEXT 0 around a map); 56-row geometry with 4 px columns (64 of them); FsDraw/FsUI over
-  `screen_rows`; ROW's selection in columns; boxes laid out in columns; the hash ring at 56.
-  Then the Gearboy model's TEXT (its header has the constants).
+- Built, the GB (2026-11-20): SETTINGS > RESOLUTION offers 512x448 with 8X8 TILES too (as before in a
+  map), and RESOLUTION 512x448 with 8X8 TILES is 512x448 text (`screen_cells`, src/ui/geometry.asm):
+  - `GeometryWide` gives 56 rows (54 between the bars); the width stays 248 pixels, 62 columns of 4
+    (the cursor's sprite x, 8 on, must fit a byte), so columns 62-63 are margin and 63 has BUSY;
+  - the mono font, `RenderTextWidth` and the client's widths count 4 pixels a character, so the
+    editor, browser, bars and boxes lay out in columns with no other change;
+  - the client sends ROW's selection as columns, rows up to `screen_rows`, the footer at its last;
+    the editor's cursor sprite keeps 4 lines a row (`row*4+16`), which `FsCursor` reads back;
+  - `SGBCells` (src/sgb/client.c, from the FONT and RESOLUTION menus) switches at run time:
+    geometry, layout, the PSRAM rows cleared, then the overlay's `FsText` (entry 21: the
+    extension and TEXT 1, or TEXT 0) and every row again; `FsInit` does the same at boot;
+  - a map: `FsBackground` calls `_SGBCellsMap` first, which drops to 256x224's geometry and TEXT 0
+    while it's open (`cells_held`), and after MAP 0 comes back to 512x448 (the extension again).
+  - Tests: `tests/run_sgb_text.sh` (the GB frontend on Gearboy's model: the menus, the switch, the
+    browser, a 120-line file in 54 rows and its scroll, a map open and closed, 256x224 again) and
+    `tests/run_sgb_text_session.sh` (that recording on the real kernel in Mesen: every page
+    accepted, the browser's 512x448 screens before and after the map against the reference).
+- Not yet: the mouse (`SGBFS_MOUSE_ROW_MASK` is 5 bits; the kernel doesn't offer the mouse yet);
+  Gearboy's half-size render of TEXT 1 skips the OSK; the text is blank while a map is open
+  (the rows were cleared for 256x224 and come back cleared after: the app's next draw fills
+  them). Hardware: legibility of 8x8 glyphs at 448 interlaced lines.
 
 ## GB side (was the blocker)
 

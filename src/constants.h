@@ -73,6 +73,7 @@
 #define TB_STRIDE 40//characters per row in tile_buffer
 #define MAX_SCREEN_ROWS 56//logical row capacity: 512x448's (SGB fullscreen)// the GB renderer remains 18 rows
 #define WIDE_ROWS 28//SGB fullscreen's rows at 256x224
+#define RESOLUTION_512 2//SETTINGS > RESOLUTION's 512x448 (src/sgb/client.h)
 #define GB_MAX_ROWS 28//the GB renderer's tables (render_row_blocks, ring_blocks), filled only in its layout
 #define MAX_ROW_STRIDE 64
 #define BOX_STRIDE 20//characters per line of the menu box's text, 0 ends a line

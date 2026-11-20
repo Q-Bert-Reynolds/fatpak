@@ -12,6 +12,7 @@ FsEntry:
   jp FsInput
   jp FsInterrupt
   jp FsPalette
+  jp FsText ; A = TEXT's mode (src/sgb/client.c's SGBText)
 
 ; Emitter: no command buffer in WRAM. Sequence zero keeps the page unpublished.
 FsByte:
@@ -337,7 +338,8 @@ FsDraw:
   ldh a, [fs_row]
   inc a
   ldh [fs_row], a
-  cp 28
+  ld hl, _screen_rows
+  cp [hl]
   jr c, .row
   call FsUI
   ldh a, [fs_pending]
@@ -521,7 +523,9 @@ FsEncodeRow:
   ldh a, [fs_row]
   and a
   jp z, FsBar
-  cp 27
+  inc a
+  ld hl, _screen_rows
+  cp [hl]
   jp z, FsBar
 .textRow
   ldh a, [fs_count]
@@ -545,6 +549,9 @@ FsEncodeRow:
   ldh [fs_sel_cols], a
   ldh a, [fs_sel_end]
   ldh [fs_sel_cols+1], a
+  ld a, [_screen_cells] ; 512x448: TEXT 1's selection is in columns, as it is here
+  and a
+  jp nz, .selectionDone
   ; Empty and whole-row selections need no character-to-pixel walk. These
   ; dominate normal typing and browser navigation; partial spans keep it.
   ldh a, [fs_sel_start]
@@ -678,6 +685,10 @@ FsAttrIndex:
   ld a, [hl]
   jr .return
 .plain
+  ld a, [_screen_cells] ; 512x448: a column each
+  and a
+  ld a, 4
+  jr nz, .return
   ldh a, [fs_chars]
   ld l, a
   ldh a, [fs_chars+1]
@@ -716,8 +727,14 @@ FsCursor:
   sub 16
   rrca
   rrca
+  ld b, a
+  ld a, [_screen_cells] ; 512x448's rows are 4 lines (EditorShowCursor)
+  and a
+  ld a, b
+  jr nz, .row
   rrca
-  and 31
+.row
+  and 63
   call FsByte
   ld a, [oam_buffer+1]
   sub 8 ; remove the GB sprite offset; SNES text starts at screen X=0
@@ -786,12 +803,12 @@ FsBackground:
   ld b, a
   and $0F
   cp 4
-  jr nc, FsMapData
+  jp nc, FsMapData
   ld a, b
   and 3 | SGBFS_MAP_HIRES
   ld c, a
   call FsMapReady
-  jr c, .buttons
+  jp c, .buttons
   ldh a, [fs_map]
   cp c
   jr z, .scroll
@@ -799,6 +816,8 @@ FsBackground:
   jr nz, .mode ; from a map: the extension is still there
   push bc
   push de
+  ld a, 1 ; 512x448 text gives way to 256x224's (TEXT 0, 28 rows) while the map is open
+  call _SGBCellsMap
   call FsSendExt
   pop de
   pop bc
@@ -815,7 +834,7 @@ FsBackground:
 .scroll
   ld a, c
   and a
-  jr z, .flush
+  jp z, .text
   ld a, b ; bits 6-7: x's 256s, bit 5: y's
   swap a
   ld c, a
@@ -863,6 +882,11 @@ FsBackground:
   call FsByte
 .flush
   call FsFlush ; returns at once if the page is empty
+  jr .buttons
+.text
+  call FsFlush
+  xor a ; and comes back (TEXT 1 after MAP 0) if it gave way
+  call _SGBCellsMap
 .buttons
   ldh a, [button_state]
   ret
@@ -1119,6 +1143,24 @@ FsExtPlace:
   add $BE
   ld h, a
   ret
+; TEXT A (1: the extension first), then every row again; the rows (cleared) are the caller's to lay out
+FsText:
+  ld b, a
+  push bc
+  and a
+  call nz, FsSendExt
+  ld hl, 3 + 1
+  call FsMapRoom
+  pop bc
+  ret c
+  ld a, SGBFS_CMD_TEXT
+  push bc
+  ld bc, 1
+  call FsTLV
+  pop af
+  call FsByte
+  call FsFlush
+  jp FsRedraw
 FsExtRead: ; A = [HL+], the window on to the next block past its end
   ld a, [hli]
   push af
@@ -1219,10 +1261,13 @@ FsInit:
   and a
   ret nz
   call _GeometryWide
+  ld a, [_screen_cells]
+  and a
+  call nz, FsText ; 512x448 text: the extension and TEXT 1 first
   ld a, [_bars]
   add a
   ld b, a
-  ld a, 28
+  ld a, [_screen_rows]
   sub b
   ld [_tb_rows], a
   call _Layout__far

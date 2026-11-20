@@ -26,6 +26,7 @@ BOTTOM=bytes([29,32,35,32,31,32]+[95]*8+[15,32,16,32,30,32])
 class Model:
     """What the pages built: the kernel's state for the reference"""
     def __init__(s):
+        s.text=0;s.top=0;s.count=28;s.palette=list(LIGHT)+[0]*8
         s.rows=[(0,b'',b'',0,0)]*ROWS # flags, chars, attrs, selection start, end (columns)
         s.bars=0;s.bar=[b'',b''];s.box=None;s.lines=[];s.hi=255;s.osk=0;s.layer=0;s.key=255
         s.busy=0;s.progress=(0,0);s.cursor=(0,0,0)
@@ -210,13 +211,13 @@ def expected(m):
     for r in range(ROWS):
         cg,cc=compose(m,r)
         for x in range(COLS):
-            paper,ink=LIGHT[PAPER[cc[x]]],LIGHT[INK[cc[x]]]
+            paper,ink=m.palette[PAPER[cc[x]]],m.palette[INK[cc[x]]]
             for y in range(8):
                 bits=glyph(cg[x],y);at=(r*8+y)*512+x*8
                 for p in range(8):out[at+p]=ink if bits&(0x80>>p) else paper
     row,x,look=m.cursor
     if look:
-        color=LIGHT[3] if look==1 else 0x7FFF
+        color=m.palette[3] if look==1 else 0x7FFF
         for y in range(8):
             for p in (0,1):out[(row*8+y)*512+2*x+p]=color
     return out
@@ -255,5 +256,70 @@ def check(work):
     assert w==256 and end==raster, f'TEXT 0 changed {sum(a!=b for a,b in zip(end,raster))} raster pixels'
     print('PASS: TEXT 0 gives back the raster text, every pixel as it was')
 
+def apply(m,op,b):
+    """a page's command on the model (the kernel's), for a recorded session"""
+    R=ROWS if m.text else 28
+    if op==wire.SGBFS_CMD_TEXT:
+        if b[0]!=m.text:
+            pal,bars,bar=m.palette,m.bars,m.bar
+            m.__init__();m.text=b[0];m.palette,m.bars,m.bar=pal,bars,bar;m.top,m.count=0,ROWS if b[0] else 28
+    elif op==wire.SGBFS_CMD_ROW:
+        n=b[5];chars=b[7:7+n];attrs=wire.rle_decode(b[7+n:],n)
+        m.rows[b[0]]=(b[2],chars,attrs,b[3],b[4])
+    elif op==wire.SGBFS_CMD_ROW_SAME:m.rows[b[0]]=m.rows[b[1]]
+    elif op==wire.SGBFS_CMD_SCROLL:
+        d=struct.unpack('b',b[:1])[0];view=m.rows[m.top:m.top+m.count]
+        view=(view[d:]+[(0,b'',b'',0,0)]*d) if d>0 else ([(0,b'',b'',0,0)]*-d+view[:d])
+        m.rows[m.top:m.top+m.count]=view
+    elif op==wire.SGBFS_CMD_LAYOUT:m.top,m.count,m.bars,m.osk=b[0],b[1],b[2],bool(b[3])
+    elif op==wire.SGBFS_CMD_CURSOR:m.cursor=(b[0],b[1],b[2])
+    elif op==wire.SGBFS_CMD_BOX:
+        x,w,top,n=struct.unpack('<BHBB',b);m.box=(x,w,top,n) if w else None;m.lines=[b'']*n;m.hi=255
+    elif op==wire.SGBFS_CMD_BOX_LINE:m.lines[b[0]]=b[3:]
+    elif op==wire.SGBFS_CMD_BOX_HI:m.hi=b[0]
+    elif op==wire.SGBFS_CMD_BAR:m.bar[b[0]]=b[3:]
+    elif op==wire.SGBFS_CMD_OSK:m.layer,m.key=b[0],b[1]
+    elif op==wire.SGBFS_CMD_BUSY:m.busy=b[0]
+    elif op==wire.SGBFS_CMD_PROGRESS:m.progress=struct.unpack('<II',b)
+    elif op==wire.SGBFS_CMD_PALETTE:
+        for i in range(b[1]):m.palette[b[0]+i]=struct.unpack_from('<H',b,2+2*i)[0]
+    elif op in (wire.SGBFS_CMD_HELLO,wire.SGBFS_CMD_RESET):m.__init__()
+
+def session_pages():
+    """The recorded pages and the model before each TEXT 0 sent from character mode: a map opening, and
+    RESOLUTION > 256x224 at the end (the browser in 512x448 text, before the map and after it)"""
+    from kernel_build import recording
+    pages=recording(W/'text.fph');m=Model();out={}
+    for i,p in enumerate(pages):
+        commands=wire.decode_page(p,m.text)[1]
+        if m.text and any(op==wire.SGBFS_CMD_TEXT and not b[0] for op,b in commands):out[i]=_copy(m)
+        for op,b in commands:apply(m,op,b)
+    assert len(out)==2, f'TEXT 0 from character mode {len(out)} times, not 2'
+    return pages,out
+
+def session_build():
+    import sgb_kernel
+    from kernel_build import replay_rom
+    sgb_kernel.build()
+    pages,out=session_pages()
+    replay_rom(pages,checkpoints=tuple(out))
+    print(f'{len(pages)} recorded pages, checkpoints after {", ".join(map(str,out))}')
+
+def session_check(work):
+    pages,out=session_pages()
+    for n,m in out.items():
+        w,got=ppm(Path(work)/f'text-{n}.ppm')
+        assert w==512, f'{n}: not character mode ({w} pixels)'
+        want=expected(m)
+        bad=[(i%512,i//512) for i in range(512*448) if got[i]!=want[i]]
+        if bad:
+            rows=sorted({y//8 for x,y in bad})
+            raise AssertionError(f'{n}: {len(bad)} pixels differ, first at {bad[0]}, rows {rows[:12]}')
+        print(f'PASS: the recorded session after page {n}: all 512x448 pixels match the reference')
+
 if __name__=='__main__':
-    build() if sys.argv[1:]==['build'] else check(sys.argv[2])
+    a=sys.argv[1:]
+    if a==['build']:build()
+    elif a==['session-build']:session_build()
+    elif a[0]=='session-check':session_check(a[1])
+    else:check(a[1])
