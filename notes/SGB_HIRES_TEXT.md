@@ -33,8 +33,7 @@ Mode 5 + interlace, no drawing:
   - The GB must lay boxes out in 8 px cells meanwhile.
 - **Code size:** small next to a compositor: mode setup, the font upload, map writes per row, UI
   composition.
-  - The kernel has about 160 bytes free, so it still needs space: a second program loaded on
-    entering 512×448, or code moved out.
+  - It goes in the kernel extension (built, see Progress); the kernel itself keeps only stubs.
 
 ## Progress (2026-11-20)
 
@@ -48,11 +47,14 @@ Mode 5 + interlace, no drawing:
   - the browser reads an entry's kind from its row's text, so `list_kinds` is gone;
   - the GB-only tables (`render_row_blocks`, `ring_blocks`) stay at `GB_MAX_ROWS`.
   Fullscreen still uses 28 rows (`WIDE_ROWS`) until the SNES side exists.
-- Next: a kernel extension the GB sends on entering a 512×448 mode (the kernel has 159 bytes free).
-  - It's built with the kernel and kept in `SGB.DAT`, and loads into `$7E:DC00+`: the 4 px fixed
-    compositor's cache, used only at 256×224, so `fixed_ready` is cleared to rebuild it after.
-  - The 512×448 map engine moves into it, freeing about 1.2 KiB of kernel.
-  - Then the character-tile text mode, the protocol's 56 rows, and the GB switching to 56 rows.
+- Built: the kernel extension (notes/SGB.md, SGB.DAT container). It's linked with the kernel and
+  sent by the GB in CODE commands from SGB.DAT's PSRAM copy. It runs at `$7E:DC00–FFFF`, the 4 px
+  fixed cache's WRAM, so a rebuild of that cache clears `ext_ready`. The map engine (`map.s`,
+  2 KiB) moved there: the kernel program went from 21,404 to 19,681 bytes, and the extension
+  is 2,009 of its 9,216.
+- Next: the character-tile text mode in the extension, the protocol's 56 rows, and the GB
+  switching to 56 rows. The GB sends the extension before a map today; it will send it before
+  512×448 text too.
 
 ## GB side (was the blocker)
 

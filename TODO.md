@@ -69,6 +69,7 @@
 # Other
 
 - Something writes the top of HRAM (found 2026-11-20: a byte placed at `$FFF5` read 160 after a BUILD, and `tests/test_footer_clock.cpp` ran a stub at `$FFF0`). Find it before putting anything up there.
+- `tests/run_sgb_kernel.sh` sometimes fails its golden by 8 pixels: the screenshot shows page 100's cursor, not page 101's (hidden). The final CURSOR isn't always presented before the capture; seen twice on 2026-11-20, and it passes on a re-run.
 
 - Small-C style compiler matching SDCC's calling convention, multi-pass via SD temp files
 - Document real differences of other X-series carts rather than assuming X7 SD/RTC/button behavior.

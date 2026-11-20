@@ -128,7 +128,7 @@ endif
 	$(PYTHON) scripts/data_file.py $(BIN_DIR)/EDITOR.DAT
 	cp data/mapview.inc $(BIN_DIR)/MAPVIEW.INC
 	$(PYTHON) scripts/sgb_kernel.py
-	$(PYTHON) scripts/sgb_data.py --snes $(BUILD_DIR)/sgb/program.bin --fonts $(BUILD_DIR)/sgb/fonts.bin
+	$(PYTHON) scripts/sgb_data.py --snes $(BUILD_DIR)/sgb/program.bin --fonts $(BUILD_DIR)/sgb/fonts.bin --ext $(BUILD_DIR)/sgb/ext.bin
 	@if mountpoint -q "$(SD_MOUNT)"; then \
 		cp $(BIN_DIR)/GBCOS.BIN "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
 		cp $(BIN_DIR)/EDITOR.DAT "$(SD_MOUNT)/GBCSYS/EDITOR.DAT" && \

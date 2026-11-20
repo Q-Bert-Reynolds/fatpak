@@ -54,6 +54,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--snes',type=Path)
     parser.add_argument('--fonts',type=Path)
+    parser.add_argument('--ext',type=Path,help="the kernel's extension (sgb_kernel.py's ext.bin), sent in CODE commands")
     parser.add_argument('--output',type=Path,default=ROOT/'bin/SGB.DAT')
     parser.add_argument('--no-log',action='store_true',help='control build without SD recorder writes')
     args=parser.parse_args()
@@ -61,7 +62,8 @@ def main():
     if args.snes:
         fonts=args.fonts.read_bytes() if args.fonts else b''
         args.output.parent.mkdir(parents=True,exist_ok=True)
-        args.output.write_bytes(sgb_protocol.data_file(args.snes.read_bytes(),fonts,image,host_checksum=binding))
+        ext=args.ext.read_bytes() if args.ext else b''
+        args.output.write_bytes(sgb_protocol.data_file(args.snes.read_bytes(),fonts,image,host_checksum=binding,extension=ext))
         print(f'SGB.DAT: {args.output}')
 
 

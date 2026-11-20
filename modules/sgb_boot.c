@@ -121,17 +121,17 @@ static void SwapWindow(unsigned char* video) __naked {
 }
 
 static unsigned char Validate(void) {
-  unsigned long i,p,f,o,load,entry;
+  unsigned long i,p,f,o,e,load,entry;
   unsigned int block,count,offset;
   static const unsigned char zero_crc[2]={0,0};
   if(file.size<32) return 1;
   for(i=0;i<32;++i) header[i]=Read(i);
-  p=Long(header+14);f=Long(header+18);o=Long(header+22);
+  p=Long(header+14);f=Long(header+18);o=Long(header+22);e=header[6]|((unsigned int)header[7]<<8); // the extension, last
   load=Long(header+8)&0xFFFFFF;entry=Long(header+11)&0xFFFFFF;
   if(header[0]!='S'||header[1]!='G'||header[2]!='B'||header[3]!='1'||header[4]!=1||header[5]!=32||
-     header[6]||header[7]||!p||load<0x7F0000||load>=0x800000||(load&4095)||
+     e>0x2400||(e&&!o)||!p||load<0x7F0000||load>=0x800000||(load&4095)||
      p>0x800000-load||f>0x800000-load-p||entry<load||entry>=load+p||o!=0x1D00||
-     file.size!=32+p+f+o||header[28]!=REG(0x14E)||header[29]!=REG(0x14F)||header[30]!=1||header[31]!=1) return 1;
+     file.size!=32+p+f+o+e||header[28]!=REG(0x14E)||header[29]!=REG(0x14F)||header[30]!=1||header[31]!=1) return 1;
   crc=0xFFFF;
   // The stored CRC field contributes two zero bytes, without changing PSRAM.
   CRCBlock(header,26);CRCBlock(zero_crc,2);

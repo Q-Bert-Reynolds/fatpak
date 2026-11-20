@@ -9,7 +9,7 @@
 .macpack longbranch
 .export _DrawFixedTiles
 .import _glyph_row, _raster, Fonts, StyleFonts, StyleColors, _Capture
-.import _fixed_ready, _fixed_hits, _fixed_misses, _fixed_hints, _ClearTiles
+.import _fixed_ready, _ext_ready, _fixed_hits, _fixed_misses, _fixed_hints, _ClearTiles
 .import _fixed_direct, _fixed_slot, _SharedBeginRow, _SharedFixedTile, _SharedFixedEnd, _SharedFixedReuse
 .segment "CODE"
 .a8
@@ -118,6 +118,7 @@ _DrawFixedTiles:
  bcc @clearKeys
  sep #$20
 .a8
+ stz _ext_ready ; the keys are over the extension (ext.s)
  lda #1
  sta _fixed_ready
  rep #$20

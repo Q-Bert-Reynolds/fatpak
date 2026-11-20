@@ -171,6 +171,9 @@ def validate_command(opcode, body):
         require(all(p < SGBFS_MAP_PALETTES for p in body[5::2]), 'MAP_CELLS palette')
     elif name == 'MAP_SCROLL':
         require(n == 4 and struct.unpack_from('<H', body)[0] < 1024 and struct.unpack_from('<H', body, 2)[0] < 512, 'MAP_SCROLL')
+    elif name == 'CODE':
+        require(4 <= n <= 3 + SGBFS_CODE_MAX and body[0] <= 1 and
+                struct.unpack_from('<H', body, 1)[0] + n - 3 <= SGBFS_CODE_SIZE, 'CODE size')
     elif name in ('HELLO', 'RESET'):
         require(body == bytes((SGBFS_VERSION, SGBFS_PROFILE)), 'version/profile mismatch')
 
@@ -259,15 +262,19 @@ def decode_status(data):
     return heartbeat, event, bool(flags), a, b
 
 
-def data_file(program, fonts=b'', overlays=b'', load=0x7f0000, entry=0x7f0000, host_checksum=b''):
-    program, fonts, overlays = bytes(program), bytes(fonts), bytes(overlays)
+def data_file(program, fonts=b'', overlays=b'', load=0x7f0000, entry=0x7f0000, host_checksum=b'', extension=b''):
+    """Header bytes 6-7: the extension's length, last in the file (sent in CODE commands, not uploaded); its first
+    word is that length too, for the GB (the SGB log reuses the header in PSRAM)"""
+    program, fonts, overlays, extension = bytes(program), bytes(fonts), bytes(overlays), bytes(extension)
+    require(len(extension) <= SGBFS_CODE_SIZE and (overlays or not extension), 'SGB.DAT extension')
+    require(not extension or extension[:2] == struct.pack('<H', len(extension)), 'extension length word')
     require(program and not load & 4095 and 0x7f0000 <= load <= entry < load + len(program) <= 0x800000, 'SNES load/entry')
     require(load + len(program) + len(fonts) <= 0x800000, 'SNES image exceeds bank $7F')
     require(len(overlays) in (0, SGBFS_OVERLAY_PAGE_SIZE), 'overlay page alignment')
     require((bool(overlays) and len(host_checksum) == 2) or (not overlays and not host_checksum), 'overlay host binding')
     binding = bytes(host_checksum) + bytes((SGBFS_OVERLAY_ABI, SGBFS_OVERLAY_FIXED_RENDER)) if overlays else bytes(4)
-    body = program + fonts + overlays
-    header = b'SGB1' + bytes((SGBFS_VERSION, SGBFS_DATA_HEADER)) + bytes(2)
+    body = program + fonts + overlays + extension
+    header = b'SGB1' + bytes((SGBFS_VERSION, SGBFS_DATA_HEADER)) + struct.pack('<H', len(extension))
     header += load.to_bytes(3, 'little') + entry.to_bytes(3, 'little')
     header += struct.pack('<IIIH', len(program), len(fonts), len(overlays), 0) + binding
     image = header + body
@@ -276,18 +283,20 @@ def data_file(program, fonts=b'', overlays=b'', load=0x7f0000, entry=0x7f0000, h
 
 def decode_data_file(data, host_checksum=None):
     require(len(data) >= SGBFS_DATA_HEADER and data[:6] == b'SGB1'+bytes((SGBFS_VERSION, SGBFS_DATA_HEADER)), 'SGB.DAT header')
-    require(not any(data[6:8]), 'SGB.DAT reserved')
+    e, = struct.unpack_from('<H', data, 6)
     load, entry = int.from_bytes(data[8:11], 'little'), int.from_bytes(data[11:14], 'little')
     p, f, o, checksum = struct.unpack_from('<IIIH', data, 14)
-    require(SGBFS_DATA_HEADER + p + f + o == len(data) and crc(data[:26] + bytes(2) + data[28:]) == checksum, 'SGB.DAT size/CRC')
+    require(SGBFS_DATA_HEADER + p + f + o + e == len(data) and crc(data[:26] + bytes(2) + data[28:]) == checksum, 'SGB.DAT size/CRC')
     if o:
         require(host_checksum is not None and data[28:30] == bytes(host_checksum) and
                 data[30:32] == bytes((SGBFS_OVERLAY_ABI, SGBFS_OVERLAY_FIXED_RENDER)), 'overlay host/ABI/kind mismatch')
     else:
         require(not any(data[28:32]), 'unexpected overlay binding')
-    parts = data[32:32+p], data[32+p:32+p+f], data[32+p+f:]
-    require(data_file(*parts, load, entry, host_checksum=bytes(host_checksum) if o else b'') == data, 'SGB.DAT metadata')
-    return load, entry, parts
+    parts = data[32:32+p], data[32+p:32+p+f], data[32+p+f:32+p+f+o]
+    extension = data[32+p+f+o:]
+    require(data_file(*parts, load, entry, host_checksum=bytes(host_checksum) if o else b'',
+                      extension=extension) == data, 'SGB.DAT metadata')
+    return load, entry, parts + (extension,)
 
 
 if __name__ == '__main__':

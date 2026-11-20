@@ -21,7 +21,7 @@ class Protocol(unittest.TestCase):
 
     def test_generated_consumers_and_real_assemblers(self):
         p.generate(check=True)
-        self.assertEqual(len(p.COMMANDS), 21)
+        self.assertEqual(len(p.COMMANDS), 22)
         self.assertEqual(len(p.EVENTS), 18)
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
@@ -55,6 +55,7 @@ class Protocol(unittest.TestCase):
             'MAP': b'\2', 'MAP_TILES': bytes([255,1])+bytes(range(16)),
             'MAP_COLORS': bytes([7,1])+struct.pack('<4H',0x7fff,0x1234,0,0x0421),
             'MAP_CELLS': bytes([127,63,1,2,128,7,0,0]), 'MAP_SCROLL': struct.pack('<HH',1023,511),
+            'CODE': bytes([1])+struct.pack('<H',p.SGBFS_CODE_SIZE-2)+b'\x6b\x60',
         }
         return [row]+[p.command(getattr(p,'SGBFS_CMD_'+name), body) for name, body in bodies.items()]
 
@@ -72,7 +73,9 @@ class Protocol(unittest.TestCase):
                            ('MAP_TILES',bytes([0,1])+bytes(15)),('MAP_COLORS',bytes([7,2])+bytes(16)),
                            ('MAP_COLORS',bytes([0,1])+struct.pack('<4H',0x8000,0,0,0)),('MAP_CELLS',bytes([128,0,0,1,0,0])),
                            ('MAP_CELLS',bytes([0,64,0,1,0,0])),('MAP_CELLS',bytes([0,0,2,1,0,0])),('MAP_CELLS',bytes([0,0,0,1,0,8])),
-                           ('MAP_CELLS',bytes([0,0,0,2,0,0])),('MAP_SCROLL',struct.pack('<HH',1024,0)),('MAP_SCROLL',struct.pack('<HH',0,512)),('MAP_SCROLL',struct.pack('<HB',0,0))]:
+                           ('MAP_CELLS',bytes([0,0,0,2,0,0])),('MAP_SCROLL',struct.pack('<HH',1024,0)),('MAP_SCROLL',struct.pack('<HH',0,512)),('MAP_SCROLL',struct.pack('<HB',0,0)),
+                           ('CODE',bytes(3)),('CODE',bytes([2,0,0,0])),('CODE',bytes([0,0,0])+bytes(p.SGBFS_CODE_MAX+1)),
+                           ('CODE',bytes([0])+struct.pack('<H',p.SGBFS_CODE_SIZE-1)+bytes(2))]:
             self.reject(p.command,getattr(p,'SGBFS_CMD_'+name),body)
 
     def test_rle_random_and_limits(self):
@@ -146,10 +149,17 @@ class Protocol(unittest.TestCase):
         program,fonts,overlays=b'\xea'*4097,b'font',bytes(p.SGBFS_OVERLAY_PAGE_SIZE)
         binding=b'\x12\x34'
         data=p.data_file(program,fonts,overlays,entry=0x7f0001,host_checksum=binding)
-        self.assertEqual(p.decode_data_file(data,host_checksum=binding),(0x7f0000,0x7f0001,(program,fonts,overlays)))
+        self.assertEqual(p.decode_data_file(data,host_checksum=binding),(0x7f0000,0x7f0001,(program,fonts,overlays,b'')))
         self.reject(p.decode_data_file,data)
         self.reject(p.decode_data_file,data,host_checksum=b'\x12\x35')
-        self.assertEqual(p.decode_data_file(p.data_file(b'x')),(0x7f0000,0x7f0000,(b'x',b'',b'')))
+        self.assertEqual(p.decode_data_file(p.data_file(b'x')),(0x7f0000,0x7f0000,(b'x',b'',b'',b'')))
+        extended=p.data_file(program,fonts,overlays,host_checksum=binding,extension=b'\5\0ext')
+        self.assertEqual(extended[6:8],b'\5\0')
+        self.assertEqual(p.decode_data_file(extended,host_checksum=binding)[2],(program,fonts,overlays,b'\5\0ext'))
+        self.reject(p.decode_data_file,extended[:-1],host_checksum=binding)
+        self.reject(p.data_file,b'x',extension=b'\3\0x')
+        self.reject(p.data_file,program,fonts,overlays,host_checksum=binding,extension=b'\4\0ext')
+        self.reject(p.data_file,program,fonts,overlays,host_checksum=binding,extension=bytes(p.SGBFS_CODE_SIZE+1))
         for i in [0,4,5,8,11,14,18,22,26,28,31,32,len(data)-1]:
             broken=bytearray(data);broken[i]^=1
             self.reject(p.decode_data_file,broken,host_checksum=binding)

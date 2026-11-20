@@ -13,9 +13,13 @@
 ;
 ; Leaving, BG1 points at the text's map again ($E000) and every text row is drawn again (kernel.c), the
 ; row cache too (the 512x448 tables are in its WRAM). Called from C with 8-bit A and index.
+;
+; This is the kernel's extension (segment EXT, $7E:DC00: SGB.DAT's last part, sent in CODE commands before a
+; map). The kernel calls it through ext.s's stubs and the Far entries below (JSL, RTL); it calls the kernel
+; through ext.s's Far trampolines, and reads its own tables at $7E (PB is $7E here).
 .setcpu "65816"
-.export _MapLayer, _MapTiles, _MapCells, _MapColors, _MapScroll, _MapGlide, MapRow
-.import _WaitBlank, _Capture, _raster, _shade, _ui_right
+.export FarMapLayer, FarMapTiles, FarMapCells, FarMapColors, FarMapScroll, FarMapGlide, FarRegions, ui_rows
+.import FarWaitBlank, FarCapture, _raster, _shade
 .import _map_mode, _map_src, _map_colors, _map_x, _map_y, _map_tx, _map_ty
 
 HIRES = $10 ; SGBFS_MAP_HIRES
@@ -62,14 +66,37 @@ hdma_mode: .res ROWS * 2 + 1
 hdma_tm: .res ROWS * 2 + 1
 tmp: .res 2
 
-.segment "CODE"
+.segment "EXT"
 .a8
 .i8
 
+; the kernel's ways in (ext.s): each a near routine here, returning far
+FarMapLayer:
+ jsr MapLayer
+ rtl
+FarMapTiles:
+ jsr MapTiles
+ rtl
+FarMapCells:
+ jsr MapCells
+ rtl
+FarMapColors:
+ jsr MapColors
+ rtl
+FarMapScroll:
+ jsr MapScroll
+ rtl
+FarMapGlide:
+ jsr MapGlide
+ rtl
+FarRegions:
+ jsr Regions
+ rtl
+
 ; A = 1: BG1 shows the map (its cells cleared: tile 0, or the blank pair), 0: the text's map again
-_MapLayer:
+MapLayer:
  pha
- jsr _WaitBlank
+ jsl $7F0000+FarWaitBlank
  pla
  bne @map
  lda #$70 ; BG1 map at byte $E000, 32x32
@@ -198,7 +225,7 @@ _MapLayer:
  lda #$C0
  sta f:$00420C
 @on:
- jsr _WaitBlank
+ jsl $7F0000+FarWaitBlank
  lda #$0F
  sta f:$002100
  rts
@@ -253,23 +280,9 @@ Regions:
  sta hdma_tm,y
  rts
 
-; PresentOverlay's row ($1120) done: whether it has the bars, a box or the OSK, which hi-res can't show
-MapRow:
- ldx $1120
- lda _ui_right
- ora _ui_right+1
- beq @set
- lda #1
-@set:
- sta ui_rows,x
- lda _map_mode
- and #HIRES
- bne Regions
- rts
-
 ; MAP_TILES at map_src: first, count, the GB's 2bpp tiles, kept to compose from: 512x448's pairs, and
 ; 256x224's own tiles at once (each a pair's half in slot 1: plane 2 set)
-_MapTiles:
+MapTiles:
  rep #$30
 .a16
 .i16
@@ -323,7 +336,7 @@ _MapTiles:
  jmp Done
 
 ; MAP_CELLS at map_src: x, y, vertical, count, then (tile, palette) cells
-_MapCells:
+MapCells:
  rep #$30
 .a16
 .i16
@@ -440,7 +453,7 @@ Poll: ; Capture between cells, keeping the registers
  pha
  phx
  phy
- jsr _Capture
+ jsl $7F0000+FarCapture
  ply
  plx
  pla
@@ -722,7 +735,7 @@ Tile:
  dec tmp
  bne @low
  plx
- lda f:$7F0000+Slots,x
+ lda f:$7E0000+Slots,x
  ldx #8
 @high:
  sta _raster,y
@@ -915,7 +928,7 @@ Flush:
  sep #$30
 .a8
 .i8
- jsr _WaitBlank
+ jsl $7F0000+FarWaitBlank
  lda #$80
  sta f:$002115
  lda #1
@@ -983,8 +996,8 @@ Flush:
 .a8
 .i8
 ; the map's palettes to CGRAM, in a VBlank: 256x224 GB palette p at p*16+4; 512x448 each slot's
-_MapColors:
- jsr _WaitBlank
+MapColors:
+ jsl $7F0000+FarWaitBlank
  lda _map_mode
  and #HIRES
  bne Colors5
@@ -1043,7 +1056,7 @@ Colors5: ; slot s of palette c (cgs[c * 4 + s]) at CGRAM (c * 4 + s) * 4
 
 ; a frame of the scroll: half the way to the latest MAP_SCROLL (the last pixel whole), in the map's
 ; wrap (256x224: 512x256 pixels, 512x448: 1024x512)
-_MapGlide:
+MapGlide:
  rep #$30
 .a16
 .i16
@@ -1059,7 +1072,7 @@ _MapGlide:
  jsr Half
  clc
  adc _map_x
- and f:$7F0000+Wraps,x
+ and f:$7E0000+Wraps,x
  sta _map_x
  inx
  inx
@@ -1069,23 +1082,23 @@ _MapGlide:
  jsr Half
  clc
  adc _map_y
- and f:$7F0000+Wraps,x
+ and f:$7E0000+Wraps,x
  sta _map_y
  sep #$30
 .a8
 .i8
- bra _MapScroll
+ bra MapScroll
 .a16
 Half: ; A the way in the wrap X: signed half of it, or all of it under 2
- and f:$7F0000+Wraps,x
+ and f:$7E0000+Wraps,x
  sta tmp
- lda f:$7F0000+Wraps,x
+ lda f:$7E0000+Wraps,x
  lsr
  cmp tmp
  lda tmp
  bcs @ahead
  sec
- sbc f:$7F0000+Wraps,x
+ sbc f:$7E0000+Wraps,x
  dec
 @ahead:
  cmp #$8000
@@ -1099,8 +1112,8 @@ Wraps: .word 511, 255, 1023, 511
 .a8
 ; BG1's scroll: map_x, map_y (vertical by a line, 512x448 two: like the text's); 512x448's horizontal
 ; scroll counts 2 pixels
-_MapScroll:
- jsr _WaitBlank
+MapScroll:
+ jsl $7F0000+FarWaitBlank
  rep #$20
 .a16
  lda _map_mode

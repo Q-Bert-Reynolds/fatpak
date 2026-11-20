@@ -97,6 +97,7 @@ int main(int n,char** v){
     printf("map built and sent: %u GB frames\n",waited);
     Frames(core,120);
     Check(model.mapMode==1,"MAP 1: the map under the bars");
+    {std::vector<u8> dat=Read(v[4]);printf("extension: %u of %u bytes\n",model.codeBytes,dat[6]|dat[7]<<8u);Check(dat.size()>32 && model.codeBytes==(dat[6]|dat[7]<<8u),"the kernel's extension sent whole before the map");}
     for(unsigned i=0;i<16;++i)Check(model.mapTiles[128*16+i]==tiles[i] && model.mapTiles[129*16+i]==tiles[16+i],"the tileset's tiles");
     Check(model.mapColors[0]==0x7FFF && model.mapColors[1]==31 && model.mapColors[4]==31<<10 && model.mapColors[9]==(24|12<<5),"the map's palettes");
     // the cells in view from mapX, mapY: 33x29 of the SNES's 64x32 map, 65x57 of 128x64 at 512x448. The

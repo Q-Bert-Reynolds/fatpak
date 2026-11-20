@@ -8,7 +8,9 @@ gearboy_root=${GEARBOY_ROOT:-"$root/../Gearboy"}
 cd "$root"
 python3 tests/sgb/build.py hello
 # The SNES side is Gearboy's model; the SGB.DAT carries the real GB overlay.
-python3 scripts/sgb_data.py --snes build/sgb/hello.bin --output build/sgb/client-test.SGB.DAT
+# The real kernel's extension, so the recording replays on the real kernel (run_sgb_map_kernel.sh)
+python3 scripts/sgb_kernel.py
+python3 scripts/sgb_data.py --snes build/sgb/hello.bin --ext build/sgb/ext.bin --output build/sgb/client-test.SGB.DAT
 "${CXX:-c++}" -O2 -std=c++11 -fno-rtti -I"$gearboy_root/src" tests/test_sgb_map.cpp \
     "$gearboy_root"/src/*.o "$gearboy_root"/src/audio/*.o \
     "$gearboy_root/platforms/shared/dependencies/miniz/miniz.o" \

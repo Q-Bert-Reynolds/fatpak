@@ -269,7 +269,7 @@ underlying SNES text model.
 ### A module's map (MAPVIEW)
 
 The MAP commands give BG1 to a module's background: `MAPVIEW.MOD` shows a Beisbol `.gbmap`
-there. In map mode the kernel (`snes/map.s`) points BG1 at a 64x32 map at VRAM byte `$2000`
+there. In map mode the kernel's extension (`snes/map.s`, see SGB.DAT container) points BG1 at a 64x32 map at VRAM byte `$2000`
 (cleared on entry) with the 256 map tiles at `$0000`: each GB 2bpp tile becomes 4bpp with
 plane 2 set, so its pixels are 4–7 and never transparent, and GB palette `p` is CGRAM
 `p*16+4…7` (palette 0 lands on the syntax accents, which the map view doesn't use; they come
@@ -406,7 +406,7 @@ GB renderer overlay (Phases 4–8).
 | 0 | 4 | ASCII `SGB1` |
 | 4 | 1 | Protocol version 1 |
 | 5 | 1 | Header size 32 |
-| 6 | 2 | Reserved zero |
+| 6 | 2 | Kernel extension length, 0–`$2400` (only with an overlay) |
 | 8 | 3 | SNES load address, 4 KiB aligned in bank `$7F` |
 | 11 | 3 | Entry within the program bytes |
 | 14 | 4 | Program byte length (nonzero) |
@@ -417,13 +417,26 @@ GB renderer overlay (Phases 4–8).
 | 30 | 1 | Overlay ABI 1 |
 | 31 | 1 | Overlay kind 1: fixed renderer replacement |
 
-Body = program, fonts, overlay. Program+fonts must fit bank `$7F`; exact length
+Body = program, fonts, overlay, extension. Program+fonts must fit bank `$7F`; exact length
 must match the header. With no overlay, bytes 28–31 must all be zero. With an
 overlay, the decoder requires the expected OS checksum and matching ABI/kind.
 Binding metadata is covered by CRC too. The overlay container reserves one page;
 the resident replacement must fit the audited renderer interval, not all `$1D00`
 bytes. Validate the entire file before overwriting host code or launching the
 SNES program.
+
+**The kernel extension** is code linked with the kernel (`snes/kernel.cfg`'s `EXT` area, its own
+file `build/sgb/ext.bin`) that runs at `$7E:DC00–FFFF` (`$EFFF` in shared-render builds): the
+4 px fixed cache's WRAM, which only text rows use. It isn't uploaded at boot; the GB overlay
+sends it in CODE commands (offset, up to 1 KiB each, the last flagged) whenever a map starts
+from the text (`FsSendExt`). It reads it from SGB.DAT's PSRAM copy, past the overlay page that
+`overlay_request` still points into, because the SGB log reuses the file's first blocks and its
+header. The extension's first word is its own length for the same reason. The kernel
+(`snes/ext.s`) calls it through stubs (`jsl $7E:…`, the extension's `Far*` entries `jsr` then
+`rtl`) and it calls back through `Far*` trampolines in bank `$7F`; its BSS stays in the
+kernel's. A CODE command clears `fixed_ready`, and the last one sets `ext_ready`. The fixed
+cache's rebuild clears `ext_ready`, and MAP stays on the text without it. Today it holds the
+map engine (`snes/map.s`, 2 KiB); 512×448 text goes there next.
 
 ## Memory budget
 

@@ -177,6 +177,13 @@ u8 raster_valid[RING_ROWS];
 u16 raster_hits;
 u16 raster_misses;
 u8 fixed_ready;
+u8 ext_ready; /* the extension (map.s) at $7E:DC00 whole, over the 4 px cache's WRAM: fixed.s clears it */
+#ifdef SNES_TEST
+u8 ext_area[SGBFS_CODE_SIZE];
+#define EXT_AREA ext_area
+#else
+#define EXT_AREA ((u8 *)0xDC00) /* DB is $7E */
+#endif
 /* The fixed compositor can prepare a shared map alongside the raster. */
 u8 fixed_hints;
 u8 fixed_direct;
@@ -369,6 +376,9 @@ static void ui_box(void) {
 /* The map on BG1 (1, 2, either 512x448) or the text again: every text row drawn again (512x448's tables
    were in the row cache), the accents' colours back. Changing resolution starts the map again */
 static void map_enter(u8 mode) {
+  if (!ext_ready) {
+    mode = 0; /* the map engine is the extension's */
+  }
   if (map_mode && (!mode || ((map_mode ^ mode) & SGBFS_MAP_HIRES))) {
     MapLayer(0);
     SetScroll(scroll_current);
@@ -712,6 +722,16 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
         if (apply && map_mode) {
           map_src = b;
           MapCells();
+        }
+        break;
+      case SGBFS_CMD_CODE:
+        if (len < 4 || len > 3u + SGBFS_CODE_MAX || b[0] > 1 || word(b + 1) > SGBFS_CODE_SIZE - (u16)(len - 3)) {
+          return 0;
+        }
+        if (apply && !map_mode) {
+          fixed_ready = 0;
+          memcpy(EXT_AREA + word(b + 1), b + 3, len - 3);
+          ext_ready = b[0];
         }
         break;
       case SGBFS_CMD_MAP_SCROLL:

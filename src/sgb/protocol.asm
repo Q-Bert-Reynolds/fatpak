@@ -44,6 +44,8 @@ DEF SGBFS_CMD_MAP_TILES EQU $12 ; first tile, count 1-SGBFS_MAP_TILES_MAX, then 
 DEF SGBFS_CMD_MAP_COLORS EQU $13 ; first palette 0-7, count 1-8, then count*4 BGR555 colours
 DEF SGBFS_CMD_MAP_CELLS EQU $14 ; x 0-127, y 0-63 (256x224 keeps x & 63, y & 31), vertical 0/1, count 1-SGBFS_MAP_CELLS_MAX, then (tile, palette 0-7)
 DEF SGBFS_CMD_MAP_SCROLL EQU $15 ; x:u16 0-1023, y:u16 0-511: the map's top left pixel (256x224 keeps x & 511, y & 255)
+; The kernel's extension (SGB.DAT's last part: the map engine) into $7E:DC00, the 4 px cache's WRAM, before a map
+DEF SGBFS_CMD_CODE EQU $16 ; last 0/1 (the extension may run), offset:u16, then 1-SGBFS_CODE_MAX bytes, within SGBFS_CODE_SIZE
 DEF SGBFS_EVENT_KEY EQU $01
 DEF SGBFS_EVENT_MOUSE_DOWN EQU $02
 DEF SGBFS_EVENT_MOUSE_DRAG EQU $03
@@ -98,3 +100,5 @@ DEF SGBFS_MAP_WIDTH EQU 128 ; cells: 512x448's, 128x64 (65x57 in view); 256x224'
 DEF SGBFS_MAP_HEIGHT EQU 64
 DEF SGBFS_MAP_HIRES EQU $10 ; MAP's mode: 512x448 (mode 5 + interlace), a GB pixel a hi-res one
 DEF SGBFS_MAP_PALETTES EQU 8
+DEF SGBFS_CODE_MAX EQU 1024
+DEF SGBFS_CODE_SIZE EQU $2400 ; $7E:DC00-FFFF

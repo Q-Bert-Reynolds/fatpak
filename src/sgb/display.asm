@@ -795,6 +795,14 @@ FsBackground:
   ldh a, [fs_map]
   cp c
   jr z, .scroll
+  and a
+  jr nz, .mode ; from a map: the extension is still there
+  push bc
+  push de
+  call FsSendExt
+  pop de
+  pop bc
+.mode
   ld a, c
   ldh [fs_map], a
   ld a, SGBFS_CMD_MAP
@@ -986,6 +994,144 @@ FsMapReady:
   ld a, [kb_event_write]
   ld [kb_event_read], a
   jr FsMapReady
+
+; The kernel's extension (the map engine, $7E:DC00) before a map: the SNES's 4 px cache shares its WRAM, so it
+; goes each time a map starts from the text. It's SGB.DAT's last part, read from the copy SGBBOOT left in
+; PSRAM, in CODE commands of up to SGBFS_CODE_MAX bytes, each whole on a page
+FsSendExt:
+  ld a, [$BD06]
+  push af
+  and ~2 ; PSRAM, not save RAM
+  ld [$BD06], a
+  ld a, [$BD03]
+  ld h, a
+  ld a, [$BD02]
+  ld l, a
+  push hl
+  xor a
+.chunk
+  push af
+  call FsExtChunk
+  pop bc
+  jr c, .sent
+  ld a, b
+  add HIGH(SGBFS_CODE_MAX)
+  jr .chunk
+.sent
+  pop hl
+  ld a, h
+  ld [$BD03], a
+  ld a, l
+  ld [$BD02], a
+  pop af
+  ld [$BD06], a
+  ret
+; A = the offset's high byte (its low byte 0): that part's CODE command; carry once all of it is sent (or none
+; can be: a fault). The extension's first word is its length
+FsExtChunk:
+  ld b, a
+  push bc
+  ld b, 0
+  call FsExtPlace
+  call FsExtRead
+  ld e, a
+  call FsExtRead
+  ld d, a
+  pop bc
+  ld a, d ; DE = what's left: C = 1 if it fits this one, else DE = SGBFS_CODE_MAX
+  sub b
+  ld d, a
+  ret c
+  or e
+  scf
+  ret z
+  ld c, 0
+  ld a, d
+  cp HIGH(SGBFS_CODE_MAX)
+  jr c, .last
+  jr nz, .full
+  ld a, e
+  and a
+  jr nz, .full
+.last
+  inc c
+  jr .sized
+.full
+  ld de, SGBFS_CODE_MAX
+.sized
+  push bc
+  push de
+  ld hl, 3 + 3
+  add hl, de
+  call FsMapRoom
+  pop de
+  pop bc
+  ret c
+  push bc
+  push de
+  ld hl, 3
+  add hl, de
+  ld b, h
+  ld c, l
+  ld a, SGBFS_CMD_CODE
+  call FsTLV
+  pop de
+  pop bc
+  ld a, c
+  call FsByte
+  xor a
+  call FsByte
+  ld a, b
+  call FsByte
+  push bc
+  call FsExtPlace
+.copy
+  call FsExtRead
+  call FsByte
+  dec de
+  ld a, d
+  or e
+  jr nz, .copy
+  pop bc
+  ld a, c
+  rrca
+  ret
+; B = the offset's high byte: HL = that byte of the extension in the PSRAM window. It follows the overlay's
+; page, whose body the overlay loader's request still points at (past its 16-byte header). The log reuses
+; SGB.DAT's first blocks, its header too, never these
+FsExtPlace:
+  ld a, HIGH(SGB_FILE_BLOCK)
+  ld [$BD03], a
+  ld a, [_overlay_request+2]
+  add LOW(SGBFS_OVERLAY_PAGE_SIZE - 16)
+  ld l, a
+  ld a, [_overlay_request+3]
+  adc HIGH(SGBFS_OVERLAY_PAGE_SIZE - 16)
+  add b
+  ld h, a
+  srl a
+  ld c, a
+  ld a, [_overlay_request]
+  add c
+  ld [$BD02], a
+  ld a, h
+  and 1
+  add $BE
+  ld h, a
+  ret
+FsExtRead: ; A = [HL+], the window on to the next block past its end
+  ld a, [hli]
+  push af
+  ld a, h
+  cp $C0
+  jr nz, .same
+  ld h, $BE
+  ld a, [$BD02]
+  inc a
+  ld [$BD02], a
+.same
+  pop af
+  ret
 
 ASSERT @ <= FontVWFWidths, "terminal head overlaps retained font metrics"
 
