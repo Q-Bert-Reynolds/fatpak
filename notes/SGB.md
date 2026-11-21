@@ -378,19 +378,21 @@ only equal, nonzero, nonbusy commits. Idle 0 is not an event. Sequence wraps
 | --- | --- | --- |
 | KEY | Existing GB ASCII/`KEY_*` code (nonzero) | Shift=1, Ctrl=2, Alt=4 |
 | PAD (`$09`) | Held GB pad bits | Newly pressed bits (subset of A) |
-| MOUSE_DOWN / MOUSE_DRAG / MOUSE_UP / MOUSE_MOVE | `(buttons << 5) \| screen_row` | Screen pixel x |
-| HELLO | Protocol version | Color=1, mouse=2, pad 2=4 |
+| MOUSE_DOWN / MOUSE_DRAG / MOUSE_UP / MOUSE_MOVE | `(buttons << 6) \| screen_row` | Screen pixel x |
+| HELLO | Protocol version | Color=1, mouse=2, pad 2=4, BIOS (EXIT)=8 |
 | ACK | Page 0=A / 1=B | Applied page sequence, 1–255 |
 | LAUNCH_READY | Mode 1 RESET_REQUIRED | 0 |
-| DIAG_GOOD…DIAG_FRAME (`$20–$28`) | Low byte | High byte of counter/time |
+| DIAG_GOOD…DIAG_BIOS (`$20–$29`) | Low byte | High byte of counter/time |
 
-Diagnostic IDs are GOOD, BAD, MISS, ROWS, DRAW, UI, PAGE, MAIL, FRAME in order.
+Diagnostic IDs are GOOD, BAD, MISS, ROWS, DRAW, UI, PAGE, MAIL, FRAME, BIOS in order
+(BIOS: the SGB BIOS ROM's header checksum, `$00:FFDE`; `scripts/sgb_log.py` names the known ones).
 They are optional, queued behind input/control, and use the ordinary event echo.
 
 Mouse buttons are left=1/right=2 and represent the state **after** the event.
 DOWN/DRAG require a held button; MOVE is hover with no buttons. UP may leave
 another button held. Motion is needed for GB menu hover even though SNES draws
-the pointer itself. Mouse row 28–31 and bit 7 are invalid.
+the pointer itself. The row is the screen's: 0–27, or 0–55 in TEXT 1 (y / 4); x is in 256x224
+pixels in both.
 
 The SNES holds an event until the GB echoes its sequence in a CRC-valid status
 record. The GB processes a duplicate only once, but continues echoing its ACK.
@@ -658,8 +660,30 @@ cut/copy/paste comes later). Sensitivity cycles with right+left click on the top
 bar (the mouse's 3 hardware speeds). A future option: a scrollbar on the overlay
 fed by `LinesBefore`.
 
-PS/2 requires the SGB2 link port. The BIOS-only SNES mouse bridge is hidden
-after fullscreen takeover; physical keyboard choices and TEST remain available.
+PS/2 requires the SGB2 link port.
+
+**SNES mouse in fullscreen** (port 2; SETTINGS > KEYBOARD > SNES MOUSE, now offered in fullscreen too).
+The kernel reads it (`snes/mouse.s`, the resident part): `Capture` samples the pads (not before line
+229: at VBlank's very start automatic reading may not have begun, its busy bit still clear) and calls
+MouseRead, which reads once per NMI frame (Capture's pad sample can come twice a frame, and a second
+clocking of `$4017` gives all 1s), checks the signature in JOY2, clocks the
+16 motion bits, moves a 256x224 pointer and appends DOWN/UP on button changes and DRAG/MOVE on motion
+(merged into a tail event of the same kind and buttons) to the input queue. PresentCursor draws the
+arrow as OAM entry 1 (OBJ tile 2 at VRAM word `$6020`, OBJ palette 2: black outline, white; rewritten
+each time, as modes rewrite VRAM). On the GB the overlay turns each mouse event into a report shaped
+like the BIOS bridge's (`fs_mouse`: commit with buttons and an activity count, x, row × 8 or × 4 in
+TEXT 1), which the SNES mouse driver reads in fullscreen instead of P1 (no bridge ACK, no GB pointer
+sprite: VRAM is the transport's); `MouseRow` gives the shared mouse code its rows in both geometries.
+SGBBOOT stops only the BIOS bridge at JUMP (its stop packets), so the driver stays; EXIT's
+KeyboardSetup uploads the bridge again (about 9 s in Gearboy, the picture frozen meanwhile).
+`tests/run_sgb_mouse.sh` (Mesen, the real BIOS and kernel, Mesen's mouse in port 2) checks the events
+and the pointer; `tests/run_sgb_text.sh` (Gearboy) installs the driver in fullscreen and clicks a
+browser row.
+
+**Resident part** (`snes/mouse.s`, segment RES): uploaded after the image at `$7F:C000` (512x448's cells'
+WRAM, unused at boot), copied by Boot to `$7E:A000` after BiosSave (shared.s's WRAM, unused in the default
+build; a shared build fails to assemble). It's asm only (the C calls it through JSL/RTL); up to 4 KiB, of
+which 561 bytes are used. The image itself has 71 bytes left.
 
 ## Build phases
 
@@ -891,8 +915,8 @@ compatibility gate.
 | cc65 | `ca65`/`ld65` plus `cc65` for native SNES code |
 | RGBDS, SDCC | Existing GB build toolchain |
 | MesenCE | Default `dotnet ../MesenCE/bin/linux-x64/Release/Mesen.dll`; override `MESEN_DLL` |
-| SGB BIOS | Default `~/Downloads/program.rom`; override `SGB_BIOS`; SGB2 dump still needed |
-| GB-side SGB boot ROM | Default `~/Downloads/sgb1.boot.rom`; override `SGB_BOOT` |
+| SGB BIOS | Default `~/Downloads/SGB1.sfc`; override `SGB_BIOS`; SGB2 dump still needed |
+| GB-side SGB boot ROM | Default `~/Downloads/sgb_boot.bin`; override `SGB_BOOT` |
 | Gearboy fork | GB/EverDrive tests; optional host on its separate `fatpak` branch |
 
 Mesen runners use temporary firmware/settings directories. SameBoy's high-level

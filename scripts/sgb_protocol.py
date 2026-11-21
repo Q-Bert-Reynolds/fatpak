@@ -233,7 +233,7 @@ def mailbox(sequence, event, a, b):
     if name == 'KEY':
         require(a and b <= 7, 'key/modifiers')
     elif name.startswith('MOUSE_'):
-        require(a & SGBFS_MOUSE_ROW_MASK < SGBFS_ROWS and not a & 128, 'mouse row/buttons')
+        require(a & SGBFS_MOUSE_ROW_MASK < SGBFS_TEXT_ROWS, 'mouse row') # (56: TEXT 1's; 28 at 256x224)
         if name == 'MOUSE_MOVE':
             require(a >> SGBFS_MOUSE_BUTTON_SHIFT == 0, 'hover buttons')
         elif name in ('MOUSE_DOWN', 'MOUSE_DRAG'):

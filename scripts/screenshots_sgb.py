@@ -33,8 +33,8 @@ def main():
             config = work / 'config/MesenCE'
             firmware = config / 'Firmware'
             firmware.mkdir(parents=True)
-            shutil.copyfile(os.environ.get('SGB_BIOS', Path.home() / 'Downloads/program.rom'), firmware / 'SGB1.sfc')
-            shutil.copyfile(os.environ.get('SGB_BOOT', Path.home() / 'Downloads/sgb1.boot.rom'), firmware / 'sgb_boot.bin')
+            shutil.copyfile(os.environ.get('SGB_BIOS', Path.home() / 'Downloads/SGB1.sfc'), firmware / 'SGB1.sfc')
+            shutil.copyfile(os.environ.get('SGB_BOOT', Path.home() / 'Downloads/sgb_boot.bin'), firmware / 'sgb_boot.bin')
             (config / 'settings.json').write_text('{}\n')
             labels = {name.lstrip('.'): int(address, 16) for _, address, name in
                       (line.split() for line in (ROOT / 'build/sgb/kernel.lbl').read_text().splitlines())}

@@ -22,7 +22,7 @@ class Protocol(unittest.TestCase):
     def test_generated_consumers_and_real_assemblers(self):
         p.generate(check=True)
         self.assertEqual(len(p.COMMANDS), 24)
-        self.assertEqual(len(p.EVENTS), 18)
+        self.assertEqual(len(p.EVENTS), 19)
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
             fixtures = {
@@ -156,7 +156,7 @@ class Protocol(unittest.TestCase):
         self.assertEqual(applied,[1,2,3])
 
     def test_mailbox_all_events_seqlock_and_buttons(self):
-        values={'KEY':(0x81,3),'MOUSE_DOWN':(27|0x60,255),'MOUSE_DRAG':(1|0x20,4),
+        values={'KEY':(0x81,3),'MOUSE_DOWN':(55|0xC0,255),'MOUSE_DRAG':(1|0x40,4),
                 'MOUSE_UP':(0,0),'MOUSE_MOVE':(27,255),'HELLO':(1,7),'ACK':(1,255),'LAUNCH_READY':(1,0),'PAD':(0x82,0x80)}
         for name,payload in values.items():
             data=p.mailbox(127,getattr(p,'SGBFS_EVENT_'+name),*payload)
@@ -166,8 +166,9 @@ class Protocol(unittest.TestCase):
         self.reject(p.mailbox,1,p.SGBFS_EVENT_PAD,0,2)
         self.reject(p.mailbox,0,p.SGBFS_EVENT_KEY,1,0)
         self.reject(p.mailbox,1,p.SGBFS_EVENT_ACK,2,1)
-        self.reject(p.mailbox,1,p.SGBFS_EVENT_MOUSE_DOWN,28,0)
-        self.reject(p.mailbox,1,p.SGBFS_EVENT_MOUSE_DOWN,128,0)
+        self.reject(p.mailbox,1,p.SGBFS_EVENT_MOUSE_DOWN,56|0x40,0) # (rows to 55: TEXT 1's)
+        self.reject(p.mailbox,1,p.SGBFS_EVENT_MOUSE_DOWN,27,0) # (no button)
+        self.reject(p.mailbox,1,p.SGBFS_EVENT_MOUSE_MOVE,27|0x40,0) # (hover: none)
 
     def test_status_and_data_file(self):
         data=p.status(65535,127,True,255,1)

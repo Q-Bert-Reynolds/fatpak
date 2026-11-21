@@ -104,7 +104,8 @@ Gearboy's `make -C tests igkb` checks queue behavior and keyboard encoding.
 ## SNES mouse (Super Game Boy)
 
 Connect a gamepad to SNES port 1 and the mouse to port 2. On SGB, select
-SETTINGS > KEYBOARD > SNES MOUSE. This occupies the input-driver slot, so it
+SETTINGS > KEYBOARD > SNES MOUSE (in fullscreen too: there the SNES kernel reads the mouse and the
+driver takes its events, notes/SGB.md "SNES mouse in fullscreen"). This occupies the input-driver slot, so it
 replaces the selected serial keyboard driver; the gamepad continues working.
 The selection persists across boots. TEST shows four-byte reports: zero,
 commit/buttons, X, Y. Coordinates cover the GB viewport (160 by 144 pixels).

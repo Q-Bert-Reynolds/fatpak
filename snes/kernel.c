@@ -131,7 +131,7 @@
 #define TRACE_UI (SGBFS_EVENT_DIAG_UI - SGBFS_EVENT_DIAG_GOOD)
 #define TRACE_PAGE (SGBFS_EVENT_DIAG_PAGE - SGBFS_EVENT_DIAG_GOOD)
 #define TRACE_MAIL (SGBFS_EVENT_DIAG_MAIL - SGBFS_EVENT_DIAG_GOOD)
-#define TRACE_COUNT (SGBFS_EVENT_DIAG_FRAME - SGBFS_EVENT_DIAG_GOOD + 1)
+#define TRACE_COUNT (SGBFS_EVENT_DIAG_BIOS - SGBFS_EVENT_DIAG_GOOD + 1)
 
 volatile u8 capture_ready;
 volatile u8 capture_last;
@@ -225,6 +225,7 @@ u8 qhead;
 u8 qcount;
 u8 event_seq = 1;
 u8 active_event;
+volatile u16 bios_sum; /* the BIOS ROM's header checksum (hardware.s): DIAG_BIOS, which BIOS a console has */
 u8 bios_ok;     /* bios.s saved the BIOS at JUMP (hardware.s sets it): EXIT is offered */
 u8 exit_wanted; /* EXIT applied: no more input events; back to the BIOS when its ACK is echoed */
 u16 exit_frame;
@@ -309,6 +310,12 @@ static void peak(u16 *value, u16 start) {
     *value = elapsed;
   }
 }
+
+/* The diagnostics' counters, in DIAG event order (FRAME: the NMI's frame count) */
+static volatile u16 *const trace_values[TRACE_COUNT] = {
+  &good_pages, &bad_pages, &capture_missed, &capture_rows, &perf_draw, &perf_ui, &perf_page, &perf_mail, &hw_frames,
+  &bios_sum
+};
 
 static void enqueue(u8 type, u8 a, u8 b) {
   u8 at;
@@ -1394,7 +1401,7 @@ void main(void) {
   memset(dirty, 1, SGBFS_ROWS);
   ui_all();
   enqueue(SGBFS_EVENT_HELLO, SGBFS_VERSION,
-          SGBFS_FEATURE_COLOR | SGBFS_FEATURE_PAD2 | (bios_ok ? SGBFS_FEATURE_BIOS : 0));
+          SGBFS_FEATURE_COLOR | SGBFS_FEATURE_MOUSE | SGBFS_FEATURE_PAD2 | (bios_ok ? SGBFS_FEATURE_BIOS : 0));
 
   for (;;) {
     Capture();
@@ -1433,35 +1440,7 @@ void main(void) {
           (u16)(Clock() - trace_frame) >= TRACE_INTERVAL_FRAMES) {
         u16 value;
         trace_frame = Clock();
-        switch (trace_field) {
-          case TRACE_GOOD:
-            value = good_pages;
-            break;
-          case TRACE_BAD:
-            value = bad_pages;
-            break;
-          case TRACE_MISS:
-            value = capture_missed;
-            break;
-          case TRACE_ROWS:
-            value = capture_rows;
-            break;
-          case TRACE_DRAW:
-            value = perf_draw;
-            break;
-          case TRACE_UI:
-            value = perf_ui;
-            break;
-          case TRACE_PAGE:
-            value = perf_page;
-            break;
-          case TRACE_MAIL:
-            value = perf_mail;
-            break;
-          default:
-            value = Clock();
-            break;
-        }
+        value = *trace_values[trace_field];
 
         enqueue(SGBFS_EVENT_DIAG_GOOD + trace_field, value, value >> 8);
         if (++trace_field == TRACE_COUNT) {

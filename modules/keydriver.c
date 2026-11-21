@@ -39,6 +39,8 @@ static unsigned char Load(unsigned char type) {
     Window(STAGE + 1 + block);
     ModDriver(block);
   }
+  // the BIOS bridge's upload: not in fullscreen, where the kernel reads the mouse (EXIT's KeyboardSetup sends it)
+  if (*(unsigned char*)ModDriver(0x43) & 4) count = 0;
   for (block = 0; block < count; ++block) {
     Window(STAGE + 4 + (block >> 5));
     n = (unsigned int)(block & 31) * 16;
@@ -50,7 +52,7 @@ static unsigned char Load(unsigned char type) {
 unsigned char KeyboardDriverMenu(void* menu) {
   unsigned char type = *((unsigned char*)ModDriver(0x40) + 1), key, i;
   char lines[5 * BOX_STRIDE];
-  unsigned char has_sgb = (*(unsigned char*)ModDriver(0x43) & 5) == 1; // BIOS-only bridge is unavailable after fullscreen takeover
+  unsigned char has_sgb = *(unsigned char*)ModDriver(0x43) & 1; // (fullscreen too: the kernel reads the mouse there)
   if (type == 3) type = 2; // migrate the former mouse-only choice
   if (type == 4) type = has_sgb ? 3 : 0;
   else if (type > 2) type = 1;

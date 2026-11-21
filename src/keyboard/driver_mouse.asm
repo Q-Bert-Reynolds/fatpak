@@ -1,3 +1,6 @@
+IF !DEF(SYS_INFO_SGBFS)
+DEF SYS_INFO_SGBFS EQU %00000100 ; (src/gbdk.asm's: fullscreen terminal active)
+ENDC
 DEF IGKB_POINTER_TILE EQU 122
 DEF IGKB_POINTER_TIMEOUT EQU 120; two seconds at 60 Hz
 DEF IGKB_DOUBLE_TIMEOUT EQU 24; 400 ms between presses
@@ -18,7 +21,7 @@ IGKBMouseByte:
   ld b, a
   ld a, [igkb_packet]
   cp 1
-  jr z, .x
+  jp z, .x
   cp 2
   ret nz
   xor a
@@ -58,6 +61,9 @@ DEF IGKBMouseReport EQU @
   ld a, b
   ld [_mouse_buttons], a
   push bc
+  ldh a, [sys_info]
+  and SYS_INFO_SGBFS
+  jr nz, .noPointer ; fullscreen: the SNES draws it, VRAM is the transport's
   ; Tile 122 is in the unused gap between the DMG text blocks. It is
   ; also free in GBC bank 0, and does not borrow either existing sprite tile.
   xor a
@@ -80,6 +86,12 @@ DEF IGKBMouseReport EQU @
   inc hl
   ld [hl], 0; palette 0: independent of insertion cursor inversion
   jp IGKBMouseAction
+.noPointer
+  pop bc
+  ld a, IGKB_POINTER_TIMEOUT
+  ld [igkb_timeout], a
+  jp IGKBMouseAction
+
 
 .x
   ld a, b
@@ -170,9 +182,7 @@ IGKBMouseAction:
   bit 0, a
   ret z
   ld a, [_mouse_y]
-  srl a
-  srl a
-  srl a
+  call MouseRow
   ld hl, _render_text_top
   sub [hl]
   ld hl, _tb_rows
@@ -222,9 +232,7 @@ IGKBMouseAction:
   cp [hl]
   jr nc, .outside
   ld a, [_mouse_y]
-  srl a
-  srl a
-  srl a
+  call MouseRow
   ld hl, _render_box_top
   sub [hl]
   and a
@@ -269,13 +277,14 @@ IGKBMouseAction:
   and 3
   ret z; hovering leaves the browser selection alone
   ld a, [_mouse_y]
-  srl a
-  srl a
-  srl a
+  call MouseRow
   and a
   ret z
-  cp 17
+  ld hl, _screen_rows ; (rows 1 to screen_rows - 2: the header and status bar aside)
+  inc a
+  cp [hl]
   ret nc
+  dec a
   ld [igkb_target], a
   ; Browser text rows are stored at row-1; an empty row has no name.
   dec a
@@ -384,3 +393,15 @@ IGKBMouseNavigate:
 
 IGKBPointerTile:
   INCBIN "img/ui_font.tiles", 26*16, 16
+
+; A = a pointer y: its screen row (8 lines a row; 4 in fullscreen's 512x448 text, whose y is the row * 4)
+MouseRow:
+  srl a
+  srl a
+  push hl
+  ld hl, _screen_cells
+  bit 0, [hl]
+  pop hl
+  ret nz
+  srl a
+  ret

@@ -6,7 +6,11 @@
 .export _Capture, _Snapshot, _FontWidth, _ClearRaster, _ClearTiles, _PpuInit
 .export _PresentRasterRow, _PresentPalette, _PresentCursor, _SetScroll, _PublishMailbox
 .import _SharedInit
-.import BiosSave, BiosFlag, _bios_ok
+.import BiosSave, BiosFlag, _bios_ok, _bios_sum
+.import MouseRead, FarPointer, __RES_LOAD__, __RES_RUN__, __RES_SIZE__
+.ifdef SHARED_RENDER
+.error "the resident part (mouse.s) runs in shared.s's WRAM ($7E:A000)"
+.endif
 .import _main, zerobss
 .importzp sp
 .import __RODATA_LOAD__, __RODATA_RUN__, __RODATA_SIZE__
@@ -49,6 +53,11 @@ Boot:
  tcs
  lda #0
  tcd
+ ; the resident part (mouse.s), uploaded at $7F:C000, to $7E:A000 (MVN $7F to $7E; it leaves DBR $7E)
+ lda #__RES_SIZE__ - 1
+ ldx #__RES_LOAD__
+ ldy #__RES_RUN__
+ .byte $54, $7E, $7F
  sep #$20
 .a8
  lda #$7E
@@ -89,6 +98,10 @@ Boot:
  jsr zerobss
  lda f:$7F0000+BiosFlag
  sta _bios_ok
+ rep #$20
+ lda f:$00FFDE ; (the BIOS's header checksum: DIAG_BIOS)
+ sta _bios_sum
+ sep #$20
  lda #$FF
  sta _capture_last
  lda #0
@@ -162,6 +175,16 @@ _Capture:
  lda f:$004212
  and #1
  bne @row
+ ; at VBlank's very start automatic reading may not have begun (its busy bit still clear): not before line
+ ; 229, when it's surely done (the mouse's own bits, mouse.s, follow it); a later call samples then
+ lda f:$002137
+ lda f:$00213F
+ lda f:$00213D
+ cmp #225
+ bcc @sample
+ cmp #229
+ bcc @row
+@sample:
  stz $1001
  rep #$20
 .a16
@@ -189,6 +212,7 @@ _Capture:
  sta _pad_held+2
  sep #$20
 .a8
+ jsl $7E0000+MouseRead ; (port 2's mouse, mouse.s)
 @row:
  lda f:$006000
  cmp _capture_last
@@ -695,6 +719,7 @@ _PresentCursor:
  ora #2
 @normal:
  sta f:$002104
+ jsl $7E0000+FarPointer ; the mouse's pointer, OAM entry 1 (mouse.s)
  rts
 .a8
 .i8

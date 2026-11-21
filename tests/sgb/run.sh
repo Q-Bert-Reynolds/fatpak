@@ -4,8 +4,8 @@ probe=${1:-hello}
 case "$probe" in hello|bench|handoff|reset) ;; *) exit 2 ;; esac
 root=$(cd -- "$(dirname -- "$0")/../.." && pwd)
 mesen=${MESEN_DLL:-"$root/../MesenCE/bin/linux-x64/Release/Mesen.dll"}
-bios=${SGB_BIOS:-"$HOME/Downloads/program.rom"}
-boot=${SGB_BOOT:-"$HOME/Downloads/sgb1.boot.rom"}
+bios=${SGB_BIOS:-"$HOME/Downloads/SGB1.sfc"}
+boot=${SGB_BOOT:-"$HOME/Downloads/sgb_boot.bin"}
 work=$(mktemp -d /tmp/fatpak-sgb-${probe}.XXXXXX)
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$work/config/MesenCE/Firmware"

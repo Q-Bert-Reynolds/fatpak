@@ -63,3 +63,9 @@ _SGBProgress:: ; DE/BC=loaded/total 512-byte sectors; publication is part of FsU
   ld a, b
   ldh [fs_progress_total+1], a
   ret
+
+; The kernel's last mouse event (src/sgb/display.asm) as the SNES mouse driver reads the BIOS bridge's report
+; (driver_snes_mouse.asm): commit (1 present, buttons << 1, an activity count << 3), x, y (the row * 8, * 4 in
+; 512x448 text: driver_mouse.asm's MouseRow)
+SECTION "Fullscreen mouse", WRAMX
+fs_mouse:: DS 3

@@ -1497,7 +1497,7 @@ FsPoll:
   ret z
   cp SGBFS_EVENT_DIAG_GOOD
   jr c, .ordinary
-  cp SGBFS_EVENT_DIAG_FRAME+1
+  cp SGBFS_EVENT_DIAG_BIOS+1
   ret nc
   call FsLog
   jp .consumed
@@ -1512,7 +1512,39 @@ FsPoll:
   jr z, .pad
   cp SGBFS_EVENT_MOUSE_MOVE+1
   ret nc
-  jr .consumed
+  cp SGBFS_EVENT_MOUSE_UP+1
+  jr c, .mouse ; DOWN, DRAG, UP
+  cp SGBFS_EVENT_MOUSE_MOVE
+  jp nz, .consumed
+.mouse ; fs_mouse for the SNES mouse driver: A = (buttons << 6) | row, B = x (B the register: the sequence .consumed acks)
+  ldh a, [fs_mb+2]
+  ld d, a
+  and SGBFS_MOUSE_ROW_MASK
+  add a
+  add a
+  ld e, a
+  ld a, [_screen_cells]
+  and a
+  jr nz, .cells
+  sla e
+.cells
+  ld a, e
+  ld [fs_mouse+2], a
+  ldh a, [fs_mb+3]
+  ld [fs_mouse+1], a
+  ld a, [fs_mouse]
+  add 8
+  and $78
+  ld e, a
+  ld a, d
+  rlca
+  rlca
+  rlca
+  and 6 ; left bit 1, right bit 2
+  or e
+  or 1
+  ld [fs_mouse], a
+  jp .consumed
 .pad
   ldh a, [fs_mb+2]
   ldh [button_state], a

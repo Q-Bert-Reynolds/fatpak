@@ -219,7 +219,8 @@ emu.addEventCallback(function(cpu)
  end
  local dirty=false
  for i=0,27 do if emu.read(symbols['_dirty']+i,emu.memType.snesWorkRam)~=0 or emu.read(symbols['_overlay_dirty']+i,emu.memType.snesWorkRam)~=0 then dirty=true end end
- if not dirty and byte('_scroll_pending')==0 then stable=stable+1 else stable=0 end
+ -- (the cursor and palette too: one presented in this VBlank shows only in the next frame's picture)
+ if not dirty and byte('_scroll_pending')==0 and byte('_cursor_dirty')==0 and byte('_palette_dirty')==0 then stable=stable+1 else stable=0 end
  if ui_test and stable>=3 then
   if good==103 and not baseline then baseline=vram();baseline_drawn=word('_drawn_rows') end
   if good==106 and not closed_saved then save_ppm('kernel-closed.ppm');closed_saved=true end

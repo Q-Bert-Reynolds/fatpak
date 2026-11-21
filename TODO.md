@@ -1,7 +1,7 @@
 # Rendering
 
 - SGB resolutions: shared tiles first, then Mode 5 probe and 160×144 / 256×224 / 512×224 / 512×448 selection; Fullscreen toggles bars independently ([roadmap](notes/SGB.md#resolution-roadmap)).
-- Font selection: SETTINGS > FONT has STANDARD and 8X8 TILES (the mono font). Still to do: tile-mapped drawing for 8X8 TILES (GB renderer: font tiles in VRAM, no row bitmaps; SNES: map entries, not rasters), 512x448 text in it is built (RESOLUTION 512x448, whatever FONT says; left: the mouse at 56 rows, the text blank while a map is open, hardware legibility: [SGB_HIRES_TEXT.md](notes/SGB_HIRES_TEXT.md)), more fonts (Tiny5 Mono in `img/fonts/tiny5mono_font.png`), separately for text and code.
+- Font selection: SETTINGS > FONT has STANDARD and 8X8 TILES (the mono font). Still to do: tile-mapped drawing for 8X8 TILES (GB renderer: font tiles in VRAM, no row bitmaps; SNES: map entries, not rasters), 512x448 text in it is built (RESOLUTION 512x448, whatever FONT says; left: the text blank while a map is open, hardware legibility: [SGB_HIRES_TEXT.md](notes/SGB_HIRES_TEXT.md)), more fonts (Tiny5 Mono in `img/fonts/tiny5mono_font.png`), separately for text and code.
 - Redraw the accented/UI glyphs in `vwf_font.png` (copied from `ui_font.png`) and hand-touch the derived styled fonts.
 - DMG row draw spends ~18K cycles waiting on 40 HBlanks: interleave glyph drawing with the waits, or buffer tiles and stagger VRAM writes.
 - Page up/down redraws every row (~0.9M cycles); page up also rescans 17 rows from PSRAM.
@@ -76,5 +76,6 @@
 - Document real differences of other X-series carts rather than assuming X7 SD/RTC/button behavior.
 - Ports to other cartridges need a loader, SD access and a new memory layout; the PSRAM window is assumed everywhere.
 - `tests/run_sgb.sh`'s Startup fails ("startup completes border transfers"): BIOS-mode startup never reaches `sgb_SwapDisplay`, it waits in `gbdk_WaitVBL`. Found 2026-11-19; it fails the same with that day's earlier OS and Gearboy builds, so it predates the SGB map view.
-- SGB fullscreen: improve input/render latency; finish fullscreen mouse controls and Phase 7 hardware checks ([SGB.md](notes/SGB.md)).
+- SGB fullscreen: improve input/render latency and Phase 7 hardware checks ([SGB.md](notes/SGB.md)). The SNES mouse works in fullscreen (2026-11-21, Mesen and Gearboy): confirm on hardware; mouse speed (the 3 hardware speeds) isn't offered there yet.
+- Kernel `Capture`'s pad sample can run twice per frame (once in VBlank, once early in the next); harmless for pads, mouse.s guards against it.
 - fix accented characters in font images

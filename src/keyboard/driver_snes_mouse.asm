@@ -1,3 +1,6 @@
+IF !DEF(SYS_INFO_SGBFS)
+DEF SYS_INFO_SGBFS EQU %00000100 ; (src/gbdk.asm's: fullscreen terminal active)
+ENDC
 ; Four SGB input bytes: BIOS pad 1, commit/buttons, absolute X, absolute Y.
 ; Read commit twice around the coordinates, and always leave pad 1 selected.
 SNESMouseProcess:
@@ -17,6 +20,26 @@ SNESMouseProcess:
   ld [igkb_packet], a
 .frame
   call IGKBMouseFrame
+  ldh a, [sys_info]
+  and SYS_INFO_SGBFS
+  jr z, .bridge
+  ; fullscreen: the kernel's events (fs_mouse, src/sgb/display.asm); P1 is the mailbox's, no bridge to ACK
+  ld hl, fs_mouse
+  ld a, [hli]
+  ld b, a
+  ld e, a
+  ld a, [hli]
+  ld c, a
+  ld d, [hl]
+  ld a, b
+  ld hl, igkb_packet
+  cp [hl]
+  ret z
+  ld [hl], a
+  and a
+  ret z ; (none yet)
+  jr .report
+.bridge
   call SNESMouseRead
   ld a, b
   cp e
@@ -28,6 +51,7 @@ SNESMouseProcess:
   ret z
   ld [hl], a
   call .ack
+.report
   bit 0, b
   jr z, .absent
   xor a
@@ -42,13 +66,19 @@ SNESMouseProcess:
   srl a
   and 3
   ld [igkb_flags], a
+  ldh a, [sys_info]
+  and SYS_INFO_SGBFS
+  jr nz, .place ; (fullscreen: the SNES's 256x224, already within it)
   ld a, c
   cp 160
   ret nc
-  ld [_mouse_x], a
   ld a, d
   cp 144
   ret nc
+.place
+  ld a, c
+  ld [_mouse_x], a
+  ld a, d
   ld [_mouse_y], a
   jp IGKBMouseReport
 .absent

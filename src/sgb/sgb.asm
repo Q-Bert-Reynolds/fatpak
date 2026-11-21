@@ -486,6 +486,9 @@ KBDriverStop::
   ld a, [kb_type]
   cp KB_TYPE_SNES_MOUSE
   ret nz
+  ldh a, [sys_info]
+  and SYS_INFO_SGBFS
+  ret nz ; (fullscreen: SGBBOOT stopped the bridge already; P1 is the mailbox's)
   call SGBInputBegin
   push af
   ld hl, SNESStopPacket

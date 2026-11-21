@@ -20,7 +20,7 @@ def build():
                     ['driver_common.asm', 'driver_igkb.asm', 'driver_mouse.asm', 'driver_snes_mouse.asm', 'igkb_handlers.asm'])
     defined = set(re.findall(r'^([A-Za-z_][\w]*):', own, re.M))
     imports = ['DEF %s EQU $%04X' % (name, value) for name, value in symbols.items()
-               if re.match(r'^(kb_|sys_info$|sgb_PacketTransfer$|sgb_PacketTransferFast$|SNESMouseSelectOne$|SGBInputBegin$|SGBInputEnd$|_mouse_|igkb_|KeyboardDriverInit$|oam_buffer$|_render_|_module_busy$|_PosAtX__far$|_cursor$|_anchor$|_selecting$|_redraw$|_moved$|_tb_rows$|tile_buffer$|RenderRowAddress$|mem_CopyVRAM$)', name) and '.' not in name and name not in defined]
+               if re.match(r'^(kb_|sys_info$|sgb_PacketTransfer$|sgb_PacketTransferFast$|SNESMouseSelectOne$|SGBInputBegin$|SGBInputEnd$|_mouse_|igkb_|KeyboardDriverInit$|oam_buffer$|_render_|_module_busy$|_PosAtX__far$|_cursor$|_anchor$|_selecting$|_redraw$|_moved$|_tb_rows$|tile_buffer$|RenderRowAddress$|mem_CopyVRAM$|fs_mouse$|_screen_cells$|_screen_rows$)', name) and '.' not in name and name not in defined]
     config = (ROOT / 'src/keyboard/keyboard.asm').read_text().split('SECTION', 1)[0]
     config = '\n'.join(line for line in config.splitlines() if line.startswith('DEF '))
     prelude = '''INCLUDE "src/hardware.inc"

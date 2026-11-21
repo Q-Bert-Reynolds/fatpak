@@ -1,5 +1,6 @@
-// 512x448 character text (SETTINGS > RESOLUTION > 512x448, whatever the font) and EXIT (RESOLUTION > 160x144: back to the
-// SGB BIOS, and fullscreen again from there) through the real GB frontend
+// 512x448 character text (SETTINGS > RESOLUTION > 512x448, whatever the font), the SNES mouse (KEYBOARD > SNES MOUSE in
+// fullscreen: the kernel's mouse events, a click selecting a browser row) and EXIT (RESOLUTION > 160x144: back to the SGB
+// BIOS, and fullscreen again from there) through the real GB frontend
 // and Gearboy's protocol model of the SNES side: RESOLUTION lists all three, the browser switches to it (the kernel's extension, TEXT 1, 56
 // rows of 62 4-pixel columns, the selection in columns), a 120-line file fills 54 rows and scrolls, a map gives
 // way to 256x224's 28 rows while it's open and 512x448 comes back after it, and RESOLUTION > 256x224 ends it
@@ -37,6 +38,8 @@ int main(int n,char** v){
     Write(root+"/GBCSYS/MAPVIEW.INC",Read("bin/MAPVIEW.INC"));
     if(DIR* d=opendir("bin/MODULES")){while(dirent* e=readdir(d)){std::string name=e->d_name;
         if(name.size()>4 && name.substr(name.size()-4)==".MOD")Write(root+"/GBCSYS/MODULES/"+name,Read("bin/MODULES/"+name));}closedir(d);}
+    mkdir((root+"/GBCSYS/DRIVERS").c_str(),0700);
+    for(const char* d:{"SGBMOUSE.DRV","PS2.DRV","IGKB.DRV"})Write(root+"/GBCSYS/DRIVERS/"+d,Read(std::string("bin/DRIVERS/")+d));
     mkdir((root+"/img").c_str(),0700);mkdir((root+"/img/maps").c_str(),0700);
     Write(root+"/map_stamps.gbstamp",Text("GBStamps:: ;7 bytes\nGBStampBox: ;7 bytes\n  DB 2;width\n  DB 2;height\n"
         ".tiles\n  DB 128, 129\n  DB 129, 128\n.palette\n  DB 130\n"));
@@ -95,10 +98,31 @@ int main(int n,char** v){
     auto rows=[&](){return unsigned(m->Read(syms.at("_screen_rows")));};
 
     Check(m->Read(syms.at("_font"))==1,"the browser in VWF at 256x224");
+    // SETTINGS > KEYBOARD > SNES MOUSE in fullscreen (no BIOS bridge: the kernel's mouse events), then clicks:
+    // one selects a browser row, a second on it opens it (here a folder: back with its parent)
+    settings(4);
+    Check(box().find("SNES MOUSE")!=std::string::npos,"KEYBOARD: SNES MOUSE in fullscreen");
+    for(unsigned i=0;i<6 && Chars(model.boxLines[model.boxHi<model.boxRows?model.boxHi:0]).find("SNES MOUSE")==std::string::npos;++i)key(0x83);
+    key(10);
+    Frames(core,300);
+    Check(m->Read(syms.at("kb_type"))==4,"the SNES mouse driver installed in fullscreen");
+    unsigned target=0;
+    for(unsigned r=0;r<model.textRows;++r)if(Chars(model.rows[r]).find("long.txt")!=std::string::npos)target=r;
+    Check(target,"long.txt listed");
+    Check(selected().find("long.txt")==std::string::npos,"long.txt not selected yet");
+    Check(h->Click(uint8_t(target),40,1),"click");Frames(core,90); // (model row r is screen row r, under the bars)
+    printf("clicked row %u: selected '%s'\n",target,selected().c_str());
+    Check(selected().find("long.txt")!=std::string::npos,"a click selects the row under the pointer");
+    // PS/2 again: Gearboy has no SNES side to run the BIOS bridge, which EXIT below would install
+    settings(4);
+    for(unsigned i=0;i<6 && Chars(model.boxLines[model.boxHi<model.boxRows?model.boxHi:0]).find("PS/2")==std::string::npos;++i)key(0x82);
+    key(10);Frames(core,300);
+    Check(m->Read(syms.at("kb_type"))==1,"PS/2 again");
     settings(6); // RESOLUTION: all three on an SGB, whatever the font
     Check(box().find("| 160x144| 256x224| 512x448|")!=std::string::npos,"RESOLUTION: 160x144, 256x224, 512x448");
     key(0x83);key(10); // (from 256x224's place)
-    unsigned waited=wait(3000,[&]{return model.text && model.textRows==54 && selected().size();});
+    // (the rows drawn again, the selection's with its name: until then keys would act on a highlight not yet shown)
+    unsigned waited=wait(3000,[&]{return model.text && model.textRows==54 && selected().find_first_not_of(' ')!=std::string::npos;});
     printf("512x448 text: %u GB frames, %u of the extension's bytes\n",waited,model.codeBytes);
     {std::vector<u8> dat=Read(v[4]);Check(model.codeBytes==(dat[6]|dat[7]<<8u),"the kernel's extension sent whole before TEXT 1");}
     Check(model.text==1 && rows()==56 && m->Read(syms.at("_screen_cells"))==1,"TEXT 1: 56 rows");
@@ -124,7 +148,7 @@ int main(int n,char** v){
     Check(Chars(model.rows[54]).find("line 61 ")==0 && Chars(model.rows[1]).find("line 8 ")==0,"scrolled: lines 8-61");
     Check(h->WritePPM("build/sgb/text-editor.ppm"),"editor screenshot");
     pad(8,4);key(0x82);key(10); // FILE > CLOSE: the browser again
-    wait(1500,[&]{return selected().size();});
+    wait(1500,[&]{return selected().find_first_not_of(' ')!=std::string::npos;});
 
     for(unsigned i=0;i<12 && selected().find("Test.gbmap")==std::string::npos;++i)key(0x83);
     if(selected().find("Test.gbmap")==std::string::npos){printf("box '%s' bars '%s' '%s'\n",box().c_str(),Chars(model.bars[0]).c_str(),Chars(model.bars[1]).c_str());
@@ -142,7 +166,7 @@ int main(int n,char** v){
     Check(selected().find("Test.gbmap")!=std::string::npos,"the browser's rows again");
 
     settings(6);key(0x82);key(10); // RESOLUTION > 256x224
-    wait(1500,[&]{return !model.text && selected().size();});
+    wait(1500,[&]{return !model.text && selected().find_first_not_of(' ')!=std::string::npos;}); // (drawn: as for 512x448)
     Check(!model.text && rows()==28 && model.textRows==26 && m->Read(syms.at("_resolution"))==0,"256x224 again: 28 rows");
     Check(m->Read(syms.at("_font"))==1,"VWF again at 256x224");
     // 512x448 chosen in a map's menu: the map at 512x448 at once, the text when the map closes
@@ -177,7 +201,7 @@ int main(int n,char** v){
     gbpad(Start_Key);gbpad(Down_Key);gbpad(Down_Key);gbpad(A_Key); // SETTINGS
     for(unsigned i=0;i<6;++i)gbpad(Down_Key);
     gbpad(A_Key);gbpad(Down_Key);gbpad(A_Key); // RESOLUTION > 256x224
-    waited=wait(6000,[&]{return h->Active() && (m->Read(syms.at("sys_info"))&4) && rows()==28 && selected().size();});
+    waited=wait(6000,[&]{return h->Active() && (m->Read(syms.at("sys_info"))&4) && rows()==28 && selected().find_first_not_of(' ')!=std::string::npos;});
     printf("fullscreen again: %u GB frames\n",waited);
     Check(h->Active() && rows()==28 && !model.text && m->Read(syms.at("_resolution"))==0,"256x224 again after the BIOS");
     // a game from fullscreen: EXIT first (the BIOS's again), then the launch as from 160x144

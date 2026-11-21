@@ -355,7 +355,7 @@ int main(int n,char** v){
     key(10);Frames(core,300); // KEYBOARD driver module
     bool test_item=false,snes_item=false;
     for(const auto& r:h->GetModel().boxLines){std::string s(r.chars.begin(),r.chars.end());test_item|=s.find("TEST")!=std::string::npos;snes_item|=s.find("SNES")!=std::string::npos;}
-    Check(test_item && !snes_item,"fullscreen keyboard menu retains TEST and hides the BIOS-only SNES mouse bridge");
+    Check(test_item && snes_item,"fullscreen keyboard menu has TEST and SNES MOUSE (the kernel reads the mouse there)");
     key(27);Frames(core,180);Check(!m->Read(syms.at("_module_busy")),"keyboard menu returns to the document");
     Check(!m->Read(syms.at("fs_fault")),"keyboard menu retains transport");
     puts("SGB overlay menu labels/highlight/close, storage, help/return, OSK and progress passed");

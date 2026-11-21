@@ -39,18 +39,22 @@ def build():
     run('ca65','-o',str(WORK/'char.o'),'snes/char.s')
     run('ca65','-o',str(WORK/'ext.o'),'snes/ext.s')
     run('ca65','-o',str(WORK/'bios.o'),'snes/bios.s')
+    run('ca65','-I','snes','-o',str(WORK/'mouse.o'),'snes/mouse.s')
     run('ca65',*asm_shared,'-o',str(WORK/'shared.o'),'snes/shared.s')
     run('ld65','-C','snes/kernel.cfg','-m',str(WORK/'kernel.map'),'-Ln',str(WORK/'kernel.lbl'),
-        '-o',str(WORK/'kernel.bin'),str(WORK/'hardware.o'),str(WORK/'kernel.o'),str(WORK/'raster.o'),str(WORK/'glyphs.o'),str(WORK/'overlay.o'),str(WORK/'cache.o'),str(WORK/'fixed.o'),str(WORK/'plain.o'),str(WORK/'map.o'),str(WORK/'char.o'),str(WORK/'ext.o'),str(WORK/'bios.o'),str(WORK/'shared.o'),'/usr/share/cc65/lib/none.lib')
+        '-o',str(WORK/'kernel.bin'),str(WORK/'hardware.o'),str(WORK/'kernel.o'),str(WORK/'raster.o'),str(WORK/'glyphs.o'),str(WORK/'overlay.o'),str(WORK/'cache.o'),str(WORK/'fixed.o'),str(WORK/'plain.o'),str(WORK/'map.o'),str(WORK/'char.o'),str(WORK/'ext.o'),str(WORK/'bios.o'),str(WORK/'mouse.o'),str(WORK/'shared.o'),'/usr/share/cc65/lib/none.lib')
     labels={name.lstrip('.'):int(at,16) for _,at,name in (line.split() for line in (WORK/'kernel.lbl').read_text().splitlines())}
     image=(WORK/'kernel.bin').read_bytes();split=labels['__FONTS_LOAD__']
     row_size=labels['_native_row_size']-labels['__RODATA_RUN__']+labels['__RODATA_LOAD__']
     assert image[row_size]==133, 'native glyph Row ABI changed'
-    assert image[split:]==assets and len(image)<=49152
+    # the image to $7F:BFFF (fonts last), then the resident part (mouse.s) from $C000: SGB.DAT's "fonts" carry it
+    resident=labels['__RES_SIZE__']
+    assert image[split:split+len(assets)]==assets and split+len(assets)<=0xC000 and len(image)==0xC000+resident
     (WORK/'program.bin').write_bytes(image[:split])
+    (WORK/'fonts.bin').write_bytes(image[split:])
     # The extension: $7E:DC00 on, the 4 px cache's; shared builds keep $F000 on for their lookups.
     ext=(WORK/'kernel.bin.ext').read_bytes()
     assert ext[:2]==len(ext).to_bytes(2,'little') and len(ext)<=(0x1400 if shared else 0x2400), 'kernel extension too big'
     (WORK/'ext.bin').write_bytes(ext)
-    print(f'SNES program {split} + fonts {len(assets)} = {len(image)}/49152 bytes, extension {len(ext)}')
+    print(f'SNES program {split} + fonts {len(assets)} = {split+len(assets)}/49152 bytes, resident {resident}, extension {len(ext)}')
 if __name__=='__main__':build()

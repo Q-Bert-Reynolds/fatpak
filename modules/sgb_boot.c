@@ -238,7 +238,7 @@ static unsigned char Exit(void) {
 unsigned char ModuleMain(const unsigned char* context) {
   OverlayRequest* request;
   unsigned long offset;
-  unsigned char i,result;
+  unsigned char i,result,mouse;
   unsigned char* info=(unsigned char*)ModDriver(0x43);
   selected_block=0xFFFF;
   if(context) return Exit();
@@ -246,8 +246,15 @@ unsigned char ModuleMain(const unsigned char* context) {
   file.block=SGB_FILE_BLOCK;file.blocks=SGB_FILE_BLOCKS;
   if(ModLoad("/GBCSYS/SGB.DAT",&file)||Validate()) return 1;
   for(i=0;i<16;++i)packet[i]=0;
-  // Stop the BIOS mouse bridge before JUMP takes ownership of both ports.
-  if(*(unsigned char*)ModDriver(0x40)==4) ModDriver(0x80);
+  // Stop the BIOS mouse bridge before JUMP takes ownership of both ports (its stop jump through the $0800 hook,
+  // then a command to run it: KBDriverStop's packets). The SNES mouse driver stays: in fullscreen it reads the
+  // kernel's mouse events (fs_mouse) instead
+  mouse=*(unsigned char*)ModDriver(0x40)==4;
+  if(mouse) {
+    packet[1]=0;packet[2]=8;packet[3]=0;packet[4]=3;packet[5]=0x4C;packet[6]=0x03;packet[7]=0x18;Send(0x0F);
+    for(i=1;i<8;++i)packet[i]=0;
+    packet[1]=1;Send(0x19);packet[1]=0;
+  }
   Save();
   request=(OverlayRequest*)ModOverlay(0);
   offset=32+Long(header+14)+Long(header+18);
@@ -258,7 +265,10 @@ unsigned char ModuleMain(const unsigned char* context) {
     result=(unsigned char)ModOverlay(5);
     if(result) { Off(); *info&=~4; if(ModOverlay(2)) for(;;); }
   }
-  if(result) Restore();
+  if(result) {
+    Restore();
+    if(mouse) ModDriver(0x80); // (its bridge stopped: as before fullscreen existed, choose it again)
+  }
   else {REG(0xFF0F)=0;REG(0xFFFF)=saved[0]&~2;}
   return result;
 }

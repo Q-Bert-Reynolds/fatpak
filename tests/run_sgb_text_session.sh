@@ -13,8 +13,8 @@ PY
 work=$(mktemp -d /tmp/fatpak-textsession.XXXXXX)
 trap 'cp -f "$work"/config/MesenCE/text*.ppm "$root/build/sgb/" 2>/dev/null || true; cp -f "$work/config/MesenCE/result.txt" "$root/build/sgb/text-session-result.txt" 2>/dev/null || true; rm -rf "$work"' EXIT
 mkdir -p "$work/config/MesenCE/Firmware"
-cp "${SGB_BIOS:-$HOME/Downloads/program.rom}" "$work/config/MesenCE/Firmware/SGB1.sfc"
-cp "${SGB_BOOT:-$HOME/Downloads/sgb1.boot.rom}" "$work/config/MesenCE/Firmware/sgb_boot.bin"
+cp "${SGB_BIOS:-$HOME/Downloads/SGB1.sfc}" "$work/config/MesenCE/Firmware/SGB1.sfc"
+cp "${SGB_BOOT:-$HOME/Downloads/sgb_boot.bin}" "$work/config/MesenCE/Firmware/sgb_boot.bin"
 cp build/sgb/kernel.gb build/sgb/kernel-symbols.lua "$work/config/MesenCE/"
 printf '{}\n' > "$work/config/MesenCE/settings.json"
 cd "$work"
