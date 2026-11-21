@@ -10,7 +10,7 @@
 ; of the session. The extension's FarBiosReturn (EXIT) reads it all back, puts the samples back from the BIOS
 ; ROM, restarts the driver, writes the BIOS's PPU/IRQ registers (write-only: this BIOS's known values) and
 ; returns into the BIOS through its stack, as the Phase 0c handoff probe does. Only the BIOS whose header
-; checksum is known (SGB1 1.2) is saved; on any other, BiosFlag stays 0 and the kernel doesn't offer EXIT.
+; checksum is known (SGB1 1.2 and 1.1, SGB2: the same code, data and addresses where this depends on them) is saved; on any other, BiosFlag stays 0 and the kernel doesn't offer EXIT.
 ;
 ; No direct page and no WRAM of the BIOS's is used for work: the state below lives in the kernel's image ($7F,
 ; long addressing), and the streams index bank $7E (or the ROM's bank) with X.
@@ -371,11 +371,12 @@ BiosSave:
 .a16
  txa
  sta f:$7F0000+BiosSp
- lda f:$00FFDC ; SGB1 1.2: checksum complement $09CD, checksum $F632
- cmp #$09CD
- bne @other
- lda f:$00FFDE
+ lda f:$00FFDE ; the header checksum: SGB1 1.2, 1.1, SGB2 (the same code where EXIT depends on it)
  cmp #$F632
+ beq @other
+ cmp #$BF92
+ beq @other
+ cmp #$7DD5
 @other:
  sep #$20
 .a8
@@ -646,7 +647,7 @@ RetBack:
  cli ; (the JUMP handler set I just before it jumped: the BIOS's loop waits on its IRQs)
  jml BIOS_RTS
 
-; The BIOS's registers as it left them at JUMP (Mesen, SGB1 1.2): register (bank 0), value; 0 ends. Scroll
+; The BIOS's registers as it left them at JUMP (Mesen: SGB1 1.2, 1.1 and SGB2 agree): register (bank 0), value; 0 ends. Scroll
 ; registers are written twice (the PPU takes two bytes). INIDISP and NMITIMEN last.
 .macro REG register, value
  .word register

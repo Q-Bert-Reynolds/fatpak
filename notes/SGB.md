@@ -447,9 +447,21 @@ mode; LAUNCH and RESET_REQUIRED remain unused.
 
 SETTINGS > RESOLUTION > 160x144 in fullscreen, and a game's launch from it, hand the
 SNES back to the BIOS with the GB still running: its 160x144 picture, border, menu and
-command loop as they were at JUMP. Only for the BIOS whose header checksum is known
-(SGB1 1.2: complement `$09CD`, checksum `$F632`); on any other the kernel doesn't
-offer it and 160x144 waits for the next boot, a game for a reset, as before.
+command loop as they were at JUMP. Only for a BIOS whose header checksum is known:
+SGB1 1.2 (`$F632`), SGB1 1.1 (`$BF92`) and SGB2 (`$7DD5`); on any other the kernel
+doesn't offer it and 160x144 waits for the next boot, a game for a reset, as before.
+
+Revisions (2026-11-21): 1.1 differs from 1.2 in 105 bytes (1.2 adds a routine at
+`$00:CCC7` copying 81 bytes from `$07:F400` to WRAM `$0810`, and its header); SGB2's
+first 256 KiB differ in about 2,000 bytes of in-place patches, its new code in the
+upper 256 KiB (`$88:C4A0` wraps 1.2's `$6003 = $01` reset, `$88:C3D7` reads the pad at
+power-on). All three have the same JUMP handler, RTS at `$00:AC88`, NMI handler at
+`$00:B50A` and samples-plus-server bytes (`$06:A999` on), and Mesen's register
+state after EXIT matches JUMP's on each with the one Regs table.
+`tests/run_sgb_bios_return.sh` runs every dump it finds (SGB1 1.2 required;
+`SGB11_BIOS`, `SGB2_BIOS` override the 1.1 and SGB2 paths; SGB2 runs with Mesen's
+`UseSgb2`) and also compares Mesen's PPU and CPU register state with JUMP's, less
+counters and latches. SGB1 1.0 is still to check (no dump yet).
 
 **At JUMP** (`snes/bios.s` BiosSave, first thing in Boot, on the BIOS's stack with its
 registers pushed there): forced blank; the sound driver to the IPL ROM (`$00`, then
@@ -645,8 +657,9 @@ Do not expose unsupported modes as selectable options.
    pool exhaustion behavior for the larger map before enabling it.
 5. Done (2026-11-20): SETTINGS > RESOLUTION, saved, listing only what works where it's opened
    (BIOS mode: 160×144, 256×224; fullscreen: 256×224; the map viewer: 512×448 too). Still to do:
-   returning from fullscreen to 160×144 at run time: done (2026-11-20) for SGB1 1.2, see
-   "Returning to the BIOS: EXIT"; other BIOS revisions still wait for the next boot.
+   returning from fullscreen to 160×144 at run time: done (2026-11-20) for SGB1 1.2, and
+   (2026-11-21) 1.1 and SGB2, see "Returning to the BIOS: EXIT"; SGB1 1.0 still waits
+   for the next boot.
 
 Text at 512×448 (128×56): design and open decisions in [SGB_HIRES_TEXT.md](SGB_HIRES_TEXT.md).
 
@@ -691,7 +704,7 @@ which 561 bytes are used. The image itself has 71 bytes left.
 | --- | --- | --- |
 | 0a | BIOS upload + JUMP, green screen | Passed in Mesen and on hardware (2026-11-16); revision unrecorded |
 | 0b | LCD channel, mailbox and throughput | Mesen and SGB1 flow-control checks pass: 66 good, 6 rejected captures, 0 missed rows, RAM audit 0; hardware rate counters unrecorded, SGB2 untested |
-| 0c | BIOS return and launch policy | Non-destructive return passed in Mesen; hardware inconclusive. EXIT (restore and return) passes in Mesen on SGB1 1.2; hardware pending |
+| 0c | BIOS return and launch policy | Non-destructive return passed in Mesen; hardware inconclusive. EXIT (restore and return) passes in Mesen on SGB1 1.2, 1.1 and SGB2; hardware pending |
 | 0d | WRAM/ROM budgets and bank `$7F` audit | Recorded above; bank audit passes in Mesen |
 | 1 | Protocol/constants/codecs | Software checks pass |
 | 2 | Shared runtime geometry | DMG/CGB geometry and integration checks pass |

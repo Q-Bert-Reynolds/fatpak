@@ -24,7 +24,7 @@ local function border()
 end
 emu.addMemoryCallback(function()
  if entered then return end
- entered=frame;before=border()
+ entered=frame;before=border();at.state=emu.getState()
  snap(at.wram,W,0x20000);snap(at.vram,V,0x10000);snap(at.cgram,C,512);snap(at.oam,O,544);snap(at.aram,A,0x10000)
  shot('bios-before.png')
 end,emu.callbackType.exec,0x7f0000,0x7f0000,emu.cpuType.snes)
@@ -93,6 +93,18 @@ check_memory=function()
   if #bad>0 then finish(false,table.concat(bad,'; '));return end
   local nmi=emu.read(0xBB,W)+256*emu.read(0xBC,W)+65536*emu.read(0xBD,W)
   if nmi~=0x00B50A then finish(false,string.format('NMI pointer %06X',nmi));return end
+  -- the PPU's and the CPU's registers as at JUMP (bios.s's Regs table): Mesen's state, less its counters,
+  -- latches and addresses (the BIOS sets those again before it uses them)
+  local now,diff=emu.getState(),{}
+  local transient={'Address','Buffer','OpenBus','frameCount','scanline','Counter','autoRead','nmiFlag','Clock','irqFlag','Latch','latch','aluMulDiv','controllerData'}
+  for k,v in pairs(at.state) do
+   if (k:find('^ppu%.') or k:find('^internalRegisters%.')) and now[k]~=v then
+    local skip=false;for _,t in ipairs(transient) do if k:find(t) then skip=true end end
+    if not skip then diff[#diff+1]=k..' '..tostring(v)..' at JUMP, '..tostring(now[k]) end
+   end
+  end
+  table.sort(diff)
+  if #diff>0 then finish(false,'registers differ: '..table.concat(diff,'; '));return end
   memory_checked=true
 end
 emu.addEventCallback(function(c)
