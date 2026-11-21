@@ -1,4 +1,5 @@
-// 512x448 character text (SETTINGS > RESOLUTION > 512x448, whatever the font) through the real GB frontend
+// 512x448 character text (SETTINGS > RESOLUTION > 512x448, whatever the font) and EXIT (RESOLUTION > 160x144: back to the
+// SGB BIOS, and fullscreen again from there) through the real GB frontend
 // and Gearboy's protocol model of the SNES side: RESOLUTION lists all three, the browser switches to it (the kernel's extension, TEXT 1, 56
 // rows of 62 4-pixel columns, the selection in columns), a 120-line file fills 54 rows and scrolls, a map gives
 // way to 256x224's 28 rows while it's open and 512x448 comes back after it, and RESOLUTION > 256x224 ends it
@@ -67,6 +68,12 @@ int main(int n,char** v){
         "  DB 0\n  DB 0\n"));
 
     {std::string text;for(unsigned i=1;i<=120;++i)text+="line "+std::to_string(i)+" of the long file\n";Write(root+"/long.txt",Text(text));}
+    { // a game to launch from fullscreen (tests/test_ingame_return.cpp's): its loop at $0150
+        std::vector<u8> rom(65536,0);const u8 jump[]={0xC3,0x50,1};std::copy(jump,jump+3,rom.begin()+0x100);
+        const char title[]="SGBTEST";std::copy(title,title+7,rom.begin()+0x134);rom[0x147]=0x1B;rom[0x148]=1;rom[0x149]=3;
+        const u8 main[]={0xF3,0x31,0xFF,0xDF,0x3E,0x91,0xE0,0x40,0x18,0xFE};std::copy(main,main+sizeof(main),rom.begin()+0x150);
+        for(unsigned i=0x134;i<0x14D;++i)rom[0x14D]=rom[0x14D]-rom[i]-1;
+        Write(root+"/Game.gb",rom);}
 
     auto syms=Symbols(v[2]);GearboyCore core;core.Init();core.SetForceSGB(true);core.SetEverdriveFolder(dir);
     auto h=core.GetSGB()->GetFatPakHost();h->Configure(FatPakSGBHost::TerminalV1);
@@ -153,5 +160,32 @@ int main(int n,char** v){
     waited=wait(3000,[&]{return !model.mapMode && model.text && selected().find("Test.gbmap")!=std::string::npos;});
     printf("map closed into 512x448 text: %u GB frames\n",waited);
     Check(!model.mapMode && model.text==1 && rows()==56 && model.textRows==54,"Close: 512x448 text");
-    printf("SGB fullscreen 512x448 text passed\n");
+
+    // RESOLUTION > 160x144 in fullscreen: EXIT (HELLO offered SGBFS_FEATURE_BIOS), the SNES the BIOS's again
+    // (Gearboy's own SGB), the GB its own renderer: 18 rows, one player, the BIOS's picture unfrozen and drawn
+    settings(6);key(0x82);key(0x82);key(10);
+    waited=wait(3000,[&]{return !h->Active() && !(m->Read(syms.at("sys_info"))&4) && rows()==18;});
+    printf("back to the BIOS: %u GB frames\n",waited);
+    Check(!h->Active() && !(m->Read(syms.at("sys_info"))&4),"EXIT: the SNES the BIOS's, fullscreen off");
+    Check(rows()==18 && m->Read(syms.at("_resolution"))==1,"160x144: the GB's 18 rows, saved");
+    Check(core.GetSGB()->GetPlayerCount()==1 && core.GetSGB()->GetMaskMode()==SGB::MaskDisabled,"one player, unfrozen");
+    Frames(core,180);
+    {unsigned varied=0;for(unsigned y=40;y<184;++y)for(unsigned x=48;x<208;++x)varied+=pixels[y*256+x]!=pixels[40*256+48];
+     Check(varied>300,"the GB's screen drawn in the BIOS's window");}
+    // and back: the GB's own menus (its pad), RESOLUTION > 256x224 JUMPs again
+    auto gbpad=[&](Gameboy_Keys k){core.KeyPressed(k);Frames(core,4);core.KeyReleased(k);Frames(core,45);};
+    gbpad(Start_Key);gbpad(Down_Key);gbpad(Down_Key);gbpad(A_Key); // SETTINGS
+    for(unsigned i=0;i<6;++i)gbpad(Down_Key);
+    gbpad(A_Key);gbpad(Down_Key);gbpad(A_Key); // RESOLUTION > 256x224
+    waited=wait(6000,[&]{return h->Active() && (m->Read(syms.at("sys_info"))&4) && rows()==28 && selected().size();});
+    printf("fullscreen again: %u GB frames\n",waited);
+    Check(h->Active() && rows()==28 && !model.text && m->Read(syms.at("_resolution"))==0,"256x224 again after the BIOS");
+    // a game from fullscreen: EXIT first (the BIOS's again), then the launch as from 160x144
+    for(unsigned i=0;i<12 && selected().find("Game.gb")==std::string::npos;++i)key(0x82); // (up from Test.gbmap)
+    Check(selected().find("Game.gb")!=std::string::npos,"the game selected");
+    key(10);
+    waited=wait(6000,[&]{return core.CanPressEverdriveButton();});
+    printf("game launched from fullscreen: %u GB frames\n",waited);
+    Check(!h->Active() && core.CanPressEverdriveButton(),"the game runs, the SNES the BIOS's");
+    printf("SGB fullscreen 512x448 text, EXIT and a game's launch passed\n");
 }

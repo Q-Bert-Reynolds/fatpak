@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 probe=${1:-hello}
-case "$probe" in hello|bench|handoff) ;; *) exit 2 ;; esac
+case "$probe" in hello|bench|handoff|reset) ;; *) exit 2 ;; esac
 root=$(cd -- "$(dirname -- "$0")/../.." && pwd)
 mesen=${MESEN_DLL:-"$root/../MesenCE/bin/linux-x64/Release/Mesen.dll"}
 bios=${SGB_BIOS:-"$HOME/Downloads/program.rom"}

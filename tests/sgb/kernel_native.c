@@ -43,6 +43,7 @@ void CharCursor(void){}
 void PublishMailbox(void){}
 void WaitBlank(void){}
 u16 Clock(void){return hw_frames;}
+void BiosReturn(void){}
 static void reseal(u16 n){u16 c;test_snapshot[1]=n;test_snapshot[2]=n>>8;c=crc(test_snapshot,n+3);test_snapshot[n+3]=c;test_snapshot[n+4]=c>>8;}
 static void empty_queue(void){qcount=qhead=active_event=0;}
 int main(int argc,char **argv){

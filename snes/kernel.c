@@ -225,6 +225,9 @@ u8 qhead;
 u8 qcount;
 u8 event_seq = 1;
 u8 active_event;
+u8 bios_ok;     /* bios.s saved the BIOS at JUMP (hardware.s sets it): EXIT is offered */
+u8 exit_wanted; /* EXIT applied: no more input events; back to the BIOS when its ACK is echoed */
+u16 exit_frame;
 u8 sent_pad;
 u8 status_echo;
 u8 status_page;
@@ -821,6 +824,16 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
       /* Launch is intentionally held for Phase 10, never arm a cartridge here. */
       case SGBFS_CMD_LAUNCH:
         return 0;
+      /* Back to the BIOS (bios.s), alone in its page, once its ACK has been echoed (main) */
+      case SGBFS_CMD_EXIT:
+        if (len || n != SGBFS_COMMAND_HEADER || !bios_ok || !shadow_ext) { /* (the return is the extension's) */
+          return 0;
+        }
+        if (apply) {
+          exit_frame = Clock();
+          exit_wanted = 1;
+        }
+        break;
       case SGBFS_CMD_HELLO:
       case SGBFS_CMD_RESET:
         if (len != 2 || b[0] != SGBFS_VERSION || b[1] != SGBFS_PROFILE) {
@@ -1380,7 +1393,8 @@ void main(void) {
   OverlayInit();
   memset(dirty, 1, SGBFS_ROWS);
   ui_all();
-  enqueue(SGBFS_EVENT_HELLO, SGBFS_VERSION, SGBFS_FEATURE_COLOR | SGBFS_FEATURE_PAD2);
+  enqueue(SGBFS_EVENT_HELLO, SGBFS_VERSION,
+          SGBFS_FEATURE_COLOR | SGBFS_FEATURE_PAD2 | (bios_ok ? SGBFS_FEATURE_BIOS : 0));
 
   for (;;) {
     Capture();
@@ -1403,6 +1417,13 @@ void main(void) {
          frame so a missed ICD2 commit cannot strand all later page ACKs. */
       if (active_event) {
         PublishMailbox();
+      }
+      /* EXIT: the page's ACK echoed (or a second gone, the GB watching the ICD2 instead), then the BIOS */
+      if (exit_wanted) {
+        if ((!active_event && !qcount) || (u16)(Clock() - exit_frame) >= 60) {
+          BiosReturn();
+        }
+        continue;
       }
       pads();
 

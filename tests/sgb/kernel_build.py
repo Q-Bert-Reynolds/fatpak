@@ -40,11 +40,15 @@ def recording(path, end=None):
                     for line in range(8):
                         pixels=data[(y*8+line)*160+x*8:(y*8+line)*160+x*8+8]
                         for plane in (0,1):page.append(sum(((v>>plane)&1)<<(7-i) for i,v in enumerate(pixels)))
-                try:wire.decode_page(page)
+                try:commands=wire.decode_page(page)[1]
                 except ValueError:
-                    try:wire.decode_page(page,1) # (a page of 512x448 text's, TEXT 1)
+                    try:commands=wire.decode_page(page,1)[1] # (a page of 512x448 text's, TEXT 1)
                     except ValueError:continue
                 assert slot==0,'fixture currently streams page A'
+                # EXIT ends the kernel's session (the BIOS again; a later JUMP is another session): the pages up to it
+                if any(op==wire.SGBFS_CMD_EXIT for op,_ in commands):
+                    assert pages
+                    return pages
                 pages.append(bytes(page));expected=1 if expected==255 else expected+1
     assert pages
     return pages
@@ -71,11 +75,11 @@ def build():
     (W/'replay.pages').write_bytes(b''.join(pages));print(f'{len(pages)} frontend pages')
     replay_rom(pages, bool(os.environ.get('SGB_KERNEL_UI')))
 
-def replay_rom(pages, ui=False, checkpoints=()):
+def replay_rom(pages, ui=False, checkpoints=(), exit=False):
     """Wrap real frontend pages in an MBC5 transport ROM for stock SGB emulation."""
     assert 0 < len(pages) < 1800 # (page banks below 256)
     image=(W/'kernel.bin').read_bytes();image=image.ljust((len(image)+4095)//4096*4096,b'\0');(W/'upload.bin').write_bytes(image)
-    source=('DEF UI_REPLAY EQU 1\n' if ui else '')+(ROOT/'tests/sgb/kernel.asm').read_text()
+    source=('DEF UI_REPLAY EQU 1\n' if ui else '')+('DEF EXIT_REPLAY EQU 1\n' if exit else '')+(ROOT/'tests/sgb/kernel.asm').read_text()
     if checkpoints:
         checks='\n'.join(f' ld a,[CurrentPageHigh]\n cp {n >> 8}\n jr nz,.not{n}\n ld a,[CurrentPage]\n cp {n & 255}\n jr z,.shotPause\n.not{n}' for n in checkpoints)
         pause = """.low

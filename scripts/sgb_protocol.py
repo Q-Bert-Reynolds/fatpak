@@ -179,6 +179,8 @@ def validate_command(opcode, body, text=0):
                 struct.unpack_from('<H', body, 1)[0] + n - 3 <= SGBFS_CODE_SIZE, 'CODE size')
     elif name == 'TEXT':
         require(n == 1 and body[0] <= 1, 'TEXT mode')
+    elif name == 'EXIT':
+        require(n == 0, 'EXIT takes no body')
     elif name in ('HELLO', 'RESET'):
         require(body == bytes((SGBFS_VERSION, SGBFS_PROFILE)), 'version/profile mismatch')
 
@@ -202,6 +204,7 @@ def commands(data, text=0):
             text = body[0]
         result.append((opcode, body))
         offset += size
+    require(all(op != SGBFS_CMD_EXIT for op, _ in result) or len(result) == 1, 'EXIT must be alone in its page')
     return result
 
 
@@ -238,7 +241,7 @@ def mailbox(sequence, event, a, b):
     elif name == 'PAD':
         require(not b & ~a, 'pressed pad buttons must be held')
     elif name == 'HELLO':
-        require(a == SGBFS_VERSION and b <= 7, 'HELLO version/features')
+        require(a == SGBFS_VERSION and b <= 15, 'HELLO version/features')
     elif name == 'ACK':
         require(a <= 1 and b, 'ACK page/sequence')
     elif name == 'LAUNCH_READY':

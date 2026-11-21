@@ -39,6 +39,7 @@ void CharColors(void);
 void CharCursor(void);
 u16 CRC16(void);
 u16 Clock(void);
+void BiosReturn(void); /* bios.s: EXIT, never returns */
 extern volatile u8 capture_ready, capture_last;
 extern volatile u16 capture_rows, capture_missed, tick;
 extern volatile u16 pad_held[2],pad_edges[2];

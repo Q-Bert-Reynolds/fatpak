@@ -54,7 +54,8 @@
 # Browser
 
 - SETTINGS > FULL SCREEN hides the editor's bars and the map viewer's, not the browser's (its path and hints are there) nor HEXVIEW's and TILEVIEW's (their rows are fixed at 16).
-- RESOLUTION: 160x144 from fullscreen at run time (today it's saved for the next boot only, and not listed there).
+- RESOLUTION 160x144 and game launch from fullscreen (EXIT, 2026-11-20): confirm on hardware; other BIOS revisions (SGB2, SGB1 1.0/1.1) need their checksum, registers, sample stream and RTS in snes/bios.s ([notes](notes/SGB.md#returning-to-the-bios-exit-2026-11-20)).
+- The SNES kernel image is full (49,142/49,152 bytes): new kernel code goes to the extension.
 - The viewers' menu after Start runs the viewer again: HEXVIEW/TILEVIEW redraw their page, DMG's map is drawn again (no tiles for a box over it).
 
 - Escape is START now, so a keyboard has no way back from the browser to the open document without opening a file (B at the root stays): a menu item for it.

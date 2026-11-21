@@ -305,6 +305,16 @@ def session_build():
     replay_rom(pages,checkpoints=tuple(out))
     print(f'{len(pages)} recorded pages, checkpoints after {", ".join(map(str,out))}')
 
+def exit_build():
+    """The synthetic session (the extension loaded, 512x448 text) and then EXIT: back to the BIOS (bios.s)"""
+    import sgb_kernel
+    from kernel_build import replay_rom
+    sgb_kernel.build()
+    pages,out=pages_and_models()
+    pages.append(wire.page(len(pages)+1,wire.command(wire.SGBFS_CMD_EXIT,b'',1),1))
+    replay_rom(pages,exit=True)
+    print(f'{len(pages)} pages, the last EXIT')
+
 def session_check(work):
     pages,out=session_pages()
     for n,m in out.items():
@@ -321,5 +331,6 @@ if __name__=='__main__':
     a=sys.argv[1:]
     if a==['build']:build()
     elif a==['session-build']:session_build()
+    elif a==['exit-build']:exit_build()
     elif a[0]=='session-check':session_check(a[1])
     else:check(a[1])

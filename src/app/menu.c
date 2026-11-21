@@ -25,13 +25,15 @@ static const unsigned char submenu_starts[] = {0, 6, 12};
 
 // SETTINGS > RESOLUTION (an SGB's): its BIOS's 160x144, the fullscreen 256x224 and 512x448 (maps, and the
 // text in characters whatever the font). Saved; from the BIOS's, 256x224 and 512x448 take over now; from
-// fullscreen, 160x144 waits for the next boot. Returns BACK, CANCEL or what was chosen
+// fullscreen, 160x144 hands the SNES back to the BIOS (SGBLeave) if the kernel saved it, else it waits for
+// the next boot. Returns BACK, CANCEL or what was chosen
 static unsigned char ResolutionMenu(void) {
   unsigned char item = Choose(0, S_RES_160, 3, resolution == RESOLUTION_160 ? 0 : resolution == RESOLUTION_256 ? 1 : 2);
   if (item >= BACK) return item;
   resolution = item == 1 ? RESOLUTION_256 : item ? RESOLUTION_512 : RESOLUTION_160; // (the strings' order)
   SettingsSave();
   SGBBegin(); // (only in the BIOS's, not at 160x144)
+  if (resolution == RESOLUTION_160) SGBLeave(); // (only in fullscreen)
   return item;
 }
 
@@ -52,7 +54,7 @@ static unsigned char FontMenu(unsigned char browser) {
 // Shared by the editor (0), the browser and the viewers (1, the map viewer 2); B returns to their
 // enclosing menu.
 unsigned char PreferencesMenu(unsigned char browser) {
-  unsigned char item = Choose(0, browser ? S_SUB_FULL_SCREEN : S_SUB_LINE_WRAP,
+  unsigned char i, item = Choose(0, browser ? S_SUB_FULL_SCREEN : S_SUB_LINE_WRAP,
     (browser ? 6 : 7) + (sys_info & SYS_INFO_SGB), 0);
   if (item >= BACK) return item;
   if (browser) ++item; // FULL SCREEN, THEME, LANGUAGE, CLOCK, KEYBOARD, FONT
@@ -65,8 +67,10 @@ unsigned char PreferencesMenu(unsigned char browser) {
     }
   }
   else if (item >= 6) {
+    i = sys_info;
     item = item == 6 ? FontMenu(browser) : ResolutionMenu();
-    if (SGBCells() && !browser) { // 512x448 text on or off: the editor's rows again (the browser lays out its own)
+    if ((SGBCells() || ((i ^ sys_info) & SYS_INFO_SGBFS)) && !browser) { // 512x448 text on or off, or the GB's screen again (160x144):
+      // the editor's rows again (the browser lays out its own)
       tb_lang = 0xFF;
       SetLang();
       SetRows();

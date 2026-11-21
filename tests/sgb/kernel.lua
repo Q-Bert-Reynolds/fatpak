@@ -15,6 +15,11 @@ emu.addMemoryCallback(function()if not entered then entered=frame end end,emu.ca
 
 
 local symbols=dofile('kernel-symbols.lua')
+-- the kernel's C side starts after BiosSave (bios.s) has parked the BIOS's state in ARAM
+local main_frame
+emu.addMemoryCallback(function()
+ if not main_frame then main_frame=frame;result:write('BIOS saved in '..(frame-entered)..' SNES frames\n');result:flush() end
+end,emu.callbackType.exec,0x7f0000+symbols['_main'],0x7f0000+symbols['_main'],emu.cpuType.snes)
 if os.getenv('SGB_KERNEL_PROFILE')=='1' then
  local function measure(name,done)
   local start,count,total,peak=nil,0,0,0
@@ -128,13 +133,17 @@ emu.addEventCallback(function(cpu)
   end
  end
  if frame==entered+10 then
+  -- bios.s's state and self-modified operands change at JUMP (BiosSave), the rest of the image never does
+  local mutable=function(a)
+   return (a>=symbols['BiosFlag'] and a<symbols['BiosStateEnd']) or (a>symbols['IplRd'] and a<=symbols['IplRd']+3)
+  end
   for i=1,#expected do
    local actual=emu.read(0x10000+i-1,emu.memType.snesWorkRam)
-   if actual~=expected:byte(i)then finish(false,string.format('upload mismatch %04X: %02X != %02X',i-1,actual,expected:byte(i)));return end
+   if actual~=expected:byte(i) and not mutable(i-1) then finish(false,string.format('upload mismatch %04X: %02X != %02X',i-1,actual,expected:byte(i)));return end
   end
  end
- if frame==entered+40 then clock_start=word('_hw_frames') end
- if frame==entered+100 and clock_start then
+ if main_frame and frame==main_frame+40 then clock_start=word('_hw_frames') end
+ if main_frame and frame==main_frame+100 and clock_start then
   local elapsed=(word('_hw_frames')-clock_start)&65535
   if elapsed<59 or elapsed>61 then finish(false,'NMI timing clock drift: '..elapsed..' frames in 60');return end
  end

@@ -6,6 +6,7 @@
 .export _Capture, _Snapshot, _FontWidth, _ClearRaster, _ClearTiles, _PpuInit
 .export _PresentRasterRow, _PresentPalette, _PresentCursor, _SetScroll, _PublishMailbox
 .import _SharedInit
+.import BiosSave, BiosFlag, _bios_ok
 .import _main, zerobss
 .importzp sp
 .import __RODATA_LOAD__, __RODATA_RUN__, __RODATA_SIZE__
@@ -21,6 +22,23 @@ Entry:
  jml $7F0000+Nmi
  jml $7F0000+Irq
 Boot:
+ ; the BIOS's registers on its own stack, then its state saved (bios.s) before anything here touches it
+ php
+ sei
+ rep #$30
+.a16
+.i16
+ pha
+ phx
+ phy
+ phd
+ phb
+ phk
+ plb
+ tsx
+ sep #$20
+.a8
+ jsr BiosSave
  sei
  clc
  xce
@@ -69,6 +87,8 @@ Boot:
  lda #$BF
  sta sp+1
  jsr zerobss
+ lda f:$7F0000+BiosFlag
+ sta _bios_ok
  lda #$FF
  sta _capture_last
  lda #0

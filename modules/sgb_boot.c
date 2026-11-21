@@ -205,13 +205,43 @@ mapped:
   load=(Long(header+8)&0xFFFFFF)+4;packet[4]=load;packet[5]=load>>8;packet[6]=load>>16;
   load+=4;packet[7]=load;packet[8]=load>>8;packet[9]=load>>16;Send(0x12);
 }
+// One player on the ICD2: the joypad's ID doesn't change from one read to the next (the kernel's mailbox
+// cycles four, the BIOS has one, as sgb_Check finds an SGB)
+static unsigned char OnePlayer(void) {
+  unsigned char a,b;
+  REG(0xFF00)=0x30;a=REG(0xFF00);a=REG(0xFF00);a=REG(0xFF00);a=REG(0xFF00);
+  REG(0xFF00)=0x20;REG(0xFF00)=0x10;REG(0xFF00)=0x30;
+  b=REG(0xFF00);b=REG(0xFF00);b=REG(0xFF00);b=REG(0xFF00);
+  return !((a^b)&15);
+}
+// The exit (src/sgb/client.c's SGBExit, once the kernel ACKed EXIT): the SNES restores the BIOS (snes/bios.s,
+// about 2 seconds) and returns to it; the GB's renderer comes back here, the OS lays the GB screen out again.
+// Returns 1 if the BIOS never showed (it carries on: the kernel has gone either way)
+static unsigned char Exit(void) {
+  unsigned int n;
+  unsigned char i,lost;
+  unsigned char* info=(unsigned char*)ModDriver(0x43);
+  REG(0xFFFF)=0; // (RunModule gives the interrupts back) nothing else reads P1 meanwhile
+  for(n=0;n<600&&!OnePlayer();++n) {
+    while(REG(0xFF44)==144);
+    while(REG(0xFF44)!=144);
+  }
+  lost=n==600;
+  Off();
+  if(ModOverlay(2)) for(;;);
+  *info&=~4;
+  REG(0xFF0F)=0;
+  for(i=0;i<16;++i)packet[i]=0;
+  Send(0x17); // MASK_EN 0: the BIOS shows the GB's screen again (SGBBOOT froze it before JUMP)
+  return lost;
+}
 unsigned char ModuleMain(const unsigned char* context) {
   OverlayRequest* request;
   unsigned long offset;
   unsigned char i,result;
   unsigned char* info=(unsigned char*)ModDriver(0x43);
-  context;
   selected_block=0xFFFF;
+  if(context) return Exit();
   if((*info&3)!=1) return 1;
   file.block=SGB_FILE_BLOCK;file.blocks=SGB_FILE_BLOCKS;
   if(ModLoad("/GBCSYS/SGB.DAT",&file)||Validate()) return 1;

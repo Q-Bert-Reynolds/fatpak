@@ -13,6 +13,7 @@ FsEntry:
   jp FsInterrupt
   jp FsPalette
   jp FsText ; A = TEXT's mode (src/sgb/client.c's SGBText)
+  jp FsExit ; back to the BIOS (SGBBOOT.MOD's exit): A = 0 once EXIT's page is ACKed
 
 ; Emitter: no command buffer in WRAM. Sequence zero keeps the page unpublished.
 FsByte:
@@ -1161,6 +1162,27 @@ FsText:
   call FsByte
   call FsFlush
   jp FsRedraw
+; EXIT, if HELLO offered it (the kernel saved the BIOS): the extension (the return is its code), whatever is
+; pending, then EXIT alone in its page and its ACK. A = 0 once ACKed (the SNES goes back to the BIOS), else 1
+FsExit:
+  ldh a, [fs_ready]
+  and SGBFS_FEATURE_BIOS
+  jr z, .no
+  call FsSendExt
+  call FsFlush
+  call FsMapReady
+  jr c, .no
+  ld a, SGBFS_CMD_EXIT
+  ld bc, 0
+  call FsTLV
+  call FsFlush
+  call FsMapReady
+  jr c, .no
+  xor a
+  ret
+.no
+  ld a, 1
+  ret
 FsExtRead: ; A = [HL+], the window on to the next block past its end
   ld a, [hli]
   push af
@@ -1507,7 +1529,8 @@ FsPoll:
   ldh a, [fs_mb+2]
   cp 1
   ret nz
-  ld a, 1
+  ldh a, [fs_mb+3]
+  or $80 ; (nonzero) with its features: SGBFS_FEATURE_BIOS for FsExit
   ldh [fs_ready], a
   jr .consumed
 .ack

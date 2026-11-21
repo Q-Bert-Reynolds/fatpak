@@ -21,7 +21,7 @@ class Protocol(unittest.TestCase):
 
     def test_generated_consumers_and_real_assemblers(self):
         p.generate(check=True)
-        self.assertEqual(len(p.COMMANDS), 23)
+        self.assertEqual(len(p.COMMANDS), 24)
         self.assertEqual(len(p.EVENTS), 18)
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
@@ -62,11 +62,18 @@ class Protocol(unittest.TestCase):
     def test_every_command_and_page_round_trip(self):
         payload = b''.join(self.examples())
         decoded = p.commands(payload)
-        self.assertEqual({op for op, body in decoded}, set(p.COMMANDS))
+        self.assertEqual({op for op, body in decoded} | {p.SGBFS_CMD_EXIT}, set(p.COMMANDS))
         self.assertEqual(b''.join(p.command(*item) for item in decoded), payload)
         self.assertEqual(p.decode_page(p.page(255,payload)), (255,decoded))
         self.assertEqual(p.decode_page(p.page(1,b'')), (1,[]))
         self.assertEqual(p.crc(b'123456789'), 0x29b1)
+
+    def test_exit_alone(self):
+        exit_ = p.command(p.SGBFS_CMD_EXIT)
+        self.assertEqual(p.decode_page(p.page(7, exit_)), (7, [(p.SGBFS_CMD_EXIT, b'')]))
+        self.reject(p.command, p.SGBFS_CMD_EXIT, b'\0')
+        self.reject(p.page, 7, p.command(p.SGBFS_CMD_TEXT, b'\0') + exit_)
+        self.reject(p.page, 7, exit_ + exit_)
 
     def test_map_limits(self):
         for name, body in [('MAP',b'\3'),('MAP',b'\x10'),('MAP',b'\x13'),('MAP',b'\x21'),('MAP_TILES',bytes([255,2])+bytes(32)),('MAP_TILES',bytes([0,65])+bytes(1040)),

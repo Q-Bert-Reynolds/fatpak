@@ -259,6 +259,37 @@ ENDC
 .finished
  ld a,6
  ld [Stage],a
+IF DEF(EXIT_REPLAY)
+ ; the last page was EXIT: the BIOS is back when the joypad IDs stop cycling players (the kernel's mailbox
+ ; is four players, the BIOS's one); then unfreeze its picture as the GB frontend does, and stay out of the way
+.player
+ call Poll
+ ld a,$30
+ ldh [rP1],a
+ REPT 4
+ ldh a,[rP1]
+ ENDR
+ ld b,a
+ ld a,$20
+ ldh [rP1],a
+ ld a,$10
+ ldh [rP1],a
+ ld a,$30
+ ldh [rP1],a
+ REPT 4
+ ldh a,[rP1]
+ ENDR
+ cp b
+ jr nz,.player
+ ld a,7
+ ld [Stage],a
+ ld hl,Unfreeze
+ call _sgb_PacketTransfer
+ ld a,8
+ ld [Stage],a
+.bios
+ jr .bios
+ENDC
 .done
  call Poll
  jr .done
@@ -414,6 +445,8 @@ INCLUDE "src/sgb/packet.asm"
 Ping: db (SGB_CODE_PAL_PRI<<3)|1,1
  ds 14
 Freeze: db (SGB_CODE_MASK_EN<<3)|1,1
+ ds 14
+Unfreeze: db (SGB_CODE_MASK_EN<<3)|1,0
  ds 14
 Jump: db (SGB_CODE_JUMP<<3)|1,0,0,$7F,4,0,$7F,8,0,$7F
  ds 6

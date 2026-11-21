@@ -249,6 +249,7 @@ have a one-pixel glyph inset and occupy up to 248 px.
 | MAP_SCROLL | `x:u16` (0–1023), `y:u16` (0–511): the map's top left pixel (256x224 keeps `x & 511`, `y & 255`) |
 | CODE | `last` (0/1), `offset:u16`, then 1–1024 bytes of the kernel extension (within `$2400`); ignored with a map open or in TEXT 1 |
 | TEXT | `mode`: 0 the 256x224 raster text, 1 512x448 character tiles (needs the extension, no map open) |
+| EXIT | no body, alone in its page, only if HELLO offered `SGBFS_FEATURE_BIOS` (8) and the extension is loaded: back to the BIOS (see "Returning to the BIOS: EXIT") |
 
 ROW flag bit 0 means styled text; other bits are zero. An attribute contains
 width 1–15 in its low nibble and the existing `STYLE_*` 0–14 in its high nibble.
@@ -435,10 +436,78 @@ allows a fresh BIOS/GB handshake. The complete armed-cart cycle still requires
 Phase 10 hardware validation.
 
 The Phase 0c probe proves a **non-destructive** JUMP can return via a bank-0 RTS
-while preserving the BIOS stack/registers/PPU. It does not prove restoring a PPU
-whose VRAM/CGRAM have been replaced by the fullscreen renderer. Automatic BIOS
-reset + armed EverDrive launch is also unverified. Therefore mode 0 (BIOS first)
-is not accepted in v1; automatic launch can be added after that work is proven.
+while preserving the BIOS stack/registers/PPU (it returned with I set and got lucky:
+the BIOS's loop needs its IRQs, see EXIT). FatPak's own launch from fullscreen now
+goes through EXIT first ("Returning to the BIOS: EXIT") and then launches as in BIOS
+mode; LAUNCH and RESET_REQUIRED remain unused.
+
+### Returning to the BIOS: EXIT (2026-11-20)
+
+SETTINGS > RESOLUTION > 160x144 in fullscreen, and a game's launch from it, hand the
+SNES back to the BIOS with the GB still running: its 160x144 picture, border, menu and
+command loop as they were at JUMP. Only for the BIOS whose header checksum is known
+(SGB1 1.2: complement `$09CD`, checksum `$F632`); on any other the kernel doesn't
+offer it and 160x144 waits for the next boot, a game for a reset, as before.
+
+**At JUMP** (`snes/bios.s` BiosSave, first thing in Boot, on the BIOS's stack with its
+registers pushed there): forced blank; the sound driver to the IPL ROM (`$00`, then
+`$FE` on port 0 once it has seen a change: its `$FF`, SOU_TRN's, is the driver's own
+loader, which returns to the driver); a 160-byte SPC700 transfer server through the
+IPL at ARAM `$EE40`; then the snapshot into ARAM from `$4DB0`, over the driver's
+samples (at JUMP ARAM is exactly the BIOS ROM's two upload streams). The snapshot, in
+groups of 3 bytes a port handshake (the server echoes before storing, so the SNES
+prepares the next group meanwhile): VRAM `$0000–1FFF` (border tiles), `$7000–7FFF`
+(BG1 and border maps), `$8000–9FFF` (sprites), `$C000–DFFF` (BG1, the menu's tiles),
+`$F800–FFFF` (the GB screen's map), CGRAM, OAM, all DMA'd through `$7E:6000`; WRAM
+`$0000–00FF`, `$1000–11FF`, `$1F00–1FFF`, `$5000–53FF`, `$C000–C0FF`, `$CB00–CCFF`
+(what the kernel overwrites of the BIOS's measured live state, with margins; a link
+check keeps the kernel's BSS below `$5400`). About 36 KB, 74 SNES frames (1.2 s);
+the server then waits, the DSP muted. HELLO offers `SGBFS_FEATURE_BIOS`.
+
+**EXIT** (alone in its page; the extension loaded, as the return code is the
+extension's for want of image space): the kernel ACKs the page, waits for the echo,
+then the extension's FarBiosReturn: VRAM cleared, the snapshot read back (DMA'd to the
+PPU, WRAM in place), the samples rewritten from the BIOS ROM (`$06:A999` on), the
+server's area through the IPL, the driver restarted at `$0400`, the BIOS's NMI
+pointer (`$00BB` = `$00B50A`) and registers (Mesen's values at JUMP: mode 1, BG and OBJ
+bases, TM `$17`, CGWSEL `$02`, COLDATA, H/V IRQ at 64/223, FastROM, `$4200 = $31`),
+`$6003 = $81` (one player), INIDISP last; then its registers pulled, I cleared (its
+JUMP handler at `$C738` sets it just before jumping; the loop waits on IRQs), and
+RTS through `$00:AC88`. 119 SNES frames (2 s). `tests/run_sgb_bios_return.sh`
+replays a 512x448 session and EXIT in Mesen on the real BIOS: VRAM, CGRAM, OAM, the
+saved WRAM, ARAM (driver and samples) and the NMI pointer equal JUMP's, the border
+pixel for pixel, the GB sees one player and unfreezes it, L+R opens the menu.
+
+**The GB** (`src/sgb/client.c` SGBLeave): the overlay's FsExit (the extension, then
+EXIT alone, its ACK); SGBBOOT.MOD's exit mode (`module_context` set): waits until the
+joypad ID stops cycling players (the BIOS's one; up to 10 s), restores the GB
+renderer (OverlayRestore), clears `SYS_INFO_SGBFS`, MASK_EN 0; then GeometryGB, the
+map rows and ring reset, EditorSetup (the display as at boot), Layout, the keyboard
+or mouse driver again (`KeyboardSetup(0)`, as at boot). Choosing 256x224 or 512x448
+then JUMPs again. LaunchGame leaves fullscreen this way first and launches as from
+160x144 (the setting stays, so FatPak comes back to fullscreen after the game).
+`tests/run_sgb_text.sh` covers EXIT, fullscreen again from the BIOS and a game's
+launch from fullscreen (Gearboy's host offers EXIT and drops to its own SGB).
+
+Space: the kernel image is full (49,142 of 49,152 bytes; new code has to go to the
+extension); the GB's FIXED bank has 28 bytes, WRAM0 none, the OS pages 98–99%.
+
+Still to do: hardware confirmation (timing of the driver's `$FE`, the IPL, VRAM reads
+by DMA); SGB2 and other SGB1 revisions (their checksums, register values, sample
+stream address and RTS); commands that keep state the snapshot doesn't hold (the
+BIOS's WRAM outside the saved ranges is lost: PAL_TRN/ATTR_TRN data, a custom border
+sent by a game before FatPak).
+
+Probes behind it: `tests/sgb/biosram.lua` (on the handoff probe:
+`SGB_TEST_SCRIPT=$PWD/tests/sgb/biosram.lua bash tests/sgb/run.sh handoff`) measures
+the BIOS's live WRAM after a return and checks it resumes with the kernel's footprint
+overwritten (`BIOSRAM_CLOBBER=1`; `BIOSRAM_VIDEO=0` shows it never rebuilds its
+video; `BIOSRAM_MENU=1` opens its menu). A soft reset (`tests/sgb/reset.s`,
+`python3 tests/sgb/build.py reset`, `bash tests/sgb/run.sh reset`; still failing)
+gets the driver to the IPL but the BIOS never releases the GB from reset: with WRAM
+untouched it takes its warm path (`$81FE`'s signatures at `$7E:1700`, `$66FC`,
+`$7EFC`), zeroed its cold one but the ICD2 row (`$6000`, read at `$B9BE`) keeps the
+GB's last line, so the intro step that releases it (`$B88F`) never runs.
 
 ### SGB.DAT container
 
@@ -574,8 +643,8 @@ Do not expose unsupported modes as selectable options.
    pool exhaustion behavior for the larger map before enabling it.
 5. Done (2026-11-20): SETTINGS > RESOLUTION, saved, listing only what works where it's opened
    (BIOS mode: 160×144, 256×224; fullscreen: 256×224; the map viewer: 512×448 too). Still to do:
-   returning from fullscreen to 160×144 at run time must restore the GB renderer, SGB BIOS
-   display/border and input ownership safely (today 160×144 only takes effect at boot).
+   returning from fullscreen to 160×144 at run time: done (2026-11-20) for SGB1 1.2, see
+   "Returning to the BIOS: EXIT"; other BIOS revisions still wait for the next boot.
 
 Text at 512×448 (128×56): design and open decisions in [SGB_HIRES_TEXT.md](SGB_HIRES_TEXT.md).
 
@@ -598,7 +667,7 @@ after fullscreen takeover; physical keyboard choices and TEST remain available.
 | --- | --- | --- |
 | 0a | BIOS upload + JUMP, green screen | Passed in Mesen and on hardware (2026-11-16); revision unrecorded |
 | 0b | LCD channel, mailbox and throughput | Mesen and SGB1 flow-control checks pass: 66 good, 6 rejected captures, 0 missed rows, RAM audit 0; hardware rate counters unrecorded, SGB2 untested |
-| 0c | BIOS return and launch policy | Non-destructive return passed in Mesen; hardware inconclusive; manual reset chosen |
+| 0c | BIOS return and launch policy | Non-destructive return passed in Mesen; hardware inconclusive. EXIT (restore and return) passes in Mesen on SGB1 1.2; hardware pending |
 | 0d | WRAM/ROM budgets and bank `$7F` audit | Recorded above; bank audit passes in Mesen |
 | 1 | Protocol/constants/codecs | Software checks pass |
 | 2 | Shared runtime geometry | DMG/CGB geometry and integration checks pass |

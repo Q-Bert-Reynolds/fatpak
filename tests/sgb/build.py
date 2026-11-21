@@ -13,7 +13,7 @@ def run(*args):
 
 
 def build(probe="hello"):
-    assert probe in ("hello", "bench", "handoff")
+    assert probe in ("hello", "bench", "handoff", "reset")
     WORK.mkdir(parents=True, exist_ok=True)
     if probe == 'bench':
         rows = ['', 'PHASE 0B LCD CHANNEL', '', 'STAGE', 'GOOD', 'BAD', 'MISSED',
@@ -41,7 +41,7 @@ def build(probe="hello"):
     (WORK / f'{probe}-gb.asm').write_text(
         f'INCLUDE "build/sgb/{probe}.inc"\nDEF PROBE_NAME EQUS \"{probe}\"\n' +
         ('DEF SGB_BENCH EQU 1\n' if probe == 'bench' else '') +
-        ('DEF SGB_HANDOFF EQU 1\n' if probe == 'handoff' else '') +
+        ('DEF SGB_HANDOFF EQU 1\n' if probe in ('handoff', 'reset') else '') +
         'INCLUDE "tests/sgb/hello.asm"\n')
     run('rgbasm', '-o', str(WORK / f'{probe}-gb.o'), str(WORK / f'{probe}-gb.asm'))
     run('rgblink', '-n', str(WORK / f'{probe}.sym'), '-o', str(WORK / f'{probe}.gb'),
@@ -53,5 +53,5 @@ def build(probe="hello"):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('probe', nargs='?', default='hello', choices=['hello', 'bench', 'handoff'])
+    parser.add_argument('probe', nargs='?', default='hello', choices=['hello', 'bench', 'handoff', 'reset'])
     build(parser.parse_args().probe)

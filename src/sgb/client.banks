@@ -1,6 +1,7 @@
 *: 7
-THUNKS: FIXED
+THUNKS: ROM0
 12: SGBBegin
 6: SGBCells
 6: SGBCellsMapC
 6: CellsSwitch
+11: SGBLeave

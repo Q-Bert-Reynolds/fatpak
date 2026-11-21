@@ -51,6 +51,11 @@ DEF SGBFS_CMD_CODE EQU $16 ; last 0/1 (the extension may run), offset:u16, then 
 ; columns (end 255: the right edge), the cursor's and a box's x stay 256x224 pixels (4 a column). Each switch
 ; clears the rows (the GB sends them again) and closes a box. A map opens only in mode 0 (its overlay is 28 rows')
 DEF SGBFS_CMD_TEXT EQU $17 ; mode 0/1
+; Back to the SGB BIOS (its 160x144 picture and command loop, the GB still running): only when HELLO offered
+; SGBFS_FEATURE_BIOS, alone in its page. The kernel ACKs the page, waits for the ACK's echo, then restores the
+; BIOS's state (snes/bios.s) and returns to it, the ICD2 back to one player: the GB knows the BIOS is back when its
+; joypad reads stop cycling players. Nothing of the kernel's survives; JUMP again to come back
+DEF SGBFS_CMD_EXIT EQU $18
 DEF SGBFS_EVENT_KEY EQU $01
 DEF SGBFS_EVENT_MOUSE_DOWN EQU $02
 DEF SGBFS_EVENT_MOUSE_DRAG EQU $03
@@ -76,6 +81,7 @@ DEF SGBFS_MOD_ALT EQU 4
 DEF SGBFS_FEATURE_COLOR EQU 1
 DEF SGBFS_FEATURE_MOUSE EQU 2
 DEF SGBFS_FEATURE_PAD2 EQU 4
+DEF SGBFS_FEATURE_BIOS EQU 8 ; the BIOS was saved at JUMP: EXIT can return to it
 DEF SGBFS_ROW_STYLED EQU 1
 DEF SGBFS_CURSOR_HIDDEN EQU 0
 DEF SGBFS_CURSOR_NORMAL EQU 1

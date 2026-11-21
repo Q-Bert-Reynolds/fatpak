@@ -37,9 +37,9 @@ void LaunchGame(const char* path) {
   unsigned char result;
   char text[MAX_ROW_STRIDE];
   const char *basename, *scan;
-  if (sys_info & SYS_INFO_SGBFS) {
+  if ((sys_info & SYS_INFO_SGBFS) && !SGBLeave()) { // fullscreen: the BIOS's again first (the setting stays)
     ShowBox("GAME LAUNCH NEEDS GB MODE");
-    return; // Phase 10 must establish BIOS/reset handoff before arming the cart.
+    return; // a kernel that didn't save the BIOS: only a reset gives it back
   }
   if (doc_large) {
     if (!CanDiscard()) return;
