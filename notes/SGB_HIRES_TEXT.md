@@ -60,8 +60,11 @@ Mode 5 + interlace, no drawing:
   (mode-aware: `text=1` for TEXT 1's limits). `tests/run_sgb_text_kernel.sh` checks bars, styled
   rows, selections, right alignment, a box, the OSK, busy, progress, the cursor and a scroll at
   512×448 pixel for pixel in Mesen, and TEXT 0 giving back the raster text.
-- Built, the GB (2026-11-20): SETTINGS > RESOLUTION offers 512x448 with 8X8 TILES too (as before in a
-  map), and RESOLUTION 512x448 with 8X8 TILES is 512x448 text (`screen_cells`, src/ui/geometry.asm):
+- Built, the GB (2026-11-20): SETTINGS > RESOLUTION lists 160x144, 256x224 and 512x448 on any SGB
+  (160x144 chosen in fullscreen waits for the next boot). RESOLUTION 512x448 is 512x448 text whatever
+  the font (`screen_cells`, src/ui/geometry.asm): `TEXT_FONT` gives the mono font meanwhile and FONT
+  keeps its setting, so 256x224 has it back. Chosen in a map's menu, the map goes to 512x448 at once
+  and the text when the map closes (`cells_held`):
   - `GeometryWide` gives 56 rows (54 between the bars); the width stays 248 pixels, 62 columns of 4
     (the cursor's sprite x, 8 on, must fit a byte), so columns 62-63 are margin and 63 has BUSY;
   - the mono font, `RenderTextWidth` and the client's widths count 4 pixels a character, so the

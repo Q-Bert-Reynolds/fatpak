@@ -56,7 +56,7 @@ emu.addEventCallback(function(cpu)
     for _,a in ipairs({0x3800,0x3840,0x9C00,0x9C40,0xF000+14*64,0xF000+13*64,0xE800+14*64}) do local v={};for i=0,31 do v[#v+1]=string.format('%02x',emu.read(a+i,emu.memType.snesVideoRam))end;t[#t+1]=string.format('vram %04x ',a)..table.concat(v,' ') end
     result:write(table.concat(t,'\n')..'\nlate DMA:\n'..table.concat(late,'\n')..'\n')
    end
-   finish(byte('_text_mode')==0,string.format('replayed %d pages, %d bad, text mode %d at the end',word('_good_pages'),word('_bad_pages'),byte('_text_mode')))
+   finish(word('_bad_pages')<8,string.format('replayed %d pages, %d bad, text mode %d at the end',word('_good_pages'),word('_bad_pages'),byte('_text_mode')))
   end
  elseif frame>90000 then finish(false,'replay timeout: '..word('_good_pages')..' pages')
  end

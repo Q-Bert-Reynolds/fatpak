@@ -59,12 +59,9 @@ GeometryGB:
 GeometryWide:;256x224's 28 rows of 248 pixels, or 512x448's 56 of 62 4-pixel columns (the settings')
   xor a
   ld [_render_gbc], a
-  ld a, [_resolution]
+  ld a, [_resolution];(whatever the font: 512x448 text is the mono font's characters)
   cp RESOLUTION_512
   jr nz, .cells
-  ld a, [_font_tiles]
-  and a
-  jr z, .cells
   ld a, [_cells_held]
   xor 1
 .cells

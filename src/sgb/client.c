@@ -4,6 +4,7 @@
 #include "../ui/screen.h"
 #include "../ui/render.h"
 #include "../editor/text_buffer.h"
+extern unsigned char fs_map; // the client's map mode (src/sgb/client.asm): nonzero while a module's map is open
 // Default SGB startup (unless RESOLUTION is 160x144) and SETTINGS > RESOLUTION > 256x224.
 // Absence or validation/upload failure leaves the original renderer available.
 void SGBBegin(void) {
@@ -23,11 +24,15 @@ static void CellsSwitch(void) {
   SetFont(font);
 }
 
-// SETTINGS > FONT and RESOLUTION: 512x448 text (RESOLUTION 512x448 with 8X8 TILES) on or off. Returns 1 if it
-// changed (the caller lays its screen out again)
+// SETTINGS > RESOLUTION: 512x448 text on or off. With a map open (a viewer's menu) it waits for the map to close
+// (cells_held: the SNES draws maps only beside 256x224's text). Returns 1 if it changed (the caller lays its
+// screen out again)
 unsigned char SGBCells(void) {
-  if (!(sys_info & SYS_INFO_SGBFS) || cells_held ||
-      (resolution == RESOLUTION_512 && font_tiles) == screen_cells) return 0;
+  if (!(sys_info & SYS_INFO_SGBFS) || cells_held || (resolution == RESOLUTION_512) == screen_cells) return 0;
+  if (fs_map) {
+    cells_held = 1; // SGBCellsMapC switches when it closes
+    return 0;
+  }
   CellsSwitch();
   return 1;
 }

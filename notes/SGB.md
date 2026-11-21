@@ -303,7 +303,7 @@ sets the new vertical scroll after the last.
 Each TEXT switch clears the rows (the GB sends them again), the box and the scroll. A map
 opens only in TEXT 0: the map's overlay is 28 rows'. From a CODE to the TEXT or MAP that
 uses it, raster text rows wait: drawing one would rebuild the 4 px cache over the extension.
-The GB sends TEXT 1 when SETTINGS > RESOLUTION is 512x448 with FONT > 8X8 TILES (at boot, or
+The GB sends TEXT 1 when SETTINGS > RESOLUTION is 512x448, whatever the font (at boot, or
 from those menus: `SGBCells`), with the extension just before it, and lays its text out in 56
 rows of 4-pixel columns (notes/SGB_HIRES_TEXT.md). A map drops it to TEXT 0 and 28 rows while
 the map is open (`_SGBCellsMap` from `FsBackground`).

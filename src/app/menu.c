@@ -23,16 +23,13 @@
 // the browser's and viewers' 5 from S_SUB_FULL_SCREEN; an SGB adds RESOLUTION to each)
 static const unsigned char submenu_starts[] = {0, 6, 12};
 
-// SETTINGS > RESOLUTION: the sizes that work here (an SGB's): its BIOS's 160x144 and the fullscreen
-// 256x224 before the takeover, then 256x224, and 512x448 too in a map (maps) or with 8X8 TILES (the
-// text in characters). Saved; 160x144 stays in the BIOS's at boot, 256x224 takes over now. Returns BACK,
-// CANCEL or what was chosen
-static unsigned char ResolutionMenu(unsigned char maps) {
-  unsigned char fs = sys_info & SYS_INFO_SGBFS ? 1 : 0, hi = fs && (maps || font_tiles), item;
-  item = Choose(0, S_RES_160 + fs, 2 - fs + hi, hi && resolution == RESOLUTION_512);
+// SETTINGS > RESOLUTION (an SGB's): its BIOS's 160x144, the fullscreen 256x224 and 512x448 (maps, and the
+// text in characters whatever the font). Saved; from the BIOS's, 256x224 and 512x448 take over now; from
+// fullscreen, 160x144 waits for the next boot. Returns BACK, CANCEL or what was chosen
+static unsigned char ResolutionMenu(void) {
+  unsigned char item = Choose(0, S_RES_160, 3, resolution == RESOLUTION_160 ? 0 : resolution == RESOLUTION_256 ? 1 : 2);
   if (item >= BACK) return item;
-  item += fs; // 160, 256 or 512 (the strings' order)
-  resolution = item == 1 ? RESOLUTION_256 : item ? RESOLUTION_512 : RESOLUTION_160;
+  resolution = item == 1 ? RESOLUTION_256 : item ? RESOLUTION_512 : RESOLUTION_160; // (the strings' order)
   SettingsSave();
   SGBBegin(); // (only in the BIOS's, not at 160x144)
   return item;
@@ -68,7 +65,7 @@ unsigned char PreferencesMenu(unsigned char browser) {
     }
   }
   else if (item >= 6) {
-    item = item == 6 ? FontMenu(browser) : ResolutionMenu(browser >> 1);
+    item = item == 6 ? FontMenu(browser) : ResolutionMenu();
     if (SGBCells() && !browser) { // 512x448 text on or off: the editor's rows again (the browser lays out its own)
       tb_lang = 0xFF;
       SetLang();

@@ -1,7 +1,8 @@
-// 512x448 character text (SETTINGS > FONT > 8X8 TILES with RESOLUTION > 512x448) through the real GB frontend
-// and Gearboy's protocol model of the SNES side: the browser switches to it (the kernel's extension, TEXT 1, 56
+// 512x448 character text (SETTINGS > RESOLUTION > 512x448, whatever the font) through the real GB frontend
+// and Gearboy's protocol model of the SNES side: RESOLUTION lists all three, the browser switches to it (the kernel's extension, TEXT 1, 56
 // rows of 62 4-pixel columns, the selection in columns), a 120-line file fills 54 rows and scrolls, a map gives
-// way to 256x224's 28 rows while it's open and 512x448 comes back after it, and RESOLUTION > 256x224 ends it.
+// way to 256x224's 28 rows while it's open and 512x448 comes back after it, and RESOLUTION > 256x224 ends it
+// with the standard font (VWF) back.
 // The page stream goes to build/sgb/text.fph.
 #include <cstdio>
 #include <cstdlib>
@@ -86,20 +87,17 @@ int main(int n,char** v){
         for(unsigned i=0;i<item;++i)key(0x83);key(10);};
     auto rows=[&](){return unsigned(m->Read(syms.at("_screen_rows")));};
 
-    settings(6); // RESOLUTION: 512x448 only with 8X8 TILES (or in a map)
-    Check(box().find("| 256x224|")!=std::string::npos && box().find("512x448")==std::string::npos,"RESOLUTION: 256x224 alone with the standard font");
-    key(10);
-    settings(5);key(0x83);key(10); // FONT > 8X8 TILES
-    Check(m->Read(syms.at("_font_tiles"))==1 && !model.text && rows()==28,"8X8 TILES at 256x224: still 28 rows");
-    settings(6);
-    Check(box().find("| 256x224| 512x448|")!=std::string::npos,"RESOLUTION with 8X8 TILES: 256x224, 512x448");
-    key(0x83);key(10);
+    Check(m->Read(syms.at("_font"))==1,"the browser in VWF at 256x224");
+    settings(6); // RESOLUTION: all three on an SGB, whatever the font
+    Check(box().find("| 160x144| 256x224| 512x448|")!=std::string::npos,"RESOLUTION: 160x144, 256x224, 512x448");
+    key(0x83);key(10); // (from 256x224's place)
     unsigned waited=wait(3000,[&]{return model.text && model.textRows==54 && selected().size();});
     printf("512x448 text: %u GB frames, %u of the extension's bytes\n",waited,model.codeBytes);
     {std::vector<u8> dat=Read(v[4]);Check(model.codeBytes==(dat[6]|dat[7]<<8u),"the kernel's extension sent whole before TEXT 1");}
     Check(model.text==1 && rows()==56 && m->Read(syms.at("_screen_cells"))==1,"TEXT 1: 56 rows");
     Check(model.barFlags==3 && model.top==1 && model.textRows==54,"the browser's 54 rows between the bars");
     Check(m->Read(syms.at("_resolution"))==2,"saved as the RESOLUTION setting");
+    Check(m->Read(syms.at("_font_tiles"))==0 && m->Read(syms.at("_font"))==0,"the standard font kept, the mono font's characters meanwhile");
     Check(h->WritePPM("build/sgb/text-browser.ppm"),"browser screenshot");
 
     for(unsigned i=0;i<12 && selected().find("long.txt")==std::string::npos;++i)key(0x83);
@@ -139,5 +137,21 @@ int main(int n,char** v){
     settings(6);key(0x82);key(10); // RESOLUTION > 256x224
     wait(1500,[&]{return !model.text && selected().size();});
     Check(!model.text && rows()==28 && model.textRows==26 && m->Read(syms.at("_resolution"))==0,"256x224 again: 28 rows");
+    Check(m->Read(syms.at("_font"))==1,"VWF again at 256x224");
+    // 512x448 chosen in a map's menu: the map at 512x448 at once, the text when the map closes
+    for(unsigned i=0;i<12 && selected().find("Test.gbmap")==std::string::npos;++i)key(0x83);
+    key(10);
+    waited=wait(30000,[&]{return model.mapMode && model.mapCells[28*128+32];});
+    Frames(core,120);
+    Check(model.mapMode==1 && !model.text,"the map at 256x224");
+    settings(6);
+    Check(box().find("| 160x144| 256x224| 512x448|")!=std::string::npos,"RESOLUTION in a map: all three");
+    key(0x83);key(10);
+    wait(3000,[&]{return model.mapMode==(1|SGBFS_MAP_HIRES);});
+    Check(model.mapMode==(1|SGBFS_MAP_HIRES) && !model.text && rows()==28,"512x448 in the map: the map now, the text waits");
+    pad(8,4);key(0x82);key(10); // CLOSE
+    waited=wait(3000,[&]{return !model.mapMode && model.text && selected().find("Test.gbmap")!=std::string::npos;});
+    printf("map closed into 512x448 text: %u GB frames\n",waited);
+    Check(!model.mapMode && model.text==1 && rows()==56 && model.textRows==54,"Close: 512x448 text");
     printf("SGB fullscreen 512x448 text passed\n");
 }
