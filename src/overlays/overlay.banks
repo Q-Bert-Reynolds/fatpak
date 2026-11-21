@@ -2,6 +2,7 @@
 5: OverlayInstallBody
 4: OverlayRestoreBody
 6: Transfer
+6: CopyCheck
 8: Prepare
 9: Restore
 11: Header

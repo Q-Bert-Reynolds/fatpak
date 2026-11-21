@@ -2087,21 +2087,16 @@ FsLog:
   call FsLogRestore
   ld a, 1
   ldh [fs_log_dirty], a
-  ; Initial drawing can stall before reaching FsInput, with module_busy set.
-  ; Its source file is already closed. Save each page exchange now, while
-  ; later module callbacks retain the normal no-filesystem-recursion guard.
+  ; Initial drawing can stall before reaching FsInput, with module_busy set
+  ; (FsLogFlush skips it). Its source file is already closed: a timeout saves
+  ; the log now, the records before it with it. (Saving each page exchange
+  ; rewrote the whole file several times a page, seconds of startup.)
   ldh a, [fs_log_active]
   cp 2
   jr nz, .done
   ld a, d
-  cp 8
-  jr z, .persist
-  cp 2
-  jr c, .done
-  cp 5
-  jr nc, .done
-.persist
-  call FsLogWrite
+  cp 4
+  call z, FsLogWrite
 .done
   pop hl
   pop de

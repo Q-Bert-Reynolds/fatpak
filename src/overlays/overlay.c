@@ -26,19 +26,51 @@ static unsigned int WindowCRC(unsigned int block, unsigned int offset, unsigned 
   }
   return crc;
 }
+// Copies count (> 0) bytes, reading each back: 1 if one didn't stick. DE = to, BC = from, the count on the
+// stack (removed, as ModuleCRC's)
+static unsigned char CopyCheck(unsigned char* to, const unsigned char* from, unsigned int count) __naked {
+  to; from; count;
+  __asm
+    ld hl, sp+2
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    push hl
+    ld h, b
+    ld l, c
+    pop bc
+.byte:
+    ld a, [hl]
+    ld [de], a
+    ld a, [de]
+    cp [hl]
+    jr nz, .bad
+    inc hl
+    inc de
+    dec bc
+    ld a, b
+    or c
+    jr nz, .byte
+    xor a
+    jr .done
+.bad:
+    ld a, 1
+.done:
+    pop hl
+    add sp, 2
+    jp hl
+  __endasm;
+}
 // Copy/compare each chunk, including unaligned headers and a partial tail.
 static unsigned char Transfer(unsigned char save, unsigned int block, unsigned int offset,
                               unsigned char* target, unsigned int n) {
   unsigned int count;
-  volatile unsigned char* p;
+  unsigned char* p;
   while(n) {
     SetWindowBlock(block++); count=Chunk(offset,n); n-=count;
-    p=WINDOW+offset;
-    while(count--) {
-      if(save) *p=*target; else *target=*p;
-      if(*target++!=*p++) return 1;
-    }
-    offset=0;
+    p=(unsigned char*)WINDOW+offset;
+    if(save ? CopyCheck(p,target,count) : CopyCheck(target,p,count)) return 1;
+    target+=count; offset=0;
   }
   return 0;
 }
@@ -86,12 +118,12 @@ unsigned char OverlayInstallBody(void) {
   if(!result) {
     overlay_saved[0]=overlay_request.target; overlay_saved[1]=overlay_request.length;
     overlay_saved[2]=ModuleCRC((const unsigned char*)overlay_saved[0],overlay_saved[1],0xFFFF);
+    // Transfer reads each byte back, so the backup equals the CRC'd renderer and the installed bytes the CRC'd
+    // source (Prepare): no CRC passes over them again
     result=Transfer(1,OVERLAY_BACKUP,0,(unsigned char*)overlay_saved[0],overlay_saved[1]);
-    if(!result && WindowCRC(OVERLAY_BACKUP,0,overlay_saved[1])!=overlay_saved[2]) result=OVERLAY_INVALID;
     if(!result) {
       overlay_live=1;
-      if(Transfer(0,overlay_request.source,overlay_request.offset,(unsigned char*)overlay_saved[0],overlay_saved[1]) ||
-         ModuleCRC((const unsigned char*)overlay_saved[0],overlay_saved[1],0xFFFF)!=overlay_request.crc)
+      if(Transfer(0,overlay_request.source,overlay_request.offset,(unsigned char*)overlay_saved[0],overlay_saved[1]))
         result=Restore()?OVERLAY_FATAL:OVERLAY_INVALID;
     }
   }

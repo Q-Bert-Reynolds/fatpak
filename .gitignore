@@ -9,7 +9,7 @@
 
 # generated GameBoy files
 # bin/*
-# build/*
+build/*
 # *.gb
 # *.gbc
 # *.map
@@ -80,29 +80,3 @@ __pycache__/
 # Editor config folder
 # *.vscode
 node_modules
-
-# Composed from the VWF font by the normal build
-/build/ingame_menu.asm
-
-# Raw and page-placed C assembly, and generated include/call lists
-/build/c/
-/build/asm/
-/build/c_calls.asm
-/build/c_modules.inc
-
-/build/modules/
-
-# tests/test_asm.py's PC build of the assembler module
-/build/asm_host*
-
-# Linked keyboard driver intermediates
-/build/drivers/
-
-# Standalone Mesen SNES mouse integration harness
-/build/snes_mouse.gb
-
-# Standalone SGB fullscreen probes (make sgb-hello / test-sgb-hello)
-/build/sgb/
-
-# Generated fixed-overlay objects and integration fixtures.
-/build/overlays/

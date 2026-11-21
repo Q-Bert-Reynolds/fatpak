@@ -22,52 +22,115 @@ static unsigned char Read(unsigned long pos) {
 static unsigned long Long(const unsigned char* p) {
   return p[0]|((unsigned long)p[1]<<8)|((unsigned long)p[2]<<16)|((unsigned long)p[3]<<24);
 }
+// CRC-16/CCITT ($1021, as the OS's ModuleCRC) through a table: crc = crc << 8 ^ T[crc >> 8 ^ byte], T's high
+// bytes in one page and its low bytes in the next (about 60 cycles a byte rather than ModuleCRC's 200: the
+// package is 60 KiB)
+static unsigned char crc_space[768];
+static unsigned char crc_page,crc_groups;
+static void CRCTables(void) {
+  unsigned int i,v;
+  unsigned char k;
+  unsigned char* t;
+  crc_page=((unsigned int)crc_space+255)>>8;
+  t=(unsigned char*)((unsigned int)crc_page<<8);
+  for(i=0;i<256;++i) {
+    v=i<<8;
+    for(k=0;k<8;++k) v=v&0x8000?(v<<1)^0x1021:v<<1;
+    t[i]=v>>8;t[256+i]=v;
+  }
+}
 // Each native loop stays within the selected 512-byte cartridge window.
-// These use SDCC's SM83 register ABI: first pointer in DE, second word in BC.
+// These use SDCC's SM83 register ABI: first pointer in DE, second word in BC (here at most 1023: groups of 4
+// bytes counted in a byte, then the rest).
 static void CRCBlock(const unsigned char* from, unsigned int count) __naked {
   from; count;
   __asm
-    ld a, b
-    or c
-    ret z
+    ld a, c
+    and 3
+    push af
+    srl b
+    rr c
+    srl b
+    rr c
+    ld a, c
+    ld [_crc_groups], a
     ld a, [_crc]
-    ld l, a
+    ld c, a
     ld a, [_crc+1]
+    ld b, a
+    ld a, [_crc_page]
     ld h, a
-.byte:
+    ld a, [_crc_groups]
+    and a
+    jr z, .rest
+.group:
     ld a, [de]
     inc de
-    push de
-    xor h
-    ld d, a
-    swap a
-    and $0F
-    xor d
-    ld d, a ;// x = (high ^ byte) ^ ((high ^ byte) >> 4)
-    swap a
-    and $F0
-    xor l
-    ld e, a
-    ld a, d
-    rrca
-    rrca
-    rrca
+    xor b
     ld l, a
-    and $1F
-    xor e
-    ld h, a
-    ld a, l
-    and $E0
-    xor d
+    ld a, [hl]
+    xor c
+    ld b, a
+    inc h
+    ld c, [hl]
+    dec h
+    ld a, [de]
+    inc de
+    xor b
     ld l, a
-    pop de
-    dec bc
-    ld a, b
-    or c
+    ld a, [hl]
+    xor c
+    ld b, a
+    inc h
+    ld c, [hl]
+    dec h
+    ld a, [de]
+    inc de
+    xor b
+    ld l, a
+    ld a, [hl]
+    xor c
+    ld b, a
+    inc h
+    ld c, [hl]
+    dec h
+    ld a, [de]
+    inc de
+    xor b
+    ld l, a
+    ld a, [hl]
+    xor c
+    ld b, a
+    inc h
+    ld c, [hl]
+    dec h
+    ld a, [_crc_groups]
+    dec a
+    ld [_crc_groups], a
+    jr nz, .group
+.rest:
+    pop af
+    and a
+    jr z, .done
+.byte:
+    push af
+    ld a, [de]
+    inc de
+    xor b
+    ld l, a
+    ld a, [hl]
+    xor c
+    ld b, a
+    inc h
+    ld c, [hl]
+    dec h
+    pop af
+    dec a
     jr nz, .byte
-    ld a, l
+.done:
+    ld a, c
     ld [_crc], a
-    ld a, h
+    ld a, b
     ld [_crc+1], a
     ret
   __endasm;
@@ -132,7 +195,7 @@ static unsigned char Validate(void) {
      e>0x2400||(e&&!o)||!p||load<0x7F0000||load>=0x800000||(load&4095)||
      p>0x800000-load||f>0x800000-load-p||entry<load||entry>=load+p||o!=0x1D00||
      file.size!=32+p+f+o+e||header[28]!=REG(0x14E)||header[29]!=REG(0x14F)||header[30]!=1||header[31]!=1) return 1;
-  crc=0xFFFF;
+  CRCTables();crc=0xFFFF;
   // The stored CRC field contributes two zero bytes, without changing PSRAM.
   CRCBlock(header,26);CRCBlock(zero_crc,2);
   i=file.size-28;block=SGB_FILE_BLOCK;offset=28;

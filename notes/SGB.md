@@ -1024,9 +1024,11 @@ upload/JUMP.
 
 Fullscreen writes a bounded binary flight recorder to `/GBCSYS/SGB.LOG`.
 After upload/HELLO, it replaces the previous log before the first page wait.
-Until the first ordinary input callback, each page publication, ACK and timeout
-is saved immediately. The bootstrap's source file is already closed; subsequent
-module callbacks retain the filesystem recursion guard.
+Until the first ordinary input callback, a page timeout saves the log
+immediately (with the records before it); the ordinary flush can't run while
+the bootstrap draws. (Saving every publication and ACK rewrote the whole file
+several times a page: seconds of startup.) The bootstrap's source file is
+already closed; subsequent module callbacks retain the filesystem recursion guard.
 Pre-wait records include `LCDC`, `LY`, `IE` and `IF`. Log writes temporarily
 mask interrupts and restore `IE`, preserving `IME` and pending requests.
 GB frame timestamps exclude frames lost during these masked writes; the SNES
@@ -1264,6 +1266,20 @@ change targets startup rather than drawing. Comparisons/logs:
 reports boot milestones and checks CRC rejection at the stored checksum and
 both sides of a cartridge-window boundary, alongside upload bytes, zero padding,
 editing/saving and rollback. Hardware testing is pending.
+
+Startup, again (2026-11-21, `bin/SGB.DAT` with the BIOS snapshot, mouse and
+extension; Gearboy, GB side only): first DATA_TRN at frame 720, JUMP 818, the
+first screen's drawing done about 1,140. The package CRC took 180 frames, the
+overlay install 150 (four CRC passes and two C copy loops over 7.4 KB), and the
+bootstrap's log saved the whole SGB.LOG at each page publication and ACK while
+drawing. Now SGBBOOT CRCs through a 512-byte table built in its BSS (about 60
+cycles a byte rather than 200), the overlay copies with an asm loop that reads
+each byte back and drops the two CRC passes that read-back makes redundant, and
+only a timeout saves the log before the first input: first DATA_TRN 529, JUMP
+627, drawing done about 800 (some 5.5 s sooner). What's left before JUMP: the
+OS's own startup (to about frame 300, the same at 160x144), reading SGB.DAT
+(about 90 frames), the CRC (about 70), the overlay (about 30) and the 13
+DATA_TRN blocks (98).
 
 The fixed-width composed-tile path now passes 144 native comparisons against
 the original compositor: all character codes, styles, row lengths, final-column
