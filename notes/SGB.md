@@ -503,12 +503,11 @@ then JUMPs again. LaunchGame leaves fullscreen this way first and launches as fr
 `tests/run_sgb_text.sh` covers EXIT, fullscreen again from the BIOS and a game's
 launch from fullscreen (Gearboy's host offers EXIT and drops to its own SGB).
 
-Space: the kernel image is full (49,142 of 49,152 bytes; new code has to go to the
-extension); the GB's FIXED bank has 28 bytes, WRAM0 none, the OS pages 98–99%.
+Space: the kernel image is full (about 70 of 49,152 bytes left; new code has to go to the
+extension or the resident part); the GB's FIXED bank has 28 bytes, WRAM0 none, the OS pages 98–99%.
 
 Still to do: hardware confirmation (timing of the driver's `$FE`, the IPL, VRAM reads
-by DMA); SGB2 and other SGB1 revisions (their checksums, register values, sample
-stream address and RTS); commands that keep state the snapshot doesn't hold (the
+by DMA); SGB1 1.0 (no dump yet; 1.1 and SGB2 are done, see "Revisions"); commands that keep state the snapshot doesn't hold (the
 BIOS's WRAM outside the saved ranges is lost: PAL_TRN/ATTR_TRN data, a custom border
 sent by a game before FatPak).
 

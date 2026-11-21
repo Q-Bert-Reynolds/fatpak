@@ -80,8 +80,7 @@ Mode 5 + interlace, no drawing:
     browser, a 120-line file in 54 rows and its scroll, a map open and closed, 256x224 again) and
     `tests/run_sgb_text_session.sh` (that recording on the real kernel in Mesen: every page
     accepted, the browser's 512x448 screens before and after the map against the reference).
-- Not yet: the mouse (`SGBFS_MOUSE_ROW_MASK` is 5 bits; the kernel doesn't offer the mouse yet);
-  Gearboy's half-size render of TEXT 1 skips the OSK; the text is blank while a map is open
+- Not yet: Gearboy's half-size render of TEXT 1 skips the OSK; the text is blank while a map is open
   (the rows were cleared for 256x224 and come back cleared after: the app's next draw fills
   them). Hardware: legibility of 8x8 glyphs at 448 interlaced lines.
 
