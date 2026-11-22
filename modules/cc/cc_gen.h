@@ -27,6 +27,7 @@ extern u16 str_len;   // bytes of the string literal being written
 // functions, all pages
 void helpers_comment(void);
 void emit(u8 op, u16 a, u16 b);
+extern u8 cg_dead, cg_void; // cc_gen_emit.c: nothing reaches here (after jp or ret, until a label); the value is unused
 void gen_place(u16 label);
 void gen_comment_line(u16 line);
 void push(u8 op);
@@ -60,10 +61,10 @@ u8 compare(u16 n);
 void cond_value(u8 c);
 void test_zero(u16 t);
 void gen_branch(u16 n, u16 label, u8 when);
-void store_to(u16 lhs, u16 t);
-void assign(u16 n);
-void opassign(u16 n);
-void incdec(u16 n);
+void store_to(u16 lhs, u16 t, u8 keep);
+void assign(u16 n, u8 unused);
+void opassign(u16 n, u8 unused);
+void incdec(u16 n, u8 unused);
 void call(u16 n);
 void gen_addr(u16 n);
 void gen(u16 n);

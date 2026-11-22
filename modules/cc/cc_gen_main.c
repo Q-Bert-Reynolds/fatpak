@@ -21,7 +21,7 @@ u16 str_len;   // bytes of the string literal being written
 void gen_func_begin(u16 sym) {
   u8 where[CC_PARAMS]; u16 offs[CC_PARAMS], i, ft = SY_TYPE(sym);
   gen_sink(SINK_CODE);
-  cur_func = sym; last_line = 0;
+  cur_func = sym; last_line = 0; cg_dead = 0;
   out_str(SINK_CODE, "\n");
   gen_sym_name(SINK_CODE, sym);
   out_str(SINK_CODE, SY_LINKAGE(sym) == L_EXTERN ? "::\n" : ":\n");
@@ -52,9 +52,10 @@ void gen_func_end(void) {
   else E0(I_RET);
 }
 
-void gen_expr(u16 n) {
+void gen_expr(u16 n) { // a statement's expression: its value is unused
   if (ND_OP(n) == N_POSTINC) ND_OP_SET(n, N_PREINC);
   else if (ND_OP(n) == N_POSTDEC) ND_OP_SET(n, N_PREDEC);
+  cg_void = 1;
   gen(n);
 }
 
@@ -150,6 +151,22 @@ void data_op(u8 op) {
   case IR_DSTREND: out_str(SINK_STR, str_len & 15 ? ", 0\n" : "\n\tDB 0\n"); return;
   }
   cc_error(E_INTERNAL_UNKNOWN_NODE);
+}
+
+// (moved from the full pages: called once per section or comparison value)
+void cond_value(u8 c) { // HL = the condition as 0 or 1
+  if (c == C_C || c == C_NC) { E0(I_LD_HL_0); if (c == C_NC) E0(I_CCF); E0(I_RL_L); return; }
+  { u16 skip = gen_label(); E0(I_LD_HL_0); E1(I_JP_C_L + (c ^ 1), skip); E0(I_INC_L); gen_place(skip); }
+}
+
+void gen_sink(u8 sink) {
+  static const char* const names[] = { "code", "rodata", "str", "data", "", "bss" };
+  static const char* const kinds[] = { "ROM0", "ROM0", "ROM0", "WRAM0", "", "WRAM0" };
+  if (cc_st.sink_open & (1 << sink)) return;
+  cc_st.sink_open |= (u8)(1 << sink);
+  if (sink == SINK_INIT) { out_str(sink, "\nSECTION FRAGMENT \"cc_init\", ROM0\n"); return; }
+  out_str(sink, "\nSECTION \"cc."); out_str(sink, cc_st.unit); out_str(sink, "."); out_str(sink, names[sink]);
+  out_str(sink, "\", "); out_str(sink, kinds[sink]); out_str(sink, "\n");
 }
 
 // ---- pass C ----

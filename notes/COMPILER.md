@@ -41,7 +41,11 @@ loading modules and byte loops were the rest. 2026-11-22's changes (ModFar's fas
 Fletcher module check, `cc_copy` for PSRAM copies, ASM's lexer in assembly) took it from
 2,700 frames to ~2,080 (-23%). What's left: ASM's lexing (`Advance`, `Keyword`), installing
 and verifying module pages (`mem_Copy`, `ModuleCompare`, ~12%), and the generated code's
-size (every local on the stack: ASM reads ~1,400 lines for 40 of C).
+size (every local on the stack: ASM reads ~1,400 lines for 40 of C). The generator then
+(2026-11-22) dropped unreachable instructions after `jp`/`ret` and jumps to the next line
+(`emit`'s `cg_dead`, `cg_jump`), updated locals and globals in place for `++`, `--` and `op=`,
+skipped keeping a statement's unused value (`cg_void`) and stored constants straight into local
+slots: the fixtures' code -8% (19,270 bytes to 17,764). Register reuse is the next step.
 
 ### Pieces
 

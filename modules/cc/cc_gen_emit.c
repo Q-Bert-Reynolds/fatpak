@@ -131,6 +131,7 @@ static const char* const templates[I_COUNT] = {
   "ld [hl+], a",
   "dec bc",
   "ld a, b",
+  "ld [hl], %u",
 };
 
 static const char* const helper_names[] = {
@@ -153,10 +154,18 @@ void helpers_comment(void) { // the helpers the unit calls (helper_names is on t
   out_str(SINK_CODE, "\n");
 }
 
+// After a jp or ret nothing runs until the next label, so emit drops those instructions; a jp
+// waits (cg_jump) and is dropped if its label comes next. Anything else written to the code
+// sink first writes it (out_bytes), apart from line comments.
+u8 cg_dead, cg_void, cg_jumping, cg_quiet;
+static u16 cg_jump;
 void emit(u8 op, u16 a, u16 b) {
   const char* f = templates[op];
   char buf[24];
   u8 n = 1, second = 0;
+  if (cg_dead) return;
+  if (op == I_JP_L && !cg_quiet) { cg_jump = a; cg_jumping = 1; cg_dead = 1; return; }
+  if (op == I_RET) cg_dead = 1;
   buf[0] = '\t';
   for (;; ++f) {
     u16 v;
@@ -175,12 +184,18 @@ void emit(u8 op, u16 a, u16 b) {
   out_str(SINK_CODE, "\n");
 }
 
-void gen_place(u16 label) { out_str(SINK_CODE, ".L"); out_num(SINK_CODE, label); out_str(SINK_CODE, ":\n"); }
+void gen_place(u16 label) {
+  if (cg_jumping && cg_jump == label) cg_jumping = 0; // a jump to the next line
+  cg_dead = 0;
+  out_str(SINK_CODE, ".L"); out_num(SINK_CODE, label); out_str(SINK_CODE, ":\n");
+}
 
 void gen_comment_line(u16 line) {
   if (line == last_line) return;
   last_line = line;
+  cg_quiet = 1; // before a waiting jp: a comment doesn't run
   out_str(SINK_CODE, "; line "); out_num(SINK_CODE, line); out_str(SINK_CODE, "\n");
+  cg_quiet = 0;
 }
 
 // ---- stack ----
@@ -257,6 +272,7 @@ void conv(u16 from, u16 to) {
 void ld_named(u8 which, u16 n, s16 extra) { // the named object's address, offset by extra, in an instruction
   // e.g. "ld hl, " name+off "" / "ld [" name+off "], a"
   s32 off = ND_VAL(n) + extra;
+  if (cg_dead) return;
   out_str(SINK_CODE, "\t"); out_str(SINK_CODE, named_parts[which][0]);
   gen_sym_name(SINK_CODE, ND_A(n));
   if (off) { out_str(SINK_CODE, off > 0 ? " + " : " - "); out_num(SINK_CODE, off > 0 ? off : -off); }
@@ -348,6 +364,13 @@ void out_flush(void) {
 void out_bytes(u8 sink, const char* s, u16 n) {
   u16 at = cc_st.sink_n[sink];
   if ((u32)at + n > (u32)CC_SINK_BLOCKS * 512 - 1) cc_error(E_OUTPUT_TOO_LARGE);
+  if (cg_jumping && sink == SINK_CODE && !cg_quiet) { // the waiting jp first
+    u8 dead = cg_dead;
+    cg_jumping = 0; cg_dead = 0; cg_quiet = 1;
+    emit(I_JP_L, cg_jump, 0);
+    cg_quiet = 0; cg_dead = dead;
+    at = cc_st.sink_n[sink];
+  }
   if (sink != ob_sink) { out_flush(); ob_sink = sink; }
   if (n > (u16)(sizeof(ob) - ob_n)) out_flush();
   cc_st.sink_n[sink] = (u16)(at + n);
@@ -376,12 +399,3 @@ void gen_sym_name(u8 sink, u16 s) {
   else { out_str(sink, "_"); out_name(sink, SY_NAME(s)); }
 }
 
-void gen_sink(u8 sink) {
-  static const char* const names[] = { "code", "rodata", "str", "data", "", "bss" };
-  static const char* const kinds[] = { "ROM0", "ROM0", "ROM0", "WRAM0", "", "WRAM0" };
-  if (cc_st.sink_open & (1 << sink)) return;
-  cc_st.sink_open |= (u8)(1 << sink);
-  if (sink == SINK_INIT) { out_str(sink, "\nSECTION FRAGMENT \"cc_init\", ROM0\n"); return; }
-  out_str(sink, "\nSECTION \"cc."); out_str(sink, cc_st.unit); out_str(sink, "."); out_str(sink, names[sink]);
-  out_str(sink, "\", "); out_str(sink, kinds[sink]); out_str(sink, "\n");
-}

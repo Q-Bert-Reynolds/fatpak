@@ -88,10 +88,6 @@ u8 compare(u16 n) {
   return op == N_GT ? C_C : C_NC;
 }
 
-void cond_value(u8 c) { // HL = the condition as 0 or 1
-  if (c == C_C || c == C_NC) { E0(I_LD_HL_0); if (c == C_NC) E0(I_CCF); E0(I_RL_L); return; }
-  { u16 skip = gen_label(); E0(I_LD_HL_0); E1(I_JP_C_L + (c ^ 1), skip); E0(I_INC_L); gen_place(skip); }
-}
 
 void test_zero(u16 t) { // Z if the value is zero
   E0(I_LD_A_H); E0(I_OR_A_L);
@@ -124,7 +120,7 @@ void gen_branch(u16 n, u16 label, u8 when) {
 
 // (Loops, not size tests: SDCC 4.2.0 computed the tests up front and lost registers holding
 // size and is_named's result to `ld hl, sp+n`, so a long's high word went missing on the Game Boy.)
-void store_to(u16 lhs, u16 t) { // the value (HL/DEHL) into lhs, keeping it in HL/DEHL
+void store_to(u16 lhs, u16 t, u8 keep) { // the value (HL/DEHL) into lhs, keeping it in HL/DEHL if keep
   u8 size = (u8)size_of(t), i; // 1, 2 or 4
   if (is_named(lhs)) {
     for (i = 0; i < size; ++i) ld_named(i, lhs, i); // named_parts 0-3: from l, h, e, d
@@ -135,10 +131,13 @@ void store_to(u16 lhs, u16 t) { // the value (HL/DEHL) into lhs, keeping it in H
   sp_addr((s16)(SY_POS(ND_A(lhs)) + ND_VAL(lhs)));
   E0(I_LD_MHL_C);
   for (i = 1; i < size; ++i) { E0(I_INC_HL); E0(i == 1 ? I_LD_MHL_B : i == 2 ? I_LD_MHL_E : I_LD_MHL_D); }
-  E0(I_LD_H_B); E0(I_LD_L_C);
+  if (keep) { E0(I_LD_H_B); E0(I_LD_L_C); }
 }
 
-void assign(u16 n) {
+// a local or named lvalue: loaded and stored in place, no address kept on the stack
+static u8 direct(u16 l) { return is_local(l) || is_named(l); }
+
+void assign(u16 n, u8 unused) {
   u16 l = ND_A(n), r = ND_B(n), t = NT_(l);
   if (TK(t) == T_STRUCT || TK(t) == T_UNION) {
     gen_addr(l); push(I_PUSH_HL); gen(r); pop(I_POP_DE); push(I_PUSH_DE);
@@ -146,15 +145,27 @@ void assign(u16 n) {
     pop(I_POP_HL);
     return;
   }
-  if (is_named(l) || is_local(l)) { gen(r); store_to(l, t); return; }
+  if (unused && is_local(l) && ND_OP(r) == N_NUM) { // a constant: straight into the slot
+    u32 v = (u32)ND_VAL(r);
+    u8 size = (u8)size_of(t), i;
+    sp_addr((s16)(SY_POS(ND_A(l)) + ND_VAL(l)));
+    for (i = 0; i < size; ++i) {
+      if (i) E0(I_INC_HL);
+      E1(I_LD_MHL_U, (u8)v);
+      v >>= 8;
+    }
+    return;
+  }
+  if (direct(l)) { gen(r); store_to(l, t, !unused); return; }
   gen_addr(l); push(I_PUSH_HL); gen(r); pop(I_POP_BC); store_bc(t);
 }
 
-void opassign(u16 n) {
+void opassign(u16 n, u8 unused) {
   u16 l = ND_A(n), r = ND_B(n), t = NT_(l), ct = ND_C(n);
-  u8 op = ND_FLAGS(n);
-  gen_addr(l); push(I_PUSH_HL);
-  load(t); conv(t, ct);
+  u8 op = ND_FLAGS(n), in_place = direct(l);
+  if (in_place) gen(l);
+  else { gen_addr(l); push(I_PUSH_HL); load(t); }
+  conv(t, ct);
   if (size_of(ct) == 4) {
     push(I_PUSH_DE); push(I_PUSH_HL); gen(r);
     if (op == N_SHL || op == N_SHR) call_helper32(op == N_SHL ? H_SHL32 : ty_is_signed(ct) ? H_SHRS32 : H_SHRU32);
@@ -163,20 +174,23 @@ void opassign(u16 n) {
   else if (simple(r)) { E0(I_LD_D_H); E0(I_LD_E_L); gen(r); binary16(op, ct); }
   else { push(I_PUSH_HL); gen(r); pop(I_POP_DE); binary16(op, ct); }
   conv(ct, t);
+  if (in_place) { store_to(l, t, !unused); return; }
   pop(I_POP_BC); store_bc(t);
 }
 
-void incdec(u16 n) {
-  u16 t = ND_TYPE(n), step = (u16)ND_VAL(n);
+void incdec(u16 n, u8 unused) {
+  u16 t = ND_TYPE(n), step = (u16)ND_VAL(n), l = ND_A(n);
   u8 op = ND_OP(n), inc = op == N_PREINC || op == N_POSTINC, post = op == N_POSTINC || op == N_POSTDEC;
-  gen_addr(ND_A(n)); push(I_PUSH_HL); load(t);
+  u8 in_place = direct(l);
+  if (in_place) gen(l);
+  else { gen_addr(l); push(I_PUSH_HL); load(t); }
   if (size_of(t) == 4) {
     u16 skip = gen_label();
-    pop(I_POP_BC);
+    if (!in_place) pop(I_POP_BC);
     if (post) { push(I_PUSH_DE); push(I_PUSH_HL); }
     if (inc) { E0(I_INC_HL); E0(I_LD_A_H); E0(I_OR_A_L); E1(I_JP_NZ_L, skip); E0(I_INC_DE); gen_place(skip); }
     else { E0(I_LD_A_H); E0(I_OR_A_L); E1(I_JP_NZ_L, skip); E0(I_DEC_DE); gen_place(skip); E0(I_DEC_HL); }
-    store_bc(t);
+    if (in_place) store_to(l, t, post || !unused); else store_bc(t);
     if (post) { pop(I_POP_HL); pop(I_POP_DE); }
     return;
   }
@@ -184,7 +198,8 @@ void incdec(u16 n) {
   if (step == 1) E0(inc ? I_INC_HL : I_DEC_HL);
   else { E1(I_LD_BC_U, inc ? step : (u16)(0u - step)); E0(I_ADD_HL_BC); }
   conv(TY_INT, t);
-  pop(I_POP_BC); store_bc(t);
+  if (in_place) store_to(l, t, !post && !unused); // a post's value comes back from DE
+  else { pop(I_POP_BC); store_bc(t); }
   if (post) { E0(I_LD_H_D); E0(I_LD_L_E); }
 }
 
@@ -237,6 +252,7 @@ void gen_addr(u16 n) {
     return;
   case N_DEREF: gen(ND_A(n)); return;
   case N_STR:
+    if (cg_dead) return;
     out_str(SINK_CODE, "\tld hl, __"); out_str(SINK_CODE, cc_st.unit); out_str(SINK_CODE, "__"); out_num(SINK_CODE, ND_A(n)); out_str(SINK_CODE, "\n");
     return;
   }
@@ -245,7 +261,8 @@ void gen_addr(u16 n) {
 
 void gen(u16 n) {
   u16 t = ND_TYPE(n);
-  u8 k = TK(t);
+  u8 k = TK(t), unused = cg_void; // only the statement's own node: its operands' values are used
+  cg_void = 0;
   switch (ND_OP(n)) {
   case N_NUM:
     if (size_of(t) == 4) { E1(I_LD_DE_U, (u16)((u32)ND_VAL(n) >> 16)); E1(I_LD_HL_U, (u16)ND_VAL(n)); }
@@ -293,9 +310,9 @@ void gen(u16 n) {
     return;
   }
   case N_COMMA: gen(ND_A(n)); gen(ND_B(n)); return;
-  case N_ASSIGN: assign(n); return;
-  case N_OPASSIGN: opassign(n); return;
-  case N_PREINC: case N_PREDEC: case N_POSTINC: case N_POSTDEC: incdec(n); return;
+  case N_ASSIGN: assign(n, unused); return;
+  case N_OPASSIGN: opassign(n, unused); return;
+  case N_PREINC: case N_PREDEC: case N_POSTINC: case N_POSTDEC: incdec(n, unused); return;
   case N_CALL: call(n); return;
   }
   cc_error(E_INTERNAL_UNKNOWN_NODE);
