@@ -45,6 +45,7 @@ static void Frames(GearboyCore& core, unsigned count)
     s16 audio[AUDIO_BUFFER_SIZE];
     while (count--) { int n = 0; core.RunToVBlank(frame.data(), audio, &n); }
 }
+static unsigned call_bc, call_de; // a routine's BC and DE when it returned (a 32-bit result: DEBC)
 static unsigned Call(GearboyCore& core, unsigned address, unsigned argument = 0, u8 a = 0)
 {
     auto cpu = core.GetProcessor()->GetState(); auto memory = core.GetMemory();
@@ -56,6 +57,7 @@ static unsigned Call(GearboyCore& core, unsigned address, unsigned argument = 0,
         if (i % 3000 == 2999) { s16 audio[AUDIO_BUFFER_SIZE]; int n = 0; core.EndFrame(audio, &n); }
     }
     Check(cpu->PC->GetValue() == 0x7FFF, "OS routine returns");
+    call_bc = cpu->BC->GetValue(); call_de = cpu->DE->GetValue();
     return cpu->AF->GetValue() >> 8;
 }
 static void SetText(Memory* memory, const char* text)
@@ -116,6 +118,11 @@ static void Unavailable(const char* image,const char* symbols) {
     memory->Write(syms.at("_src_ui_footer_c_frames"),0);
     for(unsigned i=0;i<8;++i)memory->Write(syms.at("_footer_time")+i,0);
     Check(Call(core,syms.at("_ClockRead"),0xC200)==1,"fixture RTC is unavailable");
+    Call(core,syms.at("_ClockFatTime"));
+    Check(call_de==0x5C21&&call_bc==0,"FatFs's time without a clock is 2026-01-01");
+    for(unsigned i=0;i<10;++i)memory->Write(0xC300+i,i*7);
+    Check(Call(core,syms.at("_ClockAdvance"),0xC300)==1,"ClockAdvance without a clock fails");
+    for(unsigned i=0;i<10;++i)Check(memory->Read(0xC300+i)==i*7,"and leaves the registers alone");
     for(unsigned i=0;i<60;++i) Call(core,syms.at("_FooterPoll"));
     Check(Time(memory,syms.at("_footer_time"))=="--:--","unavailable RTC has a placeholder");
     puts("Unavailable RTC footer passed");
@@ -184,8 +191,99 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     Pixels(core,syms,color);
     printf("%s browser clock pixels and idle refresh passed\n",color?"CGB":"DMG");
 }
+// src/rtc/rtc.c's arithmetic, as it was in C (2026-11-22): the assembly must agree with it
+namespace model {
+static unsigned MonthDays(unsigned year, unsigned month) {
+    static const unsigned days[] = {31,28,31,30,31,30,31,31,30,31,30,31};
+    return days[month - 1] + (month == 2 && !(year & 3));
+}
+static unsigned Days(const u8* d) {
+    unsigned days = 0;
+    for (unsigned y = 0; y < d[0]; ++y) days += 365 + !(y & 3);
+    for (unsigned m = 1; m < d[1]; ++m) days += MonthDays(d[0], m);
+    return (days + d[2] - 1) & 0xFFFF;
+}
+static uint32_t Seconds(unsigned d, unsigned h, unsigned m, unsigned s) { return ((uint32_t(d) * 24 + h) * 60 + m) * 60 + s; }
+static uint32_t ClockSeconds(const u8* d) { return Seconds(Days(d), d[3], d[4], d[5]); }
+static uint32_t FatTime(const u8* d) {
+    return (uint32_t(d[0] + 20) << 25) | (uint32_t(d[1]) << 21) | (uint32_t(d[2]) << 16) | (uint32_t(d[3]) << 11) | (d[4] << 5) | (d[5] >> 1);
+}
+static uint32_t GameSeconds(const u8* r) { return Seconds(r[3] | ((r[4] & 1) << 8), r[2], r[1], r[0]); }
+static void Advance(u8* r, const u8* date) {
+    const uint32_t wrap = 44236800UL;
+    uint32_t now = ClockSeconds(date), before, seconds;
+    while (now >= wrap) now -= wrap;
+    before = GameSeconds(r + 5);
+    before = now < before ? now + wrap - before : now - before;
+    seconds = GameSeconds(r);
+    if (!(r[4] & 0x40)) seconds += before;
+    if (seconds >= wrap) { seconds -= wrap; r[4] |= 0x80; }
+    unsigned days = 0;
+    while (seconds >= 86400UL) { seconds -= 86400UL; ++days; }
+    r[3] = days; r[4] = (r[4] & 0xC0) | ((days >> 8) & 0xFF);
+    r[2] = 0; while (seconds >= 3600) { seconds -= 3600; ++r[2]; }
+    r[1] = 0; while (seconds >= 60) { seconds -= 60; ++r[1]; } r[0] = seconds;
+    days = Days(date); r[8] = days; r[9] = (days >> 8) & 1;
+    r[5] = date[5]; r[6] = date[4]; r[7] = date[3];
+}
+}
+// ClockSeconds, ClockFatTime and ClockAdvance against the model, over random calendars and
+// game registers. The emulated clock can tick during a case: then it's tried again.
+static void ClockMath(const char* image, const char* symbols) {
+    GearboyCore core; core.Init(); Check(core.LoadROM(image, false), "clock OS");
+    auto memory = core.GetMemory(); auto syms = Symbols(symbols);
+    memory->Write(0xBD0A, 0xA5); memory->Write(0xBD06, 4); memory->Write(0xBD08, 4);
+    memory->Write(syms.at("loaded_bank"), 4); memory->Write(0xFFFF, 0); memory->Write(0xFF40, 0);
+    memory->Write(syms.at("far_depth"), 0);
+    srand(7);
+    auto date = [&](u8* d) { Check(Call(core, syms.at("_ClockRead"), 0xC210) == 0, "read the clock"); for (unsigned i = 0; i < 6; ++i) d[i] = memory->Read(0xC210 + i); };
+    unsigned cases = 0;
+    for (unsigned n = 0; n < 300; ++n) {
+        u8 d[6] = { u8(n < 3 ? (n == 0 ? 0 : n == 1 ? 99 : 4) : rand() % 100), u8(1 + rand() % 12), 1, u8(rand() % 24), u8(rand() % 60), u8(rand() % 59) };
+        d[2] = 1 + rand() % model::MonthDays(d[0], d[1]);
+        if (n == 1) { d[1] = 12; d[2] = 31; d[3] = 23; d[4] = 59; d[5] = 58; } // the last second of 2099
+        for (unsigned i = 0; i < 6; ++i) memory->Write(0xC200 + i, d[i]);
+        Check(Call(core, syms.at("_ClockWrite"), 0xC200) == 0, "set the clock");
+        for (unsigned attempt = 0; attempt < 5; ++attempt) {
+            u8 before[6], after[6], r[10], want[10];
+            date(before);
+            Call(core, syms.at("_ClockSeconds"), 0xC210);
+            uint32_t seconds = call_de << 16 | call_bc;
+            Call(core, syms.at("_ClockFatTime"));
+            uint32_t fat = call_de << 16 | call_bc;
+            r[0] = rand() % 60; r[1] = rand() % 60; r[2] = rand() % 24; r[3] = rand(); r[4] = rand() & 0xC1;
+            r[5] = rand() % 60; r[6] = rand() % 60; r[7] = rand() % 24; r[8] = rand(); r[9] = rand() & 1;
+            if (n % 7 == 0) r[4] &= ~0x40; // most cases run, these surely
+            for (unsigned i = 0; i < 10; ++i) { memory->Write(0xC300 + i, r[i]); want[i] = r[i]; }
+            unsigned result = Call(core, syms.at("_ClockAdvance"), 0xC300);
+            date(after);
+            if (memcmp(before, after, 6)) continue; // it ticked
+            model::Advance(want, before);
+            if (seconds != model::ClockSeconds(before) || fat != model::FatTime(before) || result) {
+                fprintf(stderr, "date %u-%u-%u %u:%u:%u: seconds %u want %u, fat %08x want %08x, result %u\n", before[0], before[1], before[2],
+                        before[3], before[4], before[5], seconds, model::ClockSeconds(before), fat, model::FatTime(before), result);
+                Check(false, "ClockSeconds and ClockFatTime match the model");
+            }
+            for (unsigned i = 0; i < 10; ++i)
+                if (memory->Read(0xC300 + i) != want[i]) {
+                    fprintf(stderr, "date %u-%u-%u %u:%u:%u, registers in", before[0], before[1], before[2], before[3], before[4], before[5]);
+                    for (unsigned k = 0; k < 10; ++k) fprintf(stderr, " %02x", r[k]);
+                    fprintf(stderr, "\n  got"); for (unsigned k = 0; k < 10; ++k) fprintf(stderr, " %02x", memory->Read(0xC300 + k));
+                    fprintf(stderr, "\n want"); for (unsigned k = 0; k < 10; ++k) fprintf(stderr, " %02x", want[k]);
+                    fprintf(stderr, "\n");
+                    Check(false, "ClockAdvance matches the model");
+                }
+            ++cases;
+            break;
+        }
+    }
+    Check(cases >= 290, "the clock held still for nearly every case");
+    printf("Clock arithmetic: %u cases match the model\n", cases);
+}
+
 int main(int argc,char** argv) {
     Check(argc==4,"usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT");
+    ClockMath(argv[1],argv[2]);
     Format(argv[1],argv[2]);Unavailable(argv[1],argv[2]);
     UI(argv[1],argv[2],argv[3],false);UI(argv[1],argv[2],argv[3],true);
 }

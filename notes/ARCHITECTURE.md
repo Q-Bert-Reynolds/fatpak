@@ -492,7 +492,11 @@ Files bigger than the gap buffer edit through a 48 KiB window (`WIN_SIZE`). A
 `Slide` (`window.c`) commits and reloads when the cursor nears an inner edge;
 `fs_ScanStep` counts lines in the background. `fs_SaveLarge` writes
 `~EDITOR.TMP`, replaces the original and reopens it. The piece table isn't
-persisted.
+persisted. Everything that touches the piece table is asm in `fatfs.c`
+(`DocMath` has the 32-bit helpers); `tests/run_large_doc.sh` checks it against a
+model (random edits, window moves, line scans, LF and CR LF saves). Its scratch
+(`DocRel` and others) lives in page 14 itself, so never pass a pointer to it
+to FatFs on another page: `f_read`'s count goes on the stack.
 
 `/GBCSYS/EDITOR.SWP` holds small-file text, settings and clipboard. A valid
 `TXT3` PSRAM buffer wins over the swap after reset. Large files clear `TXT3` and

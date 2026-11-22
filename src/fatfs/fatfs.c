@@ -492,7 +492,6 @@ unsigned char fs_LoadLanguage(const char* path, unsigned char first) {
 #define NO_MARK 0xFFFFFFFF
 #define SRC_FILE 0
 #define SRC_ADD 1
-#define TEMP_NAME "~EDITOR.TMP"
 typedef struct { BYTE src; DWORD off; DWORD len; } Piece;
 extern Piece pieces[MAX_PIECES]; // src/fatfs/fatfs.asm, in page DOC_PAGE (only its functions can read it)
 extern unsigned char doc_large, win_chunks, win_edited, piece_count, piece_i;
@@ -517,59 +516,579 @@ static void Signature(const char* signature) {
   SetWindowBlock(TB_PSRAM_HIGH << 8);
 }
 
-// copies count bytes between data (WRAM) and the add buffer at offset pos, write = to the add buffer
-static void AddCopy(BYTE* data, unsigned long pos, UINT count, BYTE write) {
-  UINT at, size;
-  while (count) {
-    at = (UINT)pos & 511;
-    size = 512 - at;
-    if (size > count) size = count;
-    SetWindowBlock(ADD_BLOCK + (UINT)(pos >> 9));
-    if (write) memcpy(WINDOW + at, data, size);
-    else memcpy(data, WINDOW + at, size);
-    data += size;
-    pos += size;
-    count -= size;
-  }
-  SetWindowBlock(TB_PSRAM_HIGH << 8);
-}
-
-// the piece document offset pos is in (piece_i, piece_start), 0 at the end
-static Piece* DocPiece(unsigned long pos) {
-  if (pos < piece_start) {
-    piece_i = 0;
-    piece_start = 0;
-  }
-  while (piece_i < piece_count && pos >= piece_start + pieces[piece_i].len) piece_start += pieces[piece_i++].len;
-  return piece_i == piece_count ? 0 : &pieces[piece_i];
+// The piece table's code is assembly (32 bit C is big on the SM83): helpers on 4 byte values in memory,
+// [DE] op= [HL], affecting A and B and leaving DE and HL past them. DocRel is a document offset relative to
+// a piece (DocFind), then the add buffer offset DocCopy copies at
+static void DocMath(void) __naked {
+  __asm
+L32Add:                     ;// [DE] += [HL], carry out
+    ld b, 4
+    and a, a
+.loop:
+    ld a, [de]
+    adc a, [hl]
+    ld [de], a
+    inc de
+    inc hl
+    dec b
+    jr nz, .loop
+    ret
+L32Sub:                     ;// [DE] -= [HL], carry = borrow
+    ld b, 4
+    and a, a
+.loop:
+    ld a, [de]
+    sbc a, [hl]
+    ld [de], a
+    inc de
+    inc hl
+    dec b
+    jr nz, .loop
+    ret
+L32Cmp:                     ;// carry if [DE] < [HL]
+    ld b, 4
+    and a, a
+.loop:
+    ld a, [de]
+    sbc a, [hl]
+    inc de
+    inc hl
+    dec b
+    jr nz, .loop
+    ret
+L32Load:                    ;// [DE] = [HL]
+    ld b, 4
+.loop:
+    ld a, [hl+]
+    ld [de], a
+    inc de
+    dec b
+    jr nz, .loop
+    ret
+L32Eq:                      ;// z if [DE] == [HL]
+    ld b, 4
+.loop:
+    ld a, [de]
+    cp a, [hl]
+    ret nz
+    inc de
+    inc hl
+    dec b
+    jr nz, .loop
+    ret
+L32AddBC:                   ;// [HL] += BC, affects A and HL
+    ld a, [hl]
+    add a, c
+    ld [hl+], a
+    ld a, [hl]
+    adc a, b
+    ld [hl+], a
+    ret nc
+    inc [hl]
+    ret nz
+    inc hl
+    inc [hl]
+    ret
+DocZero:                    ;// B bytes at HL = 0, affects A
+    xor a, a
+.loop:
+    ld [hl+], a
+    dec b
+    jr nz, .loop
+    ret
+L32SubBC:                   ;// [HL] -= BC, affects A and HL
+    ld a, [hl]
+    sub a, c
+    ld [hl+], a
+    ld a, [hl]
+    sbc a, b
+    ld [hl+], a
+    ret nc
+    ld a, [hl]
+    sub a, 1
+    ld [hl+], a
+    ret nc
+    dec [hl]
+    ret
+;// BC = [HL] - [DE] if that is more than 0 and less than BC, affects A, DE and HL
+DocClamp:
+    push bc
+    push de
+    ld de, DocTmp
+    call L32Load
+    pop hl
+    ld de, DocTmp
+    call L32Sub
+    pop bc
+    ret c
+    ld hl, DocTmp+3
+    ld a, [hl-]
+    or a, [hl]
+    ret nz
+    dec hl
+    ld a, [hl-]
+    ld l, [hl]
+    ld h, a
+    or a, l
+    ret z
+    ld a, l
+    sub a, c
+    ld a, h
+    sbc a, b
+    ret nc
+    ld b, h
+    ld c, l
+    ret
+Mul9:                       ;// HL = A * 9, affects DE
+    ld l, a
+    ld h, 0
+    ld d, h
+    ld e, l
+    add hl, hl
+    add hl, hl
+    add hl, hl
+    add hl, de
+    ret
+PieceAt:                    ;// HL = &pieces[A], affects DE
+    call Mul9
+    ld de, _pieces
+    add hl, de
+    ret
+PieceGap:                   ;// pieces A to the end move up one, ++piece_count, affects all
+    ld c, a
+    ld a, [_piece_count]
+    sub a, c
+    jr z, .moved
+    call Mul9
+    ld b, h
+    ld c, l                 ;// their bytes
+    ld a, [_piece_count]
+    call PieceAt
+    ld d, h
+    ld e, l
+    dec hl
+    push hl
+    ld hl, 8
+    add hl, de
+    ld d, h
+    ld e, l
+    pop hl
+.move:                      ;// from the end
+    ld a, [hl-]
+    ld [de], a
+    dec de
+    dec bc
+    ld a, b
+    or a, c
+    jr nz, .move
+.moved:
+    ld hl, _piece_count
+    inc [hl]
+    ret
+;// HL points at a document offset: a piece starts there (the one it is in is split), returns its index in A
+;// (piece_count at the end), $FF if the table is full. Affects all
+SplitHL:
+    ld de, DocRel
+    call L32Load
+    ld c, 0
+    ld hl, _pieces
+.loop:
+    ld a, [_piece_count]
+    cp a, c
+    jr z, .end
+    push hl
+    ld hl, DocRel
+    ld a, [hl+]
+    or a, [hl]
+    inc hl
+    or a, [hl]
+    inc hl
+    or a, [hl]
+    pop hl
+    jr z, .end              ;// it starts there
+    push hl
+    ld de, 5
+    add hl, de
+    push hl
+    ld de, DocRel
+    call L32Cmp
+    pop hl
+    jr c, .split
+    ld de, DocRel
+    call L32Sub
+    pop hl
+    ld de, 9
+    add hl, de
+    inc c
+    jr .loop
+.end:
+    ld a, c
+    ret
+.split:
+    pop hl
+    ld a, [_piece_count]
+    cp a, MAX_PIECES
+    ld a, $FF
+    ret z
+    push bc
+    push hl
+    ld a, c
+    call PieceGap
+    pop hl
+    push hl
+    ld de, 10
+    add hl, de
+    ld d, h
+    ld e, l
+    ld hl, DocRel
+    call L32Add             ;// pieces[i + 1].off += pos - start
+    ld hl, DocRel
+    call L32Sub             ;// pieces[i + 1].len -= pos - start
+    pop hl
+    ld de, 5
+    add hl, de
+    ld d, h
+    ld e, l
+    ld hl, DocRel
+    call L32Load            ;// pieces[i].len = pos - start
+    pop bc
+    ld a, c
+    inc a
+    ret
+;// HL points at a document offset: HL = &pieces[piece_i], the piece it is in (nz), z at the end; piece_i,
+;// piece_start and DocRel = the offset - piece_start follow it (from the first piece if it is before piece_start)
+DocFind:
+    ld de, DocRel
+    call L32Load
+    ld de, DocRel
+    ld hl, _piece_start
+    call L32Sub
+    jr nc, .scan
+    ld de, DocRel
+    ld hl, _piece_start
+    call L32Add
+    ld hl, _piece_i         ;// and piece_start after it
+    ld b, 5
+    call DocZero
+.scan:
+    ld a, [_piece_i]
+    call PieceAt
+.loop:
+    ld a, [_piece_count]
+    ld c, a
+    ld a, [_piece_i]
+    cp a, c
+    ret z
+    push hl
+    ld de, 5
+    add hl, de              ;// its length
+    push hl
+    ld de, DocRel
+    call L32Cmp
+    pop hl
+    jr c, .found
+    push hl
+    ld de, DocRel
+    call L32Sub
+    pop hl
+    ld de, _piece_start
+    call L32Add
+    ld hl, _piece_i
+    inc [hl]
+    pop hl
+    ld de, 9
+    add hl, de
+    jr .loop
+.found:
+    pop hl
+    or a, 1
+    ret
+;// copies BC bytes between DE (WRAM) and the add buffer at offset DocRel (it advances), A = 0 to DE, else
+;// from it. Affects all
+DocCopy:
+    push af
+    push bc
+    push de                 ;// data, count, A
+.loop:
+    ld hl, sp+2
+    ld a, [hl+]
+    or a, [hl]
+    jr z, .done
+    ld hl, DocRel+1
+    ld a, [hl+]
+    ld c, a
+    ld a, [hl+]
+    ld b, a
+    ld a, [hl]
+    srl a
+    rr b
+    rr c
+    ld a, b
+    add a, $04              ;// ADD_BLOCK + offset / 512
+    ld d, a
+    ld e, c
+    call _SetWindowBlock
+    ld hl, DocRel
+    ld e, [hl]
+    inc hl
+    ld a, [hl]
+    and a, 1
+    ld d, a                 ;// offset in the block
+    xor a, a
+    sub a, e
+    ld c, a
+    ld a, 2
+    sbc a, d
+    ld b, a                 ;// the rest of it
+    ld hl, sp+2
+    ld a, c
+    sub a, [hl]
+    inc hl
+    ld a, b
+    sbc a, [hl]
+    jr c, .sized
+    ld a, [hl-]
+    ld b, a
+    ld c, [hl]              ;// or the count
+.sized:
+    ld a, d
+    add a, $BE              ;// WINDOW
+    ld d, a
+    ld hl, sp+2
+    ld a, [hl]
+    sub a, c
+    ld [hl+], a
+    ld a, [hl]
+    sbc a, b
+    ld [hl], a
+    ld hl, DocRel
+    call L32AddBC
+    ld hl, sp+5
+    ld a, [hl]
+    pop hl                  ;// data
+    or a, a
+    jr z, .read
+    call mem_Copy
+    push hl
+    jr .loop
+.read:
+    ld a, l
+    ld l, e
+    ld e, a
+    ld a, h
+    ld h, d
+    ld d, a
+    call mem_Copy
+    push de
+    jr .loop
+.done:
+    pop de
+    pop bc
+    pop af
+    ld de, $0100            ;// TB_PSRAM_HIGH << 8
+    jp _SetWindowBlock
+;// (only this page's code can use these: other pages see their own code at these addresses)
+DocRel:
+    DS 4
+DocTmp:
+    DS 4
+DocEnd:                     ;// (fs_SaveLarge zeroes these 14 bytes: its position, output, window start, fill)
+    DS 4
+DocOut:
+    DS 4
+DocStart:
+    DS 4
+DocFill:
+    DS 2
+DocIdxA:
+    DS 1
+DocCrlf:
+    DS 1
+DocPath:
+    DS 2
+DocTempName:
+    DB "~EDITOR.TMP", 0
+DocAddMax:                  ;// ADD_MAX + 1
+    DB $01, $00, $6E, $00
+  __endasm;
 }
 
 // reads up to count bytes of the document at pos into dest, not past the end of pos's piece, returns the
 // bytes read, 0 at the end or after an error
-static UINT DocRead(BYTE* dest, unsigned long pos, UINT count) {
-  Piece* piece = DocPiece(pos);
-  unsigned long in;
-  UINT done;
-  if (!piece) return 0;
-  in = pos - piece_start;
-  if (piece->len - in < count) count = (UINT)(piece->len - in);
-  in += piece->off;
-  if (piece->src == SRC_ADD) {
-    AddCopy(dest, in, count, 0);
-    return count;
-  }
-  if ((f_tell(&file) != in && f_lseek(&file, in)) || f_read(&file, dest, count, &done) || done != count) return 0;
-  return count;
+static UINT DocRead(BYTE* dest, unsigned long pos, UINT count) __naked {
+  dest; pos; count;
+  __asm
+    push de                 ;// dest, return, pos, count
+    ld hl, sp+4
+    call DocFind
+    jp z, .none
+    push hl
+    ld de, 5
+    add hl, de
+    ld de, DocTmp
+    call L32Load
+    ld de, DocTmp
+    ld hl, DocRel
+    call L32Sub             ;// the rest of the piece
+    ld hl, DocTmp+2
+    ld a, [hl+]
+    or a, [hl]
+    jr nz, .counted
+    ld hl, DocTmp
+    ld a, [hl+]
+    ld b, [hl]
+    ld c, a
+    ld hl, sp+10
+    ld a, c
+    sub a, [hl]
+    inc hl
+    ld a, b
+    sbc a, [hl]
+    jr nc, .counted
+    ld [hl], b
+    dec hl
+    ld [hl], c              ;// count = the rest
+.counted:
+    pop hl
+    ld a, [hl+]             ;// src
+    push af
+    ld de, DocRel
+    call L32Add             ;// + off
+    pop af
+    ld hl, sp+8
+    ld c, [hl]
+    inc hl
+    ld b, [hl]
+    pop de
+    or a, a
+    jr z, .file
+    push bc
+    xor a, a
+    call DocCopy
+    pop bc
+    jr .end
+.file:
+    push de
+    push bc                 ;// count, dest
+    ld hl, _file+16         ;// fptr
+    ld de, DocRel
+    call L32Eq
+    jr z, .read
+    ld hl, DocRel+2
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    push hl
+    ld hl, DocRel
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    push hl
+    ld de, _file
+    call _f_lseek
+    or a, a
+    jr nz, .failed
+.read:                      ;// done goes on the stack: f_read's page can't see this one
+    add sp, -2
+    ld hl, sp+0
+    push hl
+    ld hl, sp+4
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    push hl
+    ld hl, sp+8
+    ld a, [hl+]
+    ld b, [hl]
+    ld c, a
+    ld de, _file
+    call _f_read
+    pop hl                  ;// done
+    pop bc
+    pop de
+    or a, a
+    jr nz, .zero
+    ld a, l
+    cp a, c
+    jr nz, .zero
+    ld a, h
+    cp a, b
+    jr z, .end
+    jr .zero
+.failed:
+    pop bc
+.none:
+    pop de
+.zero:
+    ld bc, 0
+.end:
+    pop hl
+    add sp, 6
+    jp hl
+  __endasm;
 }
 
 // DocRead across pieces, returns 0 if it can't read them all
-static UINT DocReadAll(BYTE* dest, unsigned long pos, UINT count) {
-  UINT done = 0, size;
-  while (done != count) {
-    if (!(size = DocRead(dest + done, pos + done, count - done))) return 0;
-    done += size;
-  }
-  return count;
+static UINT DocReadAll(BYTE* dest, unsigned long pos, UINT count) __naked {
+  dest; pos; count;
+  __asm
+    ld hl, sp+6
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    push hl
+    push de                 ;// dest, count, return, pos, the rest
+.loop:
+    ld hl, sp+10
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    or a, h
+    jr z, .done
+    push hl
+    ld hl, sp+10
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    push hl
+    ld hl, sp+10
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    push hl
+    ld hl, sp+6
+    ld a, [hl+]
+    ld d, [hl]
+    ld e, a
+    call _DocRead
+    ld a, b
+    or a, c
+    jr z, .failed
+    pop hl
+    add hl, bc
+    push hl
+    ld hl, sp+6
+    call L32AddBC
+    ld hl, sp+10
+    ld a, [hl]
+    sub a, c
+    ld [hl+], a
+    ld a, [hl]
+    sbc a, b
+    ld [hl], a
+    jr .loop
+.done:
+    pop de
+    pop bc
+    jr .end
+.failed:
+    pop de
+    pop de
+.end:
+    pop hl
+    add sp, 6
+    jp hl
+  __endasm;
 }
 
 // leaves large file mode
@@ -581,15 +1100,27 @@ void fs_CloseLarge(void) {
 }
 
 // the document is the open file
-static void OneFilePiece(void) {
-  doc_len = f_size(&file);
-  pieces[0].src = SRC_FILE;
-  pieces[0].off = 0;
-  pieces[0].len = doc_len;
-  piece_count = 1;
-  piece_i = 0;
-  piece_start = 0;
-  add_len = 0;
+static void OneFilePiece(void) __naked {
+  __asm
+    ld hl, _file+10         ;// objsize
+    ld de, _doc_len
+    call L32Load
+    ld hl, _pieces
+    ld b, 5
+    call DocZero            ;// SRC_FILE, offset 0
+    ld d, h
+    ld e, l
+    ld hl, _doc_len
+    call L32Load
+    ld a, 1
+    ld [_piece_count], a
+    ld hl, _piece_i         ;// and piece_start
+    ld b, 5
+    call DocZero
+    ld hl, _add_len
+    ld b, 4
+    jp DocZero
+  __endasm;
 }
 
 // opens the file and loads the window at its start, returns an FRESULT
@@ -614,218 +1145,836 @@ unsigned char fs_LoadLarge(const char* path) {
 // loads the document from win_start (up to WIN_SIZE bytes) into the text buffer, sets win_end, win_kept[i] to
 // the window position of document offset ((win_start + 511) & ~511) + 512 i and win_mark_pos to win_mark's
 // (0xFFFF if it isn't in the window), returns an FRESULT
-unsigned char fs_LoadWindow(void) {
-  unsigned long pos = win_start, end = win_start + WIN_SIZE, next;
-  UINT count;
-  FRESULT result = FR_OK;
-  if (end > doc_len) end = doc_len;
-  tb_Empty();
-  win_chunks = 0;
-  win_mark_pos = 0xFFFF;
-  while (1) {
-    if (!((UINT)pos & 511)) win_kept[win_chunks++] = tb_Length();
-    if (pos == win_mark) win_mark_pos = tb_Length();
-    if (pos == end) break;
-    next = (pos | 511) + 1;
-    if (next > end) next = end;
-    if (win_mark > pos && win_mark < next) next = win_mark;
-    if (!(count = DocRead(buffer, pos, (UINT)(next - pos)))) {
-      result = FR_INT_ERR;
-      break;
-    }
-    tb_Append(buffer, count);
-    pos += count;
-  }
-  win_end = pos;
-  win_edited = 0;
-  return result;
+unsigned char fs_LoadWindow(void) __naked {
+  __asm
+    ld hl, _win_start
+    ld de, _win_end
+    call L32Load            ;// win_end is the position as it loads
+    ld hl, _win_start
+    ld de, DocEnd
+    call L32Load
+    ld hl, DocEnd
+    ld bc, $C000            ;// WIN_SIZE
+    call L32AddBC
+    ld de, _doc_len
+    ld hl, DocEnd
+    call L32Cmp
+    jr nc, .ended
+    ld hl, _doc_len
+    ld de, DocEnd
+    call L32Load            ;// the end, up to the document's
+.ended:
+    call _tb_Empty
+    xor a, a
+    ld [_win_chunks], a
+    dec a
+    ld [_win_mark_pos], a
+    ld [_win_mark_pos+1], a
+.loop:
+    ld a, [_win_end]
+    ld c, a
+    ld a, [_win_end+1]
+    and a, 1
+    or a, c
+    jr nz, .kept
+    call _tb_Length         ;// a sector starts here
+    ld a, [_win_chunks]
+    ld l, a
+    inc a
+    ld [_win_chunks], a
+    ld h, 0
+    add hl, hl
+    ld de, _win_kept
+    add hl, de
+    ld [hl], c
+    inc hl
+    ld [hl], b
+.kept:
+    ld de, _win_end
+    ld hl, _win_mark
+    call L32Eq
+    jr nz, .marked
+    call _tb_Length
+    ld a, c
+    ld [_win_mark_pos], a
+    ld a, b
+    ld [_win_mark_pos+1], a
+.marked:
+    ld de, _win_end
+    ld hl, DocEnd
+    call L32Eq
+    jr nz, .more
+    xor a, a
+    jr .done
+.more:
+    ld a, [_win_end]
+    ld c, a
+    ld a, [_win_end+1]
+    and a, 1
+    ld b, a
+    xor a, a
+    sub a, c
+    ld c, a
+    ld a, 2
+    sbc a, b
+    ld b, a                 ;// the rest of the sector
+    ld hl, DocEnd
+    ld de, _win_end
+    call DocClamp
+    ld hl, _win_mark
+    ld de, _win_end
+    call DocClamp           ;// up to the end or the mark
+    push bc
+    ld hl, _win_end+2
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    push hl
+    ld hl, _win_end
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    push hl
+    ld de, _buffer
+    call _DocRead
+    ld a, b
+    or a, c
+    jr z, .failed
+    push bc
+    ld de, _buffer
+    call _tb_Append
+    pop bc
+    ld hl, _win_end
+    call L32AddBC
+    jp .loop
+.failed:
+    ld a, 2                 ;// FR_INT_ERR
+.done:
+    ld hl, _win_edited
+    ld [hl], 0
+    ret
+  __endasm;
 }
 
 // moves doc_pos (a document offset) to the start of its line, looking back at most LINE_SCAN bytes (it stays
 // if there's no line feed), sets doc_back to the window positions it moved back (CRs and 0s aren't counted)
-void fs_DocLineStart(void) {
-  unsigned long pos = doc_pos;
-  UINT count, i, kept = 0, scanned = 0;
-  BYTE c;
-  doc_back = 0;
-  while (pos && scanned < LINE_SCAN) {
-    count = (UINT)pos & 511;
-    if (!count) count = 512;
-    pos -= count;
-    if (!DocReadAll(buffer, pos, count)) return;
-    for (i = count; i; --i) {
-      c = buffer[i - 1];
-      if (c == ASCII_LF) {
-        doc_pos = pos + i;
-        doc_back = kept;
-        return;
-      }
-      if (c != ASCII_CR && c) ++kept;
-    }
-    scanned += count;
-  }
-  if (!pos) {
-    doc_pos = 0;
-    doc_back = kept;
-  }
+void fs_DocLineStart(void) __naked {
+  __asm
+    xor a, a
+    ld hl, _doc_back
+    ld [hl+], a
+    ld [hl], a
+    ld hl, _doc_pos
+    ld de, DocEnd
+    call L32Load            ;// pos
+    ld hl, 0
+    push hl                 ;// scanned
+    push hl                 ;// kept
+.sector:
+    ld hl, DocEnd
+    ld a, [hl+]
+    or a, [hl]
+    inc hl
+    or a, [hl]
+    inc hl
+    or a, [hl]
+    jr z, .start
+    ld hl, sp+3
+    ld a, [hl]
+    cp a, HIGH(LINE_SCAN)
+    jr nc, .end
+    ld a, [DocEnd]
+    ld c, a
+    ld a, [DocEnd+1]
+    and a, 1
+    ld b, a
+    or a, c
+    jr nz, .counted
+    ld b, 2                 ;// 512
+.counted:
+    ld hl, DocEnd
+    call L32SubBC
+    ld hl, sp+2
+    ld a, [hl]
+    add a, c
+    ld [hl+], a
+    ld a, [hl]
+    adc a, b
+    ld [hl], a
+    push bc
+    push bc
+    ld hl, DocEnd+2
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    push hl
+    ld hl, DocEnd
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    push hl
+    ld de, _buffer
+    call _DocReadAll
+    ld a, b
+    or a, c
+    pop bc
+    jr z, .end
+    ld hl, _buffer
+    add hl, bc
+.byte:                      ;// back from the end
+    dec hl
+    ld a, [hl]
+    cp a, 10                ;// ASCII_LF
+    jr z, .found
+    cp a, 13                ;// ASCII_CR
+    jr z, .next
+    or a, a
+    jr z, .next
+    push hl
+    ld hl, sp+2
+    inc [hl]
+    jr nz, .kept
+    inc hl
+    inc [hl]
+.kept:
+    pop hl
+.next:
+    dec bc
+    ld a, b
+    or a, c
+    jr nz, .byte
+    jp .sector
+.found:
+    inc hl
+    ld a, l
+    sub a, LOW(_buffer)
+    ld c, a
+    ld a, h
+    sbc a, HIGH(_buffer)
+    ld b, a
+    ld hl, DocEnd
+    call L32AddBC           ;// after the line feed
+.start:
+    ld hl, DocEnd
+    ld de, _doc_pos
+    call L32Load
+    pop bc
+    ld a, c
+    ld [_doc_back], a
+    ld a, b
+    ld [_doc_back+1], a
+    pop bc
+    ret
+.end:
+    add sp, 4
+    ret
+  __endasm;
 }
 
-// counts the line feeds of up to SCAN_SECTORS sectors toward scan_target into scan_lines, returns 1 when
-// it's there (or the card can't be read). A sector takes ~48 lines of the screen's 154 (CountLF ~18, the read ~12),
-// another one starts only if it ends before the next VBlank (the main loop waits for it)
-#define SCAN_SECTORS 4
-#define SCAN_LAST_LINE 90 // lines since VBlank another sector can start at
-#define rLY (*(volatile BYTE*)0xFF44)
-unsigned char fs_ScanStep(void) {
-  UINT count;
-  unsigned char i;
-  for (i = 0; i < SCAN_SECTORS && scan_pos != scan_target; ++i) {
-    if (i && (rLY >= 144 ? rLY - 144 : rLY + 10) > SCAN_LAST_LINE) break;
-    count = 512 - ((UINT)scan_pos & 511);
-    if (scan_target - scan_pos < count) count = (UINT)(scan_target - scan_pos);
-    if (!DocReadAll(buffer, scan_pos, count)) return 1;
-    scan_lines += CountLF(buffer, count);
-    scan_pos += count;
-  }
-  return scan_pos == scan_target;
-}
-
-// a piece starts at document offset pos (the one it's in is split), returns its index (piece_count at the
-// end), 0xFF if the table is full
-static unsigned char Split(unsigned long pos) {
-  unsigned long start = 0;
-  unsigned char i, j;
-  for (i = 0; i < piece_count; start += pieces[i++].len) {
-    if (pos == start) return i;
-    if (pos < start + pieces[i].len) {
-      if (piece_count == MAX_PIECES) return 0xFF;
-      for (j = piece_count; j > i; --j) pieces[j] = pieces[j - 1];
-      ++piece_count;
-      pieces[i + 1].off += pos - start;
-      pieces[i + 1].len -= pos - start;
-      pieces[i].len = pos - start;
-      return i + 1;
-    }
-  }
-  return i;
+// counts the line feeds of up to 4 sectors toward scan_target into scan_lines, returns 1 when it's there (or
+// the card can't be read). A sector takes ~48 lines of the screen's 154 (CountLF ~18, the read ~12), another
+// one starts only if it ends before the next VBlank (the main loop waits for it): 90 lines after it at most
+unsigned char fs_ScanStep(void) __naked {
+  __asm
+    xor a, a
+.loop:                      ;// A = sectors so far
+    push af
+    ld de, _scan_pos
+    ld hl, _scan_target
+    call L32Eq
+    jr z, .there
+    pop af
+    push af
+    or a, a
+    jr z, .read
+    cp a, 4
+    jr z, .stop
+    ldh a, [$FF44]          ;// rLY
+    sub a, 144
+    jr nc, .vblank
+    add a, 154              ;// lines since VBlank
+.vblank:
+    cp a, 91
+    jr nc, .stop
+.read:
+    ld a, [_scan_pos]
+    ld c, a
+    ld a, [_scan_pos+1]
+    and a, 1
+    ld b, a
+    xor a, a
+    sub a, c
+    ld c, a
+    ld a, 2
+    sbc a, b
+    ld b, a                 ;// the rest of the sector
+    ld hl, _scan_target
+    ld de, _scan_pos
+    call DocClamp
+    push bc
+    push bc
+    ld hl, _scan_pos+2
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    push hl
+    ld hl, _scan_pos
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    push hl
+    ld de, _buffer
+    call _DocReadAll
+    ld a, b
+    or a, c
+    pop bc
+    jr z, .there            ;// unreadable
+    push bc
+    ld de, _buffer
+    call _CountLF
+    ld hl, _scan_lines
+    call L32AddBC
+    pop bc
+    ld hl, _scan_pos
+    call L32AddBC
+    pop af
+    inc a
+    jp .loop
+.stop:
+    pop af
+    xor a, a
+    ret
+.there:
+    pop af
+    ld a, 1
+    ret
+  __endasm;
 }
 
 // if the window was edited, its text replaces the document range it came from (win_start, win_end) as one
 // piece of the add buffer. Returns 0 if the add buffer or the piece table is full
-unsigned char fs_CommitWindow(void) {
-  UINT length = tb_Length(), count;
-  unsigned long pos = add_len;
-  unsigned char a, b, i, j;
-  if (!win_edited) return 1;
-  if (add_len + length > ADD_MAX || piece_count > MAX_PIECES - 3) return 0;
-  tb_read_pos = 0;
-  while ((count = tb_Read(buffer, FS_BUFFER_SIZE))) {
-    AddCopy(buffer, pos, count, 1);
-    pos += count;
-  }
-  a = Split(win_start);
-  b = Split(win_end);
-  i = a + (length ? 1 : 0); // where piece b goes
-  if (i < b) for (j = b; j < piece_count; ++j) pieces[i + j - b] = pieces[j];
-  else if (i > b) for (j = piece_count; j > b; --j) pieces[j] = pieces[j - 1];
-  piece_count = piece_count + i - b;
-  if (length) {
-    pieces[a].src = SRC_ADD;
-    pieces[a].off = add_len;
-    pieces[a].len = length;
-  }
-  piece_i = 0;
-  piece_start = 0;
-  add_len = pos;
-  doc_len = doc_len - (win_end - win_start) + length;
-  win_end = win_start + length;
-  win_chunks = 0; // window positions are document offsets - win_start now
-  for (pos = (win_start + 511) & ~511UL; pos <= win_end && win_chunks < WIN_CHUNKS; pos += 512) win_kept[win_chunks++] = (UINT)(pos - win_start);
-  win_edited = 0;
-  return 1;
+unsigned char fs_CommitWindow(void) __naked {
+  __asm
+    ld a, [_win_edited]
+    or a, a
+    ld a, 1
+    ret z
+    call _tb_Length
+    push bc                 ;// length
+    ld a, [_piece_count]
+    cp a, MAX_PIECES - 2
+    jp nc, .full
+    ld hl, _add_len
+    ld de, DocRel
+    call L32Load
+    ld hl, DocRel
+    call L32AddBC
+    ld de, DocRel
+    ld hl, DocAddMax
+    call L32Cmp
+    jp nc, .full
+    ld hl, _add_len
+    ld de, DocRel
+    call L32Load
+    xor a, a
+    ld [_tb_read_pos], a
+    ld [_tb_read_pos+1], a
+.copy:                      ;// the window to the add buffer
+    ld de, _buffer
+    ld bc, 512
+    call _tb_Read
+    ld a, b
+    or a, c
+    jr z, .copied
+    ld de, _buffer
+    ld a, 1
+    call DocCopy
+    jr .copy
+.copied:
+    ld hl, DocRel
+    ld de, DocTmp
+    call L32Load            ;// the add buffer's new end
+    ld hl, _win_start
+    call SplitHL
+    ld [DocIdxA], a
+    ld hl, _win_end
+    call SplitHL
+    ld c, a                 ;// b
+    pop de
+    push de
+    ld a, d
+    or a, e
+    ld a, [DocIdxA]
+    jr z, .i
+    inc a                   ;// where piece b goes
+.i:
+    cp a, c
+    jr z, .moved
+    jr c, .down
+    ld a, c
+    call PieceGap
+    jr .moved
+.down:
+    ld b, a
+    ld a, c
+    call PieceAt
+    push hl                 ;// from piece b
+    ld a, [_piece_count]
+    sub a, c
+    call Mul9
+    push hl                 ;// to the end
+    ld a, [_piece_count]
+    sub a, c
+    add a, b
+    ld [_piece_count], a
+    ld a, b
+    call PieceAt
+    ld d, h
+    ld e, l
+    pop bc
+    pop hl
+    call mem_Copy
+.moved:
+    pop bc
+    push bc
+    ld a, b
+    or a, c
+    jr z, .added
+    ld a, [DocIdxA]
+    call PieceAt
+    ld [hl], 1              ;// SRC_ADD
+    inc hl
+    ld d, h
+    ld e, l
+    ld hl, _add_len
+    call L32Load
+    pop bc                  ;// (L32Load counts in B)
+    push bc
+    ld h, d
+    ld l, e
+    ld [hl], c
+    inc hl
+    ld [hl], b
+    inc hl
+    xor a, a
+    ld [hl+], a
+    ld [hl], a
+.added:
+    ld hl, _piece_i         ;// and piece_start
+    ld b, 5
+    call DocZero
+    ld hl, DocTmp
+    ld de, _add_len
+    call L32Load
+    ld de, _doc_len
+    ld hl, _win_end
+    call L32Sub
+    ld de, _doc_len
+    ld hl, _win_start
+    call L32Add
+    pop bc
+    push bc
+    ld hl, _doc_len
+    call L32AddBC
+    ld hl, _win_start
+    ld de, _win_end
+    call L32Load
+    pop bc
+    ld hl, _win_end
+    call L32AddBC
+    ld a, [_win_start]      ;// window positions are document offsets - win_start now
+    ld e, a
+    ld a, [_win_start+1]
+    ld d, a
+    xor a, a
+    ld [_win_chunks], a
+    sub a, e
+    ld e, a
+    ld a, 0
+    sbc a, d
+    and a, 1
+    ld d, a                 ;// the first sector boundary
+    ld hl, _win_kept
+.kept:
+    ld a, c
+    sub a, e
+    ld a, b
+    sbc a, d
+    jr c, .done
+    ld a, [_win_chunks]
+    cp a, 97                ;// WIN_CHUNKS
+    jr nc, .done
+    inc a
+    ld [_win_chunks], a
+    ld a, e
+    ld [hl+], a
+    ld a, d
+    ld [hl+], a
+    inc d
+    inc d
+    jr .kept
+.done:
+    xor a, a
+    ld [_win_edited], a
+    inc a
+    ret
+.full:
+    pop bc
+    xor a, a
+    ret
+  __endasm;
 }
 
-// adds count bytes to the save file's next sector (gathered in PSRAM block SAVE_BLOCK, *fill bytes so far),
-// writing it when it's full: whole sector writes skip FatFs's one sector cache (FF_FS_TINY), which the file's
-// reads need. Returns an FRESULT
-#define SAVE_BLOCK (ADD_BLOCK - 1)
-static FRESULT SaveOut(const BYTE* data, UINT count, UINT* fill) {
-  UINT size, done;
-  FRESULT result = FR_OK;
-  SetWindowBlock(SAVE_BLOCK);
-  while (count) {
-    size = 512 - *fill;
-    if (size > count) size = count;
-    memcpy(WINDOW + *fill, data, size);
-    *fill += size;
-    data += size;
-    count -= size;
-    if (*fill == 512) { // the window still shows the block while FatFs writes it
-      *fill = 0;
-      if ((result = f_write(&save_file, WINDOW, 512, &done)) || (done != 512 && (result = FR_DENIED))) break;
-    }
-  }
-  SetWindowBlock(TB_PSRAM_HIGH << 8);
-  return result;
-}
-
-// saves the document to path: writes TEMP_NAME in its folder (added text with CR LF line endings if
+// saves the document to path: writes ~EDITOR.TMP (DocTempName) in its folder (added text with CR LF line endings if
 // fs_crlf), deletes path and renames the temp file to it, then the document is that file (one piece) with
 // the window at the same text. Returns an FRESULT (FR_DENIED: the add buffer or piece table is full, or the
-// card is)
-unsigned char fs_SaveLarge(const char* path) {
-  char temp[PATH_SIZE + FS_NAME_SIZE];
-  unsigned long pos = 0, out = 0, start = 0;
-  UINT count, done, i, end = 0, fill = 0;
-  BYTE *src, *dest, c, crlf;
-  Piece* piece;
-  FRESULT result;
-  if (!fs_CommitWindow()) return FR_DENIED;
-  for (i = 0; path[i]; ++i) if (path[i] == '/') end = i + 1;
-  memcpy(temp, path, end);
-  memcpy(temp + end, TEMP_NAME, sizeof(TEMP_NAME));
-  if ((result = f_open(&save_file, temp, FA_WRITE | FA_CREATE_ALWAYS))) return result;
-  while (pos != doc_len) {
-    if (pos == win_start) start = out;
-    piece = DocPiece(pos);
-    crlf = fs_crlf && piece->src == SRC_ADD; // added text gets CRs, it's read into the second half
-    count = crlf ? 256 : 512;
-    if (piece->src == SRC_FILE) count -= (UINT)(pos - piece_start + piece->off) & 511; // whole sectors skip FatFs's copy
-    if (pos < win_start && win_start - pos < count) count = (UINT)(win_start - pos);
-    src = crlf ? buffer + 256 : buffer;
-    if (!(count = DocRead(src, pos, count))) {
-      result = FR_INT_ERR;
-      break;
-    }
-    pos += count;
-    if (crlf) { // in place: each line feed's CR is written before it's read
-      for (dest = buffer, i = 0; i < count; ++i) {
-        if ((c = src[i]) == ASCII_LF) *dest++ = ASCII_CR;
-        *dest++ = c;
-      }
-      src = buffer;
-      count = (UINT)(dest - buffer);
-    }
-    if ((result = SaveOut(src, count, &fill))) break;
-    out += count;
-  }
-  if (pos == win_start) start = out;
-  if (!result && fill) { // the last part of a sector
-    SetWindowBlock(SAVE_BLOCK);
-    if (!(result = f_write(&save_file, WINDOW, fill, &done)) && done != fill) result = FR_DENIED;
-    SetWindowBlock(TB_PSRAM_HIGH << 8);
-  }
-  if (!result) result = f_close(&save_file);
-  else f_close(&save_file);
-  if (result) return result;
-  f_close(&file);
-  result = f_unlink(path);
-  if (result && result != FR_NO_FILE) return result;
-  if ((result = f_rename(temp, path)) || (result = Open(path, FA_READ))) return result;
-  OneFilePiece();
-  win_start = start;
-  win_mark = NO_MARK;
-  return fs_LoadWindow();
+// card is). Sectors gather in PSRAM block SAVE_BLOCK (ADD_BLOCK - 1) for whole sector writes, which skip
+// FatFs's one sector cache (FF_FS_TINY) that the file's reads need
+#define TEMP_SIZE (PATH_SIZE + FS_NAME_SIZE)
+unsigned char fs_SaveLarge(const char* path) __naked {
+  path;
+  __asm
+    ld hl, DocPath
+    ld [hl], e
+    inc hl
+    ld [hl], d
+    call _fs_CommitWindow
+    or a, a
+    ld a, 7                 ;// FR_DENIED
+    ret z
+    ld hl, -TEMP_SIZE
+    add hl, sp
+    ld sp, hl               ;// the temp file's path
+    ld hl, DocPath
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    ld d, h
+    ld e, l
+.slash:                     ;// DE = after the last /
+    ld a, [hl+]
+    or a, a
+    jr z, .named
+    cp a, 47                ;// /
+    jr nz, .slash
+    ld d, h
+    ld e, l
+    jr .slash
+.named:
+    ld hl, DocPath
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    ld a, e
+    sub a, l
+    ld c, a
+    ld a, d
+    sbc a, h
+    ld b, a
+    push hl
+    ld hl, sp+2
+    ld d, h
+    ld e, l
+    pop hl
+    call mem_Copy           ;// the folder
+    ld hl, DocTempName
+    ld bc, 12
+    call mem_Copy
+    ld a, $0A               ;// FA_WRITE | FA_CREATE_ALWAYS
+    push af
+    inc sp
+    ld hl, sp+1
+    ld b, h
+    ld c, l
+    ld de, _save_file
+    call _f_open
+    or a, a
+    jp nz, .return
+    ld hl, DocEnd
+    ld b, 14
+    call DocZero
+.loop:
+    ld de, DocEnd
+    ld hl, _doc_len
+    call L32Eq
+    jp z, .written
+    call SaveStart
+    ld hl, DocEnd
+    call DocFind
+    ld a, [hl+]             ;// src
+    or a, a
+    jr nz, .added
+    ld a, [DocRel]          ;// the file's whole sectors
+    add a, [hl]
+    ld c, a
+    inc hl
+    ld a, [DocRel+1]
+    adc a, [hl]
+    and a, 1
+    ld b, a
+    xor a, a
+    sub a, c
+    ld c, a
+    ld a, 2
+    sbc a, b
+    ld b, a
+    xor a, a
+    jr .counted
+.added:
+    ld bc, 512
+    ld a, [_fs_crlf]
+    or a, a
+    jr z, .counted
+    ld b, 1                 ;// 256: each line feed gets a CR
+    ld a, b
+.counted:
+    ld [DocCrlf], a
+    ld hl, _win_start
+    ld de, DocEnd
+    call DocClamp           ;// stop at the window start
+    ld de, _buffer
+    ld a, [DocCrlf]
+    or a, a
+    jr z, .read
+    inc d                   ;// into the second half
+.read:
+    push de
+    push bc
+    ld hl, DocEnd+2
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    push hl
+    ld hl, DocEnd
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    push hl
+    call _DocRead
+    pop de
+    ld a, b
+    or a, c
+    jr z, .unreadable
+    ld hl, DocEnd
+    call L32AddBC
+    ld a, [DocCrlf]
+    or a, a
+    jr z, .out
+    ld hl, _buffer
+.crlf:                      ;// in place: each line feed's CR is written before it is read
+    ld a, [de]
+    inc de
+    cp a, 10                ;// ASCII_LF
+    jr nz, .char
+    ld [hl], 13             ;// ASCII_CR
+    inc hl
+.char:
+    ld [hl+], a
+    dec bc
+    ld a, b
+    or a, c
+    jr nz, .crlf
+    ld a, l
+    sub a, LOW(_buffer)
+    ld c, a
+    ld a, h
+    sbc a, HIGH(_buffer)
+    ld b, a
+    ld de, _buffer
+.out:
+    push bc
+    call SaveOut
+    pop bc
+    or a, a
+    jr nz, .failed
+    ld hl, DocOut
+    call L32AddBC
+    jp .loop
+.unreadable:
+    ld a, 2                 ;// FR_INT_ERR
+.failed:
+    push af
+    ld de, _save_file
+    call _f_close
+    pop af
+    jp .return
+.written:
+    call SaveStart
+    ld a, [DocFill]
+    ld c, a
+    ld a, [DocFill+1]
+    ld b, a
+    or a, c
+    jr z, .close
+    ld de, $03FF            ;// SAVE_BLOCK: the last part of a sector
+    call _SetWindowBlock
+    call SaveWrite
+    push af
+    ld de, $0100            ;// TB_PSRAM_HIGH << 8
+    call _SetWindowBlock
+    pop af
+    or a, a
+    jr nz, .failed
+.close:
+    ld de, _save_file
+    call _f_close
+    or a, a
+    jp nz, .return
+    ld de, _file
+    call _f_close
+    ld hl, DocPath
+    ld a, [hl+]
+    ld d, [hl]
+    ld e, a
+    call _f_unlink
+    or a, a
+    jr z, .unlinked
+    cp a, 4                 ;// FR_NO_FILE
+    jp nz, .return
+.unlinked:
+    ld hl, DocPath
+    ld a, [hl+]
+    ld b, [hl]
+    ld c, a
+    ld hl, sp+0
+    ld d, h
+    ld e, l
+    call _f_rename
+    or a, a
+    jp nz, .return
+    ld hl, DocPath
+    ld a, [hl+]
+    ld d, [hl]
+    ld e, a
+    ld a, 1                 ;// FA_READ
+    call _Open
+    or a, a
+    jp nz, .return
+    call _OneFilePiece
+    ld hl, DocStart
+    ld de, _win_start
+    call L32Load
+    ld hl, _win_mark        ;// NO_MARK
+    ld a, $FF
+    ld [hl+], a
+    ld [hl+], a
+    ld [hl+], a
+    ld [hl], a
+    call _fs_LoadWindow
+.return:
+    ld hl, TEMP_SIZE
+    add hl, sp
+    ld sp, hl
+    ret
+SaveStart:                  ;// the window starts at this output offset
+    ld de, DocEnd
+    ld hl, _win_start
+    call L32Eq
+    ret nz
+    ld hl, DocOut
+    ld de, DocStart
+    jp L32Load
+;// DE = data, BC = count: to the save file's next sector (DocFill bytes so far), written when it is full.
+;// Returns an FRESULT in A
+SaveOut:
+    push de
+    push bc                 ;// count, data
+    ld de, $03FF            ;// SAVE_BLOCK
+    call _SetWindowBlock
+.loop:
+    ld hl, sp+0
+    ld a, [hl+]
+    or a, [hl]
+    jr z, .done
+    ld a, [DocFill]
+    ld e, a
+    ld a, [DocFill+1]
+    ld d, a
+    xor a, a
+    sub a, e
+    ld c, a
+    ld a, 2
+    sbc a, d
+    ld b, a                 ;// room in the sector
+    ld hl, sp+0
+    ld a, c
+    sub a, [hl]
+    inc hl
+    ld a, b
+    sbc a, [hl]
+    jr c, .sized
+    ld a, [hl-]
+    ld b, a
+    ld c, [hl]              ;// or the count
+.sized:
+    ld hl, sp+0
+    ld a, [hl]
+    sub a, c
+    ld [hl+], a
+    ld a, [hl]
+    sbc a, b
+    ld [hl], a
+    ld a, e
+    add a, c
+    ld [DocFill], a
+    ld a, d
+    adc a, b
+    ld [DocFill+1], a
+    ld a, d
+    add a, $BE              ;// WINDOW
+    ld d, a
+    ld hl, sp+2
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    call mem_Copy
+    ld b, h
+    ld c, l
+    ld hl, sp+2
+    ld [hl], c
+    inc hl
+    ld [hl], b
+    ld a, [DocFill+1]
+    cp a, 2
+    jr nz, .loop
+    xor a, a                ;// a whole sector: the window still shows it while FatFs writes it
+    ld [DocFill], a
+    ld [DocFill+1], a
+    ld bc, 512
+    call SaveWrite
+    or a, a
+    jr z, .loop
+.done:
+    push af
+    ld de, $0100            ;// TB_PSRAM_HIGH << 8
+    call _SetWindowBlock
+    pop af
+    pop bc
+    pop de
+    ret
+SaveWrite:                  ;// BC bytes of the window to the save file, returns an FRESULT in A
+    push bc
+    add sp, -2              ;// done (on the stack: f_write's page can't see this one)
+    ld hl, sp+0
+    push hl
+    push bc
+    ld bc, $BE00            ;// WINDOW
+    ld de, _save_file
+    call _f_write
+    pop hl
+    pop bc
+    or a, a
+    ret nz
+    ld a, l
+    xor a, c
+    ld e, a
+    ld a, h
+    xor a, b
+    or a, e
+    ret z
+    ld a, 7                 ;// FR_DENIED: the card is full
+    ret
+  __endasm;
 }
 
 // Games: a .gb or .gbc file is copied to PSRAM from block 0 and launched (GameLaunch in fatfs.asm, the cart
