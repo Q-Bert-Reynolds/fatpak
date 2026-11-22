@@ -3,7 +3,7 @@
 [Architecture](ARCHITECTURE.md) · [Assembler](ASSEMBLER.md) ·
 [Modules](MODULES.md) · [TODO](../TODO.md)
 
-Proposal: an on-device C compiler for Game Boy programs. It produces readable,
+An on-device C compiler for Game Boy programs (status below). It produces readable,
 RGBDS-compatible SM83 assembly that `ASM.MOD` can assemble. The compiler runs
 on DMG as well as CGB; its output runs on Game Boy hardware without FatPak
 services. SGB programs still execute Game Boy code; a SNES compiler is outside
@@ -13,6 +13,72 @@ This is a small, freestanding compiler with one target, a documented C subset,
 and a small runtime. It is not a portable compiler framework, a replacement for
 all of SDCC, or initially a way to rebuild FatPak itself. Correct code without
 peephole definitions is a requirement, including when optimization is disabled.
+
+## Status (2026-11-21)
+
+Milestones 1-2 are done and most of 3 and 5 run on the PC: `make test-cc`
+(`tests/test_cc.py`). There is no `CC.MOD` yet.
+
+| Part | Where |
+| --- | --- |
+| Lexer and preprocessor | `modules/cc/cc_lex.c` |
+| Declarations, types, statements, expression trees | `modules/cc/cc_parse.c` |
+| SM83 code generation | `modules/cc/cc_gen.c` |
+| Shared types; host interface | `modules/cc/cc_int.h`, `modules/cc/cc.h` |
+| Start-up, helpers, end of data records | `modules/cc/rt/crt0.asm`, `ccrt.asm`, `crtend.asm` |
+| `hardware.h`, `stdint.h`, `stddef.h`, `stdbool.h`, `limits.h` | `modules/cc/include/` |
+| PC harness: `cc_host [-I dir] [-D n[=v]] [-u unit] [-M deps] in.c -o out.asm` | `tests/cc_host.c` |
+| Gearboy runner: prints `main`'s result | `tests/cc_run.cpp` |
+
+Supported: everything in "Start with" below, plus structs/unions (members,
+nesting, copies, initializers), `switch`, `goto`, enums, function pointers,
+static locals, `long` through runtime helpers, function-like macros and
+`#if` arithmetic. `#` and `##` in macros, designated initializers, compound
+literals, struct arguments/returns, variadic functions, bitfields, floating
+point, `long long`, `#pragma` and inline assembly are rejected with an error.
+`f()` declares a function without parameters, as `f(void)` does.
+
+`test_cc.py` compiles each `tests/cc/*.c` (the address sanitizer watches the
+compiler), links it with the runtime through RGBDS, and runs it in Gearboy as CGB and
+DMG; `main` returns 0 or the line of its first failed `CHECK`. The same units
+built through `ASM.MOD` and `LINK.MOD` (`build/asm_host`, a `project.gbp`) must
+give the same ROM byte for byte. `abi.c` links with `tests/cc/sdcc/abi_peer.c`,
+compiled by SDCC 4.2.0 (`--sdcccall 1`), and calls both ways. `hardware.c` polls
+`LY`, writes VRAM with the LCD off and reads it back. 27 bad programs check the
+error messages and lines.
+
+How it differs from the plan below:
+
+- No per-function IR. Statements are generated as they are parsed. Each full
+  expression is a typed tree (`nodes`, reset after each statement), with
+  constants folded and every promotion and conversion explicit. Locals are
+  allocated on the stack at their declaration and freed at the end of their block.
+  `cg_depth` tracks every push, so each `break`, `continue`, `goto`, `case` and
+  `return` moves SP by a known amount. A `goto` or `case` into a block at
+  another depth goes through a stub that adjusts SP.
+- Code generation: a value is in HL, extended to 16 bits by its type, or in DEHL
+  for 32 bits. Binary operators take the left operand in DE and the right in HL;
+  stores go through BC. Constant operands, short shifts and comparisons are
+  inline. Multiplication, division, variable shifts, 32-bit operations, struct
+  copies and indirect calls (`__cc_jphl`) call `ccrt.asm`. All branches are `jp`.
+- Output goes to six sinks, each one section per unit: code, rodata (`const`
+  objects), strings (literals, as numeric `DB`s), data, init records
+  (`SECTION FRAGMENT "cc_init"`: `DW dest, end` and the bytes) and bss. A unit
+  uses at most six of `ASM.MOD`'s 512 sections. Link `crt0.asm` first and
+  `crtend.asm` last: crtend ends the records.
+- Names: `_name` for external symbols, `__unit_name` for statics,
+  `__unit__s<n>` for static locals, `__unit__<n>` for literals and record
+  ends, `.L<n>` for local labels. Each unit lists the helpers it uses in a final
+  comment.
+
+Fitting the device (measured 2026-11-21, SDCC `--opt-code-size`): the core is
+about 66 KB of code (lexer 17, parser 34, generator 16) against the five
+7,424-byte pages of a wide module. Its tables are about 135 KB at the PC's
+limits (`cc.h`), against 3 KB of BSS. `CC.MOD` needs those tables in PSRAM
+behind accessors, at least two modules handing over through PSRAM (for example
+preprocessing, then parsing and generation), and a code-size pass. The core
+already avoids struct returns (SDCC can't compile them) and libc apart from
+`setjmp` and `stdarg`.
 
 ## Build contract
 
@@ -121,6 +187,23 @@ may differ from the installed compiler. Resolve the exact register assignment,
 stack byte layout, cleanup, clobbers and return rules from those fixtures and
 the SM83 sources/manual. Do not infer the ABI from a few generated functions or
 from the Z80 convention.
+
+What SDCC 4.2.0 #13081 (`-msm83 --sdcccall 1`) does, as `tests/cc/abi.c` checks
+both ways:
+
+| Argument | 8 bits | 16 bits (and pointers) | 32 bits |
+| --- | --- | --- | --- |
+| first | `a` | `de` | `debc` (`bc` low) |
+| second, after one in `a` | `e` | `de` | stack |
+| second, after one in `de` | `a` | `bc` | stack |
+| second, after one in `debc`; third and later | stack | stack | stack |
+
+Stack arguments are pushed last first, packed by size (a byte takes one byte:
+`push hl` / `inc sp` with the value in `h`), and the callee removes them
+(`pop hl` / `add sp, n` / `jp hl`). Results are in `a`, `bc` or `debc`. Every
+register is clobbered by a call. CC passes `a` arguments by pushing them with the
+value in the high byte and popping them with `pop af`, so HL can hold the target
+of an indirect call.
 
 The existing architecture notes describe arguments in `a`, `de`, `e` and `bc`,
 with remaining arguments on the stack and callee cleanup for fixed prototypes;

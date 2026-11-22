@@ -24,7 +24,7 @@ C_LIBS    = $(wildcard $(SRC_DIR)/*/lib/*.c) $(wildcard $(SRC_DIR)/*/lib/*.h)
 # Preserve raw output: page placement and cross-module call resolution run together.
 C_RAW     = $(patsubst %.c,$(BUILD_DIR)/c/%.asm,$(C_SOURCES))
 
-.PHONY: test-sgb-ui sgb-kernel test-sgb-kernel test-sgb-client test-sgb-map test-overlays test-sgb-host test-geometry all code modules assemble run assets clean sgb-hello test-sgb-hello sgb-bench test-sgb-bench test-sgb-bench-timeout sgb-handoff test-sgb-handoff sgb-protocol test-sgb-protocol sgb-budget
+.PHONY: test-cc test-sgb-ui sgb-kernel test-sgb-kernel test-sgb-client test-sgb-map test-overlays test-sgb-host test-geometry all code modules assemble run assets clean sgb-hello test-sgb-hello sgb-bench test-sgb-bench test-sgb-bench-timeout sgb-handoff test-sgb-handoff sgb-protocol test-sgb-protocol sgb-budget
 
 all: clean assets assemble run
 
@@ -54,6 +54,10 @@ test-sgb-host:
 
 test-geometry:
 	bash tests/run_geometry.sh
+
+# the C compiler (modules/cc) on a PC; doesn't touch the OS build or the card
+test-cc:
+	$(PYTHON) tests/test_cc.py
 
 # Phase 0a is a standalone ROM; it does not rebuild or install the OS.
 sgb-hello:
