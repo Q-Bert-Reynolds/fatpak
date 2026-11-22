@@ -33,6 +33,7 @@
     ["Sector", "unsigned char", "unsigned long sector, unsigned int block", 10],
     ["Driver", "unsigned int", "unsigned char command", 11],
     ["Overlay", "unsigned int", "unsigned char command", 12],
-    ["Background", "unsigned char", "unsigned char mode, unsigned int scroll", 13]
+    ["Background", "unsigned char", "unsigned char mode, unsigned int scroll", 13],
+    ["Abort", "void", "unsigned char result", 14]
   ]
 }

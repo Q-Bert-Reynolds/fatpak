@@ -16,69 +16,138 @@ peephole definitions is a requirement, including when optimization is disabled.
 
 ## Status (2026-11-21)
 
-Milestones 1-2 are done and most of 3 and 5 run on the PC: `make test-cc`
-(`tests/test_cc.py`). There is no `CC.MOD` yet.
+FILE > BUILD and RUN work on a `.c` file on the Game Boy (Gearboy, DMG and CGB; not tried on
+hardware yet): three modules compile it, `ASM.MOD` and `LINK.MOD` build the ROM beside it. The
+same code runs on a PC for the tests: `make test-cc` (`tests/test_cc.py`), and
+`tests/run_cc_build.sh` in Gearboy. Error messages on the device are numbers:
+[CC_ERRORS.md](CC_ERRORS.md).
+
+### Using it
+
+Open a `.c` file and BUILD (or RUN). The compiled unit is one file: it can `#include` headers
+(`"name"` from the file's folder and those above it, `<name>` from `/GBCSYS/CC/include`), but
+there is no linking of several `.c` files yet, and `project.gbp` isn't read for C. The runtime
+(`/GBCSYS/CC/crt0.asm`, `ccrt.asm`, `crtend.asm`) is `INCLUDE`d around the unit: `main`
+runs with interrupts off; its `int` result is at `$C000` and `$C002` becomes `$A5` when it
+returns. An error shows the file, `Line <n>`, `C ERROR <n>` and the name it's about, and
+moves the cursor to the line (in the document). `make assemble` copies the runtime and headers
+to the card with the modules.
+
+Gearboy, `tests/cc/arith.c` (80 lines): about 90 s from BUILD to the ROM on CGB, 3 minutes on
+DMG. Nearly all of it is the passes reading and writing PSRAM a field at a time.
+
+### Pieces
 
 | Part | Where |
 | --- | --- |
-| Lexer and preprocessor | `modules/cc/cc_lex.c` |
-| Declarations, types, statements, expression trees | `modules/cc/cc_parse.c` |
-| SM83 code generation | `modules/cc/cc_gen.c` |
-| Shared types; host interface | `modules/cc/cc_int.h`, `modules/cc/cc.h` |
+| Pass A, preprocessing: CCA.MOD, 4 pages | `modules/cc/cc_a_*.c`, `cc_a.h`; `cc_dev_a.c` (ModSource, ModLoad) |
+| Pass B, parsing: CCB.MOD, 5 pages | `modules/cc/cc_b_*.c`, `cc_b.h`; `cc_dev_b.c` |
+| Pass C, code generation: CCC.MOD, 3 pages | `modules/cc/cc_c_*.c`, `cc_c.h`, `cc_ops.h`; `cc_dev_c.c` |
+| The error box: CCERR.MOD | `modules/cc/cc_err.c` |
+| In every pass, A and B, B and C | `cc_core.c`, `cc_arith.c`, `cc_types.c` |
+| Page-local accessors (`CC_NEED_*`, `scripts/cc_pages.py`) | `cc_acc.h` |
+| Layouts, PSRAM map, host interface; tables; context and state | `cc.h`, `cc_int.h`, `cc_ctx.h` |
+| Codes and their English | `cc_msg.h`, `cc_msgs.c` (`scripts/cc_errors.py` writes CC_ERRORS.md) |
 | Start-up, helpers, end of data records | `modules/cc/rt/crt0.asm`, `ccrt.asm`, `crtend.asm` |
 | `hardware.h`, `stdint.h`, `stddef.h`, `stdbool.h`, `limits.h` | `modules/cc/include/` |
+| Host (`BuildStart`, assembly) | `src/editor/build.c` |
 | PC harness: `cc_host [-I dir] [-D n[=v]] [-u unit] [-M deps] in.c -o out.asm` | `tests/cc_host.c` |
 | Gearboy runner: prints `main`'s result | `tests/cc_run.cpp` |
 
-Supported: everything in "Start with" below, plus structs/unions (members,
-nesting, copies, initializers), `switch`, `goto`, enums, function pointers,
-static locals, `long` through runtime helpers, function-like macros and
-`#if` arithmetic. `#` and `##` in macros, designated initializers, compound
-literals, struct arguments/returns, variadic functions, bitfields, floating
-point, `long long`, `#pragma` and inline assembly are rejected with an error.
-`f()` declares a function without parameters, as `f(void)` does.
+Supported: everything in "Start with" below, plus structs/unions (members, nesting, copies,
+initializers), `switch`, `goto`, enums, function pointers, static locals, `long` through runtime
+helpers, function-like macros and `#if` arithmetic. `#` and `##` in macros, designated
+initializers, compound literals, struct arguments/returns, variadic functions, bitfields,
+floating point, `long long`, `#pragma` and inline assembly are rejected with an error. `f()`
+declares a function without parameters, as `f(void)` does.
 
-`test_cc.py` compiles each `tests/cc/*.c` (the address sanitizer watches the
-compiler), links it with the runtime through RGBDS, and runs it in Gearboy as CGB and
-DMG; `main` returns 0 or the line of its first failed `CHECK`. The same units
-built through `ASM.MOD` and `LINK.MOD` (`build/asm_host`, a `project.gbp`) must
-give the same ROM byte for byte. `abi.c` links with `tests/cc/sdcc/abi_peer.c`,
-compiled by SDCC 4.2.0 (`--sdcccall 1`), and calls both ways. `hardware.c` polls
-`LY`, writes VRAM with the LCD off and reads it back. 27 bad programs check the
-error messages and lines.
+### The passes
 
-How it differs from the plan below:
+Each pass is a wide module, and they hand over only through PSRAM (`cc.h`'s map, in
+`ASM.MOD`'s areas, free until it runs):
 
-- No per-function IR. Statements are generated as they are parsed. Each full
-  expression is a typed tree (`nodes`, reset after each statement), with
-  constants folded and every promotion and conversion explicit. Locals are
-  allocated on the stack at their declaration and freed at the end of their block.
-  `cg_depth` tracks every push, so each `break`, `continue`, `goto`, `case` and
-  `return` moves SP by a known amount. A `goto` or `case` into a block at
-  another depth goes through a stub that adjusts SP.
-- Code generation: a value is in HL, extended to 16 bits by its type, or in DEHL
-  for 32 bits. Binary operators take the left operand in DE and the right in HL;
-  stores go through BC. Constant operands, short shifts and comparisons are
-  inline. Multiplication, division, variable shifts, 32-bit operations, struct
-  copies and indirect calls (`__cc_jphl`) call `ccrt.asm`. All branches are `jp`.
-- Output goes to six sinks, each one section per unit: code, rodata (`const`
-  objects), strings (literals, as numeric `DB`s), data, init records
-  (`SECTION FRAGMENT "cc_init"`: `DW dest, end` and the bytes) and bss. A unit
-  uses at most six of `ASM.MOD`'s 512 sections. Link `crt0.asm` first and
-  `crtend.asm` last: crtend ends the records.
-- Names: `_name` for external symbols, `__unit_name` for statics,
-  `__unit__s<n>` for static locals, `__unit__<n>` for literals and record
-  ends, `.L<n>` for local labels. Each unit lists the helpers it uses in a final
-  comment.
+- **A** (`cc_a_*`) lexes and preprocesses into a token stream (8 bytes a token, `TK_LINE`
+  markers for lines and files). Names (64-byte records, hash chains), macros, macro bodies and
+  expansions, string literals (a heap) are in PSRAM.
+- **B** (`cc_b_*`) parses the stream. Symbols (never removed: a name's visible symbol heads a
+  `shadow` chain), types, fields and expression trees (16-byte records, kept for C) go to PSRAM,
+  and each statement becomes ops in the statement stream (`IR_*`, `cc_int.h`), static data too
+  (`IR_D*`). Its `gen_*` are stream writers that mirror the stack depth.
+- **C** (`cc_c_*`) replays the stream through the code generator, writes the text sinks, and
+  joins them at `CC_OUT_BLOCK` (64 KiB at most: `ASM.MOD`'s document limit), with the runtime's
+  `INCLUDE`s on the device (`CC_WRAP`).
 
-Fitting the device (measured 2026-11-21, SDCC `--opt-code-size`): the core is
-about 66 KB of code (lexer 17, parser 34, generator 16) against the five
-7,424-byte pages of a wide module. Its tables are about 135 KB at the PC's
-limits (`cc.h`), against 3 KB of BSS. `CC.MOD` needs those tables in PSRAM
-behind accessors, at least two modules handing over through PSRAM (for example
-preprocessing, then parsing and generation), and a code-size pass. The core
-already avoids struct returns (SDCC can't compile them) and libc apart from
-`setjmp` and `stdarg`.
+Every table is read and written by value through small functions (`SY_KIND(i)`, `ND_A(n)`...):
+no pointer into the PSRAM window survives the next select. On the PC the window is one
+512-byte buffer written back and reloaded at every select, so a stale pointer fails the tests
+there too; PSRAM starts out as `$A5`s.
+
+The host (`BuildStart`) runs CCA.MOD; each module names the next in the context (`cc_chain`):
+CCB, CCC, or CCERR.MOD after an error, which writes the box's text and the cursor's place. An
+error ends a pass through `ModAbort` (ABI 14, `ModuleAbort`'s second label), which also resets
+the far-call depth; on the PC, `longjmp`. CCC.MOD fills in the `AsmContext` (sharing the
+context's storage) for `ASM.MOD`'s `ASM_TEXT`.
+
+### Fitting the modules
+
+What the module rules required:
+
+- Pages: each page is one or more whole sources, mapped alone at `$A000`. A recursive cycle
+  stays on one page (expressions on `cc_b_expr`, the code generator's on `cc_c_gen`), since each
+  call between pages takes one of the OS's 16 far-call frames (Gearboy: 9 at the deepest). A pointer to a page's constants can't cross pages: the generator emits
+  instruction codes (`cc_ops.h`, 113 templates on `cc_c_emit`), `out_str` copies a literal to the
+  stack first, and the hot accessors are copied into each page (renamed by `CC_PAGE`).
+- No SDCC helpers (`cc_mul32`, `cc_divmod32`...), no `memcpy` from struct assignments
+  (`tok_copy`), no initialized data, no struct returns, no libc.
+- Stacks: each pass runs on its own stack in its BSS (1,792, 2,560 and 2,560 bytes; `cc_dev_*.c`
+  switch to it in `ModuleMain`): the OS's 1 KiB also holds BuildFile's frames, and FatFs
+  under `ModLoad`. `ModLoad` (which may hold the BSS elsewhere while it draws progress) runs on
+  the OS's stack. Gearboy: the OS stack 804 bytes deep at most (FatFs reading an `#include`),
+  the passes' own up to 679, 524 and 435 bytes (`preproc.c`, `calls.c`). BSS in all: 2,922, 2,768
+  and 2,709 bytes (of 3,072). Scratch arrays (cases, labels, initializer items, declarator
+  operations, struct members) are in PSRAM.
+- SDCC 4.2.0 miscompiled two places silently (the PC build was right): `store_to` lost a register
+  across a spill, and `local_declaration`'s address-taken struct shared its stack slot with a
+  later local. Both are rewritten around it. `run_cc_build.sh` compares the assembly the modules
+  write with the PC's byte for byte, which is how they were found: trust that, not the PC.
+- Size: CCB's five pages are 6,720 + 6,915 + 6,300 + 6,824 + 6,634 bytes of 7,424; CCC's
+  `cc_c_gen` is 7,283. Growth needs care.
+- The OS has almost no room: `BuildStart` is assembly, `NameChar` moved to page 4 and
+  `BuildModule` to page 6 to make space (every page is at 98-99%).
+
+The PC harness builds each pass as its own object, only its entries global, so the passes
+share nothing but the emulated PSRAM.
+
+### Tests
+
+`test_cc.py` compiles each `tests/cc/*.c` (the address sanitizer watches the compiler), links
+it with the runtime through RGBDS, and runs it in Gearboy as CGB and DMG; `main` returns 0 or
+the line of its first failed `CHECK`. The same units built through `ASM.MOD` and `LINK.MOD`
+(`build/asm_host`) must give the same ROM byte for byte. `abi.c` links with
+`tests/cc/sdcc/abi_peer.c`, compiled by SDCC 4.2.0 (`--sdcccall 1`), and calls both ways.
+`hardware.c` polls `LY`, writes VRAM with the LCD off and reads it back. 27 bad programs check
+the error messages and lines. `run_cc_build.sh` does FILE > BUILD on the fixtures on a fresh
+card in Gearboy (CGB and DMG), runs each ROM built there, checks an error's box and cursor, and
+records the far-call depth and stack.
+
+How the code differs from the plan below:
+
+- No per-function IR: statements are generated as they're parsed (in pass B, as stream ops).
+  Each full expression is a typed tree, constants folded and every promotion and conversion
+  explicit. Locals are allocated on the stack at their declaration and freed at the end of
+  their block. `cg_depth` tracks every push, so each `break`, `continue`, `goto`, `case` and
+  `return` moves SP by a known amount; a `goto` or `case` into a block at another depth goes
+  through a stub that adjusts SP.
+- Code generation: a value is in HL, extended to 16 bits by its type, or in DEHL for 32 bits.
+  Binary operators take the left operand in DE and the right in HL; stores go through BC.
+  Constant operands, short shifts and comparisons are inline. Multiplication, division,
+  variable shifts, 32-bit operations, struct copies and indirect calls (`__cc_jphl`) call
+  `ccrt.asm`. All branches are `jp`. Locals all live on the stack: correct, but slow and big.
+- Output goes to six sinks, each one section per unit: code, rodata (`const` objects), strings
+  (literals, as numeric `DB`s), data, init records (`SECTION FRAGMENT "cc_init"`: `DW dest, end`
+  and the bytes) and bss. Link `crt0.asm` first and `crtend.asm` last: crtend ends the records.
+- Names: `_name` for external symbols, `__unit_name` for statics, `__unit__s<n>` for static
+  locals, `__unit__<n>` for literals and record ends, `.L<n>` for local labels.
 
 ## Build contract
 

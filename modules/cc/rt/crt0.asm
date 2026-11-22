@@ -2,8 +2,8 @@
 ; then main. Link this unit first and crtend.asm last: initialized data is a list of
 ; records in the "cc_init" fragments between them (DW dest, end; the bytes up to end),
 ; ended by crtend's DW 0.
-; Interrupts stay disabled; vectors return at once. main's int result goes to cc_exit and
-; cc_done becomes $A5, then the CPU halts.
+; Interrupts stay disabled; vectors return at once. main's int result goes to cc_exit ($C000)
+; and cc_done ($C002) becomes $A5, then the CPU halts.
 
 SECTION "cc_vectors", ROM0[$0040]
 	reti ; VBlank
@@ -74,6 +74,6 @@ __cc_start:
 SECTION FRAGMENT "cc_init", ROM0
 __cc_init_start:
 
-SECTION "cc_state", WRAM0
+SECTION "cc_state", WRAM0[$C000] ; fixed: a ROM built on the device has no symbol file to find them in
 _cc_exit:: ds 2
 _cc_done:: ds 1

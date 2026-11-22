@@ -18,10 +18,25 @@ def run(args, **kw):
         sys.exit(f'{args[0]} failed:\n{done.stdout}{done.stderr}')
     return done
 
+PASSES = { # each pass is a module on the Game Boy: its own object here, only its entries global,
+    # so the passes share nothing but the emulated PSRAM (and the host functions)
+    'a': (['cc_a_main.c', 'cc_a_lex.c', 'cc_a_dir.c', 'cc_a_if.c', 'cc_core.c', 'cc_arith.c'], ['cc_pass_a_init', 'cc_define', 'cc_pass_a']),
+    'b': (['cc_b_stmt.c', 'cc_b_expr.c', 'cc_b_tree.c', 'cc_b_decl.c', 'cc_b_init.c', 'cc_core.c', 'cc_arith.c', 'cc_types.c'], ['cc_pass_b']),
+    'c': (['cc_c_main.c', 'cc_c_gen.c', 'cc_c_emit.c', 'cc_core.c', 'cc_types.c'], ['cc_pass_c']),
+}
+CFLAGS = ['-std=c99', '-DCC_HOST', '-O1', '-g', '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-fsanitize=address,undefined']
+
 def build():
-    sources = [ROOT / 'tests/cc_host.c'] + sorted(CC.glob('cc_*.c'))
-    run(['gcc', '-std=c99', '-O1', '-g', '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter',
-         '-fsanitize=address,undefined', '-o', HOST] + sources)
+    objects = []
+    for name, (sources, entries) in PASSES.items():
+        parts = []
+        for src in sources:
+            parts.append(ROOT / f'build/cc_{name}_{Path(src).stem}.o')
+            run(['gcc', *CFLAGS, '-c', '-o', parts[-1], CC / src])
+        objects.append(ROOT / f'build/cc_pass_{name}.o')
+        run(['ld', '-r', '-o', objects[-1], *parts])
+        run(['objcopy', *[f'--keep-global-symbol={e}' for e in entries], objects[-1]])
+    run(['gcc', *CFLAGS, '-o', HOST, ROOT / 'tests/cc_host.c', CC / 'cc_msgs.c', *objects])
     deps = [ROOT / 'tests/cc_run.cpp']
     if not RUNNER.exists() or any(d.stat().st_mtime > RUNNER.stat().st_mtime for d in deps):
         objects = [*GEARBOY.glob('src/*.o'), *GEARBOY.glob('src/audio/*.o'),
@@ -135,6 +150,8 @@ def asm_mod(asm, rom, work):
     return None
 
 def main():
+    run([sys.executable, ROOT / 'scripts/cc_pages.py', '--check']) # each page's CC_NEED_ block
+    run([sys.executable, ROOT / 'scripts/cc_errors.py', '--check']) # notes/CC_ERRORS.md
     build()
     if not ASM_HOST.exists():
         run([sys.executable, ROOT / 'tests/test_asm.py'])

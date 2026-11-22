@@ -127,9 +127,9 @@
 #define ASM_SECTOR_BLOCK 0x3A03u//a directory sector LINK.MOD reads (ModSector)
 #define ASM_OLD_BLOCK    0x307Eu//the last build.obj, loaded at the files' end (up to ASM_FILE_END) while it's used
 #define ASM_BUILD_BLOCK  0x2130u//the new build.obj, put together over the files after the link (FileWriteImage 0x2000)
-#define MODULE_ABI     13//newest ABI the host provides, modules built for older ones still load
+#define MODULE_ABI     14//newest ABI the host provides, modules built for older ones still load
 #define MODULE_TABLE   0x7F00u//ABI jump table in resident bank 1, 3 bytes per entry
-#define MODULE_SLOTS   33//entries reserved for it
+#define MODULE_SLOTS   34//entries reserved for it
 #define MODULE_FORMAT  1//one page, BSS after the code
 #define MODULE_FORMAT_WIDE 2//pages MODULE_PAGE and MODULE_PAGE2, BSS at MODULE_BSS
 #define MODULE_HEADER  32//bytes before the payload

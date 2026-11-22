@@ -261,7 +261,9 @@ def compile_sources(work, sources):
     for source in sources:
         raw = work / (Path(source).stem + '.raw.asm')
         subprocess.run(SDCC + [str(ROOT / 'modules' / source), '-o', str(raw)], check=True, cwd=ROOT)
-        raws.append(raw.read_text())
+        # SDCC numbers each file's literals from ___str_0: a module of several files needs them apart
+        stem = re.sub(r'\W', '_', Path(source).stem)
+        raws.append(re.sub(r'(?<![\w.])(_{2,3}str_)(\d+)\b', lambda m: m[1] + stem + '_' + m[2], raw.read_text()))
     return raws
 
 

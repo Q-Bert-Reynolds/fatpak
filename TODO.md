@@ -85,6 +85,6 @@
 
 - Something writes the top of HRAM (found 2026-11-20: a byte placed at `$FFF5` read 160 after a BUILD, and `tests/test_footer_clock.cpp` ran a stub at `$FFF0`). Find it before putting anything up there.
 
-- C compiler (`modules/cc`, [COMPILER.md](notes/COMPILER.md#status-2026-11-21)): runs on the PC (`make test-cc`); next `CC.MOD`: tables in PSRAM, split into at least two modules (~66 KB of code), host handoff of the generated `.asm`, BUILD/RUN of `.c` projects; then `#`/`##`, designated initializers, struct arguments, register reuse.
+- C compiler ([COMPILER.md](notes/COMPILER.md#status-2026-11-21)): BUILD/RUN of one `.c` file works in Gearboy (CCA/CCB/CCC.MOD, ~90 s for 80 lines on CGB); try it on hardware. Next: speed (field-at-a-time PSRAM access dominates; cache records), several `.c` units and `project.gbp`, messages instead of `C ERROR <n>` (the strings budget), `#`/`##`, designated initializers, struct arguments, register reuse (the 64 KiB assembly limit comes quickly). CCB and CCC's pages are nearly full, and so is the OS.
 - Document real differences of other X-series carts rather than assuming X7 SD/RTC/button behavior.
 - Ports to other cartridges need a loader, SD access and a new memory layout; the PSRAM window is assumed everywhere.

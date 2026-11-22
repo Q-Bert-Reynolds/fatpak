@@ -335,7 +335,9 @@ _ModuleEnter::
   jp hl
 
 ; a = the module's result: back out of it to ModuleEnter's caller, from anywhere inside it
-; (a host function it called, however deep), as if it had returned
+; (a host function it called, however deep), as if it had returned. Also ModAbort (ABI 14):
+; CC's passes end on an error this way, their state saved in PSRAM
+_ModuleAPIAbort::
 _ModuleAbort::
   ld b, a
   LD_HL_VAR module_sp
@@ -351,6 +353,7 @@ ModuleStages: DW MODULE_STAGE, MODULE_STAGE2, MODULE_STAGE3, MODULE_STAGE4, MODU
 ;a wide module's thunks: call _ModFar, DB page, DW target (module_build.py), like bank_split's
 _ModuleAPIFar::
   jp FarCallInline
+
 
 INCLUDE "build/modules/table.inc"
 

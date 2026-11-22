@@ -4,4 +4,5 @@ FIXED: BuildProgress PutTime
 ROM0: FolderPath
 # after the module, with the editor's pages back
 15: ErrorCursor WriteOutputs
-12: OutputPath
+12: OutputPath BuildStart
+6: BuildModule

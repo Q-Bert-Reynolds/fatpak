@@ -1,5 +1,5 @@
-// Runs the CC compiler core (modules/cc) on a PC: files, include search, output sinks and
-// diagnostics for cc_compile. tests/test_cc.py drives it.
+// Runs CC's three passes (modules/cc) on a PC: files, include search, an emulated PSRAM and
+// diagnostics; the passes hand over only through that PSRAM. tests/test_cc.py drives it.
 // usage: cc_host [-I dir]... [-D name[=value]]... [-u unit] [-M deps] in.c -o out.asm
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,9 +10,18 @@ typedef struct { char path[1024]; char* data; long size; int used; } HostFile;
 static HostFile files[64];
 static const char* include_dirs[32];
 static int ninclude;
-static char* sinks[CC_SINKS];
-static size_t sink_len[CC_SINKS], sink_cap[CC_SINKS];
 static FILE* deps;
+// PSRAM: one 512-byte window, written back and reloaded at every select, so a pointer kept
+// past a select reads the wrong block here as it would on the Game Boy
+static unsigned char psram[0x4000 * 512];
+static unsigned char window_buf[512];
+static long window_block = -1;
+u8* cc_win = window_buf;
+void cc_sel(u16 block) {
+  if (window_block >= 0) memcpy(psram + window_block * 512, window_buf, 512);
+  memcpy(window_buf, psram + (long)block * 512, 512);
+  window_block = block;
+}
 static int errors;
 
 static u8 open_path(const char* path) {
@@ -53,17 +62,11 @@ u16 cc_host_read(u8 file, u32 pos, char* dest, u16 n) {
 }
 void cc_host_close(u8 file) { free(files[file].data); files[file].used = 0; }
 const char* cc_host_name(u8 file) { return file < 64 && files[file].used ? files[file].path : "?"; }
-void cc_host_write(u8 sink, const char* text, u16 n) {
-  if (sink_len[sink] + n > sink_cap[sink]) {
-    sink_cap[sink] = (sink_len[sink] + n) * 2 + 4096;
-    sinks[sink] = realloc(sinks[sink], sink_cap[sink]);
-  }
-  memcpy(sinks[sink] + sink_len[sink], text, n);
-  sink_len[sink] += n;
-}
-void cc_host_diag(u8 error, const char* file, u16 line, u16 col, const char* message) {
-  (void)col;
-  fprintf(stderr, "%s:%u: %s: %s\n", file, line, error ? "error" : "warning", message);
+extern const char* const cc_messages[];
+void cc_host_diag(u8 error, const char* file, u16 line, u8 code, const char* extra) {
+  const char* message = cc_messages[code];
+  if (extra && (code == E_HASH_ERROR_TEXT || code == E_HASH_WARNING_TEXT) && *extra) message = extra, extra = 0;
+  fprintf(stderr, "%s:%u: %s: %s%s%s\n", file, line, error ? "error" : "warning", message, extra ? ": " : "", extra ? extra : "");
   if (error) ++errors;
 }
 
@@ -71,7 +74,8 @@ int main(int argc, char** argv) {
   const char *in = 0, *out = 0, *unit = 0;
   char unit_buf[64];
   int i;
-  lex_init(); // keywords first: their ids are fixed
+  memset(psram, 0xA5, sizeof(psram)); // not zero: nothing may rely on it
+  cc_pass_a_init(); // keywords first: their ids are fixed
   for (i = 1; i < argc; ++i) {
     if (!strcmp(argv[i], "-I") && i + 1 < argc) include_dirs[ninclude++] = argv[++i];
     else if (!strcmp(argv[i], "-o") && i + 1 < argc) out = argv[++i];
@@ -95,12 +99,16 @@ int main(int argc, char** argv) {
     }
     unit_buf[n] = 0; unit = unit_buf;
   }
-  if (cc_compile(in, unit) || errors) { remove(out); return 1; }
+  if (cc_pass_a(in, unit, 0) || cc_pass_b() || cc_pass_c() || errors) { remove(out); return 1; }
   {
-    FILE* f = fopen(out, "w");
+    CcState st;
+    FILE* f;
+    if (window_block >= 0) memcpy(psram + window_block * 512, window_buf, 512);
+    memcpy(&st, psram + (long)CC_STATE_BLOCK * 512, sizeof(st));
+    f = fopen(out, "w");
     if (!f) { fprintf(stderr, "can't write %s\n", out); return 1; }
     fprintf(f, "; %s, compiled by CC\n", in);
-    for (i = 0; i < CC_SINKS; ++i) if (sink_len[i]) fwrite(sinks[i], 1, sink_len[i], f);
+    fwrite(psram + (long)CC_OUT_BLOCK * 512, 1, st.out_n, f);
     fclose(f);
   }
   if (deps) fclose(deps);

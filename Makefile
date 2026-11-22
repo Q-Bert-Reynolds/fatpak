@@ -24,7 +24,7 @@ C_LIBS    = $(wildcard $(SRC_DIR)/*/lib/*.c) $(wildcard $(SRC_DIR)/*/lib/*.h)
 # Preserve raw output: page placement and cross-module call resolution run together.
 C_RAW     = $(patsubst %.c,$(BUILD_DIR)/c/%.asm,$(C_SOURCES))
 
-.PHONY: test-cc test-sgb-ui sgb-kernel test-sgb-kernel test-sgb-client test-sgb-map test-overlays test-sgb-host test-geometry all code modules assemble run assets clean sgb-hello test-sgb-hello sgb-bench test-sgb-bench test-sgb-bench-timeout sgb-handoff test-sgb-handoff sgb-protocol test-sgb-protocol sgb-budget
+.PHONY: test-cc test-cc-build test-sgb-ui sgb-kernel test-sgb-kernel test-sgb-client test-sgb-map test-overlays test-sgb-host test-geometry all code modules assemble run assets clean sgb-hello test-sgb-hello sgb-bench test-sgb-bench test-sgb-bench-timeout sgb-handoff test-sgb-handoff sgb-protocol test-sgb-protocol sgb-budget
 
 all: clean assets assemble run
 
@@ -58,6 +58,10 @@ test-geometry:
 # the C compiler (modules/cc) on a PC; doesn't touch the OS build or the card
 test-cc:
 	$(PYTHON) tests/test_cc.py
+
+# the C compiler's modules: FILE > BUILD on .c files in Gearboy (needs make assemble SD_MOUNT=/nonexistent first)
+test-cc-build:
+	bash tests/run_cc_build.sh
 
 # Phase 0a is a standalone ROM; it does not rebuild or install the OS.
 sgb-hello:
@@ -131,6 +135,8 @@ endif
 	$(PYTHON) scripts/keyboard_drivers.py
 	$(PYTHON) scripts/data_file.py $(BIN_DIR)/EDITOR.DAT
 	cp data/mapview.inc $(BIN_DIR)/MAPVIEW.INC
+	rm -rf $(BIN_DIR)/CC && mkdir -p $(BIN_DIR)/CC/include # the C compiler's runtime and headers (/GBCSYS/CC)
+	cp modules/cc/rt/*.asm $(BIN_DIR)/CC/ && cp modules/cc/include/*.h $(BIN_DIR)/CC/include/
 	$(PYTHON) scripts/sgb_kernel.py
 	$(PYTHON) scripts/sgb_data.py --snes $(BUILD_DIR)/sgb/program.bin --fonts $(BUILD_DIR)/sgb/fonts.bin --ext $(BUILD_DIR)/sgb/ext.bin
 	@if mountpoint -q "$(SD_MOUNT)"; then \
@@ -142,6 +148,8 @@ endif
 		cp $(BIN_DIR)/MODULES/*.MOD "$(SD_MOUNT)/GBCSYS/MODULES/" && \
 		cp $(BIN_DIR)/DRIVERS/*.DRV "$(SD_MOUNT)/GBCSYS/DRIVERS/" && \
 		cp $(BIN_DIR)/LANG/*.DAT "$(SD_MOUNT)/GBCSYS/LANG/" && \
+		mkdir -p "$(SD_MOUNT)/GBCSYS/CC/include" && cp $(BIN_DIR)/CC/*.asm "$(SD_MOUNT)/GBCSYS/CC/" && \
+		cp $(BIN_DIR)/CC/include/*.h "$(SD_MOUNT)/GBCSYS/CC/include/" && \
 		sync -f "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
 		sync -f "$(SD_MOUNT)/GBCSYS/EDITOR.DAT" && \
 		sync -f "$(SD_MOUNT)/GBCSYS/SGB.DAT" && \

@@ -2,6 +2,7 @@
 // <name>.gb beside the source, and RUN launches that like any game (notes/ASSEMBLER.md).
 // Under a project.gbp (in the document's folder or above) the module builds the project
 // instead, from any file: its main, to its output, with its rgbasm and rgbfix options.
+#include <stddef.h>
 #include "build.h"
 #include "document.h"
 #include "state.h"
@@ -14,6 +15,7 @@
 #include "../ui/dialogs.h"
 #include "../ui/text.h"
 #include "../../modules/assembler/asm.h"
+#include "../../modules/cc/cc_ctx.h"
 
 // ASM_ERR_*'s names are the strings from S_ERR_SYNTAX, shown on their own line in the result box
 typedef char error_names_match[S_ERR_OVERLAP - S_ERR_SYNTAX + 1 == ASM_ERR_COUNT ? 1 : -1];
@@ -50,6 +52,7 @@ static void OutputPath(char* path, const AsmContext* c) {
 // folder), and stays otherwise. doc: scratch for that path.
 static void ErrorCursor(const AsmContext* c, char* doc) {
   unsigned int pos = c->pos, line = c->line;
+  if (c->kind & ASM_TEXT) return; // a .c file's assembly: not the document's lines
   const char *d = file_dir + file_level, *n = c->name;
   unsigned char ch;
   if (c->kind & ASM_PROJECT) {
@@ -117,6 +120,143 @@ static void BuildProgress(char* text) {
   PutTime(end, module_frames);
 }
 
+// The AsmContext for PREP.MOD and ASM.MOD; returns nonzero after showing an error. A .c document
+// is compiled first (notes/COMPILER.md): CCA.MOD (at path), CCB.MOD and CCC.MOD, into PSRAM,
+// each naming the next in the CcContext that shares c's storage (CCERR.MOD after an error: it
+// writes the box's text at text, and c's pos and kind for ErrorCursor); CCC.MOD leaves c ready
+// for ASM.MOD (ASM_TEXT: the unit, its runtime INCLUDEd from /GBCSYS/CC). In assembly: SDCC's
+// version didn't fit the pages. (The OS's constants are the assembler's too: LANG_*, S_*.)
+typedef char cc_context_fits[sizeof(CcContext) <= sizeof(AsmContext) ? 1 : -1];
+typedef char cc_offsets[offsetof(CcContext, name) == 34 && offsetof(CcContext, text) == 36 && MODULE_CCA == 13 &&
+                        offsetof(AsmContext, kind) == 78 && offsetof(AsmContext, log_bytes) == 79 &&
+                        offsetof(AsmContext, cache_blocks) == 81 && offsetof(AsmContext, obj_blocks) == 86 && ASM_DOC == 1 ? 1 : -1];
+static unsigned char BuildStart(AsmContext* c, char* text, const char* path) __naked {
+  c; text; path;
+  __asm
+    xor a, a                ;// module_frames = 0: the build's time, through every run
+    ld hl, _module_frames
+    ld [hl+], a
+    ld [hl+], a
+    ld [hl+], a
+    ld [hl], a
+    ld a, [_tb_lang]
+    cp a, LANG_C
+    jr z, .compile
+    push de                 ;// c: any other document, assembled
+    ld hl, 78               ;// kind: ASM_DOC for assembly; anything builds under a project.gbp
+    add hl, de
+    cp a, LANG_ASM
+    ld a, 1
+    jr z, .doc
+    xor a, a
+.doc:
+    ld [hl+], a
+    xor a, a                ;// log_bytes, cache_blocks: none yet
+    ld [hl+], a
+    ld [hl+], a
+    ld [hl+], a
+    ld [hl+], a
+    ld bc, 3                ;// obj_blocks
+    add hl, bc
+    ld [hl+], a
+    ld [hl], a
+    call _tb_Length
+    pop hl                  ;// length
+    ld [hl], c
+    inc hl
+    ld [hl], b
+    jr .assemble
+.compile:
+    ld hl, 34               ;// the CcContext: name, then text
+    add hl, de
+    ld a, LOW(_file_name)
+    ld [hl+], a
+    ld a, HIGH(_file_name)
+    ld [hl+], a
+    ld a, c
+    ld [hl+], a
+    ld [hl], b
+    pop hl                  ;// the return; then path, the stack argument
+    pop bc
+    push hl
+    push de                 ;// c, for the whole run
+    push bc
+    ld de, S_COMPILING
+    call _Str
+    ld d, b
+    ld e, c
+    call _ShowBusy
+    pop de                  ;// CCA.MOD's path
+    ld a, 13                ;// MODULE_CCA
+.run:                       ;// de = the path, a = the ID
+    pop hl
+    push hl
+    ld b, a
+    ld a, l
+    ld [_module_context], a
+    ld a, h
+    ld [_module_context + 1], a
+    ld a, b
+    call _RunModule
+    pop de
+    push de
+    or a, a
+    jr nz, .done            ;// it didn't load: a = the FRESULT
+    ld a, [de]              ;// next
+    or a, a
+    jr z, .done
+    inc de
+    inc de                  ;// its path
+    jr .run
+.done:
+    push af
+    call _HideBox
+    pop af
+    or a, a
+    jr z, .compiled
+    call _ShowModuleError
+    jr .stop
+.compiled:
+    ld a, [_module_status]
+    or a, a
+    jr z, .compiled_ok
+    pop de                  ;// c
+    push de
+    ld hl, 36               ;// text: CCERR.MOD's box
+    add hl, de
+    ld a, [hl+]
+    ld b, [hl]
+    ld c, a
+    push bc
+    call _ErrorCursor
+    pop de
+    call _ShowBox
+.stop:
+    pop de
+    ld a, 1
+    ret
+.compiled_ok:
+    pop de
+    ld de, S_ASSEMBLING
+    call _Str
+    ld d, b
+    ld e, c
+    call _ShowBusy
+    xor a, a
+    ret
+.assemble:
+    ld de, S_ASSEMBLING
+    call _Str
+    ld d, b
+    ld e, c
+    call _ShowBusy
+    pop hl                  ;// the return; drop path, the stack argument
+    pop bc
+    xor a, a
+    jp hl
+  __endasm;
+}
+
 // PREP.MOD (which 2), ASM.MOD (1) or LINK.MOD (0) with the context, the box's progress BuildProgress's
 unsigned char BuildModule(AsmContext* c, unsigned char which) {
   module_context = c;
@@ -131,11 +271,7 @@ void BuildFile(unsigned char run) {
   if (!file_name[0] && tb_lang != LANG_ASM) { ShowMessage(Str(S_NOT_ASM_FILE)); return; } // no folder, no project
   if (modified || !file_name[0]) SaveFile(0); // the ROM matches the file on the card
   if (modified || !file_name[0]) return; // declined or failed, with its own message
-  ShowBusy(Str(S_ASSEMBLING));
-  context.length = tb_Length();
-  context.kind = tb_lang == LANG_ASM ? ASM_DOC : 0; // anything builds under a project.gbp
-  context.log_bytes = context.cache_blocks = context.obj_blocks = 0;
-  module_frames = 0; // the build's time, through all three runs
+  if (BuildStart(&context, text, MODULE_CCA_PATH)) return;
   result = BuildModule(&context, 2); // PREP.MOD first: which units build.obj has unchanged
   level = file_level; // project.gbp's folder (RunModule forgets it)
   if (!(context.kind & ASM_CURRENT)) { // else nothing changed since the ROM was built

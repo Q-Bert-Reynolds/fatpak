@@ -74,6 +74,7 @@ ASM = {
     '_sd_WriteSector': [],  # FatFs disk/memory helpers (ROM0)
     '_sd_Init': [],  # FatFs disk/memory helpers (ROM0)
     '_ModuleAPIFar': ['FarCallInline'], 'FarCallInline': [],  # ROM0
+    '_ModuleAPIAbort': [],  # runtime.asm: ModAbort is ModuleAbort's second label (FIXED)
     '_RestartDevice': [],  # ROM0: resets the cart and waits
     '_ModuleSwapRAM': [],  # bank 1: its copy, compare and mem_Set (ROM0), RenderWaitDMA
     '_ModuleAbort': [],  # bank 1: restores ModuleEnter's stack and far-call depth, returns from it
