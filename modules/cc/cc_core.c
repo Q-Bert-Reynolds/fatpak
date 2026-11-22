@@ -27,6 +27,42 @@ void cc_chain(u8 id) {
 #endif
 u16 cc_line;
 u8 cc_file;
+u16 cc_tick_line;
+#ifdef CC_HOST
+void cc_progress(u8 pass) { (void)pass; cc_tick_line = cc_line; }
+#else
+u16 cc_own_sp; // the pass's SP during a host call on the OS's stack (cc_dev_*.c's cc_os_sp)
+static void ProgressOnOSStack(void) __naked { // ModProgress(0) (as cc_dev_*.c's LoadOnOSStack)
+  __asm
+    ld hl, sp + 0
+    ld a, l
+    ld [_cc_own_sp], a
+    ld a, h
+    ld [_cc_own_sp + 1], a
+    ld hl, _cc_os_sp
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    ld sp, hl
+    ld de, 0
+    call _ModProgress
+    ld hl, _cc_own_sp
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    ld sp, hl
+    ret
+  __endasm;
+}
+void cc_progress(u8 pass) {
+  u8* c = (u8*)cc_ctx;
+  cc_tick_line = cc_line;
+  c[83] = pass;
+  c[84] = (u8)cc_line;
+  c[85] = (u8)(cc_line >> 8);
+  ProgressOnOSStack();
+}
+#endif
 
 typedef char cc_sym_fits[sizeof(Sym) <= 16 ? 1 : -1]; // SDCC packs records; the PC may pad, but no more than this
 typedef char cc_type_fits[sizeof(Type) <= 16 ? 1 : -1];

@@ -34,6 +34,7 @@ void next(void) {
   if (has_ahead) { tok_copy(&tok, &ahead); has_ahead = 0; }
   else stream_next(&tok);
   cc_line = tok.line; cc_file = tok.file;
+  CC_TICK(7);
 }
 
 Tok* peek(void) {

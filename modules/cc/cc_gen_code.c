@@ -68,7 +68,11 @@ u8 compare(u16 n) {
     u16 k = (u16)ND_VAL(r);
     gen(l);
     if (op == N_EQ || op == N_NE) {
-      if (k & 0xFF) { E0(I_LD_A_L); E1(I_XOR_A_U, k & 0xFF); E0(I_LD_C_A); E0(I_LD_A_H); if (k >> 8) E1(I_XOR_A_U, k >> 8); E0(I_OR_A_C); }
+      if (k & 0xFF) {
+        E0(I_LD_A_L); E1(I_XOR_A_U, k & 0xFF);
+        if (k >> 8) { E0(I_LD_C_A); E0(I_LD_A_H); E1(I_XOR_A_U, k >> 8); E0(I_OR_A_C); }
+        else E0(I_OR_A_H);
+      }
       else { E0(I_LD_A_H); if (k >> 8) E1(I_XOR_A_U, k >> 8); E0(I_OR_A_L); }
       return op == N_EQ ? C_Z : C_NZ;
     }

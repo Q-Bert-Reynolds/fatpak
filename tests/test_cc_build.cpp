@@ -11,6 +11,7 @@
 #include <cstring>
 #include <fstream>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 #include <dirent.h>
@@ -121,6 +122,7 @@ struct Session {
     }
     // FILE > BUILD (item 4); steps the CPU, keeping the deepest far-call nesting and the lowest SP,
     // until the status row or the box shows text; returns the frames it took
+    std::set<std::string> progress; // "Compiling n/3" lines the box showed (cc_progress)
     std::map<unsigned, unsigned long long> prof; // CC_PROFILE: (module << 24 | page << 16 | pc) -> cycles
     unsigned long long total_cycles = 0;
     bool profile = getenv("CC_PROFILE") != nullptr;
@@ -135,7 +137,12 @@ struct Session {
         runs.clear();
         swap_pc = syms.at("_ModuleSwap"); swap_ram_pc = syms.at("_ModuleSwapRAM");
         while (frames < limit && row(19).find(until) == std::string::npos && lines().find(until) == std::string::npos) {
-            if (!measure) { Frames(core, 10); frames += 10; continue; } // faster: no depth or SP
+            if (!measure) { // faster: no depth or SP; the box's progress lines as they change
+                Frames(core, 10); frames += 10;
+                std::string box = lines();
+                if (box.find("Compiling ") == 0 && box.find("/3|") != std::string::npos) progress.insert(box.substr(0, box.find('|')));
+                continue;
+            }
             unsigned ticks = 0;
             bool vblank = core.RunCycle(frame.data(), ticks);
             unsigned d = memory->Read(depth), sp = cpu->SP->GetValue(), pc = cpu->PC->GetValue();
@@ -236,7 +243,8 @@ static void Fixture(const char* image, const char* symbols, const char* data, co
                s.min_module, s.min_page, s.min_pc, own[0], own[1], own[2]);
         Check(s.min_sp >= s.syms.at("stack_top"), "the C modules stay in the OS stack");
         Check(s.max_depth < 16, "the far-call stack (16 frames) holds");
-    } else printf("%s %s: %u frames\n", color ? "CGB" : "DMG", file.c_str(), frames);
+    } else printf("%s %s: %u frames%s\n", color ? "CGB" : "DMG", file.c_str(), frames, s.progress.empty() ? "" : (", the box showed " + std::to_string(s.progress.size()) + " compile passes").c_str());
+    if (name == "arith") Check(s.progress.size() >= 2, "a long compile shows its passes in the box (cc_progress)");
     if (s.profile) { // raw samples for a script to name (CC_PROFILE=<file>)
         FILE* out = fopen(getenv("CC_PROFILE"), "w");
         if (out) { for (auto& e : s.prof) fprintf(out, "%02x %02x %04x %llu\n", e.first >> 24, (e.first >> 16) & 0xFF, e.first & 0xFFFF, e.second); fclose(out); }

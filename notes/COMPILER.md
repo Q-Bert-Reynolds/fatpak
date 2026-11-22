@@ -45,7 +45,14 @@ size (every local on the stack: ASM reads ~1,400 lines for 40 of C). The generat
 (2026-11-22) dropped unreachable instructions after `jp`/`ret` and jumps to the next line
 (`emit`'s `cg_dead`, `cg_jump`), updated locals and globals in place for `++`, `--` and `op=`,
 skipped keeping a statement's unused value (`cg_void`) and stored constants straight into local
-slots: the fixtures' code -8% (19,270 bytes to 17,764). Register reuse is the next step.
+slots, and returned constants straight in BC (CHECK's `return __LINE__`): the fixtures' code -13%
+(19,270 bytes to 16,704). Register reuse is the next step; CCC.MOD's three pages are full (it may
+take five).
+
+While a pass runs, the box shows `Compiling n/3`, the document's name and the line, like the
+assembler's: every 16 lines `CC_TICK` (cc.h) calls `cc_progress`, which writes the pass (6 to 8)
+and the line into the AsmContext's `pass` and `progress` (clear of the CcContext's fields) and calls
+`ModProgress(0)` on the OS's stack; BuildStart sets `BuildProgress` for each run of the chain.
 
 ### Pieces
 

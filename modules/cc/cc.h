@@ -17,6 +17,12 @@ typedef int16_t s16;
 typedef uint32_t u32;
 typedef int32_t s32;
 #include "cc_ctx.h"
+// The host's box (src/editor/build.c's BuildProgress): every 16 lines a pass (6 to 8 for A to C)
+// writes its number and the line into AsmContext's pass and progress (offsets 83 and 84, clear of
+// the CcContext) and calls ModProgress(0), on the OS's stack (it may swap this pass's BSS out to draw)
+extern u16 cc_tick_line;
+void cc_progress(u8 pass);
+#define CC_TICK(pass) do { if ((u16)(cc_line - cc_tick_line) >= 16) cc_progress(pass); } while (0)
 #ifndef CC_HOST // the module ABI entries the passes call (build/modules/sdk.h's, without its names)
 #include "../../build/modules/modules.h" // MODULE_CCB, MODULE_CCC, MODULE_CCERR
 extern CcContext* cc_ctx;

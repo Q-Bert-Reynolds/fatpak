@@ -101,20 +101,22 @@ static void WriteOutputs(const AsmContext* c, char* path) {
 
 // ASM.MOD's ModProgress(0) text: the pass and how far it is (a project's: how much of its units),
 // the file and line it's on (or the file being read from the card), and the time since BUILD;
-// LINK.MOD's: what it's doing. The time (both modules') moves at every redraw, every 5 s while the build is
+// LINK.MOD's: what it's doing; CC's passes (pass 6 to 8, cc_core.c's cc_progress): which of the
+// three, and the line in progress (pass and progress are clear of the CcContext's fields). The time (both modules') moves at every redraw, every 5 s while the build is
 // working: if it stops, so has the build. (FIXED, and only calling what's outside the module's pages.)
 static void BuildProgress(char* text) {
   const AsmContext* c = module_context;
-  unsigned int pass = c->pass == 1 ? S_BUILD_PASS1 : c->pass == 5 ? S_BUILD_UNIT : S_BUILD_PASS2;
+  unsigned char cc = c->pass >= 6;
+  unsigned int pass = cc ? S_CC_PASS : c->pass == 1 ? S_BUILD_PASS1 : c->pass == 5 ? S_BUILD_UNIT : S_BUILD_PASS2;
   char* end;
   if (c->pass == 3 || c->pass == 4) end = PutStr(text, c->pass == 3 ? S_BUILD_LINKING : S_BUILD_FINISHING);
   else {
-    end = PutStr(PutNumber(PutStr(text, S_PART(pass, 0)), c->progress), S_PART(pass, 1));
+    end = PutStr(PutNumber(PutStr(text, S_PART(pass, 0)), cc ? c->pass - 5 : c->progress), S_PART(pass, 1));
     *end++ = '\n';
-    end = ToLatin1(end, module_loading ? module_loading : c->file ? c->name + c->base : file_name, 19);
+    end = ToLatin1(end, module_loading ? module_loading : !cc && c->file ? c->name + c->base : file_name, 19);
     *end++ = '\n';
     if (module_loading) end = PutStr(end, S_BUILD_LOADING);
-    else end = PutStr(PutNumber(PutStr(end, S_PART(S_BUILD_AT_LINE, 0)), c->line), S_PART(S_BUILD_AT_LINE, 1));
+    else end = PutStr(PutNumber(PutStr(end, S_PART(S_BUILD_AT_LINE, 0)), cc ? c->progress : c->line), S_PART(S_BUILD_AT_LINE, 1));
   }
   *end++ = '\n';
   PutTime(end, module_frames);
@@ -129,6 +131,8 @@ static void BuildProgress(char* text) {
 typedef char cc_context_fits[sizeof(CcContext) <= sizeof(AsmContext) ? 1 : -1];
 typedef char cc_offsets[offsetof(CcContext, name) == 34 && offsetof(CcContext, text) == 36 && MODULE_CCA == 13 &&
                         offsetof(AsmContext, kind) == 78 && offsetof(AsmContext, log_bytes) == 79 &&
+                        offsetof(AsmContext, pass) == 83 && offsetof(AsmContext, progress) == 84 && // cc_progress
+                        sizeof(CcContext) <= 83 &&
                         offsetof(AsmContext, cache_blocks) == 81 && offsetof(AsmContext, obj_blocks) == 86 && ASM_DOC == 1 ? 1 : -1];
 static unsigned char BuildStart(AsmContext* c, char* text, const char* path) __naked {
   c; text; path;
@@ -189,6 +193,10 @@ static unsigned char BuildStart(AsmContext* c, char* text, const char* path) __n
     pop de                  ;// CCA.MOD's path
     ld a, 13                ;// MODULE_CCA
 .run:                       ;// de = the path, a = the ID
+    ld hl, _module_progress ;// the box: the pass and line (RunModule clears it after each)
+    ld [hl], LOW(_BuildProgress)
+    inc hl
+    ld [hl], HIGH(_BuildProgress)
     pop hl
     push hl
     ld b, a

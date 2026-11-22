@@ -7,6 +7,7 @@
 #define CC_NEED_nd_r8
 #define CC_NEED_nd_r16
 #define CC_NEED_nd_w8
+#define CC_NEED_nd_r32
 #define CC_NEED_out_str
 #include "cc_gen.h"
 
@@ -62,9 +63,12 @@ void gen_expr(u16 n) { // a statement's expression: its value is unused
 void gen_return(u16 n) {
   if (n) {
     u16 size = size_of(ND_TYPE(n));
-    gen(n);
-    if (size == 1) E0(I_LD_A_L);
-    else { E0(I_LD_B_H); E0(I_LD_C_L); }
+    if (size == 2 && ND_OP(n) == N_NUM) E1(I_LD_BC_U, (u16)ND_VAL(n)); // straight into the result's register
+    else {
+      gen(n);
+      if (size == 1) E0(I_LD_A_L);
+      else { E0(I_LD_B_H); E0(I_LD_C_L); }
+    }
   }
   move_sp(cg_depth);
   E1(I_JP_L, ret_label);
@@ -206,7 +210,7 @@ u8 cc_pass_c(void) {
     case IR_ZERO: a = ir_get16(); gen_zero_local(a, ir_get16()); continue;
     case IR_SWVAL: a = ir_get16(); gen_switch_value(a, ir_get16()); continue;
     case IR_SWTAB: switch_table(); continue;
-    case IR_LINE: cc_line = ir_get16(); gen_comment_line(cc_line); continue;
+    case IR_LINE: cc_line = ir_get16(); gen_comment_line(cc_line); CC_TICK(8); continue;
     case IR_DEPTH: cg_depth = (s16)ir_get16(); continue;
     case IR_DSINK: case IR_DNAME: case IR_DLABEL: case IR_DFILL: case IR_DRES: case IR_DNUM: case IR_DADDR:
     case IR_DSADDR: case IR_DINIT: case IR_DSTR: case IR_DSTRB: case IR_DSTREND: data_op(op); continue;

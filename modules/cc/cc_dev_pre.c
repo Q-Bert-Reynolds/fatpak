@@ -11,7 +11,6 @@ static u16 size_of_file[DEV_FILES];
 static char name_buf[64];
 
 static void set_name(const char* s) { u8 i; for (i = 0; i < sizeof(name_buf) - 1 && s[i]; ++i) name_buf[i] = s[i]; name_buf[i] = 0; }
-u16 cc_own_sp; // this pass's SP during a host call on the OS's stack
 static unsigned char LoadOnOSStack(const char* path, ModuleLoad* load) __naked { // ModLoad
   path; load;
   __asm

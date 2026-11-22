@@ -37,7 +37,7 @@ s16 file_char(File* f) { // next character after line splices; CR dropped
 
 void adv(void) {
   File* f = &files[nfiles - 1];
-  if (f->la[0] == '\n') ++f->line;
+  if (f->la[0] == '\n') { ++f->line; cc_line = f->line; CC_TICK(6); }
   f->la[0] = f->la[1]; f->la[1] = f->la[2];
   f->la[2] = file_char(f);
   cc_line = f->line;
