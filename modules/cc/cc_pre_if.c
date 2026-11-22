@@ -1,6 +1,6 @@
 // CC pass A: #if arithmetic.
-#define CC_PAGE a_if
-#include "cc_a.h"
+#define CC_PAGE pre_if
+#include "cc_pre.h"
 
 void pp_unary(PPV* r) {
   r->u = 0; r->v = 0;

@@ -40,9 +40,9 @@ DMG. Nearly all of it is the passes reading and writing PSRAM a field at a time.
 
 | Part | Where |
 | --- | --- |
-| Pass A, preprocessing: CCA.MOD, 4 pages | `modules/cc/cc_a_*.c`, `cc_a.h`; `cc_dev_a.c` (ModSource, ModLoad) |
-| Pass B, parsing: CCB.MOD, 5 pages | `modules/cc/cc_b_*.c`, `cc_b.h`; `cc_dev_b.c` |
-| Pass C, code generation: CCC.MOD, 3 pages | `modules/cc/cc_c_*.c`, `cc_c.h`, `cc_ops.h`; `cc_dev_c.c` |
+| Pass A, preprocessing: CCA.MOD, 4 pages | `modules/cc/cc_pre_*.c`, `cc_pre.h`; `cc_dev_pre.c` (ModSource, ModLoad) |
+| Pass B, parsing: CCB.MOD, 5 pages | `modules/cc/cc_parse_*.c`, `cc_parse.h`; `cc_dev_parse.c` |
+| Pass C, code generation: CCC.MOD, 3 pages | `modules/cc/cc_gen_*.c`, `cc_gen.h`, `cc_ops.h`; `cc_dev_gen.c` |
 | The error box: CCERR.MOD | `modules/cc/cc_err.c` |
 | In every pass, A and B, B and C | `cc_core.c`, `cc_arith.c`, `cc_types.c` |
 | Page-local accessors (`CC_NEED_*`, `scripts/cc_pages.py`) | `cc_acc.h` |
@@ -66,14 +66,14 @@ declares a function without parameters, as `f(void)` does.
 Each pass is a wide module, and they hand over only through PSRAM (`cc.h`'s map, in
 `ASM.MOD`'s areas, free until it runs):
 
-- **A** (`cc_a_*`) lexes and preprocesses into a token stream (8 bytes a token, `TK_LINE`
+- **A** (`cc_pre_*`) lexes and preprocesses into a token stream (8 bytes a token, `TK_LINE`
   markers for lines and files). Names (64-byte records, hash chains), macros, macro bodies and
   expansions, string literals (a heap) are in PSRAM.
-- **B** (`cc_b_*`) parses the stream. Symbols (never removed: a name's visible symbol heads a
+- **B** (`cc_parse_*`) parses the stream. Symbols (never removed: a name's visible symbol heads a
   `shadow` chain), types, fields and expression trees (16-byte records, kept for C) go to PSRAM,
   and each statement becomes ops in the statement stream (`IR_*`, `cc_int.h`), static data too
   (`IR_D*`). Its `gen_*` are stream writers that mirror the stack depth.
-- **C** (`cc_c_*`) replays the stream through the code generator, writes the text sinks, and
+- **C** (`cc_gen_*`) replays the stream through the code generator, writes the text sinks, and
   joins them at `CC_OUT_BLOCK` (64 KiB at most: `ASM.MOD`'s document limit), with the runtime's
   `INCLUDE`s on the device (`CC_WRAP`).
 

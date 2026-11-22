@@ -121,6 +121,9 @@ struct Session {
     }
     // FILE > BUILD (item 4); steps the CPU, keeping the deepest far-call nesting and the lowest SP,
     // until the status row or the box shows text; returns the frames it took
+    std::map<unsigned, unsigned long long> prof; // CC_PROFILE: (module << 24 | page << 16 | pc) -> cycles
+    unsigned long long total_cycles = 0;
+    bool profile = getenv("CC_PROFILE") != nullptr;
     unsigned build(const char* until, bool measure, unsigned limit = 40000) {
         pad(Start_Key); pad(A_Key);
         for (unsigned i = 0; i < 4; ++i) pad(Down_Key);
@@ -139,6 +142,12 @@ struct Session {
                 if (d > max_depth && d < 64) max_depth = d;
                 if (sp >= 0xC000 && sp < 0xD000 && sp < min_sp) { min_sp = sp; min_pc = pc; min_page = memory->Read(0xBD08); min_module = runs.back(); }
                 if (sp >= 0xD000 && sp < 0xE000 && sp < module_sp[runs.back()]) module_sp[runs.back()] = sp; // its own stack
+            }
+            if (profile) { // CC_PROFILE=1: cycles by module, mapped page and PC
+                unsigned module = runs.empty() ? 0 : runs.back(), page = memory->Read(0xBD08);
+                if (pc >= 0xA000 && pc < 0xBD00) prof[(module << 24) | (page << 16) | pc] += ticks;
+                else prof[(module << 24) | (pc < 0x4000 ? 0xFE0000u : 0xFF0000u) | pc] += ticks;
+                total_cycles += ticks;
             }
             cycles += ticks;
             if (vblank || cycles >= 70224) { s16 audio[AUDIO_BUFFER_SIZE]; int n = 0; core.EndFrame(audio, &n); ++frames; cycles = 0; }
@@ -223,6 +232,11 @@ static void Fixture(const char* image, const char* symbols, const char* data, co
         Check(s.min_sp >= s.syms.at("stack_top"), "the C modules stay in the OS stack");
         Check(s.max_depth < 16, "the far-call stack (16 frames) holds");
     } else printf("%s %s: %u frames\n", color ? "CGB" : "DMG", file.c_str(), frames);
+    if (s.profile) { // raw samples for a script to name (CC_PROFILE=<file>)
+        FILE* out = fopen(getenv("CC_PROFILE"), "w");
+        if (out) { for (auto& e : s.prof) fprintf(out, "%02x %02x %04x %llu\n", e.first >> 24, (e.first >> 16) & 0xFF, e.first & 0xFFFF, e.second); fclose(out); }
+        printf("profile: %llu cycles in %s\n", s.total_cycles, getenv("CC_PROFILE"));
+    }
     s.pad(A_Key);
 }
 
@@ -262,7 +276,7 @@ int main(int argc, char** argv) {
         if (models && strcmp(models, color ? "cgb" : "dmg")) continue;
         ErrorCase(argv[1], argv[2], argv[3], color);
         for (auto& name : names) // control.c nests deepest: measured (CC_MEASURE=1: all)
-            Fixture(argv[1], argv[2], argv[3], argv[4], name.c_str(), color, name == "control" || getenv("CC_MEASURE"));
+            Fixture(argv[1], argv[2], argv[3], argv[4], name.c_str(), color, name == "control" || getenv("CC_MEASURE") || getenv("CC_PROFILE"));
     }
     printf("CC on the device: all passed\n");
     return 0;

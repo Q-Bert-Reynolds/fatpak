@@ -1,5 +1,5 @@
 // Pass B on the Game Boy (CCB.MOD): ModuleMain. Everything it needs is in PSRAM.
-#define CC_PAGE dev_b
+#define CC_PAGE dev_parse
 #include "cc_acc.h"
 
 void cc_host_diag(u8 error, const char* file, u16 line, u8 code, const char* extra) { (void)error; (void)file; (void)line; (void)code; (void)extra; } // the host reads cc_st

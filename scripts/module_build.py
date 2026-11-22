@@ -168,10 +168,32 @@ def references(lines):
     return referenced
 
 
-def thunked(code, remote, suffix=''):
+FUNCTION_RE = re.compile(r'^(_\w+)::?\s*(;.*)?$')
+JP_HL_RE = re.compile(r'^\s*jp\s+\(?hl\)?\s*(;.*)?$')
+
+
+def fast_targets(pages):
+    """Functions whose thunks can take ModFar's fast path (the page byte + $80): no stack
+    arguments. SDCC's callee pops those (pop hl, add sp, jp hl), so a body without jp hl has none;
+    modules have no varargs functions, whose callers pop them. Conservative: a function pointer's
+    jp hl or a hand-written one also counts as stack arguments."""
+    slow, names, current = set(), set(), None
+    for code in pages:
+        for line in code:
+            function = FUNCTION_RE.match(line)
+            if function:
+                current = function[1]
+                names.add(current)
+            elif current and JP_HL_RE.match(line):
+                slow.add(current)
+    return names - slow
+
+
+def thunked(code, remote, suffix='', fast=frozenset()):
     """Calls and jumps from code to functions in remote ({name: page}, other pages) go through
-    ModFar thunks, appended to code. Any other reference to a remote symbol is a pointer that
-    would be read with the wrong page mapped, so it's rejected."""
+    ModFar thunks, appended to code (fast ones, no stack arguments, flag the page with $80).
+    Any other reference to a remote symbol is a pointer that would be read with the wrong page
+    mapped, so it's rejected."""
     out, thunks = [], []
     for line in code:
         branch = BRANCH_RE.match(line)
@@ -184,7 +206,8 @@ def thunked(code, remote, suffix=''):
     if crossing:
         raise ValueError('pointer into another page: ' + ', '.join(sorted(crossing)))
     for target in thunks:
-        out += [f'{target}__far{suffix}:', '\tcall _ModFar', f'\tDB {remote[target]}', f'\tDW {target}']
+        page = remote[target] | (0x80 if target in fast else 0)
+        out += [f'{target}__far{suffix}:', '\tcall _ModFar', f'\tDB ${page:02X}', f'\tDW {target}']
     return out
 
 
@@ -225,10 +248,11 @@ def assembly(raws, allowed, raws2=None, raws3=None, raws4=None, raws5=None):
         if '_ModFar' not in allowed:
             raise ValueError('wide modules need the ModFar ABI entry')
         homes = {name: C[PAGES[index]] for index in range(count) for name in definitions(pages[index])}
+        fast = fast_targets(pages)
         for index in range(count):
             own = definitions(pages[index])
             pages[index] = thunked(pages[index], {name: page for name, page in homes.items() if name not in own},
-                                   '' if index == 0 else str(index + 1))  # each page has its own thunks
+                                   '' if index == 0 else str(index + 1), fast)  # each page has its own thunks
     referenced = references(sum(pages, []) + bss)
     unknown = referenced - defined - set(allowed) - {name + '__far' + n for name in defined for n in ('', '2', '3', '4', '5')}
     if unknown:

@@ -136,7 +136,12 @@ from `sources3`, page 4 from `sources4`, page 15 from `sources5`), a
 `WRAMX[$D000]` section for every source's BSS, and `_X__far` thunks (`call
 _ModFar`, `DB page`, `DW _X`; `__far2` to `__far5` in the later pages) appended to
 whichever page calls `_X` in another; `call`/`jp` lines are rewritten to them and any other cross-page symbol
-reference fails the build. `ModuleMain` must be in the first page.
+reference fails the build. `ModuleMain` must be in the first page. A target with no stack
+arguments (no `jp hl` in its body: SDCC's callee pops stack arguments with `pop hl`, `add sp`,
+`jp hl`; `fast_targets`) gets `DB page + $80`, and `ModFar` then keeps the caller's page on the
+CPU stack around a plain call instead of `FarCallInline`'s frame: ~310 cycles instead of ~850.
+That matters for ASM.MOD, whose lexer helpers sit on another page than their callers (~30,000
+calls in a small BUILD, 2026-11-22).
 
 ### File format
 
@@ -279,7 +284,7 @@ entries. Entries are append-only; changing one's meaning needs a new entry.
 | `ModDraw` | 3 | `EditorDraw` |
 | `ModTheme(theme)` | 3 | `0xFF` reads it; otherwise sets light/dark, `ThemeApply`, `SettingsSave`. Returns the theme |
 | `ModSource(pos, dest)` | 4 | Up to `MODULE_SOURCE_CHUNK` (128) bytes of the text buffer from `pos`; returns the count, 0 past the end |
-| `ModFar` | 4 | Not called from C: the resident far call behind a wide module's thunks (`FarCallInline`) |
+| `ModFar` | 4 | Not called from C: the resident far call behind a wide module's thunks (`FarCallInline`, or a plain call when the page byte has `$80`) |
 | `ModFile(path, block)` | 5 | Reads a whole file (< 64 KiB) into PSRAM from `block`: the path is tried from the open document's folder (`module_dir` instead while a host sets it: the browser's `ViewMap` gives the map's), then from each folder above it, then its base name in the document's folder (the folder level that worked last is tried first, reset per module run). Returns the length, 0 if unreadable, `$FFFF` if too big |
 | `ModRead(offset, dest, length)` | 6 | Up to `MODULE_SOURCE_CHUNK` bytes from `offset` of the file the host opened with `FileViewOpen` (in `save_file`); returns the count, 0 past the end. Reads through `buffer`, so the browser lists its folder again after. `ModFile` and `ModLoad` open and close `save_file` too, so read the host's file before them (MAPVIEW reads the map first) |
 | `ModStyle(row, styles)` | 6 | `TB_STRIDE` `tile_attrs` bytes (`STYLE_* << 4` \| width) for a text row; the host sets `render_text` and the font so the rows draw styled |

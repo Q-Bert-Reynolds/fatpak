@@ -13,9 +13,9 @@
     {"name": "LINK", "id": 10, "sources": ["assembler/link.c"], "sources2": ["assembler/link_obj.c", "assembler/link_read.c"], "sources3": ["assembler/link_build.c"]},
     {"name": "PREP", "id": 11, "sources": ["assembler/prep.c", "assembler/link_read.c"]},
     {"name": "MAPVIEW", "id": 12, "sources": ["mapview.c", "lib/text.c"]},
-    {"name": "CCA", "id": 13, "sources": ["cc/cc_a_main.c", "cc/cc_dev_a.c"], "sources2": ["cc/cc_a_lex.c"], "sources3": ["cc/cc_a_dir.c"], "sources4": ["cc/cc_a_if.c", "cc/cc_core.c", "cc/cc_arith.c"]},
-    {"name": "CCB", "id": 14, "sources": ["cc/cc_b_stmt.c", "cc/cc_dev_b.c"], "sources2": ["cc/cc_b_expr.c"], "sources3": ["cc/cc_b_tree.c", "cc/cc_arith.c"], "sources4": ["cc/cc_b_decl.c"], "sources5": ["cc/cc_b_init.c", "cc/cc_core.c", "cc/cc_types.c"]},
-    {"name": "CCC", "id": 15, "sources": ["cc/cc_c_main.c", "cc/cc_dev_c.c", "cc/cc_core.c", "cc/cc_types.c"], "sources2": ["cc/cc_c_gen.c"], "sources3": ["cc/cc_c_emit.c"]},
+    {"name": "CCA", "id": 13, "sources": ["cc/cc_pre_main.c", "cc/cc_dev_pre.c"], "sources2": ["cc/cc_pre_lex.c"], "sources3": ["cc/cc_pre_dir.c"], "sources4": ["cc/cc_pre_if.c", "cc/cc_core.c", "cc/cc_arith.c"]},
+    {"name": "CCB", "id": 14, "sources": ["cc/cc_parse_stmt.c", "cc/cc_dev_parse.c"], "sources2": ["cc/cc_parse_expr.c"], "sources3": ["cc/cc_parse_tree.c", "cc/cc_arith.c"], "sources4": ["cc/cc_parse_decl.c"], "sources5": ["cc/cc_parse_init.c", "cc/cc_core.c", "cc/cc_types.c"]},
+    {"name": "CCC", "id": 15, "sources": ["cc/cc_gen_main.c", "cc/cc_dev_gen.c", "cc/cc_core.c", "cc/cc_types.c"], "sources2": ["cc/cc_gen_code.c"], "sources3": ["cc/cc_gen_emit.c"]},
     {"name": "CCERR", "id": 16, "sources": ["cc/cc_err.c", "lib/text.c"]}
   ]
 }

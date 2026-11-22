@@ -1,7 +1,7 @@
 // Pass C on the Game Boy (CCC.MOD): ModuleMain. Everything it needs is in PSRAM; after it, ASM.MOD
 // assembles the unit's assembly as its document: this fills in the AsmContext the host's
 // CcContext shares storage with.
-#define CC_PAGE dev_c
+#define CC_PAGE dev_gen
 #include "cc_acc.h"
 #include "../assembler/asm.h"
 

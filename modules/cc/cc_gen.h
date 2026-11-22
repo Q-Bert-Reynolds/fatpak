@@ -1,4 +1,4 @@
-// CC pass C (code generation) shared by its pages: cc_c_*.c (notes/COMPILER.md)
+// CC pass C (code generation) shared by its pages: cc_gen_*.c (notes/COMPILER.md)
 #ifndef CC_C_H
 #define CC_C_H
 // CC's SM83 code generator: expression trees -> RGBDS assembly, written straight to the

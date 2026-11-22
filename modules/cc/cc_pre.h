@@ -1,4 +1,4 @@
-// CC pass A (preprocessing) shared by its pages: cc_a_*.c (notes/COMPILER.md)
+// CC pass A (preprocessing) shared by its pages: cc_pre_*.c (notes/COMPILER.md)
 #ifndef CC_A_H
 #define CC_A_H
 // CC's lexer and preprocessor: files -> tokens with #include, #define (object- and

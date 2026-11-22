@@ -4,7 +4,7 @@
 //   B (cc_parse.c) parses it: symbols, types, expression trees, a statement stream, data,
 //   C (cc_gen.c)   generates the code and puts the unit's assembly at CC_OUT_BLOCK.
 // cc_core.c is in all three (cc_arith.c in A and B, cc_types.c in B and C), and each pass is
-// split into pages (cc_a_*.c, cc_b_*.c, cc_c_*.c): on the Game Boy, pieces of one module.
+// split into pages (cc_pre_*.c, cc_parse_*.c, cc_gen_*.c): on the Game Boy, pieces of one module.
 // No libc; the host gives the core files and takes diagnostics (cc_host_*): tests/cc_host.c
 // on a PC, cc_dev_*.c on the Game Boy.
 #ifndef CC_H

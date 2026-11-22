@@ -1,8 +1,8 @@
 // CC pass A: directives and numbers.
-#define CC_PAGE a_dir
+#define CC_PAGE pre_dir
 #define CC_NEED_nm_r16
 #define CC_NEED_nm_w16
-#include "cc_a.h"
+#include "cc_pre.h"
 
 void lex_number(Tok* t) {
   u32 v = 0; u8 base = 10, digits = 0; s16 d;

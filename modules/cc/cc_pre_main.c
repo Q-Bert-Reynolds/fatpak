@@ -1,8 +1,8 @@
 // CC pass A, page 1: the pass, macro expansion and names.
-#define CC_PAGE a_main
+#define CC_PAGE pre_main
 #define CC_NEED_nm_r16
 #define CC_NEED_nm_w16
-#include "cc_a.h"
+#include "cc_pre.h"
 
 // the pass's variables (declared in the header)
 u16 nnames;

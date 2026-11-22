@@ -1,6 +1,6 @@
 // CC pass A: reading files and raw tokens.
-#define CC_PAGE a_lex
-#include "cc_a.h"
+#define CC_PAGE pre_lex
+#include "cc_pre.h"
 
 void lit_add(u8 c) {
   if (lex_skip) return;

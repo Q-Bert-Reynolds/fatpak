@@ -2,7 +2,7 @@
 // The document comes from the text buffer (ModSource); each #include is loaded whole into
 // PSRAM (ModLoad, which looks in the document's folder, then the folders above it), a slot
 // of 64 KiB per nesting level from CC_INCLUDE_BLOCK; <name> is GBCSYS/CC/include/name.
-#define CC_PAGE dev_a
+#define CC_PAGE dev_pre
 #include "cc_acc.h"
 
 #define DEV_FILES 32 // handles: 0 the document, then each #include, in order

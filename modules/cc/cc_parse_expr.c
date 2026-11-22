@@ -1,5 +1,5 @@
 // CC pass B: tokens and expressions.
-#define CC_PAGE b_expr
+#define CC_PAGE parse_expr
 #define CC_NEED_sy_r8
 #define CC_NEED_sy_r16
 #define CC_NEED_ty_r8
@@ -11,7 +11,7 @@
 #define CC_NEED_nd_w16
 #define CC_NEED_nd_r32
 #define CC_NEED_nd_w32
-#include "cc_b.h"
+#include "cc_parse.h"
 
 void enter(void) { if (++nesting > CC_DEPTH) cc_error(E_NESTED_TOO_DEEPLY); }
 

@@ -1,5 +1,5 @@
 // CC pass B: initializers, static data and file-scope declarations.
-#define CC_PAGE b_init
+#define CC_PAGE parse_init
 #define CC_NEED_sy_r8
 #define CC_NEED_sy_r16
 #define CC_NEED_sy_w8
@@ -10,7 +10,7 @@
 #define CC_NEED_nd_r8
 #define CC_NEED_nd_r16
 #define CC_NEED_nd_r32
-#include "cc_b.h"
+#include "cc_parse.h"
 
 void pad_to(u16 off) {
   if (off > init_done) { ir_put8(IR_DFILL); ir_put16(off - init_done); init_done = off; }

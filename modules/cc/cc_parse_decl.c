@@ -1,5 +1,5 @@
 // CC pass B: declarations, types and symbols.
-#define CC_PAGE b_decl
+#define CC_PAGE parse_decl
 #define CC_NEED_sy_r8
 #define CC_NEED_sy_r16
 #define CC_NEED_sy_w8
@@ -10,7 +10,7 @@
 #define CC_NEED_ty_w16
 #define CC_NEED_fl_r16
 #define CC_NEED_fl_w16
-#include "cc_b.h"
+#include "cc_parse.h"
 
 // ---- types ----
 

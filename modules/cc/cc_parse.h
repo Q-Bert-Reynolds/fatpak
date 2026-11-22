@@ -1,4 +1,4 @@
-// CC pass B (parsing) shared by its pages: cc_b_*.c (notes/COMPILER.md)
+// CC pass B (parsing) shared by its pages: cc_parse_*.c (notes/COMPILER.md)
 #ifndef CC_B_H
 #define CC_B_H
 // CC's pass B: declarations, types, statements and expressions, from pass A's token stream.

@@ -1,5 +1,5 @@
 // CC pass C: expressions to instructions (the recursive part, on one page).
-#define CC_PAGE c_gen
+#define CC_PAGE gen_code
 #define CC_NEED_sy_r8
 #define CC_NEED_sy_r16
 #define CC_NEED_ty_r8
@@ -8,7 +8,7 @@
 #define CC_NEED_nd_r16
 #define CC_NEED_nd_r32
 #define CC_NEED_out_str
-#include "cc_c.h"
+#include "cc_gen.h"
 
 // ---- loads, stores, conversions ----
 

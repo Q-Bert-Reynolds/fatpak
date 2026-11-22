@@ -1,5 +1,5 @@
 // CC pass B, page 1: the pass, statements and the statement stream.
-#define CC_PAGE b_stmt
+#define CC_PAGE parse_stmt
 #define CC_NEED_sy_r8
 #define CC_NEED_sy_r16
 #define CC_NEED_sy_w8
@@ -12,7 +12,7 @@
 #define CC_NEED_nd_w16
 #define CC_NEED_nd_r32
 #define CC_NEED_nd_w32
-#include "cc_b.h"
+#include "cc_parse.h"
 
 // the pass's variables (declared in the header)
 u8 spec_storage;

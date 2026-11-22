@@ -1,5 +1,5 @@
 // CC pass C, page 1: the pass, the statement stream and static data.
-#define CC_PAGE c_main
+#define CC_PAGE gen_main
 #define CC_NEED_sy_r8
 #define CC_NEED_sy_r16
 #define CC_NEED_ty_r8
@@ -8,7 +8,7 @@
 #define CC_NEED_nd_r16
 #define CC_NEED_nd_w8
 #define CC_NEED_out_str
-#include "cc_c.h"
+#include "cc_gen.h"
 
 // the pass's variables (declared in the header)
 s16 cg_depth;

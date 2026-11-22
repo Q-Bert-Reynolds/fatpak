@@ -350,9 +350,38 @@ _ModuleAbort::
 ModulePages: DB MODULE_PAGE, MODULE_PAGE2, MODULE_PAGE3, MODULE_PAGE4, MODULE_PAGE5
 ModuleStages: DW MODULE_STAGE, MODULE_STAGE2, MODULE_STAGE3, MODULE_STAGE4, MODULE_STAGE5
 
-;a wide module's thunks: call _ModFar, DB page, DW target (module_build.py), like bank_split's
+;a wide module's thunks: call _ModFar, DB page, DW target (module_build.py), like bank_split's.
+;Page + $80: the target takes no stack arguments (module_build.py's fast_targets), so the caller's
+;page waits on the CPU stack under a plain call, a third of FarCallInline's cycles (ASM.MOD makes
+;~30,000 of these in a small BUILD)
 _ModuleAPIFar::
+  ld [far_a], a
+  pop hl
+  bit 7, [hl]
+  jr nz, .fast
+  push hl
+  ld a, [far_a]
   jp FarCallInline
+.fast
+  ldh a, [loaded_bank]
+  push af;the caller's page
+  ld a, [hli]
+  and $7F
+  push af
+  ld a, [hli]
+  ld h, [hl]
+  ld l, a
+  pop af
+  SET_BANK
+  ld a, [far_a]
+  call .jpHL
+  ld [far_a], a;bc and de come back as they are
+  pop af
+  SET_BANK
+  ld a, [far_a]
+  ret
+.jpHL
+  jp hl
 
 
 INCLUDE "build/modules/table.inc"

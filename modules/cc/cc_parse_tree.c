@@ -1,5 +1,5 @@
 // CC pass B: building typed expression trees.
-#define CC_PAGE b_tree
+#define CC_PAGE parse_tree
 #define CC_NEED_ty_r8
 #define CC_NEED_ty_r16
 #define CC_NEED_nd_r8
@@ -8,7 +8,7 @@
 #define CC_NEED_nd_w16
 #define CC_NEED_nd_r32
 #define CC_NEED_nd_w32
-#include "cc_b.h"
+#include "cc_parse.h"
 
 // ---- nodes ----
 
