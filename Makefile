@@ -108,9 +108,12 @@ STRINGS_INPUTS = data/strings/strings.csv $(wildcard data/help/*.txt) scripts/st
 $(SRC_DIR)/strings.h: $(STRINGS_INPUTS)
 	$(PYTHON) scripts/strings.py
 
+# FatFs: SDCC's allocator tries harder (2.4 KB smaller, about 2 minutes slower to build)
+$(BUILD_DIR)/c/src/fatfs/fatfs.asm: SDCC_EXTRA = --max-allocs-per-node 25000
+
 $(BUILD_DIR)/c/%.asm: %.c $(C_HEADERS) $(SRC_DIR)/strings.h $(C_LIBS) $(MODULE_HEADERS) $(wildcard modules/*.h modules/*/*.h)
 	@mkdir -p $(dir $@)
-	sdcc $< -msm83 --asm=rgbds --opt-code-size --dataseg WRAM0 --no-peep --peep-file peephole.def $(DEFINES) --disable-warning 218 -S -o $@
+	sdcc $< -msm83 --asm=rgbds --opt-code-size $(SDCC_EXTRA) --dataseg WRAM0 --no-peep --peep-file peephole.def $(DEFINES) --disable-warning 218 -S -o $@
 	@sed -i 's/^\t\.byte /\tDB /' $@ # SDCC writes long constants as .byte
 
 $(SRC_DIR)/constants.h: $(SRC_DIR)/constants.asm scripts/build.py

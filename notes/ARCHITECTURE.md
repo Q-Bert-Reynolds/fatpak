@@ -180,6 +180,9 @@ undo or unsaved large-file edits.
   `--no-peep --peep-file peephole.def` (plain output stores through a stale
   `hl`). SDCC also clobbered `hl` reading a `signed char` global (see
   `RenderAfterEdit`). When C misbehaves, read the generated asm.
+- **FatFs's allocator effort:** `fatfs.c` alone builds with `--max-allocs-per-node 25000`
+  (the Makefile's `SDCC_EXTRA`): 2.4 KB smaller, about 2 minutes slower (2026-11-21). The whole
+  OS would save another ~0.9 KB the same way.
 
 ## Interrupts and input
 
