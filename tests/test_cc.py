@@ -22,7 +22,7 @@ PASSES = { # each pass is a module on the Game Boy: its own object here, only it
     # so the passes share nothing but the emulated PSRAM (and the host functions)
     'a': (['cc_pre_main.c', 'cc_pre_lex.c', 'cc_pre_dir.c', 'cc_pre_if.c', 'cc_core.c', 'cc_arith.c'], ['cc_pass_a_init', 'cc_define', 'cc_pass_a']),
     'b': (['cc_parse_stmt.c', 'cc_parse_expr.c', 'cc_parse_tree.c', 'cc_parse_decl.c', 'cc_parse_init.c', 'cc_core.c', 'cc_arith.c', 'cc_types.c'], ['cc_pass_b']),
-    'c': (['cc_gen_main.c', 'cc_gen_code.c', 'cc_gen_emit.c', 'cc_core.c', 'cc_types.c'], ['cc_pass_c']),
+    'c': (['cc_gen_main.c', 'cc_gen_code.c', 'cc_gen_emit.c', 'cc_gen_call.c', 'cc_core.c', 'cc_types.c'], ['cc_pass_c']),
 }
 CFLAGS = ['-std=c99', '-DCC_HOST', '-O1', '-g', '-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter', '-fsanitize=address,undefined']
 

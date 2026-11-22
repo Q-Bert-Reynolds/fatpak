@@ -46,8 +46,13 @@ size (every local on the stack: ASM reads ~1,400 lines for 40 of C). The generat
 (`emit`'s `cg_dead`, `cg_jump`), updated locals and globals in place for `++`, `--` and `op=`,
 skipped keeping a statement's unused value (`cg_void`) and stored constants straight into local
 slots, and returned constants straight in BC (CHECK's `return __LINE__`): the fixtures' code -13%
-(19,270 bytes to 16,704). Register reuse is the next step; CCC.MOD's three pages are full (it may
-take five).
+(19,270 bytes to 16,704); then one epilogue a function (`to_epilogue`: the first return fixes its
+frame depth, every return moves SP to that and jumps, the epilogue moves it back once) and a
+returned local loaded straight into BC: 16,132. `call` has CCC.MOD's fourth page
+(`cc_gen_call.c`), which has ~6 KB free. Register allocation was measured (2026-11-22) and left
+for later: caching values between statements would skip 6% of local loads, and keeping each
+function's two hottest locals in BC/DE pays only in leaf functions (~2% of the fixtures' code)
+because calls clobber everything. Worth revisiting for real game code's tight loops.
 
 While a pass runs, the box shows `Compiling n/3`, the document's name and the line, like the
 assembler's: every 16 lines `CC_TICK` (cc.h) calls `cc_progress`, which writes the pass (6 to 8)
@@ -60,7 +65,7 @@ and the line into the AsmContext's `pass` and `progress` (clear of the CcContext
 | --- | --- |
 | Pass A, preprocessing: CCA.MOD, 4 pages | `modules/cc/cc_pre_*.c`, `cc_pre.h`; `cc_dev_pre.c` (ModSource, ModLoad) |
 | Pass B, parsing: CCB.MOD, 5 pages | `modules/cc/cc_parse_*.c`, `cc_parse.h`; `cc_dev_parse.c` |
-| Pass C, code generation: CCC.MOD, 3 pages | `modules/cc/cc_gen_*.c`, `cc_gen.h`, `cc_ops.h`; `cc_dev_gen.c` |
+| Pass C, code generation: CCC.MOD, 4 pages | `modules/cc/cc_gen_*.c`, `cc_gen.h`, `cc_ops.h`; `cc_dev_gen.c` |
 | The error box: CCERR.MOD | `modules/cc/cc_err.c` |
 | In every pass, A and B, B and C | `cc_core.c`, `cc_arith.c`, `cc_types.c` |
 | Page-local accessors (`CC_NEED_*`, `scripts/cc_pages.py`) | `cc_acc.h` |

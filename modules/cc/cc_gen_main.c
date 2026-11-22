@@ -14,6 +14,8 @@
 // the pass's variables (declared in the header)
 s16 cg_depth;
 u16 cur_func, ret_label, stack_args, last_line;
+static s16 ret_depth; // to_epilogue's
+static u8 ret_set;
 u32 helpers;
 u32 ir_at;
 u8 dsink;      // where they go
@@ -38,6 +40,14 @@ void gen_func_begin(u16 sym) {
     }
   }
   ret_label = gen_label();
+  ret_set = 0;
+}
+
+// One epilogue a function: the first return fixes its frame depth (ret_depth), each return and the
+// end move SP to that, jump to ret_label, which moves SP back once and returns
+static void to_epilogue(void) {
+  if (!ret_set) { ret_depth = cg_depth; ret_set = 1; }
+  move_sp((s16)(cg_depth - ret_depth));
 }
 
 void gen_func_end(void) {
@@ -47,8 +57,9 @@ void gen_func_end(void) {
     if (ty_size(rt) == 1) E0(I_XOR_A); else E0(I_LD_BC_0);
     if (ty_size(rt) == 4) E0(I_LD_DE_0);
   }
-  move_sp(cg_depth);
+  to_epilogue();
   gen_place(ret_label);
+  move_sp(ret_depth);
   if (stack_args) { E0(I_POP_HL); move_sp((s16)stack_args); E0(I_JP_HL); }
   else E0(I_RET);
 }
@@ -64,13 +75,17 @@ void gen_return(u16 n) {
   if (n) {
     u16 size = size_of(ND_TYPE(n));
     if (size == 2 && ND_OP(n) == N_NUM) E1(I_LD_BC_U, (u16)ND_VAL(n)); // straight into the result's register
+    else if (size == 2 && is_local(n) && TK(ND_TYPE(n)) != T_ARRAY) {
+      sp_addr((s16)(SY_POS(ND_A(n)) + ND_VAL(n)));
+      E0(I_LD_A_MHLI); E0(I_LD_B_MHL); E0(I_LD_C_A);
+    }
     else {
       gen(n);
       if (size == 1) E0(I_LD_A_L);
       else { E0(I_LD_B_H); E0(I_LD_C_L); }
     }
   }
-  move_sp(cg_depth);
+  to_epilogue();
   E1(I_JP_L, ret_label);
 }
 
@@ -157,21 +172,7 @@ void data_op(u8 op) {
   cc_error(E_INTERNAL_UNKNOWN_NODE);
 }
 
-// (moved from the full pages: called once per section or comparison value)
-void cond_value(u8 c) { // HL = the condition as 0 or 1
-  if (c == C_C || c == C_NC) { E0(I_LD_HL_0); if (c == C_NC) E0(I_CCF); E0(I_RL_L); return; }
-  { u16 skip = gen_label(); E0(I_LD_HL_0); E1(I_JP_C_L + (c ^ 1), skip); E0(I_INC_L); gen_place(skip); }
-}
 
-void gen_sink(u8 sink) {
-  static const char* const names[] = { "code", "rodata", "str", "data", "", "bss" };
-  static const char* const kinds[] = { "ROM0", "ROM0", "ROM0", "WRAM0", "", "WRAM0" };
-  if (cc_st.sink_open & (1 << sink)) return;
-  cc_st.sink_open |= (u8)(1 << sink);
-  if (sink == SINK_INIT) { out_str(sink, "\nSECTION FRAGMENT \"cc_init\", ROM0\n"); return; }
-  out_str(sink, "\nSECTION \"cc."); out_str(sink, cc_st.unit); out_str(sink, "."); out_str(sink, names[sink]);
-  out_str(sink, "\", "); out_str(sink, kinds[sink]); out_str(sink, "\n");
-}
 
 // ---- pass C ----
 

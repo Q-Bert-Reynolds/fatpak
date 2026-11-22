@@ -117,6 +117,7 @@ enum {
   I_LD_A_B,
   I_LD_MHL_U,
   I_OR_A_H,
+  I_LD_B_MHL,
   I_COUNT
 };
 #define E0(op) emit(op, 0, 0)

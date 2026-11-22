@@ -133,6 +133,7 @@ static const char* const templates[I_COUNT] = {
   "ld a, b",
   "ld [hl], %u",
   "or a, h",
+  "ld b, [hl]",
 };
 
 static const char* const helper_names[] = {
