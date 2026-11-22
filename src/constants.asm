@@ -139,7 +139,7 @@ DEF MODULE_H_ENTRY    EQU 10;offset into the payload
 DEF MODULE_H_LENGTH   EQU 12;payload bytes
 DEF MODULE_H_BSS      EQU 14;offset, at or after the payload
 DEF MODULE_H_BSS_SIZE EQU 16
-DEF MODULE_H_CRC      EQU 18;CRC-16/CCITT of the payload (both pages' for wide modules), initial $FFFF
+DEF MODULE_H_CRC      EQU 18;Fletcher-16 (8-bit sums) of the payload, every page's, from $FFFF (ModuleSum)
 DEF MODULE_H_PAGE2    EQU 20;wide modules: the second page and its payload bytes, which follow the first's
 DEF MODULE_H_LENGTH2  EQU 21
 DEF MODULE_H_PAGE3    EQU 23;a third page and its bytes, which follow the second's; both 0 without one

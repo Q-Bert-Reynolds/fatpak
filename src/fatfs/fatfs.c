@@ -2773,7 +2773,7 @@ unsigned char fs_Session(const char* folder, unsigned char mode) {
 // The borrowed page is still OS code here. Validate/stage with a private FIL,
 // leaving an open editor document and its undo history alone.
 extern unsigned int module_entry;
-extern UINT ModuleCRC(const BYTE* data, UINT count, UINT crc); // src/modules/runtime.asm
+extern UINT ModuleSum(const BYTE* data, UINT count, UINT sum); // src/modules/runtime.asm: Fletcher-16
 unsigned char module_wide; // the staged module's pages after the first (MODULE_FORMAT_WIDE), 0 for others
 unsigned char fs_LoadModule(const char* path, unsigned char id) {
   FIL module;
@@ -2839,7 +2839,7 @@ unsigned char fs_LoadModule(const char* path, unsigned char id) {
       memcpy(WINDOW, buffer, sector_size);
       // Validate the bytes that will actually be installed. A correct card read
       // does not prove the subsequent PSRAM write kept the module intact.
-      if (size) crc = ModuleCRC(WINDOW, size, crc);
+      if (size) crc = ModuleSum(WINDOW, size, crc);
       offset += sector_size;
     }
   }

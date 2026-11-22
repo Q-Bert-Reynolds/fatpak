@@ -108,7 +108,7 @@ footer (with the clock) like the host does, unless the user picked full screen.
 | `modules/lib/digits.c` | `PutNumber2`, `PutHex`: only the modules that use them link it (`modules.json`) |
 | `modules/info.h` | `InfoContext`, shared by FILEINFO and its host (uses FatPak's `FileEntry`/`FileDetails`) |
 | `src/modules/runtime.c` | `RunModule`, `ShowModuleError`, `ModuleAPI*` wrappers, marshaling (all FIXED) |
-| `src/modules/runtime.asm` | PSRAM asserts, `ModuleSwap` (either page), `ModuleSwapRAM` (the WRAMX region), `ModuleCompare`, `ModuleCRC`, `ModuleEnter`, `ModuleAPIFar`, the table |
+| `src/modules/runtime.asm` | PSRAM asserts, `ModuleSwap` (either page), `ModuleSwapRAM` (the WRAMX region), `ModuleCompare`, `ModuleSum`, `ModuleCRC` (overlays), `ModuleEnter`, `ModuleAPIFar`, the table |
 | `src/fatfs/fatfs.c` | `fs_LoadModule`: validate and stage (FIXED) |
 
 The Makefile gives the generated headers a real rule (C recompiles only when
@@ -159,7 +159,7 @@ calls in a small BUILD, 2026-11-22).
 | 12 | 2 | Payload length (1-`$1D00`; file size must equal 32 + length) |
 | 14 | 2 | BSS offset (≥ length) |
 | 16 | 2 | BSS size (BSS end ≤ `$1D00`) |
-| 18 | 2 | CRC-16/CCITT of payload (`binascii.crc_hqx`, init `$FFFF`; wide: both pages' bytes in order) |
+| 18 | 2 | Fletcher-16 with 8-bit sums of the payload (`module_sum`, `ModuleSum`: s1 += byte, s2 += s1 from `$FF`, `$FF`; wide: every page's bytes in order). A CRC-16 until 2026-11-22: 7% of a small C BUILD |
 | 20 | 1 | Wide: second page (12); otherwise zero |
 | 21 | 2 | Wide: second page's payload length, which follows the first in the file |
 | 23 | 1 | Wide with three pages: third page (5); otherwise zero |
@@ -207,7 +207,7 @@ below `$8000`. Copies never touch the final sector's upper 256 bytes.
 1. `fs_LoadModule` opens the file with a private `FIL` (an open large document is
    untouched), validates the header, reads 512 bytes at a time into `buffer`
    and zero-pads to the full page, copies to PSRAM staging, then checks the
-   staged payload with `ModuleCRC` (assembly, ~180 cycles/byte). The checksum
+   staged payload with `ModuleSum` (assembly, ~44 cycles/byte). The checksum
    covers what will be installed, including corruption during staging writes;
    a mismatch rejects the module before any OS page is replaced. Window block
    and `$BD06` are restored on every exit.
@@ -360,7 +360,6 @@ The busy box stays up throughout, so nothing looks frozen.
      recopy on a mismatch.
    - Stage and install only the payload's sectors, then zero the rest of the
      page directly, instead of copying 15 sectors every time.
-   - `ModuleCRC`: keep the data pointer in a register instead of push/pop.
 - **Verification failure path:** Gearboy can't make a copy read back wrong, so
    `MODULE_ERR_VERIFY` and the restart path are untested. A test-only fault hook
    (or a Gearboy write-drop option) would cover them.

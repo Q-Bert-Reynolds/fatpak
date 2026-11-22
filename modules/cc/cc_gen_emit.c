@@ -6,6 +6,7 @@
 #define CC_NEED_nd_r16
 #define CC_NEED_nd_r32
 #define CC_NEED_out_str
+#define CC_NEED_cc_copy
 #include "cc_gen.h"
 
 static const char* const named_parts[][2] = { // ld_named: before and after the name
@@ -333,11 +334,26 @@ void binary32(u8 op, u16 t) { // DEHL = (stack) op DEHL
 
 // ---- output sinks: text in PSRAM, CC_SINK_BLOCKS blocks each ----
 
+// Output gathers in ob (ob_n bytes of sink ob_sink, already counted in its sink_n) and goes to
+// PSRAM 64 bytes at a time: most pieces are a few characters, and an m_put each was ~6% of a
+// build. cc_pass_c calls out_flush before it reads the sinks.
+static u8 ob[64], ob_n, ob_sink;
+void out_flush(void) {
+  u16 at;
+  if (!ob_n) return;
+  at = (u16)(cc_st.sink_n[ob_sink] - ob_n);
+  m_put((u16)(CC_SINK_BLOCK + ob_sink * CC_SINK_BLOCKS + (at >> 9)), at & 511, ob, ob_n);
+  ob_n = 0;
+}
 void out_bytes(u8 sink, const char* s, u16 n) {
   u16 at = cc_st.sink_n[sink];
   if ((u32)at + n > (u32)CC_SINK_BLOCKS * 512 - 1) cc_error(E_OUTPUT_TOO_LARGE);
-  m_put((u16)(CC_SINK_BLOCK + sink * CC_SINK_BLOCKS + (at >> 9)), at & 511, s, n);
+  if (sink != ob_sink) { out_flush(); ob_sink = sink; }
+  if (n > (u16)(sizeof(ob) - ob_n)) out_flush();
   cc_st.sink_n[sink] = (u16)(at + n);
+  if (n > sizeof(ob)) { m_put((u16)(CC_SINK_BLOCK + sink * CC_SINK_BLOCKS + (at >> 9)), at & 511, s, n); return; }
+  cc_copy(ob + ob_n, (const u8*)s, n);
+  ob_n = (u8)(ob_n + n);
 }
 
 void out_num(u8 sink, s32 n) { // by subtraction: no SDCC division helpers in a module

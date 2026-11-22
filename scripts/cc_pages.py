@@ -5,7 +5,7 @@ import re, sys
 from pathlib import Path
 CC = Path(__file__).resolve().parent.parent / 'modules/cc'
 LOCAL = ['sy_r8', 'sy_r16', 'sy_w8', 'sy_w16', 'ty_r8', 'ty_r16', 'ty_w8', 'ty_w16', 'fl_r16', 'fl_w16',
-         'nd_r8', 'nd_r16', 'nd_w8', 'nd_w16', 'nd_r32', 'nd_w32', 'nm_r16', 'nm_w16', 'out_str']
+         'nd_r8', 'nd_r16', 'nd_w8', 'nd_w16', 'nd_r32', 'nd_w32', 'nm_r16', 'nm_w16', 'out_str', 'cc_copy']
 
 def macros():
     """macro name -> the accessors its expansion calls, through other macros too"""

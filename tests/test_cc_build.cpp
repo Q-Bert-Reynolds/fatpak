@@ -124,6 +124,8 @@ struct Session {
     std::map<unsigned, unsigned long long> prof; // CC_PROFILE: (module << 24 | page << 16 | pc) -> cycles
     unsigned long long total_cycles = 0;
     bool profile = getenv("CC_PROFILE") != nullptr;
+    std::map<unsigned, unsigned> swaps; // CC_PROFILE: ModuleSwap ($1xx), ModuleSwapRAM ($2xx) by A, RunModule ($3xx) by ID
+    unsigned swap_pc = 0, swap_ram_pc = 0;
     unsigned build(const char* until, bool measure, unsigned limit = 40000) {
         pad(Start_Key); pad(A_Key);
         for (unsigned i = 0; i < 4; ++i) pad(Down_Key);
@@ -131,6 +133,7 @@ struct Session {
         auto cpu = core.GetProcessor()->GetState();
         unsigned depth = syms.at("far_depth"), frames = 0, cycles = 0, run_module = syms.at("_RunModule");
         runs.clear();
+        swap_pc = syms.at("_ModuleSwap"); swap_ram_pc = syms.at("_ModuleSwapRAM");
         while (frames < limit && row(19).find(until) == std::string::npos && lines().find(until) == std::string::npos) {
             if (!measure) { Frames(core, 10); frames += 10; continue; } // faster: no depth or SP
             unsigned ticks = 0;
@@ -143,6 +146,8 @@ struct Session {
                 if (sp >= 0xC000 && sp < 0xD000 && sp < min_sp) { min_sp = sp; min_pc = pc; min_page = memory->Read(0xBD08); min_module = runs.back(); }
                 if (sp >= 0xD000 && sp < 0xE000 && sp < module_sp[runs.back()]) module_sp[runs.back()] = sp; // its own stack
             }
+            if (profile && (pc == swap_pc || pc == swap_ram_pc || pc == run_module)) // operations by kind
+                ++swaps[(pc == swap_pc ? 0x100 : pc == swap_ram_pc ? 0x200 : 0x300) | cpu->AF->GetHigh()];
             if (profile) { // CC_PROFILE=1: cycles by module, mapped page and PC
                 unsigned module = runs.empty() ? 0 : runs.back(), page = memory->Read(0xBD08);
                 if (pc >= 0xA000 && pc < 0xBD00) prof[(module << 24) | (page << 16) | pc] += ticks;
@@ -236,6 +241,7 @@ static void Fixture(const char* image, const char* symbols, const char* data, co
         FILE* out = fopen(getenv("CC_PROFILE"), "w");
         if (out) { for (auto& e : s.prof) fprintf(out, "%02x %02x %04x %llu\n", e.first >> 24, (e.first >> 16) & 0xFF, e.first & 0xFFFF, e.second); fclose(out); }
         printf("profile: %llu cycles in %s\n", s.total_cycles, getenv("CC_PROFILE"));
+        for (auto& e : s.swaps) printf("  %s %u: %u\n", e.first >> 8 == 1 ? "ModuleSwap" : e.first >> 8 == 2 ? "ModuleSwapRAM" : "RunModule", e.first & 0xFF, e.second);
     }
     s.pad(A_Key);
 }

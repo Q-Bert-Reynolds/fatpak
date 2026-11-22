@@ -10,13 +10,17 @@
 #include "../lib/psram.h"
 
 // Advance's fast path: run_n bytes from run_p belong to the current frame without a check.
-// Anything that moves the window or changes the frames drops it (run_n = 0).
-extern unsigned char run_n;
+// Anything that changes the frames drops it (run_n = 0). On the device, moving the window sets
+// win_moved and the fast path selects the run's block (run_block, $FFFF for a run in WRAM) again
+// before its next byte: dropping the run instead sent the next character down AdvanceSlow
+// several times a line (~4% of a small BUILD)
+extern unsigned char run_n, win_moved;
+extern unsigned int run_block;
 #undef Window
 #ifdef HOST_TEST
 #define Window(block) (run_n = 0, psram_select(block))
 #else
-#define Window(block) (run_n = 0, *(volatile unsigned char*)0xBD03 = (unsigned char)((block) >> 8), *(volatile unsigned char*)0xBD02 = (unsigned char)(block)) // high, then low (lib/psram.h)
+#define Window(block) (win_moved = 1, *(volatile unsigned char*)0xBD03 = (unsigned char)((block) >> 8), *(volatile unsigned char*)0xBD02 = (unsigned char)(block)) // high, then low (lib/psram.h)
 #endif
 
 #define NAME_MAX 79

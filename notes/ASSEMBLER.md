@@ -522,9 +522,11 @@ pages plus the WRAMX region is about 300 on DMG, and LINK.MOD's two pages about
 `gbdk.asm` 3,051 / 1,481). Two routines are hand-written
 assembly on the device because every character or statement goes through them:
 `Advance`'s fast path (a pointer and count for the run of bytes left in the
-current chunk or PSRAM block; anything that moves the window or the frame stack
-drops it, and `{`, line feeds and macro backslashes take the C path) and
-`Keyword`. With fewer far calls they took `gbdk.asm` from 7,397 frames to 2,766
+current chunk or PSRAM block; anything that changes the frame stack drops it,
+`Window` only sets `win_moved` and the fast path selects the run's block again,
+and `{`, line feeds and macro backslashes take the C path) and `Keyword`; also
+`ReadIdent`, `Space`, `IsStart`, `IsIdentChar` and `AtEnd` (2026-11-22, the C
+stays for the PC harness). With fewer far calls they took `gbdk.asm` from 7,397 frames to 2,766
 with three pages; the fourth page and `EQUS` cost ~290 more. With five pages
 and 32-bit values it's 3,425 on DMG and 1,625 on CGB: `Mul` stops when the
 multiplier runs out and `Div` skips the dividend's zero top bytes, without which
@@ -536,7 +538,10 @@ PCs mapped through `GBCOS.sym` and the module's `module.sym`), 28M instructions:
 from `asm_line.c` on page 5 to the lexer on page 13: `Space`, `Keyword`, `Line`,
 `ReadIdent`, `IsStart`, `AtEnd`); loading and checking the five pages 13%
 (`mem_Copy`, `ModuleCompare`, `ModuleCRC`); `Header`'s checksum 3.5%; `Find`
-2.8%.
+2.8%. Since (2026-11-22, a C BUILD's profile, `CC_PROFILE` in `tests/test_cc_build.cpp`):
+calls to targets without stack arguments take `ModFar`'s fast path (MODULES.md), the
+module check is a Fletcher sum, and `Window` no longer drops `Advance`'s run (it went
+down `AdvanceSlow` several times a line).
 
 ## Tests
 

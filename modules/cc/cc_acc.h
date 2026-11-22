@@ -33,6 +33,7 @@
 #define nm_r16 CC_LOCAL_NAME(nm_r16)
 #define nm_w16 CC_LOCAL_NAME(nm_w16)
 #define out_str CC_LOCAL_NAME(out_str)
+#define cc_copy CC_LOCAL_NAME(cc_copy)
 #ifdef CC_HOST
 #define CC_LOCAL static __attribute__((unused)) // a page may not need all three below
 #else
@@ -102,6 +103,42 @@ static u16 nm_r16(u16 id, u8 off) { return rd16(cc_at(CC_NAME_BLOCK, id, 6) + of
 #endif
 #ifdef CC_NEED_nm_w16
 static void nm_w16(u16 id, u8 off, u16 v) { wr16(cc_at(CC_NAME_BLOCK, id, 6) + off, v); }
+#endif
+#ifdef CC_NEED_cc_copy
+// n bytes from s to d: on the device a 32-cycle loop (SDCC's byte loops took ~150 a byte)
+#ifdef CC_HOST
+static void cc_copy(u8* d, const u8* s, u16 n) { while (n) { *d++ = *s++; --n; } }
+#else
+static void cc_copy(u8* d, const u8* s, u16 n) __naked {
+  d; s; n;
+  __asm
+    ld hl, sp+2
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a ;// n
+    or a, h
+    jr z, .done
+    push de
+    ld d, h
+    ld e, l
+    ld h, b
+    ld l, c ;// s
+    pop bc ;// d
+.loop:
+    ld a, [hl+]
+    ld [bc], a
+    inc bc
+    dec de
+    ld a, d
+    or a, e
+    jr nz, .loop
+.done:
+    pop hl
+    pop af ;// n
+    jp hl
+  __endasm;
+}
+#endif
 #endif
 #ifdef CC_NEED_out_str
 static void out_str(u8 sink, const char* s) {

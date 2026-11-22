@@ -64,7 +64,7 @@ def package(payload, entry, module_id, bss_offset, bss_size, abi=1, payload2=Non
     header[C['MODULE_H_PAGE']] = C['MODULE_PAGE']
     fields = [('ADDRESS', PAGE_ADDRESS), ('ENTRY', entry), ('LENGTH', len(payload)),
               ('BSS', bss_offset), ('BSS_SIZE', bss_size),
-              ('CRC', binascii.crc_hqx(payload + b''.join(extra), 0xFFFF))]
+              ('CRC', module_sum(payload + b''.join(extra)))]
     for number, page in enumerate(extra, 2):
         header[C[f'MODULE_H_PAGE{number}']] = C[f'MODULE_PAGE{number}']
         fields.append((f'LENGTH{number}', len(page)))
@@ -91,6 +91,14 @@ def manifest():
         ids.add(module['id'])
         names.add(module['name'])
     return modules
+
+
+def module_sum(data, s1=0xFF, s2=0xFF):
+    """The header's check (src/modules/runtime.asm ModuleSum): Fletcher-16 with 8-bit sums."""
+    for byte in data:
+        s1 = (s1 + byte) & 0xFF
+        s2 = (s2 + s1) & 0xFF
+    return s2 << 8 | s1
 
 
 def sdk(output=OUTPUT):

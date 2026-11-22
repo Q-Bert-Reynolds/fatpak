@@ -199,6 +199,7 @@ u8 cc_pass_c(void) {
   }
   helpers_comment();
   if (cc_st.flags & CC_WRAP) out_str(SINK_BSS, "INCLUDE \"GBCSYS/CC/ccrt.asm\"\nINCLUDE \"GBCSYS/CC/crtend.asm\"\n");
+  out_flush();
   cc_st.out_n = 0;
   for (i = 0; i < CC_SINKS; ++i) copy_sink(i);
   cc_state_save();

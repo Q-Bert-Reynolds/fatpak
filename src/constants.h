@@ -142,7 +142,7 @@
 #define MODULE_H_LENGTH   12//payload bytes
 #define MODULE_H_BSS      14//offset, at or after the payload
 #define MODULE_H_BSS_SIZE 16
-#define MODULE_H_CRC      18//CRC-16/CCITT of the payload (both pages' for wide modules), initial 0xFFFF
+#define MODULE_H_CRC      18//Fletcher-16 (8-bit sums) of the payload, every page's, from 0xFFFF (ModuleSum)
 #define MODULE_H_PAGE2    20//wide modules: the second page and its payload bytes, which follow the first's
 #define MODULE_H_LENGTH2  21
 #define MODULE_H_PAGE3    23//a third page and its bytes, which follow the second's// both 0 without one

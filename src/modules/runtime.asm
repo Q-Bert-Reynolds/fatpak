@@ -264,6 +264,33 @@ ENDR
   jr nz, ModuleCompare
   ret
 
+;A module's check (module_build.py's module_sum): Fletcher-16 with 8-bit sums, s1 += byte then
+;s2 += s1, from s1 = s2 = $FF. It guards the card read and the staging copy (each install is
+;compared block by block too): a third of ModuleCRC's cycles, which were 7% of a small BUILD.
+;de = data, bc = count > 0, stack: s2 << 8 | s1; returns bc the same and removes its stack argument
+SECTION "Module sum", ROM0
+_ModuleSum::
+  ld hl, sp+2
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+.byte
+  ld a, [de]
+  inc de
+  add l
+  ld l, a
+  add h
+  ld h, a
+  dec bc
+  ld a, b
+  or c
+  jr nz, .byte
+  ld b, h
+  ld c, l
+  pop hl
+  add sp, 2
+  jp hl
+
 ;CRC-16/CCITT (polynomial $1021, as Python's binascii.crc_hqx), a byte at a time without a table:
 ;x = high ^ byte, x ^= x >> 4, crc = crc << 8 ^ x << 12 ^ x << 5 ^ x
 ;de = data, bc = count > 0, stack: crc; returns bc = crc and removes its stack argument

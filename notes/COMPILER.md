@@ -34,7 +34,14 @@ moves the cursor to the line (in the document). `make assemble` copies the runti
 to the card with the modules.
 
 Gearboy, `tests/cc/arith.c` (80 lines): about 90 s from BUILD to the ROM on CGB, 3 minutes on
-DMG. Nearly all of it is the passes reading and writing PSRAM a field at a time.
+DMG (2026-11-21). A cycle profile (`CC_PROFILE=<file> tests/run_cc_build.sh <fixture>`, then
+name the PCs from `bin/GBCOS.sym` and `build/modules/<M>/module.sym`) of `pointers.c` found
+ASM.MOD about half of it, the passes 45%, and the field accessors only ~5%: far calls,
+loading modules and byte loops were the rest. 2026-11-22's changes (ModFar's fast path, the
+Fletcher module check, `cc_copy` for PSRAM copies, ASM's lexer in assembly) took it from
+2,700 frames to ~2,080 (-23%). What's left: ASM's lexing (`Advance`, `Keyword`), installing
+and verifying module pages (`mem_Copy`, `ModuleCompare`, ~12%), and the generated code's
+size (every local on the stack: ASM reads ~1,400 lines for 40 of C).
 
 ### Pieces
 

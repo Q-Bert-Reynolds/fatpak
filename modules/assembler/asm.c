@@ -128,10 +128,50 @@ unsigned char Keyword(unsigned char which) __naked {
 }
 #endif
 static unsigned char IsDigit(unsigned char c) { return c >= '0' && c <= '9'; }
+#ifdef HOST_TEST
 unsigned char IsStart(unsigned char c) {
   return ((c | 0x20) >= 'a' && (c | 0x20) <= 'z') || c == '_' || c == '.';
 }
+#else
+unsigned char IsStart(unsigned char c) __naked { // a letter, _ or . (the C above), affects b
+  c;
+  __asm
+	ld	b, a
+	or	a, 32
+	sub	a, 97 ;// a
+	cp	a, 26
+	jr	c, .yes
+	ld	a, b
+	cp	a, 95 ;// _
+	jr	z, .yes
+	cp	a, 46 ;// .
+	jr	z, .yes
+	xor	a, a
+	ret
+.yes:
+	ld	a, 1
+	ret
+  __endasm;
+}
+#endif
+#ifdef HOST_TEST
 unsigned char IsIdentChar(unsigned char c) { return IsStart(c) || IsDigit(c); }
+#else
+unsigned char IsIdentChar(unsigned char c) __naked { // IsStart or a digit (the C above)
+  c;
+  __asm
+	call	_IsStart
+	or	a, a
+	ret	nz
+	ld	a, b
+	sub	a, 48 ;// 0
+	cp	a, 10
+	ld	a, 0
+	rla
+	ret
+  __endasm;
+}
+#endif
 
 // --- the stream: characters come from a stack of frames. The document (source 0) and
 // included files (sources 1.., copied to PSRAM) are text; macro and repeat bodies are
@@ -203,7 +243,8 @@ static void PushArg(unsigned char n) {
   for (i = at; args[i]; ++i);
   Push(F_ARG, SRC_ARGS, at, i);
 }
-unsigned char run_n;
+unsigned char run_n, win_moved;
+unsigned int run_block;
 static const unsigned char* run_p;
 static Pos* run_pos; // the frame's pos
 static unsigned int* run_line; // and its line count
@@ -237,6 +278,10 @@ void Advance(void) __naked {
 	ld	a, [_run_n]
 	or	a, a
 	jr	z, .slow
+	ld	a, [_win_moved]
+	or	a, a
+	jr	nz, .moved
+.read:
 	ld	hl, _run_p
 	ld	a, [hl+]
 	ld	h, [hl]
@@ -280,6 +325,16 @@ void Advance(void) __naked {
 	ld	a, [hl]
 	ld	[_lf_line + 1], a
 	ret
+.moved:                     ;// the window moved: the run's block again (none for a run in WRAM)
+	xor	a, a
+	ld	[_win_moved], a
+	ld	a, [_run_block + 1]
+	cp	a, 255
+	jr	z, .read
+	ld	[$BD03], a
+	ld	a, [_run_block]
+	ld	[$BD02], a
+	jr	.read
 .slow:
 	jp	_AdvanceSlow
   __endasm;
@@ -324,8 +379,9 @@ void AdvanceSlow(void) {
     if (f->source == SRC_TEXT) { // text: set up the run that follows this byte
       c = Raw(SRC_TEXT, p);
       o = (unsigned int)p;
-      if (p >> 16) { run_p = WINDOW + (o & 511); o = 512 - (o & 511); n = o > 255 ? 255 : (unsigned char)o; }
-      else { run_p = (const unsigned char*)buf + (o - chunk_pos); n = chunk_pos + chunk_n - o; }
+      if (p >> 16) { run_p = WINDOW + (o & 511); o = 512 - (o & 511); n = o > 255 ? 255 : (unsigned char)o; run_block = BLOCK(p); }
+      else { run_p = (const unsigned char*)buf + (o - chunk_pos); n = chunk_pos + chunk_n - o; run_block = 0xFFFF; }
+      win_moved = 0; // Raw selected the run's block
       if (f->end - p < n) n = (unsigned char)(f->end - p);
       run_n = n ? n - 1 : 0; // after this one (none if the document's text ran out)
       ++run_p;
@@ -356,8 +412,45 @@ void Fail(unsigned char code) {
   if (!error) { error = code; error_ch = ch; }
   ch = 0;
 }
+#ifdef HOST_TEST
 void Space(void) { while (ch == ' ' || ch == '\t' || ch == '\r') Advance(); }
+#else
+void Space(void) __naked { // past spaces, tabs and CRs (the C above)
+  __asm
+.loop:
+	ld	a, [_ch]
+	cp	a, 32
+	jr	z, .skip
+	cp	a, 9
+	jr	z, .skip
+	cp	a, 13
+	ret	nz
+.skip:
+	call	_Advance
+	jr	.loop
+  __endasm;
+}
+#endif
+#ifdef HOST_TEST
 unsigned char AtEnd(void) { return ch == 0 || ch == 10 || ch == ';'; }
+#else
+unsigned char AtEnd(void) __naked { // the line's end: 0, a line feed or a comment (the C above)
+  __asm
+	ld	a, [_ch]
+	or	a, a
+	jr	z, .end
+	cp	a, 10
+	jr	z, .end
+	cp	a, 59 ;// ;
+	jr	z, .end
+	xor	a, a
+	ret
+.end:
+	ld	a, 1
+	ret
+  __endasm;
+}
+#endif
 void Expect(unsigned char c) {
   Space();
   if (ch != c) Fail(ASM_ERR_SYNTAX);
@@ -369,6 +462,7 @@ void ToEnd(void) { ++literal; while (ch && ch != 10) Advance(); --literal; } // 
 char ident[NAME_MAX + 1], name[NAME_MAX + 1]; // the word read; a name kept while its value is read
 unsigned char ident_len;
 
+#ifdef HOST_TEST
 void ReadIdent(void) {
   ident_len = 0;
   while (IsIdentChar(ch)) {
@@ -378,6 +472,53 @@ void ReadIdent(void) {
   }
   ident[ident_len] = 0;
 }
+#else
+void ReadIdent(void) __naked { // the C above: most of a source's characters come through here
+  __asm
+	xor	a, a
+	ld	[_ident_len], a
+.loop:
+	ld	a, [_ch]
+	ld	b, a
+	or	a, 32
+	sub	a, 97 ;// a letter
+	cp	a, 26
+	jr	c, .take
+	ld	a, b
+	cp	a, 95 ;// _
+	jr	z, .take
+	cp	a, 46 ;// .
+	jr	z, .take
+	sub	a, 48 ;// a digit
+	cp	a, 10
+	jr	nc, .end
+.take:
+	ld	a, [_ident_len]
+	cp	a, NAME_MAX
+	jr	z, .long
+	ld	e, a
+	inc	a
+	ld	[_ident_len], a
+	ld	d, 0
+	ld	hl, _ident
+	add	hl, de
+	ld	[hl], b
+	call	_Advance
+	jr	.loop
+.end:
+	ld	a, [_ident_len]
+	ld	e, a
+	ld	d, 0
+	ld	hl, _ident
+	add	hl, de
+	ld	[hl], d
+	ret
+.long:
+	ld	a, ASM_ERR_NAME
+	jp	_Fail
+  __endasm;
+}
+#endif
 void SaveName(void) {
   unsigned char i;
   for (i = 0; i <= ident_len; ++i) name[i] = ident[i];

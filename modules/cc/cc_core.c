@@ -3,6 +3,7 @@
 #define CC_PAGE core
 #define CC_NEED_nm_r16
 #define CC_NEED_nm_w16
+#define CC_NEED_cc_copy
 #include "cc_acc.h"
 
 CcState cc_st;
@@ -35,21 +36,33 @@ typedef char cc_state_fits[sizeof(CcState) <= 512 ? 1 : -1];
 
 u16 rec_r16(u16 base, u16 i, u8 off) { return rd16(cc_at(base, i, 3) + off); }
 void rec_w16(u16 base, u16 i, u8 off, u16 v) { wr16(cc_at(base, i, 3) + off, v); }
-// n bytes at (block, offset), across blocks
+// n bytes at (block, offset), across blocks: each block's part with cc_copy
 void m_get(u16 block, u16 off, void* dest, u16 n) {
   u8* d = (u8*)dest;
-  while (n--) {
+  u16 k;
+  while (n) {
     if (off == 512) { ++block; off = 0; }
+    k = 512 - off;
+    if (k > n) k = n;
     cc_sel(block);
-    *d++ = cc_win[off++];
+    cc_copy(d, cc_win + off, k);
+    d += k;
+    off += k;
+    n -= k;
   }
 }
 void m_put(u16 block, u16 off, const void* src, u16 n) {
   const u8* s = (const u8*)src;
-  while (n--) {
+  u16 k;
+  while (n) {
     if (off == 512) { ++block; off = 0; }
+    k = 512 - off;
+    if (k > n) k = n;
     cc_sel(block);
-    cc_win[off++] = *s++;
+    cc_copy(cc_win + off, s, k);
+    s += k;
+    off += k;
+    n -= k;
   }
 }
 void cc_state_load(void) { m_get(CC_STATE_BLOCK, 0, &cc_st, sizeof(cc_st)); }
