@@ -123,6 +123,7 @@ struct Session {
     // FILE > BUILD (item 4); steps the CPU, keeping the deepest far-call nesting and the lowest SP,
     // until the status row or the box shows text; returns the frames it took
     std::set<std::string> progress; // "Compiling n/3" lines the box showed (cc_progress)
+    std::set<std::string> compiling; // the files "Compiling..." named
     std::map<unsigned, unsigned long long> prof; // CC_PROFILE: (module << 24 | page << 16 | pc) -> cycles
     unsigned long long total_cycles = 0;
     bool profile = getenv("CC_PROFILE") != nullptr;
@@ -141,6 +142,8 @@ struct Session {
                 Frames(core, 10); frames += 10;
                 std::string box = lines();
                 if (box.find("Compiling ") == 0 && box.find("/3|") != std::string::npos) progress.insert(box.substr(0, box.find('|')));
+                if (box.find("Compiling...|") == 0) compiling.insert(box.substr(13)); // CompilingBox: the file
+
                 continue;
             }
             unsigned ticks = 0;
@@ -264,6 +267,7 @@ static void ProjectCase(const char* image, const char* symbols, const char* data
     unsigned frames = s.build("Built ", false);
     if (s.lines().find("Built ") == std::string::npos) fprintf(stderr, "box: \"%s\" status \"%s\"\n", s.lines().c_str(), s.row(19).c_str());
     Check(s.lines().find("Built ") != std::string::npos, "a project with C units builds");
+    Check(s.compiling.count("math.c") && s.compiling.count("util.c"), "the box names each C unit as it compiles");
     struct stat math, util;
     Check(stat((s.root + "/_math.asm").c_str(), &math) == 0 && stat((s.root + "/_util.asm").c_str(), &util) == 0,
           "each C unit's assembly is written beside it");

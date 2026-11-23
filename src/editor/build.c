@@ -14,6 +14,7 @@
 #include "../modules/runtime.h"
 #include "../ui/dialogs.h"
 #include "../ui/text.h"
+#include "../ui/render.h"
 #include "../../modules/assembler/asm.h"
 #include "../../modules/cc/cc_ctx.h"
 
@@ -134,6 +135,15 @@ typedef char cc_offsets[offsetof(CcContext, name) == 34 && offsetof(CcContext, t
                         offsetof(AsmContext, pass) == 83 && offsetof(AsmContext, progress) == 84 && // cc_progress
                         sizeof(CcContext) <= 83 &&
                         offsetof(AsmContext, cache_blocks) == 81 && offsetof(AsmContext, obj_blocks) == 86 && ASM_DOC == 1 ? 1 : -1];
+// the box while CC's passes run: "Compiling..." and the file (a project compiles several), in the
+// CcContext's text (CCERR.MOD's box replaces it after an error)
+static void CompilingBox(const CcContext* c) {
+  char* end = PutStr(c->text, S_COMPILING);
+  *end++ = '\n';
+  *ToLatin1(end, c->name, FS_NAME_SIZE - 1) = 0;
+  OpenBox(BoxText(0, c->text)); // (ShowBusy's box has one line)
+  EditorDraw();
+}
 static unsigned char BuildStart(AsmContext* c, char* text, const char* path) __naked {
   c; text; path;
   __asm
@@ -182,11 +192,7 @@ static unsigned char BuildStart(AsmContext* c, char* text, const char* path) __n
     push hl
     push de                 ;// c, for the whole run
     push bc
-    ld de, S_COMPILING
-    call _Str
-    ld d, b
-    ld e, c
-    call _ShowBusy
+    call _CompilingBox      ;// de = c
     pop de                  ;// CCA.MOD's path
     ld a, 13                ;// MODULE_CCA
 .run:                       ;// de = the path, a = the ID
