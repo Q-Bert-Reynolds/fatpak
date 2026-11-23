@@ -30,6 +30,7 @@ void cc_chain(u8 id);
 void ModAbort(unsigned char result);
 typedef struct { unsigned int block, blocks; unsigned long size; } ModuleLoad;
 unsigned char ModLoad(const char* path, ModuleLoad* load);
+unsigned char cc_load_os(const char* path, ModuleLoad* load); // cc_core.c: ModLoad on the OS's stack
 unsigned char ModSource(unsigned int pos, char* dest);
 #endif
 
@@ -108,6 +109,8 @@ u8 cc_host_open(const char* name, u8 angled, u8 from);
 u16 cc_host_read(u8 file, u32 pos, char* dest, u16 n);
 void cc_host_close(u8 file);
 const char* cc_host_name(u8 file);
+// The runtime's helpers as text (rt/ccrt.asm), up to n bytes at pos (CC_SDCC copies them into the unit)
+u16 cc_host_runtime(u16 pos, char* dest, u16 n);
 // One error (the compile stops after it) or warning: a code from cc_msg.h, with a name or
 // #error's text in extra (or 0). The Game Boy's host can ignore it and read cc_st.
 void cc_host_diag(u8 error, const char* file, u16 line, u8 code, const char* extra);

@@ -1,8 +1,8 @@
-; CC in a project (project.gbp's main lines, notes/COMPILER.md): list this unit before the first
-; C unit and crtend.asm after the last. It brings the runtime's helpers and heads the initialized
+; CC in a project (project.gbp's main lines, notes/COMPILER.md): with C units that have initialized
+; data, list this unit before the first and crtend.asm after the last. It heads the initialized
 ; data's records (the "cc_init" fragments, crt0.asm's format) that the C units add. The game's own
 ; start-up clears WRAM (C's zero-initialized data), then calls _cc_init once before any C runs.
-INCLUDE "GBCSYS/CC/ccrt.asm"
+; (Each unit carries the runtime's helpers it needs under its own names.)
 
 SECTION "cc_init_copy", ROM0
 _cc_init::

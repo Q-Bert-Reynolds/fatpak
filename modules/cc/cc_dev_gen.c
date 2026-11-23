@@ -46,3 +46,4 @@ static unsigned char pass_main(CcContext* context) {
   a->log_bytes = a->cache_blocks = a->obj_blocks = 0;
   return 0;
 }
+

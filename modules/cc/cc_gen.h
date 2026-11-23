@@ -81,6 +81,7 @@ void copy_sink(u8 sink);
 u8 cc_pass_c(void);
 void out_bytes(u8 sink, const char* s, u16 n);
 void out_flush(void); // out_bytes's last bytes to their sink
+void copy_runtime(void); // CC_SDCC: the helpers into the unit
 void out_num(u8 sink, s32 n);
 void out_name(u8 sink, u16 name);
 void gen_sym_name(u8 sink, u16 s);

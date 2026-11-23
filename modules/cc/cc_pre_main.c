@@ -225,6 +225,7 @@ u8 cc_pass_a(const char* path, const char* unit, u8 flags) {
   for (i = 0; unit[i] && i < sizeof(cc_st.unit) - 1; ++i) cc_st.unit[i] = unit[i];
   cc_st.next_label = 1;
   cc_st.flags = flags;
+  if (flags & CC_SDCC) for (i = 0; path[i] && i < sizeof(cc_st.path) - 1; ++i) cc_st.path[i] = path[i];
   CC_CATCH();
   file_push(cc_host_open(path, 0, 0xFF));
   stream_all();

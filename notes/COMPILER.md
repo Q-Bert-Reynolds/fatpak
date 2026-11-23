@@ -33,25 +33,31 @@ returns. An error shows the file, `Line <n>`, `C ERROR <n>` and the name it's ab
 moves the cursor to the line (in the document). `make assemble` copies the runtime and headers
 to the card with the modules.
 
-**In a project** (2026-11-22; ASSEMBLER.md's `project.gbp`), a C unit is listed as the assembly it
-compiles to, `_name.asm` beside `name.c`, as a Makefile would hand it to `rgbasm`. The game keeps
-its own start-up; the runtime's head and tail go around the C units:
+**In a project** (2026-11-22; ASSEMBLER.md's `project.gbp`), a C unit is the assembly it compiles
+to, `_name.asm` beside `name.c`, as a Makefile would hand it to `rgbasm`: listed on a `main` line,
+or `INCLUDE`d by an assembly unit (beisbol's `play_ball.asm` includes `src/baseball/_announcer.asm`).
+BUILD, from any file of the project (a `.c` one too), first has PREP.MOD look for C units whose
+assembly is missing, older than the `.c`, or either without a clock's time: the `main` lines'
+files, then every file `build.obj` says the last build's units read (so an included one is seen
+from the second build on). For each, the host (`CompileUnit`, `src/editor/build.c`) runs CCA to
+CCC with `CcContext.source`, the unit read from the card, and writes `_name.asm`, then asks
+PREP.MOD again from the next one; the build then goes on as for assembly.
 
-```
-main   src/start.asm GBCSYS/CC/cchead.asm src/_ai.asm src/_announcer.asm GBCSYS/CC/crtend.asm
-```
-
-`cchead.asm` brings the helpers (`ccrt.asm`) and heads the initialized data's records, which the
-start-up copies by calling `_cc_init` once, after clearing WRAM (zero-initialized data). Calls
-between C and assembly use SDCC's convention (below). BUILD, from any file of the project (a
-`.c` one too), first has PREP.MOD look at each main file named `_name.asm` with a `name.c` beside
-it: if the assembly is missing, older than the C, or either has no clock's time, the host compiles
-it (`CompileUnit` in `src/editor/build.c`: CCA to CCC with `CcContext.source`, the unit from the
-card, no `crt0`) and writes `_name.asm`, then asks PREP.MOD again from the next unit; then the
-build goes on as for assembly, `build.obj` keeping unchanged units. A header's change isn't seen
-yet (edit or delete the `.c`'s `_name.asm`). An error shows the unit's file and line; the cursor
-stays. Where the generated files go isn't configurable yet. Test: `tests/ccproj`, the device
-test's `ProjectCase`.
+A project's unit is compiled as SDCC places it (`CC_SDCC`), so it can replace SDCC's output: code
+and constants in `SECTION FRAGMENT "<path>_CODE", ROMX`, data in `"<path>_DATA"` and
+zero-initialized data in `"<path>_BSS"` (`WRAMX`), `<path>` as project.gbp's folder names it
+(`src/baseball/announcer.c`). The runtime's helpers it calls come in its code fragment
+(`copy_runtime`: `rt/ccrt.asm`'s text, every `__cc_` name as `__<unit>_cc_`), so the file needs
+nothing else and `rgbasm` on a PC assembles it as SDCC's. A quoted `#include` is found beside the
+file that includes it (`../` folded), then as before. Initialized data (not `const`) still uses
+the `cc_init` records: list `GBCSYS/CC/cchead.asm` before the C units and `GBCSYS/CC/crtend.asm`
+after them, and call `_cc_init` once from the start-up after clearing WRAM. Calls between C and
+assembly use SDCC's convention (below). A header's change isn't seen yet (edit the `.c` or delete
+its `_name.asm`); without a clock, every C unit compiles at every BUILD. An error shows the
+unit's file and line; the cursor stays. Where the assembly goes isn't configurable yet.
+beisbol's announcer: 3,472 bytes from SDCC, 5,719 from CC (the whole runtime is copied in: a
+copy of only what's called would save most of the difference). Test: `tests/ccproj`, the device
+test's `ProjectCase` (listed units, an included one first stale, a header chain with `../`).
 
 Gearboy, `tests/cc/arith.c` (80 lines): about 90 s from BUILD to the ROM on CGB, 3 minutes on
 DMG (2026-11-21). A cycle profile (`CC_PROFILE=<file> tests/run_cc_build.sh <fixture>`, then

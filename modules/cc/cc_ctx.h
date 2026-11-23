@@ -7,6 +7,8 @@
 #define CC_STATE_BLOCK    0x0400 // CcState
 #define CC_FILENAME_BLOCK 0x0401 // 64-byte paths by file handle (64 of them): 0 the document
 #define CC_WRAP 1 // CcContext.flags: INCLUDE the runtime (/GBCSYS/CC/crt0.asm, ccrt.asm, crtend.asm) around the unit
+#define CC_SDCC 2 // a project's unit (notes/COMPILER.md): sections as SDCC places them, named by its path (CcState.path),
+                  // code and constants in ROMX, data in WRAMX, and the runtime's helpers in it under the unit's names
 enum { SINK_CODE, SINK_RODATA, SINK_STR, SINK_DATA, SINK_INIT, SINK_BSS, CC_SINKS }; // the output's order
 
 // what the Game Boy's host (BuildC) hands each module, in the storage of ASM.MOD's AsmContext,
@@ -28,6 +30,7 @@ typedef struct {
   unsigned int err_line;
   char err_extra[55];      // the name it's about, or #error's text (CC_NAME_MAX + 1)
   char unit[24];
+  char path[64];           // CC_SDCC: the unit's path from project.gbp's folder
   unsigned char flags;     // CcContext's
   unsigned int nnames, nstream, next_label, ntypes, nfields, nsyms, nnodes;
   unsigned long heap_n, ir_n;

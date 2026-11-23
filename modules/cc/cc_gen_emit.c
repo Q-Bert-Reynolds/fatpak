@@ -180,7 +180,11 @@ void emit(u8 op, u16 a, u16 b) {
     case 'd': out_num(SINK_CODE, (s16)v); break;
     case 'L': out_str(SINK_CODE, ".L"); out_num(SINK_CODE, v); break;
     case 'S': gen_sym_name(SINK_CODE, v); break;
-    case 'H': helpers |= 1ul << v; out_str(SINK_CODE, helper_names[v]); break;
+    case 'H':
+      helpers |= 1ul << v;
+      if (cc_st.flags & CC_SDCC) { out_str(SINK_CODE, "__"); out_str(SINK_CODE, cc_st.unit); out_str(SINK_CODE, helper_names[v] + 1); }
+      else out_str(SINK_CODE, helper_names[v]);
+      break;
     }
   }
   out_str(SINK_CODE, "\n");

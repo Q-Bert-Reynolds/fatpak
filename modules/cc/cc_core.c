@@ -32,6 +32,30 @@ u16 cc_tick_line;
 void cc_progress(u8 pass) { (void)pass; cc_tick_line = cc_line; }
 #else
 u16 cc_own_sp; // the pass's SP during a host call on the OS's stack (cc_dev_*.c's cc_os_sp)
+unsigned char cc_load_os(const char* path, ModuleLoad* load) __naked { // ModLoad on the OS's stack (it may draw ModProgress)
+  path; load;
+  __asm
+    ld hl, sp + 0
+    ld a, l
+    ld [_cc_own_sp], a
+    ld a, h
+    ld [_cc_own_sp + 1], a
+    ld hl, _cc_os_sp
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    ld sp, hl
+    call _ModLoad           ;// de = path, bc = load (it copies them to host memory first)
+    ld e, a
+    ld hl, _cc_own_sp
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+    ld sp, hl
+    ld a, e
+    ret
+  __endasm;
+}
 static void ProgressOnOSStack(void) __naked { // ModProgress(0) (as cc_dev_*.c's LoadOnOSStack)
   __asm
     ld hl, sp + 0

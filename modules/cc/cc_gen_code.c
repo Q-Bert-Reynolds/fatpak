@@ -103,6 +103,12 @@ void gen_sink(u8 sink) {
   if (cc_st.sink_open & (1 << sink)) return;
   cc_st.sink_open |= (u8)(1 << sink);
   if (sink == SINK_INIT) { out_str(sink, "\nSECTION FRAGMENT \"cc_init\", ROM0\n"); return; }
+  if (cc_st.flags & CC_SDCC) { // code, constants and strings in one ROMX fragment (cc_pass_c opens code first)
+    if (sink == SINK_RODATA || sink == SINK_STR) return;
+    out_str(sink, "\nSECTION FRAGMENT \""); out_str(sink, cc_st.path);
+    out_str(sink, sink == SINK_CODE ? "_CODE\", ROMX\n" : sink == SINK_DATA ? "_DATA\", WRAMX\n" : "_BSS\", WRAMX\n");
+    return;
+  }
   out_str(sink, "\nSECTION \"cc."); out_str(sink, cc_st.unit); out_str(sink, "."); out_str(sink, names[sink]);
   out_str(sink, "\", "); out_str(sink, kinds[sink]); out_str(sink, "\n");
 }

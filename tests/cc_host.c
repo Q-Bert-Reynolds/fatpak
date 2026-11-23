@@ -62,6 +62,20 @@ u16 cc_host_read(u8 file, u32 pos, char* dest, u16 n) {
 }
 void cc_host_close(u8 file) { free(files[file].data); files[file].used = 0; }
 const char* cc_host_name(u8 file) { return file < 64 && files[file].used ? files[file].path : "?"; }
+// rt/ccrt.asm, beside the first -I folder (modules/cc/include): what CC_SDCC copies into a unit
+u16 cc_host_runtime(u16 pos, char* dest, u16 n) {
+  static char* text; static long size = -1;
+  if (size < 0) {
+    char path[2048]; FILE* f;
+    snprintf(path, sizeof(path), "%s/../rt/ccrt.asm", ninclude ? include_dirs[0] : ".");
+    size = 0;
+    if ((f = fopen(path, "rb"))) { fseek(f, 0, SEEK_END); size = ftell(f); fseek(f, 0, SEEK_SET); text = malloc(size); size = (long)fread(text, 1, size, f); fclose(f); }
+  }
+  if (pos >= size) return 0;
+  if (pos + n > size) n = (u16)(size - pos);
+  memcpy(dest, text + pos, n);
+  return n;
+}
 extern const char* const cc_messages[];
 void cc_host_diag(u8 error, const char* file, u16 line, u8 code, const char* extra) {
   const char* message = cc_messages[code];
@@ -74,12 +88,14 @@ int main(int argc, char** argv) {
   const char *in = 0, *out = 0, *unit = 0;
   char unit_buf[64];
   int i;
+  u8 flags = 0;
   memset(psram, 0xA5, sizeof(psram)); // not zero: nothing may rely on it
   cc_pass_a_init(); // keywords first: their ids are fixed
   for (i = 1; i < argc; ++i) {
     if (!strcmp(argv[i], "-I") && i + 1 < argc) include_dirs[ninclude++] = argv[++i];
     else if (!strcmp(argv[i], "-o") && i + 1 < argc) out = argv[++i];
     else if (!strcmp(argv[i], "-u") && i + 1 < argc) unit = argv[++i];
+    else if (!strcmp(argv[i], "-p")) flags = CC_SDCC; // a project's unit (as CompileUnit compiles it on the Game Boy)
     else if (!strcmp(argv[i], "-M") && i + 1 < argc) deps = fopen(argv[++i], "w");
     else if (!strcmp(argv[i], "-D") && i + 1 < argc) {
       char* def = argv[++i], *eq = strchr(def, '=');
@@ -99,7 +115,7 @@ int main(int argc, char** argv) {
     }
     unit_buf[n] = 0; unit = unit_buf;
   }
-  if (cc_pass_a(in, unit, 0) || cc_pass_b() || cc_pass_c() || errors) { remove(out); return 1; }
+  if (cc_pass_a(in, unit, flags) || cc_pass_b() || cc_pass_c() || errors) { remove(out); return 1; }
   {
     CcState st;
     FILE* f;

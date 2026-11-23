@@ -137,9 +137,29 @@ static UVal Stamp(const char* path) { // a file's time and date, 0 without a clo
   sector_ok = 0;
   return (path = (const char*)Entry()) != 0 ? When((const unsigned char*)path) : 0;
 }
-static unsigned char Stale(AsmContext* c) {
-  unsigned char ch, n, base, i, unit = 0, main;
+// word (n characters, its file number index) is a C unit's assembly that's missing or older than
+// its .c (or either has no clock's time): the host compiles it (c->name, c->symbols, ASM_COMPILE)
+static unsigned char Compile(AsmContext* c, unsigned char n, unsigned int index) {
+  unsigned char base = 0, i;
   UVal made, src;
+  if (index < c->symbols) return 0;
+  for (i = 0; i < n; ++i) if (word[i] == '/') base = i + 1;
+  if (!Generated(n, base)) return 0;
+  made = Stamp(word);
+  for (i = base; i < n - 5; ++i) word[i] = word[i + 1]; // dir/_name.asm -> dir/name.c
+  word[i] = '.'; word[i + 1] = 'c'; word[i + 2] = 0;
+  src = Stamp(word);
+  if (src == 1) return 0; // no .c beside it: ordinary assembly
+  if (made > 1 && src && made >= src) return 0; // up to date
+  for (i = 0; (c->name[i] = word[i]) != 0; ++i);
+  c->symbols = index;
+  c->kind |= ASM_COMPILE;
+  return 1;
+}
+// project.gbp's main files: the first stale one from c->symbols on
+static unsigned char Stale(AsmContext* c) {
+  unsigned char ch, n, i, main;
+  unsigned int unit = 0;
   load.block = ASM_IMAGE_BLOCK;
   load.blocks = 16;
   if (ModLoad(proj_name, &load)) return 0; // none (or too big to be a list of files)
@@ -155,24 +175,34 @@ static unsigned char Stale(AsmContext* c) {
     while (main) {
       n = Word(&ch);
       if (!n) break;
-      for (base = i = 0; i < n; ++i) if (word[i] == '/') base = i + 1;
+      if (Compile(c, n, unit)) return 1;
       ++unit;
-      if (unit <= c->symbols) continue;
-      if (!Generated(n, base)) continue;
-      made = Stamp(word);
-      for (i = base; i < n - 5; ++i) word[i] = word[i + 1]; // dir/_name.asm -> dir/name.c
-      word[i] = '.'; word[i + 1] = 'c'; word[i + 2] = 0;
-      src = Stamp(word);
-      if (src == 1) continue; // no .c beside it: an ordinary unit
-      if (made <= 1 || !src || made < src) { // missing, older, or a time without a clock
-        for (i = 0; (c->name[i] = word[i]) != 0; ++i);
-        c->symbols = unit - 1;
-        c->kind |= ASM_COMPILE;
-        return 1;
-      }
     }
     while (ch && ch != '\n') ch = Byte(); // the rest of the line (comments, other keywords)
     if (ch) ch = Byte();
+  }
+  return 0;
+}
+// the files the last build's units read (build.obj's records): a C unit's assembly INCLUDEd by an
+// assembly unit (beisbol's play_ball.asm reads src/baseball/_announcer.asm), numbered from 100
+static unsigned char StaleIncluded(AsmContext* c, unsigned char units) {
+  BuildUnit u;
+  UVal at;
+  unsigned char i, k, len;
+  unsigned int index = 100;
+  for (i = 0; i < units; ++i) {
+    Old(OFS(unit) + (unsigned int)i * sizeof(BuildUnit), &u, sizeof(BuildUnit));
+    at = u.files;
+    for (k = 0; k < u.files_n; ++k) {
+      Old(at + FILE_RECORD, &len, 1);
+      if (len < sizeof(word) - 4) {
+        Old(at + FILE_RECORD + 1, word, len);
+        word[len] = 0;
+        if (Compile(c, len, index)) return 1;
+        ++index;
+      }
+      at += FILE_RECORD + 1 + len;
+    }
   }
   return 0;
 }
@@ -322,6 +352,7 @@ unsigned char ModuleMain(AsmContext* c) {
     Old(OFS(prelude), &at, 4);
     Old(OFS(prelude_n), &n, 1);
     sector_ok = 0;
+    if (magic == OBJ_MAGIC && version == OBJ_VERSION && units <= 63 && StaleIncluded(c, units)) return 0;
     if (magic == OBJ_MAGIC && version == OBJ_VERSION && units <= 63 &&
         Same(OFS(project)) && SameList(at, n)) { // project.gbp and the prelude unchanged
       prep.valid = prep.all_clean = 1;

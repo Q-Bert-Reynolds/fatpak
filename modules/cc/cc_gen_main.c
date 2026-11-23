@@ -220,6 +220,8 @@ u8 cc_pass_c(void) {
     break;
   }
   helpers_comment();
+  if ((cc_st.flags & CC_SDCC) && helpers) copy_runtime();
+  if ((cc_st.flags & CC_SDCC) && (cc_st.sink_n[SINK_RODATA] || cc_st.sink_n[SINK_STR])) gen_sink(SINK_CODE); // their section's line
   if (cc_st.flags & CC_WRAP) out_str(SINK_BSS, "INCLUDE \"GBCSYS/CC/ccrt.asm\"\nINCLUDE \"GBCSYS/CC/crtend.asm\"\n");
   out_flush();
   cc_st.out_n = 0;

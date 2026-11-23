@@ -34,6 +34,10 @@ Start:
 	nop
 	jr .halt
 
+; a C unit's assembly included, not listed (BUILD compiles inc.c again when it's newer)
+INCLUDE "_inc.asm"
+
+SECTION "twice", ROM0
 ; int twice(int x), for C: SDCC's convention, x in de and the result in bc
 _twice::
 	ld h, d

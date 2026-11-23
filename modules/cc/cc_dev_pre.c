@@ -11,33 +11,28 @@ static u16 size_of_file[DEV_FILES];
 static char name_buf[64];
 
 static void set_name(const char* s) { u8 i; for (i = 0; i < sizeof(name_buf) - 1 && s[i]; ++i) name_buf[i] = s[i]; name_buf[i] = 0; }
-static unsigned char LoadOnOSStack(const char* path, ModuleLoad* load) __naked { // ModLoad
-  path; load;
-  __asm
-    ld hl, sp + 0
-    ld a, l
-    ld [_cc_own_sp], a
-    ld a, h
-    ld [_cc_own_sp + 1], a
-    ld hl, _cc_os_sp
-    ld a, [hl+]
-    ld h, [hl]
-    ld l, a
-    ld sp, hl
-    call _ModLoad           ;// de = path, bc = load (it copies them to host memory first)
-    ld e, a
-    ld hl, _cc_own_sp
-    ld a, [hl+]
-    ld h, [hl]
-    ld l, a
-    ld sp, hl
-    ld a, e
-    ret
-  __endasm;
+// path = the folder of file from's path (as file_push recorded it) and name, ../ and ./ folded: a
+// "name" include is beside the file that includes it (a project's unit includes "../x.h" from
+// src/baseball/); ModLoad then finds it from the project's folder. Its length.
+static char path[96]; // (static: ModLoad runs FatFs on the same small stack)
+static u8 beside(u8 from, const char* name) {
+  const u8* r = cc_at(CC_FILENAME_BLOCK, from, 6);
+  u8 n = 0, i;
+  for (i = 0; i < 63 && r[i]; ++i) if ((path[i] = (char)r[i]) == '/') n = i + 1;
+  for (;;) {
+    if (name[0] == '.' && name[1] == '/') name += 2;
+    else if (name[0] == '.' && name[1] == '.' && name[2] == '/' && n) {
+      name += 3;
+      for (--n; n && path[n - 1] != '/'; --n);
+    }
+    else break;
+  }
+  for (i = 0; name[i] && n < sizeof(path) - 1; ++i) path[n++] = name[i];
+  path[n] = 0;
+  return n;
 }
 u8 cc_host_open(const char* name, u8 angled, u8 from) {
   static const char system[] = "GBCSYS/CC/include/";
-  static char path[96]; // (static: ModLoad runs FatFs on the same small stack)
   ModuleLoad load;
   u8 n = 0, i, h;
   if (from == 0xFF) { // the document (the host knows its name), or a project's C unit
@@ -46,12 +41,14 @@ u8 cc_host_open(const char* name, u8 angled, u8 from) {
     name = cc_ctx->source; angled = 0; next_handle = 0; unit_loaded = 1;
   }
   if (next_handle == DEV_FILES || open_n == CC_FILES - 1) return 0xFF;
+  load.block = (u16)(CC_INCLUDE_BLOCK + open_n * 128);
+  load.blocks = 128;
+  if (!angled && from != 0xFF && beside(from, name) && !cc_load_os(path, &load)) goto opened;
   if (angled) for (i = 0; system[i]; ++i) path[n++] = system[i];
   for (i = 0; name[i] && n < sizeof(path) - 1; ++i) path[n++] = name[i];
   path[n] = 0;
-  load.block = (u16)(CC_INCLUDE_BLOCK + open_n * 128);
-  load.blocks = 128;
-  if (LoadOnOSStack(path, &load)) return 0xFF;
+  if (cc_load_os(path, &load)) return 0xFF;
+opened:
   h = next_handle++;
   slot_of[h] = open_n++;
   size_of_file[h] = load.size > 0xFFFF ? 0xFFFF : (u16)load.size;
@@ -109,7 +106,7 @@ static unsigned char pass_main(CcContext* context) {
     unit[n++] = (*s >= 'a' && *s <= 'z') || (*s >= 'A' && *s <= 'Z') || (*s >= '0' && *s <= '9') ? *s : '_';
   unit[n] = 0;
   cc_pass_a_init();
-  if (cc_pass_a("", unit, context->source ? 0 : CC_WRAP)) return cc_st.status;
+  if (cc_pass_a(context->source ? context->source : "", unit, context->source ? CC_SDCC : CC_WRAP)) return cc_st.status;
   cc_chain(MODULE_CCB);
   return 0;
 }

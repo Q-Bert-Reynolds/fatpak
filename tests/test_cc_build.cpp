@@ -16,6 +16,8 @@
 #include <vector>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <utime.h>
+#include <ctime>
 #include <unistd.h>
 #include "gearboy.h"
 
@@ -67,7 +69,7 @@ struct Session {
     std::vector<unsigned> runs; // the modules build() ran, by ID
     // name on a fresh card with EDITOR.DAT, the modules and /GBCSYS/CC; beside: files next to it
     Session(const char* image, const char* symbols, const char* data, bool color, const char* name, const std::string& source,
-            const std::map<std::string, std::string>& beside = {}) {
+            const std::map<std::string, std::string>& beside = {}, const std::vector<std::string>& older = {}) {
         char folder[] = "/tmp/fatpak-cc-XXXXXX"; Check(mkdtemp(folder), "card folder");
         root = folder;
         std::string bin = std::string(data).substr(0, std::string(data).find_last_of('/'));
@@ -80,7 +82,12 @@ struct Session {
         CopyFolder(bin + "/CC", root + "/GBCSYS/CC", ".asm");
         CopyFolder(bin + "/CC/include", root + "/GBCSYS/CC/include", ".h");
         Write(root + "/" + name, source);
-        for (auto& file : beside) Write(root + "/" + file.first, file.second);
+        for (auto& file : beside) {
+            size_t slash = file.first.rfind('/');
+            if (slash != std::string::npos) mkdir((root + "/" + file.first.substr(0, slash)).c_str(), 0700);
+            Write(root + "/" + file.first, file.second);
+        }
+        for (auto& file : older) { struct utimbuf t; t.actime = t.modtime = time(0) - 86400; utime((root + "/" + file).c_str(), &t); } // a day old
         core.Init(); core.SetEverdriveFolder(folder);
         Check(core.LoadROM(image, !color), "the OS");
         Frames(core, 600);
@@ -263,7 +270,9 @@ static void ProjectCase(const char* image, const char* symbols, const char* data
     std::string dir = std::string(fixtures) + "/../ccproj/";
     Session s(image, symbols, data, color, "math.c", Text((dir + "math.c").c_str()),
               {{"util.c", Text((dir + "util.c").c_str())}, {"start.asm", Text((dir + "start.asm").c_str())},
-               {"project.gbp", Text((dir + "project.gbp").c_str())}});
+               {"project.gbp", Text((dir + "project.gbp").c_str())}, {"inc.c", Text((dir + "inc.c").c_str())},
+               {"_inc.asm", Text((dir + "_inc.asm").c_str())}, {"lib/defs.h", Text((dir + "lib/defs.h").c_str())},
+               {"more.h", Text((dir + "more.h").c_str())}}, {"_inc.asm"});
     unsigned frames = s.build("Built ", false);
     if (s.lines().find("Built ") == std::string::npos) fprintf(stderr, "box: \"%s\" status \"%s\"\n", s.lines().c_str(), s.row(19).c_str());
     Check(s.lines().find("Built ") != std::string::npos, "a project with C units builds");
@@ -272,8 +281,15 @@ static void ProjectCase(const char* image, const char* symbols, const char* data
     Check(stat((s.root + "/_math.asm").c_str(), &math) == 0 && stat((s.root + "/_util.asm").c_str(), &util) == 0,
           "each C unit's assembly is written beside it");
     int result = RunROM(s.root + "/proj.gb", color);
+    if (result != 5) fprintf(stderr, "proj.gb: main returned %d, want 5 (the stale _inc.asm)\n", result);
+    Check(result == 5, "the first BUILD has no build.obj: an included C unit's assembly is used as it is");
+    s.pad(A_Key);
+    s.build("Built ", false);
+    Check(s.compiling.count("inc.c"), "the next BUILD compiles a C unit that an assembly unit INCLUDEs (build.obj's files)");
+    result = RunROM(s.root + "/proj.gb", color);
     if (result) fprintf(stderr, "proj.gb: main returned %d\n", result);
     Check(result == 0, "the project's ROM runs: C calls C and assembly, assembly calls C, initialized data and statics");
+    stat((s.root + "/_math.asm").c_str(), &math);
     s.pad(A_Key);
     unsigned again = s.build("Built ", false);
     struct stat math2;
