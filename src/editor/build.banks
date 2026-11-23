@@ -6,3 +6,5 @@ ROM0: FolderPath
 15: ErrorCursor WriteOutputs
 12: OutputPath BuildStart
 6: BuildModule
+# a project's C units, before PREP.MOD again: page 14 has room
+14: CompileUnit InProject

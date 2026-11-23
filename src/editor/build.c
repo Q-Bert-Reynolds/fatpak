@@ -143,9 +143,10 @@ static unsigned char BuildStart(AsmContext* c, char* text, const char* path) __n
     ld [hl+], a
     ld [hl+], a
     ld [hl], a
+    ld a, [_build_c]
+    or a, a
+    jr nz, .compile
     ld a, [_tb_lang]
-    cp a, LANG_C
-    jr z, .compile
     push de                 ;// c: any other document, assembled
     ld hl, 78               ;// kind: ASM_DOC for assembly; anything builds under a project.gbp
     add hl, de
@@ -171,12 +172,8 @@ static unsigned char BuildStart(AsmContext* c, char* text, const char* path) __n
     ld [hl], b
     jr .assemble
 .compile:
-    ld hl, 34               ;// the CcContext: name, then text
+    ld hl, 36               ;// the CcContext's text (the caller sets its name and source)
     add hl, de
-    ld a, LOW(_file_name)
-    ld [hl+], a
-    ld a, HIGH(_file_name)
-    ld [hl+], a
     ld a, c
     ld [hl+], a
     ld [hl], b
@@ -265,6 +262,42 @@ static unsigned char BuildStart(AsmContext* c, char* text, const char* path) __n
   __endasm;
 }
 
+// A project's C unit (PREP.MOD's ASM_COMPILE: its path from project.gbp's folder in c->name) is
+// compiled like a .c document, from the card, and its assembly written beside it as _name.asm
+// (notes/COMPILER.md); then c is set up for PREP.MOD again, from the next unit. Nonzero after
+// showing an error.
+extern unsigned char build_c; // src/modules/runtime.asm: BuildStart compiles (a .c document outside a project, or a project's C unit)
+extern unsigned char FileSearch(const char* path, void* load); // src/modules/runtime.c: 1 if it isn't there
+extern unsigned char fs_WriteText(const char* path, unsigned int block, unsigned int bytes); // src/fatfs/fatfs.c
+static unsigned char InProject(void) { // a project.gbp in the document's folder or above
+  struct { unsigned int block, blocks; unsigned long size; } load; // ModuleLoad: its entry only
+  load.blocks = 0;
+  file_level = 0xFF;
+  return FileSearch(ASM_PROJECT_FILE, &load) != 1;
+}
+static unsigned char CompileUnit(AsmContext* c, char* text, char* path, unsigned char level) {
+  char unit[FS_NAME_SIZE + 4];
+  unsigned int next = c->symbols + 1;
+  unsigned char n, base = 0, result;
+  CcContext* cc = (CcContext*)c;
+  for (n = 0; (unit[n] = c->name[n]) != 0; ++n) if (unit[n] == '/') base = n + 1;
+  cc->name = unit + base;
+  cc->source = unit;
+  build_c = 1;
+  result = BuildStart(c, text, MODULE_CCA_PATH);
+  build_c = 0;
+  if (result) return 1;
+  for (; n > base; --n) unit[n] = unit[n - 1]; // dir/name.c -> dir/_name.asm
+  unit[base] = '_';
+  for (n = base; unit[n] != '.'; ++n);
+  unit[n + 1] = 'a'; unit[n + 2] = 's'; unit[n + 3] = 'm'; unit[n + 4] = 0;
+  FolderPath(path, level, unit);
+  if ((result = fs_WriteText(path, CC_OUT_BLOCK, c->text_length))) { HideBox(); ShowError(result, S_DISK_FULL); return 1; }
+  BuildStart(c, text, MODULE_CCA_PATH); // assembly again, for PREP.MOD
+  c->symbols = next;
+  return 0;
+}
+
 // PREP.MOD (which 2), ASM.MOD (1) or LINK.MOD (0) with the context, the box's progress BuildProgress's
 unsigned char BuildModule(AsmContext* c, unsigned char which) {
   module_context = c;
@@ -279,9 +312,20 @@ void BuildFile(unsigned char run) {
   if (!file_name[0] && tb_lang != LANG_ASM) { ShowMessage(Str(S_NOT_ASM_FILE)); return; } // no folder, no project
   if (modified || !file_name[0]) SaveFile(0); // the ROM matches the file on the card
   if (modified || !file_name[0]) return; // declined or failed, with its own message
+  build_c = tb_lang == LANG_C && !InProject(); // in a project, a .c document builds the project
+  ((CcContext*)&context)->name = file_name;
+  ((CcContext*)&context)->source = 0;
   if (BuildStart(&context, text, MODULE_CCA_PATH)) return;
+  build_c = 0;
+  context.symbols = 0; // PREP.MOD: C units from the first
   result = BuildModule(&context, 2); // PREP.MOD first: which units build.obj has unchanged
   level = file_level; // project.gbp's folder (RunModule forgets it)
+  while (!result && (context.kind & ASM_COMPILE)) { // a project's C unit first, then PREP.MOD again
+    if (CompileUnit(&context, text, path, level)) return;
+    file_level = level;
+    result = BuildModule(&context, 2);
+    level = file_level;
+  }
   if (!(context.kind & ASM_CURRENT)) { // else nothing changed since the ROM was built
     if (!result) result = BuildModule(&context, 1);
     level = file_level;

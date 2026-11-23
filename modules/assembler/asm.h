@@ -23,6 +23,8 @@ typedef struct {
 
 #define ASM_DOC     1
 #define ASM_PROJECT 2
+#define ASM_COMPILE 4 // out of PREP.MOD: compile name (a project's C unit, its path) first, then run it again with
+                      // symbols = its index + 1 (each unit _name.asm with name.c beside it: notes/COMPILER.md)
 #define ASM_OLD     8 // out of PREP.MOD, before ASM.MOD: build.obj is loaded and AsmPrep says which units are unchanged
 #define ASM_CURRENT 16 // out of PREP.MOD: nothing changed and the ROM is there (name, blocks and build.log set): no ASM.MOD, LINK.MOD or ROM to write
 #define ASM_CHECK   32 // into PREP.MOD after a build stopped: each file ASM.MOD read, read from the card again and compared (build.log)

@@ -2385,6 +2385,20 @@ unsigned char fs_WriteImage(const char* path, UINT blocks) {
   SetWindowBlock(TB_PSRAM_HIGH << 8);
   closed = f_close(&save_file); return result ? result : closed;
 }
+// bytes of PSRAM from block to path (a project's C unit's assembly, CC_OUT_BLOCK), an FRESULT
+unsigned char fs_WriteText(const char* path, UINT block, UINT bytes) {
+  UINT size, done; FRESULT result, closed;
+  if ((result = fs_Mount()) || (result = f_open(&save_file, path, FA_WRITE | FA_CREATE_ALWAYS))) return result;
+  while (!result && bytes) {
+    size = bytes > 512 ? 512 : bytes;
+    SetWindowBlock(block++);
+    result = f_write(&save_file, WINDOW, size, &done);
+    if (!result && done != size) result = FR_DENIED;
+    bytes -= size;
+  }
+  SetWindowBlock(TB_PSRAM_HIGH << 8);
+  closed = f_close(&save_file); return result ? result : closed;
+}
 // kind 0: staged -> live; 1: live -> slot; 2: staged -> slot; 3: slot -> staged.
 static void SnapshotCopy(BYTE kind) {
   UINT n;

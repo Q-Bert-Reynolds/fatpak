@@ -254,6 +254,31 @@ static void Fixture(const char* image, const char* symbols, const char* data, co
     s.pad(A_Key);
 }
 
+// A project with C units (tests/ccproj): BUILD from one of its .c files builds project.gbp, compiling
+// each C unit to the _name.asm beside it first; the ROM runs; a second BUILD compiles nothing
+static void ProjectCase(const char* image, const char* symbols, const char* data, const char* fixtures, bool color) {
+    std::string dir = std::string(fixtures) + "/../ccproj/";
+    Session s(image, symbols, data, color, "math.c", Text((dir + "math.c").c_str()),
+              {{"util.c", Text((dir + "util.c").c_str())}, {"start.asm", Text((dir + "start.asm").c_str())},
+               {"project.gbp", Text((dir + "project.gbp").c_str())}});
+    unsigned frames = s.build("Built ", false);
+    if (s.lines().find("Built ") == std::string::npos) fprintf(stderr, "box: \"%s\" status \"%s\"\n", s.lines().c_str(), s.row(19).c_str());
+    Check(s.lines().find("Built ") != std::string::npos, "a project with C units builds");
+    struct stat math, util;
+    Check(stat((s.root + "/_math.asm").c_str(), &math) == 0 && stat((s.root + "/_util.asm").c_str(), &util) == 0,
+          "each C unit's assembly is written beside it");
+    int result = RunROM(s.root + "/proj.gb", color);
+    if (result) fprintf(stderr, "proj.gb: main returned %d\n", result);
+    Check(result == 0, "the project's ROM runs: C calls C and assembly, assembly calls C, initialized data and statics");
+    s.pad(A_Key);
+    unsigned again = s.build("Built ", false);
+    struct stat math2;
+    Check(stat((s.root + "/_math.asm").c_str(), &math2) == 0 && math2.st_mtime == math.st_mtime && math2.st_size == math.st_size,
+          "a second BUILD compiles nothing");
+    printf("%s C project: %u frames, again %u\n", color ? "CGB" : "DMG", frames, again);
+    s.pad(A_Key);
+}
+
 static void ErrorCase(const char* image, const char* symbols, const char* data, bool color) {
     const std::string bad = "int f(int a) { return a; }\nint main(void) {\n  return f(nowhere);\n}\n";
     Session s(image, symbols, data, color, "Bad.c", bad);
@@ -289,6 +314,7 @@ int main(int argc, char** argv) {
     for (bool color : {true, false}) {
         if (models && strcmp(models, color ? "cgb" : "dmg")) continue;
         ErrorCase(argv[1], argv[2], argv[3], color);
+        ProjectCase(argv[1], argv[2], argv[3], argv[4], color);
         for (auto& name : names) // control.c nests deepest: measured (CC_MEASURE=1: all)
             Fixture(argv[1], argv[2], argv[3], argv[4], name.c_str(), color, name == "control" || getenv("CC_MEASURE") || getenv("CC_PROFILE"));
     }

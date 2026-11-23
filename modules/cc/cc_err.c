@@ -35,7 +35,7 @@ unsigned char ModuleMain(CcContext* c) {
   end = ModString(end, S_PART(S_C_ERROR, 0)); end = PutNumber(end, status); end = ModString(end, S_PART(S_C_ERROR, 1));
   if (extra[0]) { *end++ = '\n'; end = PutText(end, extra); }
   *end = 0;
-  if (!file) // the line's start: past line - 1 line feeds of the document
+  if (!file && !c->source) // the line's start: past line - 1 line feeds of the document
     for (at = 1; at < line; ) {
       n = ModSource(pos, buf);
       if (!n) break;
@@ -44,6 +44,6 @@ unsigned char ModuleMain(CcContext* c) {
     }
   c->next = 0;
   ((AsmContext*)c)->pos = pos; // where ErrorCursor moves the cursor (kind 0: the document, no project)
-  ((AsmContext*)c)->kind = 0;
+  ((AsmContext*)c)->kind = c->source ? ASM_TEXT : 0; // a project's C unit: the cursor stays
   return status ? status : 1;
 }

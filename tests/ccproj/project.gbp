@@ -1,0 +1,4 @@
+; a project with C units (tests/test_cc_build.cpp's ProjectCase): BUILD compiles each _name.asm's
+; name.c first, between the runtime's head (cchead.asm) and tail (crtend.asm)
+main start.asm GBCSYS/CC/cchead.asm _math.asm _util.asm GBCSYS/CC/crtend.asm
+output proj.gb

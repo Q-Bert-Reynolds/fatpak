@@ -92,6 +92,9 @@ assemble byte-identical to RGBDS, unmodified (`memory1.asm` calls
   Delete `build.obj` (or the ROM, to link again) to assemble everything again. One difference from `rgbasm`: a unit that
   uses a prelude symbol, then `PURGE`s and redefines it, sees the new value at
   the earlier use too (its second pass finds its own definition first).
+- **C units.** A main file `_name.asm` with a `name.c` beside it is the C compiler's
+  output: BUILD compiles the `.c` first when the assembly is missing or older
+  (PREP.MOD's `ASM_COMPILE`; COMPILER.md's "In a project").
 - The `rgbasm` and `rgbfix` lines take those tools' options: `-D NAME[=VALUE]`
   (an `EQUS`, `"1"` without a value), `-P file`, `-E` and `-W...` (ignored);
   `-v -j -c -C -s` and `-k -l -m -n -p -r -t -i`,

@@ -17,6 +17,8 @@ typedef struct {
   const char* name;        // in: the document's name (the host's file_name)
   char* text;              // in: CCERR.MOD writes the error box's text here (host memory), and
                            // AsmContext's pos and kind for ErrorCursor
+  const char* source;      // in: a project's C unit, its path from project.gbp (found as ModLoad finds
+                           // files), compiled without the start-up (no CC_WRAP); 0: the open document
 } CcContext;
 
 // what the passes hand on, at CC_STATE_BLOCK

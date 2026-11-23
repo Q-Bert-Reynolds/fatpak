@@ -39,6 +39,7 @@ SECTION "Module run state", WRAMX;WRAM0 is full; placed outside the editor's buf
 _module_retries:: DW;block copies that read back wrong and were made again, since RunModule cleared it
 module_sp: DW;ModuleEnter's stack, for ModuleAbort
 module_depth: DB;and the far calls under it
+_build_c:: DB;src/editor/build.c: BuildStart compiles (WRAM0 is full)
 
 FIXED "Module loader"
 ; A = 0 backup (page to MODULE_BACKUP), 1 install (MODULE_STAGE to page),

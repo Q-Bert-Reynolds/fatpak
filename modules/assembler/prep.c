@@ -14,6 +14,7 @@ AsmContext* context;
 #define NO_CLOCK_DATE 0x5C21 // 2026-01-01, what the host writes without a clock (rtc.c)
 #define OFS(field) __builtin_offsetof(BuildHead, field)
 static const char build_obj[] = "build.obj";
+static const char proj_name[] = ASM_PROJECT_FILE;
 
 static void Old(UVal at, void* p, unsigned char n) { // from the last build.obj
   in_block = ASM_OLD_BLOCK + (unsigned int)(at >> 9);
@@ -92,6 +93,88 @@ static unsigned char SameList(UVal at, unsigned char n) { // n file records from
     at += FILE_RECORD + 1 + len;
   }
   return 1;
+}
+
+// A project's C units (notes/COMPILER.md): a main file _name.asm with name.c beside it is CC's
+// output. The first one from unit c->symbols on that's missing or older than its .c (or either was
+// written without a clock) is the host's to compile: its .c in c->name, its index in c->symbols and
+// ASM_COMPILE. project.gbp is read at ASM_IMAGE_BLOCK (free until ASM.MOD), its main lines only.
+static UVal proj_at, proj_size;
+static unsigned char Byte(void) { // project.gbp's next byte, 0 at its end
+  if (proj_at >= proj_size) return 0;
+  Window(ASM_IMAGE_BLOCK + (unsigned int)(proj_at >> 9));
+  return WINDOW[(unsigned int)proj_at++ & 511];
+}
+static char word[80];
+static unsigned char Word(unsigned char* c) { // the line's next word into word (from c, the byte after it in c), its length
+  unsigned char n = 0, ch = *c;
+  while (ch == ' ' || ch == '\t' || ch == '\r') ch = Byte();
+  if (ch == '"') ch = Byte();
+  while (ch && ch != ' ' && ch != '\t' && ch != '\r' && ch != '\n' && ch != ';' && ch != '"') {
+    if (n < sizeof(word) - 5) word[n++] = ch;
+    ch = Byte();
+  }
+  if (ch == '"') ch = Byte();
+  word[n] = 0;
+  *c = ch;
+  return n;
+}
+// word (n characters, its name at base) is _name.asm (one test at a time: SDCC 4.2 has lost values
+// computing several up front, notes/MODULES.md)
+static unsigned char Generated(unsigned char n, unsigned char base) {
+  if (word[base] != '_') return 0;
+  if (n < base + 6) return 0;
+  if (word[n - 4] != '.') return 0;
+  if ((word[n - 3] | 0x20) != 'a') return 0;
+  if ((word[n - 2] | 0x20) != 's') return 0;
+  return (word[n - 1] | 0x20) == 'm';
+}
+static UVal Stamp(const char* path) { // a file's time and date, 0 without a clock, 1 if it isn't there
+  load.block = ASM_SECTOR_BLOCK;
+  load.blocks = 0; // its entry only
+  if (ModLoad(path, &load) == 1) return 1;
+  LastEntry();
+  sector_ok = 0;
+  return (path = (const char*)Entry()) != 0 ? When((const unsigned char*)path) : 0;
+}
+static unsigned char Stale(AsmContext* c) {
+  unsigned char ch, n, base, i, unit = 0, main;
+  UVal made, src;
+  load.block = ASM_IMAGE_BLOCK;
+  load.blocks = 16;
+  if (ModLoad(proj_name, &load)) return 0; // none (or too big to be a list of files)
+  proj_at = 0;
+  proj_size = load.size;
+  ch = Byte();
+  while (ch) {
+    main = 0;
+    if (Word(&ch) == 4) {
+      for (i = 0; i < 4; ++i) word[i] |= 0x20;
+      main = word[0] == 'm' && word[1] == 'a' && word[2] == 'i' && word[3] == 'n';
+    }
+    while (main) {
+      n = Word(&ch);
+      if (!n) break;
+      for (base = i = 0; i < n; ++i) if (word[i] == '/') base = i + 1;
+      ++unit;
+      if (unit <= c->symbols) continue;
+      if (!Generated(n, base)) continue;
+      made = Stamp(word);
+      for (i = base; i < n - 5; ++i) word[i] = word[i + 1]; // dir/_name.asm -> dir/name.c
+      word[i] = '.'; word[i + 1] = 'c'; word[i + 2] = 0;
+      src = Stamp(word);
+      if (src == 1) continue; // no .c beside it: an ordinary unit
+      if (made <= 1 || !src || made < src) { // missing, older, or a time without a clock
+        for (i = 0; (c->name[i] = word[i]) != 0; ++i);
+        c->symbols = unit - 1;
+        c->kind |= ASM_COMPILE;
+        return 1;
+      }
+    }
+    while (ch && ch != '\n') ch = Byte(); // the rest of the line (comments, other keywords)
+    if (ch) ch = Byte();
+  }
+  return 0;
 }
 
 // ASM_CHECK, after a build that stopped (BUILD runs this again after LINK.MOD wrote build.log):
@@ -224,6 +307,7 @@ unsigned char ModuleMain(AsmContext* c) {
     if (c->log_bytes) Check(c);
     return 0;
   }
+  if (Stale(c)) return 0;
   for (w = (unsigned char*)&prep, i = 0; i < sizeof(AsmPrep); ++i) *w++ = 0;
   load.block = ASM_OLD_BLOCK;
   load.blocks = BUILD_HEAD_BLOCKS; // the head and lists first: all an up-to-date build needs

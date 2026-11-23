@@ -6,7 +6,7 @@
 #include "cc_acc.h"
 
 #define DEV_FILES 32 // handles: 0 the document, then each #include, in order
-static u8 next_handle, open_n, slot_of[DEV_FILES];
+static u8 next_handle, open_n, slot_of[DEV_FILES], unit_loaded; // unit_loaded: file 0 is a project's C unit, from the card
 static u16 size_of_file[DEV_FILES];
 static char name_buf[64];
 
@@ -40,7 +40,11 @@ u8 cc_host_open(const char* name, u8 angled, u8 from) {
   static char path[96]; // (static: ModLoad runs FatFs on the same small stack)
   ModuleLoad load;
   u8 n = 0, i, h;
-  if (from == 0xFF) { name_buf[0] = 0; next_handle = 1; return 0; } // the host knows the document's name
+  if (from == 0xFF) { // the document (the host knows its name), or a project's C unit
+    name_buf[0] = 0; next_handle = 1;
+    if (!cc_ctx->source) return 0;
+    name = cc_ctx->source; angled = 0; next_handle = 0; unit_loaded = 1;
+  }
   if (next_handle == DEV_FILES || open_n == CC_FILES - 1) return 0xFF;
   if (angled) for (i = 0; system[i]; ++i) path[n++] = system[i];
   for (i = 0; name[i] && n < sizeof(path) - 1; ++i) path[n++] = name[i];
@@ -56,7 +60,7 @@ u8 cc_host_open(const char* name, u8 angled, u8 from) {
 }
 u16 cc_host_read(u8 file, u32 pos, char* dest, u16 n) {
   u16 size;
-  if (!file) return ModSource((u16)pos, dest); // up to 128 bytes, the buffer's size
+  if (!file && !unit_loaded) return ModSource((u16)pos, dest); // up to 128 bytes, the buffer's size
   size = size_of_file[file];
   if (pos >= size) return 0;
   if (n > size - (u16)pos) n = (u16)(size - (u16)pos);
@@ -105,7 +109,7 @@ static unsigned char pass_main(CcContext* context) {
     unit[n++] = (*s >= 'a' && *s <= 'z') || (*s >= 'A' && *s <= 'Z') || (*s >= '0' && *s <= '9') ? *s : '_';
   unit[n] = 0;
   cc_pass_a_init();
-  if (cc_pass_a("", unit, CC_WRAP)) return cc_st.status;
+  if (cc_pass_a("", unit, context->source ? 0 : CC_WRAP)) return cc_st.status;
   cc_chain(MODULE_CCB);
   return 0;
 }

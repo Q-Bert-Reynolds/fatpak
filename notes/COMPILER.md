@@ -24,14 +24,34 @@ same code runs on a PC for the tests: `make test-cc` (`tests/test_cc.py`), and
 
 ### Using it
 
-Open a `.c` file and BUILD (or RUN). The compiled unit is one file: it can `#include` headers
-(`"name"` from the file's folder and those above it, `<name>` from `/GBCSYS/CC/include`), but
-there is no linking of several `.c` files yet, and `project.gbp` isn't read for C. The runtime
+Open a `.c` file and BUILD (or RUN). Outside a project the compiled unit is one file: it can
+`#include` headers (`"name"` from the file's folder and those above it, `<name>` from
+`/GBCSYS/CC/include`). The runtime
 (`/GBCSYS/CC/crt0.asm`, `ccrt.asm`, `crtend.asm`) is `INCLUDE`d around the unit: `main`
 runs with interrupts off; its `int` result is at `$C000` and `$C002` becomes `$A5` when it
 returns. An error shows the file, `Line <n>`, `C ERROR <n>` and the name it's about, and
 moves the cursor to the line (in the document). `make assemble` copies the runtime and headers
 to the card with the modules.
+
+**In a project** (2026-11-22; ASSEMBLER.md's `project.gbp`), a C unit is listed as the assembly it
+compiles to, `_name.asm` beside `name.c`, as a Makefile would hand it to `rgbasm`. The game keeps
+its own start-up; the runtime's head and tail go around the C units:
+
+```
+main   src/start.asm GBCSYS/CC/cchead.asm src/_ai.asm src/_announcer.asm GBCSYS/CC/crtend.asm
+```
+
+`cchead.asm` brings the helpers (`ccrt.asm`) and heads the initialized data's records, which the
+start-up copies by calling `_cc_init` once, after clearing WRAM (zero-initialized data). Calls
+between C and assembly use SDCC's convention (below). BUILD, from any file of the project (a
+`.c` one too), first has PREP.MOD look at each main file named `_name.asm` with a `name.c` beside
+it: if the assembly is missing, older than the C, or either has no clock's time, the host compiles
+it (`CompileUnit` in `src/editor/build.c`: CCA to CCC with `CcContext.source`, the unit from the
+card, no `crt0`) and writes `_name.asm`, then asks PREP.MOD again from the next unit; then the
+build goes on as for assembly, `build.obj` keeping unchanged units. A header's change isn't seen
+yet (edit or delete the `.c`'s `_name.asm`). An error shows the unit's file and line; the cursor
+stays. Where the generated files go isn't configurable yet. Test: `tests/ccproj`, the device
+test's `ProjectCase`.
 
 Gearboy, `tests/cc/arith.c` (80 lines): about 90 s from BUILD to the ROM on CGB, 3 minutes on
 DMG (2026-11-21). A cycle profile (`CC_PROFILE=<file> tests/run_cc_build.sh <fixture>`, then

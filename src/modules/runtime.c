@@ -307,7 +307,7 @@ static unsigned char FileTry(unsigned char n, const char* name, ModuleLoad* load
   module_loading = 0;
   return i;
 }
-static unsigned char FileSearch(const char* path, ModuleLoad* load) {
+unsigned char FileSearch(const char* path, ModuleLoad* load) { // also build.c's (is there a project.gbp?)
   const char *base = path, *p, *dir = module_dir ? module_dir : file_dir;
   unsigned char n = 0, end, result;
   while (dir[n]) ++n;
