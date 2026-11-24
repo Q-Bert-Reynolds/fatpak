@@ -25,6 +25,9 @@ SECTION "Settings Code", ROM0
 
 SettingsSignature: DB "SET8";SET7 is SET8 without hidden files;SET6 is SET7 without the font;SET1 had the font, SET2 is SET3 without the theme, SET3 is SET4 without the language, SET5 is SET6 without the resolution
 
+SettingsFlags:;the on/off settings (SettingsLoad keeps them 0 or 1)
+  DW _tb_nowrap, _bars_on, _fs_crlf, _modified, _font_tiles, _show_hidden, 0
+
 MACRO SETTING ;\1 = C variable, \2 = size
   DW \1
   DB \2
@@ -178,9 +181,35 @@ _SettingsLoad::
   xor a;nor SET3 after the theme
   ld [_language], a
 .loaded
-  ld a, 1
-  ret
+  jp SettingsCheck
 .never
   DISABLE_RAM_MBC5
   xor a
+  ret
+
+SettingsCheck:;a = 1 after it
+  ;on/off settings are 0 or 1 whatever the block held: a swap file with bars_on 65 laid the SGB's full
+  ;screen out with -36 rows (tb_rows = screen_rows - (bars << 1)) and the SNES refused every page
+  ld hl, SettingsFlags
+.flag
+    ld a, [hli]
+    ld e, a
+    ld a, [hli]
+    ld d, a
+    or a, e
+    jr z, .done
+    ld a, [de]
+    and a
+    jr z, .flag
+    ld a, 1
+    ld [de], a
+    jr .flag
+.done
+  ld a, [_resolution]
+  cp a, RESOLUTION_512 + 1
+  jr c, .resolution
+  xor a;RESOLUTION_256, the default
+  ld [_resolution], a
+.resolution
+  ld a, 1
   ret

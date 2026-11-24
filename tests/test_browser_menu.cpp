@@ -633,6 +633,14 @@ static void Theme(const char* image,const char* symbols,const char* data,bool co
         pad(Start_Key);pad(Up_Key);pad(A_Key);Frames(core,60);
     }
     auto swap=Read(root+"/GBCSYS/EDITOR.SWP");
+    { // on/off settings out of range (a card's swap file had bars_on and show_hidden 65): 1, not 65
+        auto bad=swap;bad[0x25]=65;bad[0xEE]=65;bad[0xEC]=9; // bars_on, show_hidden, resolution
+        Write(root+"/GBCSYS/EDITOR.SWP",bad);
+        GearboyCore core;boot(core);auto memory=core.GetMemory();auto syms=Symbols(symbols);
+        Check(memory->Read(syms.at("_bars_on"))==1 && memory->Read(syms.at("_show_hidden"))==1 &&
+              memory->Read(syms.at("_resolution"))==0 && memory->Read(syms.at("_tb_rows"))<=18,
+              "on/off settings load as 0 or 1, a bad resolution as the default");
+    }
     swap[0x23]='2';swap[0x25]=0; // SET2, bars off
     Write(root+"/GBCSYS/EDITOR.SWP",swap);
     {
