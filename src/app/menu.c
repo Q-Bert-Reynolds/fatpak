@@ -19,8 +19,8 @@
 #include "../sgb/client.h"
 #include "../editor/settings.h"
 
-// FILE and EDIT's items: the strings from S_SUB_OPEN (SETTINGS: the editor's 6 from S_SUB_LINE_WRAP,
-// the browser's and viewers' 5 from S_SUB_FULL_SCREEN; an SGB adds RESOLUTION to each)
+// FILE and EDIT's items: the strings from S_SUB_OPEN (SETTINGS: the editor's 8 from S_SUB_LINE_WRAP,
+// the browser's and viewers' 7 from S_SUB_FULL_SCREEN; an SGB adds RESOLUTION to each)
 static const unsigned char submenu_starts[] = {0, 6, 12};
 
 // SETTINGS > RESOLUTION (an SGB's): its BIOS's 160x144, the fullscreen 256x224 and 512x448 (maps, and the
@@ -51,13 +51,23 @@ static unsigned char FontMenu(unsigned char browser) {
   return item;
 }
 
+// SETTINGS > HIDDEN FILES: hide or show dotfiles and files with the hidden attribute in the browser
+// (system files stay hidden); saved. The browser lists its folder again after the menu
+static unsigned char HiddenMenu(void) {
+  unsigned char item = Choose(0, S_HIDDEN_HIDE, 2, show_hidden);
+  if (item >= BACK) return item;
+  show_hidden = item;
+  SettingsSave();
+  return item;
+}
+
 // Shared by the editor (0), the browser and the viewers (1, the map viewer 2); B returns to their
 // enclosing menu.
 unsigned char PreferencesMenu(unsigned char browser) {
   unsigned char i, item = Choose(0, browser ? S_SUB_FULL_SCREEN : S_SUB_LINE_WRAP,
-    (browser ? 6 : 7) + (sys_info & SYS_INFO_SGB), 0);
+    (browser ? 7 : 8) + (sys_info & SYS_INFO_SGB), 0);
   if (item >= BACK) return item;
-  if (browser) ++item; // FULL SCREEN, THEME, LANGUAGE, CLOCK, KEYBOARD, FONT
+  if (browser) ++item; // FULL SCREEN, THEME, LANGUAGE, CLOCK, KEYBOARD, FONT, HIDDEN FILES
   if (!item) ToggleWrap();
   else if (item == 1) {
     if (!browser) ToggleBars();
@@ -66,6 +76,7 @@ unsigned char PreferencesMenu(unsigned char browser) {
       SettingsSave();
     }
   }
+  else if (item == 7) return HiddenMenu();
   else if (item >= 6) {
     i = sys_info;
     item = item == 6 ? FontMenu(browser) : ResolutionMenu();

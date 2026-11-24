@@ -121,7 +121,7 @@ int main(int n,char** v){
     for(unsigned i=0;i<6 && Chars(model.boxLines[model.boxHi<model.boxRows?model.boxHi:0]).find("PS/2")==std::string::npos;++i)key(0x82);
     key(10);Frames(core,300);
     Check(m->Read(syms.at("kb_type"))==1,"PS/2 again");
-    settings(6); // RESOLUTION: all three on an SGB, whatever the font
+    settings(7); // RESOLUTION: all three on an SGB, whatever the font
     Check(box().find("| 160x144| 256x224| 512x448|")!=std::string::npos,"RESOLUTION: 160x144, 256x224, 512x448");
     key(0x83);key(10); // (from 256x224's place)
     // (the rows drawn again, the selection's with its name: until then keys would act on a highlight not yet shown)
@@ -168,7 +168,7 @@ int main(int n,char** v){
     Check(!model.mapMode && model.text==1 && rows()==56 && model.textRows==54,"Close: 512x448 text again");
     Check(selected().find("Test.gbmap")!=std::string::npos,"the browser's rows again");
 
-    settings(6);key(0x82);key(10); // RESOLUTION > 256x224
+    settings(7);key(0x82);key(10); // RESOLUTION > 256x224
     wait(1500,[&]{return !model.text && selected().find_first_not_of(' ')!=std::string::npos;}); // (drawn: as for 512x448)
     Check(!model.text && rows()==28 && model.textRows==26 && m->Read(syms.at("_resolution"))==0,"256x224 again: 28 rows");
     Check(m->Read(syms.at("_font"))==1,"VWF again at 256x224");
@@ -178,7 +178,7 @@ int main(int n,char** v){
     waited=wait(30000,[&]{return model.mapMode && model.mapCells[28*128+32];});
     Frames(core,120);
     Check(model.mapMode==1 && !model.text,"the map at 256x224");
-    settings(6);
+    settings(7);
     Check(box().find("| 160x144| 256x224| 512x448|")!=std::string::npos,"RESOLUTION in a map: all three");
     key(0x83);key(10);
     wait(3000,[&]{return model.mapMode==(1|SGBFS_MAP_HIRES);});
@@ -190,7 +190,7 @@ int main(int n,char** v){
 
     // RESOLUTION > 160x144 in fullscreen: EXIT (HELLO offered SGBFS_FEATURE_BIOS), the SNES the BIOS's again
     // (Gearboy's own SGB), the GB its own renderer: 18 rows, one player, the BIOS's picture unfrozen and drawn
-    settings(6);key(0x82);key(0x82);key(10);
+    settings(7);key(0x82);key(0x82);key(10);
     waited=wait(3000,[&]{return !h->Active() && !(m->Read(syms.at("sys_info"))&4) && rows()==18;});
     printf("back to the BIOS: %u GB frames\n",waited);
     Check(!h->Active() && !(m->Read(syms.at("sys_info"))&4),"EXIT: the SNES the BIOS's, fullscreen off");
@@ -202,7 +202,7 @@ int main(int n,char** v){
     // and back: the GB's own menus (its pad), RESOLUTION > 256x224 JUMPs again
     auto gbpad=[&](Gameboy_Keys k){core.KeyPressed(k);Frames(core,4);core.KeyReleased(k);Frames(core,45);};
     gbpad(Start_Key);gbpad(Down_Key);gbpad(Down_Key);gbpad(A_Key); // SETTINGS
-    for(unsigned i=0;i<6;++i)gbpad(Down_Key);
+    for(unsigned i=0;i<7;++i)gbpad(Down_Key);
     gbpad(A_Key);gbpad(Down_Key);gbpad(A_Key); // RESOLUTION > 256x224
     waited=wait(6000,[&]{return h->Active() && (m->Read(syms.at("sys_info"))&4) && rows()==28 && selected().find_first_not_of(' ')!=std::string::npos;});
     printf("fullscreen again: %u GB frames\n",waited);

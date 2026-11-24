@@ -402,10 +402,10 @@ only draw after typing (`AskName`) still show them.
 
 `Choose` draws untitled menu boxes. Every menu is FILE, EDIT, SETTINGS, HELP and CLOSE (RESTART in
 the browser). Editor menu: FILE (open, save, save as, new, build, run), EDIT, SETTINGS (line wrap,
-full screen, theme, language, clock, keyboard, font, resolution on an SGB: `PreferencesMenu`), HELP,
+full screen, theme, language, clock, keyboard, font, hidden files, resolution on an SGB: `PreferencesMenu`), HELP,
 CLOSE. Browser menu: FILE (open, open as, info, rename, delete), EDIT (cut, copy, paste), SETTINGS
 (full screen, which only hides the bars and keeps the browser's, theme, language, clock, keyboard,
-font, resolution), HELP, RESTART (saves the swap, then `$BD06=$10` for a full cartridge reset through the
+font, hidden files, resolution), HELP, RESTART (saves the swap, then `$BD06=$10` for a full cartridge reset through the
 boot ROM). Select opens file info directly. The viewers' (and the info page's) Start is the same
 `BrowserMenu` (`MENU_VIEWER`, `MENU_INFO`, `MENU_MAP`): FILE (open as, info; the map's rebuild), EDIT
 (copy), CLOSE; the module returns `VIEW_MENU` and runs again where it was (`ShowFileView`).
@@ -415,6 +415,8 @@ draw every style in it plainly, 8 px each (no heading, bold, italic or code-span
 still draws bold and italic mono from the VWF's styled fonts (`StyleFonts`: a frozen frontend
 golden depends on it) until it maps character tiles itself. File names are code page 850 (FatFs `FF_CODE_PAGE` 850, `FF_LFN_UNICODE` 0: every Latin-1
 letter, one byte each); `charset.c` converts them to and from the UI's Latin-1.
+HIDDEN FILES (saved, `SET8`, `show_hidden` in WRAMX) is HIDE or SHOW: SHOW lists dotfiles and files
+with the hidden attribute (`NextEntry`); system files stay out either way.
 RESOLUTION (saved, `SET6`) lists only what works: in the SGB's BIOS mode 160x144 (no takeover at
 boot) and 256x224 (takes over now), in fullscreen 256x224, and in a map 512x448 too.
 
@@ -488,7 +490,8 @@ flowchart LR
 - **Load/save:** `tb_Append` drops NULs and CRs (setting `fs_crlf`);
   `tb_ReadLines` restores CRs on save.
 - **Listing:** `fs_List` walks directory slots once without decoding names
-  (skipping hidden, system and dot entries), counting folders/files and marking
+  (skipping system entries, and hidden and dot ones unless SETTINGS > HIDDEN FILES
+  shows them), counting folders/files and marking
   every 16th slot in the 512-byte load buffer (spacing doubles past 128 marks).
   `fs_ListEntry` seeks from the nearest mark; `GetName` decodes LFNs, falling back
   to `get_fileinfo` for non-BMP or high-byte SFNs.

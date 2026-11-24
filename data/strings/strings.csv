@@ -21,13 +21,14 @@ SUB_CUT,item,,CUT,CORTAR
 SUB_COPY,item,,COPY,COPIAR
 SUB_PASTE,item,,PASTE,PEGAR
 SUB_SELECT_ALL,item,,SELECT ALL,SELECCIONAR TODO
-SUB_LINE_WRAP,item,"editor SETTINGS: these 7, then RESOLUTION on SGB",LINE WRAP,AJUSTE DE LÍNEA
-SUB_FULL_SCREEN,item,"browser and viewer SETTINGS: these 6, then RESOLUTION on SGB",FULL SCREEN,PANTALLA COMPLETA
+SUB_LINE_WRAP,item,"editor SETTINGS: these 8, then RESOLUTION on SGB",LINE WRAP,AJUSTE DE LÍNEA
+SUB_FULL_SCREEN,item,"browser and viewer SETTINGS: these 7, then RESOLUTION on SGB",FULL SCREEN,PANTALLA COMPLETA
 SUB_THEME,item,,THEME,TEMA
 SUB_LANGUAGE,item,,LANGUAGE,IDIOMA
 SUB_CLOCK,item,,CLOCK,RELOJ
 SUB_KEYBOARD,item,,KEYBOARD,TECLADO
 SUB_FONT,item,,FONT,FUENTE
+SUB_HIDDEN,item,"dotfiles and files with the hidden attribute in the browser",HIDDEN FILES,ARCHIVOS OCULTOS
 SUB_RESOLUTION,item,SGB only,RESOLUTION,RESOLUCIÓN
 SUB_KEYBOARD_TEST,item,keyboard submenu,TEST,PRUEBA
 FILE_OPEN,item,browser FILE: these 5 in order,OPEN,ABRIR
@@ -228,3 +229,5 @@ MAP_WRAPPER,box,map viewer: a build error's file when it's the generated wrapper
 MAP_CHUNK,row,map viewer header (Select): the chunk's number follows,chunk ,bloque 
 CC_PASS,box,"compile progress: CC's pass, 1 to 3, above the file and line",Compiling {}/3,Compilando {}/3
 MODULE_CRASHED,bar,"a module crashed before the last restart (operation:block, FE: an RST $38); /GBCSYS/CRASH.LOG has the details",CRASH LOGGED {}:{},FALLO ANOTADO {}:{}
+HIDDEN_HIDE,item,"HIDDEN FILES: these 2 in order",HIDE,OCULTAR
+HIDDEN_SHOW,item,,SHOW,MOSTRAR

@@ -222,6 +222,8 @@ static void InstallModules(const std::string& root,const char* data)
     mkdir((root+"/GBCSYS/LANG").c_str(),0700);
     for(const char* name:{"EN.DAT","ES.DAT"})Write(root+"/GBCSYS/LANG/"+name,Read(lang+name));
     Write(root+"/GBCSYS/MAPVIEW.INC",Read(bin.substr(0,bin.size()-8)+"MAPVIEW.INC")); // a map's build includes it
+    mkdir((root+"/GBCSYS/SYNTAX").c_str(),0700); // bin/SYNTAX: the highlighting definitions
+    Write(root+"/GBCSYS/SYNTAX/GITIGNORE.SYN",Read(bin.substr(0,bin.size()-8)+"SYNTAX/GITIGNORE.SYN"));
 }
 
 static void UI(const char* image,const char* symbols,const char* data,bool color) {
@@ -293,7 +295,7 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     menu();pad(Down_Key);pad(A_Key);pad(Down_Key);pad(Down_Key);pad(A_Key); // Paste
     Check(Read(root+"/GBCSYS/a")==std::vector<u8>({'h','i','\n'}),"browser clipboard pastes in another directory");
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
-    Check(byte("_render_box_rows")==8,"browser has six settings");
+    Check(byte("_render_box_rows")==9,"browser has seven settings");
     Check(Text(memory,syms.at("tile_buffer")+20*40+100)==" FONT","font is a browser setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40)==" FULL SCREEN","full screen is a browser setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" THEME","theme is a browser setting");
@@ -344,7 +346,7 @@ static void UI(const char* image,const char* symbols,const char* data,bool color
     Check(byte("_render_text")==1,"opening a file goes to the editor");
     const unsigned len0=memory->Read(syms.at("tb_len"));
     menu();pad(Down_Key);pad(Down_Key);pad(A_Key);
-    Check(byte("_render_box_rows")==9,"editor has seven settings");
+    Check(byte("_render_box_rows")==10,"editor has eight settings");
     Check(Text(memory,syms.at("tile_buffer")+20*40)==" LINE WRAP","line wrap is an editor setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40+20)==" FULL SCREEN","full screen is an editor setting");
     Check(Text(memory,syms.at("tile_buffer")+20*40+40)==" THEME","theme is an editor setting");
@@ -551,7 +553,7 @@ static void Theme(const char* image,const char* symbols,const char* data,bool co
         auto line=[&](){return Text(memory,syms.at("tile_buffer")+20*40);};
         Check(light(core),"light theme by default");
         pad(Start_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);
-        Check(line()==" FULL SCREEN" && memory->Read(syms.at("_render_box_rows"))==8,"full screen is the browser's first setting");
+        Check(line()==" FULL SCREEN" && memory->Read(syms.at("_render_box_rows"))==9,"full screen is the browser's first setting");
         pad(Down_Key);pad(A_Key);Frames(core,120);
         Check(line()==" Dark mode  Off","theme module shows the dark mode toggle");
         pad(A_Key);
@@ -951,6 +953,39 @@ static void FileMenu(const char* image,const char* symbols,const char* data,bool
     printf("%s file menu OPEN AS, DELETE and info A passed\n",color?"CGB":"DMG");
 }
 
+// SETTINGS > HIDDEN FILES: HIDE (the default) leaves dotfiles out of the list, SHOW lists them and is
+// saved, and a shown .gitignore opens with its definition (its key: the text after the dot)
+static void HiddenFiles(const char* image,const char* symbols,const char* data,bool color) {
+    char folder[]="/tmp/fatpak-hidden-XXXXXX";Check(mkdtemp(folder),"hidden files SD");
+    std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);
+    Write(root+"/GBCSYS/EDITOR.DAT",Read(data));InstallModules(root,data);
+    Write(root+"/.gitignore",{'b','i','n','/','\n'});Write(root+"/Visible.txt",{'x'});
+    GearboyCore core;core.Init();core.SetEverdriveFolder(folder);
+    Check(core.LoadROM(image,!color),"hidden files OS");auto memory=core.GetMemory();auto syms=Symbols(symbols);
+    auto byte=[&](const char* name){return memory->Read(syms.at(name));};
+    auto pad=[&](Gameboy_Keys key){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,70);};
+    auto row=[&](unsigned n){std::string s;for(unsigned i=0;i<40;++i){unsigned c=memory->Read(syms.at("tile_buffer")+n*40+i);if(!c)break;s+=char(c);}
+        while(!s.empty() && s.back()==' ')s.pop_back();return s;};
+    auto listed=[&](const std::string& name){for(unsigned r=0;r<16;++r)if(row(r)==" "+name)return int(r);return -1;};
+    auto line=[&](unsigned n){return Text(memory,syms.at("tile_buffer")+20*40+n*20);};
+    auto hidden=[&](){pad(Start_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);for(unsigned i=0;i<6;++i)pad(Down_Key);
+        Check(line(6)==" HIDDEN FILES","HIDDEN FILES follows FONT in the browser's SETTINGS");pad(A_Key);
+        Check(line(0)==" HIDE" && line(1)==" SHOW" && byte("_render_box_rows")==4,"HIDDEN FILES: HIDE, SHOW");};
+    Frames(core,600);
+    Check(byte("_show_hidden")==0 && listed("Visible.txt")>=0 && listed(".gitignore")<0,"dotfiles are hidden by default");
+    hidden();Check(byte("_render_box_sel")==1,"HIDDEN FILES starts on HIDE");
+    pad(Down_Key);pad(A_Key);Frames(core,60);
+    Check(byte("_show_hidden")==1 && byte("_render_box_top")==255 && listed(".gitignore")>=0 && listed("Visible.txt")>=0,
+        "SHOW lists dotfiles once the menu closes");
+    hidden();Check(byte("_render_box_sel")==2,"HIDDEN FILES starts on SHOW");pad(B_Key);pad(B_Key);pad(B_Key);Frames(core,60);
+    for(unsigned i=0;i<16;++i)pad(Up_Key);
+    for(int i=0;i<listed(".gitignore");++i)pad(Down_Key);
+    pad(A_Key);for(unsigned w=0;!byte("_render_text") && w<300;++w)Frames(core,1);Frames(core,30);
+    Check(byte("_render_text")==1 && Text(memory,syms.at("_file_name"))==".gitignore" && row(0)=="bin/","a shown dotfile opens");
+    Check(byte("_tb_lang")==5,".gitignore opens with GITIGNORE.SYN (LANG_CODE)");
+    printf("%s hidden files passed\n",color?"CGB":"DMG");
+}
+
 int main(int argc,char** argv) {
     Check(argc==4,"usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT");
     Operations(argv[1],argv[2]);UI(argv[1],argv[2],argv[3],false);UI(argv[1],argv[2],argv[3],true);
@@ -962,4 +997,5 @@ int main(int argc,char** argv) {
     TileView(argv[1],argv[2],argv[3],false);TileView(argv[1],argv[2],argv[3],true);
     MapView(argv[1],argv[2],argv[3],false);MapView(argv[1],argv[2],argv[3],true);
     FileMenu(argv[1],argv[2],argv[3],false);FileMenu(argv[1],argv[2],argv[3],true);
+    HiddenFiles(argv[1],argv[2],argv[3],false);HiddenFiles(argv[1],argv[2],argv[3],true);
 }

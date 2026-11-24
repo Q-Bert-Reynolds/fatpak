@@ -233,6 +233,7 @@ static BYTE NextSlot(void) {
 // finds the next visible entry from dir's slot like dir_read (skipping hidden, system and dot names),
 // returns 1 for a folder, 2 for a file, 0 at the end, leaving dir on its SFN slot. With name set, its
 // LFN goes in fs.lfnbuf (dir.blk_ofs is 0xFFFFFFFF if its name is the SFN).
+extern BYTE show_hidden; // src/sram.asm
 static BYTE NextEntry(BYTE name) {
   BYTE c, attr, ord = 0xFF, sum = 0, dot = 0, named = 0, lfn;
   BYTE* entry;
@@ -264,7 +265,7 @@ static BYTE NextEntry(BYTE name) {
     else { // SFN
       lfn = !ord && sum == sum_sfn(entry);
       if (!lfn) list_start = list_slot;
-      if (!(attr & (AM_HID | AM_SYS)) && !(lfn && dot)) {
+      if (!(attr & AM_SYS) && (show_hidden || (!(attr & AM_HID) && !(lfn && dot)))) { // SETTINGS > HIDDEN FILES
         dir.blk_ofs = lfn && named ? (DWORD)list_start << 5 : 0xFFFFFFFF;
         return attr & AM_DIR ? 1 : 2;
       }

@@ -18,10 +18,11 @@ _resolution:: DB;SGB: RESOLUTION_256 (fullscreen), RESOLUTION_160 (the BIOS's, n
 
 SECTION "Settings WRAMX", WRAMX;WRAM0 is full
 _font_tiles:: DB;SETTINGS > FONT: 1 for 8x8 tiles (the mono font for the editor and browser, src/app/menu.c)
+_show_hidden:: DB;SETTINGS > HIDDEN FILES: 1 lists dotfiles and hidden files (src/fatfs/fatfs.c's NextEntry)
 
 SECTION "Settings Code", ROM0
 
-SettingsSignature: DB "SET7";SET6 is SET7 without the font;SET1 had the font, SET2 is SET3 without the theme, SET3 is SET4 without the language, SET5 is SET6 without the resolution
+SettingsSignature: DB "SET8";SET7 is SET8 without hidden files;SET6 is SET7 without the font;SET1 had the font, SET2 is SET3 without the theme, SET3 is SET4 without the language, SET5 is SET6 without the resolution
 
 MACRO SETTING ;\1 = C variable, \2 = size
   DW \1
@@ -40,6 +41,7 @@ SettingsTable:
   SETTING _kb_driver, 1;SET5
   SETTING _resolution, 1;SET6
   SETTING _font_tiles, 1;SET7
+  SETTING _show_hidden, 1;SET8
   DW 0
 
 ;C functions (src/editor/settings.h)
@@ -132,12 +134,20 @@ _SettingsLoad::
   jr z, .load
   cp a, '6'
   jr z, .load
+  cp a, '7'
+  jr z, .load
   cp a, '3'
   jr nz, .never
 .load
   push af
   ld a, 1
   call SettingsCopy
+  pop af
+  cp a, '8'
+  jr z, .loaded
+  push af
+  xor a;SET7 ended at the font
+  ld [_show_hidden], a
   pop af
   cp a, '7'
   jr z, .loaded
