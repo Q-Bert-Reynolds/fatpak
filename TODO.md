@@ -15,7 +15,8 @@
 
 - Find and replace
 - `ScrollX` ignores bold widths.
-- Fixed-width code: bold keywords widen cells until a 4 px bold font exists; registers share keyword blue; the preprocessor colors only the directive; RGBDS `/* */` and string interpolation aren't lexed.
+- Fixed-width code: bold keywords widen cells until a 4 px bold font exists; registers share keyword blue; the preprocessor colors only the directive; RGBDS string interpolation isn't lexed.
+- Syntax definitions (`data/syntax`, `scripts/syntax.py`) are compiled on the PC: let the device read the text form (write a language in the editor); markers longer than 2 chars (Lua's `--[[`), nested comments, HTML/YAML-style rules; one file per extension (C.SYN and H.SYN are copies).
 - First scan after an edit near the top of a big C file is slow (~0.5 frame/KB on GBC).
 - Untested: SGB colors, code highlighting on DMG, italics on screen.
 - SGB attribute colors (ATTR_CHR, 4 palettes, resent on scroll); user-selectable UI/syntax colors in THEME.MOD (dark mode exists); theme the in-game menu.
@@ -71,7 +72,7 @@
 - RESOLUTION 160x144 and game launch from fullscreen (EXIT): works in Mesen on SGB1 1.2, 1.1 and SGB2; confirm on hardware. SGB1 1.0 needs a dump to check against the others ([notes](notes/SGB.md#returning-to-the-bios-exit-2026-11-20)).
 - The SNES kernel image is full (about 70 of 49,152 bytes left): new kernel code goes to the extension or the resident part (`$7E:A000`, 561 of 4 KiB used).
 - Kernel `Capture`'s pad sample can run twice per frame (once in VBlank, once early in the next); harmless for pads, mouse.s guards against it.
-- `tests/run_sgb.sh`'s Startup fails ("startup completes border transfers"): BIOS-mode startup never reaches `sgb_SwapDisplay`, it waits in `gbdk_WaitVBL`. Found 2026-11-19; it fails the same with that day's earlier OS and Gearboy builds, so it predates the SGB map view.
+- The SGB border is off (`SGBSetDefaultBorder` is commented out in `src/app/main.c`; `tests/test_sgb.cpp`'s `SGB_BORDER` skips its checks). A new border could carry the header and footer's data: a big clock, the path.
 - `tests/run_sgb_kernel.sh` sometimes fails its golden by 8 pixels: the screenshot shows page 100's cursor, not page 101's (hidden). The final CURSOR isn't always presented before the capture; seen twice on 2026-11-20, and it passes on a re-run. `tests/run_sgb_text_session.sh` also failed once (2026-11-21: 1200 pixels differ in the header/footer rows) and passed twice after.
 
 # Peripherals

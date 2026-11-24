@@ -137,6 +137,7 @@ ifneq ($(ROM_FILE),$(BIN_DIR)/GBCOS.BIN)
 endif
 	$(PYTHON) scripts/keyboard_drivers.py
 	$(PYTHON) scripts/data_file.py $(BIN_DIR)/EDITOR.DAT
+	$(PYTHON) scripts/syntax.py
 	cp data/mapview.inc $(BIN_DIR)/MAPVIEW.INC
 	rm -rf $(BIN_DIR)/CC && mkdir -p $(BIN_DIR)/CC/include # the C compiler's runtime and headers (/GBCSYS/CC)
 	cp modules/cc/rt/*.asm $(BIN_DIR)/CC/ && cp modules/cc/include/*.h $(BIN_DIR)/CC/include/
@@ -147,7 +148,8 @@ endif
 		cp $(BIN_DIR)/EDITOR.DAT "$(SD_MOUNT)/GBCSYS/EDITOR.DAT" && \
 		cp $(BIN_DIR)/SGB.DAT "$(SD_MOUNT)/GBCSYS/SGB.DAT" && \
 		cp $(BIN_DIR)/MAPVIEW.INC "$(SD_MOUNT)/GBCSYS/MAPVIEW.INC" && \
-		mkdir -p "$(SD_MOUNT)/GBCSYS/MODULES" "$(SD_MOUNT)/GBCSYS/LANG" "$(SD_MOUNT)/GBCSYS/DRIVERS" && \
+		mkdir -p "$(SD_MOUNT)/GBCSYS/MODULES" "$(SD_MOUNT)/GBCSYS/LANG" "$(SD_MOUNT)/GBCSYS/DRIVERS" "$(SD_MOUNT)/GBCSYS/SYNTAX" && \
+		cp $(BIN_DIR)/SYNTAX/*.SYN "$(SD_MOUNT)/GBCSYS/SYNTAX/" && \
 		cp $(BIN_DIR)/MODULES/*.MOD "$(SD_MOUNT)/GBCSYS/MODULES/" && \
 		cp $(BIN_DIR)/DRIVERS/*.DRV "$(SD_MOUNT)/GBCSYS/DRIVERS/" && \
 		cp $(BIN_DIR)/LANG/*.DAT "$(SD_MOUNT)/GBCSYS/LANG/" && \
@@ -156,7 +158,7 @@ endif
 		sync -f "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
 		sync -f "$(SD_MOUNT)/GBCSYS/EDITOR.DAT" && \
 		sync -f "$(SD_MOUNT)/GBCSYS/SGB.DAT" && \
-		echo "Copied GBCOS.BIN, EDITOR.DAT, SGB.DAT, MAPVIEW.INC, modules, drivers, and languages to mounted GAMEBOY card"; \
+		echo "Copied GBCOS.BIN, EDITOR.DAT, SGB.DAT, MAPVIEW.INC, modules, drivers, languages, and syntax definitions to mounted GAMEBOY card"; \
 	fi
 
 run:
@@ -177,7 +179,7 @@ assets:
 	$(PYTHON) scripts/sgb_protocol.py
 	$(PYTHON) scripts/img2rgbds.py
 	$(PYTHON) scripts/fonts.py
-	$(PYTHON) scripts/keywords.py
+	$(PYTHON) scripts/syntax.py
 	$(PYTHON) scripts/sgb_border.py
 
 clean:

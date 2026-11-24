@@ -42,10 +42,14 @@ unsigned char FileLanguage(const char* name) {
   return lang;
 }
 
+extern unsigned char fs_LoadSyntax(const char* name); // src/fatfs/fatfs.c
+
 void SetLang(void) {
-  unsigned char i, lang = FileLanguage(file_name);
+  unsigned char i, lang = FileLanguage(file_name), syntax = 0;
+  if (lang != LANG_MD) syntax = fs_LoadSyntax(file_name); // any other extension with a definition is code
+  if (syntax && lang == LANG_PLAIN) lang = LANG_CODE;
   font = TEXT_FONT(lang >= LANG_C ? FONT_FIXED : FONT_VWF); // code, asm and project.gbp
-  if (lang == tb_lang) return;
+  if (lang == tb_lang && syntax != 2) return;
   tb_lang = lang;
   tb_ResetChecks();
   for (i = 0; i <= screen_rows; ++i) tb_row_states[i] = 0; // no markdown headings left in them

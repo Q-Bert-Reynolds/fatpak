@@ -38,6 +38,9 @@ int main(int n,char** v){
     Write(root+"/GBCSYS/MAPVIEW.INC",Read("bin/MAPVIEW.INC"));
     if(DIR* d=opendir("bin/MODULES")){while(dirent* e=readdir(d)){std::string name=e->d_name;
         if(name.size()>4 && name.substr(name.size()-4)==".MOD")Write(root+"/GBCSYS/MODULES/"+name,Read("bin/MODULES/"+name));}closedir(d);}
+    mkdir((root+"/GBCSYS/SYNTAX").c_str(),0700);
+    if(DIR* d=opendir("bin/SYNTAX")){while(dirent* e=readdir(d)){std::string name=e->d_name;
+        if(name.size()>4 && name.substr(name.size()-4)==".SYN")Write(root+"/GBCSYS/SYNTAX/"+name,Read("bin/SYNTAX/"+name));}closedir(d);}
     mkdir((root+"/GBCSYS/DRIVERS").c_str(),0700);
     for(const char* d:{"SGBMOUSE.DRV","PS2.DRV","IGKB.DRV"})Write(root+"/GBCSYS/DRIVERS/"+d,Read(std::string("bin/DRIVERS/")+d));
     mkdir((root+"/img").c_str(),0700);mkdir((root+"/img/maps").c_str(),0700);

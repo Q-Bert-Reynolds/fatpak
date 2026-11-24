@@ -41,6 +41,8 @@
 #define DATA_BLOCKS        85
 #define DATA_VERSION       5//block 0 starts with "EDITOR.DAT" and this
 #define NAME_HISTORY_BLOCK DATA_BLOCK+DATA_BLOCKS//16 scratch blocks, separate from document undo
+#define SYNTAX_BLOCK       NAME_HISTORY_BLOCK+16//the open file's syntax definition (/GBCSYS/SYNTAX, fs_LoadSyntax)
+#define SYNTAX_BLOCKS      3//up to MODULE_BSS_BACKUP
 //the language: the UI's strings and help (scripts/strings.py), from EDITOR.DAT's tail or /GBCSYS/LANG/xx.DAT,
 //in PSRAM between the snapshot staging and MODULE_STAGE5
 #define LANG_BLOCK         0x3CA4u
@@ -196,7 +198,18 @@
 #define LANG_MD      1
 #define LANG_C       2//.c, .h
 #define LANG_ASM     3//.asm, .inc, .s (RGBDS)
-#define LANG_PROJECT 4//project.gbp: FILE > BUILD's project (modules/assembler/asm_proj.c), lexed as asm
+#define LANG_PROJECT 4//project.gbp: FILE > BUILD's project (modules/assembler/asm_proj.c)
+#define LANG_CODE    5//any other extension with a syntax definition
+//syntax definitions (scripts/syntax.py): code (C and up) is styled by the one loaded (syn_flags)
+#define SYN_VERSION  1
+#define SYN_HEADER   16//bytes before the bucket offsets, the last 12 are copied to syn_flags
+#define SYN_EXT_MAX  4//longest extension with a definition
+#define KEYWORD_MAX  16//longest keyword
+#define SYN_FOLD     0//syn_flags: keywords are case insensitive
+#define SYN_DOT      1//. can be in a word
+#define SYN_LABEL    2//a word at column 0 (or .word after spaces) is a label
+#define SYN_RADIX    3//$ and % start numbers
+#define SYN_LOADED   7//a definition is loaded
 #define PATH_SIZE    128//the open file's folder (file_dir)
 #define FS_NAME_SIZE 65//src/fatfs/file_api.h
 

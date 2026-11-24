@@ -1,0 +1,14 @@
+# C (SDCC). See scripts/syntax.py for what each line means.
+extensions c h
+line //
+block /* */
+quotes " '
+escape \
+directive #
+keyword auto break case const continue default do else enum extern for goto if inline register
+keyword restrict return sizeof static struct switch typedef union volatile while _Bool _Static_assert
+keyword __asm __endasm __at __banked __nonbanked __naked __critical __interrupt __sfr __sbit
+keyword __preserves_regs __sdcccall __reentrant __using
+type char short int long float double void signed unsigned bool size_t
+type int8_t int16_t int32_t uint8_t uint16_t uint32_t intptr_t uintptr_t ptrdiff_t FILE
+number true false NULL

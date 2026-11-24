@@ -26,6 +26,8 @@
 ;   tb_RenderRows               a = first row, e = end row, draws rows from tb_row_starts[first]
 ;   tb_ScrollRows               a = 1 moves rows up (scroll down), 0 down, shifts tile_buffer and the row tables
 ;   tb_nowrap, tb_left          rows are whole lines scrolled sideways by tb_left characters (see TBScanRow)
+;The lexer and the row functions (tb_CountLines to tb_ScrollRows) are in page DOC_PAGE, the C entry
+;points are thunks. Code is styled by the loaded syntax definition (syn_flags, scripts/syntax.py).
 
 ;PSRAM is always there through the window
 DEF TB_BANK_REG EQU EDX_BLOCK
@@ -1054,6 +1056,71 @@ StyleLooks:
   DB LOOK_ACCENT | 4 << 4;STYLE_LABEL
   DB 0
 
+TBEdited:
+  ld a, 1;the swap file needs writing (src/editor/editor.c)
+  ld [_swap_dirty], a
+  ld [_win_edited], a;a large file's window needs committing (src/fatfs/fatfs.c)
+  push bc
+  ld a, [tb_checks_last]
+  ld b, a
+  ld a, d
+  srl a
+  srl a
+  cp a, b
+  jr nc, .checkPos
+  ld [tb_checks_last], a
+.checkPos;and the last TBCheckState end if it's after it
+  ld a, [tb_check_pos]
+  ld b, a
+  ld a, e
+  sub a, b
+  ld a, [tb_check_pos+1]
+  ld b, a
+  ld a, d
+  sbc a, b
+  jr nc, .done
+  xor a
+  ld [tb_check_pos], a
+  ld [tb_check_pos+1], a
+  ld [tb_check_state], a
+.done
+  pop bc
+  ret
+
+;forgets the checkpoints, only affects a
+_tb_ResetChecks::
+TBResetChecks:
+  xor a
+  ld [tb_checks_last], a
+  ld [tb_checks], a
+  ld [tb_check_pos], a
+  ld [tb_check_pos+1], a
+  ld [tb_check_state], a
+  ret
+
+SECTION "Syntax definition", WRAMX;WRAM0 is full
+_syn_flags::;the loaded definition's header after "SYN" and its version (fs_LoadSyntax), 0 = none
+syn_flags: DB;SYN_* bits
+syn_line: DS 2;line comment, 0 = none (a second 0: one char)
+syn_open: DS 2;block comment
+syn_close: DS 2
+syn_quote: DS 2;string quotes, the second is CM_CHAR's
+syn_escape: DB
+syn_directive: DB
+  DB
+_syn_ext:: DS SYN_EXT_MAX + 1;its extension, uppercase
+
+SECTION "Text Buffer thunks", ROM0
+_tb_CountLines:: FAR_THUNK TBCountLines
+_tb_LineStart:: FAR_THUNK TBLineStartC
+_tb_RowStart:: FAR_THUNK TBRowStartC
+_tb_NextRow:: FAR_THUNK TBNextRow
+_tb_Render:: FAR_THUNK TBRender
+_tb_RenderRows:: FAR_THUNK TBRenderRows
+_tb_ScrollRows:: FAR_THUNK TBScrollRows
+
+  PAGE DOC_PAGE
+
 ;the state at the start of a line, only affects a
 TBResetState:
   ld a, (1 << MD_LINE) | (1 << MD_PREV_SPACE)
@@ -1090,7 +1157,9 @@ TBLex:
   call TBLexMD
   jr .heading
 .code
-  call TBLexCode
+  ld a, [syn_flags]
+  bit SYN_LOADED, a
+  call nz, TBLexCode;without a definition code is plain text
 .heading
   ld a, c
   cp a, ' '
@@ -1411,19 +1480,22 @@ TBPeekHeading:
   pop bc
   ret
 
-;Code (C and RGBDS asm): a token's style is decided at its first char, a word's from the keyword
-;tables (TBPeekWord). C block comments are the only state that crosses lines, TBLineState finds it
-;from a checkpoint every 1KB (TBCheckState). State byte 0:
+;Code: styled by the loaded syntax definition (syn_flags, scripts/syntax.py). A token's style is
+;decided at its first char, a word's from the definition's keywords (TBPeekWord). Block comments
+;are the only state that crosses lines, TBLineState finds it from a checkpoint every 1KB
+;(TBCheckState). State byte 0:
 DEF CODE_MODE  EQU %00000111
 DEF CM_NONE    EQU 0
 DEF CM_WORD    EQU 1;a word or number, its style in state byte 1, ends at a non word char
-DEF CM_STRING  EQU 2
-DEF CM_CHAR    EQU 3
+DEF CM_STRING  EQU 2;after the first quote
+DEF CM_CHAR    EQU 3;after the second
 DEF CM_LINE    EQU 4;line comment
-DEF CM_BLOCK   EQU 5;C block comment
-DEF CM_OPEN    EQU 6;the * that opens one
+DEF CM_BLOCK   EQU 5;block comment
+DEF CM_OPEN    EQU 6;the second char of a two char block open
 DEF CODE_LINE  EQU 3;nothing of the line seen yet (= MD_LINE)
-DEF CODE_PREV  EQU 4;the last char was a \ in a string, a * in a block comment, a / otherwise (TBCheckRun only)
+DEF CODE_PREV  EQU 4;the last char was the escape in a string, the close's first char in a block comment
+DEF CHECK_LINE EQU 5;TBCheckRun only: the last char was a two char line comment's first
+DEF CHECK_OPEN EQU 6;or a two char block open's first
 DEF CODE_BLANK EQU 7;only spaces seen (= MD_PREV_SPACE, so TBResetState fits)
 
 ;c = char, hl and de at it, updates tb_next_state, returns its style << 4 in b, affects a, hl
@@ -1460,7 +1532,7 @@ TBLexCode:
   and a, CODE_MODE
   jr z, .none
   dec a
-  jr z, .word
+  jp z, .word
   dec a
   jr z, .string
   dec a
@@ -1469,104 +1541,109 @@ TBLexCode:
   jr z, .comment
   dec a
   jr z, .block
-  ld a, CM_BLOCK;the * opening it
+  ld a, CM_BLOCK;the open's second char
   call TBSetMode
 .comment
   ld b, STYLE_COMMENT << 4
   jp .done
 .block
   ld b, STYLE_COMMENT << 4
-  ld a, c
-  bit CODE_PREV, d
-  jr z, .star
-  cp a, '/'
-  jr nz, .star
+  ld a, [syn_close+1]
+  and a
+  jr nz, .closeTwo
+  ld a, [syn_close]
+  cp a, c
+  jp nz, .done
+.closed
   xor a;CM_NONE after it
   call TBSetMode
   jp .done
-.star
+.closeTwo
+  bit CODE_PREV, d
+  jr z, .closeFirst
+  cp a, c
+  jr z, .closed
+.closeFirst
   res CODE_PREV, [hl]
-  cp a, '*'
+  ld a, [syn_close]
+  cp a, c
   jp nz, .done
   set CODE_PREV, [hl]
   jp .done
 .char
-  ld e, '\''
+  ld a, [syn_quote+1]
   jr .quoted
 .string
-  ld e, '"'
+  ld a, [syn_quote]
 .quoted
+  ld e, a
   ld b, STYLE_STRING << 4
   bit CODE_PREV, d
   jr z, .notEscaped
   res CODE_PREV, [hl]
   jp .done
 .notEscaped
-  ld a, c
-  cp a, '\\'
+  ld a, [syn_escape]
+  cp a, c
   jr nz, .notEscape
   set CODE_PREV, [hl]
   jp .done
 .notEscape
+  ld a, c
   cp a, e
   jp nz, .done
   xor a
   call TBSetMode
   jp .done
-.word
-  call TBIsCodeWord
-  ld a, [tb_next_state+1]
-  ld b, a
-  jp c, .done
-  cp a, STYLE_NUMBER << 4
-  jr nz, .endWord
-  ld a, c
-  cp a, '.';1.5
-  jp z, .done
-.endWord
-  xor a
-  ld [tb_next_state+1], a
-  call TBSetMode
-.none
+.none;markers are never 0, text has no 0s
+  ld b, STYLE_COMMENT << 4
+  ld a, [syn_line]
+  cp a, c
+  jr nz, .notLine
+  ld a, [syn_line+1]
+  and a
+  ld e, a
+  ld a, CM_LINE
+  jp z, .setMode
+  call TBPeekNext
+  cp a, e
+  ld a, CM_LINE
+  jp z, .setMode
+.notLine
+  ld a, [syn_open]
+  cp a, c
+  jr nz, .notOpen
+  ld a, [syn_open+1]
+  and a
+  ld e, a
+  ld a, CM_BLOCK
+  jp z, .setMode
+  call TBPeekNext
+  cp a, e
+  ld a, CM_OPEN
+  jp z, .setMode
+.notOpen
   ld b, STYLE_STRING << 4
-  ld a, c
-  cp a, '"'
+  ld a, [syn_quote]
+  cp a, c
   ld a, CM_STRING
   jp z, .setMode
-  ld a, c
-  cp a, '\''
+  ld a, [syn_quote+1]
+  cp a, c
   ld a, CM_CHAR
   jp z, .setMode
-  ld a, [_tb_lang]
-  cp a, LANG_ASM
-  ld a, c
-  jr nc, .asm;project files lex as asm
-  cp a, '#'
-  jr nz, .notHash
+  ld a, [syn_directive]
+  cp a, c
+  jr nz, .notDirective
   bit CODE_BLANK, d
   jp z, .text
-  ld b, STYLE_PREPROC << 4;the # and the directive after it
+  ld b, STYLE_PREPROC << 4;it and the word after it
   jr .startWord
-.notHash
-  cp a, '/'
-  jr nz, .number
-  call TBPeekNext
-  ld e, a
-  ld b, STYLE_COMMENT << 4
-  cp a, '/'
-  ld a, CM_LINE
-  jr z, .setMode
-  ld a, e
-  cp a, '*'
-  ld a, CM_OPEN
-  jr z, .setMode
-  jr .text
-.asm
-  cp a, ';'
-  ld b, STYLE_COMMENT << 4
-  ld a, CM_LINE
-  jr z, .setMode
+.notDirective
+  ld a, [syn_flags]
+  bit SYN_RADIX, a
   ld a, c
+  jr z, .number
   cp a, '$'
   jr z, .hex
   cp a, '%'
@@ -1588,6 +1665,21 @@ TBLexCode:
   cp a, 'f'+1
   jr c, .numberWord
   jr .text
+.word
+  call TBIsCodeWord
+  ld a, [tb_next_state+1]
+  ld b, a
+  jp c, .done
+  cp a, STYLE_NUMBER << 4
+  jr nz, .endWord
+  ld a, c
+  cp a, '.';1.5
+  jp z, .done
+.endWord
+  xor a
+  ld [tb_next_state+1], a
+  call TBSetMode
+  jp .none
 .number
   ld a, c
   cp a, '0'
@@ -1604,10 +1696,10 @@ TBLexCode:
   ld b, a
   and a
   jr nz, .startWord
-  ld a, [_tb_lang]
-  cp a, LANG_ASM
-  jr c, .startWord
-  bit CODE_LINE, d;asm labels start at column 0, or are local (.label) and start the line
+  ld a, [syn_flags]
+  bit SYN_LABEL, a
+  jr z, .startWord
+  bit CODE_LINE, d;labels start at column 0, or are local (.label) and start the line
   jr nz, .label
   bit CODE_BLANK, d
   jr z, .startWord
@@ -1641,7 +1733,7 @@ TBSetMode:
   pop bc
   ret
 
-;c = char, returns carry if it can be in a word (letters, digits, _, and . in asm), only affects a
+;c = char, returns carry if it can be in a word (letters, digits, _, and . with SYN_DOT), only affects a
 TBIsCodeWord:
   call TBIsWord
   ret c
@@ -1649,9 +1741,9 @@ TBIsCodeWord:
   cp a, '_'
   scf
   ret z
-  ld a, [_tb_lang]
-  cp a, LANG_ASM
-  jr c, .no
+  ld a, [syn_flags]
+  bit SYN_DOT, a
+  jr z, .no
   ld a, c
   cp a, '.'
   scf
@@ -1693,15 +1785,15 @@ TBPeekWord:
     ld a, b
     cp a, KEYWORD_MAX
     jr z, .no;too long
-    ld a, [_tb_lang]
-    cp a, LANG_ASM
+    ld a, [syn_flags]
+    bit SYN_FOLD, a
     ld a, c
-    jr c, .store
+    jr z, .store
     cp a, 'A'
     jr c, .store
     cp a, 'Z'+1
     jr nc, .store
-    or a, $20;asm words are case insensitive
+    or a, $20;SYN_FOLD: keywords are case insensitive
   .store
     push hl
     push af
@@ -1719,7 +1811,7 @@ TBPeekWord:
 .end
   ld a, b
   ld [tb_word_len], a
-  call TBLookupWord
+  call KeywordLookup
   jr TBPeekDone
 .no
   xor a
@@ -1732,27 +1824,19 @@ TBPeekDone:;back to the char TBLexCode is at, keeps a
   pop bc
   ret
 
-;returns the style << 4 of tb_word in a, 0 if it isn't a keyword, affects bc, de, hl
-TBLookupWord:
-  ldh a, [loaded_bank]
-  push af
-  ld a, BANK(KeywordLookup)
-  SET_BANK
-  call KeywordLookup
-  ld b, a
-  pop af
-  SET_BANK
-  ld a, b
-  ret
-
 ;de = line start, sets tb_state to the lexer state there, preserves de
 TBLineState:
   call TBResetState
   ld a, [_tb_lang]
   cp a, LANG_MD
   jr z, .check
-  cp a, LANG_C
-  ret nz
+  ret c;plain text
+  ld a, [syn_flags]
+  bit SYN_LOADED, a
+  ret z
+  ld a, [syn_open]
+  and a
+  ret z;no block comments
 .check
   push de
   call TBCheckState
@@ -1775,7 +1859,7 @@ TBLineState:
   ld [tb_state], a
   ret
 
-;Checkpoints: the C comment or markdown code block state (TBCheckRun) at every 1KB, [tb_checks_last] is the last one
+;Checkpoints: the block comment or markdown code block state (TBCheckRun) at every 1KB, [tb_checks_last] is the last one
 ;known, edits forget the ones after them (TBEdited). tb_check_pos is where the last TBCheckState
 ;ended, with its state in tb_check_state.
 
@@ -1933,9 +2017,10 @@ TBCheckpoint:
   pop hl
   ret
 
-;hl = SRAM address, bc = count (> 0), e = C comment state (CODE_MODE: CM_NONE, CM_STRING, CM_CHAR,
-;CM_LINE or CM_BLOCK, and CODE_PREV), scans the chars, returns the state after them in e,
-;affects a, bc, hl. Must agree with TBLexCode
+;hl = SRAM address, bc = count (> 0), e = comment state (CODE_MODE: CM_NONE, CM_STRING, CM_CHAR,
+;CM_LINE or CM_BLOCK, CODE_PREV, and CHECK_LINE/CHECK_OPEN with CM_NONE), scans the chars, returns
+;the state after them in e, affects a, bc, d, hl. Must agree with TBLexCode (markers are never 0,
+;text has no 0s)
 MACRO CHECK_NEXT;\1 = loop, \2 = state
   dec bc
   ld a, b
@@ -1949,51 +2034,84 @@ TBCheckRun:
   cp a, LANG_MD
   jp z, TBCheckRunMD
   ld a, e
-  and a
-  jr z, .none
-  cp a, 1 << CODE_PREV
-  jr z, .slash
   cp a, CM_LINE
-  jr z, .line
+  jp z, .line
   cp a, CM_BLOCK
-  jr z, .block
+  jp z, .block
   cp a, CM_BLOCK | 1 << CODE_PREV
-  jr z, .star
+  jp z, .closing
   cp a, CM_STRING
   jp z, .string
   cp a, CM_STRING | 1 << CODE_PREV
   jp z, .stringEsc
   cp a, CM_CHAR
   jp z, .char
-  jp .charEsc
+  cp a, CM_CHAR | 1 << CODE_PREV
+  jp z, .charEsc
+  and a
+  jr nz, .pending;e = CHECK_LINE/CHECK_OPEN
 .none
     ld a, [hli]
   .noneChar
-    cp a, '/'+1
-    jr nc, .noneNext
-    cp a, '/'
-    jr z, .toSlash
-    cp a, '"'
+    ld d, a
+    ld e, 0
+    ld a, [syn_line]
+    cp a, d
+    jr nz, .notLine
+    ld a, [syn_line+1]
+    and a
+    jr z, .toLine
+    set CHECK_LINE, e
+  .notLine
+    ld a, [syn_open]
+    cp a, d
+    jr nz, .notOpen
+    ld a, [syn_open+1]
+    and a
+    jr z, .toBlock
+    set CHECK_OPEN, e
+  .notOpen
+    ld a, e
+    and a
+    jr nz, .toPending
+    ld a, [syn_quote]
+    cp a, d
     jr z, .toString
-    cp a, '\''
+    ld a, [syn_quote+1]
+    cp a, d
     jr z, .toChar
   .noneNext
     CHECK_NEXT .none, CM_NONE
-.toSlash
-  CHECK_NEXT .slash, 1 << CODE_PREV
+.toPending;e = which
+  dec bc
+  ld a, b
+  or a, c
+  ret z
+.pending
+  ld a, [hli]
+  ld d, a
+  bit CHECK_LINE, e
+  jr z, .pendingOpen
+  ld a, [syn_line+1]
+  cp a, d
+  jr z, .toLine
+.pendingOpen
+  bit CHECK_OPEN, e
+  jr z, .pendingNone
+  ld a, [syn_open+1]
+  cp a, d
+  jr z, .toBlock
+.pendingNone
+  ld a, d
+  jr .noneChar
 .toString
   CHECK_NEXT .string, CM_STRING
 .toChar
   CHECK_NEXT .char, CM_CHAR
-.slash
-  ld a, [hli]
-  cp a, '/'
-  jr z, .toLine
-  cp a, '*'
-  jr nz, .noneChar
-  CHECK_NEXT .block, CM_BLOCK
 .toLine
   CHECK_NEXT .line, CM_LINE
+.toBlock
+  CHECK_NEXT .block, CM_BLOCK
 .line
     ld a, [hli]
     cp a, ASCII_LF
@@ -2001,27 +2119,39 @@ TBCheckRun:
     CHECK_NEXT .line, CM_LINE
 .block
     ld a, [hli]
-    cp a, '*'
-    jr z, .toStar
+    ld d, a
+    ld a, [syn_close]
+    cp a, d
+    jr z, .closeFirst
   .blockNext
     CHECK_NEXT .block, CM_BLOCK
-.toStar
-  CHECK_NEXT .star, CM_BLOCK | 1 << CODE_PREV
-.star
+.closeFirst
+  ld a, [syn_close+1]
+  and a
+  jr z, .noneNext;a one char close
+  CHECK_NEXT .closing, CM_BLOCK | 1 << CODE_PREV
+.closing
   ld a, [hli]
-  cp a, '/'
+  ld d, a
+  ld a, [syn_close+1]
+  cp a, d
   jr z, .noneNext
-  cp a, '*'
-  jr z, .toStar
+  ld a, [syn_close]
+  cp a, d
+  jr z, .closeFirst
   jr .blockNext
 .string
     ld a, [hli]
-    cp a, '\\'
+    ld d, a
+    ld a, [syn_escape]
+    cp a, d
     jr z, .toStringEsc
-    cp a, '"'
-    jr z, .noneNext
+    ld a, [syn_quote]
+    cp a, d
+    jp z, .noneNext
+    ld a, d
     cp a, ASCII_LF
-    jr z, .noneNext
+    jp z, .noneNext
   .stringNext
     CHECK_NEXT .string, CM_STRING
 .toStringEsc
@@ -2033,10 +2163,14 @@ TBCheckRun:
   jr .stringNext
 .char
     ld a, [hli]
-    cp a, '\\'
+    ld d, a
+    ld a, [syn_escape]
+    cp a, d
     jr z, .toCharEsc
-    cp a, '\''
+    ld a, [syn_quote+1]
+    cp a, d
     jp z, .noneNext
+    ld a, d
     cp a, ASCII_LF
     jp z, .noneNext
   .charNext
@@ -2086,48 +2220,6 @@ TBCheckRunMD:
   ret
 
 ;de = position of an edit, forgets the checkpoints after it, only affects a
-TBEdited:
-  ld a, 1;the swap file needs writing (src/editor/editor.c)
-  ld [_swap_dirty], a
-  ld [_win_edited], a;a large file's window needs committing (src/fatfs/fatfs.c)
-  push bc
-  ld a, [tb_checks_last]
-  ld b, a
-  ld a, d
-  srl a
-  srl a
-  cp a, b
-  jr nc, .checkPos
-  ld [tb_checks_last], a
-.checkPos;and the last TBCheckState end if it's after it
-  ld a, [tb_check_pos]
-  ld b, a
-  ld a, e
-  sub a, b
-  ld a, [tb_check_pos+1]
-  ld b, a
-  ld a, d
-  sbc a, b
-  jr nc, .done
-  xor a
-  ld [tb_check_pos], a
-  ld [tb_check_pos+1], a
-  ld [tb_check_state], a
-.done
-  pop bc
-  ret
-
-;forgets the checkpoints, only affects a
-_tb_ResetChecks::
-TBResetChecks:
-  xor a
-  ld [tb_checks_last], a
-  ld [tb_checks], a
-  ld [tb_check_pos], a
-  ld [tb_check_pos+1], a
-  ld [tb_check_state], a
-  ret
-
 ;de = row start, sets tb_state to the lexer state there by scanning rows from its line's start,
 ;tb_len must be set, clears tb_row_ptr, preserves de
 TBSyncState:
@@ -2390,7 +2482,7 @@ TBStartScan:
   ld [tb_row_ptr+1], a
   ret
 
-_tb_CountLines::;de = start, bc = end, returns the line feeds in [start, end) in bc
+TBCountLines:;de = start, bc = end, returns the line feeds in [start, end) in bc
   ld a, c
   sub a, e
   ld [tb_count], a
@@ -2468,13 +2560,13 @@ _tb_CountLines::;de = start, bc = end, returns the line feeds in [start, end) in
   LD_BC_VAR tb_lines
   ret
 
-_tb_LineStart::;de = pos, returns the start of its line in bc
+TBLineStartC:;de = pos, returns the start of its line in bc
   call TBLineStart
   ld b, d
   ld c, e
   ret
 
-_tb_RowStart::;de = pos, returns start of the visual row containing pos in bc
+TBRowStartC:;de = pos, returns start of the visual row containing pos in bc
   call TBStartScan
   call TBLineStart
   call TBLineState
@@ -2496,7 +2588,7 @@ _tb_RowStart::;de = pos, returns start of the visual row containing pos in bc
 .done
   ret
 
-_tb_NextRow::;de = row start, returns start of the next visual row in bc
+TBNextRow:;de = row start, returns start of the next visual row in bc
   push de
   ld de, $FFFF
   call TBStartScan
@@ -2507,7 +2599,7 @@ _tb_NextRow::;de = row start, returns start of the next visual row in bc
   ld c, e
   ret
 
-_tb_Render::;de = top, draws [_tb_rows] rows into tile_buffer, sets _tb_found_col/row for [_tb_find] and _tb_bottom
+TBRender:;de = top, draws [_tb_rows] rows into tile_buffer, sets _tb_found_col/row for [_tb_find] and _tb_bottom
   ld a, $FF
   ld [_tb_found_col], a
   ld [_tb_found_row], a
@@ -2521,7 +2613,7 @@ _tb_Render::;de = top, draws [_tb_rows] rows into tile_buffer, sets _tb_found_co
   xor a
   ;fall through
 
-_tb_RenderRows::;a = first row, e = end row, scans rows [first, end) from _tb_row_starts[first] into tile_buffer
+TBRenderRows:;a = first row, e = end row, scans rows [first, end) from _tb_row_starts[first] into tile_buffer
   ld [tb_row], a
   ld a, e
   ld [tb_end], a
@@ -2623,7 +2715,7 @@ TBCopyBack:
     jr nz, .loop
   ret
 
-_tb_ScrollRows::;a = 1 to move rows up (scroll down) or 0 to move them down, shifts tile_buffer and the row tables
+TBScrollRows:;a = 1 to move rows up (scroll down) or 0 to move them down, shifts tile_buffer and the row tables
   push af
   call RowsShift;wide PSRAM rows
   pop bc
@@ -2806,32 +2898,41 @@ TBRowStateAddress:
   ld h, a
   ret
 
-  KEYWORDS_SECTION;with the tables (keywords.asm)
-
-KeywordLookup:;returns the style << 4 of tb_word ([tb_word_len] chars) in a, 0 if it isn't a keyword, affects bc, de, hl
-  ld a, [_tb_lang]
-  cp a, LANG_ASM
-  ld hl, KeywordsAsm
-  jr z, .table
-  ld hl, KeywordsProject
-  jr nc, .entry;project.gbp's few words are one list
-  ld hl, KeywordsC
-.table
+;returns the style << 4 of tb_word ([tb_word_len] chars) in a, 0 if it isn't a keyword, from the
+;definition's buckets at SYNTAX_BLOCK (through the window, put back after), affects bc, de, hl
+KeywordLookup:
+  ld a, [EDX_BLOCK]
+  ld e, a
+  ld a, [EDX_BLOCK+1]
+  ld d, a
+  push de
+  ld a, HIGH(SYNTAX_BLOCK)
+  ld [EDX_BLOCK+1], a;high byte first, then low: the low byte write switches the window
+  ld a, LOW(SYNTAX_BLOCK)
+  ld [EDX_BLOCK], a
   ld a, [tb_word]
   and a, 31
   add a, a
-  add a, l
+  add a, LOW(EDX_WINDOW + SYN_HEADER)
   ld l, a
-  adc a, h
-  sub a, l
-  ld h, a
+  ld h, HIGH(EDX_WINDOW);the offsets fit in the first 256 bytes
   ld a, [hli]
   ld h, [hl]
-  ld l, a
+  ld l, a;the bucket's offset in the definition
+  or a, h
+  jr z, .done;no words start with it
+  ld a, h
+  srl a
+  add a, LOW(SYNTAX_BLOCK);a bucket is in one block
+  ld [EDX_BLOCK], a
+  ld a, h
+  and a, 1
+  or a, HIGH(EDX_WINDOW)
+  ld h, a
 .entry
     ld a, [hli];length
     and a
-    ret z
+    jr z, .done
     ld c, a
     ld a, [hli];style
     ld b, a
@@ -2848,7 +2949,7 @@ KeywordLookup:;returns the style << 4 of tb_word ([tb_word_len] chars) in a, 0 i
       dec c
       jr nz, .compare
     ld a, b
-    ret
+    jr .done
   .skip;the rest of the entry
     ld a, c
     add a, l
@@ -2857,3 +2958,14 @@ KeywordLookup:;returns the style << 4 of tb_word ([tb_word_len] chars) in a, 0 i
     sub a, l
     ld h, a
     jr .entry
+.done
+  pop de
+  ld b, a
+  ld a, d
+  ld [EDX_BLOCK+1], a
+  ld a, e
+  ld [EDX_BLOCK], a
+  ld a, b
+  ret
+
+  END_PAGE

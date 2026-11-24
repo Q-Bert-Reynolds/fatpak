@@ -38,6 +38,8 @@ DEF DATA_WIDTHS        EQU 84;VWF bold widths, 256 bytes
 DEF DATA_BLOCKS        EQU 85
 DEF DATA_VERSION       EQU 5;block 0 starts with "EDITOR.DAT" and this
 DEF NAME_HISTORY_BLOCK EQU DATA_BLOCK+DATA_BLOCKS;16 scratch blocks, separate from document undo
+DEF SYNTAX_BLOCK       EQU NAME_HISTORY_BLOCK+16;the open file's syntax definition (/GBCSYS/SYNTAX, fs_LoadSyntax)
+DEF SYNTAX_BLOCKS      EQU 3;up to MODULE_BSS_BACKUP
 ;the language: the UI's strings and help (scripts/strings.py), from EDITOR.DAT's tail or /GBCSYS/LANG/xx.DAT,
 ;in PSRAM between the snapshot staging and MODULE_STAGE5
 DEF LANG_BLOCK         EQU $3CA4
@@ -193,7 +195,18 @@ DEF LANG_PLAIN   EQU 0;how text is styled, from the file name's extension
 DEF LANG_MD      EQU 1
 DEF LANG_C       EQU 2;.c, .h
 DEF LANG_ASM     EQU 3;.asm, .inc, .s (RGBDS)
-DEF LANG_PROJECT EQU 4;project.gbp: FILE > BUILD's project (modules/assembler/asm_proj.c), lexed as asm
+DEF LANG_PROJECT EQU 4;project.gbp: FILE > BUILD's project (modules/assembler/asm_proj.c)
+DEF LANG_CODE    EQU 5;any other extension with a syntax definition
+;syntax definitions (scripts/syntax.py): code (C and up) is styled by the one loaded (syn_flags)
+DEF SYN_VERSION  EQU 1
+DEF SYN_HEADER   EQU 16;bytes before the bucket offsets, the last 12 are copied to syn_flags
+DEF SYN_EXT_MAX  EQU 4;longest extension with a definition
+DEF KEYWORD_MAX  EQU 16;longest keyword
+DEF SYN_FOLD     EQU 0;syn_flags: keywords are case insensitive
+DEF SYN_DOT      EQU 1;. can be in a word
+DEF SYN_LABEL    EQU 2;a word at column 0 (or .word after spaces) is a label
+DEF SYN_RADIX    EQU 3;$ and % start numbers
+DEF SYN_LOADED   EQU 7;a definition is loaded
 DEF PATH_SIZE    EQU 128;the open file's folder (file_dir)
 DEF FS_NAME_SIZE EQU 65;src/fatfs/file_api.h
 

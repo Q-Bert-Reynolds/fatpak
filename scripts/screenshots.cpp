@@ -59,6 +59,15 @@ static std::string Card() {
     closedir(dir);
     mkdir((root + "/GBCSYS/LANG").c_str(), 0700); // bin/LANG beside bin/MODULES
     for (const char* name : {"EN.DAT", "ES.DAT"}) Write(root + "/GBCSYS/LANG/" + name, Read(std::string(modules) + "/../LANG/" + name));
+    mkdir((root + "/GBCSYS/SYNTAX").c_str(), 0700); // bin/SYNTAX: how code is styled
+    if (DIR* syntax = opendir((std::string(modules) + "/../SYNTAX").c_str())) {
+        while (dirent* entry = readdir(syntax)) {
+            std::string name = entry->d_name;
+            if (name.size() > 4 && name.substr(name.size() - 4) == ".SYN")
+                Write(root + "/GBCSYS/SYNTAX/" + name, Read(std::string(modules) + "/../SYNTAX/" + name));
+        }
+        closedir(syntax);
+    }
     mkdir((root + "/Games").c_str(), 0700); mkdir((root + "/Notes").c_str(), 0700);
     Write(root + "/Welcome.md",
         "# FatPak\n"

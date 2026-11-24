@@ -62,6 +62,15 @@ static void InstallModules(const std::string& root, const char* data) {
         Write(root + "/GBCSYS/MODULES/" + name, Read(bin + name)); ++count;
     }
     closedir(dir); Check(count >= 6, "every built module installed");
+    std::string syntax = std::string(data).substr(0, std::string(data).find_last_of('/')) + "/SYNTAX/";
+    mkdir((root + "/GBCSYS/SYNTAX").c_str(), 0700);
+    dir = opendir(syntax.c_str()); Check(dir, "bin/SYNTAX"); count = 0;
+    while (dirent* entry = readdir(dir)) {
+        std::string name = entry->d_name;
+        if (name.size() < 5 || name.substr(name.size() - 4) != ".SYN") continue;
+        Write(root + "/GBCSYS/SYNTAX/" + name, Read(syntax + name)); ++count;
+    }
+    closedir(dir); Check(count >= 4, "the syntax definitions installed");
 }
 
 struct Session {
@@ -496,9 +505,67 @@ static void Project(const char* image, const char* symbols, const char* data, co
     printf("%s project errors passed\n", color ? "CGB" : "DMG");
 }
 
+// The editor styles code with /GBCSYS/SYNTAX's definitions (scripts/syntax.py, TBLexCode); a char's
+// style is tile_attrs' high nibble
+static void Highlighting(const char* image, const char* symbols, const char* data, bool color) {
+    auto style = [](Session& s, unsigned r, unsigned c) { return s.memory->Read(s.syms.at("tile_attrs") + r * 40 + c) >> 4; };
+    auto expect = [&](Session& s, unsigned r, const std::vector<std::pair<unsigned, unsigned>>& want, const char* what) {
+        bool ok = true;
+        for (auto& w : want) ok &= style(s, r, w.first) == w.second;
+        if (!ok) {
+            fprintf(stderr, "row %u \"%s\":", r, s.row(r).c_str());
+            for (unsigned c = 0; c < s.row(r).size(); ++c) fprintf(stderr, " %u", style(s, r, c));
+            fprintf(stderr, "\n");
+        }
+        Check(ok, what);
+    };
+    {
+        Session s(image, symbols, data, color, "x.c",
+                  "/* a\nb */ int x; // c\ns = \"q\\\"r\" + 'c';\n  #define Y 2\n");
+        expect(s, 0, {{0, 8}, {3, 8}}, "a C block comment");
+        expect(s, 1, {{0, 8}, {3, 8}, {5, 10}, {9, 0}, {12, 8}, {14, 8}}, "it crosses lines, then a type and a line comment");
+        expect(s, 2, {{0, 0}, {4, 11}, {6, 11}, {8, 11}, {9, 11}, {11, 0}, {13, 11}, {15, 11}}, "strings and escapes");
+        expect(s, 3, {{2, 13}, {3, 13}, {10, 0}, {12, 12}}, "a directive and a number");
+    }
+    {
+        // a block comment's state at a line found from its checkpoint (TBCheckRun), past markers in a
+        // string and a line comment
+        std::string text = "char *s = \"/*\"; // /*\nint a; /* open\n";
+        for (unsigned i = 0; i < 30; ++i) text += "  inside\n";
+        text += "end */ int b;\n";
+        Session s(image, symbols, data, color, "y.c", text);
+        expect(s, 0, {{0, 10}, {10, 11}, {11, 11}, {16, 8}, {19, 8}}, "markers in strings and comments");
+        for (unsigned i = 0; i < 33; ++i) s.pad(Down_Key);
+        unsigned r = 0;
+        while (r < 18 && s.row(r).rfind("end */", 0) != 0) ++r;
+        Check(r < 18, "the comment's end scrolls into view");
+        Check(r > 0 && style(s, 0, 2) == 8, "a row inside it, from the checkpoint, is a comment");
+        expect(s, r, {{0, 8}, {5, 8}, {7, 10}, {11, 0}}, "the comment ends at */");
+    }
+    {
+        Session s(image, symbols, data, color, "x.asm", "Label: ld a, $1F ; note\n.local\n  jr .local\n  LD B, %10\n");
+        expect(s, 0, {{0, 14}, {7, 9}, {10, 10}, {13, 12}, {17, 8}, {19, 8}}, "an asm label, instruction, register, number, comment");
+        expect(s, 1, {{0, 14}}, "a local label");
+        expect(s, 2, {{2, 9}, {5, 0}}, "a local label's use isn't a label");
+        expect(s, 3, {{2, 9}, {5, 10}, {8, 12}}, "asm words are case insensitive, % numbers");
+    }
+    {
+        Session s(image, symbols, data, color, "x.py", "def f(): # hi\n    return 'x'\n");
+        expect(s, 0, {{0, 9}, {4, 0}, {9, 8}}, "another extension's definition (Python)");
+        expect(s, 1, {{4, 9}, {11, 11}}, "its keywords and strings");
+        Check(s.memory->Read(s.syms.at("_tb_lang")) == 5, "it's LANG_CODE");
+    }
+    {
+        Session s(image, symbols, data, color, "x.zz", "def x // y\n");
+        expect(s, 0, {{0, 0}, {6, 0}}, "an extension without a definition is plain text");
+    }
+    printf("%s highlighting passed\n", color ? "CGB" : "DMG");
+}
+
 int main(int argc, char** argv) {
     Check(argc == 13, "usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT hello.asm hello.gb tests/asm features.gb src gbdk.gb project.gb huge-folder units-folder");
     for (int color = 0; color < 2; ++color) {
+        Highlighting(argv[1], argv[2], argv[3], color);
         Build(argv[1], argv[2], argv[3], argv[4], argv[5], color);
         Errors(argv[1], argv[2], argv[3], color);
         NotAssembly(argv[1], argv[2], argv[3], color);

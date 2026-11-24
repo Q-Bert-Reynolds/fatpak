@@ -64,7 +64,6 @@ ENDM
 
 ;Code and data are always mapped (FIXED) or live in an OS page.
 DEF UI_PAGE       EQU 12
-DEF KEYWORDS_PAGE EQU 13
 DEF SGB_PAGE      EQU 13
 DEF COLOR_PAGE    EQU 15
 DEF KEYBOARD_PAGE EQU 15
@@ -73,9 +72,6 @@ DEF DOC_PAGE      EQU 14;with the large file functions in fatfs.c (fatfs.banks)
 DEF GAME_PAGE     EQU 12;sd_ReadBlocks, with fs_GameCopy in fatfs.c (fatfs.banks)
 DEF LAUNCH_PAGE   EQU 6;GameLaunch and game/loader.c (loader.banks)
 DEF THEME_PAGE    EQU 6;the editor's palettes (src/ui/theme.asm), outside MODULE_PAGE
-MACRO KEYWORDS_SECTION
-  PAGE KEYWORDS_PAGE
-ENDM
 MACRO COLOR_SECTION
   PAGE COLOR_PAGE
 ENDM
@@ -91,6 +87,12 @@ ENDM
 
 ;ROM0 stub body for calling C in another bank from C, keeps a, de, bc args and a, bc returns
 ;C functions called this way can't take stack args (more than 2 args, or a 32 bit first arg)
+MACRO FAR_THUNK ;\1 = function in a page: calls it with a, bc, de kept (FarCallInline), 6 bytes
+  call FarCallInline
+  DB BANK(\1)
+  DW \1
+ENDM
+
 MACRO BANKED_C ;\1 = C function
   ld h, a
   ldh a, [loaded_bank]

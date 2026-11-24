@@ -1,0 +1,18 @@
+# RGBDS assembly. Words are case insensitive, so they're written in lowercase.
+extensions asm inc s
+line ;
+block /* */
+quotes " '
+escape \
+fold
+dot
+labels
+radix
+keyword adc add and bit call ccf cp cpl daa dec di ei halt inc jp jr ld ldh ldi ldd nop
+keyword or pop push res ret reti rl rla rlc rlca rr rra rrc rrca rst sbc scf set sla sra srl stop sub swap xor
+type a b c d e h l af bc de hl sp hli hld z nz nc
+directive-word def equ equs redef rb rw rs rsreset rsset section load endl union nextu endu
+directive-word db dw dl ds include incbin macro endm shift rept for endr break if elif else endc export
+directive-word purge assert static_assert fail warn print println opt pusho popo pushs pops charmap
+directive-word newcharmap setcharmap pushc popc align fragment rom0 romx vram sram wram0 wramx oam hram
+directive-word bank high low sizeof startof strlen strcat strsub strupr strlwr

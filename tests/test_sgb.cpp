@@ -84,6 +84,7 @@ static void Pixels(GearboyCore& core, const std::map<std::string,unsigned>& syms
         }
     }
 }
+#define SGB_BORDER 0 // see Startup
 static void Startup(const char* image, const char* symbols, const char* data) {
     char folder[]="/tmp/fatpak-sgb-XXXXXX"; Check(mkdtemp(folder),"temporary SD");
     std::string root(folder); mkdir((root+"/GBCSYS").c_str(),0700);
@@ -97,7 +98,9 @@ static void Startup(const char* image, const char* symbols, const char* data) {
     memory->Write(syms.at("sgb_from_window"),0xA5);
     unsigned swaps=0, returned=0, saved_window=0, scx=0, scy=0;
     std::vector<u8> saved;
-    for(unsigned i=0;i<40000000 && !returned;++i) {
+    // The border is off (src/app/main.c's SGBSetDefaultBorder call is commented out): set
+    // SGB_BORDER to 1 when it comes back to test the transfers and their payloads again.
+    for(unsigned i=0;SGB_BORDER && i<40000000 && !returned;++i) {
         if(!core.GetProcessor()->DuringOpCode() && cpu->PC->GetValue()==syms.at("sgb_SwapDisplay")) {
             Check(memory->Read(0xFFFF)==0,"interrupts masked during LCD transfers");
             Check(!(memory->Read(0xFF40)&128),"display off while saving/restoring VRAM");
@@ -129,17 +132,19 @@ static void Startup(const char* image, const char* symbols, const char* data) {
         if (core.RunCycle(frame.data(),ticks)) core.RenderFrameBuffer(frame.data());
         if(i%3000==2999) { s16 audio[AUDIO_BUFFER_SIZE];int n=0;core.EndFrame(audio,&n); }
     }
-    Check(swaps==2 && returned,"startup completes border transfers");
+    if (SGB_BORDER) Check(swaps==2 && returned,"startup completes border transfers");
     Frames(core,500);
     Check(memory->Read(syms.at("sys_info"))&1,"OS detects SGB (SYS_INFO_SGB)");
     Check(memory->Read(syms.at("_data_loaded"))==1,"load editor assets");
     auto rom=Read(image);
     Check(!memcmp(core.GetSGB()->GetSystemPalettes(),rom.data()+15*8192+syms.at("DefaultPalettes")-0xA000,128),
           "PAL_TRN uses ROM palettes despite uninitialized WRAM source flag");
-    auto border=core.GetSGB()->GetBorder();
-    Check(!memcmp(border->tiles,bytes.data()+41*512,8192),"both CHR_TRN payloads survive LCD transport");
-    Check(!memcmp(border->map,bytes.data()+57*512,2048),"PCT_TRN map survives LCD transport");
-    Check(!memcmp(border->palette,bytes.data()+57*512+2048,128),"PCT_TRN palettes survive LCD transport");
+    if (SGB_BORDER) {
+        auto border=core.GetSGB()->GetBorder();
+        Check(!memcmp(border->tiles,bytes.data()+41*512,8192),"both CHR_TRN payloads survive LCD transport");
+        Check(!memcmp(border->map,bytes.data()+57*512,2048),"PCT_TRN map survives LCD transport");
+        Check(!memcmp(border->palette,bytes.data()+57*512+2048,128),"PCT_TRN palettes survive LCD transport");
+    }
     Pixels(core,syms);
     if (const char* path=getenv("FATPAK_SGB_SCREENSHOT")) {
         FILE* file=fopen(path,"wb"); Check(file,"create screenshot");
@@ -154,7 +159,7 @@ static void Startup(const char* image, const char* symbols, const char* data) {
     Pixels(core,syms);
     core.KeyPressed(Start_Key);Frames(core,4);core.KeyReleased(Start_Key);Frames(core,20);
     Pixels(core,syms);
-    printf("SGB startup, border payloads, browser scrolling and menu raster passed (%s)\n",folder);
+    printf("SGB startup, browser scrolling and menu raster passed (%s)\n",folder);
 }
 int main(int argc,char** argv) {
     Check(argc==4,"usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT");

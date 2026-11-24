@@ -1,0 +1,8 @@
+# project.gbp (FILE > BUILD's project, modules/assembler/asm_proj.c): its few commands, with asm's comments.
+extensions gbp
+line ;
+quotes "
+fold
+dot
+radix
+directive-word main output rgbasm rgbfix
