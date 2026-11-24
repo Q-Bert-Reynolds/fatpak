@@ -2,3 +2,4 @@
 ; name.c first, between the runtime's head (cchead.asm) and tail (crtend.asm)
 main start.asm GBCSYS/CC/cchead.asm _math.asm _util.asm GBCSYS/CC/crtend.asm
 output proj.gb
+rgbasm -D CCPROJ=3 -DLANG_EN

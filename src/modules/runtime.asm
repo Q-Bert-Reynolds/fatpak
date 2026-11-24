@@ -40,6 +40,8 @@ _module_retries:: DW;block copies that read back wrong and were made again, sinc
 module_sp: DW;ModuleEnter's stack, for ModuleAbort
 module_depth: DB;and the far calls under it
 _build_c:: DB;src/editor/build.c: BuildStart compiles (WRAM0 is full)
+_module_id:: DB;RunModule's: which module runs (ModulePanic records it)
+crash_sp: DW;SP when ModulePanic started
 
 FIXED "Module loader"
 ; A = 0 backup (page to MODULE_BACKUP), 1 install (MODULE_STAGE to page),
@@ -292,51 +294,6 @@ _ModuleSum::
   add sp, 2
   jp hl
 
-;CRC-16/CCITT (polynomial $1021, as Python's binascii.crc_hqx), a byte at a time without a table:
-;x = high ^ byte, x ^= x >> 4, crc = crc << 8 ^ x << 12 ^ x << 5 ^ x
-;de = data, bc = count > 0, stack: crc; returns bc = crc and removes its stack argument
-SECTION "Module checksum", ROM0;leave room in bank 1 for staging validation
-_ModuleCRC::
-  ld hl, sp+2
-  ld a, [hl+]
-  ld h, [hl]
-  ld l, a
-.byte
-  ld a, [de]
-  inc de
-  push de
-  xor h
-  ld d, a
-  swap a
-  and $0F
-  xor d
-  ld d, a;x
-  swap a
-  and $F0
-  xor l
-  ld e, a;low ^ x << 4
-  ld a, d
-  rrca
-  rrca
-  rrca
-  ld l, a;x rotated right 3
-  and $1F
-  xor e
-  ld h, a;high = low ^ x << 4 ^ x >> 3
-  ld a, l
-  and $E0
-  xor d
-  ld l, a;low = x << 5 ^ x
-  pop de
-  dec bc
-  ld a, b
-  or c
-  jr nz, .byte
-  ld b, h
-  ld c, l
-  pop hl
-  add sp, 2
-  jp hl
 
 ;calls [_module_entry] with de = [_module_context], returns its A
 FIXED "Module loader"
@@ -414,6 +371,42 @@ _ModuleAPIFar::
 
 INCLUDE "build/modules/table.inc"
 
+FIXED "Module panic record";resident bank 1: ROM0 has no gap this big
+PanicRecord:
+  ;for the next boot (ShowModuleRestart, CrashLog): "MF", the code, the module, its page, SP and
+  ;the stack's top 16 bytes (a crash's RST $38 return address first)
+  ld a, HIGH(MODULE_FAIL_BLOCK)
+  ld [EDX_BLOCK+1], a
+  ld a, LOW(MODULE_FAIL_BLOCK)
+  ld [EDX_BLOCK], a
+  ld hl, EDX_WINDOW
+  ld a, $4D;M
+  ld [hli], a
+  ld a, $46;F
+  ld [hli], a
+  ld a, [_module_fail]
+  ld [hli], a
+  ld a, [_module_fail+1]
+  ld [hli], a
+  ld a, [_module_id]
+  ld [hli], a
+  ldh a, [loaded_bank]
+  ld [hli], a
+  ld a, [crash_sp]
+  ld e, a
+  ld [hli], a
+  ld a, [crash_sp+1]
+  ld d, a
+  ld [hli], a
+  ld b, 16
+.stack
+  ld a, [de]
+  inc de
+  ld [hli], a
+  dec b
+  jr nz, .stack
+  ret
+
 ; A fatal restore cannot safely use the editor or any borrowed page. Draw with
 ; the resident font and direct VRAM writes instead, preserving the failure code.
 SECTION "Module panic", ROM0
@@ -427,6 +420,8 @@ ModuleCrash::
   ld [_module_fail+1], a
 _ModulePanic::
   di
+  ld [crash_sp], sp
+  call PanicRecord
   call RenderWaitDMA
   call gbdk_DisplayOff
   xor a

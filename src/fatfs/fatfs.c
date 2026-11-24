@@ -2385,6 +2385,37 @@ unsigned char fs_WriteImage(const char* path, UINT blocks) {
   SetWindowBlock(TB_PSRAM_HIGH << 8);
   closed = f_close(&save_file); return result ? result : closed;
 }
+extern void ShowFailure(unsigned int text); // src/modules/runtime.c
+unsigned char fs_AppendText(const char* path, const char* text, UINT n);
+// ModulePanic's record (src/modules/runtime.c's ShowModuleRestart copies it to buffer + 400: MF, the code, the module, its page, SP, the
+// stack's top 16 bytes) as a line of /GBCSYS/CRASH.LOG, for a PC to name the addresses (bin/GBCOS.sym,
+// build/modules/<name>/module.sym: the page is the bank), then the message
+static char* Hex(char* t, unsigned char b) {
+  static const char digits[] = "0123456789ABCDEF";
+  *t++ = digits[b >> 4];
+  *t++ = digits[b & 15];
+  return t;
+}
+void CrashLog(void) {
+  static const char path[] = "/GBCSYS/CRASH.LOG";
+  const unsigned char* r = buffer + 400; // CRASH_COPY
+  char* t = (char*)buffer;
+  unsigned char i;
+  for (i = 2; i < 6; ++i) { t = Hex(t, r[i]); *t++ = ' '; } // code, block, module, page
+  t = Hex(Hex(t, r[7]), r[6]); // SP
+  for (i = 8; i < 24; i += 2) { *t++ = ' '; t = Hex(Hex(t, r[i + 1]), r[i]); } // its words
+  *t++ = '\n';
+  fs_AppendText(path, (const char*)buffer, (unsigned int)(t - (char*)buffer));
+  ShowFailure(r[2] == 0xFE ? S_MODULE_CRASHED : S_RESTORE_FAILED);
+}
+
+// n bytes of text (in WRAM) at the end of path (made if it isn't there): /GBCSYS/CRASH.LOG; an FRESULT
+unsigned char fs_AppendText(const char* path, const char* text, UINT n) {
+  UINT done; FRESULT result, closed;
+  if ((result = fs_Mount()) || (result = f_open(&save_file, path, FA_WRITE | FA_OPEN_APPEND))) return result;
+  result = f_write(&save_file, text, n, &done);
+  closed = f_close(&save_file); return result ? result : closed;
+}
 // bytes of PSRAM from block to path (a project's C unit's assembly, CC_OUT_BLOCK), an FRESULT
 unsigned char fs_WriteText(const char* path, UINT block, UINT bytes) {
   UINT size, done; FRESULT result, closed;

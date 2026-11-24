@@ -410,7 +410,23 @@ static void FatalRestore(const char* image, const char* symbols, const char* dat
     cpu->PC->SetValue(0x38);
     Frames(s.core, 6);
     CheckPanic(s, "FE:00");
-    printf("%s fatal restore and module crash vector leave a resident error screen\n", color ? "CGB" : "DMG");
+    // the record for the next boot (ModulePanic, MODULE_FAIL_BLOCK $3D6E): MF, FE 00, the module, its page, SP and its stack
+    s.memory->Write(0xBD03, 0x3D); s.memory->Write(0xBD02, 0x6E);
+    Check(s.memory->Read(0xBE00) == 'M' && s.memory->Read(0xBE01) == 'F' && s.memory->Read(0xBE02) == 0xFE,
+          "a crash leaves its record in PSRAM for the next boot");
+    unsigned sp = s.memory->Read(0xBE06) | s.memory->Read(0xBE07) << 8;
+    // a reset (PSRAM stays) appends it to /GBCSYS/CRASH.LOG
+    remove((s.root + "/GBCSYS/CRASH.LOG").c_str());
+    s.core.ResetROMPreservingRAM(!color);
+    Frames(s.core, 1500);
+    auto log = Read(s.root + "/GBCSYS/CRASH.LOG");
+    std::string line(log.begin(), log.end());
+    char want[16]; snprintf(want, sizeof(want), "FE 00 ");
+    if (line.find(want) != 0) fprintf(stderr, "CRASH.LOG: \"%s\"\n", line.c_str());
+    Check(line.find(want) == 0 && line.size() > 20 && line.back() == '\n', "the next boot writes the crash to CRASH.LOG");
+    char spx[8]; snprintf(spx, sizeof(spx), "%04X", sp);
+    Check(line.find(spx) != std::string::npos, "the log has the crash's SP");
+    printf("%s fatal restore and module crash vector leave a resident error screen; CRASH.LOG: %s", color ? "CGB" : "DMG", line.c_str());
 }
 
 // project.gbp (tests/asm/project): BUILD from any file builds its main with its rgbasm and rgbfix

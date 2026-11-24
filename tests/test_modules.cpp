@@ -48,7 +48,7 @@ static void Frames(GearboyCore& core, unsigned count)
 }
 static unsigned call_stack;
 static unsigned call_bc;
-static unsigned corrupt_stage_copy, corrupt_stage_buffer, corrupt_stage_return, staging_faults, staging_skip;
+static unsigned corrupt_stage_copy, corrupt_stage_buffer, corrupt_stage_return, staging_faults, staging_skip, staging_block = 0xFFFF;
 static unsigned Call(GearboyCore& core, unsigned address, unsigned argument = 0, u8 a = 0, unsigned bc = 0)
 {
     auto cpu = core.GetProcessor()->GetState(); auto memory = core.GetMemory();
@@ -58,8 +58,11 @@ static unsigned Call(GearboyCore& core, unsigned address, unsigned argument = 0,
     {
         // Damage a byte after the WRAM-to-PSRAM staging copy, leaving the file and
         // its WRAM read buffer valid. Checking only the read buffer misses this.
+        // (an interrupt taken at memcpy's first instruction comes back to it: the same block isn't another copy)
+        unsigned block = memory->Read(0xBD03) << 8 | memory->Read(0xBD02);
         if (corrupt_stage_copy && cpu->PC->GetValue() == corrupt_stage_copy &&
-            cpu->DE->GetValue() == 0xBE00 && cpu->BC->GetValue() == corrupt_stage_buffer) {
+            cpu->DE->GetValue() == 0xBE00 && cpu->BC->GetValue() == corrupt_stage_buffer && block != staging_block) {
+            staging_block = block;
             if (staging_skip) --staging_skip;
             else {
                 unsigned sp = cpu->SP->GetValue();
@@ -169,6 +172,7 @@ static void Modules(const char* image,const char* symbols,const char* data,const
         corrupt_stage_buffer = syms.at("_buffer");
         staging_faults = 0;
         staging_skip = skip;
+        staging_block = 0xFFFF;
         run(name,invalid);
         Check(staging_faults == 1, "a corrupted PSRAM staging copy is rejected before installation");
         unsigned i = 0;

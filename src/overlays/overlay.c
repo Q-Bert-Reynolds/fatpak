@@ -10,7 +10,7 @@
 extern unsigned char RenderOverlayStart[], RenderOverlayEnd[];
 extern unsigned int overlay_saved[3];
 extern void SetWindowBlock(unsigned int block);
-extern unsigned int ModuleCRC(const unsigned char* data, unsigned int n, unsigned int crc);
+extern unsigned int ModuleSum(const unsigned char* data, unsigned int n, unsigned int sum); // runtime.asm: the modules' Fletcher-16
 
 static unsigned int Word(const unsigned char* p) { return p[0] | ((unsigned int)p[1]<<8); }
 static unsigned int Chunk(unsigned int offset, unsigned int n) {
@@ -21,13 +21,13 @@ static unsigned int WindowCRC(unsigned int block, unsigned int offset, unsigned 
   unsigned int crc=0xFFFF, count;
   while(n) {
     SetWindowBlock(block++); count=Chunk(offset,n);
-    crc=ModuleCRC((const unsigned char*)WINDOW+offset,count,crc);
+    crc=ModuleSum((const unsigned char*)WINDOW+offset,count,crc);
     n-=count; offset=0;
   }
   return crc;
 }
 // Copies count (> 0) bytes, reading each back: 1 if one didn't stick. DE = to, BC = from, the count on the
-// stack (removed, as ModuleCRC's)
+// stack (removed, as ModuleSum's)
 static unsigned char CopyCheck(unsigned char* to, const unsigned char* from, unsigned int count) __naked {
   to; from; count;
   __asm
@@ -105,7 +105,7 @@ static unsigned char Prepare(void) {
 static unsigned char Restore(void) {
   if(WindowCRC(OVERLAY_BACKUP,0,overlay_saved[1])!=overlay_saved[2] ||
      Transfer(0,OVERLAY_BACKUP,0,(unsigned char*)overlay_saved[0],overlay_saved[1]) ||
-     ModuleCRC((const unsigned char*)overlay_saved[0],overlay_saved[1],0xFFFF)!=overlay_saved[2]) return OVERLAY_FATAL;
+     ModuleSum((const unsigned char*)overlay_saved[0],overlay_saved[1],0xFFFF)!=overlay_saved[2]) return OVERLAY_FATAL;
   overlay_live=0; return OVERLAY_OK;
 }
 unsigned char OverlayInstallBody(void) {
@@ -117,7 +117,7 @@ unsigned char OverlayInstallBody(void) {
   result=Prepare();
   if(!result) {
     overlay_saved[0]=overlay_request.target; overlay_saved[1]=overlay_request.length;
-    overlay_saved[2]=ModuleCRC((const unsigned char*)overlay_saved[0],overlay_saved[1],0xFFFF);
+    overlay_saved[2]=ModuleSum((const unsigned char*)overlay_saved[0],overlay_saved[1],0xFFFF);
     // Transfer reads each byte back, so the backup equals the CRC'd renderer and the installed bytes the CRC'd
     // source (Prepare): no CRC passes over them again
     result=Transfer(1,OVERLAY_BACKUP,0,(unsigned char*)overlay_saved[0],overlay_saved[1]);

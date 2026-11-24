@@ -36,7 +36,8 @@ extern unsigned int tb_Read(unsigned char* buffer, unsigned int size); // from t
 extern unsigned char ModuleEnter(void);
 extern void ModuleAbort(unsigned char status); // runtime.asm: back out of the module, ModuleEnter returns status
 extern unsigned int module_retries; // runtime.asm: block copies made again since RunModule started
-extern void ModulePanic(void); // resident error screen; never returns to damaged module state
+extern void ModulePanic(void); // resident error screen; never returns to damaged module state (it records the failure)
+extern unsigned char module_id; // runtime.asm: the module RunModule runs
 extern unsigned char fs, save_file; // src/fatfs/fatfs.c: FatFs's volume and the loader's file (ModStat gives their addresses)
 extern unsigned long sd_sector; // src/fatfs/sd.asm
 extern unsigned char sd_ReadSector(unsigned char* buffer);
@@ -80,6 +81,7 @@ unsigned char RunModule(const char* path, unsigned char id) {
   unsigned int window = WINDOW_BLOCK; // modules may move it
   if (module_busy) return FR_LOCKED;
   module_busy = 1;
+  module_id = id;
   module_fail = 0;
   module_retries = 0;
   if (id != MODULE_LINK && id != MODULE_ASM) module_frames = 0; // BUILD's go on from its first (the box, build.log)
@@ -123,7 +125,7 @@ unsigned char RunModule(const char* path, unsigned char id) {
 }
 
 // text and the failed copy as operation:block (ModuleSwap's operation, 32 and up for ModuleSwapRAM's)
-static void ShowFailure(unsigned int text) {
+void ShowFailure(unsigned int text) {
   char line[LANG_MAX + 8], *end;
   unsigned char op = ((unsigned char*)&module_fail)[0];
   end = PutStr(line, S_PART(text, 0));
@@ -132,20 +134,25 @@ static void ShowFailure(unsigned int text) {
   ShowMessage(line);
 }
 // after a restart for a restore that never read back: says so once (main.c)
+#define CRASH_RECORD 24 // ModulePanic's bytes
+#define CRASH_COPY 400 // where in buffer they wait for CrashLog (src/fatfs/fatfs.c, page 14)
+extern void CrashLog(void);
 void ShowModuleRestart(void) {
   unsigned char* w = (unsigned char*)WINDOW;
   unsigned int saved = WINDOW_BLOCK;
-  unsigned char found;
+  unsigned char found, saved_n;
   SetWindowBlock(MODULE_FAIL_BLOCK);
   found = w[0] == 'M' && w[1] == 'F';
   if (found) {
     ((unsigned char*)&module_fail)[0] = w[2];
     ((unsigned char*)&module_fail)[1] = w[3];
+    for (saved_n = 0; saved_n < CRASH_RECORD; ++saved_n) buffer[CRASH_COPY + saved_n] = w[saved_n];
     w[0] = 0;
   }
   SetWindowBlock(saved);
-  if (found) ShowFailure(S_RESTORE_FAILED);
+  if (found) CrashLog();
 }
+
 
 void ShowModuleError(unsigned char result) {
   if (result == FR_NO_FILE || result == FR_NO_PATH) ShowMessage(Str(S_MODULE_MISSING));

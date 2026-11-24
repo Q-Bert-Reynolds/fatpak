@@ -3,6 +3,7 @@
 from pathlib import Path
 import argparse
 import binascii
+import utils
 import struct
 
 HEADER=struct.Struct('<4sBB2sHHHH')
@@ -26,7 +27,7 @@ def pack(payload,host,target,entry,lower,upper):
         raise ValueError('overlay payload/binding')
     if not lower<=target<=entry<target+len(payload)<=upper:
         raise ValueError('overlay outside audited renderer interval')
-    crc=binascii.crc_hqx(payload,0xFFFF)
+    crc=utils.module_sum(payload)
     return (HEADER.pack(b'OVL1',ABI,KIND_RENDER,bytes(host),target,len(payload),entry,crc)+payload).ljust(PAGE,b'\0')
 
 
@@ -37,7 +38,7 @@ def unpack(image,host,lower,upper):
     if (magic,abi,kind,binding)!=(b'OVL1',ABI,KIND_RENDER,bytes(host)):
         raise ValueError('overlay host/ABI/kind')
     body=image[HEADER.size:HEADER.size+size]
-    if binascii.crc_hqx(body,0xFFFF)!=crc or pack(body,host,target,entry,lower,upper)!=image:
+    if utils.module_sum(body)!=crc or pack(body,host,target,entry,lower,upper)!=image:
         raise ValueError('overlay CRC/geometry/padding')
     return target,entry,body
 

@@ -1,4 +1,5 @@
 # Every API wrapper and the orchestration must remain mapped during replacement.
+THUNKS: FIXED
 *: FIXED
 # The include search (ModFile, ModLoad) and ModProgress: ROM0, always mapped
 ROM0: FileSearch FileTry ModuleAPIProgress ModuleAPISector

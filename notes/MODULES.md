@@ -235,9 +235,14 @@ that still fails writes `MF`, operation, block to PSRAM block `MODULE_FAIL_BLOCK
 (`$3d6e`), then stops on a resident `MODULE hh:hh` screen (operation and block
 in hexadecimal). It draws directly from the resident font without editor buffers
 or borrowed pages; reset is required. A module reaching RST `$38` shows
-`MODULE FE:00` instead of silently restarting the OS. If the failure marker
-survives a reset, startup also shows RESTORE FAILED op:block
-(`ShowModuleRestart`). Page and buffer copies have failed on hardware since the
+`MODULE FE:00` instead of silently restarting the OS. Either way `ModulePanic` (its
+`PanicRecord`, resident bank 1) leaves a record at `MODULE_FAIL_BLOCK` in PSRAM, which a reset
+keeps: `MF`, the code, the module's ID (`module_id`, set by `RunModule`), the page mapped at
+`$A000`, SP and the stack's top 16 bytes. The next boot (`ShowModuleRestart`, then `CrashLog` in
+`src/fatfs/fatfs.c`) appends it to **`/GBCSYS/CRASH.LOG`** as a line of hex and shows CRASH LOGGED
+op:block (RESTORE FAILED for a copy failure). `python3 scripts/crash_log.py [file]` (default: the
+mounted card's) names each word from `bin/GBCOS.sym` and the module's `module.sym`: a crash's
+first word is the address after its `RST $38`, the rest show the calls under it (2026-11-23). Page and buffer copies have failed on hardware since the
 third page was added (2026-11-11): BUILD restarted the device, larger sources
 gave MODULE LOAD FAILED. Some copies read back wrong once and right the next
 time. Gearboy does not reproduce the spontaneous hardware failures; the tests
@@ -254,7 +259,7 @@ around `tb_Read`, since the module may have moved the window.
 | Result | `ShowModuleError` |
 | --- | --- |
 | `FR_NO_FILE`, `FR_NO_PATH` | MODULE MISSING |
-| `FR_INVALID_OBJECT` (any header, size or CRC problem) | MODULE DAMAGED |
+| `FR_INVALID_OBJECT` (any header, size or checksum problem) | MODULE DAMAGED |
 | `MODULE_ERR_ABI` | MODULE NEEDS NEWER OS |
 | `MODULE_ERR_VERIFY` | MODULE LOAD FAILED op:block (the first copy that never read back) |
 | other FRESULT | `ShowError` (NO SD CARD, SD ERROR n, ...) |

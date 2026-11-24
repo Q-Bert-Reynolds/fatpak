@@ -31,3 +31,12 @@ def constants(path="src/constants.asm"):
         text = match.group(2)
         values[match.group(1)] = int(text[1:], 16) if text[0] == "$" else int(text[1:], 2) if text[0] == "%" else int(text)
   return values
+
+
+def module_sum(data, s1=0xFF, s2=0xFF):
+    """The OS's check of modules, overlays and drivers (src/modules/runtime.asm ModuleSum): Fletcher-16
+    with 8-bit sums, s1 += byte then s2 += s1, from $FF, $FF; returns s2 << 8 | s1."""
+    for byte in data:
+        s1 = (s1 + byte) & 0xFF
+        s2 = (s2 + s1) & 0xFF
+    return s2 << 8 | s1

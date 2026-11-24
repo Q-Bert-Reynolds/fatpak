@@ -81,10 +81,13 @@ u16 cc_host_runtime(u16 pos, char* dest, u16 n) {
   static u8 loaded;
   if (!loaded) {
     ModuleLoad load;
+    char name[sizeof(rt)];
+    u8 i;
+    for (i = 0; i < sizeof(rt); ++i) name[i] = rt[i]; // to the stack: cc_load_os's page can't read this one's constants
     load.block = CC_INCLUDE_BLOCK;
     load.blocks = 128;
     loaded = 1;
-    size = cc_load_os(rt, &load) ? 0 : (u16)load.size;
+    size = cc_load_os(name, &load) ? 0 : (u16)load.size;
   }
   if (pos >= size) return 0;
   if (n > size - pos) n = (u16)(size - pos);

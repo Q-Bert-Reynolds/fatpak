@@ -4,8 +4,8 @@
 // PutStr(dest, id) and Str(id) (src/strings.asm), ModString in modules; S_PART(id, n) is the
 // text after its nth {}, up to the next
 #define S_PART(id, n) ((id) | ((n) << 12))
-#define STR_COUNT 228
-#define STR_HASH 0x1FD0u
+#define STR_COUNT 229
+#define STR_HASH 0x55ABu
 #define LANGUAGES 2
 #define LANG_CODES "ENES" // 2 characters each: /GBCSYS/LANG/<code>.DAT
 #define S_MENU_FILE 0 // FILE
@@ -236,4 +236,5 @@
 #define S_MAP_WRAPPER 225 // (wrapper)
 #define S_MAP_CHUNK 226 // chunk
 #define S_CC_PASS 227 // Compiling {}/3
+#define S_MODULE_CRASHED 228 // CRASH LOGGED {}:{}
 #endif

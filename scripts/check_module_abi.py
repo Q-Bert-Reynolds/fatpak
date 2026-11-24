@@ -29,7 +29,7 @@ ASM = {
     '_ModuleAPIOverlay': ['_OverlayInstall', '_OverlayRestore'],
     '_OverlayInstall': ['_OverlayInstallBody'],
     '_OverlayRestore': ['_OverlayRestoreBody'],
-    '_ModuleCRC': [],
+    '_ModuleSum': [],
     'KBDriverInstall': ['KeyboardDriverInit', 'mem_Copy', '_SettingsSave', '_FileSaveSwap'],
     'KeyboardDriverInit': [], 'mem_Copy': [],
     '_tb_ClipLength': [], '_tb_Length': [], '_ByteSum': [],

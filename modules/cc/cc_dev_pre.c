@@ -96,6 +96,56 @@ unsigned char ModuleMain(CcContext* context) __naked {
     ret
   __endasm;
 }
+// A project's units get its defines, as a Makefile hands the same -D to rgbasm and sdcc: the
+// rgbasm line's -D NAME[=VALUE] (-DNAME too) of project.gbp, read into the includes' PSRAM first
+static u16 proj_at, proj_n;
+static char proj_char(void) {
+  char c;
+  if (proj_at >= proj_n) return 0;
+  m_get((u16)(CC_INCLUDE_BLOCK + (proj_at >> 9)), proj_at & 511, &c, 1);
+  ++proj_at;
+  return c;
+}
+static u8 proj_word(char* w, char* c) { // the line's next word into w (its first char in *c, then the one after it)
+  u8 n = 0;
+  while (*c == ' ' || *c == '\t' || *c == '\r') *c = proj_char();
+  while (*c && *c != ' ' && *c != '\t' && *c != '\r' && *c != '\n' && *c != ';') {
+    if (n < 62) w[n++] = *c;
+    *c = proj_char();
+  }
+  w[n] = 0;
+  return n;
+}
+static void project_defines(void) {
+  static const char proj[] = "project.gbp";
+  ModuleLoad load;
+  char w[64], c, *v, *name;
+  u8 i, define;
+  for (i = 0; (w[i] = proj[i]) != 0; ++i); // to the stack: cc_load_os's page can't read this one's constants
+  load.block = CC_INCLUDE_BLOCK;
+  load.blocks = 16;
+  if (cc_load_os(w, &load)) return;
+  proj_at = 0;
+  proj_n = (u16)load.size;
+  c = proj_char();
+  while (c) {
+    define = 0;
+    if (proj_word(w, &c) == 6) {
+      for (i = 0; i < 6; ++i) w[i] |= 0x20;
+      define = w[0] == 'r' && w[1] == 'g' && w[2] == 'b' && w[3] == 'a' && w[4] == 's' && w[5] == 'm';
+    }
+    while (define && proj_word(w, &c)) {
+      if (w[0] != '-' || w[1] != 'D') continue;
+      name = w + 2;
+      if (!*name) { if (!proj_word(w, &c)) break; name = w; }
+      for (v = name; *v && *v != '='; ++v);
+      if (*v) *v++ = 0; else v = 0;
+      cc_define(name, v);
+    }
+    while (c && c != '\n') c = proj_char();
+    if (c) c = proj_char();
+  }
+}
 static unsigned char pass_main(CcContext* context) {
   // the unit's prefix: the document's name up to its dot, as letters, digits and _
   char unit[24];
@@ -106,6 +156,7 @@ static unsigned char pass_main(CcContext* context) {
     unit[n++] = (*s >= 'a' && *s <= 'z') || (*s >= 'A' && *s <= 'Z') || (*s >= '0' && *s <= '9') ? *s : '_';
   unit[n] = 0;
   cc_pass_a_init();
+  if (context->source) project_defines();
   if (cc_pass_a(context->source ? context->source : "", unit, context->source ? CC_SDCC : CC_WRAP)) return cc_st.status;
   cc_chain(MODULE_CCB);
   return 0;

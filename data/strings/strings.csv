@@ -227,3 +227,4 @@ MAP_ERROR_N,box,the error's number,map: error {},el mapa: error {}
 MAP_WRAPPER,box,map viewer: a build error's file when it's the generated wrapper,(wrapper),(envoltorio)
 MAP_CHUNK,row,map viewer header (Select): the chunk's number follows,chunk ,bloque 
 CC_PASS,box,"compile progress: CC's pass, 1 to 3, above the file and line",Compiling {}/3,Compilando {}/3
+MODULE_CRASHED,bar,"a module crashed before the last restart (operation:block, FE: an RST $38); /GBCSYS/CRASH.LOG has the details",CRASH LOGGED {}:{},FALLO ANOTADO {}:{}

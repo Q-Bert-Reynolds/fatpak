@@ -48,7 +48,9 @@ and constants in `SECTION FRAGMENT "<path>_CODE", ROMX`, data in `"<path>_DATA"`
 zero-initialized data in `"<path>_BSS"` (`WRAMX`), `<path>` as project.gbp's folder names it
 (`src/baseball/announcer.c`). The runtime's helpers it calls come in its code fragment
 (`copy_runtime`: `rt/ccrt.asm`'s text, every `__cc_` name as `__<unit>_cc_`), so the file needs
-nothing else and `rgbasm` on a PC assembles it as SDCC's. A quoted `#include` is found beside the
+nothing else and `rgbasm` on a PC assembles it as SDCC's. The unit gets project.gbp's `rgbasm`
+line's `-D NAME[=VALUE]` defines too (`project_defines`, as beisbol's Makefile hands the same
+`DEFINES` to rgbasm and sdcc: its strings need `LANG_EN`). A quoted `#include` is found beside the
 file that includes it (`../` folded), then as before. Initialized data (not `const`) still uses
 the `cc_init` records: list `GBCSYS/CC/cchead.asm` before the C units and `GBCSYS/CC/crtend.asm`
 after them, and call `_cc_init` once from the start-up after clearing WRAM. Calls between C and
