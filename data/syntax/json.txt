@@ -1,0 +1,5 @@
+# JSON.
+extensions json
+quotes "
+escape \
+number true false null

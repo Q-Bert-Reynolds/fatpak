@@ -266,9 +266,12 @@ excluded); physical offsets map to block + window offset.
   non-space when no word follows; `` ` `` toggles code. Markers are dim
   `STYLE_MARK`.
 - **Code** (`TBLexCode`) is styled by a syntax definition,
-  `/GBCSYS/SYNTAX/<EXT>.SYN`, compiled by `scripts/syntax.py` from
-  `data/syntax/*.txt` (one file per extension; C, asm, project.gbp and Python
-  so far). `fs_LoadSyntax` (page 13) loads the open file's when `SetLang` runs:
+  `/GBCSYS/SYNTAX/<KEY>.SYN`, compiled by `scripts/syntax.py` from
+  `data/syntax/*.txt`. A file's key is the text after its last dot, or its whole
+  name without one (`MAKEFILE.SYN`, `GITIGNORE.SYN`), at most 12 chars; one
+  .SYN per key. There are definitions for C, C++, RGBDS asm, ca65 (`.s`),
+  project.gbp, Python, Lua, shell, Makefiles, .gitignore, JSON, .banks, rgblink
+  and ld65 scripts and SDCC peephole rules. `fs_LoadSyntax` (page 13) loads the open file's when `SetLang` runs:
   its header (line comment, block open/close, two quotes, escape, directive char,
   `SYN_*` flags for case-folded keywords, `.` in words, labels, `$`/`%` numbers)
   goes to `syn_flags` in WRAMX, its keyword buckets to PSRAM `SYNTAX_BLOCK`

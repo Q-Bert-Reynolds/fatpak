@@ -200,7 +200,7 @@ DEF LANG_CODE    EQU 5;any other extension with a syntax definition
 ;syntax definitions (scripts/syntax.py): code (C and up) is styled by the one loaded (syn_flags)
 DEF SYN_VERSION  EQU 1
 DEF SYN_HEADER   EQU 16;bytes before the bucket offsets, the last 12 are copied to syn_flags
-DEF SYN_EXT_MAX  EQU 4;longest extension with a definition
+DEF SYN_KEY_MAX  EQU 12;longest key: the extension, or the whole name without one (Makefile)
 DEF KEYWORD_MAX  EQU 16;longest keyword
 DEF SYN_FOLD     EQU 0;syn_flags: keywords are case insensitive
 DEF SYN_DOT      EQU 1;. can be in a word

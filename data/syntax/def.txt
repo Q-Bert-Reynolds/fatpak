@@ -1,0 +1,4 @@
+# SDCC peephole rule files (peephole.def).
+extensions def
+line //
+directive-word replace by if restart

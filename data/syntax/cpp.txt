@@ -1,0 +1,17 @@
+# C++.
+extensions cpp hpp cc cxx hh
+line //
+block /* */
+quotes " '
+escape \
+directive #
+keyword alignas alignof asm auto break case catch class const consteval constexpr constinit const_cast
+keyword continue co_await co_return co_yield decltype default delete do dynamic_cast else enum explicit
+keyword export extern final for friend goto if inline mutable namespace new noexcept operator override
+keyword private protected public register reinterpret_cast requires return sizeof static static_assert
+keyword static_cast struct switch template this thread_local throw try typedef typeid typename union
+keyword using virtual volatile while
+type bool char char8_t char16_t char32_t double float int long short signed unsigned void wchar_t
+type size_t int8_t int16_t int32_t int64_t uint8_t uint16_t uint32_t uint64_t std string vector map
+type u8 u16 u32 s8 s16 s32
+number true false nullptr NULL

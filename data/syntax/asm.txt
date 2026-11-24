@@ -1,5 +1,5 @@
 # RGBDS assembly. Words are case insensitive, so they're written in lowercase.
-extensions asm inc s
+extensions asm inc
 line ;
 block /* */
 quotes " '

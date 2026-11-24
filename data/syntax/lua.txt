@@ -1,0 +1,9 @@
+# Lua. Long --[[ ]] comments and [[ ]] strings aren't lexed (markers are at most 2 chars): only their first line.
+extensions lua
+line --
+quotes " '
+escape \
+keyword and break do else elseif end for function goto if in local not or repeat return then until while
+type self _G _ENV
+number true false nil
+directive-word require

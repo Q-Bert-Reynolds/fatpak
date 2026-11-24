@@ -203,7 +203,7 @@
 //syntax definitions (scripts/syntax.py): code (C and up) is styled by the one loaded (syn_flags)
 #define SYN_VERSION  1
 #define SYN_HEADER   16//bytes before the bucket offsets, the last 12 are copied to syn_flags
-#define SYN_EXT_MAX  4//longest extension with a definition
+#define SYN_KEY_MAX  12//longest key: the extension, or the whole name without one (Makefile)
 #define KEYWORD_MAX  16//longest keyword
 #define SYN_FOLD     0//syn_flags: keywords are case insensitive
 #define SYN_DOT      1//. can be in a word

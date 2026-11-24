@@ -1,0 +1,4 @@
+# FatPak's .banks placement files (scripts/bank_split.py): page: functions.
+extensions banks
+line #
+directive-word ROM0 FIXED DATA THUNKS OMIT

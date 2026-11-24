@@ -1,0 +1,9 @@
+# Shell scripts.
+extensions sh bash
+line #
+quotes " '
+escape \
+keyword if then else elif fi for while until do done case esac in function return break continue
+keyword local export readonly declare set unset shift trap exit source eval exec time select
+type echo printf cd test read mkdir rm cp mv cat grep sed awk find xargs sort head tail tr wc pwd
+number true false

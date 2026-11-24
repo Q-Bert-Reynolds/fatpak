@@ -1,0 +1,10 @@
+# Makefiles. Words at column 0 (targets and variables) are labels.
+names Makefile makefile GNUmakefile mk
+line #
+quotes " '
+dot
+labels
+keyword ifeq ifneq ifdef ifndef else endif include define endef export unexport override vpath
+type shell wildcard patsubst subst filter sort dir notdir basename suffix addprefix
+type addsuffix foreach call eval origin value word words firstword lastword join strip findstring
+directive-word .PHONY .SUFFIXES .DEFAULT .PRECIOUS .INTERMEDIATE .SECONDARY .DELETE_ON_ERROR

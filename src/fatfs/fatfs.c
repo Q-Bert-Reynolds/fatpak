@@ -479,27 +479,29 @@ unsigned char fs_LoadLanguage(const char* path, unsigned char first) {
 }
 
 extern unsigned char syn_flags[SYN_HEADER - 4]; // src/editor/text_buffer.asm, 0 = no definition
-extern char syn_ext[SYN_EXT_MAX + 1];
-// loads the syntax definition for name's extension (/GBCSYS/SYNTAX/<EXT>.SYN, scripts/syntax.py) to
+extern char syn_ext[SYN_KEY_MAX + 1];
+// loads the syntax definition for name's key, the text after its last dot or else the whole name
+// (/GBCSYS/SYNTAX/<KEY>.SYN, scripts/syntax.py), to
 // SYNTAX_BLOCK and syn_flags. Returns 0 if there isn't one (code isn't styled then), 1 if it's the one
 // already loaded, 2 if it loaded. Its own FIL: a large document keeps file open
 unsigned char fs_LoadSyntax(const char* name) {
   FIL syntax;
-  char path[sizeof("/GBCSYS/SYNTAX/.SYN") + SYN_EXT_MAX], *p = path + sizeof("/GBCSYS/SYNTAX/") - 1, *ext = p;
+  char path[sizeof("/GBCSYS/SYNTAX/.SYN") + SYN_KEY_MAX], *p = path + sizeof("/GBCSYS/SYNTAX/") - 1, *ext = p;
   const char *c, *dot = 0;
   unsigned char block, length = 0, ch;
   UINT count = 512;
   FRESULT result;
-  for (c = name; *c; ++c) if (*c == '.') dot = c;
-  if (dot) for (c = dot + 1; *c; ++c) {
+  for (c = name; *c; ++c) if (*c == '.') dot = c + 1;
+  if (!dot) dot = name; // the whole name: Makefile
+  for (c = dot; *c; ++c) {
     ++length;
-    if (length > SYN_EXT_MAX) break;
+    if (length > SYN_KEY_MAX) break;
     ch = *c;
     if (ch >= 'a') ch -= 'a' - 'A';
     *p++ = ch;
   }
   *p = 0;
-  if (!length || length > SYN_EXT_MAX) goto none;
+  if (!length || length > SYN_KEY_MAX) goto none;
   if ((syn_flags[0] & 1 << SYN_LOADED) && !memcmp(ext, syn_ext, length + 1)) return 1;
   memcpy(path, "/GBCSYS/SYNTAX/", sizeof("/GBCSYS/SYNTAX/") - 1);
   memcpy(p, ".SYN", sizeof(".SYN"));

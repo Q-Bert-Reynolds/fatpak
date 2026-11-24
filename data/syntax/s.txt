@@ -1,0 +1,20 @@
+# ca65 (65816/6502) assembly, the SNES kernel's .s files. Words are case insensitive.
+extensions s
+line ;
+quotes " '
+escape \
+fold
+dot
+labels
+radix
+keyword adc and asl bcc bcs beq bit bmi bne bpl bra brk brl bvc bvs clc cld cli clv cmp cop cpx cpy
+keyword dec dex dey eor inc inx iny jml jmp jsl jsr lda ldx ldy lsr mvn mvp nop ora pea pei per pha
+keyword phb phd phk php phx phy pla plb pld plp plx ply rep rol ror rti rtl rts sbc sec sed sei sep
+keyword sta stp stx sty stz tax tay tcd tcs tdc trb tsb tsc tsx txa txs txy tya tyx wai wdm xba xce
+type a x y s
+directive-word .a8 .a16 .i8 .i16 .smart .p816 .p02 .setcpu .segment .code .rodata .data .bss .zeropage
+directive-word .proc .endproc .scope .endscope .macro .endmacro .endmac .include .incbin .import .export
+directive-word .importzp .exportzp .global .globalzp .byte .word .addr .dword .faraddr .res .align .org
+directive-word .if .ifdef .ifndef .else .elseif .endif .define .undefine .assert .error .warning .local
+directive-word .struct .endstruct .enum .endenum .tag .sizeof .bankbyte .loword .hiword .lobyte .hibyte
+directive-word .repeat .endrep .charmap .feature .reloc .out .asciiz

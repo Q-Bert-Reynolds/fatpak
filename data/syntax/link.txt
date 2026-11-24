@@ -1,0 +1,6 @@
+# rgblink linker scripts (pages.link).
+extensions link
+line ;
+quotes "
+radix
+directive-word ROM0 ROMX VRAM SRAM WRAM0 WRAMX OAM HRAM ORG FLOATING INCLUDE ALIGN DS OPTIONAL

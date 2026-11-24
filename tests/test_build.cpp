@@ -556,6 +556,23 @@ static void Highlighting(const char* image, const char* symbols, const char* dat
         Check(s.memory->Read(s.syms.at("_tb_lang")) == 5, "it's LANG_CODE");
     }
     {
+        Session s(image, symbols, data, color, "Makefile", "all: x\n\t$(CC) # c\nifeq\n");
+        expect(s, 0, {{0, 14}, {5, 0}}, "a file without an extension is found by name (Makefile), targets are labels");
+        expect(s, 1, {{7, 8}}, "its comments");
+        expect(s, 2, {{0, 9}}, "a keyword at column 0 isn't a label");
+    }
+    {
+        // the browser hides dot files (.gitignore itself); a key longer than an extension
+        Session s(image, symbols, data, color, "x.gitignore", "# c\nbuild/\n");
+        expect(s, 0, {{0, 8}, {2, 8}}, "a long key after the dot (gitignore)");
+        expect(s, 1, {{0, 0}}, "its patterns are plain");
+    }
+    {
+        Session s(image, symbols, data, color, "k.s", "Start: lda #$10 ; c\n  .proc Main\n");
+        expect(s, 0, {{0, 14}, {7, 9}, {11, 0}, {12, 12}, {16, 8}}, "ca65 (.s): label, instruction, number, comment");
+        expect(s, 1, {{2, 13}, {3, 13}, {8, 0}}, "its . directives");
+    }
+    {
         Session s(image, symbols, data, color, "x.zz", "def x // y\n");
         expect(s, 0, {{0, 0}, {6, 0}}, "an extension without a definition is plain text");
     }

@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Compiles data/syntax/*.txt to bin/SYNTAX/<EXT>.SYN, one per extension, for /GBCSYS/SYNTAX: how the
+"""Compiles data/syntax/*.txt to bin/SYNTAX/<KEY>.SYN, one per extension or name, for /GBCSYS/SYNTAX: how the
 editor styles a file with that extension (src/editor/text_buffer.asm's TBLexCode, loaded by
 src/fatfs/fatfs.c's fs_LoadSyntax). Markdown is built in and has no definition.
 
 A source has one setting per line, # starts a comment line:
   extensions c h        the extensions it's for
+  names Makefile        or whole names, for files without an extension. A file's key is the text after
+                        its last dot (.gitignore: gitignore) or, with no dot, its name; KEY.SYN is its
+                        definition
   line //               line comment, 1 or 2 chars
   block /* */           block comment open and close, 1 or 2 chars each
   quotes " '            1 or 2 string quotes (the second is styled the same, like C's chars)
@@ -55,7 +58,7 @@ def compile_source(source):
   for raw in source.read_text().splitlines():
     if not raw.strip() or raw.lstrip().startswith('#'): continue
     key, *args = raw.split()
-    if key == 'extensions': extensions += args
+    if key in ('extensions', 'names'): extensions += args
     elif key == 'line': line = marker(source, args[0], 'line')
     elif key == 'block':
       block_open, block_close = marker(source, args[0], 'block'), marker(source, args[1], 'block')
@@ -96,7 +99,7 @@ def main():
   for source in sorted((ROOT / 'data/syntax').glob('*.txt')):
     extensions, data = compile_source(source)
     for ext in extensions:
-      if len(ext) > C['SYN_EXT_MAX']: fail(source, f'.{ext}: extensions are at most SYN_EXT_MAX chars')
+      if len(ext) > C['SYN_KEY_MAX']: fail(source, f'{ext}: keys are at most SYN_KEY_MAX chars')
       (out / f'{ext.upper()}.SYN').write_bytes(data)
 
 if __name__ == '__main__':

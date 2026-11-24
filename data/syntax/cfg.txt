@@ -1,0 +1,7 @@
+# ld65 linker configurations (snes/kernel.cfg).
+extensions cfg
+line #
+quotes "
+radix
+directive-word MEMORY SEGMENTS FILES FORMATS FEATURES SYMBOLS
+type start size type file fill load run define align offset

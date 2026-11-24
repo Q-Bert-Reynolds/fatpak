@@ -1108,7 +1108,7 @@ syn_quote: DS 2;string quotes, the second is CM_CHAR's
 syn_escape: DB
 syn_directive: DB
   DB
-_syn_ext:: DS SYN_EXT_MAX + 1;its extension, uppercase
+_syn_ext:: DS SYN_KEY_MAX + 1;its key (extension or name), uppercase
 
 SECTION "Text Buffer thunks", ROM0
 _tb_CountLines:: FAR_THUNK TBCountLines
