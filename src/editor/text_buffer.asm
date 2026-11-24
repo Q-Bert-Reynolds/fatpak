@@ -1037,25 +1037,6 @@ DEF MD_FENCE      EQU 6;in a code block, kept after a line feed
 DEF MD_FENCE_LINE EQU 7;the line is a fence (```)
 DEF CODE_WIDTH    EQU 4;FONT_FIXED's width
 
-;what each style looks like: LOOK_* bits, the GBC accent palette in bits 4-6 (see EditorPalettes)
-StyleLooks:
-  DB 0;STYLE_TEXT
-  DB LOOK_BOLD
-  DB LOOK_ITALIC
-  DB LOOK_BOLD | LOOK_ITALIC
-  DB LOOK_DIM;STYLE_MARK
-  DB LOOK_ACCENT | 2 << 4;STYLE_CODE, red
-  DB LOOK_ACCENT | 1 << 4;STYLE_HEAD, blue
-  DB LOOK_BOLD | LOOK_ACCENT | 1 << 4;STYLE_HEAD_BOLD
-  DB LOOK_DIM;STYLE_COMMENT
-  DB LOOK_ACCENT | 1 << 4;STYLE_KEYWORD, blue
-  DB LOOK_ACCENT | 1 << 4;STYLE_TYPE, blue
-  DB LOOK_ACCENT | 2 << 4;STYLE_STRING, red
-  DB LOOK_ACCENT | 3 << 4;STYLE_NUMBER, purple
-  DB LOOK_BOLD | LOOK_ACCENT | 4 << 4;STYLE_PREPROC, orange
-  DB LOOK_ACCENT | 4 << 4;STYLE_LABEL
-  DB 0
-
 TBEdited:
   ld a, 1;the swap file needs writing (src/editor/editor.c)
   ld [_swap_dirty], a
@@ -1179,16 +1160,15 @@ TBLex:
   jr .styledWidth
 .notHeading
   ld a, b
-  cp a, STYLE_CODE << 4
-  ld a, CODE_WIDTH
-  jr z, .setAttr
-  ld a, b
   swap a
-  add a, LOW(StyleLooks)
+  add a, LOW(_style_looks)
   ld l, a
-  ld a, HIGH(StyleLooks)
+  ld a, HIGH(_style_looks)
   adc a, 0
   ld h, a
+  bit 7, [hl];LOOK_CODE: the code font's width
+  ld a, CODE_WIDTH
+  jr nz, .setAttr
   bit 0, [hl];LOOK_BOLD
   jr z, .fontWidth
   ld a, [font_bold_widths]

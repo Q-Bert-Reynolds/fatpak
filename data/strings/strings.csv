@@ -144,8 +144,7 @@ CLOCK_SECOND,item,,Second,Segundo
 CLOCK_HINT,bar,,<LR> Edit <A>Set <B>Back,<LR> Editar <A>Fijar <B>Atrás
 CLOCK_INVALID,bar,,Invalid date or no clock,Fecha inválida/sin reloj
 HELP_HINT,bar,,<UD>Scroll <B>Exit,<UD>Desplazar <B>Salir
-THEME_HINT,bar,,<A>Toggle <B>Back,<A>Cambiar <B>Atrás
-THEME_DARK,item,ON or OFF follows,Dark mode  {},Modo oscuro  {}
+THEME_HINT,bar,SETTINGS > THEME's list,<A>Edit <LR>Theme,<A>Editar <LR>Tema
 ON,item,these 2 in order: the same width,On ,Sí
 OFF,item,,Off,No
 INFO_TYPE,row,"file info: labels, the value follows",Type: ,Tipo: 
@@ -231,3 +230,40 @@ CC_PASS,box,"compile progress: CC's pass, 1 to 3, above the file and line",Compi
 MODULE_CRASHED,bar,"a module crashed before the last restart (operation:block, FE: an RST $38); /GBCSYS/CRASH.LOG has the details",CRASH LOGGED {}:{},FALLO ANOTADO {}:{}
 HIDDEN_HIDE,item,"HIDDEN FILES: these 2 in order",HIDE,OCULTAR
 HIDDEN_SHOW,item,,SHOW,MOSTRAR
+THEME_HEADER,bar,"the theme editor's header: the theme's name, * if it's edited",Theme: {},Tema: {}
+THEME_E_TEXT,row,"theme entries: these 16 in STYLE_* order, then the header and footer's (THEME_BARS); each is drawn in its look",Text,Texto
+THEME_E_BOLD,row,,Bold,Negrita
+THEME_E_ITALIC,row,,Italic,Cursiva
+THEME_E_BOLD_ITALIC,row,,Bold italic,Negrita cursiva
+THEME_E_MARK,row,markdown markers,# * _ ` markers,# * _ ` marcas
+THEME_E_CODE,row,markdown code spans,`code`,`código`
+THEME_E_HEAD,row,,# Headings,# Títulos
+THEME_E_HEAD_BOLD,row,,##### Headings 5 and 6,##### Títulos 5 y 6
+THEME_E_COMMENT,row,,// comments,// comentarios
+THEME_E_KEYWORD,row,,keywords,palabras clave
+THEME_E_TYPE,row,,types,tipos
+THEME_E_STRING,row,,"""strings""","""cadenas"""
+THEME_E_NUMBER,row,,123456789,123456789
+THEME_E_PREPROC,row,,#directives,#directivas
+THEME_E_LABEL,row,,labels:,etiquetas:
+THEME_E_BARS,row,,Header and footer,Encabezado y pie
+THEME_E_THEME,row,"the theme row: its name follows, < and > around it",Theme,Tema
+THEME_E_PALETTE,row,its number follows,Palette {},Paleta {}
+THEME_P_PALETTE,item,"a look's box: these 5 in order (the header and footer's: the first 3)",PALETTE {},PALETA {}
+THEME_P_INK,item,the palette's colour 1 to 3,INK: COLOR {},TINTA: COLOR {}
+THEME_P_BOLD,item,ON or OFF follows,BOLD: {},NEGRITA: {}
+THEME_P_ITALIC,item,,ITALIC: {},CURSIVA: {}
+THEME_P_FONT,item,TEXT or CODE follows,FONT: {},FUENTE: {}
+THEME_V_TEXT,item,"FONT's values: the file's font, the 4 pixel code font",TEXT,TEXTO
+THEME_V_CODE,item,,CODE,CÓDIGO
+THEME_P_COLOR,item,"a palette's box: the colour's number, then its red, green and blue (0-31); the module marks one channel with > over the space before it",{}  R{}  G{}  B{},{}  R{}  V{}  A{}
+THEME_BOX_HINT,bar,a look's box,<LR>Change <B>Done,<LR>Cambiar <B>Listo
+THEME_COLOR_HINT,bar,a palette's box,<LR>Change <A>Next <B>Done,<LR>Cambiar <A>Sig. <B>Listo
+THEME_KEEP,item,"another theme while this one is edited: these 2 in order",KEEP EDITING,SEGUIR EDITANDO
+THEME_DISCARD,item,,DISCARD EDITS,DESCARTAR
+THEME_HELP,item,"the theme editor's HELP: these 4 in order",<UD>Pick <A>Edit,<UD>Elegir <A>Editar
+THEME_HELP_CHANGE,item,,<LR>Change a value,<LR>Cambiar un valor
+THEME_HELP_NEXT,item,,<A>Next colour,<A>Siguiente color
+THEME_HELP_DONE,item,,<B>Close the box,<B>Cerrar el cuadro
+THEME_UNREADABLE,bar,a theme file that can't be read,Can't read the theme,No se puede leer el tema
+THEME_NAME_LONG,box,SAVE AS: a theme's name is its file's,Up to 12 characters,Hasta 12 caracteres

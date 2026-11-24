@@ -18,7 +18,7 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
 | `CLOCK.MOD` | 2 | 9 | SETTINGS > CLOCK (`rtc/menu.c`) | 906 B + 48 B BSS |
 | `FILEINFO.MOD` | 3 | 9 | FILE > INFO, Select (`browser/info.c`) | 2,745 B + 91 B BSS |
 | `HELP.MOD` | 4 | 9 | HELP, F1 (`editor/help.c`) | 305 B + 49 B BSS |
-| `THEME.MOD` | 5 | 9 | SETTINGS > THEME (`ui/theme.c`) | 432 B + 48 B BSS |
+| `THEME.MOD` | 5 | 9 | SETTINGS > THEME (`ui/theme.c`): the theme editor, a page of looks and palettes; loads `/GBCSYS/THEMES/*.json`, writes their text for the host to save ([ARCHITECTURE.md](ARCHITECTURE.md)) | 6,288 B + 468 B BSS |
 | `ASM.MOD` | 6 | 10 | FILE > BUILD, RUN (`editor/build.c`), [ASSEMBLER.md](ASSEMBLER.md) | wide, 5 pages: 7,406 + 7,336 + 7,405 + 7,387 + 7,320 B, 2,649 B BSS |
 | `HEXVIEW.MOD` | 7 | 9 | Opening a binary file in the browser (`browser/viewer.c`) | 2,216 B + 269 B BSS |
 | `TILEVIEW.MOD` | 8 | 9 | Opening a `.tiles`, `.tile` or `.2bpp` file in the browser (`browser/viewer.c`) | 2,097 B + 431 B BSS |
@@ -65,8 +65,8 @@ ASM's three-page version work on hardware; HELP, THEME, ASM's four-page version
 - Host pattern: show a busy box, set `module_context` if the module needs input,
   `RUN_MODULE(NAME)`, and on a nonzero result `ShowModuleError`. The module hides
   or replaces the box when it draws. The host restores layout and flags after,
-  and does anything that needs page 13 (THEME's host saves the swap file when
-  `module_status` says the theme changed).
+  and does anything that needs page 13 (THEME's host lists and saves theme files,
+  and saves the swap file when `module_status` says the theme changed).
 - **Text goes through the language pipeline**: every string a module shows (menu
   items, box text, header text, errors) is a row in `data/strings/strings.csv`
   read with `ModString`, never a literal in the module ([LANGUAGES.md](LANGUAGES.md)).
@@ -287,14 +287,14 @@ entries. Entries are append-only; changing one's meaning needs a new entry.
 | `ModData(offset, dest, length)` | 3 | Copies `EDITOR.DAT` bytes (offset from its first block) through the window; 1 if not loaded or out of range |
 | `ModScroll(down)` | 3 | `ScrollRows`: rotate the text rows one row, keeping drawn rows |
 | `ModDraw` | 3 | `EditorDraw` |
-| `ModTheme(theme)` | 3 | `0xFF` reads it; otherwise sets light/dark, `ThemeApply`, `SettingsSave`. Returns the theme |
+| `ModTheme(redraw)` | 3 | `ThemeApply`: the theme in the settings block (`THEME_OFFSET`, which THEME.MOD edits) on screen; `redraw`: its looks changed, `EditorRedraw`. Returns `theme` (1: dark) |
 | `ModSource(pos, dest)` | 4 | Up to `MODULE_SOURCE_CHUNK` (128) bytes of the text buffer from `pos`; returns the count, 0 past the end |
 | `ModFar` | 4 | Not called from C: the resident far call behind a wide module's thunks (`FarCallInline`, or a plain call when the page byte has `$80`) |
 | `ModFile(path, block)` | 5 | Reads a whole file (< 64 KiB) into PSRAM from `block`: the path is tried from the open document's folder (`module_dir` instead while a host sets it: the browser's `ViewMap` gives the map's), then from each folder above it, then its base name in the document's folder (the folder level that worked last is tried first, reset per module run). Returns the length, 0 if unreadable, `$FFFF` if too big |
 | `ModRead(offset, dest, length)` | 6 | Up to `MODULE_SOURCE_CHUNK` bytes from `offset` of the file the host opened with `FileViewOpen` (in `save_file`); returns the count, 0 past the end. Reads through `buffer`, so the browser lists its folder again after. `ModFile` and `ModLoad` open and close `save_file` too, so read the host's file before them (MAPVIEW reads the map first) |
-| `ModStyle(row, styles)` | 6 | `TB_STRIDE` `tile_attrs` bytes (`STYLE_* << 4` \| width) for a text row; the host sets `render_text` and the font so the rows draw styled |
+| `ModStyle(row, styles)` | 6 | `screen_stride` `tile_attrs` bytes (`STYLE_* << 4` \| width) for a text row; the host sets `render_text` and the font so the rows draw styled. A width of 0 is the char's in its style's look (`ThemeWidth`: bold, the code font), so `ModText` the row first |
 | `ModSelect(row, first, end)` | 6 | Highlights columns `first` to `end` (exclusive) of one text row, clearing the other text rows |
-| `ModTiles(row, tiles)` | 6 | `EditorDraw`, then `RenderRawRow`: `TB_COLS` 2bpp tiles (320 bytes) sent as they are to a text row's block, which keeps them until the row's text, selection or a box over it changes. GBC: BG palette 7 (four greys); DMG/SGB dark mode inverts them so they keep their shades. The host calls `EditorRedraw` after |
+| `ModTiles(row, tiles)` | 6 | `EditorDraw`, then `RenderRawRow`: `TB_COLS` 2bpp tiles (320 bytes) sent as they are to a text row's block, which keeps them until the row's text, selection or a box over it changes. GBC: BG palette 7 (four greys), or with `row | THEME_TILES` the `TB_COLS` palette numbers after the tiles (the theme's palettes, THEME.MOD's swatches); DMG/SGB dark mode inverts them so they keep their shades. The host calls `EditorRedraw` after |
 | `ModLoad(path, load)` | 7 | `ModFile`'s search for a file of any size (below 16 MiB): a `ModuleLoad` `{block, blocks, size}` says where and how many blocks may be written; sets `size`. Returns 0, 1 if unreadable, 2 if it doesn't fit (nothing written). ASM.MOD's `INCLUDE` and `INCBIN` |
 | `ModProgress(text)` | 8 | Text in the busy box (a line at each `\n`, wrapped at 19), drawn only if 5 s (`render_frames`, counted by the LCD interrupt) have passed since the module started or last drew, so call it often. `0`: the host's own text (`module_progress`, set with `module_context`; ASM.MOD's is `BuildProgress`, ROM0). For a wide module the host holds its BSS at `MODULE_BSS_HELD`, brings the editor's buffers back, draws with VBlank on, and swaps both back (~30 frames on DMG, half on CGB) |
 | `ModStat(which)` | 10 | `MODULE_STAT_SECONDS` since the module started (60 frames each, counted from `render_frames` at every `ModProgress` and `ModStat`), `MODULE_STAT_FRAMES` (their low 16 bits, to time a short step), `MODULE_STAT_RETRIES` (PSRAM block copies made again), `MODULE_STAT_FS` and `MODULE_STAT_FILE` (the addresses of FatFs's `FATFS` and of the `FIL` `ModFile`/`ModLoad` last opened, to read only), `MODULE_STAT_BOX` (the address of the box `ModMenu` opened: top row, rows, x and width in pixels, to read only). `ModFile`/`ModLoad` also draw `ModProgress(0)` between sectors, with `module_loading` set to the file's name |
@@ -370,8 +370,8 @@ The busy box stays up throughout, so nothing looks frozen.
    (or a Gearboy write-drop option) would cover them.
 - **More extractions:** pick by `check_pages.py`; good candidates are
    self-contained screens with no file writes. Pages 7 and 14 have 0 bytes free.
-- **Theme editor:** grow THEME.MOD's menu (UI and syntax colours, saved as more
-   settings after `theme`); theme the in-game menu.
+- **Theme editor:** theme the in-game menu; THEME.MOD's Start menu has no SETTINGS (it is
+   SETTINGS' own page).
 - **Wide modules** cost two page swaps per extra page plus the WRAMX save and a
    far call per cross-page call (`ASM.MOD`'s three pages take about 230 frames to
    load and swap on DMG); a module can't draw while it runs. There is no fourth

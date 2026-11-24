@@ -224,6 +224,8 @@ static void InstallModules(const std::string& root,const char* data)
     Write(root+"/GBCSYS/MAPVIEW.INC",Read(bin.substr(0,bin.size()-8)+"MAPVIEW.INC")); // a map's build includes it
     mkdir((root+"/GBCSYS/SYNTAX").c_str(),0700); // bin/SYNTAX: the highlighting definitions
     Write(root+"/GBCSYS/SYNTAX/GITIGNORE.SYN",Read(bin.substr(0,bin.size()-8)+"SYNTAX/GITIGNORE.SYN"));
+    mkdir((root+"/GBCSYS/THEMES").c_str(),0700); // data/themes, like make assemble's card
+    for(const char* name:{"Light.json","Dark.json"})Write(root+"/GBCSYS/THEMES/"+name,Read(bin.substr(0,bin.size()-12)+"data/themes/"+name));
 }
 
 static void UI(const char* image,const char* symbols,const char* data,bool color) {
@@ -534,51 +536,98 @@ static void OSKShift(const char* image,const char* symbols,const char* data,bool
 
 // SETTINGS > THEME: dark mode applies at once, survives a power cycle through the swap
 // file, and an old SET2 settings record (no theme byte) still loads, as light.
+// SETTINGS > THEME: the theme editor (THEME.MOD). Its entries are drawn in their looks; < > on the
+// theme's row loads /GBCSYS/THEMES' others (Dark.json: the dark palettes); a look's box changes its
+// palette at once; a palette's box its colours (the hardware's at once); FILE > SAVE AS writes
+// <name>.json, which reads back the same; the theme in use comes back after a power cycle (the swap
+// file), and SET2 settings still load.
 static void Theme(const char* image,const char* symbols,const char* data,bool color) {
     char folder[]="/tmp/fatpak-theme-XXXXXX";Check(mkdtemp(folder),"theme SD");
     std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);
     Write(root+"/GBCSYS/EDITOR.DAT",Read(data));InstallModules(root,data);
-    const u16 light_paper=27<<10|29<<5|29, dark_paper=4<<10|3<<5|3; // theme.asm
-    auto boot=[&](GearboyCore& core){core.Init();core.SetEverdriveFolder(folder);
+    const u16 light_paper=27<<10|29<<5|29, dark_paper=4<<10|3<<5|3; // data/themes
+    auto boot=[&](GearboyCore& core){core.Init();core.SetEverdriveFolder(folder);core.SetPS2KeyboardEnabled(true);
         Check(core.LoadROM(image,!color),"theme OS");Frames(core,600);};
-    auto paper=[&](GearboyCore& core){return (*core.GetVideo()->GetCGBBackgroundPalettes())[0][0][0];};
+    auto bg=[&](GearboyCore& core,unsigned p,unsigned c){return (*core.GetVideo()->GetCGBBackgroundPalettes())[p][c][0];};
     auto dark=[&](GearboyCore& core){auto m=core.GetMemory();
-        return color ? paper(core)==dark_paper && (*core.GetVideo()->GetCGBSpritePalettes())[0][3][0]!=0
-                     : m->Read(0xFF47)==0x1B && m->Read(0xFF48)==0x1B && m->Read(0xFF49)==0x27;}; // white cursor
+        return color ? bg(core,0,0)==dark_paper && (*core.GetVideo()->GetCGBSpritePalettes())[0][3][0]!=0
+                     : m->Read(0xFF47)==0x1B && m->Read(0xFF48)==0x1B;};
     auto light=[&](GearboyCore& core){auto m=core.GetMemory();
-        return color ? paper(core)==light_paper : m->Read(0xFF47)==0xE4 && m->Read(0xFF48)==0xE4 && m->Read(0xFF49)==0xE4;};
+        return color ? bg(core,0,0)==light_paper : m->Read(0xFF47)==0xE4 && m->Read(0xFF48)==0xE4;};
+    const unsigned keyword_look=8+1*16; // LOOK_ACCENT, palette 1
     {
         GearboyCore core;boot(core);auto memory=core.GetMemory();auto syms=Symbols(symbols);
+        auto byte=[&](const char* name){return memory->Read(syms.at(name));};
         auto pad=[&](Gameboy_Keys key){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,70);};
-        auto line=[&](){return Text(memory,syms.at("tile_buffer")+20*40);};
-        Check(light(core),"light theme by default");
+        auto key=[&](u8 code){Check(core.QueuePS2KeyboardScanCode(code),"key down");Frames(core,4);
+            core.QueuePS2KeyboardScanCode(0xF0);core.QueuePS2KeyboardScanCode(code);Frames(core,50);};
+        auto row=[&](unsigned n){std::string s;for(unsigned i=0;i<40;++i){unsigned c=memory->Read(syms.at("tile_buffer")+n*40+i);if(!c)break;s+=char(c);}
+            while(!s.empty() && s.back()==' ')s.pop_back();return s;};
+        auto line=[&](unsigned n){return Text(memory,syms.at("tile_buffer")+20*40+n*20);};
+        auto style=[&](unsigned r,unsigned c){return memory->Read(syms.at("tile_attrs")+r*40+c)>>4;};
+        auto look=[&](unsigned s){return memory->Read(syms.at("_style_looks")+s);};
+        Check(light(core) && look(9)==keyword_look,"the built-in light theme at first");
         pad(Start_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);
-        Check(line()==" FULL SCREEN" && memory->Read(syms.at("_render_box_rows"))==9,"full screen is the browser's first setting");
-        pad(Down_Key);pad(A_Key);Frames(core,120);
-        Check(line()==" Dark mode  Off","theme module shows the dark mode toggle");
-        pad(A_Key);
-        Check(memory->Read(syms.at("_theme"))==1 && dark(core) && line()==" Dark mode  On ","A turns dark mode on at once");
-        pad(B_Key);Frames(core,60);
-        Check(memory->Read(syms.at("_render_box_top"))==255 && dark(core),"dark mode stays after leaving the menu");
-        Check(Read(root+"/GBCSYS/EDITOR.SWP").size()>0xE9 && Read(root+"/GBCSYS/EDITOR.SWP")[0xE9]==1,"theme saved in the swap file");
+        Check(line(0)==" FULL SCREEN" && byte("_render_box_rows")==9,"full screen is the browser's first setting");
+        pad(Down_Key);pad(A_Key);
+        for(unsigned w=0;row(0)!=" Theme: < Light >" && w<300;++w)Frames(core,1);Frames(core,30);
+        Check(row(0)==" Theme: < Light >" && row(18).find("Theme: Light")!=std::string::npos,"THEME opens the editor on the theme in use");
+        Check(row(1)==" Header and footer" && row(11)==" keywords" && row(13)==" \"strings\"","the entries, one a row");
+        Check(style(11,1)==9 && style(13,2)==11 && style(10,1)==8 && style(1,1)==15,"each entry is drawn in its look (style)");
+        pad(Right_Key);Frames(core,60);
+        Check(row(0)==" Theme: < Dark >" && row(18).find("Theme: Dark")!=std::string::npos && dark(core),"> loads Dark.json at once");
+        if(color)Check(bg(core,1,1)==(31<<10|19<<5|13),"Dark.json's palette 1");
+        for(unsigned i=0;i<11;++i)pad(Down_Key);
+        pad(A_Key);Check(line(0)==" PALETTE 1" && line(1)==" INK: COLOR 1" && byte("_render_box_rows")==7,"a look's box: PALETTE, INK, BOLD, ITALIC, FONT");
+        pad(Right_Key);
+        Check(look(9)==8+2*16 && line(0)==" PALETTE 2" && row(18).find("Theme: Dark*")!=std::string::npos,"PALETTE changes the keywords' look at once, the theme edited");
+        pad(Down_Key);pad(Down_Key);pad(A_Key);
+        Check(look(9)==(8+2*16|1) && line(2)==" BOLD: On ","BOLD");
+        pad(B_Key);Frames(core,30);Check(byte("_render_box_top")==255 && row(11)==" keywords","B closes the box");
+        for(unsigned i=0;i<8;++i)pad(Down_Key); // Palette 2
+        Check(row(13)==" Palette 2","palettes after the looks, the list scrolled");
+        pad(A_Key);Check(line(0)==" 0 >R03  G03  B04" && line(1)==" 1  R31  G13  B12","a palette's box: its colours' red, green, blue");
+        pad(Down_Key);pad(Left_Key);pad(A_Key);pad(Right_Key);
+        Check(line(1)==" 1  R30 >G14  B12","left and right change the channel A picks");
+        if(color)Check(bg(core,2,1)==(12<<10|14<<5|30),"the hardware's palette at once");
+        pad(B_Key);pad(Start_Key);pad(A_Key);pad(Down_Key);pad(A_Key); // FILE > SAVE AS
+        for(unsigned w=0;row(18).find("Save as")==std::string::npos && w<300;++w)Frames(core,1);
+        Check(row(18).find("Save as Dark")!=std::string::npos,"SAVE AS asks for a name, the theme's first");
+        for(unsigned i=0;i<4;++i)key(0x66);
+        for(u8 c:{0x3A,0x43,0x31,0x24})key(c); // mine
+        key(0x5A);
+        for(unsigned w=0;row(18).find("Theme: mine")==std::string::npos && w<600;++w)Frames(core,1);Frames(core,30);
+        Check(row(18)==" Theme: mine" && row(13)==" Palette 2","the editor again on the saved theme, where it was");
+        std::string json;for(u8 c:Read(root+"/GBCSYS/THEMES/mine.json"))json+=char(c);
+        Check(json.find("\"keywords\": {\"palette\": 2, \"ink\": 1, \"bold\": true")!=std::string::npos,"mine.json has the keywords' look");
+        Check(json.find("[[3, 3, 4], [30, 14, 12], [13, 15, 13], [27, 27, 25]]")!=std::string::npos,"and palette 2's colours");
+        pad(Start_Key);pad(Up_Key);pad(A_Key);Frames(core,60); // CLOSE
+        Check(byte("_render_text")==0 && dark(core) && look(9)==(8+2*16|1),"CLOSE keeps the theme");
     }
     {
         GearboyCore core;boot(core);auto memory=core.GetMemory();auto syms=Symbols(symbols);
-        Check(memory->Read(syms.at("_theme"))==1 && dark(core),"dark mode comes back after a power cycle");
         auto pad=[&](Gameboy_Keys key){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,70);};
-        pad(Start_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);pad(Down_Key);pad(A_Key);Frames(core,120);pad(Right_Key);
-        Check(memory->Read(syms.at("_theme"))==0 && light(core),"turning it off restores the light palettes");
-        pad(B_Key);Frames(core,60);
+        auto row=[&](unsigned n){std::string s;for(unsigned i=0;i<40;++i){unsigned c=memory->Read(syms.at("tile_buffer")+n*40+i);if(!c)break;s+=char(c);}
+            while(!s.empty() && s.back()==' ')s.pop_back();return s;};
+        Check(dark(core) && memory->Read(syms.at("_style_looks")+9)==(8+2*16|1),"the theme comes back after a power cycle");
+        if(color)Check(bg(core,2,1)==(12<<10|14<<5|30),"its palettes too");
+        pad(Start_Key);pad(Down_Key);pad(Down_Key);pad(A_Key);pad(Down_Key);pad(A_Key);
+        for(unsigned w=0;row(18).find("Theme: mine")==std::string::npos && w<300;++w)Frames(core,1);Frames(core,30);
+        Check(row(13)==" Palette 2","the editor opens on the entry it closed on");
+        for(unsigned i=0;i<30 && row(0).find("Theme")==std::string::npos;++i)pad(Up_Key); // to the theme's row
+        for(unsigned i=0;i<3 && row(0)!=" Theme: < Light >";++i)pad(Left_Key);
+        Check(row(0)==" Theme: < Light >" && light(core) && memory->Read(syms.at("_style_looks")+9)==keyword_look,"< back to Light.json");
+        pad(Start_Key);pad(Up_Key);pad(A_Key);Frames(core,60);
     }
     auto swap=Read(root+"/GBCSYS/EDITOR.SWP");
-    swap[0x23]='2';swap[0xE9]=0x5A;swap[0x25]=0; // SET2, junk where the theme now is, bars off
+    swap[0x23]='2';swap[0x25]=0; // SET2, bars off
     Write(root+"/GBCSYS/EDITOR.SWP",swap);
     {
         GearboyCore core;boot(core);auto memory=core.GetMemory();auto syms=Symbols(symbols);
-        Check(memory->Read(syms.at("_theme"))==0 && light(core),"SET2 settings load with the light theme");
+        Check(light(core),"SET2 settings load with the theme the swap file kept");
         Check(memory->Read(syms.at("_bars_on"))==0,"SET2 settings keep their other values");
     }
-    printf("%s theme dark mode, persistence and SET2 settings passed\n",color?"CGB":"DMG");
+    printf("%s theme editor, its files and persistence passed\n",color?"CGB":"DMG");
 }
 
 // A binary file (a NUL in its first sector) opens HEXVIEW.MOD: 8 bytes a row in hex and as

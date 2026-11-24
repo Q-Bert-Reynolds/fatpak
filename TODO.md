@@ -19,9 +19,9 @@
 - Syntax definitions (`data/syntax`, `scripts/syntax.py`) are compiled on the PC: let the device read the text form (write a language in the editor); markers longer than 2 chars (Lua's `--[[`), nested comments, HTML/YAML-style rules; one file per extension (C.SYN and H.SYN are copies).
 - First scan after an edit near the top of a big C file is slow (~0.5 frame/KB on GBC).
 - Untested: SGB colors, code highlighting on DMG, italics on screen.
-- SGB attribute colors (ATTR_CHR, 4 palettes, resent on scroll); user-selectable UI/syntax colors in THEME.MOD (dark mode exists); theme the in-game menu.
+- SGB attribute colors (ATTR_CHR, 4 palettes, resent on scroll); theme the in-game menu; themes on the SNES in fullscreen beyond colours (its kernel's tables pick each style's class, bold and font: it needs program space first).
 - Save As into another folder.
-- Rebalance PSRAM between the 7,936-byte clipboard, 56 KiB undo log and piece table.
+- Rebalance PSRAM between the 7,808-byte clipboard, 56 KiB undo log and piece table.
 - Ctrl+End line count restarts from the file start; resume from the last known window.
 - Unsaved edits are lost on reset: persist the piece table and add-buffer length in PSRAM; restore if size/date match.
 - Window limits: moving clears undo, selection and Ctrl+A stop at the window; markdown fences/C comments open at the window start aren't seen; lines longer than the 8 KB margin with wrap off.

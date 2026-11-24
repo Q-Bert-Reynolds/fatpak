@@ -8,7 +8,8 @@ DEF sram_clip_check   EQU TB_BASE+$12
 DEF sram_settings_signature EQU TB_BASE+$20
 DEF sram_settings     EQU TB_BASE+$24
 DEF sram_clip         EQU TB_CLIP_OFFSET;offset from block MAIN_SRAM_BANK's start (TBClipAddr)
-ASSERT sram_settings+SETTINGS_SIZE <= TB_BASE+$100, "settings must end before the clipboard"
+ASSERT sram_settings+SETTINGS_SIZE <= TB_BASE+THEME_OFFSET, "settings must end before the theme"
+ASSERT THEME_OFFSET + THEME_SIZE <= TB_CLIP_OFFSET, "the theme must end before the clipboard"
 
 SECTION "Settings Vars", WRAM0
 settings_load: DB;SettingsCopy's direction

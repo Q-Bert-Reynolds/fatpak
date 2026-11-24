@@ -266,13 +266,11 @@ unsigned char ModuleAPIData(unsigned int offset, char* dest, unsigned char lengt
 }
 void ModuleAPIScroll(unsigned char down) { ScrollRows(down); }
 void ModuleAPIDraw(void) { EditorDraw(); }
-// theme 0xFF only reads it; a change applies the palettes and saves the setting
-unsigned char ModuleAPITheme(unsigned char value) {
-  if (value != 0xFF && (value ? THEME_DARK : THEME_LIGHT) != theme) {
-    theme = value ? THEME_DARK : THEME_LIGHT;
-    ThemeApply();
-    SettingsSave();
-  }
+// the theme in the settings block (src/ui/theme.asm), which THEME.MOD edits, on screen now; redraw:
+// its looks changed, so every row is drawn again. Returns theme (1: dark)
+unsigned char ModuleAPITheme(unsigned char redraw) {
+  ThemeApply();
+  if (redraw) EditorRedraw();
   return theme;
 }
 
@@ -364,13 +362,19 @@ unsigned char ModuleAPIRead(unsigned long offset, char* dest, unsigned char leng
   return n;
 }
 // screen_stride tile_attrs (STYLE_* << 4 | width) for a text row, drawn as styled text while
-// render_text is set (the host sets it and the font)
+// render_text is set (the host sets it and the font). A width of 0 is the char's in its style's look
+// (ModText the row first): a theme's bold and code font
 void ModuleAPIStyle(unsigned char row, const char* styles) {
-  unsigned char* dest;
-  unsigned char i;
+  unsigned char *dest, *chars;
+  unsigned char i, s;
   if (row >= tb_rows) return;
   dest = AttrAddress(row);
-  for (i = 0; i < screen_stride; ++i) dest[i] = styles[i];
+  chars = tile_buffer + (unsigned int)(dest - tile_attrs);
+  for (i = 0; i < screen_stride; ++i) {
+    s = styles[i];
+    if (!(s & STYLE_WIDTH) && screen_rows == TB_ROWS) s |= ThemeWidth(chars[i], s);
+    dest[i] = s;
+  }
 }
 // selects columns first to end (exclusive) of a text row and nothing else on the text rows
 void ModuleAPISelect(unsigned char row, unsigned char first, unsigned char end) {
@@ -383,11 +387,16 @@ void ModuleAPISelect(unsigned char row, unsigned char first, unsigned char end) 
 }
 // TB_COLS tiles of 2bpp (16 bytes each) drawn as they are over a text row, which keeps them
 // until it changes; the host calls EditorRedraw after (RenderRawRow)
+// (row | THEME_TILES: TB_COLS GBC palette numbers follow them, the theme's palettes)
 void ModuleAPITiles(unsigned char row, const unsigned char* tiles) {
+  unsigned char themed = row & THEME_TILES;
+  row &= (unsigned char)~THEME_TILES;
   if (row >= tb_rows) return;
   if (screen_rows != TB_ROWS) { DrawRow(row, 0, "RAW TILES: USE GB MODE"); return; }
   EditorDraw(); // the row's text first, so drawing it later doesn't cover the tiles
+  if (themed) raw_palettes = tiles + TB_COLS * 16;
   RenderRawRow(render_text_top + row, tiles);
+  raw_palettes = 0;
 }
 
 // ABI 13: ModBackground is ModuleAPIBackground in src/ui/render.asm

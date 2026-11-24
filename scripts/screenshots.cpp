@@ -68,6 +68,9 @@ static std::string Card() {
         }
         closedir(syntax);
     }
+    mkdir((root + "/GBCSYS/THEMES").c_str(), 0700); // data/themes, like make assemble's card
+    for (const char* name : {"Light.json", "Dark.json"})
+        Write(root + "/GBCSYS/THEMES/" + name, Read(std::string(modules) + "/../../data/themes/" + name));
     mkdir((root + "/Games").c_str(), 0700); mkdir((root + "/Notes").c_str(), 0700);
     Write(root + "/Welcome.md",
         "# FatPak\n"
@@ -126,8 +129,9 @@ struct Shot {
         }
         memory = core.GetMemory(); syms = Symbols(); Frames(sgb ? 1800 : 600);
         if (sgb && memory->Read(syms.at("_screen_rows")) != 28) Fail("SGB fullscreen startup");
-        if (dark) { // browser START > SETTINGS > THEME, A turns dark mode on
-            Pad(Start_Key); Pad(Down_Key); Pad(Down_Key); Pad(A_Key); Pad(A_Key, 180); Pad(A_Key); Pad(B_Key, 120);
+        if (dark) { // browser START > SETTINGS > THEME, > on the theme's row: Dark.json, then START > CLOSE
+            Pad(Start_Key); Pad(Down_Key); Pad(Down_Key); Pad(A_Key); Pad(Down_Key); Pad(A_Key, 180); Pad(Right_Key, 120);
+            Pad(Start_Key); Pad(Up_Key); Pad(A_Key, 120);
             if (memory->Read(syms.at("_theme")) != 1) Fail("dark mode");
         }
         if (Spanish()) { // START > SETTINGS > LANGUAGE > ESPAÑOL

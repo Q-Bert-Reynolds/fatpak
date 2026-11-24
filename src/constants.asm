@@ -40,6 +40,10 @@ DEF DATA_VERSION       EQU 5;block 0 starts with "EDITOR.DAT" and this
 DEF NAME_HISTORY_BLOCK EQU DATA_BLOCK+DATA_BLOCKS;16 scratch blocks, separate from document undo
 DEF SYNTAX_BLOCK       EQU NAME_HISTORY_BLOCK+16;the open file's syntax definition (/GBCSYS/SYNTAX, fs_LoadSyntax)
 DEF SYNTAX_BLOCKS      EQU 3;up to MODULE_BSS_BACKUP
+DEF THEME_LIST_BLOCK   EQU $3A80;the themes in /GBCSYS/THEMES for THEME.MOD: their count, then names from offset 16, 16 bytes each
+DEF THEME_LIST_MAX     EQU 31
+DEF THEME_JSON_BLOCK   EQU $3A81;a theme file's text, THEME.MOD's to parse or to save (src/ui/theme.c)
+DEF THEME_JSON_BLOCKS  EQU 8
 ;the language: the UI's strings and help (scripts/strings.py), from EDITOR.DAT's tail or /GBCSYS/LANG/xx.DAT,
 ;in PSRAM between the snapshot staging and MODULE_STAGE5
 DEF LANG_BLOCK         EQU $3CA4
@@ -62,7 +66,25 @@ DEF SGB_ROWS_BLOCK     EQU $3BB0;fullscreen rows: 64 characters then 64 styles, 
 DEF SGB_ROWS_BLOCKS    EQU 14;56 rows
 DEF ADD_MAX            EQU $6E0000;stop before the persistent fullscreen image
 DEF TB_SIZE      EQU (TB_BANK_SIZE*TB_BANKS)
-DEF TB_CLIP_OFFSET EQU $0100;the clipboard's text in PSRAM blocks 240-255 (src/sram.asm)
+DEF TB_CLIP_OFFSET EQU $0180;the clipboard's text in PSRAM blocks 240-255 (src/sram.asm), after the settings and the theme
+;the theme in use (src/ui/theme.asm): in the settings block, before the clipboard, so the swap file keeps it
+DEF THEME_OFFSET    EQU $0100;from the settings block's start (TB_BASE + THEME_OFFSET in its window)
+DEF THEME_PALETTES  EQU 0;8 GBC palettes of 4 RGB555 colours: 0 paper, 1 accent ink (and palette 0's the selection), 2 dim ink, 3 ink
+DEF THEME_LOOKS     EQU 64;a look (LOOK_*) for each style (STYLE_*), and THEME_BARS
+DEF THEME_BARS      EQU 15;the header and footer's look: palette, ink and bold
+DEF THEME_NAME      EQU 80;the theme's file name in /GBCSYS/THEMES without .json, up to THEME_NAME_MAX chars and a 0
+DEF THEME_NAME_MAX  EQU 12
+DEF THEME_SIGNATURE EQU 96;"THM1" once it's set (else ThemeApply writes the built-in light theme)
+DEF THEME_EDITED    EQU 100;1: changed since it was loaded or saved (THEME.MOD)
+DEF THEME_ENTRY     EQU 101;THEME.MOD's selected entry, for when it runs again (after a save)
+DEF THEME_JSON_SIZE EQU 102;the text THEME.MOD left at THEME_JSON_BLOCK for the host to save (2 bytes)
+DEF THEME_SIZE      EQU 104
+;THEME.MOD's result (src/ui/theme.c)
+DEF THEME_DONE      EQU 0;closed, nothing changed
+DEF THEME_CHANGED   EQU 1;closed after changing the theme in use
+DEF THEME_SAVE      EQU 2;save THEME_JSON_SIZE bytes at THEME_JSON_BLOCK as THEME_NAME, then run it again
+DEF THEME_SAVE_AS   EQU 3;the same, a name asked for first
+DEF THEME_TILES     EQU $80;ModTiles' row | THEME_TILES: TB_COLS GBC palette numbers follow the tiles
 DEF TB_CLIP_SIZE EQU ($2000-TB_CLIP_OFFSET)
 DEF UNDO_SIZE    EQU (TB_BANK_SIZE*UNDO_BANKS)
 DEF FOOTER_MARKER EQU $7F;private clock alignment marker, separate from button icons
@@ -170,7 +192,7 @@ DEF FONT_H1    EQU 3;markdown headings 1-4: the fixed font 1 pixel taller, stret
 DEF FONT_H4    EQU 6
 
 ;text styles (TBLex): a byte per character in tile_attrs, its width in pixels in the low 4 bits
-;and its style in the high 4, StyleLooks has what each style looks like
+;and its style in the high 4, style_looks (the theme's, src/ui/theme.asm) has what each style looks like
 DEF STYLE_WIDTH       EQU %00001111
 DEF STYLE_TEXT        EQU 0
 DEF STYLE_BOLD        EQU 1
@@ -190,7 +212,9 @@ DEF STYLE_LABEL       EQU 14;asm labels
 DEF LOOK_BOLD   EQU %00000001;ORed 1 pixel right (stretched in the fixed font), wider
 DEF LOOK_ITALIC EQU %00000010;top half shifted 1 pixel right
 DEF LOOK_DIM    EQU %00000100;dim ink: dark grey on DMG, color 2 on SGB and GBC
-DEF LOOK_ACCENT EQU %00001000;GBC: accent ink, color 1 of the palette in bits 4-6
+DEF LOOK_ACCENT EQU %00001000;GBC: accent ink, color 1 of the palette in bits 4-6 (never with LOOK_DIM)
+DEF LOOK_PALETTE EQU %01110000;GBC: the palette of the tiles it's in
+DEF LOOK_CODE   EQU %10000000;the 4 pixel code font in a proportional row (bold and italic don't apply then)
 DEF LANG_PLAIN   EQU 0;how text is styled, from the file name's extension
 DEF LANG_MD      EQU 1
 DEF LANG_C       EQU 2;.c, .h

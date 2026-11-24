@@ -2,4 +2,4 @@
 THUNKS: FIXED
 *: FIXED
 # The include search (ModFile, ModLoad) and ModProgress: ROM0, always mapped
-ROM0: FileSearch FileTry ModuleAPIProgress ModuleAPISector
+ROM0: FileSearch FileTry ModuleAPIProgress ModuleAPISector ModuleAPIStyle ModuleAPITiles ModuleAPITheme

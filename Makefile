@@ -150,6 +150,7 @@ endif
 		cp $(BIN_DIR)/MAPVIEW.INC "$(SD_MOUNT)/GBCSYS/MAPVIEW.INC" && \
 		mkdir -p "$(SD_MOUNT)/GBCSYS/MODULES" "$(SD_MOUNT)/GBCSYS/LANG" "$(SD_MOUNT)/GBCSYS/DRIVERS" "$(SD_MOUNT)/GBCSYS/SYNTAX" && \
 		cp $(BIN_DIR)/SYNTAX/*.SYN "$(SD_MOUNT)/GBCSYS/SYNTAX/" && \
+		mkdir -p "$(SD_MOUNT)/GBCSYS/THEMES" && cp --update=none data/themes/*.json "$(SD_MOUNT)/GBCSYS/THEMES/" && \
 		cp $(BIN_DIR)/MODULES/*.MOD "$(SD_MOUNT)/GBCSYS/MODULES/" && \
 		cp $(BIN_DIR)/DRIVERS/*.DRV "$(SD_MOUNT)/GBCSYS/DRIVERS/" && \
 		cp $(BIN_DIR)/LANG/*.DAT "$(SD_MOUNT)/GBCSYS/LANG/" && \
@@ -158,7 +159,7 @@ endif
 		sync -f "$(SD_MOUNT)/GBCSYS/GBCOS.BIN" && \
 		sync -f "$(SD_MOUNT)/GBCSYS/EDITOR.DAT" && \
 		sync -f "$(SD_MOUNT)/GBCSYS/SGB.DAT" && \
-		echo "Copied GBCOS.BIN, EDITOR.DAT, SGB.DAT, MAPVIEW.INC, modules, drivers, languages, and syntax definitions to mounted GAMEBOY card"; \
+		echo "Copied GBCOS.BIN, EDITOR.DAT, SGB.DAT, MAPVIEW.INC, modules, drivers, languages, syntax definitions and missing themes to mounted GAMEBOY card"; \
 	fi
 
 run:

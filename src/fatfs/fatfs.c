@@ -2648,7 +2648,7 @@ unsigned char fs_GameFinish(const char* path) {
 }
 
 // The swap file keeps what PSRAM loses when the power is off: block MAIN_SRAM_BANK's first 256 bytes
-// (the text buffer's signature, settings, clipboard length), "SWP1", the text's length, the sum of the
+// (the text buffer's signature, settings, clipboard length), "SWP2", the text's length, the sum of the
 // bytes after the first 512 and the clipboard's length, then from 512 the clipboard and the text.
 // Its old length stays (no f_truncate), so its clusters are written in place.
 #define SWAP_PATH "/GBCSYS/EDITOR.SWP"
@@ -2700,7 +2700,7 @@ unsigned char fs_SaveSwap(void) {
     memcpy(buffer, WINDOW, SWAP_INFO);
     SetWindowBlock(TB_PSRAM_HIGH << 8);
     memset(buffer + SWAP_INFO, 0, SWAP_DATA - SWAP_INFO);
-    memcpy(buffer + SWAP_INFO, "SWP1", 4);
+    memcpy(buffer + SWAP_INFO, "SWP2", 4);
     ((WORD*)(buffer + SWAP_INFO))[2] = length;
     ((WORD*)(buffer + SWAP_INFO))[3] = swap_sum;
     ((WORD*)(buffer + SWAP_INFO))[4] = clip;
@@ -2723,7 +2723,7 @@ unsigned char fs_LoadSwap(void) {
   if (!result) result = Open(SWAP_PATH, FA_READ);
   if (result) return result;
   result = f_read(&file, buffer, SWAP_DATA, &done);
-  if (!result && (done != SWAP_DATA || memcmp(buffer + SWAP_INFO, "SWP1", 4))) result = FR_INVALID_OBJECT;
+  if (!result && (done != SWAP_DATA || memcmp(buffer + SWAP_INFO, "SWP2", 4))) result = FR_INVALID_OBJECT;
   if (result) {
     f_close(&file);
     return result;

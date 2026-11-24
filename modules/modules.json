@@ -5,7 +5,7 @@
     {"name": "CLOCK", "id": 2, "sources": ["clock.c", "lib/text.c", "lib/digits.c"]},
     {"name": "FILEINFO", "id": 3, "sources": ["info.c", "lib/text.c", "lib/digits.c"]},
     {"name": "HELP", "id": 4, "sources": ["help.c"]},
-    {"name": "THEME", "id": 5, "sources": ["theme.c", "lib/text.c"]},
+    {"name": "THEME", "id": 5, "sources": ["theme.c"]},
     {"name": "ASM", "id": 6, "sources": ["assembler/asm.c"], "sources2": ["assembler/asm_emit.c", "assembler/asm_pushs.c", "assembler/asm_main.c", "assembler/asm_projw.c", "assembler/asm_cbytes.c"], "sources3": ["assembler/asm_line.c", "assembler/asm_loop.c", "assembler/asm_progress.c", "assembler/asm_cstart.c", "assembler/asm_align.c"], "sources4": ["assembler/asm_str.c", "assembler/asm_cread.c"], "sources5": ["assembler/asm_sect.c", "assembler/asm_proj.c", "assembler/asm_cache.c", "assembler/asm_rel.c", "assembler/asm_prelude.c", "assembler/asm_fileof.c"]},
     {"name": "HEXVIEW", "id": 7, "sources": ["hexview.c", "lib/text.c", "lib/digits.c"]},
     {"name": "TILEVIEW", "id": 8, "sources": ["tileview.c", "lib/text.c", "lib/digits.c"]},

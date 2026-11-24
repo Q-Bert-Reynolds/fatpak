@@ -765,12 +765,7 @@ FsPalette:
   call FsByte
   ld a, 8
   call FsByte
-  ld hl, FsLight
-  ld a, [_theme]
-  and a
-  jr z, .colors
-  ld hl, FsDark
-.colors
+  ld hl, _fs_colors;the theme's (src/ui/theme.asm's ThemeLoad)
   ld b, 16
 .loop
   ld a, [hli]
@@ -778,12 +773,6 @@ FsPalette:
   dec b
   jr nz, .loop
   jp FsFlush
-FsLight:
-  DW 29|29<<5|27<<10,20|25<<5|31<<10,14|17<<5|14<<10,2|2<<5|3<<10
-  DW 4|9<<5|24<<10,19|4<<5|4<<10,15|5<<5|20<<10,21|10<<5
-FsDark:
-  DW 3|3<<5|4<<10,6|10<<5|18<<10,13|15<<5|13<<10,27|27<<5|25<<10
-  DW 13|19<<5|31<<10,31|15<<5|13<<10,25|14<<5|30<<10,31|22<<5|10<<10
 
 ; ModBackground in fullscreen (render.asm's _ModuleAPIBackground jumps here): the GB's LCD is the transport,
 ; so the module's background is the SNES's (SGBFS_CMD_MAP*), never the GB's VRAM. A = mode:

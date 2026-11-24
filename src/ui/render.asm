@@ -19,12 +19,13 @@
 ;its text, BOX_STRIDE chars per line in the variable width font, the selected row is highlighted.
 ;Its first and last rows are half rows with the top and bottom border, text goes in the rows between.
 ;Glyphs are drawn into render_bitmap (ink), and also into render_dim or render_accent (GBC) for text
-;whose style (StyleLooks) has dim or accent ink. RenderEncode makes the 2bpp tiles: ink is color 3 on
+;whose look (style_looks, the theme's: src/ui/theme.asm) has dim or accent ink. RenderEncode makes the 2bpp tiles: ink is color 3 on
 ;color 0, dim ink color 2, accent ink color 1. DMG inverts selected pixels (both bitplanes, dim ink
 ;turns light grey), SGB and GBC highlight them: unselected pixels get color 1 and accent ink becomes
 ;color 3. Raw button icons retain colors 1 and 2 through these masks on all models.
-;On GBC a tile with accent ink uses the accent's palette (written to the map attributes with
-;the row, RenderWritePalettes), selected tiles palette 0. See EditorSetPalettes.
+;On GBC a tile with a char whose look has a palette uses it (written to the map attributes with
+;the row, RenderWritePalettes), selected tiles palette 0; the header and footer use THEME_BARS's look
+;(render_bar: palette, ink, bold; their widths stay the font's). See ThemeApply.
 ;
 ;C functions (src/ui/render.h)
 ;   SetFont                     a = font, sets _font_widths and redraws rows using it (markdown code
@@ -45,6 +46,11 @@ DEF RENDER_EVENTS EQU 6;LCDC changes per frame: 2 for the window, the rest for t
 SECTION "Font Widths", WRAM0, ALIGN[8]
 _font_widths:: DS 256;current font's widths, used to wrap rows
 
+SECTION "Render WRAMX", WRAMX;WRAM0 is full
+_raw_palettes:: DW;RenderRawRow: TB_COLS GBC palettes (THEME.MOD's swatches), 0 for its own grey (RAW_PALETTE)
+render_bar: DB;1: the row is the header or footer (THEME_BARS's look)
+render_looks: DB;1: the row's chars have looks (render_styled or render_bar)
+
 SECTION "Render Vars", WRAM0
 render_row: DB
 render_row_font: DB
@@ -57,8 +63,8 @@ render_keyboard_edge: DB;$80 on the last text row above the keyboard
 render_attr: DB;style of the char RenderGlyph draws
 render_head: DB;heading font: 1-4, 0 = none
 font_bold_widths:: DB;page of the current font's bold widths (styled_widths.asm)
-render_look: DB;StyleLooks of the char RenderGlyph draws
-render_inked: DB;bit 0: dim plane, bit 1: accent plane, bit 2: unstyled 2bpp icons
+render_look: DB;the look (style_looks) of the char RenderGlyph draws
+render_inked: DB;bit 0: dim plane, bit 1: accent plane, bit 2: unstyled 2bpp icons, bit 3: GBC palettes set
 render_highlight: DB;1 on SGB and GBC: selected pixels are highlighted, not inverted
 _render_text:: DB;1 = rows below tb_rows are TBScanRow's text (styled by tile_attrs), 0 = the file browser and help draw their own
 render_x: DB
@@ -1118,6 +1124,10 @@ RenderStyleGlyph:
   cp a, FONT_FIXED
   ld a, e
   jr z, .font
+  ld a, [render_look]
+  bit 7, a;LOOK_CODE: the code font in a proportional row isn't styled
+  ret nz
+  ld a, e
   add a, 3;VWF
 .font;a = styled font + 1
   dec a
@@ -1255,6 +1265,15 @@ RenderRow:
   ld a, 0
   adc a, 0
   ld [render_styled], a
+  ld b, a
+  ld a, [render_line];the header and footer: their own look (THEME_BARS)
+  sub a, HEADER_LINE
+  cp a, STATUS_LINE - HEADER_LINE + 1
+  ld a, 0
+  rla
+  ld [render_bar], a
+  or a, b
+  ld [render_looks], a
   call RenderKeyboardEdge
   ld [render_keyboard_edge], a
   ld a, [render_line]
@@ -1401,6 +1420,16 @@ RenderRow:
   call mem_Set
   xor a
   ld [render_inked], a
+  ld a, [render_bar];GBC: every tile of a bar in its palette
+  and a
+  jr z, .barPalette
+  ld a, [_style_looks + THEME_BARS]
+  swap a
+  and a, 7
+  jr z, .barPalette
+  ld hl, render_inked
+  ld [hl], 8;palettes set
+.barPalette
   ld hl, render_pals
   ld bc, TB_COLS
   call mem_Set
@@ -1477,9 +1506,16 @@ RenderRow:
     ld [render_attr], a
     swap a
     and a, $0F
-    add a, LOW(StyleLooks)
     ld l, a
-    ld a, HIGH(StyleLooks)
+    ld a, [render_bar]
+    and a
+    jr z, .styleLook
+    ld l, THEME_BARS
+  .styleLook
+    ld a, l
+    add a, LOW(_style_looks)
+    ld l, a
+    ld a, HIGH(_style_looks)
     adc a, 0
     ld h, a
     ld a, [hl]
@@ -1626,6 +1662,9 @@ _RenderRawRow::
   ld d, [hl]
   jp RenderCopyTiles
 .gbc
+  ld a, [_raw_palettes+1]
+  and a
+  jr nz, .themed;the theme's palettes, given a tile each
   ld a, BCPSF_AUTOINC | (RAW_PALETTE * 8)
   ldh [rBCPS], a
   ld hl, RawPalette
@@ -1636,6 +1675,7 @@ _RenderRawRow::
     ldh [rBCPD], a
     dec c
     jr nz, .palette
+.themed
   ld a, [render_block]
   ld c, a
   ld b, 0
@@ -1660,6 +1700,26 @@ _RenderRawRow::
     ld [hli], a
     dec b
     jr nz, .attribute
+  ld a, [_raw_palettes+1]
+  and a
+  jr z, .attributes
+  ld d, a
+  ld a, [_raw_palettes]
+  ld e, a
+  ld hl, render_map_row
+  ld b, TB_COLS
+.themedAttribute
+    ld a, [hl]
+    and a, %00001000;the VRAM bank
+    ld c, a
+    ld a, [de]
+    and a, 7
+    or a, c
+    ld [hli], a
+    inc de
+    dec b
+    jr nz, .themedAttribute
+.attributes
   pop af
   ld l, a
   ld h, 0
@@ -1951,6 +2011,7 @@ RenderBox:
   ST_HL_VAR render_widths
   xor a
   ld [render_styled], a
+  ld [render_looks], a
   ld [render_head], a
   ld a, [render_row_font]
   push af;save current row font
@@ -2123,11 +2184,10 @@ RenderGlyph:
   ld a, [render_row_font];(in the mono font too)
   and a
   jr z, .rowFont
-  ld a, [render_attr]
-  and a, $F0
-  cp a, STYLE_CODE << 4
-  jr nz, .rowFont
-  ld bc, FontFixedGlyphs;markdown code
+  ld a, [render_look]
+  bit 7, a;LOOK_CODE
+  jr z, .rowFont
+  ld bc, FontFixedGlyphs;the code font
   jr .glyph
 .rowFont
   ld a, [render_glyphs]
@@ -2138,7 +2198,7 @@ RenderGlyph:
   add hl, bc
   ld b, h
   ld c, l;glyph
-  ld a, [render_styled]
+  ld a, [render_looks]
   and a
   call nz, RenderStyleGlyph
   ld a, b
@@ -2148,7 +2208,7 @@ RenderGlyph:
   ld d, HIGH(render_bitmap)
   call RenderGlyphPlane
   pop bc
-  ld a, [render_styled]
+  ld a, [render_looks]
   and a
   jr z, .advance
   ld a, [render_look]
@@ -2158,10 +2218,10 @@ RenderGlyph:
   ld d, HIGH(render_dim)
   call RenderUsePlane
   call RenderGlyphPlane
-  jr .advance
+  jr .palette
 .accent
   bit 3, a;LOOK_ACCENT
-  jr z, .advance
+  jr z, .palette
   ld a, [_render_gbc]
   and a
   jr z, .advance;the ink on DMG and SGB
@@ -2169,7 +2229,13 @@ RenderGlyph:
   ld d, HIGH(render_accent)
   call RenderUsePlane
   call RenderGlyphPlane
-  call RenderSetPalettes
+.palette;GBC: the tiles it's in use its look's palette
+  ld a, [_render_gbc]
+  and a
+  jr z, .advance
+  ld a, [render_look]
+  and a, LOOK_PALETTE
+  call nz, RenderSetPalettes
 .advance
   ld a, [render_x]
   ld b, a
@@ -2315,8 +2381,10 @@ RenderUsePlane:
     jr nz, .clear
   ret
 
-;GBC: tiles the char at [render_x] covers use its accent's palette
+;GBC: tiles the char at [render_x] covers use its look's palette
 RenderSetPalettes:
+  ld hl, render_inked
+  set 3, [hl];palettes set
   ld a, [render_w]
   and a
   ret z
@@ -2534,7 +2602,7 @@ RenderWritePalettes:
   ld hl, block_accents
   add hl, bc
   ld a, [render_inked]
-  and a, 2
+  and a, 2 | 8;accent ink or palettes
   ld d, a
   or a, [hl]
   ld [hl], d

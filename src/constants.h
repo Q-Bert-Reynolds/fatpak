@@ -43,6 +43,10 @@
 #define NAME_HISTORY_BLOCK DATA_BLOCK+DATA_BLOCKS//16 scratch blocks, separate from document undo
 #define SYNTAX_BLOCK       NAME_HISTORY_BLOCK+16//the open file's syntax definition (/GBCSYS/SYNTAX, fs_LoadSyntax)
 #define SYNTAX_BLOCKS      3//up to MODULE_BSS_BACKUP
+#define THEME_LIST_BLOCK   0x3A80u//the themes in /GBCSYS/THEMES for THEME.MOD: their count, then names from offset 16, 16 bytes each
+#define THEME_LIST_MAX     31
+#define THEME_JSON_BLOCK   0x3A81u//a theme file's text, THEME.MOD's to parse or to save (src/ui/theme.c)
+#define THEME_JSON_BLOCKS  8
 //the language: the UI's strings and help (scripts/strings.py), from EDITOR.DAT's tail or /GBCSYS/LANG/xx.DAT,
 //in PSRAM between the snapshot staging and MODULE_STAGE5
 #define LANG_BLOCK         0x3CA4u
@@ -65,7 +69,25 @@
 #define SGB_ROWS_BLOCKS    14//56 rows
 #define ADD_MAX            0x6E0000//stop before the persistent fullscreen image
 #define TB_SIZE      (TB_BANK_SIZE*TB_BANKS)
-#define TB_CLIP_OFFSET 0x0100u//the clipboard's text in PSRAM blocks 240-255 (src/sram.asm)
+#define TB_CLIP_OFFSET 0x0180u//the clipboard's text in PSRAM blocks 240-255 (src/sram.asm), after the settings and the theme
+//the theme in use (src/ui/theme.asm): in the settings block, before the clipboard, so the swap file keeps it
+#define THEME_OFFSET    0x0100u//from the settings block's start (TB_BASE + THEME_OFFSET in its window)
+#define THEME_PALETTES  0//8 GBC palettes of 4 RGB555 colours: 0 paper, 1 accent ink (and palette 0's the selection), 2 dim ink, 3 ink
+#define THEME_LOOKS     64//a look (LOOK_*) for each style (STYLE_*), and THEME_BARS
+#define THEME_BARS      15//the header and footer's look: palette, ink and bold
+#define THEME_NAME      80//the theme's file name in /GBCSYS/THEMES without .json, up to THEME_NAME_MAX chars and a 0
+#define THEME_NAME_MAX  12
+#define THEME_SIGNATURE 96//"THM1" once it's set (else ThemeApply writes the built-in light theme)
+#define THEME_EDITED    100//1: changed since it was loaded or saved (THEME.MOD)
+#define THEME_ENTRY     101//THEME.MOD's selected entry, for when it runs again (after a save)
+#define THEME_JSON_SIZE 102//the text THEME.MOD left at THEME_JSON_BLOCK for the host to save (2 bytes)
+#define THEME_SIZE      104
+//THEME.MOD's result (src/ui/theme.c)
+#define THEME_DONE      0//closed, nothing changed
+#define THEME_CHANGED   1//closed after changing the theme in use
+#define THEME_SAVE      2//save THEME_JSON_SIZE bytes at THEME_JSON_BLOCK as THEME_NAME, then run it again
+#define THEME_SAVE_AS   3//the same, a name asked for first
+#define THEME_TILES     0x80//ModTiles' row | THEME_TILES: TB_COLS GBC palette numbers follow the tiles
 #define TB_CLIP_SIZE (0x2000u-TB_CLIP_OFFSET)
 #define UNDO_SIZE    (TB_BANK_SIZE*UNDO_BANKS)
 #define FOOTER_MARKER 0x7F//private clock alignment marker, separate from button icons
@@ -173,7 +195,7 @@
 #define FONT_H4    6
 
 //text styles (TBLex): a byte per character in tile_attrs, its width in pixels in the low 4 bits
-//and its style in the high 4, StyleLooks has what each style looks like
+//and its style in the high 4, style_looks (the theme's, src/ui/theme.asm) has what each style looks like
 #define STYLE_WIDTH       0b00001111
 #define STYLE_TEXT        0
 #define STYLE_BOLD        1
@@ -193,7 +215,9 @@
 #define LOOK_BOLD   0b00000001//ORed 1 pixel right (stretched in the fixed font), wider
 #define LOOK_ITALIC 0b00000010//top half shifted 1 pixel right
 #define LOOK_DIM    0b00000100//dim ink: dark grey on DMG, color 2 on SGB and GBC
-#define LOOK_ACCENT 0b00001000//GBC: accent ink, color 1 of the palette in bits 4-6
+#define LOOK_ACCENT 0b00001000//GBC: accent ink, color 1 of the palette in bits 4-6 (never with LOOK_DIM)
+#define LOOK_PALETTE 0b01110000//GBC: the palette of the tiles it's in
+#define LOOK_CODE   0b10000000//the 4 pixel code font in a proportional row (bold and italic don't apply then)
 #define LANG_PLAIN   0//how text is styled, from the file name's extension
 #define LANG_MD      1
 #define LANG_C       2//.c, .h

@@ -14,7 +14,7 @@ DEF CURSOR_SPRITE EQU 0
 _EditorSetup::
   DISPLAY_OFF
   SET_DEFAULT_PALETTE
-  TRAMPOLINE EditorSetPalettes
+  call _ThemeApply
   CLEAR_SCREEN ' '
   call RenderSetup
   ld a, FONT_VWF

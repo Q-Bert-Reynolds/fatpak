@@ -4,8 +4,8 @@
 // PutStr(dest, id) and Str(id) (src/strings.asm), ModString in modules; S_PART(id, n) is the
 // text after its nth {}, up to the next
 #define S_PART(id, n) ((id) | ((n) << 12))
-#define STR_COUNT 232
-#define STR_HASH 0x1436u
+#define STR_COUNT 268
+#define STR_HASH 0x6A66u
 #define LANGUAGES 2
 #define LANG_CODES "ENES" // 2 characters each: /GBCSYS/LANG/<code>.DAT
 #define S_MENU_FILE 0 // FILE
@@ -153,91 +153,127 @@
 #define S_CLOCK_HINT 142 // <LR> Edit <A>Set <B>Back
 #define S_CLOCK_INVALID 143 // Invalid date or no clock
 #define S_HELP_HINT 144 // <UD>Scroll <B>Exit
-#define S_THEME_HINT 145 // <A>Toggle <B>Back
-#define S_THEME_DARK 146 // Dark mode  {}
-#define S_ON 147 // On
-#define S_OFF 148 // Off
-#define S_INFO_TYPE 149 // Type:
-#define S_INFO_SIZE 150 // Size:
-#define S_INFO_CREATED 151 // Created:
-#define S_INFO_ACCESSED 152 // Accessed:
-#define S_INFO_MODIFIED 153 // Modified:
-#define S_INFO_READ 154 // Read:
-#define S_INFO_HEADER 155 // Header:
-#define S_INFO_WORDS 156 // Words:
-#define S_INFO_LINES 157 // Lines:
-#define S_INFO_COUNTS 158 // Counts:
-#define S_INFO_TITLE 159 // Title:
-#define S_INFO_PLATFORM 160 // Platform:
-#define S_INFO_SGB 161 // Super GB:
-#define S_INFO_MAPPER 162 // Mapper:
-#define S_INFO_ROM 163 // ROM:
-#define S_INFO_RAM 164 // RAM:
-#define S_INFO_REGION 165 // Region:
-#define S_INFO_REVISION 166 // Revision:
-#define S_INFO_CHECKSUM 167 // Header checksum:
-#define S_TYPE_TEXT 168 // Plain Text
-#define S_TYPE_MARKDOWN 169 // Markdown
-#define S_TYPE_C 170 // C source
-#define S_TYPE_ASM 171 // Assembly
-#define S_TYPE_FOLDER 172 // Folder
-#define S_TYPE_GAME 173 // Game Boy ROM
-#define S_TYPE_BINARY 174 // Binary
-#define S_SD_ERROR_LOWER 175 // SD error
-#define S_TOO_SHORT 176 // Too short
-#define S_BINARY_FILE 177 // Binary file
-#define S_SKIPPED 178 // Skipped (>32KB)
-#define S_GB_ONLY 179 // Game Boy
-#define S_INFO_YES 180 // Yes
-#define S_INFO_NO 181 // No
-#define S_NONE 182 // --
-#define S_RAM_MBC2 183 // 512 x 4 bits
-#define S_GB_COLOR_ONLY 184 // Color only
-#define S_GB_BOTH 185 // GB / Color
-#define S_UNKNOWN 186 // Unknown
-#define S_JAPAN 187 // Japan
-#define S_OVERSEAS 188 // Overseas
-#define S_CHECK_OK 189 // OK
-#define S_CHECK_BAD 190 // Bad
-#define S_MAPPER_TYPE 191 // type
-#define S_KB_TITLE 192 // KEYBOARD TEST
-#define S_KB_PS2 193 // Found at boot: PS/2
-#define S_KB_NONE 194 // Found at boot: none, listening anyway
-#define S_KB_CODES 195 // Raw bytes (newest last):
-#define S_KB_BACK 196 // <A> Pause  <B> Back
-#define S_KB_BYTES 197 // Bytes {}   with errors {}
-#define S_KB_KEY 198 // Key {}   modifiers {}
-#define S_KB_FINISH 199 // finish
-#define S_KB_PARITY 200 // parity
-#define S_KB_START 201 // start
-#define S_KB_UNUSED3 202 //
-#define S_KB_UNUSED4 203 //
-#define S_KB_TIMEOUT 204 // timeout
-#define S_TILE_N 205 // Tile
-#define S_INGAME_RESUME 206 // Resume game
-#define S_INGAME_SAVE 207 // Save state
-#define S_INGAME_LOAD 208 // Load state
-#define S_INGAME_RETURN 209 // Return to OS
-#define S_INGAME_ERROR 210 // State / SD error
-#define S_INGAME_FOOTER 211 // <A> Select  <B> Resume
-#define S_MODULE_COPY_FAILED 212 // COPY FAILED {}:{}
-#define S_BUILD_LOADING 213 // loading
-#define S_BUILD_LINKING 214 // Placing sections
-#define S_BUILD_FINISHING 215 // Finishing
-#define S_DRIVER_NONE 216 // NONE
-#define S_DRIVER_PS2 217 // PS/2 KEYBOARD
-#define S_DRIVER_IGKB 218 // iGKB USB
-#define S_DRIVER_SNES_MOUSE 219 // SNES MOUSE
-#define S_KB_PAUSED 220 // PAUSED (A resumes)
-#define S_MAP_READING 221 // Reading map...
-#define S_MAP_LARGE 222 // Close the large
-#define S_MAP_LARGE2 223 // file to view maps
-#define S_MAP_CANT_BUILD 224 // Can't build the
-#define S_MAP_ERROR_N 225 // map: error {}
-#define S_MAP_WRAPPER 226 // (wrapper)
-#define S_MAP_CHUNK 227 // chunk
-#define S_CC_PASS 228 // Compiling {}/3
-#define S_MODULE_CRASHED 229 // CRASH LOGGED {}:{}
-#define S_HIDDEN_HIDE 230 // HIDE
-#define S_HIDDEN_SHOW 231 // SHOW
+#define S_THEME_HINT 145 // <A>Edit <LR>Theme
+#define S_ON 146 // On
+#define S_OFF 147 // Off
+#define S_INFO_TYPE 148 // Type:
+#define S_INFO_SIZE 149 // Size:
+#define S_INFO_CREATED 150 // Created:
+#define S_INFO_ACCESSED 151 // Accessed:
+#define S_INFO_MODIFIED 152 // Modified:
+#define S_INFO_READ 153 // Read:
+#define S_INFO_HEADER 154 // Header:
+#define S_INFO_WORDS 155 // Words:
+#define S_INFO_LINES 156 // Lines:
+#define S_INFO_COUNTS 157 // Counts:
+#define S_INFO_TITLE 158 // Title:
+#define S_INFO_PLATFORM 159 // Platform:
+#define S_INFO_SGB 160 // Super GB:
+#define S_INFO_MAPPER 161 // Mapper:
+#define S_INFO_ROM 162 // ROM:
+#define S_INFO_RAM 163 // RAM:
+#define S_INFO_REGION 164 // Region:
+#define S_INFO_REVISION 165 // Revision:
+#define S_INFO_CHECKSUM 166 // Header checksum:
+#define S_TYPE_TEXT 167 // Plain Text
+#define S_TYPE_MARKDOWN 168 // Markdown
+#define S_TYPE_C 169 // C source
+#define S_TYPE_ASM 170 // Assembly
+#define S_TYPE_FOLDER 171 // Folder
+#define S_TYPE_GAME 172 // Game Boy ROM
+#define S_TYPE_BINARY 173 // Binary
+#define S_SD_ERROR_LOWER 174 // SD error
+#define S_TOO_SHORT 175 // Too short
+#define S_BINARY_FILE 176 // Binary file
+#define S_SKIPPED 177 // Skipped (>32KB)
+#define S_GB_ONLY 178 // Game Boy
+#define S_INFO_YES 179 // Yes
+#define S_INFO_NO 180 // No
+#define S_NONE 181 // --
+#define S_RAM_MBC2 182 // 512 x 4 bits
+#define S_GB_COLOR_ONLY 183 // Color only
+#define S_GB_BOTH 184 // GB / Color
+#define S_UNKNOWN 185 // Unknown
+#define S_JAPAN 186 // Japan
+#define S_OVERSEAS 187 // Overseas
+#define S_CHECK_OK 188 // OK
+#define S_CHECK_BAD 189 // Bad
+#define S_MAPPER_TYPE 190 // type
+#define S_KB_TITLE 191 // KEYBOARD TEST
+#define S_KB_PS2 192 // Found at boot: PS/2
+#define S_KB_NONE 193 // Found at boot: none, listening anyway
+#define S_KB_CODES 194 // Raw bytes (newest last):
+#define S_KB_BACK 195 // <A> Pause  <B> Back
+#define S_KB_BYTES 196 // Bytes {}   with errors {}
+#define S_KB_KEY 197 // Key {}   modifiers {}
+#define S_KB_FINISH 198 // finish
+#define S_KB_PARITY 199 // parity
+#define S_KB_START 200 // start
+#define S_KB_UNUSED3 201 //
+#define S_KB_UNUSED4 202 //
+#define S_KB_TIMEOUT 203 // timeout
+#define S_TILE_N 204 // Tile
+#define S_INGAME_RESUME 205 // Resume game
+#define S_INGAME_SAVE 206 // Save state
+#define S_INGAME_LOAD 207 // Load state
+#define S_INGAME_RETURN 208 // Return to OS
+#define S_INGAME_ERROR 209 // State / SD error
+#define S_INGAME_FOOTER 210 // <A> Select  <B> Resume
+#define S_MODULE_COPY_FAILED 211 // COPY FAILED {}:{}
+#define S_BUILD_LOADING 212 // loading
+#define S_BUILD_LINKING 213 // Placing sections
+#define S_BUILD_FINISHING 214 // Finishing
+#define S_DRIVER_NONE 215 // NONE
+#define S_DRIVER_PS2 216 // PS/2 KEYBOARD
+#define S_DRIVER_IGKB 217 // iGKB USB
+#define S_DRIVER_SNES_MOUSE 218 // SNES MOUSE
+#define S_KB_PAUSED 219 // PAUSED (A resumes)
+#define S_MAP_READING 220 // Reading map...
+#define S_MAP_LARGE 221 // Close the large
+#define S_MAP_LARGE2 222 // file to view maps
+#define S_MAP_CANT_BUILD 223 // Can't build the
+#define S_MAP_ERROR_N 224 // map: error {}
+#define S_MAP_WRAPPER 225 // (wrapper)
+#define S_MAP_CHUNK 226 // chunk
+#define S_CC_PASS 227 // Compiling {}/3
+#define S_MODULE_CRASHED 228 // CRASH LOGGED {}:{}
+#define S_HIDDEN_HIDE 229 // HIDE
+#define S_HIDDEN_SHOW 230 // SHOW
+#define S_THEME_HEADER 231 // Theme: {}
+#define S_THEME_E_TEXT 232 // Text
+#define S_THEME_E_BOLD 233 // Bold
+#define S_THEME_E_ITALIC 234 // Italic
+#define S_THEME_E_BOLD_ITALIC 235 // Bold italic
+#define S_THEME_E_MARK 236 // # * _ ` markers
+#define S_THEME_E_CODE 237 // `code`
+#define S_THEME_E_HEAD 238 // # Headings
+#define S_THEME_E_HEAD_BOLD 239 // ##### Headings 5 and 6
+#define S_THEME_E_COMMENT 240 // // comments
+#define S_THEME_E_KEYWORD 241 // keywords
+#define S_THEME_E_TYPE 242 // types
+#define S_THEME_E_STRING 243 // "strings"
+#define S_THEME_E_NUMBER 244 // 123456789
+#define S_THEME_E_PREPROC 245 // #directives
+#define S_THEME_E_LABEL 246 // labels:
+#define S_THEME_E_BARS 247 // Header and footer
+#define S_THEME_E_THEME 248 // Theme
+#define S_THEME_E_PALETTE 249 // Palette {}
+#define S_THEME_P_PALETTE 250 // PALETTE {}
+#define S_THEME_P_INK 251 // INK: COLOR {}
+#define S_THEME_P_BOLD 252 // BOLD: {}
+#define S_THEME_P_ITALIC 253 // ITALIC: {}
+#define S_THEME_P_FONT 254 // FONT: {}
+#define S_THEME_V_TEXT 255 // TEXT
+#define S_THEME_V_CODE 256 // CODE
+#define S_THEME_P_COLOR 257 // {}  R{}  G{}  B{}
+#define S_THEME_BOX_HINT 258 // <LR>Change <B>Done
+#define S_THEME_COLOR_HINT 259 // <LR>Change <A>Next <B>Done
+#define S_THEME_KEEP 260 // KEEP EDITING
+#define S_THEME_DISCARD 261 // DISCARD EDITS
+#define S_THEME_HELP 262 // <UD>Pick <A>Edit
+#define S_THEME_HELP_CHANGE 263 // <LR>Change a value
+#define S_THEME_HELP_NEXT 264 // <A>Next colour
+#define S_THEME_HELP_DONE 265 // <B>Close the box
+#define S_THEME_UNREADABLE 266 // Can't read the theme
+#define S_THEME_NAME_LONG 267 // Up to 12 characters
 #endif

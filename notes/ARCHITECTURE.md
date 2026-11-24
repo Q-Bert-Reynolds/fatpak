@@ -134,10 +134,11 @@ RAM instead when `$BD06` bit 1 is set).
 | --- | --- |
 | `$0100-$017e` | Text gap buffer (127 blocks, 65,024 bytes) |
 | `$0180-$01ef` | Undo ring (112 blocks, 56 KiB) |
-| `$01f0-$01ff` | Settings/signatures and 7,936-byte clipboard |
+| `$01f0-$01ff` | Settings/signatures, the theme in use (offset `$100`, `THEME_OFFSET`) and 7,808-byte clipboard (from `$180`) |
 | `$3d00-$3d54` | `EDITOR.DAT` v5 (85 blocks): header, fonts, SGB border, help, paired shift tables (77), VWF bold widths (84) |
 | `$3d55-$3d64` | Filename prompt undo ring (64 states) |
 | `$3d65-$3d67` | The open file's syntax definition (`SYNTAX_BLOCK`, `fs_LoadSyntax`) |
+| `$3a80-$3a88` | SETTINGS > THEME: the themes' names (`THEME_LIST_BLOCK`) and a theme file's text (`THEME_JSON_BLOCK`) |
 | `$0200-$03ff` | `MAPVIEW.MOD`, while it runs: the wrapper `ASM.MOD` builds, then the map's cache, both files' tiles and drawn chunks; the cache's path at `$03ff` for the browser |
 | `$0400-$3cff` | Large-file add buffer (`ADD_MAX` = `$720000` bytes), bounded before protected assets |
 | `$0400-$0bff`, `$0c00-$0fff` | While a text-buffer document is open: `ASM.MOD`'s ROM image (1 MiB) and symbol table ([ASSEMBLER.md](ASSEMBLER.md)) |
@@ -250,13 +251,13 @@ excluded); physical offsets map to block + window offset.
   what it leaves; the gap only moves on edits away from it.
 - **Lexing** (`TBLex`): `TBScanRow` calls the lexer per character, which returns
   `tb_attr` (low nibble width, high nibble style: `STYLE_TEXT`, `STYLE_BOLD`,
-  `STYLE_MARK`, `STYLE_CODE`, `STYLE_HEAD`..., looks in `StyleLooks`) and
+  `STYLE_MARK`, `STYLE_CODE`, `STYLE_HEAD`..., looks in `style_looks`, the theme's) and
   `tb_next_state` (committed by `TBCommit`). `TBDrawChar` stores the attr in
   `tile_attrs`; all width measurement (`RenderCursorX`, `PosAtX`, selection,
   drawing) reads from there. `SetLang` picks the lexer by extension: `.md` is
   markdown, an extension with a syntax definition is code (below), anything else
   plain. The lexer and the row functions (`TBLex` through `tb_ScrollRows` and
-  `KeywordLookup`) are in page 14 (`DOC_PAGE`) behind ROM0 thunks; `StyleLooks`,
+  `KeywordLookup`) are in page 14 (`DOC_PAGE`) behind ROM0 thunks;
   `TBEdited` and the text access helpers stay resident. A 2-byte state is saved per row in
   `tb_row_states`; wrapped words return to the state after the last space;
   rendering from an unknown state scans from the line start (`TBSyncState`).
@@ -294,9 +295,10 @@ excluded); physical offsets map to block + window offset.
   `tb_Render`/`tb_RenderRows`/`tb_ScrollRows` fill `tile_buffer` (18 rows ×
   `TB_STRIDE` 40).
 - **Settings** (`src/sram.asm`): `SettingsTable` (`tb_nowrap`, `bars_on`,
-  `fs_crlf`, `modified`, `file_dir`, `file_name`, `theme`) saved behind `SET3` in
-  block `$01f0` whenever one changes. New settings go last: `SettingsLoad` still
-  reads `SET2` (no theme) and defaults the theme to light.
+  `fs_crlf`, `modified`, `file_dir`, `file_name`, `theme`, ...) saved in block
+  `$01f0` whenever one changes. New settings go last: `SettingsLoad` still reads
+  `SET2` onward. (`theme` there is only `ThemeApply`'s dark flag now: the theme
+  itself is after the settings, `THEME_OFFSET`.)
 - **Clipboard:** `tb_DeleteRange` grows the gap over a range; `tb_Copy`/`tb_Paste`
   move 256 bytes at a time through `win_buffer`. Selection is `anchor`..`cursor`.
 - **Undo** (`undo.c` + `undo.asm`): ring of records (header, text, trailing
@@ -348,13 +350,40 @@ Text is drawn as pixels so fonts can be any width. Every cell has its own tile
   block's map row so accented blocks are rewritten when they move.
   `EditorSetPalettes`: paper, highlight, dim, ink; accents blue (headings), dark
   red (code), purple, brown-orange.
-- **Theme** (`src/ui/theme.asm`, `THEME_PAGE` 6): `theme` picks light or dark.
-  `ThemeApply` (resident) reloads every palette: GBC BG palettes 0-4 and OBJ
-  palette 0 (cursor, keyboard highlight) from `LightPalettes`/`DarkPalettes`;
-  SGB the same colours through `PAL01`; DMG inverts `BGP` and `OBP0` (`$1B`) and
-  `EditorInvertCursor` flips the cursor's shade, remembering its last argument in
-  `cursor_white`. Startup applies it after each settings load. The in-game menu
-  isn't themed.
+- **Theme** (`src/ui/theme.asm`, ROM0): the theme in use is `THEME_SIZE` bytes of
+  the settings block at `THEME_OFFSET` (so the swap file keeps it): 8 GBC palettes
+  (colour 0 paper, 1 accent ink, palette 0's also the selection, 2 dim ink, 3 ink),
+  a look per style and one for the header and footer (`THEME_BARS`), its name, a
+  signature (none: `ThemeApply` writes the built-in light theme). A look is one
+  byte: `LOOK_BOLD`, `LOOK_ITALIC`, the ink (`LOOK_DIM` colour 2, `LOOK_ACCENT`
+  colour 1, neither 3), the palette (bits 4-6) and `LOOK_CODE` (the 4 px code font
+  in a proportional row, unstyled there). `ThemeApply` copies the looks to
+  `style_looks` (WRAMX, the renderer's), loads all 8 GBC BG palettes and OBJ
+  palette 0 (palette 0's colours: cursor, keyboard highlight), the SGB's palettes 0
+  and 1 (`PAL01`), sets `theme` (dark: palette 0's paper darker than its ink) for
+  the DMG's shades (`BGP`/`OBP0` `$1B`, `EditorInvertCursor`), and `fs_colors`,
+  the SNES's 8 colours in fullscreen (paper, selection, then the comments', text's,
+  keywords', strings', numbers' and labels' inks; the SNES's own tables decide
+  which style is which class, its bold and fonts). On GBC a tile takes the palette
+  of the last char drawn in it with a look that has one (`RenderSetPalettes`), so
+  styles sharing a tile share a palette; the header and footer take `THEME_BARS`'s
+  palette for every tile, its ink and bold (their widths stay the font's). The
+  in-game menu isn't themed.
+- **Theme editor** (SETTINGS > THEME, `src/ui/theme.c`, `THEME.MOD`): a page of
+  entries, each label in its own look (`ModStyle` widths of 0: the host measures
+  them in the look, `ThemeWidth`), and two raw rows of every palette's colours
+  (`ModTiles` with `THEME_TILES`: the tiles in the theme's own palettes, so they
+  change with them). The host lists `/GBCSYS/THEMES/*.json` at `THEME_LIST_BLOCK`
+  and points `module_dir` at the card's root; the module loads the files itself
+  (`ModLoad`), edits a copy of the theme and puts it back at each change
+  (`ModTheme`: `ThemeApply`, every row drawn again for looks). FILE > SAVE and SAVE
+  AS return `THEME_SAVE`/`THEME_SAVE_AS` with the JSON at `THEME_JSON_BLOCK`; the
+  host asks for the name (`AskName`), writes the file (`fs_WriteText`) and runs the
+  module again. A theme file: `"palettes"` (8 of 4 `[r, g, b]`, 0-31), then a look
+  per key (`text` ... `labels`, `header_footer`: `palette`, `ink` 1-3, `bold`,
+  `italic`, `font` `"text"` or `"code"`); unknown keys are skipped and missing ones
+  keep what the theme had. `make assemble` copies `data/themes` to the card only
+  where a file isn't there yet.
 - **Selection:** `render_sel` holds each row's selected column range; changed
   rows redraw. DMG shows colors 1/2 inverted, GBC/SGB as blue. OBP1 turns the
   cursor white at a selection start.
