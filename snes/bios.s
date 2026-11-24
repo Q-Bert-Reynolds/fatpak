@@ -10,7 +10,8 @@
 ; of the session. The extension's FarBiosReturn (EXIT) reads it all back, puts the samples back from the BIOS
 ; ROM, restarts the driver, writes the BIOS's PPU/IRQ registers (write-only: this BIOS's known values) and
 ; returns into the BIOS through its stack, as the Phase 0c handoff probe does. Only the BIOS whose header
-; checksum is known (SGB1 1.2 and 1.1, SGB2: the same code, data and addresses where this depends on them) is saved; on any other, BiosFlag stays 0 and the kernel doesn't offer EXIT.
+; checksum is known (SGB1 1.2, 1.1 and 1.0, SGB2: the same code, data and addresses where this depends on them, but
+; 1.0's NMI handler, BIOS_NMI_10) is saved; on any other, BiosFlag stays 0 and the kernel doesn't offer EXIT.
 ;
 ; No direct page and no WRAM of the BIOS's is used for work: the state below lives in the kernel's image ($7F,
 ; long addressing), and the streams index bank $7E (or the ROM's bank) with X.
@@ -28,8 +29,10 @@ SAMPLES_AT = $32999 ; the BIOS ROM (a file offset): the samples' block's data (i
 SAMPLES = (SAMPLES_AT >> 15) << 16 | $8000 | (SAMPLES_AT & $7FFF) ; (LoROM)
 BANK6 = ($10000 - (SAMPLES & $FFFF)) / 3 ; its groups of 3 in bank 6 (exactly: the rest start at $07:8000)
 .assert (SAMPLES & $FFFF) + BANK6 * 3 = $10000, error, "the samples' bank 6 part isn't whole groups"
-BIOS_RTS = $00AC88 ; an RTS in the BIOS's bank 0: the JUMP handler's caller is returned to through it
+BIOS_RTS = $0080B8 ; an RTS in the BIOS's bank 0, there in every revision: the JUMP handler's caller is returned to through it
 BIOS_NMI = $00B50A ; the BIOS's NMI pointer at $00BB (JUMP set it to the kernel's)
+BIOS_NMI_10 = $00B50D ; SGB1 1.0's: the same handler 3 bytes on
+SUM_10 = $BAD3 ; SGB1 1.0's header checksum
 SERVER_AT = SAMPLES_AT + SERVER - STASH ; the samples' bytes under the server
 SERVER_ROM = (SERVER_AT >> 15) << 16 | $8000 | (SERVER_AT & $7FFF)
 STAGE = $6000   ; $7E: the PPU's memories pass through here (the kernel's row cache; not the BIOS's live state)
@@ -371,10 +374,12 @@ BiosSave:
 .a16
  txa
  sta f:$7F0000+BiosSp
- lda f:$00FFDE ; the header checksum: SGB1 1.2, 1.1, SGB2 (the same code where EXIT depends on it)
+ lda f:$00FFDE ; the header checksum: SGB1 1.2, 1.1, 1.0, SGB2 (the same code where EXIT depends on it)
  cmp #$F632
  beq @other
  cmp #$BF92
+ beq @other
+ cmp #SUM_10
  beq @other
  cmp #$7DD5
 @other:
@@ -613,7 +618,18 @@ FarBiosReturn:
  ldx #$EEF0 - SERVER
  jsl $7F0000+IplSend
  ; the BIOS's NMI pointer (JUMP made it the kernel's), its registers, then back into it
+ rep #$20
+.a16
+ lda f:$00FFDE
+ cmp #SUM_10
+ sep #$20
+.a8
+ bne @nmi ; (sep keeps Z)
+ lda #<BIOS_NMI_10
+ bra @nmiLow
+@nmi:
  lda #<BIOS_NMI
+@nmiLow:
  sta f:$7E00BB
  lda #>BIOS_NMI
  sta f:$7E00BC
@@ -647,7 +663,7 @@ RetBack:
  cli ; (the JUMP handler set I just before it jumped: the BIOS's loop waits on its IRQs)
  jml BIOS_RTS
 
-; The BIOS's registers as it left them at JUMP (Mesen: SGB1 1.2, 1.1 and SGB2 agree): register (bank 0), value; 0 ends. Scroll
+; The BIOS's registers as it left them at JUMP (Mesen: SGB1 1.2, 1.1, 1.0 and SGB2 agree): register (bank 0), value; 0 ends. Scroll
 ; registers are written twice (the PPU takes two bytes). INIDISP and NMITIMEN last.
 .macro REG register, value
  .word register

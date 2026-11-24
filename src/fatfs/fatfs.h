@@ -11,6 +11,6 @@ unsigned char fs_Load(const char* path);
 unsigned char fs_Save(const char* path);
 unsigned char fs_LoadData(const char* path);
 unsigned char fs_SaveSwap(void);
-unsigned char fs_LoadSwap(void);
+unsigned char fs_LoadSwap(unsigned char settings);
 
 #endif

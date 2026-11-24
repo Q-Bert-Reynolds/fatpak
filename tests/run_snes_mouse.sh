@@ -3,7 +3,7 @@
 set -euo pipefail
 root=$(cd -- "$(dirname -- "$0")/.." && pwd)
 mesen=${MESEN_DLL:-"$root/../MesenCE/bin/linux-x64/Release/Mesen.dll"}
-bios=${SGB_BIOS:-"$HOME/Downloads/SGB1.sfc"}
+bios=${SGB_BIOS:-"$HOME/Desktop/sgb/sgb1v2.sfc"}
 boot=${SGB_BOOT:-"$HOME/Downloads/sgb_boot.bin"}
 work=$(mktemp -d /tmp/fatpak-snes-mouse.XXXXXX)
 trap 'rm -rf "$work"' EXIT

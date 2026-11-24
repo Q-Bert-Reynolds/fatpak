@@ -2711,8 +2711,9 @@ unsigned char fs_SaveSwap(void) {
 }
 
 // at boot: if PSRAM lost the text (the power was off), restores the text, clipboard and settings from
-// the swap file, returns an FRESULT (FR_INVALID_OBJECT if it's bad, the text is cleared)
-unsigned char fs_LoadSwap(void) {
+// the swap file, returns an FRESULT (FR_INVALID_OBJECT if it's bad, the text is cleared). settings: only
+// the settings and theme (the header, not yet signed), before anything is drawn in the wrong theme
+unsigned char fs_LoadSwap(unsigned char settings) {
   UINT done;
   WORD length, sum, clip;
   FRESULT result;
@@ -2733,6 +2734,11 @@ unsigned char fs_LoadSwap(void) {
   clip = ((WORD*)(buffer + SWAP_INFO))[4];
   SetWindowBlock(MAIN_BLOCK); // the header, without the signature until the sum checks out
   memcpy(WINDOW + 4, buffer + 4, SWAP_INFO - 4);
+  if (settings) {
+    SetWindowBlock(TB_PSRAM_HIGH << 8);
+    f_close(&file);
+    return FR_OK;
+  }
   swap_sum = 0;
   result = SwapBlocks(0, MAIN_BLOCK, TB_CLIP_OFFSET, clip);
   tb_Clear();

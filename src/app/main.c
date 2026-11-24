@@ -24,7 +24,10 @@ static const char no_data[] = "NO EDITOR.DAT"; // without it there are no string
 static const char startup_name[] = "FatPak";
 
 void AppMain(void) {
-  // The VWF font is resident: show the normal bars before any card IO.
+  // A cold start's settings and theme from the swap file (one sector) before anything is drawn, so
+  // the screen isn't the built-in theme until the rest loads. The VWF font is resident: then the
+  // normal bars before the rest of the card IO.
+  FileLoadSwap(1);
   EditorSetup();
   EditorInit();
   ThemeApply(); // PSRAM settings survive a reset; a cold start learns the theme from the swap below
@@ -39,7 +42,7 @@ void AppMain(void) {
     data_loaded = 1;
     // SGBSetDefaultBorder();
   }
-  FileLoadSwap(); // before recovering the gap layout
+  FileLoadSwap(0); // before recovering the gap layout
   tb_Load();
   EditorInit();
   ThemeApply();

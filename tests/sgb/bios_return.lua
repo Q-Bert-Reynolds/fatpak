@@ -37,7 +37,7 @@ emu.addMemoryCallback(function()if not exit_at then exit_at=frame end end,
 local check_memory
 emu.addMemoryCallback(function()
  if main and not returned then returned=frame;check_memory() end
-end,emu.callbackType.exec,0x00AC88,0x00AC88,emu.cpuType.snes)
+end,emu.callbackType.exec,0x0080B8,0x0080B8,emu.cpuType.snes)
 local function differ(t,m,from,to,skip)
  local n,first=0,nil
  for i=from,to do
@@ -46,10 +46,13 @@ local function differ(t,m,from,to,skip)
  return n,first
 end
 local menu_shot
+-- the BIOS's NMI handler (bios.s BIOS_NMI): SGB1 1.0's (header checksum $BAD3) is 3 bytes on
+local M=emu.memType.snesMemory
+local bios_nmi=(emu.read(0xFFDE,M)+256*emu.read(0xFFDF,M)==0xBAD3) and 0x00B50D or 0x00B50A
 local trace,irqs={},0
 if os.getenv('BIOS_RETURN_TRACE') then
  for _,bank in ipairs({0,0x800000}) do
-  emu.addMemoryCallback(function() if returned then irqs=irqs+1 end end,emu.callbackType.exec,bank+0xB50A,bank+0xB50A,emu.cpuType.snes)
+  emu.addMemoryCallback(function() if returned then irqs=irqs+1 end end,emu.callbackType.exec,bank+bios_nmi,bank+bios_nmi,emu.cpuType.snes)
  end
  emu.addEventCallback(function(c)
   if c~=emu.cpuType.snes or not returned or frame-returned>40 then return end
@@ -92,7 +95,7 @@ check_memory=function()
   end
   if #bad>0 then finish(false,table.concat(bad,'; '));return end
   local nmi=emu.read(0xBB,W)+256*emu.read(0xBC,W)+65536*emu.read(0xBD,W)
-  if nmi~=0x00B50A then finish(false,string.format('NMI pointer %06X',nmi));return end
+  if nmi~=bios_nmi then finish(false,string.format('NMI pointer %06X',nmi));return end
   -- the PPU's and the CPU's registers as at JUMP (bios.s's Regs table): Mesen's state, less its counters,
   -- latches and addresses (the BIOS sets those again before it uses them)
   local now,diff=emu.getState(),{}

@@ -610,6 +610,13 @@ static void Theme(const char* image,const char* symbols,const char* data,bool co
         pad(Start_Key);pad(Up_Key);pad(A_Key);Frames(core,60); // CLOSE
         Check(byte("_render_text")==0 && dark(core) && look(9)==(8+2*16|1),"CLOSE keeps the theme");
     }
+    if(color){ // a cold start shows the swap file's theme from its first lit frame, not the built-in one
+        GearboyCore core;core.Init();core.SetEverdriveFolder(folder);core.SetPS2KeyboardEnabled(true);
+        Check(core.LoadROM(image,false),"theme OS");
+        unsigned lit=0;
+        for(unsigned f=0;f<600 && !lit;++f){Frames(core,1);if(f && core.GetMemory()->Read(0xFF40)&0x80)lit=f;}
+        Check(lit && dark(core),"the saved theme before the screen turns on");
+    }
     {
         GearboyCore core;boot(core);auto memory=core.GetMemory();auto syms=Symbols(symbols);
         auto pad=[&](Gameboy_Keys key){core.KeyPressed(key);Frames(core,4);core.KeyReleased(key);Frames(core,70);};

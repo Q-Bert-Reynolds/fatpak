@@ -457,11 +457,15 @@ first 256 KiB differ in about 2,000 bytes of in-place patches, its new code in t
 upper 256 KiB (`$88:C4A0` wraps 1.2's `$6003 = $01` reset, `$88:C3D7` reads the pad at
 power-on). All three have the same JUMP handler, RTS at `$00:AC88`, NMI handler at
 `$00:B50A` and samples-plus-server bytes (`$06:A999` on), and Mesen's register
-state after EXIT matches JUMP's on each with the one Regs table.
-`tests/run_sgb_bios_return.sh` runs every dump it finds (SGB1 1.2 required;
-`SGB11_BIOS`, `SGB2_BIOS` override the 1.1 and SGB2 paths; SGB2 runs with Mesen's
-`UseSgb2`) and also compares Mesen's PPU and CPU register state with JUMP's, less
-counters and latches. SGB1 1.0 is still to check (no dump yet).
+state after EXIT matches JUMP's on each with the one Regs table. SGB1 1.0 (header
+checksum `$BAD3`, 2026-11-24) has the same samples and registers but its bank 0 code
+from about `$AC00` is 3 bytes on: its JUMP handler's `JML [$00B8]` at `$00:C72F`, NMI
+handler at `$00:B50D` (BIOS_NMI_10). EXIT returns through an RTS at `$00:80B8`,
+which every revision has there. `tests/run_sgb_bios_return.sh` runs every dump in
+`~/Desktop/sgb` (`SGB_DUMPS`; named as ISSOtm's SGB disassembly expects: `sgb1v2.sfc`
+required, `sgb1v0.sfc`, `sgb1v1.sfc`, `sgb2.sfc`; SGB2 runs with Mesen's `UseSgb2`)
+and also compares Mesen's PPU and CPU register state with JUMP's, less counters and
+latches.
 
 **At JUMP** (`snes/bios.s` BiosSave, first thing in Boot, on the BIOS's stack with its
 registers pushed there): forced blank; the sound driver to the IPL ROM (`$00`, then
@@ -483,11 +487,11 @@ extension's for want of image space): the kernel ACKs the page, waits for the ec
 then the extension's FarBiosReturn: VRAM cleared, the snapshot read back (DMA'd to the
 PPU, WRAM in place), the samples rewritten from the BIOS ROM (`$06:A999` on), the
 server's area through the IPL, the driver restarted at `$0400`, the BIOS's NMI
-pointer (`$00BB` = `$00B50A`) and registers (Mesen's values at JUMP: mode 1, BG and OBJ
+pointer (`$00BB` = `$00B50A`, 1.0's `$00B50D`) and registers (Mesen's values at JUMP: mode 1, BG and OBJ
 bases, TM `$17`, CGWSEL `$02`, COLDATA, H/V IRQ at 64/223, FastROM, `$4200 = $31`),
 `$6003 = $81` (one player), INIDISP last; then its registers pulled, I cleared (its
 JUMP handler at `$C738` sets it just before jumping; the loop waits on IRQs), and
-RTS through `$00:AC88`. 119 SNES frames (2 s). `tests/run_sgb_bios_return.sh`
+RTS through `$00:80B8`. 119 SNES frames (2 s). `tests/run_sgb_bios_return.sh`
 replays a 512x448 session and EXIT in Mesen on the real BIOS: VRAM, CGRAM, OAM, the
 saved WRAM, ARAM (driver and samples) and the NMI pointer equal JUMP's, the border
 pixel for pixel, the GB sees one player and unfreezes it, L+R opens the menu.
@@ -927,7 +931,7 @@ compatibility gate.
 | cc65 | `ca65`/`ld65` plus `cc65` for native SNES code |
 | RGBDS, SDCC | Existing GB build toolchain |
 | MesenCE | Default `dotnet ../MesenCE/bin/linux-x64/Release/Mesen.dll`; override `MESEN_DLL` |
-| SGB BIOS | Default `~/Downloads/SGB1.sfc`; override `SGB_BIOS`; SGB2 dump still needed |
+| SGB BIOS | `~/Desktop/sgb/` (`SGB_DUMPS`): `sgb1v0.sfc`, `sgb1v1.sfc`, `sgb1v2.sfc` (the default, override `SGB_BIOS`), `sgb2.sfc`, named as ISSOtm's SGB disassembly expects |
 | GB-side SGB boot ROM | Default `~/Downloads/sgb_boot.bin`; override `SGB_BOOT` |
 | Gearboy fork | GB/EverDrive tests; optional host on its separate `fatpak` branch |
 

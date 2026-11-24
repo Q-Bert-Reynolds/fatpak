@@ -5,10 +5,12 @@
 set -euo pipefail
 root=$(cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$root"
-# Without SGB_BIOS: each BIOS EXIT knows (SGB1 1.2 required; 1.1 and SGB2 if their dumps are there)
+# Without SGB_BIOS: each BIOS EXIT knows, from SGB_DUMPS (named as ISSOtm's SGB disassembly expects):
+# SGB1 1.2 required; 1.0, 1.1 and SGB2 if their dumps are there
 if [[ -z ${SGB_BIOS:-} ]]; then
- SGB_BIOS="$HOME/Downloads/SGB1.sfc" SGB2=0 bash "$0"
- for spec in "0:${SGB11_BIOS:-$HOME/Downloads/Super Game Boy (Japan, USA) (Rev 1).sfc}" "1:${SGB2_BIOS:-$HOME/Downloads/SGB2.sfc}"; do
+ dumps=${SGB_DUMPS:-$HOME/Desktop/sgb}
+ SGB_BIOS="$dumps/sgb1v2.sfc" SGB2=0 bash "$0"
+ for spec in "0:$dumps/sgb1v0.sfc" "0:$dumps/sgb1v1.sfc" "1:$dumps/sgb2.sfc"; do
   if [[ -f ${spec#*:} ]]; then SGB_BIOS="${spec#*:}" SGB2="${spec%%:*}" bash "$0"; else echo "skipped (no dump): ${spec#*:}"; fi
  done
  exit 0
@@ -27,7 +29,7 @@ mkdir -p "$work/config/MesenCE/Firmware"
 sgb2=${SGB2:-0}
 bios_name=SGB1.sfc; boot_name=sgb_boot.bin
 [[ $sgb2 == 1 ]] && { bios_name=SGB2.sfc; boot_name=sgb2_boot.bin; }
-cp "${SGB_BIOS:-$HOME/Downloads/SGB1.sfc}" "$work/config/MesenCE/Firmware/$bios_name"
+cp "${SGB_BIOS:-$HOME/Desktop/sgb/sgb1v2.sfc}" "$work/config/MesenCE/Firmware/$bios_name"
 cp "${SGB_BOOT:-$HOME/Downloads/sgb_boot.bin}" "$work/config/MesenCE/Firmware/$boot_name"
 cp build/sgb/kernel.gb build/sgb/kernel-symbols.lua "$work/config/MesenCE/"
 printf '{}\n' > "$work/config/MesenCE/settings.json"

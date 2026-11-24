@@ -18,7 +18,7 @@ PY
 work=$(mktemp -d /tmp/fatpak-kernel.XXXXXX)
 trap 'cp -f "$work"/config/MesenCE/kernel*.ppm "$work"/config/MesenCE/kernel.png "$root/build/sgb/" 2>/dev/null || true; cp -f "$work"/config/MesenCE/result.txt "$root/build/sgb/kernel-result.txt" 2>/dev/null || true; cp -f "$work/mesen.log" "$root/build/sgb/kernel-mesen.log" 2>/dev/null || true; rm -rf "$work"' EXIT
 mkdir -p "$work/config/MesenCE/Firmware"
-cp "${SGB_BIOS:-$HOME/Downloads/SGB1.sfc}" "$work/config/MesenCE/Firmware/SGB1.sfc"
+cp "${SGB_BIOS:-$HOME/Desktop/sgb/sgb1v2.sfc}" "$work/config/MesenCE/Firmware/SGB1.sfc"
 cp "${SGB_BOOT:-$HOME/Downloads/sgb_boot.bin}" "$work/config/MesenCE/Firmware/sgb_boot.bin"
 cp build/sgb/kernel.bin build/sgb/kernel.gb build/sgb/kernel-symbols.lua build/sgb/kernel-golden.png "$work/config/MesenCE/"
 printf '{}\n' > "$work/config/MesenCE/settings.json"
