@@ -142,6 +142,7 @@ void ThemeSetup(void) {
   render_text = styled;
   osk_shown = old_osk;
   EndFullScreen();
+  EditorRedraw(); // the swatches' raw rows too, whose text may look unchanged
   if (changed) {
     SettingsSave(); // (the theme is after the settings, in their block)
     if (!doc_large) { // the swap file is its copy on SD

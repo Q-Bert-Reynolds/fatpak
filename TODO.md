@@ -14,6 +14,8 @@
 # Text Editor
 
 - Find and replace
+- Closing a document shows its rows unstyled for a moment before the browser draws.
+- A shared JSON reader/writer (a module, or a library modules link): THEME.MOD has its own (`modules/theme.c`: a forgiving reader over PSRAM, a writer to PSRAM blocks the host saves); project files, settings or map metadata could use the same.
 - `ScrollX` ignores bold widths.
 - Fixed-width code: bold keywords widen cells until a 4 px bold font exists; registers share keyword blue; the preprocessor colors only the directive; RGBDS string interpolation isn't lexed.
 - Syntax definitions (`data/syntax`, `scripts/syntax.py`) are compiled on the PC: let the device read the text form (write a language in the editor); markers longer than 2 chars (Lua's `--[[`), nested comments, HTML/YAML-style rules; one file per extension (C.SYN and H.SYN are copies).

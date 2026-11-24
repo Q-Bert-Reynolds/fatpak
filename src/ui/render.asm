@@ -24,7 +24,8 @@
 ;turns light grey), SGB and GBC highlight them: unselected pixels get color 1 and accent ink becomes
 ;color 3. Raw button icons retain colors 1 and 2 through these masks on all models.
 ;On GBC a tile with a char whose look has a palette uses it (written to the map attributes with
-;the row, RenderWritePalettes), selected tiles palette 0; the header and footer use THEME_BARS's look
+;the row, RenderWritePalettes), other tiles and selected ones the row's (render_base_pal: the text's
+;look's, the bars' in the header and footer; its color 1 is the highlight); the header and footer use THEME_BARS's look
 ;(render_bar: palette, ink, bold; their widths stay the font's). See ThemeApply.
 ;
 ;C functions (src/ui/render.h)
@@ -50,6 +51,7 @@ SECTION "Render WRAMX", WRAMX;WRAM0 is full
 _raw_palettes:: DW;RenderRawRow: TB_COLS GBC palettes (THEME.MOD's swatches), 0 for its own grey (RAW_PALETTE)
 render_bar: DB;1: the row is the header or footer (THEME_BARS's look)
 render_looks: DB;1: the row's chars have looks (render_styled or render_bar)
+render_base_pal: DB;GBC: the row's palette, for its plain and selected tiles (THEME_BARS's or STYLE_TEXT's look's)
 
 SECTION "Render Vars", WRAM0
 render_row: DB
@@ -1420,16 +1422,19 @@ RenderRow:
   call mem_Set
   xor a
   ld [render_inked], a
-  ld a, [render_bar];GBC: every tile of a bar in its palette
+  ld a, [render_bar];GBC: the row's palette (paper and highlight): the bars' look's, else the text's
   and a
-  jr z, .barPalette
   ld a, [_style_looks + THEME_BARS]
+  jr nz, .basePalette
+  ld a, [_style_looks + STYLE_TEXT]
+.basePalette
   swap a
   and a, 7
-  jr z, .barPalette
+  ld [render_base_pal], a
+  jr z, .palettes
   ld hl, render_inked
   ld [hl], 8;palettes set
-.barPalette
+.palettes
   ld hl, render_pals
   ld bc, TB_COLS
   call mem_Set
@@ -2625,8 +2630,11 @@ RenderWritePalettes:
 .attribute
     ld a, [bc]
     and a
-    ld a, e
-    jr nz, .setAttribute
+    jr z, .unselected
+    ld a, [render_base_pal];selected: the row's palette, its color 1 the highlight
+    or a, e
+    jr .setAttribute
+  .unselected
     push hl
     ld a, c
     add a, render_pals - render_mask

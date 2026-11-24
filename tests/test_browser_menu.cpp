@@ -577,7 +577,13 @@ static void Theme(const char* image,const char* symbols,const char* data,bool co
         pad(Right_Key);Frames(core,60);
         Check(row(0)==" Theme: < Dark >" && row(18).find("Theme: Dark")!=std::string::npos && dark(core),"> loads Dark.json at once");
         if(color)Check(bg(core,1,1)==(31<<10|19<<5|13),"Dark.json's palette 1");
-        for(unsigned i=0;i<11;++i)pad(Down_Key);
+        pad(Down_Key);pad(A_Key);Check(line(0)==" PALETTE 0" && byte("_render_box_rows")==5,"the header and footer's box: PALETTE, INK, BOLD");
+        pad(Right_Key);pad(Right_Key);pad(B_Key);Frames(core,30);
+        Check(look(15)==2*16,"PALETTE 2 for the header and footer");
+        if(color){const u8* attrs=memory->GetVRAMBank1()+0x1C00;unsigned n=0; // the window's map: the header's row
+            for(unsigned i=0;i<20;++i)n+=(attrs[i]&7)==2;
+            Check(n==20,"every header tile in its palette (paper and highlight, not only the text)");}
+        for(unsigned i=0;i<10;++i)pad(Down_Key);
         pad(A_Key);Check(line(0)==" PALETTE 1" && line(1)==" INK: COLOR 1" && byte("_render_box_rows")==7,"a look's box: PALETTE, INK, BOLD, ITALIC, FONT");
         pad(Right_Key);
         Check(look(9)==8+2*16 && line(0)==" PALETTE 2" && row(18).find("Theme: Dark*")!=std::string::npos,"PALETTE changes the keywords' look at once, the theme edited");

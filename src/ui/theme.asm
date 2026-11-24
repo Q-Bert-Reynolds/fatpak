@@ -8,10 +8,11 @@
 ;                               0's paper is darker than its ink: theme), the SNES's colours in
 ;                               fullscreen (fs_colors); the built-in light theme first if there's none
 ;text is color 3 on color 0, dim text color 2, accent text color 1 (see src/ui/render.asm). DMG inverts
-;selected pixels (dim text is light grey there), SGB and GBC highlight them with palette 0's color 1.
+;selected pixels (dim text is light grey there), SGB and GBC highlight them with color 1 of the row's
+;palette (the text's look's, the header and footer's look's in the bars: the base palette).
 ;On GBC a tile drawn with a look's palette uses it (one palette a tile: the last char's). The cursor
 ;and keyboard highlight are sprites: GBC object palette 0 (palette 0's colours: color 1 the
-;keyboard highlight, color 3 the cursor), DMG OBP1 (cursor, EditorInvertCursor) and OBP0 (highlight).
+;keyboard highlight, color 3 the cursor; the text's look's palette's colours), DMG OBP1 (cursor, EditorInvertCursor) and OBP0 (highlight).
 DEF_RGB EDITOR_PAPER,      29, 29, 27;the built-in theme's palette 0 (the in-game menu's too: src/game/ingame.asm)
 DEF_RGB EDITOR_HIGHLIGHT,  20, 25, 31
 DEF_RGB EDITOR_DIM,        14, 17, 14
@@ -38,7 +39,7 @@ _ThemeApply::
   call .write
   ld a, OCPSF_AUTOINC
   ldh [rOCPS], a
-  ld hl, THEME_BASE + THEME_PALETTES;object palette 0: palette 0's colours
+  call TextPalette;object palette 0: the text's palette's colours
   ld bc, 8 << 8 | LOW(rOCPD)
   call .write
   jr .done
@@ -53,9 +54,12 @@ _ThemeApply::
   ldh a, [sys_info]
   and a, SYS_INFO_SGB
   jr z, .done
-  ld a, PAL01;palettes 0 and 1: the SGB keeps the DMG's shades and changes their colours
-  ld bc, THEME_BASE + THEME_PALETTES
-  ld de, THEME_BASE + THEME_PALETTES + 8
+  call TextPalette;the SGB keeps the DMG's shades and changes their colours: the text's palette's
+  ld b, h
+  ld c, l
+  ld d, h
+  ld e, l
+  ld a, PAL01
   call sgb_SetPal
 .done
   call ThemeRestore
@@ -91,7 +95,7 @@ ThemeRestore:
   ld [EDX_BLOCK], a
   ret
 
-;the theme's looks, dark flag and SNES colours (the built-in theme first if there's none)
+;the theme's looks, dark flag (the text's palette's paper darker than its ink) and SNES colours (the built-in theme first if there's none)
 ThemeLoad:
   call ThemeWindow
   ld hl, THEME_BASE + THEME_SIGNATURE
@@ -116,17 +120,20 @@ ThemeLoad:
   ld de, _style_looks
   ld bc, 16
   call mem_Copy
-  ld hl, THEME_BASE + THEME_PALETTES + 6;palette 0's ink
+  call TextPalette;its ink
+  ld a, l
+  add a, 6
+  ld l, a
   call ColorSum
   push af
-  ld hl, THEME_BASE + THEME_PALETTES;its paper
+  call TextPalette;its paper
   call ColorSum
   pop bc
   cp a, b;carry: the paper is darker
   ld a, 0
   rla
   ld [_theme], a
-  ld hl, THEME_BASE + THEME_PALETTES;the SNES's paper and selection: palette 0's colours 0 and 1
+  call TextPalette;the SNES's paper and selection: the text's palette's colours 0 and 1
   ld de, _fs_colors
   ld bc, 4
   call mem_Copy
@@ -154,6 +161,16 @@ ThemeLoad:
     cp a, LOW(_fs_colors + 16)
     jr nz, .fs
   jp ThemeRestore
+
+;returns hl = the text's look's palette in the theme (in the window), affects a
+TextPalette:
+  ld a, [_style_looks + STYLE_TEXT]
+  and a, LOOK_PALETTE
+  rrca;palette * 8
+  add a, LOW(THEME_BASE + THEME_PALETTES)
+  ld l, a
+  ld h, HIGH(THEME_BASE + THEME_PALETTES)
+  ret
 
 ;a = look, returns hl = its ink colour in the theme (in the window): its palette's color 3, 2 (dim)
 ;or 1 (accent)

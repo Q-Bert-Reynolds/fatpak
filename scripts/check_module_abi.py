@@ -57,9 +57,9 @@ ASM = {
     '_ModuleAPIBackground': ['_BackgroundText', '_BackgroundBars'],  # resident ROM0 (render.asm); browser/viewer.c's C
     '_EditorRedraw': ['mem_Set'],  # ROM0 (render.asm); SGB_JUMP's client path is resident
     '_SetWindowBlock': [], '_SettingsSave': [],  # register writes; mem_Copy and its own loop (ROM0)
-    '_ThemeApply': ['ThemeLoad', 'ThemeWindow', 'ThemeRestore', 'sgb_SetPal', '_EditorInvertCursor'],  # ROM0 (theme.asm); SGB_JUMP's client path is resident
-    'ThemeLoad': ['ThemeWindow', 'ThemeRestore', 'mem_Copy', 'ColorSum', 'InkAddress'],
-    'ThemeWindow': [], 'ThemeRestore': [], 'ColorSum': [], 'InkAddress': [], 'mem_Copy': [],
+    '_ThemeApply': ['ThemeLoad', 'ThemeWindow', 'ThemeRestore', 'TextPalette', 'sgb_SetPal', '_EditorInvertCursor'],  # ROM0 (theme.asm); SGB_JUMP's client path is resident
+    'ThemeLoad': ['ThemeWindow', 'ThemeRestore', 'mem_Copy', 'ColorSum', 'InkAddress', 'TextPalette'],
+    'ThemeWindow': [], 'ThemeRestore': [], 'TextPalette': [], 'ColorSum': [], 'InkAddress': [], 'mem_Copy': [],
     '_ThemeWidth': ['StyledWidth'], 'StyledWidth': [],  # ROM0: the theme's looks and the fonts' widths
     'sgb_SetPal': ['sgb_PacketTransfer'], 'sgb_PacketTransfer': [], '_EditorInvertCursor': [],
     # ScrollRows -> Layout: ROM0 renderer and row-table helpers only
