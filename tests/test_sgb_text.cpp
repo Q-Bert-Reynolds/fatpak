@@ -196,6 +196,9 @@ int main(int n,char** v){
     Check(!h->Active() && !(m->Read(syms.at("sys_info"))&4),"EXIT: the SNES the BIOS's, fullscreen off");
     Check(rows()==18 && m->Read(syms.at("_resolution"))==1,"160x144: the GB's 18 rows, saved");
     Check(core.GetSGB()->GetPlayerCount()==1 && core.GetSGB()->GetMaskMode()==SGB::MaskDisabled,"one player, unfrozen");
+    Frames(core,30);Check((m->Read(0xFF40)&0x81)==0x81,"the GB's LCD on with its background (SGBBOOT's exit left LCDC 0)");
+    // the swap file (the card) has 160x144 now, not only PSRAM: a power cycle keeps it
+    Check(Read(root+"/GBCSYS/EDITOR.SWP").size()>0xEC && Read(root+"/GBCSYS/EDITOR.SWP")[0xEC]==1,"RESOLUTION saved to the swap file");
     Frames(core,180);
     {unsigned varied=0;for(unsigned y=40;y<184;++y)for(unsigned x=48;x<208;++x)varied+=pixels[y*256+x]!=pixels[40*256+48];
      Check(varied>300,"the GB's screen drawn in the BIOS's window");}

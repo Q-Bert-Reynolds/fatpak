@@ -73,6 +73,9 @@ unsigned char SGBLeave(void) {
   for (i = 0; i < BG_MAP_ROWS + WIN_MAP_ROWS; ++i) map_blocks[i] = i < screen_rows ? i : 0xFF; // (EditorInit's)
   ring_top = 0;
   ring_pos = 0;
+  // SGBBOOT.MOD's exit turned the LCD off with LCDC = 0, and EditorSetup's DISPLAY_ON only sets bit 7: boot's
+  // other bits first (main.asm), or the DMG/SGB shows neither background nor window, color 0 only
+  *(volatile unsigned char*)0xFF40 = 0x43; // LCDCF_OFF | LCDCF_WIN9C00 | LCDCF_OBJON | LCDCF_BGON
   EditorSetup(); // the GB's display from scratch, as at boot
   tb_rows = screen_rows - (bars << 1);
   Layout(); // (the caller lays the editor's rows out again, the browser its own)

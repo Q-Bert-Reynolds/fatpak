@@ -191,6 +191,9 @@ unsigned char BrowserMenu(char* path, char* clipboard, unsigned char mode) {
     }
     if (menu == 2) {
       if (PreferencesMenu(mode == MENU_MAP ? 2 : 1) == BACK) continue;
+      // the swap file keeps the settings over a power cycle (the editor writes it when idle, the browser
+      // never did); the browser lists its folder again after, its reads used the FatFs buffer
+      if (!viewer) SettingsSaveSwap();
       return 0;
     }
     // FILE: OPEN, OPEN AS, INFO, RENAME, DELETE; a viewer's OPEN AS, INFO (the map's REBUILD first, at

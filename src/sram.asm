@@ -23,6 +23,18 @@ _show_hidden:: DB;SETTINGS > HIDDEN FILES: 1 lists dotfiles and hidden files (sr
 
 SECTION "Settings Code", ROM0
 
+;C: the swap file now if anything is dirty (and no large file is open): the browser after SETTINGS, which
+;the editor's idle write never reached, so a power cycle lost them
+_SettingsSaveSwap::
+  ld a, [_swap_dirty]
+  and a
+  ret z
+  ld a, [_doc_large]
+  and a
+  ret nz
+  ld [_swap_dirty], a
+  jp _FileSaveSwap
+
 SettingsSignature: DB "SET8";SET7 is SET8 without hidden files;SET6 is SET7 without the font;SET1 had the font, SET2 is SET3 without the theme, SET3 is SET4 without the language, SET5 is SET6 without the resolution
 
 SettingsFlags:;the on/off settings (SettingsLoad keeps them 0 or 1)
