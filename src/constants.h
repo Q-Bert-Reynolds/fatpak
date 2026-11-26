@@ -67,6 +67,7 @@
 #define SGB_BOX_BLOCK      0x3BA0u//one protected sector: 19 menu lines, independent of wide rows
 #define SGB_ROWS_BLOCK     0x3BB0u//fullscreen rows: 64 characters then 64 styles, four rows a block (src/ui/geometry.asm's RowStage)
 #define SGB_ROWS_BLOCKS    14//56 rows
+#define SGB_HASH_BLOCK     0x3BBEu//the fullscreen client's hash of each wide row's content, kept while the row is unwritten (src/ui/geometry.asm's RowHashCached)
 #define ADD_MAX            0x6E0000//stop before the persistent fullscreen image
 #define TB_SIZE      (TB_BANK_SIZE*TB_BANKS)
 #define TB_CLIP_OFFSET 0x0180u//the clipboard's text in PSRAM blocks 240-255 (src/sram.asm), after the settings and the theme

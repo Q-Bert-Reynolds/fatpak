@@ -64,6 +64,7 @@ DEF OVERLAY_BACKUP     EQU $3B90
 DEF SGB_BOX_BLOCK      EQU $3BA0;one protected sector: 19 menu lines, independent of wide rows
 DEF SGB_ROWS_BLOCK     EQU $3BB0;fullscreen rows: 64 characters then 64 styles, four rows a block (src/ui/geometry.asm's RowStage)
 DEF SGB_ROWS_BLOCKS    EQU 14;56 rows
+DEF SGB_HASH_BLOCK     EQU $3BBE;the fullscreen client's hash of each wide row's content, kept while the row is unwritten (src/ui/geometry.asm's RowHashCached)
 DEF ADD_MAX            EQU $6E0000;stop before the persistent fullscreen image
 DEF TB_SIZE      EQU (TB_BANK_SIZE*TB_BANKS)
 DEF TB_CLIP_OFFSET EQU $0180;the clipboard's text in PSRAM blocks 240-255 (src/sram.asm), after the settings and the theme

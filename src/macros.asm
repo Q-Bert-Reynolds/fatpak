@@ -21,14 +21,6 @@
 ;   D24                                   num24
 ;   BETWEEN                               n8, n8
 
-MACRO GAME_NAME
-  DB "TEXT EDITOR",0,0,0,0
-ENDM
-
-MACRO CART_DEST;the UI's language is a setting (notes/LANGUAGES.md), not the build's
-  DB CART_DEST_NON_JAPANESE
-ENDM
-
 ;EverDrive X OS mode (the image is /GBCSYS/GBCOS.BIN): the 128KB image is RAM, $0000-$7FFF is
 ;always pages 0-3 (ROM0 and ROMX bank 1, writing $2000 would overwrite code there) and $A000-$BFFF
 ;shows the page in $BD08. $BD00-$BFFF are the EverDrive's registers and its 512 byte window onto

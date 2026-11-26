@@ -303,6 +303,7 @@ FsScrollHashes: ; D = 1 (down) or $FF (up)
   ld [hl], a
   ret
 FsRedraw:
+  call RowsTouchAll
   ld a, 1
   ldh [fs_force], a
   ld hl, wide_row_hashes
@@ -378,6 +379,33 @@ FsDrawRows:
   ldh [fs_deferred], a
   ldh [fs_force], a
   ret
+; A = a row's line -> HL = its characters (fs_chars), fs_attrs its styles: the window on it
+FsRowSource:
+  call RenderRowRead;(staged from PSRAM, for reading)
+  ld de, tile_buffer
+  add hl, de
+  ld a, l
+  ldh [fs_chars], a
+  ld a, h
+  ldh [fs_chars+1], a
+  push hl
+  ld a, [_tile_attrs]
+  ld e, a
+  ld a, [_tile_attrs+1]
+  ld d, a
+  ld a, l
+  sub LOW(tile_buffer)
+  ld l, a
+  ld a, h
+  sbc HIGH(tile_buffer)
+  ld h, a
+  add hl, de
+  ld a, l
+  ldh [fs_attrs], a
+  ld a, h
+  ldh [fs_attrs+1], a
+  pop hl
+  ret
 ; Build row geometry and merge equal attributes into runs. Worst-case ROW
 ; remains 202 bytes, so the existing page reservation bounds a whole command.
 FsEncodeRow:
@@ -425,34 +453,34 @@ FsEncodeRow:
   ldh [fs_font], a
 .fontChosen
   pop af
-  call RenderRowRead;(staged from PSRAM, for reading)
-  ld de, tile_buffer
-  add hl, de
-  ld a, l
-  ldh [fs_chars], a
-  ld a, h
-  ldh [fs_chars+1], a
-  ld a, [_tile_attrs]
-  ld e, a
-  ld a, [_tile_attrs+1]
-  ld d, a
-  ld a, l
-  sub LOW(tile_buffer)
-  ld l, a
-  ld a, h
-  sbc HIGH(tile_buffer)
-  ld h, a
-  add hl, de
-  ld a, l
-  ldh [fs_attrs], a
-  ld a, h
-  ldh [fs_attrs+1], a
+  ldh [fs_hash], a ; the row's line (in PSRAM), until .changed
   ; Hash fixed-size source rows first. Only changed rows need width/RLE work.
   ; Bytes past the visible edge may cause a harmless extra redraw, never stale text.
+  ; The content's hash is kept until the row is written (RowHashCached, src/ui/geometry.asm), and the
+  ; window only set on a row to hash or send. Its look and selection go on from the content's CRC
+  call RowHashCached
+  jr nc, .cached
+  ldh a, [fs_hash]
+  call FsRowSource
   ld de, $FFFF
-  ldh a, [fs_font]
-  call FsCRC
+  call FsHashRow
   ldh a, [fs_styled]
+  and a
+  jr z, .store
+  ldh a, [fs_attrs]
+  ld l, a
+  ldh a, [fs_attrs+1]
+  ld h, a
+  call FsHashRow
+.store
+  ldh a, [fs_hash]
+  call RowHashStore
+.cached
+  ldh a, [fs_font]
+  add a
+  ld b, a
+  ldh a, [fs_styled]
+  or b
   call FsCRC
   ldh a, [fs_row]
   add a
@@ -466,20 +494,6 @@ FsEncodeRow:
   ld a, [hl]
   ldh [fs_sel_end], a
   call FsCRC
-  ldh a, [fs_chars]
-  ld l, a
-  ldh a, [fs_chars+1]
-  ld h, a
-  call FsHashRow
-  ldh a, [fs_styled]
-  and a
-  jr z, .hashed
-  ldh a, [fs_attrs]
-  ld l, a
-  ldh a, [fs_attrs+1]
-  ld h, a
-  call FsHashRow
-.hashed
   ldh a, [fs_row]
   add a
   ld c, a
@@ -502,10 +516,8 @@ FsEncodeRow:
   ld [hl], d
   dec hl
   ld [hl], e
-  ldh a, [fs_chars]
-  ld l, a
-  ldh a, [fs_chars+1]
-  ld h, a
+  ldh a, [fs_hash]
+  call FsRowSource
   xor a
   ldh [fs_count], a
   ldh [fs_x], a

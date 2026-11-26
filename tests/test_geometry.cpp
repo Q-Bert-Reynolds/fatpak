@@ -123,7 +123,8 @@ static void Geometry(const char* image,const char* symbols,const char* data,bool
     // its styles 64 bytes on. Read a row by staging it; write one by staging it for writing
     unsigned staging=syms.at("wide_staging");
     Check(byte("screen_psram")==1 && word(syms.at("_tile_attrs"))==syms.at("tile_buffer")+64,"wide attribute pointer: the staging row's styles");
-    auto rowRead=[&](unsigned r){call("RenderRowRead",0,r);return staging;};
+    // RenderRowRead reads a row where it is: HL is its address less tile_buffer (the window's, or the staging row's)
+    auto rowRead=[&](unsigned r){call("RenderRowRead",0,r);return (core.GetProcessor()->GetState()->HL->GetValue()+syms.at("tile_buffer"))&0xFFFF;};
     auto rowWrite=[&](unsigned r){call("RenderRowAddress",0,r);return staging;};
     call("RowsClear");
     call("_RowAddress",0,27);Check(core.GetProcessor()->GetState()->BC->GetValue()==staging,"a row's address is the staging row");

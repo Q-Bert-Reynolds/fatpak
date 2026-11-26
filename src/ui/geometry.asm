@@ -18,6 +18,7 @@ _cells_map:: DB;_SGBCellsMap's A
 staged_row: DB;the row wide_staging holds, $FF none
 staged_dirty: DB;and it may have been written: it goes back to PSRAM before another row is staged
 row_write: DB;RowStage's caller may write the row
+row_touched: DS MAX_SCREEN_ROWS/8;a bit a row: written since the fullscreen client hashed it (RowHashCached)
 
 FIXED "Geometry dispatch"
 _GeometryGB::
@@ -87,6 +88,7 @@ GeometryWide:;256x224's 28 rows of 248 pixels, or 512x448's 56 of 62 4-pixel col
   ld [staged_row], a
   xor a
   ld [staged_dirty], a
+  call RowsTouchAll;(the hash block's from another session)
   ld hl, tile_buffer+MAX_ROW_STRIDE
   ld a, l
   ld [_tile_attrs], a
@@ -214,6 +216,9 @@ RowStage:;l = the row, a = row_write
   and a
   jr z, .fetch
   ld a, [staged_row]
+  push af
+  call RowTouch;(again: it may have been hashed, then written, while it was staged)
+  pop af
   call RowWindow
   ld d, h
   ld e, l
@@ -238,12 +243,116 @@ RowStage:;l = the row, a = row_write
   xor a
   ld [staged_dirty], a
 .staged
-  ld hl, staged_dirty
   ld a, [row_write]
-  or [hl]
-  ld [hl], a
+  and a
+  jr z, .read
+  ld [staged_dirty], a
+  ld a, [staged_row]
+  call RowTouch
+.read
   ld hl, wide_staging-tile_buffer
   ret
+
+; The fullscreen client's content hash of each wide row (FsEncodeRow), kept in SGB_HASH_BLOCK until the
+; row is written: hashing all 56 rows cost 5 frames a draw at 512x448 (2026-11-25). Every row written
+; is given out by RowStage (or moved by RowsShift, or cleared by RowsClear), which mark it in row_touched.
+; A = row -> carry if it must be hashed, else DE = its hash. The window is left where it was, its config
+; on PSRAM (FsDraw puts it back)
+RowHashCached::
+  ld e, a
+  ld a, [staged_row];(the staged row may still be written, through the pointer its caller kept)
+  cp e
+  jr nz, .bit
+  ld a, [staged_dirty]
+  and a
+  scf
+  ret nz
+.bit
+  ld a, e
+  call RowBit
+  and [hl]
+  scf
+  ret nz
+  ld a, e
+  call RowHashWindow
+  ld a, [hli]
+  ld e, a
+  ld d, [hl]
+  call RowWindowBack
+  and a
+  ret
+; A = row, DE = its hash (kept): stored, and the row unmarked
+RowHashStore::
+  push af
+  call RowBit
+  cpl
+  and [hl]
+  ld [hl], a
+  pop af
+  call RowHashWindow
+  ld a, e
+  ld [hli], a
+  ld [hl], d
+RowWindowBack:;bc = the block the window showed
+  ld a, b
+  ld [EDX_BLOCK+1], a
+  ld a, c
+  ld [EDX_BLOCK], a
+  ret
+RowHashWindow:;a = row -> hl = its hash, the window on SGB_HASH_BLOCK; bc = the block it showed
+  add a
+  ld l, a
+  ld h, HIGH(TB_BASE)
+  ld a, [EDX_CONFIG]
+  and ~2
+  ld [EDX_CONFIG], a
+  ld a, [EDX_BLOCK]
+  ld c, a
+  ld a, [EDX_BLOCK+1]
+  ld b, a
+  ld a, HIGH(SGB_HASH_BLOCK)
+  ld [EDX_BLOCK+1], a
+  ld a, LOW(SGB_HASH_BLOCK)
+  ld [EDX_BLOCK], a
+  ret
+RowBit:;a = row -> hl = its byte in row_touched, a = its bit; keeps bc and de
+  push bc
+  ld b, a
+  rrca
+  rrca
+  rrca
+  and $1F
+  add LOW(row_touched)
+  ld l, a
+  adc HIGH(row_touched)
+  sub l
+  ld h, a
+  ld a, b
+  and 7
+  ld b, a
+  ld a, 1
+  jr z, .bit
+.shift
+  add a
+  dec b
+  jr nz, .shift
+.bit
+  pop bc
+  ret
+RowTouch:;a = row, keeps bc
+  call RowBit
+  or [hl]
+  ld [hl], a
+  ret
+RowsTouchAll::
+  ld hl, row_touched
+  ld a, $FF
+REPT MAX_SCREEN_ROWS/8
+  ld [hli], a
+ENDR
+  ret
+ASSERT MAX_SCREEN_ROWS % 8 == 0 && LOW(TB_BASE) == 0
+ASSERT SGB_ROWS_BLOCK + SGB_ROWS_BLOCKS <= SGB_HASH_BLOCK && SGB_HASH_BLOCK < $3C00
 RowCopy:;hl to de, a row's 128 bytes
   ld b, MAX_ROW_STRIDE*2
 .copy
@@ -312,7 +421,7 @@ RowsClear::
   ld [staged_row], a
   xor a
   ld [staged_dirty], a
-  ret
+  jp RowsTouchAll
 
 ; tb_ScrollRows' rows: a = 1 moves rows 1 to [_tb_rows] - 1 up a row, 0 moves rows 0 to [_tb_rows] - 2
 ; down. Wide PSRAM rows move through the staging row: each is staged, then named the row it moves
@@ -344,6 +453,7 @@ RowsShift::
   push af
   sub b
   ld [staged_row], a
+  call RowTouch;(the row it moves to: its cached hash is what it held before)
   ld a, 1
   ld [staged_dirty], a
   pop af
