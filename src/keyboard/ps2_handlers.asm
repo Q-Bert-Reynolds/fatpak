@@ -293,7 +293,8 @@ PS2HoldArrowKey:
   jr nz, .release
   ld a, [hl]
   cp a, b
-  ret z;repeated by the keyboard
+  ld a, KB_HELD_ALIVE_REPEAT
+  jr z, .alive;repeated by the keyboard: still held
   push bc
   ld a, b
   call KBHandleArrowKey
@@ -301,6 +302,9 @@ PS2HoldArrowKey:
   ld [kb_held_key], a
   ld a, PAD_REPEAT_DELAY
   ld [kb_repeat_timer], a
+  ld a, KB_HELD_ALIVE_FIRST
+.alive
+  ld [kb_held_alive], a
   ret
 .release
   ld a, [hl]

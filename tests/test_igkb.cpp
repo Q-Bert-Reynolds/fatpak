@@ -357,7 +357,7 @@ int main(int argc,char** argv) {
         Select(s,2);
         auto active=Page(s.memory,15);
         Check(before!=active,"selection replaces the driver payload");
-        Check(std::vector<u8>(before.begin()+0x550,before.end())==std::vector<u8>(active.begin()+0x550,active.end()),"the rest of page 15 stays intact");
+        Check(std::vector<u8>(before.begin()+0x570,before.end())==std::vector<u8>(active.begin()+0x570,active.end()),"the rest of page 15 stays intact");
         Check(!s.core.IsPS2KeyboardEnabled() && s.core.GetIGKBMode()==1,"serial devices are exclusive");
         Check(s.core.QueueIGKBKey(4,false) && s.core.QueueIGKBKey(4,true) && s.core.QueueIGKBKey(0x1E,false),"queue manufacturer key bytes");
         Frames(s.core,180);

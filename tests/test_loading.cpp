@@ -135,7 +135,7 @@ public:
         streamed_bytes(0), mode(test_mode), command(0), token_timeout(false), write_token(false), fast(processor->CGBSpeed()) {}
     void CheckStream()
     {
-        Check(!(m_pMemory->Read(0xFFFF) & ~2), "only LCD interrupts during SPI-to-PSRAM streaming");
+        Check(!(m_pMemory->Read(0xFFFF) & ~(2 | 8)), "only LCD and serial (PS/2) interrupts during SPI-to-PSRAM streaming");
         Check(!m_pMemory->IsHDMAEnabled(), "finish HBlank DMA before streaming");
         Check(cpu->CGBSpeed() == fast, "stream preserves caller CPU speed");
     }

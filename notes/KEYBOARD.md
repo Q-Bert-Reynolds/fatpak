@@ -75,7 +75,7 @@ never changes the selected driver.
 
 ## Driver slot and packaging
 
-The keyboard page (15) has a $550-byte slot at $A000, with stable init and
+The keyboard page (15) has a $570-byte slot at $A000, with stable init and
 process jumps. Only one driver payload occupies that slot. Common host setup,
 copying and settings code stays outside it. Wide assembler modules can still
 borrow page 15 and restore the selected payload afterwards.

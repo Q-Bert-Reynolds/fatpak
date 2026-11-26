@@ -252,6 +252,8 @@
 
 //key events, printable keys use their character code
 #define PAD_REPEAT_DELAY 20//frames before a held d-pad button or arrow key repeats
+#define KB_HELD_ALIVE_FIRST 45//frames a PS/2 arrow key counts as held without the keyboard's own repeats: its delay (500 ms by default)
+#define KB_HELD_ALIVE_REPEAT 20//then between them (about 92 ms by default, one lost)
 #define PAD_REPEAT_RATE  4//frames between repeats
 
 #define KEY_NONE      0

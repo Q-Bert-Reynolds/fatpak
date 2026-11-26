@@ -1438,7 +1438,17 @@ FsInput:
   call Trampoline
   jp UpdateInputReturn
 FsInterrupt:
+  ; FsTick's CRC takes about 0.5 ms: a PS/2 byte's last 3 bits come about 80 us after its serial
+  ; interrupt (src/keyboard/ps2_interrupt.asm), so the serial interrupt (if on) may come in meanwhile
+  ldh a, [rIE]
+  push af
+  and IEF_SERIAL
+  ldh [rIE], a
+  ei
   call FsTick
+  di
+  pop af
+  ldh [rIE], a
   jp VBLContinue
 FsFrame:
   ld a, [_render_frames]
@@ -2257,7 +2267,7 @@ FsLogWrite:
   ; changing the caller's IME or discarding its pending interrupt requests.
   ldh a, [rIE]
   push af
-  xor a
+  and IEF_SERIAL ; (a PS/2 byte: its handler is ROM0's and WRAM0's)
   ldh [rIE], a
   call _FileWriteImage
   ld d, a

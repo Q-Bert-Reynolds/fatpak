@@ -4,7 +4,7 @@ SGBInputBegin::
   di
   ldh a, [rIE]
   push af
-  and IEF_STAT
+  and IEF_STAT | IEF_SERIAL;(a PS/2 byte: its handler doesn't touch P1)
   ldh [rIE], a
   ei
   pop af

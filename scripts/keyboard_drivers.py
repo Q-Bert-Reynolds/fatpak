@@ -1,5 +1,5 @@
 """Link replaceable keyboard drivers against this OS's shared state and entries.
-Each FPKD v1 file has one 512-byte header followed by the $550-byte page-15 slot.
+Each FPKD v1 file has one 512-byte header followed by the $570-byte page-15 slot.
 """
 from pathlib import Path
 import binascii, re, struct, subprocess
@@ -11,7 +11,7 @@ def build():
     for line in (ROOT / 'bin/GBCOS.sym').read_text().splitlines():
         match = re.match(r'([0-9a-fA-F]+):([0-9a-fA-F]+) (\S+)', line)
         if match: symbols[match[3]] = int(match[2], 16)
-    size = 0x550
+    size = 0x570
     assert symbols["KeyboardDriverStart"] == 0xA000
     assert symbols["KeyboardDriverEnd"] == 0xA000 + size
     work = ROOT / 'build/drivers'
@@ -34,8 +34,8 @@ KeyboardDriverStart:
   jp DRIVER_PROCESS
 INCLUDE "src/keyboard/driver_common.asm"
 INCLUDE DRIVER_SOURCE
-ASSERT @ - KeyboardDriverStart <= $550
-DS $550 - (@ - KeyboardDriverStart), 0
+ASSERT @ - KeyboardDriverStart <= $570
+DS $570 - (@ - KeyboardDriverStart), 0
 ENDL
 '''
     subprocess.run(['ca65', '-o', str(work/'mouse.o'), 'src/sgb/mouse.s'], cwd=ROOT, check=True)

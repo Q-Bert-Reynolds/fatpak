@@ -6,7 +6,7 @@ DEF KB_TYPE_PS2  EQU 1
 DEF KB_TYPE_IGKB EQU 2
 DEF KB_TYPE_MOUSE EQU 3;legacy experimental mouse protocol, not a menu choice
 DEF KB_TYPE_SNES_MOUSE EQU 4
-DEF KB_DRIVER_SIZE EQU $550
+DEF KB_DRIVER_SIZE EQU $570
 
 ;kb_mode
 DEF KB_MODE_NONE    EQU 0
@@ -117,7 +117,7 @@ ProcessKeyCodes::
 KeyboardDriverEnd::
 
 ; Called through ModDriver, while its module is in page 13. This code stays
-; outside the replaced slot. The last block is only 336 bytes.
+; outside the replaced slot. The last block is only 368 bytes.
 KBDriverInstall::
   bit 7, a
   jr nz, .init

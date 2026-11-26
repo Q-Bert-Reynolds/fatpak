@@ -3,7 +3,7 @@
 #include "lib/psram.h"
 #include "lib/text.h"
 
-#define DRIVER_SIZE 0x550
+#define DRIVER_SIZE 0x570
 #define STAGE MODULE_STAGE
 static const char ps2[] = "/GBCSYS/DRIVERS/PS2.DRV";
 static const char snes[] = "/GBCSYS/DRIVERS/SGBMOUSE.DRV";

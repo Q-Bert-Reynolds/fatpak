@@ -249,6 +249,8 @@ DEF ASCII_CR  EQU 13
 
 ;key events, printable keys use their character code
 DEF PAD_REPEAT_DELAY EQU 20;frames before a held d-pad button or arrow key repeats
+DEF KB_HELD_ALIVE_FIRST EQU 45;frames a PS/2 arrow key counts as held without the keyboard's own repeats: its delay (500 ms by default)
+DEF KB_HELD_ALIVE_REPEAT EQU 20;then between them (about 92 ms by default, one lost)
 DEF PAD_REPEAT_RATE  EQU 4;frames between repeats
 
 DEF KEY_NONE      EQU 0

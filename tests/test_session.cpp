@@ -106,6 +106,15 @@ static void Sessions(const char* image,const char* symbols,const char* data,bool
     pad(Down_Key);pad(A_Key);pad(Down_Key);pad(Down_Key);pad(A_Key); // Work / Large.txt
     Frames(*core,600);
     Check(byte("_doc_large") && text("_file_name")=="Large.txt","open large file");
+    { // a held PS/2 arrow repeats at the d-pad's rate while the keyboard repeats it; a lost release byte can't
+      // leave it repeating: it counts as released once the keyboard's own repeats stop
+      auto down=[&](){core->QueuePS2KeyboardScanCode(0xE0);core->QueuePS2KeyboardScanCode(0x72);};
+      down();Frames(*core,20);Check(byte("kb_held_key"),"a PS/2 arrow key held");
+      for(unsigned i=0;i<20;++i){down();Frames(*core,6);}
+      Check(byte("kb_held_key"),"still held while the keyboard repeats it");
+      Frames(*core,120);Check(!byte("kb_held_key"),"released once the keyboard's repeats stop (its release byte lost)");
+      core->QueuePS2KeyboardScanCode(0xE0);core->QueuePS2KeyboardScanCode(0xF0);core->QueuePS2KeyboardScanCode(0x72);Frames(*core,30);
+    }
     power();Check(byte("_render_text")==1 && byte("_doc_large") && text("_file_name")=="Large.txt","cold boot reopens large file without restoring a stale window");
     close(false);power();Check(byte("_render_text")==0 && !byte("_doc_large") && text("_file_name").empty(),"closed large file stays closed");
     delete core;

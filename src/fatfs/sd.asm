@@ -441,7 +441,7 @@ PAGE GAME_PAGE
 _sd_ReadBlocks::
   ldh a, [rIE]
   push af
-  and a, IEF_STAT;keep the browser's window/tile addressing, exclude all DMA handlers
+  and a, IEF_STAT | IEF_SERIAL;keep the browser's window/tile addressing and PS/2 bytes, exclude all DMA handlers
   ldh [rIE], a
   call RenderWaitDMA
   ldh a, [rIF]
@@ -497,6 +497,11 @@ ReadBlocksFinish:
   call SDFinish
   ld b, a
   pop af
+  and a, ~IEF_SERIAL;(a PS/2 byte that's just arrived keeps its request)
+  ld c, a
+  ldh a, [rIF]
+  and a, IEF_SERIAL
+  or a, c
   ldh [rIF], a
   pop af
   ldh [rIE], a
