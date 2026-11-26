@@ -135,7 +135,7 @@ GeometrySet:
   ret
 
 END_PAGE
-FIXED "Row address"
+SECTION FRAGMENT "Row address", ROM0;(not FIXED: bank 1 is full)
 ; A=row -> HL=byte offset, preserves BC; DE/A destroyed. Includes the
 ; one-past-end offset used by range clearing and scrolling.
 RenderRowAddress::
@@ -166,16 +166,32 @@ GeometryAddress:
   ret
 
 ; Wide rows in PSRAM: row A in wide_staging, HL its offset from tile_buffer (RenderRowAddress's), BC kept.
-; The row staged before goes back to PSRAM first if it may have been written. RenderRowRead stages
-; a row for reading only (the fullscreen client's). Every access restores the window
+; The row staged before goes back to PSRAM first if it may have been written. Every access restores the
+; window, but RenderRowRead's: a row for reading only (the fullscreen client's FsDraw, which puts the window
+; and its config back after its rows) is read where it is, the window on it, unless it's the staged row
+; (whose copy is newer). HL is then the window's address less tile_buffer
 RenderRowRead::
   ld l, a
   ld a, [screen_psram]
   and a
   ld a, l
   jp z, RenderRowAddress
-  xor a
-  jr RowStage
+  ld a, [staged_row]
+  cp l
+  ld a, 0
+  jr z, RowStage
+  ld a, [EDX_CONFIG];the window on PSRAM, not save RAM
+  and ~2
+  ld [EDX_CONFIG], a
+  ld a, l
+  call RowWindow
+  ld a, l
+  sub LOW(tile_buffer)
+  ld l, a
+  ld a, h
+  sbc HIGH(tile_buffer)
+  ld h, a
+  ret
 RowStageWrite:
   ld a, 1
 RowStage:;l = the row, a = row_write

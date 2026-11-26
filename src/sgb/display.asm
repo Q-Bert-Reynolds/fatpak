@@ -309,7 +309,27 @@ FsRedraw:
   ld bc, MAX_SCREEN_ROWS*2
   ld a, $FF
   jp mem_Set
+; RenderRowRead (src/ui/geometry.asm) points the PSRAM window at the row it's asked for, instead of copying
+; the row into WRAM (a copy for each row's hash cost most of a key's frames, 2026-11-25): the window and its
+; config are put back here, once the rows are sent
 FsDraw:
+  ld a, [$BD06] ; EDX_CONFIG
+  push af
+  ld a, [$BD02] ; EDX_BLOCK
+  ld c, a
+  ld a, [$BD03]
+  ld b, a
+  push bc
+  call FsDrawRows
+  pop bc
+  ld a, b
+  ld [$BD03], a ; high byte first: the low byte's write switches the window
+  ld a, c
+  ld [$BD02], a
+  pop af
+  ld [$BD06], a
+  ret
+FsDrawRows:
   ldh a, [fs_pending]
   and a
   jr z, .idle
@@ -1914,7 +1934,7 @@ FsKiB:
   xor a
   call FsByte
   jp FsByte
-; Binary flight recorder. The first 8 KiB of SGB_FILE staging is free once
+; Binary flight recorder. The first 16 KiB of SGB_FILE staging is free once
 ; upload finishes. Records never touch document, undo, or assembler scratch.
 ; SD writes happen only from ordinary input, never from the VBlank handler.
 FsLogInit:
@@ -2008,7 +2028,7 @@ FsLog:
   and a
   jp z, .done
   ldh a, [fs_log_size+1]
-  cp $1F
+  cp $3F ; 16 KiB (32 staging blocks; the extension's bytes are far past them)
   jp nc, .done
   call FsLogWindow
   push bc
@@ -2169,8 +2189,8 @@ FsLogWrite:
   ld a, 7
   jp FsLog
 .ok
-  ld a, 6
-  jp FsLog
+  ret ; (a successful write isn't recorded: its record made the log dirty again, so it was rewritten
+      ; every 4 s for the whole session and its records filled it before any input, 2026-11-25)
 ASSERT @ <= _RenderOverlayEnd, "terminal exceeds audited renderer interval"
 
 ; Split, page-aligned CCITT tables avoid a multiply/add for each lookup.

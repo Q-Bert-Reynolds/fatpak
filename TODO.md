@@ -70,8 +70,11 @@
 
 # Super Game Boy
 
-- SGB fullscreen: improve input/render latency and Phase 7 hardware checks ([SGB.md](notes/SGB.md)). The SNES mouse works in fullscreen (2026-11-21, Mesen and Gearboy): confirm on hardware; mouse speed (the 3 hardware speeds) isn't offered there yet.
-- RESOLUTION 160x144 and game launch from fullscreen (EXIT): works in Mesen on SGB1 1.2, 1.1 and SGB2; confirm on hardware. SGB1 1.0 needs a dump to check against the others ([notes](notes/SGB.md#returning-to-the-bios-exit-2026-11-20)).
+- **Next:** SGB fullscreen input latency (hardware, 2026-11-24): 256x224 and 512x448 both lag noticeably between input and update, about equally. Phase 7 hardware checks ([SGB.md](notes/SGB.md)).
+- SNES mouse on hardware (2026-11-24): smooth and responsive in fullscreen, but the double click's threshold is hard to meet; mouse speed (the 3 hardware speeds) isn't offered there yet. In 160x144 the mouse mode flickers a lot.
+- Input devices on SGB: the SNES mouse should just work, not need choosing in SETTINGS > KEYBOARD, which reads as keyboard or mouse. Keyboard and mouse together is the plan (to test with the link port mod).
+- Reset instead of a power cycle: from 256x224/512x448 the screen stays blank; from the OS at 160x144 the SGB's stock colours come back and input seems doubled.
+- RESOLUTION 160x144 and game launch from fullscreen (EXIT): works on hardware on SGB1 1.0 (2026-11-24) and in Mesen on 1.0, 1.1, 1.2 and SGB2 ([notes](notes/SGB.md#returning-to-the-bios-exit-2026-11-20)). Mesen's EXIT test doesn't check the GB's picture after the return (its GB program never draws; the BIOS's GB palette comes back black until a PAL01).
 - The SNES kernel image is full (about 70 of 49,152 bytes left): new kernel code goes to the extension or the resident part (`$7E:A000`, 561 of 4 KiB used).
 - Kernel `Capture`'s pad sample can run twice per frame (once in VBlank, once early in the next); harmless for pads, mouse.s guards against it.
 - The SGB border is off (`SGBSetDefaultBorder` is commented out in `src/app/main.c`; `tests/test_sgb.cpp`'s `SGB_BORDER` skips its checks). A new border could carry the header and footer's data: a big clock, the path.

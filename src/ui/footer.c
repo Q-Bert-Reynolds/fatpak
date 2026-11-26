@@ -47,15 +47,16 @@ void FooterDraw(unsigned char row, unsigned char col, const char* text) {
 
 void footer_Tick(void) {
   unsigned char row, line, visible = 0;
+  // the clock's text first (a change at most once a minute): the rows are looked at only then. In SGB
+  // fullscreen each RowAddress stages a row from PSRAM, written back later: scanning every row each
+  // frame cost most of a browser key's frames (2026-11-25)
+  if (!footer_Poll()) return;
   for (row = 0; row < screen_rows; ++row) {
     line = render_row_lines[row];
-    if (line == STATUS_LINE || (!render_text && RowAddress(line)[screen_stride - 8] == FOOTER_MARKER)) visible = 1;
-  }
-  if (!visible || !footer_Poll()) return;
-  for (row = 0; row < screen_rows; ++row) {
-    line = render_row_lines[row];
-    if (line == STATUS_LINE || (!render_text && RowAddress(line)[screen_stride - 8] == FOOTER_MARKER))
+    if (line == STATUS_LINE || (!render_text && RowAddress(line)[screen_stride - 8] == FOOTER_MARKER)) {
       FooterCompose(RowAddress(line));
+      visible = 1;
+    }
   }
-  EditorDraw();
+  if (visible) EditorDraw();
 }

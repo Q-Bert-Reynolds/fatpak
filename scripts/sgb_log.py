@@ -6,7 +6,7 @@ import struct
 import sys
 from pathlib import Path
 
-BIOSES = {0xF632: 'SGB1 v1.2 (EXIT supported)', 0xBF92: 'SGB1 v1.1 (EXIT supported)', 0x7DD5: 'SGB2 (EXIT supported)'} # the header checksum at $00:FFDE
+BIOSES = {0xF632: 'SGB1 v1.2 (EXIT supported)', 0xBF92: 'SGB1 v1.1 (EXIT supported)', 0x7DD5: 'SGB2 (EXIT supported)', 0xBAD3: 'SGB1 v1.0 (EXIT supported)'} # the header checksum at $00:FFDE
 KINDS = {1: 'start', 2: 'publish', 3: 'ack', 4: 'timeout', 5: 'key', 6: 'sd_write', 7: 'sd_error', 8: 'wait_state', 9: 'pad'}
 KINDS.update(enumerate(('good', 'bad', 'miss', 'rows', 'draw_frames', 'ui_frames',
                         'page_frames', 'mail_frames', 'snes_frame', 'bios_checksum'), 32))

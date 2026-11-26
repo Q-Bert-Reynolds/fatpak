@@ -398,13 +398,14 @@ int main(int n,char** v){
         Check(log.size()>=28 && std::string(log.begin(),log.begin()+8)==std::string("SGBLOG1\0",8) && log[10]==12,"hardware log is persisted to SD");
         const auto data=Read(v[4]);
         Check(log[11]==data[26] && log[12]==data[27],"hardware log identifies the loaded SGB.DAT build");
-        Check((log.size()-16)%12==0 && log.size()<=8192,"hardware log is bounded and has complete records");
+        Check((log.size()-16)%12==0 && log.size()<=16384,"hardware log is bounded and has complete records");
         bool ack=false,write=false,timing=false;
         for(unsigned at=16;at<log.size();at+=12){
             ack|=log[at]==3;write|=log[at]==6;
             timing|=log[at]==39 && log[at+8]==0x34 && log[at+9]==0x12;
         }
-        Check(ack && write && timing,"SD log retains ACKs, SD-write timing and SNES telemetry");
+        // (successful SD writes aren't recorded: each record made the log dirty again, rewritten every 4 s)
+        Check(ack && !write && timing,"SD log retains ACKs and SNES telemetry, not its own writes");
         Write("build/sgb/hardware-test.SGB.LOG",log);
         puts("SGB hardware log: durable bounded records, SNES timing sample and ACKs passed");
     }
