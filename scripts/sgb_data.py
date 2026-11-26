@@ -28,7 +28,7 @@ def client(no_log=False):
     code=(ROOT/'src/sgb/display.asm').read_text()
     internal=set(re.findall(r'^(Fs\w+):',code,re.M))
     branches=set(re.findall(r'^\s*(?:call|jp)\s+(?:(?:n?[zc]),\s*)?([A-Za-z_]\w*)(?=\s*(?:;[^\n]*)?$)',code,re.M|re.I))
-    allowed={'mem_Set','RenderLineStyled','RenderRowAddress','RenderRowRead','RowHashCached','RowHashStore','RowSkip','RowsSame','RowsSnap','RowsClear','RowsTouchAll','_GeometryWide','_Layout__far',
+    allowed={'mem_Set','RenderLineStyled','RenderRowAddress','RenderRowRead','RowHashCached','RowHashStore','RowsNext','RowsSame','RowsSnap','RowsClear','RowsTouchAll','_GeometryWide','_Layout__far',
              'Trampoline','UpdateInputReturn','VBLContinue','_BoxLine','_FileWriteImage','_SGBCellsMap'}
     unknown=branches-internal-allowed
     if unknown: raise ValueError('unaudited terminal imports: '+str(sorted(unknown)))

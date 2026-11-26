@@ -139,15 +139,26 @@ FsFlush:
   ldh [fs_seq], a
   call FsCRC
   ld hl, $8001
+  ld b, HIGH(FsCRCHigh) ; FsCRC's, inline: to fs_write (the page read back cost most of a frame, 2026-11-26)
 .crc
   ldh a, [rSTAT]
   and STATF_BUSY
   jr nz, .crc
   ld a, [hli]
-  call FsCRC
-  dec bc
-  ld a, b
-  or c
+  xor d
+  ld c, a
+  ld a, [bc]
+  xor e
+  ld d, a
+  inc b
+  ld a, [bc]
+  ld e, a
+  dec b
+  ldh a, [fs_write]
+  cp l
+  jr nz, .crc
+  ldh a, [fs_write+1]
+  cp h
   jr nz, .crc
   ld a, e
   call FsStore
@@ -372,6 +383,8 @@ FsDrawRows:
   xor a
   ldh [fs_row], a
 .row
+  call RowsNext ; (src/ui/geometry.asm) past the rows as sent
+  jr c, .rows
   call FsEncodeRow
   ldh a, [fs_pending]
   and a
@@ -382,9 +395,8 @@ FsDrawRows:
   ldh a, [fs_row]
   inc a
   ldh [fs_row], a
-  ld hl, _screen_rows
-  cp [hl]
-  jr c, .row
+  jr .row
+.rows
   call FsUI
   ldh a, [fs_pending]
   and a
@@ -432,9 +444,6 @@ FsRowSource:
 ; Build row geometry and merge equal attributes into runs. Worst-case ROW
 ; remains 202 bytes, so the existing page reservation bounds a whole command.
 FsEncodeRow:
-  ldh a, [fs_row]
-  call RowSkip ; as sent (RowsSame, src/ui/geometry.asm)
-  ret nz
   ldh a, [fs_write+1]
   cp $86
   jr c, .space
@@ -552,6 +561,9 @@ FsEncodeRow:
   ldh [fs_x], a
   ldh [fs_hash], a ; previous attribute, then run count
   ldh [fs_hash+1], a
+  ldh a, [fs_styled]
+  and a
+  jp nz, FsStyledCount
 .count
   call FsAttr
   ld c, a
@@ -687,6 +699,9 @@ FsEncodeRow:
   jr z, .done
 .chars
   call FsBytes
+  ldh a, [fs_styled]
+  and a
+  jp nz, FsStyledRuns
   xor a
   ldh [fs_x], a
 .runs
@@ -2296,3 +2311,101 @@ FOR index, 256
 ENDR
 ASSERT LOW(FsCRCHigh) == 0 && FsCRCLow == FsCRCHigh+256
 ASSERT @ <= _RenderOverlayEnd, "CRC tables exceed audited renderer interval"
+
+; FsEncodeRow's styled rows (the terminal head is full)
+SECTION "Terminal styled rows", ROMX[FsCRCLow+256], BANK[1]
+; As FsEncodeRow's .count, walking a styled row's attributes (FsAttrIndex's lookups, twice a character, cost about half
+; a frame of each key at 512x448, 2026-11-26). B runs, C characters, D x, E the previous attribute
+FsStyledCount:
+  ldh a, [fs_attrs]
+  ld l, a
+  ldh a, [fs_attrs+1]
+  ld h, a
+  ld bc, 0
+  ld de, 0
+.styledChar
+  ld a, [hl]
+  and 15
+  jr z, .padding
+  add d
+  jr c, .styledCounted
+  cp 249
+  jr nc, .styledCounted
+  ld d, a
+  ld a, [hli]
+  jr .styledAttr
+.padding ; a space with a real width, never an invalid zero RLE attr (FsAttrIndex)
+  ld a, d
+  add 4
+  jr c, .styledCounted
+  cp 249
+  jr nc, .styledCounted
+  ld d, a
+  inc hl
+  ld a, 4
+.styledAttr
+  cp e
+  jr z, .styledSame
+  ld e, a
+  inc b
+.styledSame
+  inc c
+  ld a, c
+  cp 64
+  jr c, .styledChar
+.styledCounted
+  ld a, d
+  ldh [fs_x], a
+  ld a, e
+  ldh [fs_hash], a
+  ld a, b
+  ldh [fs_hash+1], a
+  ld a, c
+  ldh [fs_count], a
+  jp FsEncodeRow.counted
+; As FsEncodeRow's .runs, walking a styled row's attributes: D the run's attribute, E its length, B characters left
+FsStyledRuns:
+  ldh a, [fs_count]
+  ld b, a
+  ldh a, [fs_attrs]
+  ld l, a
+  ldh a, [fs_attrs+1]
+  ld h, a
+  call .styledNext
+  ld d, a
+  ld e, 1
+.styledRun
+  ld a, b
+  and a
+  jr z, .styledLast
+  call .styledNext
+  cp d
+  jr nz, .styledEmit
+  inc e
+  jr .styledRun
+.styledEmit
+  push af
+  ld a, e
+  call FsByte
+  ld a, d
+  call FsByte
+  pop af
+  ld d, a
+  ld e, 1
+  jr .styledRun
+.styledLast
+  ld a, e
+  call FsByte
+  ld a, d
+  jp FsByte
+.styledNext ; HL's attribute, as FsAttrIndex gives it -> HL past it, B one less
+  dec b
+  ld a, [hl]
+  and 15
+  ld a, 4
+  jr z, .styledPadding
+  ld a, [hl]
+.styledPadding
+  inc hl
+  ret
+ASSERT @ <= _RenderOverlayEnd, "styled rows exceed audited renderer interval"

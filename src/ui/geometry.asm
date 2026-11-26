@@ -20,7 +20,7 @@ staged_dirty: DB;and it may have been written: it goes back to PSRAM before anot
 row_write: DB;RowStage's caller may write the row
 row_touched: DS MAX_SCREEN_ROWS/8;a bit a row: written since the fullscreen client hashed it (RowHashCached)
 rows_valid: DB;RowsSnap's snapshot is of the last whole draw
-rows_fast: DB;and this draw started with it unchanged (RowsSame): rows with unwritten lines are skipped (RowSkip)
+rows_fast: DB;and this draw started with it unchanged (RowsSame): rows with unwritten lines are passed (RowsNext)
 ASSERT rows_fast == rows_valid+1
 
 FIXED "Geometry dispatch"
@@ -322,7 +322,7 @@ RowHashBlock:;the window on SGB_HASH_BLOCK; bc = the block it showed; keeps de a
 
 ; What the fullscreen client's row hashes come from, besides each row's content: copied after each whole
 ; draw (RowsSnap), beside the content hashes. A draw that starts with all of it the same, no scroll
-; (_ring_top) and no fs_force, only needs the rows whose lines were written since: RowSkip skips the
+; (_ring_top) and no fs_force, only needs the rows whose lines were written since: RowsNext passes the
 ; others without hashing them. Hashing every row, cached or not, cost over a frame of each key at
 ; 512x448 (2026-11-26); the comparison is about a quarter of one
 DEF ROWS_SNAP EQU TB_BASE+MAX_SCREEN_ROWS*2
@@ -425,31 +425,64 @@ RowsSnapWalk:;e = 0 compare (nz if different), else copy
 .done
   pop bc
   jp RowWindowBack;(keeps the flags)
-; A = screen row -> nz if this draw needn't send it (rows_fast and its line unwritten)
-RowSkip::
-  ld e, a
+; From fs_row, the first row this draw must send (all of them unless rows_fast: then those whose lines were
+; written) -> fs_row, carry if none is left
+RowsNext::
+  ldh a, [fs_row]
+  ld c, a
+  ld hl, _screen_rows
+  cp [hl]
+  ccf
+  ret c
   ld a, [rows_fast]
   and a
   ret z
-  ld d, 0
+  ld b, 0
   ld hl, _render_row_lines
-  add hl, de
-  ld e, [hl]
+  add hl, bc
+.row
+  ld b, [hl]
   ld a, [staged_row];(as RowHashCached: the staged row may still be written)
-  cp e
+  cp b
   jr nz, .bit
   ld a, [staged_dirty]
   and a
   jr nz, .send
 .bit
-  ld a, e
-  call RowBit
-  and [hl]
+  push hl
+  ld a, b
+  and 7
+  add LOW(RowBits)
+  ld l, a
+  adc HIGH(RowBits)
+  sub l
+  ld h, a
+  ld d, [hl]
+  ld a, b
+  rrca
+  rrca
+  rrca
+  and $1F
+  add LOW(row_touched)
+  ld l, a
+  adc HIGH(row_touched)
+  sub l
+  ld h, a
+  ld a, [hl]
+  pop hl
+  and d
   jr nz, .send
-  inc a
+  inc hl
+  inc c
+  ld a, c
+  ldh [fs_row], a
+  ld a, [_screen_rows]
+  cp c
+  jr nz, .row
+  scf
   ret
 .send
-  xor a
+  and a
   ret
 RowBit:;a = row -> hl = its byte in row_touched, a = its bit; keeps bc and de
   push bc
@@ -489,12 +522,14 @@ ENDR
   ret
 ASSERT MAX_SCREEN_ROWS % 8 == 0 && LOW(TB_BASE) == 0
 ASSERT SGB_ROWS_BLOCK + SGB_ROWS_BLOCKS <= SGB_HASH_BLOCK && SGB_HASH_BLOCK < $3C00
-RowCopy:;hl to de, a row's 128 bytes
-  ld b, MAX_ROW_STRIDE*2
+RowCopy:;hl to de, a row's 128 bytes (unrolled: rows staged to write cost a third of a frame a key, 2026-11-26)
+  ld b, MAX_ROW_STRIDE*2/8
 .copy
+REPT 8
   ld a, [hli]
   ld [de], a
   inc de
+ENDR
   dec b
   jr nz, .copy
   ret

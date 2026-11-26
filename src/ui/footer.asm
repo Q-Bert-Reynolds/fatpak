@@ -30,6 +30,15 @@ FooterCompose:
   cp FOOTER_MARKER
   jr z, .fill
   ld l, a
+  ld a, [_screen_cells];512x448: a column each, as RenderTextWidth has it (a call each cost a fifth of
+  and a;a frame a key, 2026-11-26)
+  jr z, .measure
+  ld a, l
+  and a
+  jr z, .measured;(no width)
+  ld l, 4
+  jr .measured
+.measure
   ld h, 0
   push bc
   push de
@@ -42,6 +51,7 @@ FooterCompose:
   pop de
   pop bc
   ld l, a;width
+.measured
   ld a, [_screen_width]
   sub 48
   sub c
