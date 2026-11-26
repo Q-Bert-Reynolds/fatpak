@@ -286,6 +286,10 @@ _SetFont::;a = font
   ld a, BANK(FontVWFWidths)
   SET_BANK
   ld hl, FontVWFWidths
+  ld a, [_screen_cells];512x448: whatever the font, a 4-pixel column a character (GeometryWide); the VWF's
+  and a;widths put the cursor ahead of or behind its column (2026-11-26)
+  ld a, 4
+  jr nz, .fill
   ld a, b
   cp a, FONT_VWF
   jr z, .copy

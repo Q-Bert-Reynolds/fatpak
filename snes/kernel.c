@@ -1149,7 +1149,7 @@ static void draw_ui(u8 row) {
 
   static const u8 bottom[OSK_LINE_CHARS] = {
     ICON_SHIFT, ' ', '#', ' ', ICON_MENU, ' ', '_', '_', '_', '_',
-    '_', '_', '_', '_', ICON_UNDO, ' ', ICON_REDO, ' ', ICON_ENTER, ' '
+    '_', '_', '_', ' ', ICON_UNDO, /* the space bar ends under m, not in the gap after it */ ' ', ICON_REDO, ' ', ICON_ENTER, ' '
   };
 
   Row keyrow;

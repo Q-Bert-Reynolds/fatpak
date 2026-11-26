@@ -21,7 +21,7 @@ FRAMES=[[0,0,0,0xFF,0,0,0,0],[0x10]*8,[0,0,0,0x1F,0x10,0x10,0x10,0x10],[0,0,0,0x
         [0x10,0x10,0x10,0x1F,0,0,0,0],[0x10,0x10,0x10,0xF0,0,0,0,0]]
 KEYS=[b'1234567890qwertyuiopasdfghjkl;zxcvbnm,./',b'!@#$%^&*()QWERTYUIOPASDFGHJKL:ZXCVBNM<>?',
       b'`~-_=+[]{}\\|\'"\xa1\xbf\xe1\xe9\xed\xf3\xfa\xf1\xfc'.ljust(40,b'\0')]
-BOTTOM=bytes([29,32,35,32,31,32]+[95]*8+[15,32,16,32,30,32])
+BOTTOM=bytes([29,32,35,32,31,32]+[95]*7+[32,15,32,16,32,30,32])
 
 class Model:
     """What the pages built: the kernel's state for the reference"""
@@ -161,20 +161,20 @@ def compose(m,r):
         top=ROWS-(1 if m.bars&2 else 0)-7
         if top<=r<top+7:
             rel=r-top
-            for x in range(11,53):cg[x],cc[x]=32,0
-            if rel==0:frame_row(cg,11,52,TOPLEFT)
-            elif rel==6:frame_row(cg,11,52,BOTLEFT)
+            for x in range(21,43):cg[x],cc[x]=32,0
+            if rel==0:frame_row(cg,21,42,TOPLEFT)
+            elif rel==6:frame_row(cg,21,42,BOTLEFT)
             else:
-                cg[11]=cg[52]=VLINE;k=rel-1
+                cg[21]=cg[42]=VLINE;k=rel-1
                 if k<4:
                     keys=KEYS[1 if m.layer==3 else m.layer]
                     for i in range(10):
-                        if keys[k*10+i]:cg[13+4*i]=keys[k*10+i]
+                        if keys[k*10+i]:cg[23+2*i]=keys[k*10+i]
                 else:
-                    for j in range(20):cg[13+2*j]=BOTTOM[j]
-                    if m.layer==3:cg[13]=25
+                    for j in range(19):cg[23+j]=BOTTOM[j]
+                    if m.layer==3:cg[23]=25
                 if m.key!=255 and m.key//10==k:
-                    x=13+4*(m.key%10);cc[x]=cc[x+1]=SELECTED
+                    cc[23+2*(m.key%10)]=SELECTED
     if m.box:
         bx,bw,top,n=m.box
         if top<=r<top+n:

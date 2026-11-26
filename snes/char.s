@@ -59,9 +59,9 @@ CURSOR = $6010
 BATCH = 8       ; map rows a VBlank at most (two 64-byte DMAs each), each only while it lasts
 OSK_ROWS = 5
 OSK_PANEL = 7   ; its rows with the frame
-OSK_LEFT = 11   ; the panel's columns (kernel.c's pixels / 4)
-OSK_RIGHT = 52
-OSK_KEYS = 13
+OSK_LEFT = 21   ; the panel's columns: kernel.c's 256x224 panel at half size (a key 2 columns, its
+OSK_RIGHT = 42  ; character and a space; 4 columns a key spread the characters and split the space
+OSK_KEYS = 23   ; bar, 2026-11-26), about where its centre is
 OSK_CAPS = 3
 ICON_CAPS = 25
 
@@ -665,7 +665,7 @@ FrameRow:
 .a8
  rts
 
-; the on-screen keyboard's panel: columns 11-52 of its 7 rows above the footer
+; the on-screen keyboard's panel: columns 21-42 of its 7 rows above the footer
 Osk:
  lda _osk_rows
  beq @none
@@ -760,9 +760,9 @@ Osk:
  inx
  tya
  clc
- adc #8 ; 4 columns a key
+ adc #4 ; 2 columns a key
  tay
- cpy #(OSK_KEYS + 40) * 2
+ cpy #(OSK_KEYS + 20) * 2
  bcc @key
  sep #$20
 .a8
@@ -779,10 +779,8 @@ Osk:
  sta CG,y
  iny
  iny
- iny
- iny
  inx
- cpx #20
+ cpx #19 ; (the 20th, the space after enter, would be the frame's column)
  bne @icon
  sep #$20
 .a8
@@ -793,7 +791,7 @@ Osk:
  lda #ICON_CAPS * 2
  sta CG + OSK_KEYS * 2
  sep #$20
-@hi: ; the chosen key: its cell and the next in SELECTED
+@hi: ; the chosen key: its character's cell in SELECTED (as kernel.c's OSK_KEY_WIDTH)
  lda _osk_key
  cmp #255
  beq @done
@@ -808,7 +806,6 @@ Osk:
  cpx rel
  bne @done
  asl
- asl
  clc
  adc #OSK_KEYS
  rep #$20
@@ -819,7 +816,6 @@ Osk:
 .a8
  lda #SELECTED
  sta CC,x
- sta CC + 1,x
 @done:
  rts
 
@@ -1187,4 +1183,4 @@ Keys:
  .byte "`~-_=+[]{}", $5C, "|'", $22, $A1, $BF, $E1, $E9, $ED, $F3, $FA, $F1, $FC
  .res 17
 Bottom:
- .byte 29, ' ', '#', ' ', 31, ' ', '_', '_', '_', '_', '_', '_', '_', '_', 15, ' ', 16, ' ', 30, ' '
+ .byte 29, ' ', '#', ' ', 31, ' ', '_', '_', '_', '_', '_', '_', '_', ' ', 15, ' ', 16, ' ', 30, ' '

@@ -22,7 +22,7 @@ OSKLayouts:
 .lower   DB "1234567890qwertyuiopasdfghjkl;zxcvbnm,./"
 .shift   DB "!@#$%^&*()QWERTYUIOPASDFGHJKL:ZXCVBNM<>?"
 .symbols DB "`~-_=+[]\{\}\\|'\"¡¿áéíóúñü",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-OSKBottomRow: DB "▲ # ≡ ________↶ ↷ ↵ "
+OSKBottomRow: DB "▲ # ≡ _______ ↶ ↷ ↵ ";the space bar ends under m, not in the gap after it
 ASSERT @ - OSKBottomRow == SCRN_X_B
 
 _OSKShow::;a = show, hides or shows the highlight

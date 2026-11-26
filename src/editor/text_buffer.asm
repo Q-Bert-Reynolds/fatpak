@@ -1151,6 +1151,9 @@ TBLex:
   ld a, [_font];the mono font (8x8 tiles): 8 pixels for everything
   and a
   jr z, .fontWidth
+  ld a, [_screen_cells];512x448: a column each, bold and headings too (_SetFont)
+  and a
+  jr nz, .fontWidth
   ld a, [tb_next_state+1]
   and a, MD_HEADING
   jr z, .notHeading

@@ -104,7 +104,8 @@ GeometryWide:;256x224's 28 rows of 248 pixels, or 512x448's 56 of 62 4-pixel col
   ld hl, 32
 GeometryChunk:
   ST_HL_VAR screen_chunk
-  ret
+  ld a, [_font];the widths follow _screen_cells
+  jp _SetFont
 GeometrySet:
   ld [_screen_stride], a
   ST_HL_VAR _screen_offsets

@@ -227,6 +227,10 @@ ColorSum:
 ;C: c's width in style's look (e = STYLE_* << 4) in the font (_font): a module's text rows (ModStyle)
 _ThemeWidth::
   ld c, a
+  ld a, [_screen_cells];512x448: a 4-pixel column each
+  and a
+  ld a, 4
+  ret nz
   ld a, [_font]
   and a
   ld a, 8
