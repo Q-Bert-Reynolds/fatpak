@@ -70,7 +70,8 @@
 
 # Super Game Boy
 
-- **Next:** SGB fullscreen input latency (hardware, 2026-11-24): 256x224 and 512x448 both lag noticeably between input and update, about equally. Phase 7 hardware checks ([SGB.md](notes/SGB.md)).
+- **Next:** SGB fullscreen input latency. Hardware (SGB.LOG, 2026-11-25): press to ACK went from 18 to 11 frames (Down, 256x224) and 26 to 12 (512x448) after the footer and row-staging fixes. Since then (Gearboy, 512x448, press to publish): Down 5 to 2, cursor 11 to 5, typing 13-21 to 7 with one page per key (row content hashes cached in PSRAM until written, no duplicate cursor page, no second Draw per key, the SGB log's flush waits for a second without input). Left: the first edit after opening moves the text gap (about 6 frames on a long file); per-row overhead on unchanged rows (about 1 frame); FsByte's wait on each VRAM byte. Not yet checked on hardware. The profiler must use `bin/SGB.DAT`: `client-test.SGB.DAT` has no text-mode extension, so 512x448 faults there. Phase 7 hardware checks ([SGB.md](notes/SGB.md)).
+- `tests/run_geometry.sh` fails "runtime 64-character limit" (wraps at 62 characters with 1-pixel glyphs), also at 08d5602.
 - SNES mouse on hardware (2026-11-24): smooth and responsive in fullscreen, but the double click's threshold is hard to meet; mouse speed (the 3 hardware speeds) isn't offered there yet. In 160x144 the mouse mode flickers a lot.
 - Input devices on SGB: the SNES mouse should just work, not need choosing in SETTINGS > KEYBOARD, which reads as keyboard or mouse. Keyboard and mouse together is the plan (to test with the link port mod).
 - Reset instead of a power cycle: from 256x224/512x448 the screen stays blank; from the OS at 160x144 the SGB's stock colours come back and input seems doubled.

@@ -227,6 +227,7 @@ void UpdateBars(void) {
 void Draw(void) {
   SetHighlight();
   if (bars) UpdateBars();
+  bars_changed = 0; // (drawn: the editor's loop drew it all again after each key, a second SGB fullscreen page)
   EditorDraw();
 }
 

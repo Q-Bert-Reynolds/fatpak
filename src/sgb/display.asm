@@ -367,7 +367,7 @@ FsDrawRows:
   ldh a, [fs_pending]
   and a
   ret nz
-  call FsCursor
+  call FsCursorSent
   call FsFlush
   ldh a, [fs_pending]
   and a
@@ -750,6 +750,19 @@ FsAttrIndex:
 .return
   pop de
   ret
+; FsCursor, noting what it sends for FsInput, which sends the cursor again when it differs: unnoted,
+; each draw that moved it was followed by a page of just the cursor, a second ACK for every key
+FsCursorSent:
+  ld hl, oam_buffer
+  ld de, fs_cursor
+  ld a, [hli]
+  ld [de], a
+  inc de
+  ld a, [hl]
+  ld [de], a
+  inc de
+  ld a, [cursor_white]
+  ld [de], a
 FsCursor:
   ld a, SGBFS_CMD_CURSOR
   ld bc, 3
@@ -2056,6 +2069,36 @@ FsLog:
   ld a, [_render_frames+1]
   cp b
   jr nz, .frame
+  ld a, d ; a key or a press: the next flush (an SD write, ~9 frames) waits for a second without one.
+  cp 5    ; Flushing every 4 s whatever the input stalled a key in the middle of typing (2026-11-26)
+  jr z, .input
+  cp 9
+  jr nz, .logged
+.input
+  push hl
+  ldh a, [fs_log_tick]
+  ld l, a
+  ld a, c
+  sub l
+  ld l, a
+  ldh a, [fs_log_tick+1]
+  ld h, a
+  ld a, b
+  sbc h ; frames since the tick
+  jr nz, .later
+  ld a, l
+  cp 240 - 60 + 1
+  jr c, .soon
+.later
+  ld a, c
+  sub 240 - 60
+  ldh [fs_log_tick], a
+  ld a, b
+  sbc 0
+  ldh [fs_log_tick+1], a
+.soon
+  pop hl
+.logged
   ld a, c
   call FsLogByte
   ld a, b
