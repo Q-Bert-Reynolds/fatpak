@@ -37,6 +37,27 @@ FsByte:
   pop af
   pop hl
   ret
+FsBytes: ; HL bytes, B (nonzero) of them -> HL past them, B 0; keeps C and DE (FsByte's cost a run of them
+  push de ; costs a frame of a key at 512x448, 2026-11-26)
+  ldh a, [fs_write]
+  ld e, a
+  ldh a, [fs_write+1]
+  ld d, a
+.wait
+  ldh a, [rSTAT]
+  and STATF_BUSY
+  jr nz, .wait
+  ld a, [hli]
+  ld [de], a
+  inc de
+  dec b
+  jr nz, .wait
+  ld a, e
+  ldh [fs_write], a
+  ld a, d
+  ldh [fs_write+1], a
+  pop de
+  ret
 FsBegin:
   ld a, 0
   ld hl, $8000
@@ -347,6 +368,7 @@ FsDrawRows:
   call FsBegin
   call FsLayout
   call FsScroll
+  call RowsSame
   xor a
   ldh [fs_row], a
 .row
@@ -375,6 +397,7 @@ FsDrawRows:
   ldh a, [fs_fault]
   and a
   ret nz
+  call RowsSnap ; (src/ui/geometry.asm's RowsSame) before fs_force goes
   xor a
   ldh [fs_deferred], a
   ldh [fs_force], a
@@ -409,6 +432,9 @@ FsRowSource:
 ; Build row geometry and merge equal attributes into runs. Worst-case ROW
 ; remains 202 bytes, so the existing page reservation bounds a whole command.
 FsEncodeRow:
+  ldh a, [fs_row]
+  call RowSkip ; as sent (RowsSame, src/ui/geometry.asm)
+  ret nz
   ldh a, [fs_write+1]
   cp $86
   jr c, .space
@@ -457,7 +483,18 @@ FsEncodeRow:
   ; Hash fixed-size source rows first. Only changed rows need width/RLE work.
   ; Bytes past the visible edge may cause a harmless extra redraw, never stale text.
   ; The content's hash is kept until the row is written (RowHashCached, src/ui/geometry.asm), and the
-  ; window only set on a row to hash or send. Its look and selection go on from the content's CRC
+  ; window only set on a row to hash or send. Its look and selection go on from the content's CRC.
+  ldh a, [fs_row]
+  add a
+  ld c, a
+  ld b, 0
+  ld hl, _render_sel
+  add hl, bc
+  ld a, [hli]
+  ldh [fs_sel_start], a
+  ld a, [hl]
+  ldh [fs_sel_end], a
+  ldh a, [fs_hash]
   call RowHashCached
   jr nc, .cached
   ldh a, [fs_hash]
@@ -482,17 +519,9 @@ FsEncodeRow:
   ldh a, [fs_styled]
   or b
   call FsCRC
-  ldh a, [fs_row]
-  add a
-  ld c, a
-  ld b, 0
-  ld hl, _render_sel
-  add hl, bc
-  ld a, [hli]
-  ldh [fs_sel_start], a
+  ldh a, [fs_sel_start]
   call FsCRC
-  ld a, [hl]
-  ldh [fs_sel_end], a
+  ldh a, [fs_sel_end]
   call FsCRC
   ldh a, [fs_row]
   add a
@@ -657,10 +686,7 @@ FsEncodeRow:
   and a
   jr z, .done
 .chars
-  ld a, [hli]
-  call FsByte
-  dec b
-  jr nz, .chars
+  call FsBytes
   xor a
   ldh [fs_x], a
 .runs
@@ -813,10 +839,7 @@ FsPalette:
   ld hl, _fs_colors;the theme's (src/ui/theme.asm's ThemeLoad)
   ld b, 16
 .loop
-  ld a, [hli]
-  call FsByte
-  dec b
-  jr nz, .loop
+  call FsBytes
   jp FsFlush
 
 ; ModBackground in fullscreen (render.asm's _ModuleAPIBackground jumps here): the GB's LCD is the transport,
@@ -1714,10 +1737,7 @@ FsBar:
   and a
   ret z
 .loop
-  ld a, [hli]
-  call FsByte
-  dec b
-  jr nz, .loop
+  call FsBytes
   ret
 FsUI:
   ; Reserve the entire largest UI update; BOX lines never split a TLV.
@@ -1811,10 +1831,7 @@ FsUI:
   and a
   jr z, .next
 .chars
-  ld a, [hli]
-  call FsByte
-  dec b
-  jr nz, .chars
+  call FsBytes
   jr .next
 .empty
   ld a, SGBFS_CMD_BOX_LINE

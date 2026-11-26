@@ -19,6 +19,9 @@ staged_row: DB;the row wide_staging holds, $FF none
 staged_dirty: DB;and it may have been written: it goes back to PSRAM before another row is staged
 row_write: DB;RowStage's caller may write the row
 row_touched: DS MAX_SCREEN_ROWS/8;a bit a row: written since the fullscreen client hashed it (RowHashCached)
+rows_valid: DB;RowsSnap's snapshot is of the last whole draw
+rows_fast: DB;and this draw started with it unchanged (RowsSame): rows with unwritten lines are skipped (RowSkip)
+ASSERT rows_fast == rows_valid+1
 
 FIXED "Geometry dispatch"
 _GeometryGB::
@@ -303,6 +306,7 @@ RowHashWindow:;a = row -> hl = its hash, the window on SGB_HASH_BLOCK; bc = the 
   add a
   ld l, a
   ld h, HIGH(TB_BASE)
+RowHashBlock:;the window on SGB_HASH_BLOCK; bc = the block it showed; keeps de and hl
   ld a, [EDX_CONFIG]
   and ~2
   ld [EDX_CONFIG], a
@@ -315,9 +319,149 @@ RowHashWindow:;a = row -> hl = its hash, the window on SGB_HASH_BLOCK; bc = the 
   ld a, LOW(SGB_HASH_BLOCK)
   ld [EDX_BLOCK], a
   ret
+
+; What the fullscreen client's row hashes come from, besides each row's content: copied after each whole
+; draw (RowsSnap), beside the content hashes. A draw that starts with all of it the same, no scroll
+; (_ring_top) and no fs_force, only needs the rows whose lines were written since: RowSkip skips the
+; others without hashing them. Hashing every row, cached or not, cost over a frame of each key at
+; 512x448 (2026-11-26); the comparison is about a quarter of one
+DEF ROWS_SNAP EQU TB_BASE+MAX_SCREEN_ROWS*2
+RowsSnapTable:;length, address
+  DB MAX_SCREEN_ROWS
+  DW _render_row_lines
+  DB MAX_SCREEN_ROWS
+  DW _render_row_fonts
+  DB MAX_SCREEN_ROWS*2
+  DW _render_sel
+  DB (MAX_SCREEN_ROWS+1)*2
+  DW tb_row_states
+  DB 1
+  DW _ring_top
+  DB 1
+  DW _render_text_top
+  DB 1
+  DW _render_text
+  DB 1
+  DW _tb_rows
+  DB 1
+  DW _bars
+  DB 1
+  DW _osk_shown
+  DB 1
+  DW _screen_rows
+  DB 1
+  DW _screen_cells
+  DB 0
+DEF ROWS_SNAP_SIZE EQU MAX_SCREEN_ROWS*4+(MAX_SCREEN_ROWS+1)*2+8
+ASSERT ROWS_SNAP + ROWS_SNAP_SIZE <= TB_BASE+512
+; Before FsDrawRows' rows (after FsScroll): rows_fast if the last whole draw's snapshot is still right
+RowsSame::
+  ld hl, rows_valid
+  ld a, [hl]
+  ld [hl], 0;(until this draw is whole)
+  inc hl
+  ld [hl], 0 ; rows_fast
+  and a
+  ret z
+  ldh a, [fs_force]
+  and a
+  ret nz
+  ld e, 0
+  call RowsSnapWalk
+  ret nz
+  ld a, 1
+  ld [rows_fast], a
+  ret
+; After a whole draw
+RowsSnap::
+  ld a, [rows_fast]
+  and a
+  jr nz, .valid;(the snapshot is already this)
+  ld e, 1
+  call RowsSnapWalk
+.valid
+  ld a, 1
+  ld [rows_valid], a
+  ret
+RowsSnapWalk:;e = 0 compare (nz if different), else copy
+  call RowHashBlock
+  push bc
+  ld bc, ROWS_SNAP
+  ld hl, RowsSnapTable
+.entry
+  ld a, [hli]
+  and a
+  jr z, .done;(z: the same)
+  ld d, a ; the length
+  push hl
+  ld a, [hli]
+  ld h, [hl]
+  ld l, a ; hl = the table, bc = the snapshot
+  ld a, e
+  and a
+  jr nz, .copy
+.compare
+  ld a, [bc]
+  cp [hl]
+  jr nz, .differ
+  inc hl
+  inc bc
+  dec d
+  jr nz, .compare
+.next
+  pop hl
+  inc hl
+  inc hl
+  jr .entry
+.copy
+  ld a, [hli]
+  ld [bc], a
+  inc bc
+  dec d
+  jr nz, .copy
+  jr .next
+.differ
+  pop hl
+.done
+  pop bc
+  jp RowWindowBack;(keeps the flags)
+; A = screen row -> nz if this draw needn't send it (rows_fast and its line unwritten)
+RowSkip::
+  ld e, a
+  ld a, [rows_fast]
+  and a
+  ret z
+  ld d, 0
+  ld hl, _render_row_lines
+  add hl, de
+  ld e, [hl]
+  ld a, [staged_row];(as RowHashCached: the staged row may still be written)
+  cp e
+  jr nz, .bit
+  ld a, [staged_dirty]
+  and a
+  jr nz, .send
+.bit
+  ld a, e
+  call RowBit
+  and [hl]
+  jr nz, .send
+  inc a
+  ret
+.send
+  xor a
+  ret
 RowBit:;a = row -> hl = its byte in row_touched, a = its bit; keeps bc and de
   push bc
   ld b, a
+  and 7
+  add LOW(RowBits)
+  ld l, a
+  adc HIGH(RowBits)
+  sub l
+  ld h, a
+  ld c, [hl]
+  ld a, b
   rrca
   rrca
   rrca
@@ -327,18 +471,10 @@ RowBit:;a = row -> hl = its byte in row_touched, a = its bit; keeps bc and de
   adc HIGH(row_touched)
   sub l
   ld h, a
-  ld a, b
-  and 7
-  ld b, a
-  ld a, 1
-  jr z, .bit
-.shift
-  add a
-  dec b
-  jr nz, .shift
-.bit
+  ld a, c
   pop bc
   ret
+RowBits: DB 1, 2, 4, 8, 16, 32, 64, 128
 RowTouch:;a = row, keeps bc
   call RowBit
   or [hl]
