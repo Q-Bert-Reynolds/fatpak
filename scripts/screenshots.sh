@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Retake README images at 2x from the built OS (make assemble first).
+# Retake README images from the built OS (make assemble first): 160x144 and 256x224 doubled, 512x448 as is.
 # Gearboy runs the frontend; SGB recordings are rendered by the real kernel in Mesen.
 set -euo pipefail
 export GEARBOY_EVERDRIVE_LATCH_BD03=1
@@ -22,6 +22,7 @@ import sys, pathlib
 from PIL import Image
 for ppm in sorted(pathlib.Path(sys.argv[1]).glob('*.ppm')):
     image = Image.open(ppm)
-    image.resize((image.width * 2, image.height * 2), Image.NEAREST).save(pathlib.Path(sys.argv[2]) / (ppm.stem + '.png'))
+    scale = 1 if image.width >= 512 else 2  # 512x448 as it is; the rest doubled
+    image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(pathlib.Path(sys.argv[2]) / (ppm.stem + '.png'))
     print(ppm.stem + '.png')
 PY

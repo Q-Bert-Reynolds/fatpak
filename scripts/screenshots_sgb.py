@@ -18,6 +18,7 @@ import kernel_build
 def main():
     output = Path(sys.argv[1]).resolve()
     groups = defaultdict(list)
+    if not (output / 'sgb-shots.tsv').exists(): return  # no SGB shots taken (FATPAK_SHOTS_THEMES)
     for line in (output / 'sgb-shots.tsv').read_text().splitlines():
         recording, end, name = line.split('\t')
         groups[recording].append((int(end), name))
@@ -40,8 +41,11 @@ def main():
                       (line.split() for line in (ROOT / 'build/sgb/kernel.lbl').read_text().splitlines())}
             (config / 'kernel-symbols.lua').write_text('return {' + ','.join(
                 f'["{name}"]={address}' for name, address in labels.items()) + '}\n')
+            # the replay's page counter ($C111) is a byte: a module's or 512x448's recording passes 255
+            if len({page % 256 for page in checkpoints}) != len(checkpoints):
+                raise RuntimeError(f'{recording}: two checkpoints 256 pages apart')
             (config / 'shots.lua').write_text('return {' + ','.join(
-                f'[{page}]={{' + ','.join(json.dumps(name) for name in names) + '}'
+                f'[{page % 256}]={{' + ','.join(json.dumps(name) for name in names) + '}'
                 for page, names in checkpoints.items()) + '}\n')
             env = dict(os.environ, XDG_CONFIG_HOME=str(work / 'config'))
             command = ['dotnet', os.environ.get('MESEN_DLL', str(ROOT / '../MesenCE/bin/linux-x64/Release/Mesen.dll')),
@@ -56,7 +60,7 @@ def main():
                 raise RuntimeError((work / 'mesen.log').read_text())
             for name in expected:
                 image = Image.open(config / f'{name}.ppm')
-                if image.size != (256, 224) or len(image.getcolors(256 * 224)) < 2:
+                if image.size != ((512, 448) if '_sgb512' in name else (256, 224)) or len(image.getcolors(512 * 448)) < 2:
                     raise RuntimeError(f'Incomplete SGB capture: {name}')
                 shutil.copyfile(config / f'{name}.ppm', output / f'{name}.ppm')
                 print(f'{name}: real SNES PPU', flush=True)

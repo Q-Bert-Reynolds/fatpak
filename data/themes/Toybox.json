@@ -1,0 +1,28 @@
+{
+  "palettes": [
+    [[31, 31, 22], [10, 24, 31], [20, 18, 12], [4, 2, 12]],
+    [[31, 31, 22], [0, 10, 28], [20, 18, 12], [4, 2, 12]],
+    [[31, 31, 22], [28, 2, 8], [20, 18, 12], [4, 2, 12]],
+    [[31, 31, 22], [18, 0, 26], [20, 18, 12], [4, 2, 12]],
+    [[31, 31, 22], [30, 14, 0], [20, 18, 12], [4, 2, 12]],
+    [[31, 31, 22], [0, 20, 4], [20, 18, 12], [4, 2, 12]],
+    [[31, 31, 22], [0, 17, 22], [20, 18, 12], [4, 2, 12]],
+    [[31, 31, 22], [14, 10, 20], [20, 18, 12], [4, 2, 12]]
+  ],
+  "text": {"palette": 0, "ink": 3, "bold": false, "italic": false, "font": "text"},
+  "bold": {"palette": 0, "ink": 3, "bold": true, "italic": false, "font": "text"},
+  "italic": {"palette": 0, "ink": 3, "bold": false, "italic": true, "font": "text"},
+  "bold_italic": {"palette": 0, "ink": 3, "bold": true, "italic": true, "font": "text"},
+  "markers": {"palette": 0, "ink": 2, "bold": false, "italic": false, "font": "text"},
+  "code": {"palette": 2, "ink": 1, "bold": false, "italic": false, "font": "code"},
+  "headings": {"palette": 2, "ink": 1, "bold": false, "italic": false, "font": "text"},
+  "headings_5_6": {"palette": 2, "ink": 1, "bold": true, "italic": false, "font": "text"},
+  "comments": {"palette": 0, "ink": 2, "bold": false, "italic": false, "font": "text"},
+  "keywords": {"palette": 5, "ink": 1, "bold": false, "italic": false, "font": "text"},
+  "types": {"palette": 1, "ink": 1, "bold": false, "italic": false, "font": "text"},
+  "strings": {"palette": 3, "ink": 1, "bold": false, "italic": false, "font": "text"},
+  "numbers": {"palette": 4, "ink": 1, "bold": false, "italic": false, "font": "text"},
+  "directives": {"palette": 4, "ink": 1, "bold": true, "italic": false, "font": "text"},
+  "labels": {"palette": 4, "ink": 1, "bold": false, "italic": false, "font": "text"},
+  "header_footer": {"palette": 0, "ink": 3, "bold": false}
+}

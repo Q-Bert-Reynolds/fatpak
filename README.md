@@ -8,28 +8,31 @@ FatPak is an operating system for the Game Boy that runs on the EverDrive GB X7.
 - Assemble an `.asm` file into a `.gb` ROM on the Game Boy, and run it
 - Launch games with battery saves, RTC, save states and cheats compatible with the stock EverDrive OS
 - View binary files as hex, `.tiles`, `.tile` and `.2bpp` files as tiles, and Beisbol `.gbmap` maps (assembled on the device, cached, scrolled like the game)
-- Themes (`/GBCSYS/THEMES/*.json`): light and dark, and an editor for every palette and each style's look
+- Themes (`/GBCSYS/THEMES/*.json`): light, dark, pink, high contrast, pastel, sepia, toybox and arcade, and an editor for every palette and each style's look
 
-| | Game Boy Color | Game Boy | GBC (Dark) | DMG (Dark)
+| | DMG | GBC | SGB 256x224 | SGB 512x448 |
 | --- | --- | --- | --- | --- |
-| File browser | ![](screenshots/browser_gbc.png) | ![](screenshots/browser_dmg.png) | ![](screenshots/browser_gbc_dark.png) | ![](screenshots/browser_dmg_dark.png) |
-| Markdown | ![](screenshots/markdown_gbc.png) | ![](screenshots/markdown_dmg.png) | ![](screenshots/markdown_gbc_dark.png) | ![](screenshots/markdown_dmg_dark.png) |
-| On-screen keyboard | ![](screenshots/keyboard_gbc.png) | ![](screenshots/keyboard_dmg.png) | ![](screenshots/keyboard_gbc_dark.png) | ![](screenshots/keyboard_dmg_dark.png) |
-| Assembly | ![](screenshots/assembly_gbc.png) | ![](screenshots/assembly_dmg.png) | ![](screenshots/assembly_gbc_dark.png) | ![](screenshots/assembly_dmg_dark.png) |
-| Menu | ![](screenshots/menu_gbc.png) | ![](screenshots/menu_dmg.png) | ![](screenshots/menu_gbc_dark.png) | ![](screenshots/menu_dmg_dark.png) |
-| File info | ![](screenshots/info_gbc.png) | ![](screenshots/info_dmg.png) | ![](screenshots/info_gbc_dark.png) | ![](screenshots/info_dmg_dark.png) |
-| Hex view | ![](screenshots/hex_gbc.png) | ![](screenshots/hex_dmg.png) | ![](screenshots/hex_gbc_dark.png) | ![](screenshots/hex_dmg_dark.png) |
-| Tile view | ![](screenshots/tiles_gbc.png) | ![](screenshots/tiles_dmg.png) | ![](screenshots/tiles_gbc_dark.png) | ![](screenshots/tiles_dmg_dark.png) |
+| File browser | ![File browser, Game Boy](screenshots/browser_dmg.png) | ![File browser, Game Boy Color](screenshots/browser_gbc.png) | ![File browser, 256x224](screenshots/browser_sgb.png) | ![File browser, 512x448](screenshots/browser_sgb512.png) |
+| Markdown | ![Markdown, Game Boy](screenshots/markdown_dmg.png) | ![Markdown, Game Boy Color](screenshots/markdown_gbc.png) | ![Markdown, 256x224](screenshots/markdown_sgb.png) | ![Markdown, 512x448](screenshots/markdown_sgb512.png) |
+| On-screen keyboard | ![On-screen keyboard, Game Boy](screenshots/keyboard_dmg.png) | ![On-screen keyboard, Game Boy Color](screenshots/keyboard_gbc.png) | ![On-screen keyboard, 256x224](screenshots/keyboard_sgb.png) | ![On-screen keyboard, 512x448](screenshots/keyboard_sgb512.png) |
+| Assembly | ![Assembly, Game Boy](screenshots/assembly_dmg.png) | ![Assembly, Game Boy Color](screenshots/assembly_gbc.png) | ![Assembly, 256x224](screenshots/assembly_sgb.png) | ![Assembly, 512x448](screenshots/assembly_sgb512.png) |
+| Menu | ![Menu, Game Boy](screenshots/menu_dmg.png) | ![Menu, Game Boy Color](screenshots/menu_gbc.png) | ![Menu, 256x224](screenshots/menu_sgb.png) | ![Menu, 512x448](screenshots/menu_sgb512.png) |
+| File info | ![File info, Game Boy](screenshots/info_dmg.png) | ![File info, Game Boy Color](screenshots/info_gbc.png) | ![File info, 256x224](screenshots/info_sgb.png) | ![File info, 512x448](screenshots/info_sgb512.png) |
+| Hex view | ![Hex view, Game Boy](screenshots/hex_dmg.png) | ![Hex view, Game Boy Color](screenshots/hex_gbc.png) | ![Hex view, 256x224](screenshots/hex_sgb.png) | ![Hex view, 512x448](screenshots/hex_sgb512.png) |
+| Tile view | ![Tile view, Game Boy](screenshots/tiles_dmg.png) | ![Tile view, Game Boy Color](screenshots/tiles_gbc.png) | ![Tile view, 256x224](screenshots/tiles_sgb.png) | ![Tile view, 512x448](screenshots/tiles_sgb512.png) |
 
-Super Game Boy fullscreen (light and dark themes):
+## Themes
 
-| | SGB | SGB (Dark) |
-| --- | --- | --- |
-| File browser | ![SGB file browser](screenshots/browser_sgb.png) | ![SGB file browser, dark theme](screenshots/browser_sgb_dark.png) |
-| Markdown | ![SGB Markdown editor](screenshots/markdown_sgb.png) | ![SGB Markdown editor, dark theme](screenshots/markdown_sgb_dark.png) |
-| On-screen keyboard | ![SGB keyboard over the document](screenshots/keyboard_sgb.png) | ![SGB keyboard over the document, dark theme](screenshots/keyboard_sgb_dark.png) |
-| Assembly | ![SGB assembly editor](screenshots/assembly_sgb.png) | ![SGB assembly editor, dark theme](screenshots/assembly_sgb_dark.png) |
-| Menu | ![SGB editor menu](screenshots/menu_sgb.png) | ![SGB editor menu, dark theme](screenshots/menu_sgb_dark.png) |
+Each theme sets the palettes and the look of every style (SETTINGS > THEME, which can also edit and save them). These come with it:
+
+<img src="screenshots/theme_light.png" width="320" alt="Light theme" title="Light">
+<img src="screenshots/theme_dark.png" width="320" alt="Dark theme" title="Dark">
+<img src="screenshots/theme_pink.png" width="320" alt="Pink theme" title="Pink">
+<img src="screenshots/theme_highcontrast.png" width="320" alt="High contrast theme" title="High contrast">
+<img src="screenshots/theme_pastel.png" width="320" alt="Pastel theme" title="Pastel">
+<img src="screenshots/theme_sepia.png" width="320" alt="Sepia theme" title="Sepia">
+<img src="screenshots/theme_toybox.png" width="320" alt="Toybox theme" title="Toybox">
+<img src="screenshots/theme_arcade.png" width="320" alt="Arcade theme" title="Arcade">
 
 # Using it
 
