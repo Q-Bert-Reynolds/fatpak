@@ -63,7 +63,7 @@ void SGBCellsMapC(void) {
 // renderer (SGBBOOT.MOD's exit) and screen, laid out again here, and its keyboard or mouse driver (stopped for
 // JUMP). (A viewer shows its menu between its module's runs, so none is running here; one that was would keep
 // fullscreen.) A map open goes with the kernel. Returns 1 if the screen is the GB's again: the caller draws it
-unsigned char SGBLeave(void) {
+unsigned char SGBLeave(unsigned char setup) {
   unsigned char i;
   if (!(sys_info & SYS_INFO_SGBFS) || module_busy || SGBExitPage()) return 0;
   cells_held = 0;
@@ -79,6 +79,7 @@ unsigned char SGBLeave(void) {
   EditorSetup(); // the GB's display from scratch, as at boot
   tb_rows = screen_rows - (bars << 1);
   Layout(); // (the caller lays the editor's rows out again, the browser its own)
-  if (kb_driver != 1) KeyboardSetup(0); // as at boot
+  // the keyboard as at boot (the SGB's driver: its BIOS bridge again), not for a game (the bridge only to stop it)
+  if (setup) KeyboardSetup(kb_driver == 1 || kb_driver == 4 ? 2 : 0);
   return 1;
 }

@@ -94,6 +94,7 @@
 #define FOOTER_MARKER 0x7F//private clock alignment marker, separate from button icons
 #define TB_COLS   20//tiles per row
 #define TB_ROWS   18
+#define SGB_ATTR_PAIRS TB_ROWS/2//SGB at 160x144: a pair of rows an attribute packet (src/sgb/attributes.asm)
 #define TB_WIDTH  TB_COLS*8//pixels per row
 #define TB_STRIDE 40//characters per row in tile_buffer
 #define MAX_SCREEN_ROWS 56//logical row capacity: 512x448's (SGB fullscreen)// the GB renderer remains 18 rows

@@ -94,7 +94,7 @@ SNESMouseProcess:
   call SGBInputBegin
   push af
   ld hl, SNESMouseAck
-  call sgb_PacketTransferFast
+  call SGBPacketAck;(not within 2 frames of an SGB attribute packet)
   call SNESMouseSelectOne
   pop af
   pop de

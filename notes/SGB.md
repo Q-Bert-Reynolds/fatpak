@@ -501,9 +501,14 @@ EXIT alone, its ACK); SGBBOOT.MOD's exit mode (`module_context` set): waits unti
 joypad ID stops cycling players (the BIOS's one; up to 10 s), restores the GB
 renderer (OverlayRestore), clears `SYS_INFO_SGBFS`, MASK_EN 0; then GeometryGB, the
 map rows and ring reset, EditorSetup (the display as at boot), Layout, the keyboard
-or mouse driver again (`KeyboardSetup(0)`, as at boot). Choosing 256x224 or 512x448
-then JUMPs again. LaunchGame leaves fullscreen this way first and launches as from
-160x144 (the setting stays, so FatPak comes back to fullscreen after the game).
+driver again as at boot (`SGBLeave(1)`: `KeyboardSetup`, the SGB's driver and its BIOS bridge for
+PS/2). Choosing 256x224 or 512x448 then JUMPs again. LaunchGame leaves fullscreen this way first
+(`SGBLeave(0)`: no driver load, as the launch would stop its bridge at once) and launches as from
+160x144 (the setting stays, so FatPak comes back to fullscreen after the game). The bridge is only
+stopped where it runs (`SYS_INFO_BRIDGE`, sys_info bit 3, set once keydriver.c's upload is in, cleared
+by its stop in `KBDriverStop` and SGBBOOT): its stop jumps into the bridge's code at `$1803`, which
+after EXIT is the kernel's leftovers (2026-11-26: a build's RUN from fullscreen froze the picture
+on hardware while loading, the SNES crashed by that jump).
 `tests/run_sgb_text.sh` covers EXIT, fullscreen again from the BIOS and a game's
 launch from fullscreen (Gearboy's host offers EXIT and drops to its own SGB).
 
@@ -525,6 +530,31 @@ gets the driver to the IPL but the BIOS never releases the GB from reset: with W
 untouched it takes its warm path (`$81FE`'s signatures at `$7E:1700`, `$66FC`,
 `$7EFC`), zeroed its cold one but the ICD2 row (`$6000`, read at `$B9BE`) keeps the
 GB's last line, so the intro step that releases it (`$B88F`) never runs.
+
+### Colours at 160x144 (2026-11-26)
+
+In the BIOS's 160x144 the SGB colours the GB's 4 shades with 4 palettes, colour 0 shared, and a palette per
+8x8 screen cell (20x18). `SGBThemePalettes` (`src/ui/theme.asm`, ThemeApply) sends PAL01 and PAL23: palette 0 the
+text's, 1-3 the theme's palettes the most looks use among those with its paper; the others draw in palette 0,
+their accent ink as ink (`sgb_pal_map`). The GB renderer records each block's tiles' palettes as GBC's map
+attributes have them (`SGBRecordRow`, `src/ui/render.asm`; accents get colour 1 as on GBC), 2 bits a tile in
+`sgb_attr_rows` (WRAMX, in the editor's buffers). `SGBAttrFlush` (`src/sgb/attributes.asm`, each WaitFrame)
+lays them out as the screen shows them (`_render_row_blocks`), hashes each pair of rows and sends one pair that
+changed since it was sent: a single-packet ATTR_CHR, at most every 2 frames, so a scroll's colours settle within
+18 frames. While a module has the BG map, `sgb_attr_rows` are the screen's rows and the module's: MAPVIEW.MOD
+sends its map's palettes 0-3 (`ModBackground` mode 8: PAL01 and PAL23) and each cell's palette as the view
+crosses a tile (mode 9), at most every 4 frames while it moves; `BackgroundText` applies the theme again.
+
+The BIOS's pace (`tests/run_sgb_attr.sh`, Mesen on SGB1 1.0, 1.1, 1.2 and SGB2): it takes a packet a SNES frame,
+and the SGB's GB frame is 2.4% shorter, so packets back to back are lost (the 6 of one ATTR_CHR), a GB frame
+apart within a command arrive, and two commands a GB frame apart sometimes don't (both in one SNES frame); 9
+single-packet commands 2 frames apart always do. A packet in the same SNES frame as another replaces it, and the
+SNES mouse driver's ACK (DATA_SND at 160x144) must never be the one lost (the bridge would wait for it for good):
+the ACK goes through `SGBPacketAck`, which waits until 2 frames after the last attribute packet, and
+attribute packets wait 2 frames after an ACK (`sgb_packet_frame`, HRAM).
+
+`sgb_SetPal` used to write its packet's last 0 through the source palette's pointer: every SGB ThemeApply zeroed the
+low byte of the next theme palette's paper (palette 1's), which the swap file kept.
 
 ### SGB.DAT container
 
@@ -690,8 +720,9 @@ each time, as modes rewrite VRAM). On the GB the overlay turns each mouse event 
 like the BIOS bridge's (`fs_mouse`: commit with buttons and an activity count, x, row × 8 or × 4 in
 TEXT 1), which the SNES mouse driver reads in fullscreen instead of P1 (no bridge ACK, no GB pointer
 sprite: VRAM is the transport's); `MouseRow` gives the shared mouse code its rows in both geometries.
-SGBBOOT stops only the BIOS bridge at JUMP (its stop packets), so the driver stays; EXIT's
-KeyboardSetup uploads the bridge again (about 9 s in Gearboy, the picture frozen meanwhile).
+SGBBOOT stops only the BIOS bridge at JUMP (its stop packets, if `SYS_INFO_BRIDGE` says it runs), so the
+driver stays; EXIT's KeyboardSetup uploads the bridge again (about 9 s in Gearboy, the picture frozen
+meanwhile), a game's launch doesn't.
 `tests/run_sgb_mouse.sh` (Mesen, the real BIOS and kernel, Mesen's mouse in port 2) checks the events
 and the pointer; `tests/run_sgb_text.sh` (Gearboy) installs the driver in fullscreen and clicks a
 browser row.

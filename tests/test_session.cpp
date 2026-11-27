@@ -95,6 +95,13 @@ static void Sessions(const char* image,const char* symbols,const char* data,bool
     Check(byte("_render_text")==1 && text("_file_name")=="Clean.txt" && !byte("_modified"),"open clean file");
     power();Check(byte("_render_text")==1 && text("_file_name")=="Clean.txt" && !byte("_modified"),"cold boot resumes a clean open file");
     key(0x1C);Check(byte("_modified"),"edit restored file");
+    { // Shift + an arrow selects (the arrow held as the d-pad: its modifiers are the queued key's)
+      core->QueuePS2KeyboardScanCode(0x12);Frames(*core,4);
+      core->QueuePS2KeyboardScanCode(0xE0);core->QueuePS2KeyboardScanCode(0x6B);Frames(*core,4);
+      core->QueuePS2KeyboardScanCode(0xE0);core->QueuePS2KeyboardScanCode(0xF0);core->QueuePS2KeyboardScanCode(0x6B);Frames(*core,30);
+      core->QueuePS2KeyboardScanCode(0xF0);core->QueuePS2KeyboardScanCode(0x12);Frames(*core,60);
+      printf("shift+left: selecting %u mods %u\n",byte("_selecting"),byte("kb_modifiers"));
+      Check(byte("_selecting"),"Shift + Left selects");}
     power();Check(byte("_render_text")==1 && byte("_modified") && Call(*core,syms.at("_tb_GetChar"),0)=='a',"cold boot preserves matching unsaved text");
     // The direct buffer call above bypasses the frame loop, so boot again before input.
     power();close(true);

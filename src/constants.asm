@@ -91,6 +91,7 @@ DEF UNDO_SIZE    EQU (TB_BANK_SIZE*UNDO_BANKS)
 DEF FOOTER_MARKER EQU $7F;private clock alignment marker, separate from button icons
 DEF TB_COLS   EQU 20;tiles per row
 DEF TB_ROWS   EQU 18
+DEF SGB_ATTR_PAIRS EQU TB_ROWS/2;SGB at 160x144: a pair of rows an attribute packet (src/sgb/attributes.asm)
 DEF TB_WIDTH  EQU TB_COLS*8;pixels per row
 DEF TB_STRIDE EQU 40;characters per row in tile_buffer
 DEF MAX_SCREEN_ROWS EQU 56;logical row capacity: 512x448's (SGB fullscreen); the GB renderer remains 18 rows

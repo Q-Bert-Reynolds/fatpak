@@ -31,8 +31,11 @@ block_accents::     DS TB_ROWS+1
 block_sel::         DS (TB_ROWS+1)*2
 block_box::         DS TB_ROWS+1
 block_hashes::      DS (TB_ROWS+1)*2;the characters each block shows, hashed (render.asm)
+sgb_pal_map::       DS 8;SGB at 160x144: the SGB palette (0-3) each of the theme's 8 is drawn in (src/sgb/attributes.asm)
+sgb_attr_sent::     DS SGB_ATTR_PAIRS*2;and the hash of each pair of screen rows' attributes as last sent
                     DS (-@) & 255
 cmd_buffer::        DS $1A0;bitmap/masks/palettes and dim plane, both page-aligned
+sgb_attr_rows::     DS TB_ROWS*5;SGB at 160x144: each block's 20 palettes, 2 bits each (screen rows while a module has the BG)
                     DS MODULE_BSS+MODULE_BSS_SIZE-@
 gb_row_offsets::    DS 32*2;past the wide modules' BSS: their ModText draws rows
 NEXTU
@@ -68,6 +71,7 @@ _name_buffer::
 name_buffer::       DS NAME_BUFFER_SIZE
 _module_dir::       DW;ModFile/ModLoad's folder when a host sets it, else file_dir (src/modules/runtime.c); WRAM0 is full
 ASSERT tile_buffer == MODULE_BSS
+ASSERT HIGH(sgb_pal_map) == HIGH(sgb_pal_map + 7)
 ASSERT gb_row_offsets >= MODULE_BSS+MODULE_BSS_SIZE
 ASSERT wide_row_offsets >= MODULE_BSS+MODULE_BSS_SIZE
 ASSERT wide_staging >= MODULE_BSS+MODULE_BSS_SIZE

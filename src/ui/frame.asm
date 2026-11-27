@@ -4,5 +4,6 @@ SECTION FRAGMENT "Editor ROM0", ROM0
 _WaitFrame::
   call gbdk_WaitVBL
   call UpdateInput
+  call SGBAttrFlush;(after the mouse driver's ACK, which it waits for)
   jp _FooterTick
 

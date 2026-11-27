@@ -112,7 +112,9 @@ TEST shows the keyboard's bytes (the mouse's reports aren't kept). At 160x144 co
 viewport (160 by 144 pixels).
 The pointer remains hidden until motion or a button transition, then uses the
 same browser/editor/menu handlers and two-second timeout as the experimental
-mouse path. Browser clicks select the target row directly; double-click and
+mouse path. In the editor a click places the cursor, a drag selects, and Shift + a
+click (or drag) selects from the cursor (the editor keeps the anchor at the cursor
+while nothing is selected). Browser clicks select the target row directly; double-click and
 right-click actions wait for that selection to be drawn.
 
 `src/sgb/mouse.s` is assembled with cc65's ca65/ld65. SGBMOUSE.DRV includes
@@ -138,7 +140,12 @@ The 63-report FIFO coalesces motion within the same button state; if completely
 full, it retains earlier edges and replaces its final report with the newest
 state so a release is not lost during a long build. Switching drivers, rebooting, resetting the device
 or launching a game disables the extra NMI and restores the BIOS vector and
-single-controller mode. Failed game loads leave the bridge running.
+single-controller mode. Failed game loads leave the bridge running. The stop only goes out
+while a bridge runs (`SYS_INFO_BRIDGE`, sys_info bit 3: set after the upload, cleared by the stop):
+it jumps into the bridge's code, which isn't there after fullscreen's JUMP or EXIT. Leaving fullscreen
+for 160x144 loads the driver and its bridge again; for a game it doesn't. The ACK waits 2 frames after
+an SGB attribute packet (`SGBPacketAck`, [SGB.md](SGB.md#colours-at-160x144-2026-11-26)): the BIOS takes a
+packet a frame, and a lost ACK would stop the reports.
 
 `tests/run_snes_mouse.sh` runs a plain GB harness against the actual SGB1 BIOS
 and SNES mouse emulation in Mesen. It exercises the production uploader and P1

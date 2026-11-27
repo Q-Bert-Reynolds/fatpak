@@ -10,6 +10,8 @@ static const char ps2[] = "/GBCSYS/DRIVERS/PS2.DRV";
 static const char snes[] = "/GBCSYS/DRIVERS/SGBMOUSE.DRV";
 static const char igkb[] = "/GBCSYS/DRIVERS/IGKB.DRV";
 
+static unsigned char bridge; // Load uploaded the BIOS bridge
+
 static unsigned char Load(unsigned char type) {
   ModuleLoad load;
   unsigned int crc = 0xFFFF, expected, n, i;
@@ -48,6 +50,7 @@ static unsigned char Load(unsigned char type) {
     for (i = 0; i < 16; ++i) WINDOW[i] = WINDOW[n + i];
     ModDriver(0x42);
   }
+  bridge = count;
   return 0;
 }
 // SETTINGS > KEYBOARD: NONE, PS/2 KEYBOARD, iGKB USB, TEST. On an SGB, PS/2 is the SGB's driver (type 4: PS/2 and
@@ -77,7 +80,8 @@ unsigned char KeyboardDriverMenu(void* menu) {
     if (!menu && type == 4) return 0; // (boot, EXIT: without SGBMOUSE.DRV the built-in PS/2 driver stays)
     ModBox(Str(S_MODULE_DAMAGED)); while (!ModKey()); ModHideBox(); return 1;
   }
-  ModDriver((menu ? 0xC0 : 0x80) | type);
+  ModDriver((menu ? 0xC0 : 0x80) | type); // (its init stops a running bridge: flagged after it)
+  if (type == 4 && bridge) *(unsigned char*)ModDriver(0x43) |= 8; // SYS_INFO_BRIDGE: KBDriverStop stops it
   ModHideBox();
   return 0;
 }

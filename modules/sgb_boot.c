@@ -312,8 +312,9 @@ unsigned char ModuleMain(const unsigned char* context) {
   // Stop the BIOS mouse bridge before JUMP takes ownership of both ports (its stop jump through the $0800 hook,
   // then a command to run it: KBDriverStop's packets). The SNES mouse driver stays: in fullscreen it reads the
   // kernel's mouse events (fs_mouse) instead
-  mouse=*(unsigned char*)ModDriver(0x40)==4;
+  mouse=*info&8; // SYS_INFO_BRIDGE (not after EXIT: the BIOS's again without it, its stop would run garbage)
   if(mouse) {
+    *info&=~8;
     packet[1]=0;packet[2]=8;packet[3]=0;packet[4]=3;packet[5]=0x4C;packet[6]=0x03;packet[7]=0x18;Send(0x0F);
     for(i=1;i<8;++i)packet[i]=0;
     packet[1]=1;Send(0x19);packet[1]=0;

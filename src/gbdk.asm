@@ -58,6 +58,7 @@ DEF SYS_INFO_DMG EQU %00000000 ;Dot Matrix Game
 DEF SYS_INFO_SGB EQU %00000001 ;Super Game Boy
 DEF SYS_INFO_SGBFS EQU %00000100 ; fullscreen terminal active
 DEF SYS_INFO_GBC EQU %00000010 ;Game Boy Color
+DEF SYS_INFO_BRIDGE EQU %00001000 ; the SNES mouse driver's BIOS bridge is running (KBDriverStop stops it)
 
 MACRO COPY_TO_HRAM; \1 = dest address in HRAM, \2 = first address to copy, \3 = last address to copy
   ld c, LOW(\1)

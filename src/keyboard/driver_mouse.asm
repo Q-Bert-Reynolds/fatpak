@@ -204,7 +204,9 @@ IGKBMouseAction:
   pop bc
   bit 0, c
   jr z, .drag
-  xor a
+  ld a, [kb_modifiers];Shift + a click extends the selection from the cursor (the editor keeps the anchor there)
+  and a, KB_MOD_SHIFT
+  jr nz, .drag
   ld [_selecting], a
   ld a, e
   ld [_anchor], a

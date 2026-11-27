@@ -393,7 +393,7 @@ sgb_SetPal:: ;a = packet header, bc = paletteA, de = paletteB
   call mem_Copy
 
   xor a
-  ld [hli], a
+  ld [cmd_buffer+15], a;(not [hl]: the source's, it zeroed the next palette's paper)
 
   ld hl, cmd_buffer
   call _sgb_PacketTransfer
@@ -481,14 +481,15 @@ sgb_PacketTransfer::
   ret z
 INCLUDE "src/sgb/packet.asm"
 
-; Stop the SNES bridge before replacing its GB driver or handing off a game.
+; Stop the SNES bridge before replacing its GB driver or handing off a game. Only if it's running: its stop
+; jumps into the bridge's code, and without it (fullscreen's JUMP, EXIT, the driver left from fullscreen) the
+; SNES would run whatever is at $1803
 KBDriverStop::
-  ld a, [kb_type]
-  cp KB_TYPE_SNES_MOUSE
-  ret nz
   ldh a, [sys_info]
-  and SYS_INFO_SGBFS
-  ret nz ; (fullscreen: SGBBOOT stopped the bridge already; P1 is the mailbox's)
+  bit 3, a ; SYS_INFO_BRIDGE
+  ret z
+  res 3, a
+  ldh [sys_info], a
   call SGBInputBegin
   push af
   ld hl, SNESStopPacket

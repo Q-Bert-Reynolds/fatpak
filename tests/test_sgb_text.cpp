@@ -118,9 +118,6 @@ int main(int n,char** v){
     Check(h->Click(uint8_t(target),40,1),"click");Frames(core,90); // (model row r is screen row r, under the bars)
     printf("clicked row %u: selected '%s'\n",target,selected().c_str());
     Check(selected().find("long.txt")!=std::string::npos,"a click selects the row under the pointer");
-    // NONE before EXIT below: Gearboy has no SNES side to run the BIOS bridge the SGB's driver would upload
-    settings(4);key(0x82);key(10);Frames(core,300);
-    Check(m->Read(syms.at("kb_type"))==0,"KEYBOARD > NONE");
     settings(7); // RESOLUTION: all three on an SGB, whatever the font
     Check(box().find("| 160x144| 256x224| 512x448|")!=std::string::npos,"RESOLUTION: 160x144, 256x224, 512x448");
     key(0x83);key(10); // (from 256x224's place)
@@ -145,6 +142,25 @@ int main(int n,char** v){
     wait(120,[&]{return model.cursorLook!=0;}); // (it blinks)
     printf("cursor: row %u x %u look %u\n",model.cursorRow,model.cursorX,model.cursorLook);
     Check(model.cursorLook && model.cursorRow==1 && model.cursorX==0,"the cursor at row 1");
+    { // Shift + a PS/2 arrow selects under the SGB's driver
+      core.QueuePS2KeyboardScanCode(0x12);Frames(core,4);
+      core.QueuePS2KeyboardScanCode(0xE0);core.QueuePS2KeyboardScanCode(0x74);Frames(core,4);
+      core.QueuePS2KeyboardScanCode(0xE0);core.QueuePS2KeyboardScanCode(0xF0);core.QueuePS2KeyboardScanCode(0x74);Frames(core,30);
+      core.QueuePS2KeyboardScanCode(0xF0);core.QueuePS2KeyboardScanCode(0x12);Frames(core,60);
+      printf("shift+right: selecting %u type %u\n",m->Read(syms.at("_selecting")),m->Read(syms.at("kb_type")));
+      Check(m->Read(syms.at("_selecting")),"Shift + Right selects");
+      key(0x80);Frames(core,30); // (Left: the cursor at the selection's start again, nothing selected)
+      auto word=[&](const char* n){return unsigned(m->Read(syms.at(n))|m->Read(syms.at(n)+1)<<8);};
+      Check(!m->Read(syms.at("_selecting")) && word("_cursor")==0,"Left: back at the start");
+      // Shift + a click selects from the cursor to the click (a click alone moves the cursor)
+      core.QueuePS2KeyboardScanCode(0x12);Frames(core,8);
+      Check(h->Click(3,40,1),"shift-click");Frames(core,90);
+      core.QueuePS2KeyboardScanCode(0xF0);core.QueuePS2KeyboardScanCode(0x12);Frames(core,30);
+      printf("shift-click: selecting %u anchor %u cursor %u\n",m->Read(syms.at("_selecting")),word("_anchor"),word("_cursor"));
+      Check(m->Read(syms.at("_selecting")) && word("_anchor")==0 && word("_cursor")>40,"Shift + a click selects from the cursor");
+      Check(h->Click(2,0,1),"click");Frames(core,90);
+      Check(!m->Read(syms.at("_selecting")) && word("_cursor")==word("_anchor"),"a click alone: nothing selected");
+      key(0x82);Frames(core,30);} // (Up: the cursor at row 1's start again for what follows)
     for(unsigned i=0;i<60;++i){Check(h->Inject(1,0x83,0),"Down");Frames(core,6);}
     wait(1500,[&]{return model.cursorRow==54 && Chars(model.rows[54]).find("line 61 ")==0;});
     printf("after 60 Downs: cursor row %u, row 1 '%s', row 54 '%s'\n",model.cursorRow,Chars(model.rows[1]).c_str(),Chars(model.rows[54]).c_str());
@@ -188,6 +204,7 @@ int main(int n,char** v){
     printf("map closed into 512x448 text: %u GB frames\n",waited);
     Check(!model.mapMode && model.text==1 && rows()==56 && model.textRows==54,"Close: 512x448 text");
 
+    Check(!(m->Read(syms.at("sys_info"))&8),"no BIOS bridge in fullscreen");
     // RESOLUTION > 160x144 in fullscreen: EXIT (HELLO offered SGBFS_FEATURE_BIOS), the SNES the BIOS's again
     // (Gearboy's own SGB), the GB its own renderer: 18 rows, one player, the BIOS's picture unfrozen and drawn
     settings(7);key(0x82);key(0x82);key(10);
@@ -197,7 +214,14 @@ int main(int n,char** v){
     Check(rows()==18 && m->Read(syms.at("_resolution"))==1,"160x144: the GB's 18 rows, saved");
     Check(core.GetSGB()->GetPlayerCount()==1 && core.GetSGB()->GetMaskMode()==SGB::MaskDisabled,"one player, unfrozen");
     Frames(core,30);Check((m->Read(0xFF40)&0x81)==0x81,"the GB's LCD on with its background (SGBBOOT's exit left LCDC 0)");
+    // the SGB's driver again, as at boot at 160x144 (the default PS/2 choice, never saved as 4): its BIOS bridge
+    // uploaded (Gearboy runs no SNES code: only the packets) and flagged, so a launch's KBDriverStop stops it
+    waited=wait(3000,[&]{return (m->Read(syms.at("sys_info"))&8)!=0;});
+    printf("the BIOS bridge again: %u GB frames\n",waited);
+    Check(m->Read(syms.at("kb_type"))==4 && (m->Read(syms.at("sys_info"))&8),"EXIT: the SGB's driver and its BIOS bridge again");
+    wait(600,[&]{return core.GetSGB()->GetMaskMode()==SGB::MaskDisabled;});
     // the swap file (the card) has 160x144 now, not only PSRAM: a power cycle keeps it
+    wait(1200,[&]{auto swp=Read(root+"/GBCSYS/EDITOR.SWP");return swp.size()>0xEC && swp[0xEC]==1;}); // (after the bridge's upload)
     Check(Read(root+"/GBCSYS/EDITOR.SWP").size()>0xEC && Read(root+"/GBCSYS/EDITOR.SWP")[0xEC]==1,"RESOLUTION saved to the swap file");
     Frames(core,180);
     {unsigned varied=0;for(unsigned y=40;y<184;++y)for(unsigned x=48;x<208;++x)varied+=pixels[y*256+x]!=pixels[40*256+48];
@@ -210,6 +234,7 @@ int main(int n,char** v){
     waited=wait(6000,[&]{return h->Active() && (m->Read(syms.at("sys_info"))&4) && rows()==28 && selected().find_first_not_of(' ')!=std::string::npos;});
     printf("fullscreen again: %u GB frames\n",waited);
     Check(h->Active() && rows()==28 && !model.text && m->Read(syms.at("_resolution"))==0,"256x224 again after the BIOS");
+    Check(!(m->Read(syms.at("sys_info"))&8) && m->Read(syms.at("kb_type"))==4,"SGBBOOT stopped the bridge (the driver stays)");
     // a game from fullscreen: EXIT first (the BIOS's again), then the launch as from 160x144
     for(unsigned i=0;i<12 && selected().find("Game.gb")==std::string::npos;++i)key(0x82); // (up from Test.gbmap)
     Check(selected().find("Game.gb")!=std::string::npos,"the game selected");

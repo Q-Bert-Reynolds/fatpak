@@ -176,6 +176,8 @@ box_first: DB
 box_last: DB
 box_tile: DB
 box_attr: DB
+sgb_attr_frame:: DB;_render_frames' low byte at the last SGB attribute packet (src/sgb/attributes.asm)
+sgb_packet_frame:: DB;and at the last of any packet the attributes wait for (the mouse bridge's ACK)
 
 SECTION "Render ROM0", ROM0
 
@@ -932,6 +934,7 @@ RenderSetup::
   ld hl, block_accents
   ld bc, RENDER_BLOCKS
   call mem_Set
+  call SGBAttrReset
   xor a
   ld hl, _VRAM8000
   ld bc, $1800
@@ -1028,6 +1031,8 @@ _ModuleAPIBackground::
   ld hl, sys_info
   bit 2, [hl]
   jp nz, _RenderOverlayStart+9;fullscreen: the SNES has the background (FsBackground), the GB's LCD is the transport
+  cp a, 8
+  jp nc, SGBModuleColors;8 and 9: an SGB's palettes and cells at 160x144 (src/sgb/attributes.asm)
   ld c, a;1: with the bars, 2: full screen
   and a
   jr z, .text
@@ -1044,6 +1049,7 @@ _ModuleAPIBackground::
   ldh [render_text_scy], a
   push bc
   push de
+  call SGBAttrClear;SGB: the screen's rows palette 0 until the module sends its own (mode 9)
   call MapBoxLayout;then BackgroundBars
   pop de
   pop bc
@@ -1088,6 +1094,7 @@ _ModuleAPIBackground::
   ldh a, [render_background]
   and a
   ret z
+  call SGBAttrClear;SGB: the blocks' palettes, from the redraw below
   xor a
   ldh [render_background], a
   ldh [rSCX], a
@@ -1547,6 +1554,9 @@ RenderRow:
   ld a, [_render_gbc]
   and a
   jp nz, RenderRowDMA
+  ld a, [render_highlight];SGB
+  and a
+  call nz, SGBRecordRow
   ld a, [render_block]
   add a, a
   ld c, a
@@ -2231,15 +2241,14 @@ RenderGlyph:
 .accent
   bit 3, a;LOOK_ACCENT
   jr z, .palette
-  ld a, [_render_gbc]
-  and a
-  jr z, .advance;the ink on DMG and SGB
+  call RenderAccentPlane
+  jr z, .palette;the ink on DMG, and on SGB in a palette it doesn't have
   ld a, 2
   ld d, HIGH(render_accent)
   call RenderUsePlane
   call RenderGlyphPlane
-.palette;GBC: the tiles it's in use its look's palette
-  ld a, [_render_gbc]
+.palette;GBC and SGB: the tiles it's in use its look's palette
+  ld a, [render_highlight]
   and a
   jr z, .advance
   ld a, [render_look]
@@ -2597,6 +2606,80 @@ RenderEncode:
   ld a, [hl]
   pop hl
   ld b, a
+  ret
+
+;nz if a look's accent ink has a plane of its own (color 1): on GBC, and on SGB if its palette is one of the
+;SGB's (sgb_pal_map; the text's own accents are ink there, as on DMG), affects a, hl
+RenderAccentPlane:
+  ld a, [_render_gbc]
+  and a
+  ret nz
+  ld a, [render_highlight]
+  and a
+  ret z
+  ld a, [render_look]
+  swap a
+  and a, 7
+  add a, LOW(sgb_pal_map)
+  ld l, a
+  ld h, HIGH(sgb_pal_map)
+  ld a, [hl]
+  and a
+  ret
+
+;SGB: the SGB palette (sgb_pal_map) of each of the row's tiles, as GBC's RenderWritePalettes has them (its
+;look's, the row's when it has selected pixels), into its block's 2-bit cells (src/sgb/attributes.asm sends them)
+SGBRecordRow:
+  ldh a, [render_background]
+  and a
+  ret nz;a module has the BG map: its cells are the screen's rows meanwhile
+  ld a, [render_block]
+  cp a, TB_ROWS
+  ret nc
+  ld c, a
+  add a, a
+  add a, a
+  add a, c
+  add a, LOW(sgb_attr_rows)
+  ld e, a
+  adc a, HIGH(sgb_attr_rows)
+  sub a, e
+  ld d, a
+  ld hl, render_mask
+  ld b, TB_COLS
+.cell
+    ld a, [hl]
+    and a
+    ld a, [render_base_pal]
+    jr nz, .map
+    push hl
+    ld a, l
+    add a, render_pals - render_mask
+    ld l, a
+    ld a, [hl]
+    pop hl
+  .map
+    push hl
+    add a, LOW(sgb_pal_map)
+    ld l, a
+    ld h, HIGH(sgb_pal_map)
+    ld a, [hl]
+    pop hl
+    sla c
+    sla c
+    or a, c
+    ld c, a
+    inc l
+    ld a, b
+    dec a
+    and a, 3
+    jr nz, .next;4 cells a byte, the first in bits 7-6
+    ld a, c
+    ld [de], a
+    inc de
+  .next
+    dec b
+    jr nz, .cell
   ret
 
 ;GBC: writes the palette of each of the row's tiles (its accent's, 0 if it has selected pixels) to

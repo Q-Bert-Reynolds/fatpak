@@ -54,13 +54,7 @@ _ThemeApply::
   ldh a, [sys_info]
   and a, SYS_INFO_SGB
   jr z, .done
-  call TextPalette;the SGB keeps the DMG's shades and changes their colours: the text's palette's
-  ld b, h
-  ld c, l
-  ld d, h
-  ld e, l
-  ld a, PAL01
-  call sgb_SetPal
+  call SGBThemePalettes;the SGB keeps the DMG's shades and changes their colours: 4 of the theme's palettes
 .done
   call ThemeRestore
   ldh a, [sys_info]
@@ -161,6 +155,149 @@ ThemeLoad:
     cp a, LOW(_fs_colors + 16)
     jr nz, .fs
   jp ThemeRestore
+
+;SGB: its 4 palettes from the theme's 8 (in the window): 0 the text's, 1-3 those the most looks use of the
+;ones with its paper (the SGB's colour 0 is all four's); the rest are drawn in the text's. sgb_pal_map: the SGB
+;palette of each of the theme's (src/sgb/attributes.asm). Counts in cmd_buffer + 16, the 4 chosen at + 24
+SGBThemePalettes:
+  ld hl, cmd_buffer + 16
+  xor a
+  ld b, 8
+.zero
+    ld [hli], a
+    dec b
+    jr nz, .zero
+  ld hl, sgb_pal_map
+  ld b, 8
+.unmapped
+    ld [hli], a
+    dec b
+    jr nz, .unmapped
+  ld hl, _style_looks
+  ld b, 16
+.count
+    ld a, [hli]
+    swap a
+    and a, 7
+    add a, LOW(cmd_buffer + 16)
+    ld e, a
+    ld d, HIGH(cmd_buffer + 16)
+    ld a, [de]
+    inc a
+    ld [de], a
+    dec b
+    jr nz, .count
+  ld a, [_style_looks + STYLE_TEXT]
+  swap a
+  and a, 7
+  ld hl, cmd_buffer + 24
+  ld [hli], a
+  ld [hli], a
+  ld [hli], a
+  ld [hl], a
+  call TextPalette
+  ld a, [hli]
+  ld c, a
+  ld b, [hl];the text's paper
+  ld hl, THEME_BASE + THEME_PALETTES
+  ld de, cmd_buffer + 16
+.paper;a palette with another paper isn't one of the SGB's
+    ld a, [hli]
+    cp a, c
+    jr nz, .other
+    ld a, [hl]
+    cp a, b
+    jr z, .same
+  .other
+    xor a
+    ld [de], a
+  .same
+    ld a, l
+    add a, 7
+    ld l, a
+    inc e
+    ld a, e
+    cp a, LOW(cmd_buffer + 24)
+    jr nz, .paper
+  ld a, [cmd_buffer + 24];the text's: palette 0 already
+  add a, LOW(cmd_buffer + 16)
+  ld l, a
+  ld h, HIGH(cmd_buffer + 16)
+  ld [hl], 0
+  ld c, 1
+.pick;the most used of the rest (the first of equals) for SGB palette c
+    ld hl, cmd_buffer + 16
+    ld b, 0
+    ld de, 8;d: a palette, e: the most used, 8 none
+  .find
+      ld a, [hli]
+      cp a, b
+      jr c, .fewer
+      jr z, .fewer
+      ld b, a
+      ld e, d
+    .fewer
+      inc d
+      ld a, d
+      cp a, 8
+      jr nz, .find
+    ld a, e
+    cp a, 8
+    jr z, .send
+    add a, LOW(cmd_buffer + 16)
+    ld l, a
+    ld h, HIGH(cmd_buffer + 16)
+    ld [hl], 0
+    ld a, e
+    add a, LOW(sgb_pal_map)
+    ld l, a
+    ld h, HIGH(sgb_pal_map)
+    ld [hl], c
+    ld a, c
+    add a, LOW(cmd_buffer + 24)
+    ld l, a
+    ld h, HIGH(cmd_buffer + 24)
+    ld [hl], e
+    inc c
+    ld a, c
+    cp a, 4
+    jr nz, .pick
+.send
+  ldh a, [rIE];no VBlank meanwhile (its pad latch writes P1), whatever IME is
+  push af
+  and a, ~IEF_VBLANK
+  ldh [rIE], a
+  ld a, [cmd_buffer + 25]
+  call .address
+  ld d, h
+  ld e, l
+  ld a, [cmd_buffer + 24]
+  call .address
+  ld b, h
+  ld c, l
+  ld a, PAL01
+  call sgb_SetPal
+  ld a, [cmd_buffer + 27]
+  call .address
+  ld d, h
+  ld e, l
+  ld a, [cmd_buffer + 26]
+  call .address
+  ld b, h
+  ld c, l
+  ld a, PAL23;(its colour 0, all four's, the same paper)
+  call sgb_SetPal
+  pop af
+  ldh [rIE], a
+  ret
+.address;a = a theme palette, returns hl = its colours
+  add a, a
+  add a, a
+  add a, a
+  add a, LOW(THEME_BASE + THEME_PALETTES)
+  ld l, a
+  ld h, HIGH(THEME_BASE + THEME_PALETTES)
+  ret
 
 ;returns hl = the text's look's palette in the theme (in the window), affects a
 TextPalette:

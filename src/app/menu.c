@@ -33,7 +33,7 @@ static unsigned char ResolutionMenu(void) {
   resolution = item == 1 ? RESOLUTION_256 : item ? RESOLUTION_512 : RESOLUTION_160; // (the strings' order)
   SettingsSave();
   SGBBegin(); // (only in the BIOS's, not at 160x144)
-  if (resolution == RESOLUTION_160) SGBLeave(); // (only in fullscreen)
+  if (resolution == RESOLUTION_160) SGBLeave(1); // (only in fullscreen)
   return item;
 }
 

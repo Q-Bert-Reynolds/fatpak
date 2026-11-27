@@ -97,6 +97,11 @@ static unsigned char cam_x, cam_y; // its top left pixel in the chunk
 // 128 at 512x448), which crossing east or west moves by 32, so the columns in view never meet themselves;
 // rows the same at 512x448 (64 tall) with oy
 static unsigned char sgb, hires, ox, oy, xmask, ymask, cols, rows;
+// an SGB at 160x144 (ModBackground's modes 8 and 9, src/sgb/attributes.asm): its 4 palettes, the map's 0-3, and
+// each screen cell's palette
+#define SGB_PALETTES 8
+#define SGB_CELLS 9
+static unsigned char sgbgb, ax, ay, ac, attr_at; // (cells and packets in text: Bars' meanwhile)
 static unsigned short wrap_n; // the wrapper's length
 
 #ifdef HOST_TEST
@@ -475,13 +480,16 @@ static void LoadPalettes(const unsigned char* colors) __naked {
 }
 #endif
 
-// tile x, y of the view's chunk (0-63, 0-95 at 512x448: past 31 are the neighbours') onto its BG map cell
+// tile x, y of the view's chunk (0-63, 0-95 at 512x448: past 31 are the neighbours') in PSRAM: its tile, its
+// palette CHUNK bytes on
+static unsigned char* CellAt(unsigned char x, unsigned char y) {
+  Window(CHK + ((unsigned short)slots[(y >> 5) << 2 | x >> 5] << 2) + ((y & 31) >> 3));
+  return WINDOW + ((y & 7) << 6) + (x & 31);
+}
+// tile x, y of the view's chunk onto its BG map cell
 static void Cell(unsigned char x, unsigned char y) {
-  unsigned char s = slots[(y >> 5) << 2 | x >> 5], tile, pal, *row;
+  unsigned char tile, pal, *row = CellAt(x, y);
   unsigned char* to = BG_MAP + ((unsigned short)(y & 31) << 5) + (x & 31);
-  y &= 31;
-  Window(CHK + ((unsigned short)s << 2) + (y >> 3));
-  row = WINDOW + ((y & 7) << 6) + (x & 31);
   tile = *row;
   pal = row[CHUNK] & 7;
   if (sgb) {
@@ -494,6 +502,155 @@ static void Cell(unsigned char x, unsigned char y) {
     VPut(to, tile < 128 ? pal | 8 : pal); // the font's tiles are in bank 1
     VBK = 0;
   }
+}
+// an SGB at 160x144: the screen's cells, each its tile's under the cell's centre (the view moves a pixel at a
+// time, the SGB's cells don't) in the map's palettes 0-3 (4-7 in 0), the bars' 0, into text (TB_ROWS * 5
+// bytes, 4 cells a byte, the first in bits 7-6). Unless all: only if the view crossed a tile
+#ifdef HOST_TEST
+static void SGBCells(unsigned char now, unsigned char all) {
+  unsigned char sx, sy, x, y, b = 0, p, *c = (unsigned char*)text;
+  x = tx + ((cam_x & 4) >> 2);
+  y = ty + ((cam_y & 4) >> 2);
+  if (!all && x == ax && y == ay && chunk == ac) return;
+  ax = x;
+  ay = y;
+  ac = chunk;
+  attr_at = now;
+  for (sy = 0; sy != TB_ROWS; ++sy, ++y)
+    for (sx = 0; sx != TB_COLS; ++sx) {
+      p = full || (sy && sy != TB_ROWS - 1) ? CellAt(x + sx, y)[CHUNK] : 0;
+      b = b << 2 | (p & 4 ? 0 : p & 3);
+      if ((sx & 3) == 3) *c++ = b;
+    }
+  ModBackground(SGB_CELLS, (unsigned short)text);
+}
+#else
+static void SGBCells(unsigned char now, unsigned char all) __naked {
+  now; all;
+  __asm
+	ld	d, a ;// now
+	ld	a, [_cam_x]
+	and	a, 4
+	rrca
+	rrca
+	ld	hl, _tx
+	add	a, [hl]
+	ld	b, a ;// x
+	ld	a, [_cam_y]
+	and	a, 4
+	rrca
+	rrca
+	ld	hl, _ty
+	add	a, [hl]
+	ld	c, a ;// y
+	ld	a, e
+	or	a, a
+	jr	nz, .all
+	ld	a, [_ax]
+	cp	a, b
+	jr	nz, .all
+	ld	a, [_ay]
+	cp	a, c
+	jr	nz, .all
+	ld	a, [_chunk]
+	ld	hl, _ac
+	cp	a, [hl]
+	ret	z
+.all:
+	ld	a, b
+	ld	[_ax], a
+	ld	a, c
+	ld	[_ay], a
+	ld	a, [_chunk]
+	ld	[_ac], a
+	ld	a, d
+	ld	[_attr_at], a
+	ld	hl, _text
+	ld	d, 0 ;// the screen row
+.row:
+	ld	a, [_full]
+	or	a, a
+	jr	nz, .map
+	ld	a, d
+	or	a, a
+	jr	z, .bar
+	cp	a, TB_ROWS - 1
+	jr	nz, .map
+.bar:
+	xor	a, a
+	ld	[hl+], a
+	ld	[hl+], a
+	ld	[hl+], a
+	ld	[hl+], a
+	ld	[hl+], a
+	jr	.next
+.map:
+	ld	e, 0 ;// the screen column
+.four:
+	push	hl
+	push	de
+	ld	a, b
+	add	a, e
+	ld	l, a ;// its x
+	ld	h, 4
+.cell:
+	push	hl
+	push	bc
+	push	de
+	ld	a, l
+	ld	e, c
+	call	_CellAt
+	ld	hl, CHUNK
+	add	hl, bc
+	ld	a, [hl] ;// its palette
+	pop	de
+	pop	bc
+	pop	hl
+	bit	2, a
+	jr	z, .low
+	xor	a, a
+.low:
+	and	a, 3
+	sla	d
+	sla	d
+	or	a, d
+	ld	d, a
+	inc	l
+	dec	h
+	jr	nz, .cell
+	ld	a, d
+	pop	de
+	pop	hl
+	ld	[hl+], a
+	ld	a, e
+	add	a, 4
+	ld	e, a
+	cp	a, TB_COLS
+	jr	nz, .four
+.next:
+	inc	c
+	inc	d
+	ld	a, d
+	cp	a, TB_ROWS
+	jr	nz, .row
+	ld	a, SGB_CELLS
+	ld	de, _text
+	jp	_ModBackground
+  __endasm;
+}
+#endif
+// an SGB at 160x144: its 4 palettes, the map's 0-3 (colour 0, all four's, palette 0's); colors: 8 of 4 colours
+static void SGBPalettes(const unsigned char* colors) {
+  unsigned char i, *p = (unsigned char*)text; // 2 packets
+  *p++ = 1; // PAL01
+  for (i = 0; i < 14; ++i) *p++ = colors[i < 8 ? i : i + 2];
+  *p++ = 0;
+  *p++ = 9; // PAL23
+  *p++ = colors[0];
+  *p++ = colors[1];
+  for (i = 18; i < 32; ++i) if ((i & 7) > 1) *p++ = colors[i];
+  *p = 0;
+  ModBackground(SGB_PALETTES, (unsigned short)text);
 }
 // SGB fullscreen: a row or column of cells from x, y on (each Cell a SNES_CELL)
 static void Cells(unsigned char x, unsigned char y, unsigned char column) {
@@ -548,7 +705,7 @@ static void Show(void) {
     }
     VBK = 0;
   }
-  if (gbc || sgb) { // 8 palettes of 3 colours, the fourth black as the game loads them
+  if (gbc || sgb || sgbgb) { // 8 palettes of 3 colours, the fourth black as the game loads them
     at = MAP + H_PALETTES;
     at = GetWord();
     for (i = 0, y = 0; i < 8; ++i) {
@@ -557,10 +714,14 @@ static void Show(void) {
       colors[y++] = 0;
     }
     if (sgb) ModBackground(SNES_COLORS, (unsigned short)colors);
-    else LoadPalettes(colors);
+    else if (gbc) LoadPalettes(colors);
   }
-  else BGP = 0xE4;
+  if (!gbc && !sgb) BGP = 0xE4;
   for (y = ty; y != ty + rows; ++y) Row(y);
+  if (sgbgb) {
+    SGBPalettes(colors);
+    SGBCells((unsigned char)ModStat(MODULE_STAT_FRAMES), 1);
+  }
   if (sgb) Background(); // sent before anything else draws
 }
 
@@ -656,6 +817,8 @@ static void View(unsigned char resume) {
       Bars();
       moved = 0;
     }
+    // an SGB at 160x144: the cells as the view crosses a tile, every 4 frames at most while it moves
+    if (sgbgb && (!(held & PADF_DPAD) || (unsigned char)(now - attr_at) >= 4)) SGBCells(now, 0);
   }
 }
 
@@ -697,6 +860,7 @@ unsigned char ModuleMain(MapContext* context) {
   VBK = 0;
   gbc = VBK != 0xFF; // DMG's reads $FF; GBC's the bank, the rest of it set
   sgb = *(const unsigned char*)ModDriver(0x43) & SYS_INFO_SGBFS;
+  sgbgb = !gbc && (*(const unsigned char*)ModDriver(0x43) & (SYS_INFO_SGBFS | 1)) == 1; // (SYS_INFO_SGB)
   full = m->full; // SETTINGS > FULL SCREEN and RESOLUTION
   hires = sgb && m->hires;
   Size();
