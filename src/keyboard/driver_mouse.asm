@@ -5,6 +5,7 @@ DEF IGKB_POINTER_TILE EQU 122
 DEF IGKB_POINTER_TIMEOUT EQU 120; two seconds at 60 Hz
 DEF IGKB_DOUBLE_TIMEOUT EQU 24; 400 ms between presses
 
+IF !DEF(SNES_MOUSE_DRIVER) ; (the SNES mouse driver has its reports whole: IGKBMouseReport)
 ; Mouse firmware: $40|buttons|signs, $80|abs(x), $80|abs(y).
 ; A header can restart an incomplete packet; idle zero bytes do not advance it.
 IGKBMouseByte:
@@ -50,7 +51,36 @@ IGKBMouseByte:
   ld a, 159
 .xStore
   ld [_mouse_x], a
-DEF IGKBMouseReport EQU @
+  jr IGKBMouseReport
+.x
+  ld a, b
+  ld [igkb_dx], a
+  ld a, [igkb_flags]
+  bit 4, a
+  ld a, b
+  jr nz, .xPos
+  cpl
+  inc a
+.xPos
+  ld [igkb_dx], a
+  ld a, 2
+  ld [igkb_packet], a
+  ret
+.add; A + signed E, saturated at 0..255
+  bit 7, e
+  jr z, .positive
+  add e
+  ret c
+  xor a
+  ret
+.positive
+  add e
+  ret nc
+  ld a, 255
+  ret
+ENDC
+
+IGKBMouseReport:
   ld a, [igkb_flags]
   and 7
   ld b, a
@@ -92,33 +122,6 @@ DEF IGKBMouseReport EQU @
   ld [igkb_timeout], a
   jp IGKBMouseAction
 
-
-.x
-  ld a, b
-  ld [igkb_dx], a
-  ld a, [igkb_flags]
-  bit 4, a
-  ld a, b
-  jr nz, .xPos
-  cpl
-  inc a
-.xPos
-  ld [igkb_dx], a
-  ld a, 2
-  ld [igkb_packet], a
-  ret
-.add; A + signed E, saturated at 0..255
-  bit 7, e
-  jr z, .positive
-  add e
-  ret c
-  xor a
-  ret
-.positive
-  add e
-  ret nc
-  ld a, 255
-  ret
 
 ; Age visibility and the double-click window once per displayed frame.
 IGKBMouseFrame:

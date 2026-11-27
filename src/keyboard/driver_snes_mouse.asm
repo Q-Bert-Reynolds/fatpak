@@ -1,12 +1,21 @@
 IF !DEF(SYS_INFO_SGBFS)
 DEF SYS_INFO_SGBFS EQU %00000100 ; (src/gbdk.asm's: fullscreen terminal active)
 ENDC
-; Four SGB input bytes: BIOS pad 1, commit/buttons, absolute X, absolute Y.
+DEF SNES_MOUSE_DRIVER EQU 1 ; (driver_mouse.asm without the iGKB packet parser)
+; The SGB's driver: a PS/2 keyboard (PS2KeyboardInterrupt takes its bytes under KB_TYPE_SNES_MOUSE too) and the
+; SNES mouse in port 2. The mouse: four SGB input bytes, BIOS pad 1, commit/buttons, absolute X, absolute Y.
 ; Read commit twice around the coordinates, and always leave pad 1 selected.
+INCLUDE "src/keyboard/ps2_keys.asm"
 SNESMouseProcess:
   ld a, [kb_type]
   cp KB_TYPE_SNES_MOUSE
   ret nz
+  ld a, [kb_mode]
+  and a
+  jr z, .mouse ; (KB_MODE_NONE: no keys)
+  call ProcessPS2KeyCodes
+  call KBRepeatHeldKey
+.mouse
   ld a, [igkb_ready]
   and a
   jr nz, .frame
@@ -54,14 +63,6 @@ SNESMouseProcess:
 .report
   bit 0, b
   jr z, .absent
-  xor a
-  call .capture
-  ld a, b
-  call .capture
-  ld a, c
-  call .capture
-  ld a, d
-  call .capture
   ld a, b
   srl a
   and 3
@@ -99,31 +100,10 @@ SNESMouseProcess:
   pop de
   pop bc
   jp SGBInputEnd
-.capture
-  push bc
-  push af
-  ld a, [kb_buffer_write]
-  ld c, a
-  ld b, 0
-  ld hl, kb_scan_code_buffer
-  add hl, bc
-  pop af
-  ld [hl], a
-  ld hl, kb_error_buffer
-  add hl, bc
-  ld [hl], 0
-  ld a, c
-  inc a
-  and KB_SCAN_CODE_COUNT-1
-  ld [kb_buffer_write], a
-  ld hl, kb_interrupt_count
-  inc [hl]
-  pop bc
-  ret
-
 SNESMouseAck:
   DB $79, $f0, $1f, 0, 1, 1
   DS 10
 INCLUDE "src/sgb/mouse_input.asm"
 
 INCLUDE "src/keyboard/driver_mouse.asm"
+INCLUDE "src/keyboard/driver_ps2.asm"

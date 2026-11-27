@@ -1,4 +1,4 @@
-// 512x448 character text (SETTINGS > RESOLUTION > 512x448, whatever the font), the SNES mouse (KEYBOARD > SNES MOUSE in
+// 512x448 character text (SETTINGS > RESOLUTION > 512x448, whatever the font), the SNES mouse (the SGB's driver, in
 // fullscreen: the kernel's mouse events, a click selecting a browser row) and EXIT (RESOLUTION > 160x144: back to the SGB
 // BIOS, and fullscreen again from there) through the real GB frontend
 // and Gearboy's protocol model of the SNES side: RESOLUTION lists all three, the browser switches to it (the kernel's extension, TEXT 1, 56
@@ -81,7 +81,7 @@ int main(int n,char** v){
         for(unsigned i=0x134;i<0x14D;++i)rom[0x14D]=rom[0x14D]-rom[i]-1;
         Write(root+"/Game.gb",rom);}
 
-    auto syms=Symbols(v[2]);GearboyCore core;core.Init();core.SetForceSGB(true);core.SetEverdriveFolder(dir);
+    auto syms=Symbols(v[2]);GearboyCore core;core.Init();core.SetForceSGB(true);core.SetPS2KeyboardEnabled(true);core.SetEverdriveFolder(dir);
     auto h=core.GetSGB()->GetFatPakHost();h->Configure(FatPakSGBHost::TerminalV1);
     Check(h->SetRecording("build/sgb/text.fph"),"record the session's page stream");
     Check(core.LoadROM(v[1],false),"load OS");auto m=core.GetMemory();
@@ -101,14 +101,16 @@ int main(int n,char** v){
     auto rows=[&](){return unsigned(m->Read(syms.at("_screen_rows")));};
 
     Check(m->Read(syms.at("_font"))==1,"the browser in VWF at 256x224");
-    // SETTINGS > KEYBOARD > SNES MOUSE in fullscreen (no BIOS bridge: the kernel's mouse events), then clicks:
-    // one selects a browser row, a second on it opens it (here a folder: back with its parent)
+    // the SGB's driver at boot (PS/2 and the SNES mouse; no BIOS bridge in fullscreen: the kernel's mouse events), not
+    // a KEYBOARD choice of its own: a PS/2 key moves the browser's selection, a click selects a row
+    Check(m->Read(syms.at("kb_type"))==4,"the SGB's driver (PS/2 and the SNES mouse) loaded at boot");
     settings(4);
-    Check(box().find("SNES MOUSE")!=std::string::npos,"KEYBOARD: SNES MOUSE in fullscreen");
-    for(unsigned i=0;i<6 && Chars(model.boxLines[model.boxHi<model.boxRows?model.boxHi:0]).find("SNES MOUSE")==std::string::npos;++i)key(0x83);
-    key(10);
-    Frames(core,300);
-    Check(m->Read(syms.at("kb_type"))==4,"the SNES mouse driver installed in fullscreen");
+    Check(box().find("SNES MOUSE")==std::string::npos && box().find("PS/2")!=std::string::npos,"KEYBOARD: PS/2, no SNES MOUSE row");
+    key(27);Frames(core,60); // (Escape: back)
+    {std::string before=selected();
+     core.QueuePS2KeyboardScanCode(0xE0);core.QueuePS2KeyboardScanCode(0x72);Frames(core,8);
+     core.QueuePS2KeyboardScanCode(0xE0);core.QueuePS2KeyboardScanCode(0xF0);core.QueuePS2KeyboardScanCode(0x72);Frames(core,120);
+     Check(selected()!=before,"a PS/2 Down moves the selection under the SGB's driver");}
     unsigned target=0;
     for(unsigned r=0;r<model.textRows;++r)if(Chars(model.rows[r]).find("long.txt")!=std::string::npos)target=r;
     Check(target,"long.txt listed");
@@ -116,11 +118,9 @@ int main(int n,char** v){
     Check(h->Click(uint8_t(target),40,1),"click");Frames(core,90); // (model row r is screen row r, under the bars)
     printf("clicked row %u: selected '%s'\n",target,selected().c_str());
     Check(selected().find("long.txt")!=std::string::npos,"a click selects the row under the pointer");
-    // PS/2 again: Gearboy has no SNES side to run the BIOS bridge, which EXIT below would install
-    settings(4);
-    for(unsigned i=0;i<6 && Chars(model.boxLines[model.boxHi<model.boxRows?model.boxHi:0]).find("PS/2")==std::string::npos;++i)key(0x82);
-    key(10);Frames(core,300);
-    Check(m->Read(syms.at("kb_type"))==1,"PS/2 again");
+    // NONE before EXIT below: Gearboy has no SNES side to run the BIOS bridge the SGB's driver would upload
+    settings(4);key(0x82);key(10);Frames(core,300);
+    Check(m->Read(syms.at("kb_type"))==0,"KEYBOARD > NONE");
     settings(7); // RESOLUTION: all three on an SGB, whatever the font
     Check(box().find("| 160x144| 256x224| 512x448|")!=std::string::npos,"RESOLUTION: 160x144, 256x224, 512x448");
     key(0x83);key(10); // (from 256x224's place)

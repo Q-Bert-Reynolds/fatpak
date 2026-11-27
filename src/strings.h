@@ -4,8 +4,8 @@
 // PutStr(dest, id) and Str(id) (src/strings.asm), ModString in modules; S_PART(id, n) is the
 // text after its nth {}, up to the next
 #define S_PART(id, n) ((id) | ((n) << 12))
-#define STR_COUNT 268
-#define STR_HASH 0x6A66u
+#define STR_COUNT 267
+#define STR_HASH 0xFF50u
 #define LANGUAGES 2
 #define LANG_CODES "ENES" // 2 characters each: /GBCSYS/LANG/<code>.DAT
 #define S_MENU_FILE 0 // FILE
@@ -226,54 +226,53 @@
 #define S_DRIVER_NONE 215 // NONE
 #define S_DRIVER_PS2 216 // PS/2 KEYBOARD
 #define S_DRIVER_IGKB 217 // iGKB USB
-#define S_DRIVER_SNES_MOUSE 218 // SNES MOUSE
-#define S_KB_PAUSED 219 // PAUSED (A resumes)
-#define S_MAP_READING 220 // Reading map...
-#define S_MAP_LARGE 221 // Close the large
-#define S_MAP_LARGE2 222 // file to view maps
-#define S_MAP_CANT_BUILD 223 // Can't build the
-#define S_MAP_ERROR_N 224 // map: error {}
-#define S_MAP_WRAPPER 225 // (wrapper)
-#define S_MAP_CHUNK 226 // chunk
-#define S_CC_PASS 227 // Compiling {}/3
-#define S_MODULE_CRASHED 228 // CRASH LOGGED {}:{}
-#define S_HIDDEN_HIDE 229 // HIDE
-#define S_HIDDEN_SHOW 230 // SHOW
-#define S_THEME_HEADER 231 // Theme: {}
-#define S_THEME_E_TEXT 232 // Text
-#define S_THEME_E_BOLD 233 // Bold
-#define S_THEME_E_ITALIC 234 // Italic
-#define S_THEME_E_BOLD_ITALIC 235 // Bold italic
-#define S_THEME_E_MARK 236 // # * _ ` markers
-#define S_THEME_E_CODE 237 // `code`
-#define S_THEME_E_HEAD 238 // # Headings
-#define S_THEME_E_HEAD_BOLD 239 // ##### Headings 5 and 6
-#define S_THEME_E_COMMENT 240 // // comments
-#define S_THEME_E_KEYWORD 241 // keywords
-#define S_THEME_E_TYPE 242 // types
-#define S_THEME_E_STRING 243 // "strings"
-#define S_THEME_E_NUMBER 244 // 123456789
-#define S_THEME_E_PREPROC 245 // #directives
-#define S_THEME_E_LABEL 246 // labels:
-#define S_THEME_E_BARS 247 // Header and footer
-#define S_THEME_E_THEME 248 // Theme
-#define S_THEME_E_PALETTE 249 // Palette {}
-#define S_THEME_P_PALETTE 250 // PALETTE {}
-#define S_THEME_P_INK 251 // INK: COLOR {}
-#define S_THEME_P_BOLD 252 // BOLD: {}
-#define S_THEME_P_ITALIC 253 // ITALIC: {}
-#define S_THEME_P_FONT 254 // FONT: {}
-#define S_THEME_V_TEXT 255 // TEXT
-#define S_THEME_V_CODE 256 // CODE
-#define S_THEME_P_COLOR 257 // {}  R{}  G{}  B{}
-#define S_THEME_BOX_HINT 258 // <LR>Change <B>Done
-#define S_THEME_COLOR_HINT 259 // <LR>Change <A>Next <B>Done
-#define S_THEME_KEEP 260 // KEEP EDITING
-#define S_THEME_DISCARD 261 // DISCARD EDITS
-#define S_THEME_HELP 262 // <UD>Pick <A>Edit
-#define S_THEME_HELP_CHANGE 263 // <LR>Change a value
-#define S_THEME_HELP_NEXT 264 // <A>Next colour
-#define S_THEME_HELP_DONE 265 // <B>Close the box
-#define S_THEME_UNREADABLE 266 // Can't read the theme
-#define S_THEME_NAME_LONG 267 // Up to 12 characters
+#define S_KB_PAUSED 218 // PAUSED (A resumes)
+#define S_MAP_READING 219 // Reading map...
+#define S_MAP_LARGE 220 // Close the large
+#define S_MAP_LARGE2 221 // file to view maps
+#define S_MAP_CANT_BUILD 222 // Can't build the
+#define S_MAP_ERROR_N 223 // map: error {}
+#define S_MAP_WRAPPER 224 // (wrapper)
+#define S_MAP_CHUNK 225 // chunk
+#define S_CC_PASS 226 // Compiling {}/3
+#define S_MODULE_CRASHED 227 // CRASH LOGGED {}:{}
+#define S_HIDDEN_HIDE 228 // HIDE
+#define S_HIDDEN_SHOW 229 // SHOW
+#define S_THEME_HEADER 230 // Theme: {}
+#define S_THEME_E_TEXT 231 // Text
+#define S_THEME_E_BOLD 232 // Bold
+#define S_THEME_E_ITALIC 233 // Italic
+#define S_THEME_E_BOLD_ITALIC 234 // Bold italic
+#define S_THEME_E_MARK 235 // # * _ ` markers
+#define S_THEME_E_CODE 236 // `code`
+#define S_THEME_E_HEAD 237 // # Headings
+#define S_THEME_E_HEAD_BOLD 238 // ##### Headings 5 and 6
+#define S_THEME_E_COMMENT 239 // // comments
+#define S_THEME_E_KEYWORD 240 // keywords
+#define S_THEME_E_TYPE 241 // types
+#define S_THEME_E_STRING 242 // "strings"
+#define S_THEME_E_NUMBER 243 // 123456789
+#define S_THEME_E_PREPROC 244 // #directives
+#define S_THEME_E_LABEL 245 // labels:
+#define S_THEME_E_BARS 246 // Header and footer
+#define S_THEME_E_THEME 247 // Theme
+#define S_THEME_E_PALETTE 248 // Palette {}
+#define S_THEME_P_PALETTE 249 // PALETTE {}
+#define S_THEME_P_INK 250 // INK: COLOR {}
+#define S_THEME_P_BOLD 251 // BOLD: {}
+#define S_THEME_P_ITALIC 252 // ITALIC: {}
+#define S_THEME_P_FONT 253 // FONT: {}
+#define S_THEME_V_TEXT 254 // TEXT
+#define S_THEME_V_CODE 255 // CODE
+#define S_THEME_P_COLOR 256 // {}  R{}  G{}  B{}
+#define S_THEME_BOX_HINT 257 // <LR>Change <B>Done
+#define S_THEME_COLOR_HINT 258 // <LR>Change <A>Next <B>Done
+#define S_THEME_KEEP 259 // KEEP EDITING
+#define S_THEME_DISCARD 260 // DISCARD EDITS
+#define S_THEME_HELP 261 // <UD>Pick <A>Edit
+#define S_THEME_HELP_CHANGE 262 // <LR>Change a value
+#define S_THEME_HELP_NEXT 263 // <A>Next colour
+#define S_THEME_HELP_DONE 264 // <B>Close the box
+#define S_THEME_UNREADABLE 265 // Can't read the theme
+#define S_THEME_NAME_LONG 266 // Up to 12 characters
 #endif

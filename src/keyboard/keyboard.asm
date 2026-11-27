@@ -6,7 +6,8 @@ DEF KB_TYPE_PS2  EQU 1
 DEF KB_TYPE_IGKB EQU 2
 DEF KB_TYPE_MOUSE EQU 3;legacy experimental mouse protocol, not a menu choice
 DEF KB_TYPE_SNES_MOUSE EQU 4
-DEF KB_DRIVER_SIZE EQU $570
+DEF KB_DRIVER_SIZE EQU $8C0;the SGB driver (PS/2 and the SNES mouse) is the biggest
+DEF KB_DRIVER_BLOCKS EQU (KB_DRIVER_SIZE + 511) / 512;ModDriver(block) copies one
 
 ;kb_mode
 DEF KB_MODE_NONE    EQU 0
@@ -113,24 +114,26 @@ ProcessKeyCodes::
   INCLUDE "src/keyboard/driver_common.asm"
   INCLUDE "src/keyboard/driver_ps2.asm"
   ASSERT @ - KeyboardDriverStart <= KB_DRIVER_SIZE
+  ASSERT KB_DRIVER_BLOCKS < $40 ;(ModDriver's queries are $40 and up)
   DS KB_DRIVER_SIZE - (@ - KeyboardDriverStart), 0
 KeyboardDriverEnd::
 
 ; Called through ModDriver, while its module is in page 13. This code stays
-; outside the replaced slot. The last block is only 368 bytes.
+; outside the replaced slot. A = 0 to KB_DRIVER_BLOCKS - 1: that block of the slot from the window (the last
+; one the slot's rest)
 KBDriverInstall::
   bit 7, a
   jr nz, .init
-  cp 3
+  cp KB_DRIVER_BLOCKS
   jr nc, .query
   add a, a
   add a, HIGH(KeyboardDriverStart)
   ld d, a
   ld e, 0
   ld bc, 512
-  cp HIGH(KeyboardDriverStart)+4
+  cp HIGH(KeyboardDriverStart)+(KB_DRIVER_BLOCKS-1)*2
   jr nz, .copy
-  ld bc, KB_DRIVER_SIZE-1024
+  ld bc, KB_DRIVER_SIZE-(KB_DRIVER_BLOCKS-1)*512
 .copy
   ld hl, EDX_WINDOW
   jp mem_Copy
@@ -193,12 +196,13 @@ KeyboardDriverInit::
   pop af
   and a
   ret z
-  cp KB_TYPE_SNES_MOUSE
-  ret z
   cp KB_TYPE_PS2
-  ld a, SCF_START
-  jr z, .start
-  or SCF_SOURCE
+  jr z, .external
+  cp KB_TYPE_SNES_MOUSE;the SGB's driver: PS/2 too
+  ld a, SCF_START | SCF_SOURCE
+  jr nz, .start
+.external
+  ld a, SCF_START;the keyboard's clock
 .start
   push af
   xor a

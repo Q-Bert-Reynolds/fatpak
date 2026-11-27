@@ -75,7 +75,7 @@ See [EverDrive compatibility](notes/EVERDRIVE.md).
 **Super Game Boy.** FatPak starts in a fullscreen SNES interface, with a centered keyboard
 over the document. Keep the matching `SGB.DAT` alongside the OS. The gamepad uses the same
 controls as DMG and GBC; see [SGB](notes/SGB.md) for setup and testing.
-A gamepad in SNES port 1 and mouse in port 2 work with **SETTINGS > KEYBOARD > SNES MOUSE**
+A gamepad in SNES port 1 and a mouse in port 2 work out of the box, alongside a PS/2 keyboard
 ([setup and testing](notes/KEYBOARD.md#snes-mouse-super-game-boy)).
 In the sibling Gearboy build, select **Emulator > Force Super Game Boy**, then reset or reload
 `GBCOS.BIN`. Automatic selection prefers GBC mode for this dual-compatible ROM.

@@ -6,7 +6,10 @@ DEF PS2_LAST_BITS_MARKER EQU %00010000;SB = 10000 7PF once the last 3 bits are i
 PS2KeyboardInterrupt::
   ld a, [kb_type]
   cp a, KB_TYPE_PS2
+  jr z, .ps2
+  cp a, KB_TYPE_SNES_MOUSE;the SGB's driver: PS/2 and the SNES mouse
   ret nz;if not in PS/2 mode, exit early
+.ps2
 
   ldh a, [rSB]
   ld b, a;store first 8 bits of scan code (S0123456)

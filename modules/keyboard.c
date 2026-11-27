@@ -22,11 +22,12 @@ unsigned char ModuleMain(void* context) {
   ModHideBox();
   ModKeyboard(&state);
   read = state.write; boot = state.type; bytes = state.bytes; errors_seen = state.errors;
+  if (boot == 4) boot = 1; // the SGB's driver: its bytes are the PS/2 keyboard's (the mouse's aren't kept)
   width = boot >= 2 ? 4 : 1;
   limit = boot >= 2 ? RAW_BYTES : TEST_CODES;
   ModListen();
   ModRow(0, Str(S_KB_TITLE));
-  ModRow(1, Str(boot == 4 ? S_DRIVER_SNES_MOUSE : S_DRIVER_NONE + (boot == 3 ? 2 : boot < 3 ? boot : 0)));
+  ModRow(1, Str(S_DRIVER_NONE + (boot == 3 ? 2 : boot < 3 ? boot : 0)));
   ModRow(4, Str(S_KB_CODES));
   ModRow(TB_ROWS - 1, Str(S_KB_BACK));
   while (1) {

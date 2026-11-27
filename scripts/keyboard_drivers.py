@@ -1,5 +1,5 @@
 """Link replaceable keyboard drivers against this OS's shared state and entries.
-Each FPKD v1 file has one 512-byte header followed by the $570-byte page-15 slot.
+Each FPKD v1 file has one 512-byte header followed by the page-15 slot (KB_DRIVER_SIZE bytes).
 """
 from pathlib import Path
 import binascii, re, struct, subprocess
@@ -11,13 +11,14 @@ def build():
     for line in (ROOT / 'bin/GBCOS.sym').read_text().splitlines():
         match = re.match(r'([0-9a-fA-F]+):([0-9a-fA-F]+) (\S+)', line)
         if match: symbols[match[3]] = int(match[2], 16)
-    size = 0x570
+    size = int(re.search(r'DEF KB_DRIVER_SIZE EQU \$([0-9A-Fa-f]+)', (ROOT / 'src/keyboard/keyboard.asm').read_text())[1], 16)
     assert symbols["KeyboardDriverStart"] == 0xA000
     assert symbols["KeyboardDriverEnd"] == 0xA000 + size
     work = ROOT / 'build/drivers'
     work.mkdir(exist_ok=True)
     own = '\n'.join((ROOT / ('src/keyboard/' + f)).read_text() for f in
-                    ['driver_common.asm', 'driver_igkb.asm', 'driver_mouse.asm', 'driver_snes_mouse.asm', 'igkb_handlers.asm'])
+                    ['driver_common.asm', 'driver_igkb.asm', 'driver_mouse.asm', 'driver_snes_mouse.asm', 'igkb_handlers.asm',
+                     'driver_ps2.asm', 'ps2_handlers.asm', 'kb_jump_table.asm', 'ps2_ascii_keymaps.asm'])
     defined = set(re.findall(r'^([A-Za-z_][\w]*):', own, re.M))
     imports = ['DEF %s EQU $%04X' % (name, value) for name, value in symbols.items()
                if re.match(r'^(kb_|sys_info$|sgb_PacketTransfer$|sgb_PacketTransferFast$|SNESMouseSelectOne$|SGBInputBegin$|SGBInputEnd$|_mouse_|igkb_|KeyboardDriverInit$|oam_buffer$|_render_|_module_busy$|_PosAtX__far$|_cursor$|_anchor$|_selecting$|_redraw$|_moved$|_tb_rows$|tile_buffer$|RenderRowAddress$|mem_CopyVRAM$|fs_mouse$|_screen_cells$|_screen_rows$)', name) and '.' not in name and name not in defined]
@@ -34,8 +35,8 @@ KeyboardDriverStart:
   jp DRIVER_PROCESS
 INCLUDE "src/keyboard/driver_common.asm"
 INCLUDE DRIVER_SOURCE
-ASSERT @ - KeyboardDriverStart <= $570
-DS $570 - (@ - KeyboardDriverStart), 0
+ASSERT @ - KeyboardDriverStart <= KB_DRIVER_SIZE
+DS KB_DRIVER_SIZE - (@ - KeyboardDriverStart), 0
 ENDL
 '''
     subprocess.run(['ca65', '-o', str(work/'mouse.o'), 'src/sgb/mouse.s'], cwd=ROOT, check=True)
@@ -66,7 +67,7 @@ ENDL
     for name, kind, payload in images:
         assert len(payload) == size
         count = len(packets) if kind == 4 else 0
-        if count: payload = payload.ljust(1536,b'\0') + b''.join(packets)
+        if count: payload = payload.ljust((size + 511) // 512 * 512,b'\0') + b''.join(packets) # (the packets after the slot's last block)
         header = struct.pack('<4sBBHHHH', b'FPKD', 1, kind, symbols['kb_type'], symbols['KeyboardDriverInit'],
                              binascii.crc_hqx(payload, 0xFFFF), size)
         header += (ROOT/'bin/GBCOS.BIN').read_bytes()[0x14E:0x150]

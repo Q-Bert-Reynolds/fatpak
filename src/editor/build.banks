@@ -2,9 +2,8 @@
 # ModProgress(0) calls it while ASM.MOD has pages 13, 12, 5, 4 and 15
 FIXED: BuildProgress PutTime
 ROM0: FolderPath
-# after the module, with the editor's pages back
-15: ErrorCursor WriteOutputs
-12: OutputPath BuildStart
+# after the module, with the editor's pages back (page 15 is the SGB keyboard driver's)
+12: ErrorCursor WriteOutputs OutputPath BuildStart
 6: BuildModule
 # a project's C units, before PREP.MOD again: page 14 has room
 14: CompileUnit InProject CompilingBox

@@ -353,9 +353,10 @@ int main(int n,char** v){
     key(0x89);key(0x83);key(0x83);key(10); // SETTINGS
     for(unsigned i=0;i<5;++i)key(0x83);
     key(10);Frames(core,300); // KEYBOARD driver module
-    bool test_item=false,snes_item=false;
-    for(const auto& r:h->GetModel().boxLines){std::string s(r.chars.begin(),r.chars.end());test_item|=s.find("TEST")!=std::string::npos;snes_item|=s.find("SNES")!=std::string::npos;}
-    Check(test_item && snes_item,"fullscreen keyboard menu has TEST and SNES MOUSE (the kernel reads the mouse there)");
+    bool test_item=false,snes_item=false,ps2_item=false;
+    for(const auto& r:h->GetModel().boxLines){std::string s(r.chars.begin(),r.chars.end());test_item|=s.find("TEST")!=std::string::npos;
+        snes_item|=s.find("SNES")!=std::string::npos;ps2_item|=s.find("PS/2")!=std::string::npos;}
+    Check(test_item && ps2_item && !snes_item,"fullscreen keyboard menu has PS/2 and TEST, no SNES MOUSE (the SGB's PS/2 driver has the mouse)");
     key(27);Frames(core,180);Check(!m->Read(syms.at("_module_busy")),"keyboard menu returns to the document");
     Check(!m->Read(syms.at("fs_fault")),"keyboard menu retains transport");
     puts("SGB overlay menu labels/highlight/close, storage, help/return, OSK and progress passed");

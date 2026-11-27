@@ -217,7 +217,6 @@ BUILD_FINISHING,box,build progress: after pass 2,Finishing,Terminando
 DRIVER_NONE,item,keyboard driver choices in order,NONE,NINGUNO
 DRIVER_PS2,item,,PS/2 KEYBOARD,TECLADO PS/2
 DRIVER_IGKB,item,,iGKB USB,iGKB USB
-DRIVER_SNES_MOUSE,item,,SNES MOUSE,RATÓN SNES
 KB_PAUSED,row,,PAUSED (A resumes),PAUSA (A continúa)
 MAP_READING,box,map viewer: busy box,Reading map...,Leyendo mapa...
 MAP_LARGE,box,"map viewer: a large file is open; a box's 2 lines, these 2 in order",Close the large,Cierra el archivo

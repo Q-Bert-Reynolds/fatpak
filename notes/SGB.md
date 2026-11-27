@@ -678,7 +678,7 @@ fed by `LinesBefore`.
 
 PS/2 requires the SGB2 link port.
 
-**SNES mouse in fullscreen** (port 2; SETTINGS > KEYBOARD > SNES MOUSE, now offered in fullscreen too).
+**SNES mouse in fullscreen** (port 2; the SGB's driver, SGBMOUSE.DRV, with the PS/2 keyboard: SETTINGS > KEYBOARD > PS/2 on an SGB).
 The kernel reads it (`snes/mouse.s`, the resident part): `Capture` samples the pads (not before line
 229: at VBlank's very start automatic reading may not have begun, its busy bit still clear) and calls
 MouseRead, which reads once per NMI frame (Capture's pad sample can come twice a frame, and a second

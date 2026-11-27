@@ -92,6 +92,18 @@ struct Session {
         core.Init(); core.SetEverdriveFolder(folder); core.SetForceSGB(snes);
         Check(core.LoadROM(image, !color && !snes), "build OS"); Frames(core, 600);
         memory = core.GetMemory(); syms = Symbols(symbols); tiles = syms.at("tile_buffer");
+        // an SGB at 160x144: its driver (PS/2 and the SNES mouse) uploads the BIOS bridge at boot, the picture frozen
+        for (unsigned n=0;snes && n<4000 && (memory->Read(syms.at("_kb_type"))!=4 || core.GetSGB()->GetMaskMode()!=SGB::MaskDisabled ||
+             memory->Read(syms.at("_module_busy")));++n) Frames(core,1);
+        Check(!snes || memory->Read(syms.at("_kb_type"))==4,"an SGB boots with its driver (PS/2 and the SNES mouse)");
+        if (snes) Frames(core, 300); // (then the browser)
+        if (snes) { // Gearboy has no SNES CPU: the bridge's four-controller mode by hand (run_snes_mouse.sh tests the real one)
+            u8 packet[16]={0x89,3};
+            SGB* sgb=core.GetSGB(); sgb->WriteJOYP(0); sgb->WriteJOYP(0x30);
+            for (u8 b:packet) for(unsigned bit=0;bit<8;++bit) { sgb->WriteJOYP((b&(1<<bit)) ? 0x10 : 0x20); sgb->WriteJOYP(0x30); }
+            sgb->WriteJOYP(0x20); sgb->WriteJOYP(0x30);
+            Check(sgb->GetPlayerCount()==4,"test mailbox enabled");
+        }
         pad(Down_Key); if (!includes.empty()) pad(Down_Key);
         pad(A_Key); Frames(core, 60); // GBCSYS, lib, then the file
         if (row(18).find(name) == std::string::npos) for (unsigned r = 0; r < 20; ++r) fprintf(stderr, "%2u|%s\n", r, row(r).c_str());
@@ -155,11 +167,12 @@ static void SelectMenu(Session& s, unsigned type) {
     s.pad(Start_Key); s.pad(Down_Key); s.pad(Down_Key); s.pad(A_Key);
     for (unsigned i=0;i<5;++i) s.pad(Down_Key);
     s.pad(A_Key); Frames(s.core,30);
-    unsigned count = (s.memory->Read(s.syms.at("sys_info")) & 1) ? 5 : 4;
-    Check(s.memory->Read(s.syms.at("_render_box_rows"))==count+2,"keyboard submenu has the available drivers and TEST");
+    unsigned count = 4; // NONE, PS/2 (on an SGB the SGB's driver, type 4: PS/2 and the SNES mouse), iGKB, TEST
+    if (s.memory->Read(s.syms.at("_render_box_rows"))!=count+2) fprintf(stderr,"box rows %u: %s\n",s.memory->Read(s.syms.at("_render_box_rows")),s.lines().c_str());
+    Check(s.memory->Read(s.syms.at("_render_box_rows"))==count+2,"keyboard submenu has the drivers and TEST");
     unsigned selected=s.memory->Read(s.syms.at("_kb_driver"));
-    if (selected == 4) selected=3;
-    unsigned target=type==4 ? 3 : type;
+    if (selected == 4) selected=1;
+    unsigned target=type==4 ? 1 : type;
     for (unsigned i=0;i<((target+count-selected)%count);++i) s.pad(Down_Key);
     if(type==4) {
         s.core.KeyPressed(A_Key); Frames(s.core,4); s.core.KeyReleased(A_Key);
@@ -219,15 +232,6 @@ static void MouseUI(const char* image, const char* symbols, const char* data, bo
     Session s(image,symbols,data,color,"Mouse.txt","abc\ndef\n",{},extra,0,snes);
     if (snes) {
         Select(s,4);
-        // Gearboy has no SNES CPU. Inject the mailbox's four-controller mode
-        // and bytes here; run_snes_mouse.sh independently tests the real bridge.
-        u8 packet[16]={0x89,3};
-        SGB* sgb=s.core.GetSGB(); sgb->WriteJOYP(0); sgb->WriteJOYP(0x30);
-        for (u8 b:packet) for(unsigned bit=0;bit<8;++bit) {
-            sgb->WriteJOYP((b&(1<<bit)) ? 0x10 : 0x20); sgb->WriteJOYP(0x30);
-        }
-        sgb->WriteJOYP(0x20); sgb->WriteJOYP(0x30);
-        Check(sgb->GetPlayerCount()==4,"test mailbox enabled");
     } else { s.core.SetIGKBMode(1); Select(s,2); LegacyMouse(s); }
     unsigned oam=s.syms.at("oam_buffer")+8;
     Check(!s.memory->Read(oam),"pointer stays hidden before the first mouse report");
@@ -236,10 +240,6 @@ static void MouseUI(const char* image, const char* symbols, const char* data, bo
     std::string bin=std::string(data).substr(0,std::string(data).find_last_of('/'));
     auto font=Read(bin+"/../img/ui_font.tiles");
     for(unsigned n=0;n<16;++n) Check(s.memory->Read(0x8000+122*16+n)==font[26*16+n],"pointer pixels come from UI font tile 26");
-    if(snes) {
-        unsigned raw=s.syms.at("_kb_scan_code_buffer");
-        Check(Byte(s,"_kb_buffer_write")==4 && s.memory->Read(raw)==0 && s.memory->Read(raw+2)==6 && s.memory->Read(raw+3)==8,"SNES diagnostic capture retains a complete mailbox report");
-    }
     Frames(s.core,125); Check(!s.memory->Read(oam),"inactive pointer times out");
     Click(s,6,8);
     unsigned anchor=s.word("_cursor");
@@ -316,8 +316,8 @@ static void MouseUI(const char* image, const char* symbols, const char* data, bo
         GearboyCore cold; cold.Init(); cold.SetForceSGB(true); cold.SetEverdriveFolder(s.root.c_str());
         Check(cold.LoadROM(image,false),"cold SGB OS"); Frames(cold,1400);
         Check(cold.GetMemory()->Read(s.syms.at("_kb_type"))==4 && cold.GetMemory()->Read(s.syms.at("_kb_driver"))==4,"cold SGB boot restores the saved SNES driver");
-        Select(s,1);
-        Check(Byte(s,"_kb_type")==1,"switching from SNES mouse restores PS/2");
+        Select(s,0);
+        Check(Byte(s,"_kb_type")==0,"KEYBOARD > NONE stops the SGB's driver");
     }
     printf("%s pointer tile/timeout, editor click/drag, menu hover/actions/dismissal and browser clicks passed\n",snes?"SGB mailbox":color?"CGB":"DMG"); fflush(stdout);
 }

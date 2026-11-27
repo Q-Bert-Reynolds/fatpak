@@ -1,7 +1,7 @@
 # Keyboard and mouse drivers
 
 SETTINGS > KEYBOARD is available in both the editor and browser. Select
-NONE, PS/2 KEYBOARD or iGKB USB; SGB also offers SNES MOUSE. TEST opens the packet diagnostic screen. The single iGKB option represents the adapter;
+NONE, PS/2 KEYBOARD or iGKB USB; on an SGB, PS/2 KEYBOARD is the SGB's driver (PS/2 and the SNES mouse, below). TEST opens the packet diagnostic screen. The single iGKB option represents the adapter;
 mouse packet decoding awaits hardware capture. A saved mouse-only selection (3)
 loads this same driver. The selection takes effect immediately and is stored with the settings (SET6, with SET2–SET5 migration).
 Small documents also save the setting to EDITOR.SWP before the menu returns.
@@ -75,8 +75,8 @@ never changes the selected driver.
 
 ## Driver slot and packaging
 
-The keyboard page (15) has a $570-byte slot at $A000, with stable init and
-process jumps. Only one driver payload occupies that slot. Common host setup,
+The keyboard page (15) has a $8C0-byte slot at $A000 (`KB_DRIVER_SIZE`, sized for the SGB's driver: PS/2 and
+the SNES mouse), with stable init and process jumps, installed in 512-byte blocks. Only one driver payload occupies that slot. Common host setup,
 copying and settings code stays outside it. Wide assembler modules can still
 borrow page 15 and restore the selected payload afterwards.
 
@@ -103,12 +103,13 @@ Gearboy's `make -C tests igkb` checks queue behavior and keyboard encoding.
 
 ## SNES mouse (Super Game Boy)
 
-Connect a gamepad to SNES port 1 and the mouse to port 2. On SGB, select
-SETTINGS > KEYBOARD > SNES MOUSE (in fullscreen too: there the SNES kernel reads the mouse and the
-driver takes its events, notes/SGB.md "SNES mouse in fullscreen"). This occupies the input-driver slot, so it
-replaces the selected serial keyboard driver; the gamepad continues working.
-The selection persists across boots. TEST shows four-byte reports: zero,
-commit/buttons, X, Y. Coordinates cover the GB viewport (160 by 144 pixels).
+Connect a gamepad to SNES port 1 and the mouse to port 2. On an SGB the PS/2 choice (the default) loads
+SGBMOUSE.DRV, the SGB's driver (type 4): the PS/2 keyboard and the SNES mouse together (in fullscreen the SNES
+kernel reads the mouse and the driver takes its events, notes/SGB.md "SNES mouse in fullscreen"; at 160x144 the
+BIOS bridge below). Boot loads it after the fullscreen takeover, so a fullscreen boot uploads no bridge; without
+the file the built-in PS/2 driver stays. Elsewhere a saved type 4 loads PS/2. The gamepad continues working.
+TEST shows the keyboard's bytes (the mouse's reports aren't kept). At 160x144 coordinates cover the GB
+viewport (160 by 144 pixels).
 The pointer remains hidden until motion or a button transition, then uses the
 same browser/editor/menu handlers and two-second timeout as the experimental
 mouse path. Browser clicks select the target row directly; double-click and

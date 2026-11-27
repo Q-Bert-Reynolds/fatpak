@@ -7,8 +7,7 @@
 11: ListFolder
 11: ScrollList
 FIXED: BrowserMenu
-15: DeleteSelected
-15: BrowserError
+6: DeleteSelected BrowserError
 
 11: ListBars
 
