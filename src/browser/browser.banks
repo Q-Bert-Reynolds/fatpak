@@ -13,3 +13,4 @@ FIXED: BrowserMenu
 
 ROM0: ListMessage
 11: RowKind
+7: ListScrollBar ListScrollTo

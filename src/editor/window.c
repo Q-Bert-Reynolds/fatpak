@@ -7,6 +7,7 @@
 #include "view.h"
 #include "../fatfs/file_api.h"
 #include "../ui/dialogs.h"
+#include "../ui/scrollbar.h"
 #include "../ui/text.h"
 
 #define WIN_MARGIN 0x2000 // the window moves when the cursor is this close to an edge that isn't the file's
@@ -115,4 +116,29 @@ void GoEnd(void) {
     LinesUnknown();
   }
   cursor = tb_Length();
+}
+
+extern unsigned int EditorScrollPos(void); // src/ui/scrollbar.asm
+
+// KEY_SCROLL (HandleFileKey, which redraws): the text from where the scroll bar was let go, the cursor on
+// its first row (at the bottom, the text's end). A large document's window moves there first (as GoEnd's)
+void EditorScrollTo(void) {
+  unsigned int pos;
+  EditorScrollBar(); // (src/ui/scrollbar.asm) the range now
+  ScrollTo(scroll_range);
+  selecting = 0;
+  if ((pos = EditorScrollPos()) == 0xFFFE) { // the bottom: the end on the last row, as Ctrl+End (the largest top is
+    GoEnd();                                 // a row short when the text ends with a line feed)
+    return;
+  }
+  if (pos == 0xFFFF && Commit()) { // doc_pos is where the window goes
+    DocLineStart();
+    win_start = doc_pos;
+    win_mark = NO_MARK;
+    LoadWindow();
+    LinesUnknown();
+    pos = EditorScrollPos();
+  }
+  if (pos > tb_Length()) pos = tb_Length();
+  top = cursor = tb_RowStart(pos);
 }

@@ -37,9 +37,10 @@ math_Divide32:: ;dehl (remainder a) = dehl / c
     rl e
     rl d
     rla
-    jr c, .skip
+    jr c, .subtract;the remainder's 9th bit: past any divisor (over 128, it can carry)
     cp c
     jr c, .skip
+  .subtract
     sub	c
     inc	l
   .skip

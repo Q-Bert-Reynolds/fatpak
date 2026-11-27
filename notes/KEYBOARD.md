@@ -117,6 +117,19 @@ click (or drag) selects from the cursor (the editor keeps the anchor at the curs
 while nothing is selected). Browser clicks select the target row directly; double-click and
 right-click actions wait for that selection to be drawn.
 
+While the pointer shows, the editor, the browser and HEXVIEW show a scroll bar at 160x144 (all models; not
+the SGB's fullscreen modes), unless everything is on screen: a 4 pixel track over the text rows' right edge
+and a thumb (the font's tile 10, a sprite). The window draws the track: on every line then, at the screen's
+left on the bars and at the track (WX 163) on the text rows, so its rows are the screen's
+(`src/ui/scrollbar.asm`; the bars' window rows are packed otherwise). A press from the thumb's left edge
+(x 154) rightwards on the text rows grabs the thumb, there or by its middle elsewhere on the track; the
+driver's reports are then the bar's (`ScrollBarHit`, called first in `IGKBMouseAction`) until the button is
+let go, and only the thumb moves meanwhile. Letting go queues `KEY_SCROLL` and the view redraws once from
+there: the editor's top row and cursor at that place (a large document's window moves around it, the
+bottom is Ctrl+End), the browser's list with the selection on the same screen row, HEXVIEW's rows. Views
+claim the bar every frame they wait for keys (`ScrollBar`, `ModScrollBar`), so menus, dialogs and other
+screens hide it.
+
 `src/sgb/mouse.s` is assembled with cc65's ca65/ld65. SGBMOUSE.DRV includes
 both the GB driver and CRC-covered DATA_SND packets uploading the SNES code to
 $001800. The BIOS's $0800 command hook installs a private NMI handler and

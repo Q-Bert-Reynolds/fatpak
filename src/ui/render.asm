@@ -4,11 +4,13 @@
 ;Rows draw into 18 blocks of 20 tiles. Text rows use a ring of blocks in the BG map, scrolling a
 ;row rotates the ring by one (SCY moves 8 pixels and only the new row is drawn). The file name bar,
 ;the on screen keyboard and the status bar keep their own blocks and are shown by the window, so
-;they stay put when the text scrolls (see Layout in ui/screen.c and RenderStage). Blocks between the $8000 only and $8800 only
+;they stay put when the text scrolls (see Layout in ui/screen.c and RenderStage; with the mouse's scroll bar the
+;window is on every line, at the track on the text rows: src/ui/scrollbar.asm). Blocks between the $8000 only and $8800 only
 ;blocks use tiles both modes share, so a switch can happen anywhere in them (the PS/2 interrupt
 ;can delay it).
 ;   blocks 0-5    tiles 2-121     $8000 mode only (tiles 0 and 1 are sprites)
-;   tile 122      mouse pointer (sprites 0 and 1 retain tiles 0 and 1)
+;   tile 122      mouse pointer (sprites 0 and 1 retain tiles 0 and 1), 123 the scroll bar's thumb (sprite 3)
+;   tile 127      the scroll bar's track (window column 0), and tile 383, its $8800 mode index (src/ui/scrollbar.asm)
 ;   blocks 6-8    tiles 128-187   either mode
 ;   blocks 9-14   tiles 256-375   $8800 mode only
 ;   blocks 15-17  tiles 188-247   either mode
@@ -42,7 +44,7 @@
 DEF RENDER_BLOCKS EQU TB_ROWS+1;block 18 is GBC only, the text ring's spare for smooth scrolling
 DEF GBC_BANK1_BLOCK EQU 12;GBC: blocks 0-11 are tiles 128-367 of VRAM bank 0, 12-18 tiles 128-267 of bank 1
 DEF SCROLL_STEP EQU 2;GBC: pixels SCY moves a frame
-DEF RENDER_EVENTS EQU 6;LCDC changes per frame: 2 for the window, the rest for tile data mode switches
+DEF RENDER_EVENTS EQU 6;LCDC changes per frame: 2 for the window (or its WX, WIN_TRACK), the rest for tile data mode switches
 
 SECTION "Font Widths", WRAM0, ALIGN[8]
 _font_widths:: DS 256;current font's widths, used to wrap rows
@@ -615,10 +617,20 @@ RenderLCDInterrupt::
   ldh [rLYC], a
   ret
 
-.setLCDC;b = LCDCF_BG8000 and LCDCF_WINON bits
+.setLCDC;b = LCDCF_BG8000 and LCDCF_WINON bits, and WIN_TRACK for the window at the scroll bar's track (WX)
+  ld a, b
+  rra
+  ld a, 7
+  jr nc, .wx
+  ld a, SCROLL_WX
+.wx
+  ldh [rWX], a
   ldh a, [rLCDC]
   and a, ~(LCDCF_BG8000 | LCDCF_WINON)
-  or a, b
+  ld c, a
+  ld a, b
+  and a, LCDCF_BG8000 | LCDCF_WINON
+  or a, c
   ldh [rLCDC], a
   ret
 
@@ -627,8 +639,14 @@ RenderLCDInterrupt::
 ;and the window, which shows the rows above and below the text rows (file name bar, on screen
 ;keyboard, status bar). The window is turned off after the top bar and back on for the bottom rows,
 ;where it carries on from its next line (window map row 1). Without the top bar WY is the first
-;bottom row, the window only starts where LY reaches WY while it's on
+;bottom row, the window only starts where LY reaches WY while it's on. With the scroll bar (src/ui/scrollbar.asm)
+;the window is on every line from the top, at the track on the text rows. RenderWindowRows lays out its rows
 _RenderStage::
+  call RenderWindowRows
+  ld a, [scroll_shown]
+  and a
+  ld a, 0
+  jr nz, .setWY
   ld a, [_render_text_top]
   and a
   ld a, 0
@@ -762,7 +780,8 @@ RenderBlockMode:
   xor a
   ret
 
-;a = screen row, returns LCDCF_WINON if the window shows it (it isn't a text row), 0 if not, affects b, hl
+;a = screen row, returns LCDCF_WINON if the window shows it (it isn't a text row), 0 if not (the scroll
+;bar's track: LCDCF_WINON | WIN_TRACK), affects b, hl
 RenderRowWindow:
   ld hl, _render_text_top
   sub a, [hl]
@@ -772,7 +791,10 @@ RenderRowWindow:
   dec a
   cp a, b
   jr c, .window
-  xor a
+  ld a, [scroll_shown]
+  and a
+  ret z
+  ld a, LCDCF_WINON | WIN_TRACK
   ret
 .window
   ld a, LCDCF_WINON
@@ -935,6 +957,7 @@ RenderSetup::
   ld bc, RENDER_BLOCKS
   call mem_Set
   call SGBAttrReset
+  call ScrollForget
   xor a
   ld hl, _VRAM8000
   ld bc, $1800
@@ -1050,6 +1073,8 @@ _ModuleAPIBackground::
   push bc
   push de
   call SGBAttrClear;SGB: the screen's rows palette 0 until the module sends its own (mode 9)
+  call ScrollForget;no scroll bar: the window's rows packed, the bars' events below assume them
+  call RenderWindowRows
   call MapBoxLayout;then BackgroundBars
   pop de
   pop bc

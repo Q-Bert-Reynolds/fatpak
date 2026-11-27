@@ -283,6 +283,7 @@ void Editor(void) {
       if (bars) Draw();
     }
     if (!selecting) anchor = cursor; // where Shift + a click (src/keyboard/driver_mouse.asm) selects from
+    EditorScrollBar();
     WaitFrame();
     while ((key = (unsigned char)(event = KBPopEvent()))) {
       if (key && !HandleFileKey(key, (unsigned char)(event >> 8))) HandleKey(key, (unsigned char)(event >> 8));

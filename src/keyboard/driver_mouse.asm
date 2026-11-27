@@ -172,6 +172,8 @@ IGKBMouseAction:
   ld a, [_render_box_top]
   cp $FF
   jr nz, .menu
+  call ScrollBarHit ; the scroll bar's press or drag, not the text's (src/ui/scrollbar.asm)
+  ret c
   ld a, [_module_busy]
   and a
   ret nz

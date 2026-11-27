@@ -9,6 +9,7 @@
 #include "../editor/editor.h"
 #include "../editor/help.h"
 #include "../editor/state.h"
+#include "../editor/window.h"
 #include "../editor/view.h"
 #include "../keyboard/test.h"
 #include "../modules/runtime.h"
@@ -142,6 +143,7 @@ unsigned char HandleFileKey(unsigned char key, unsigned char mods) {
   else if (key == KEY_F5) BuildFile(1);
   else if (key == KEY_F7) BuildFile(0);
   else if (key == KEY_F11) ToggleBars();
+  else if (key == KEY_SCROLL) EditorScrollTo();
   else if ((mods & KB_MOD_ALT) && (key == 'z' || key == 'Z')) ToggleWrap();
   else if (!(mods & KB_MOD_CTRL)) return 0;
   else if (key == 'o' || key == 'O') OpenFile();

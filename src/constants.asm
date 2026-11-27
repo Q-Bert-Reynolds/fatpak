@@ -150,9 +150,9 @@ DEF ASM_PREP_BLOCK   EQU $3A00;LINK.MOD's check of build.obj before ASM.MOD runs
 DEF ASM_SECTOR_BLOCK EQU $3A03;a directory sector LINK.MOD reads (ModSector)
 DEF ASM_OLD_BLOCK    EQU $307E;the last build.obj, loaded at the files' end (up to ASM_FILE_END) while it's used
 DEF ASM_BUILD_BLOCK  EQU $2130;the new build.obj, put together over the files after the link (FileWriteImage $2000)
-DEF MODULE_ABI     EQU 14;newest ABI the host provides, modules built for older ones still load
+DEF MODULE_ABI     EQU 15;newest ABI the host provides, modules built for older ones still load
 DEF MODULE_TABLE   EQU $7F00;ABI jump table in resident bank 1, 3 bytes per entry
-DEF MODULE_SLOTS   EQU 34;entries reserved for it
+DEF MODULE_SLOTS   EQU 36;entries reserved for it
 DEF MODULE_FORMAT  EQU 1;one page, BSS after the code
 DEF MODULE_FORMAT_WIDE EQU 2;pages MODULE_PAGE and MODULE_PAGE2, BSS at MODULE_BSS
 DEF MODULE_HEADER  EQU 32;bytes before the payload
@@ -275,6 +275,7 @@ DEF KEY_REDO      EQU $8B
 DEF KEY_INFO      EQU $8C;Select in the file browser
 DEF KEY_OSK       EQU $8D;terminal input: toggle the on-screen keyboard
 DEF KEY_OSK_PRESS EQU $8E
+DEF KEY_SCROLL    EQU $8F; the scroll bar dragged and let go: ScrollTo (src/ui/scrollbar.asm)
 DEF KEY_OSK_UP    EQU $9C
 DEF KEY_OSK_DOWN  EQU $9D
 DEF KEY_OSK_LEFT  EQU $9E

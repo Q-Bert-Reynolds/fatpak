@@ -36,11 +36,11 @@ static std::map<std::string, unsigned> Symbols(const char* path) {
         if (sscanf(line, "%x:%x %255s", &bank, &address, name) == 3) result[name] = address;
     fclose(file); return result;
 }
-static unsigned call_bc;
+static unsigned call_bc, call_sp = 0xDFFE; // (the OS's stack instead for calls that need WRAMX's variables kept)
 // an OS routine with DE, BC and A; returns A (BC in call_bc)
 static unsigned Call(GearboyCore& core, unsigned address, unsigned de = 0, u8 a = 0, unsigned bc = 0) {
     auto cpu = core.GetProcessor()->GetState(); auto memory = core.GetMemory();
-    cpu->SP->SetValue(0xDFFE); memory->Write(0xDFFE, 0xFF); memory->Write(0xDFFF, 0x7F);
+    cpu->SP->SetValue(call_sp); memory->Write(call_sp, 0xFF); memory->Write(call_sp + 1, 0x7F);
     cpu->DE->SetValue(de); cpu->BC->SetValue(bc); cpu->AF->SetValue(a << 8); cpu->PC->SetValue(address);
     for (unsigned i = 0; i < 400000000 && cpu->PC->GetValue() != 0x7FFF; ++i) {
         unsigned ticks = 0; core.RunCycle(frame.data(), ticks);
@@ -84,6 +84,41 @@ struct Doc {
         }
     }
 };
+
+// The scroll bar's jumps in a large document (src/editor/window.c's EditorScrollTo, KEY_SCROLL): the window
+// moves around the position the thumb was let go at, the top row and cursor at its line's start (the fonts'
+// widths are 0 here: rows are lines); its bottom is the end (GoEnd), its top the start
+static void ScrollJumps(Doc& d) {
+    Memory* m = d.memory;
+    call_sp = d.sym("stack_bottom"); // a window load goes deep: not over WRAMX's top, where scroll_range is
+    auto jump = [&](unsigned fraction) {
+        m->Write(d.sym("_tb_rows"), 16);
+        m->Write(d.sym("_tb_row_starts") + 32, 1000 & 255); m->Write(d.sym("_tb_row_starts") + 33, 1000 >> 8); // 1000 bytes on screen
+        m->Write(d.sym("_top"), 0); m->Write(d.sym("_top") + 1, 0);
+        m->Write(d.sym("scroll_target"), fraction);
+        Call(d.core, d.sym("_EditorScrollTo__far"));
+        d.Load(d.Long("_win_start"));
+        d.CheckWindow("scroll bar jump");
+        if (fraction != 255 && d.Word("_top") != d.Word("_cursor")) fprintf(stderr, "fraction %u: top %u cursor %u\n", fraction, d.Word("_top"), d.Word("_cursor"));
+        Check(fraction == 255 || d.Word("_top") == d.Word("_cursor"), "the cursor on the top row (the bottom's is GoEnd's, Refresh puts the top)");
+    };
+    for (unsigned fraction : {128u, 10u, 200u, 1u}) {
+        unsigned long largest = d.model.size() - 1000, l = largest; unsigned shifts = 0; // (the length less the text on screen)
+        while (l > 0xFFFF) { l >>= 1; ++shifts; }
+        unsigned long want = (l * fraction / 255) << shifts, start = d.win_start;
+        jump(fraction);
+        unsigned long at = d.win_start + d.Word("_cursor"), line = want;
+        while (line > d.win_start && d.model[line - 1] != '\n') --line;
+        if (at != line) fprintf(stderr, "fraction %u: want %lu, its line %lu, at %lu (window %lu from %lu)\n", fraction, want, line, at, d.win_start, start);
+        Check(at == line && want <= d.WinEnd(), "the window has the position, the top row its line's start");
+    }
+    jump(255);
+    Check(d.WinEnd() == d.model.size() && d.Word("_cursor") == d.win_len, "the bar's bottom is the document's end");
+    jump(0);
+    Check(!d.win_start && !d.Word("_cursor"), "its top the start");
+    call_sp = 0xDFFE;
+    printf("Large file: scroll bar jumps move the window to the model's positions\n");
+}
 
 static void Session(const char* image, const char* symbols) {
     Doc d;
@@ -181,6 +216,8 @@ static void Session(const char* image, const char* symbols) {
     }
     d.Path("/Doc.txt");
     Check(Call(d.core, d.sym("_FileSaveLarge"), 0xDC00) == 0 && ReadFile(d.root + "/Doc.txt") == d.model, "the last save");
+    d.Load(d.win_start);
+    ScrollJumps(d);
     // (the temporary file can't be checked from here: Gearboy's VirtualFat writes new and changed files to
     // the host folder but never deletes them, so ~EDITOR.TMP stays there after the rename)
     printf("Large file: %u edits, %u window moves, %u line starts and counts, %u saves match the model (%zu bytes)\n",

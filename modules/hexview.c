@@ -14,6 +14,7 @@
 #define DIM (STYLE_MARK << 4 | 4)
 
 static unsigned long size, top, cursor; // byte offsets, top a multiple of 8
+static unsigned long range[2]; // the scroll bar's: top, of the last top (ModScrollBar)
 static unsigned char bytes[PAGE];
 static char text[TB_STRIDE + 1], styles[TB_STRIDE];
 
@@ -70,7 +71,8 @@ static void Show(void) {
   ModText(STATUS_LINE, 1, text);
 }
 
-// Start (or Escape): the host's menu (VIEW_MENU), where the view is kept in context; B stays
+// Start (or Escape): the host's menu (VIEW_MENU), where the view is kept in context; B stays. The mouse's
+// scroll bar (KEY_SCROLL): the rows from where it was let go, the cursor in the same column of the top row
 unsigned char ModuleMain(ViewContext* context) {
   unsigned long next, last, first;
   unsigned char key, down;
@@ -82,7 +84,19 @@ unsigned char ModuleMain(ViewContext* context) {
   ModHideBox(); // the host's loading box
   Show();
   while (1) {
+    range[0] = top;
+    range[1] = size > PAGE ? (last & ~7UL) - (PAGE - 8) : 0;
+    ModScrollBar(range);
     key = ModKey(); // every frame, 0 for none: redraw only after a move
+    if (key == KEY_SCROLL) {
+      ModScrollTo(range);
+      top = range[0] & ~7UL;
+      cursor = top | (cursor & 7);
+      if (cursor > last) cursor = last;
+      Page();
+      Show();
+      continue;
+    }
     if (key == KEY_MENU) {
       context->top = top;
       context->cursor = cursor;

@@ -321,6 +321,84 @@ static void MouseUI(const char* image, const char* symbols, const char* data, bo
     }
     printf("%s pointer tile/timeout, editor click/drag, menu hover/actions/dismissal and browser clicks passed\n",snes?"SGB mailbox":color?"CGB":"DMG"); fflush(stdout);
 }
+// The scroll bar (src/ui/scrollbar.asm): shown while the pointer is, the window at the track on the text rows
+// only, its thumb dragged and the view moved when it's let go: in the editor, the browser and HEXVIEW
+static void ScrollBarUI(const char* image, const char* symbols, const char* data, bool color, bool snes = false) {
+    std::map<std::string,std::string> extra;
+    for(unsigned n=1;n<=15;++n) { char name[16]; snprintf(name,sizeof(name),"Z%02u.txt",n); extra[name]="z\n"; }
+    std::string binary(4096,'\0'); for(unsigned i=1;i<binary.size();++i) binary[i]=char(i*7+(i>>8));
+    extra["ZZ.bin"]=binary; // after Long.txt, which the session opens; 18 entries for 16 rows
+    std::string text; for(unsigned n=0;n<100;++n) { char line[16]; snprintf(line,sizeof(line),"line %02u\n",n); text+=line; }
+    Session s(image,symbols,data,color,"Long.txt",text,{},extra,0,snes);
+    if (snes) Select(s,4); else { s.core.SetIGKBMode(1); Select(s,2); LegacyMouse(s); }
+    const char* model=snes?"SGB mailbox":color?"CGB":"DMG";
+    unsigned thumb=s.syms.at("oam_buffer")+12;
+    auto shown=[&](){return Byte(s,"scroll_shown");};
+    auto win=[&](unsigned row){return s.memory->Read(0x9C00+row*32);}; // the window map's column 0 (VBK 0)
+    auto px=[&](unsigned x,unsigned y){return frame[y*160+x];};
+    Frames(s.core,130); // any earlier pointer timed out
+    Check(!shown() && !s.memory->Read(thumb),"no scroll bar before the mouse moves");
+    std::vector<u16> before(frame);
+    unsigned footer=win(1); // packed: the header in window row 0, the footer in row 1
+    Mouse(s,80,70,0,12);
+    Check(shown() && s.memory->Read(thumb)==8+16 && s.memory->Read(thumb+1)==162 && s.memory->Read(thumb+2)==123,"moving the mouse shows the scroll bar, its thumb at the top");
+    Check(win(17)==footer && win(1)==127 && win(16)==127 && s.memory->Read(0xFF4A)==0,"the window's rows are the screen's: the footer at its row, the track on the text rows");
+    std::string bin=std::string(data).substr(0,std::string(data).find_last_of('/'));
+    auto font=Read(bin+"/../img/ui_font.tiles");
+    for(unsigned n=0;n<16;++n) Check(s.memory->Read(0x8000+123*16+n)==font[10*16+n],"the thumb is the UI font's tile 10");
+    for(unsigned n=0;n<16;n+=2) Check(s.memory->Read(0x87F0+n)==0x60 && s.memory->Read(0x97F0+n)==0x60,"the track's tile in both tile data modes");
+    if (!snes) {
+        for(unsigned y=24;y<136;y+=7) Check(px(156,y)==px(100,y) && px(157,y)!=px(156,y) && px(158,y)==px(157,y) && px(159,y)==px(156,y),"text rows show the track in their right 4 pixels");
+        for(unsigned y=0;y<8;++y) for(unsigned x=0;x<100;++x) Check(px(x,y)==before[y*160+x],"the header stays at the screen's left");
+        for(unsigned y=136;y<144;++y) for(unsigned x=0;x<60;++x) Check(px(x,y)==before[y*160+x],"the footer stays at the screen's left");
+    }
+    unsigned cursor=s.word("_cursor");
+    Mouse(s,157,10,1);
+    Check(Byte(s,"scroll_drag")==1 && s.word("_cursor")==cursor && !Byte(s,"_selecting"),"pressing the thumb grabs it, the text's cursor stays");
+    Mouse(s,157,140,1);
+    Check(s.memory->Read(thumb)==131+16 && !s.word("_top"),"the thumb follows the pointer to the track's bottom, the text waits");
+    Mouse(s,157,140,0,60);
+    if(s.word("_top")!=680 || s.word("_cursor")!=800 || Byte(s,"_tb_end_row")!=15) fprintf(stderr,"top%u cursor%u target%u end%u\n",s.word("_top"),s.word("_cursor"),Byte(s,"scroll_target"),Byte(s,"_tb_end_row"));
+    Check(s.word("_top")==680 && s.word("_cursor")==800 && Byte(s,"_tb_end_row")==15,"letting go at the bottom goes to the text's end, on the last row");
+    Check(s.memory->Read(thumb)==131+16,"the thumb stays at the bottom");
+    Mouse(s,157,133,1); Mouse(s,157,72,1); Mouse(s,157,72,0,60);
+    if(s.word("_top")!=336) fprintf(stderr,"middle top%u target%u\n",s.word("_top"),Byte(s,"scroll_target"));
+    Check(s.word("_top")==336 && s.word("_cursor")==336,"letting go halfway shows the text from halfway, the cursor on its first row");
+    unsigned at=s.memory->Read(thumb)-16+2;
+    Mouse(s,157,at,1); Mouse(s,157,0,1); Mouse(s,157,0,0,60);
+    Check(!s.word("_top") && !s.word("_cursor") && s.memory->Read(thumb)==8+16,"letting go at the top shows the start");
+    Mouse(s,157,100,1); Mouse(s,157,100,0,60);
+    // the thumb's top 90 lines down the track (its middle at the click): (90 * 256 + 123) / 124 = 186, 672 * 186 / 255 = 490, line 61
+    if(s.word("_top")!=488) fprintf(stderr,"track click top%u target%u\n",s.word("_top"),Byte(s,"scroll_target"));
+    Check(s.word("_top")==488 && s.word("_cursor")==488,"a click on the track jumps the thumb's middle there");
+    Mouse(s,80,70,0); Frames(s.core,130);
+    Check(!shown() && !s.memory->Read(thumb) && win(1)==footer,"the bar goes with the pointer, the window's rows packed again");
+    if (!snes) Check(px(157,60)==px(156,60),"text rows' right pixels are the text's again");
+    printf("%s editor scroll bar: window rows, thumb drag, jumps on release, timeout passed\n",model); fflush(stdout);
+
+    s.pad(Start_Key); s.pad(A_Key); s.pad(A_Key); Frames(s.core,80);
+    Check(!Byte(s,"_render_text") && Byte(s,"_render_box_top")==255,"open the browser for its scroll bar");
+    Mouse(s,80,70,0,12);
+    Check(shown() && s.memory->Read(thumb)==8+16,"the browser's 18 entries show a scroll bar");
+    unsigned first=s.syms.at("_src_browser_browser_c_first"), selected=s.syms.at("_src_browser_browser_c_selected");
+    unsigned row=s.memory->Read(selected)-s.memory->Read(first);
+    Mouse(s,157,10,1); Mouse(s,157,140,1); Mouse(s,157,140,0,80);
+    if(s.memory->Read(first)!=2) fprintf(stderr,"browser first%u selected%u row0 %s\n",s.memory->Read(first),s.memory->Read(selected),s.row(0).c_str());
+    Check(s.memory->Read(first)==2 && s.row(0).find("Z01.txt")!=std::string::npos,"letting go at the bottom shows the list's end");
+    Check(s.memory->Read(selected)==2+row,"the selection stays on its screen row");
+    Click(s,12,130); Click(s,12,130); Frames(s.core,150);
+    Check(Byte(s,"_module_busy") && s.row(18).find("ZZ.bin")!=std::string::npos,"double click opens the binary in HEXVIEW");
+    Mouse(s,80,70,0,12);
+    Check(shown(),"HEXVIEW claims the scroll bar");
+    Mouse(s,157,10,1);
+    Mouse(s,157,140,1);
+    Mouse(s,157,140,0,80);
+    if(s.row(19).find("$000F80")==std::string::npos) fprintf(stderr,"hex footer %s\n",s.row(19).c_str());
+    Check(s.row(19).find("$000F80")!=std::string::npos,"HEXVIEW lets go at its last page");
+    Mouse(s,157,135,1); Mouse(s,157,0,1); Mouse(s,157,0,0,80);
+    Check(s.row(19).find("$000000")!=std::string::npos,"and at its first");
+    printf("%s browser and HEXVIEW scroll bars passed\n",model); fflush(stdout);
+}
 static void CaptureUI(const char* image, const char* symbols, const char* data, bool color) {
     Session s(image,symbols,data,color,"Capture.txt","safe\n");
     s.core.SetIGKBMode(1); Select(s,2);
@@ -345,7 +423,14 @@ static void CaptureUI(const char* image, const char* symbols, const char* data, 
     printf("%s combined iGKB raw capture, FF, pause/resume and return passed\n",color?"CGB":"DMG"); fflush(stdout);
 }
 int main(int argc,char** argv) {
-    Check(argc==4 || (argc==5 && !strcmp(argv[4],"mouse")),"usage: test ROM SYM DATA [mouse]");
+    Check(argc==4 || (argc==5 && (!strcmp(argv[4],"mouse") || !strcmp(argv[4],"scroll"))),"usage: test ROM SYM DATA [mouse|scroll]");
+    if (argc==5 && !strcmp(argv[4],"scroll")) {
+        for(unsigned color=0;color<2;++color) ScrollBarUI(argv[1],argv[2],argv[3],color);
+        ScrollBarUI(argv[1],argv[2],argv[3],false,true);
+        return 0;
+    }
+    for(unsigned color=0;color<2;++color) ScrollBarUI(argv[1],argv[2],argv[3],color);
+    ScrollBarUI(argv[1],argv[2],argv[3],false,true);
     MouseUI(argv[1],argv[2],argv[3],false,true);
     for(unsigned color=0;color<2;++color) {
         MouseUI(argv[1],argv[2],argv[3],color);

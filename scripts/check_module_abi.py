@@ -35,7 +35,12 @@ ASM = {
     '_tb_ClipLength': [], '_tb_Length': [], '_ByteSum': [],
     '_FileSaveSwap': ['_fs_SaveSwap'],
     '_EditorDraw': ['RenderRow'],
-    '_WaitFrame': ['UpdateInput', '_FooterTick'],
+    '_WaitFrame': ['UpdateInput', '_FooterTick', 'ScrollBarFrame'],
+    # ROM0 and resident bank 1 (src/ui/scrollbar.asm): the window's rows and LCD events, VRAM writes
+    'ScrollBarFrame': ['_RenderStage', 'math_Divide32', 'math_Multiply', 'mem_CopyVRAM', 'RenderWaitDMA'],
+    'RenderWindowRows': ['_RenderSetMapRow', 'mem_SetVRAM', 'RenderWaitDMA'],
+    'ScrollForget': ['mem_Set'], 'math_Multiply': [], 'mem_SetVRAM': [], 'mem_CopyVRAM': [],
+    '_ModuleAPIScrollBar': ['math_Divide32'], '_ModuleAPIScrollTo': ['math_Divide32'],
     '_FooterTick': ['_footer_Tick'],
     '_ClockRead': ['_rtc_Read'],
     '_ClockWrite': ['_rtc_Write'],
@@ -54,7 +59,7 @@ ASM = {
     'FooterCompose': ['_footer_Poll', '_RenderTextWidth'],
     '_BoxCells': ['RenderWaitDMA'], 'RenderWaitDMA': [],  # resident bank 1 (render.asm): VRAM writes
     '_RenderRawRow': [],  # resident bank 1: mem_Copy, mem_CopyVRAM (ROM0), the row upload
-    '_ModuleAPIBackground': ['_BackgroundText', '_BackgroundBars'],  # resident ROM0 (render.asm); browser/viewer.c's C
+    '_ModuleAPIBackground': ['_BackgroundText', '_BackgroundBars', 'ScrollForget', 'RenderWindowRows'],  # resident ROM0 (render.asm); browser/viewer.c's C
     '_EditorRedraw': ['mem_Set'],  # ROM0 (render.asm); SGB_JUMP's client path is resident
     '_SetWindowBlock': [], '_SettingsSave': [],  # register writes; mem_Copy and its own loop (ROM0)
     '_ThemeApply': ['ThemeLoad', 'ThemeWindow', 'ThemeRestore', 'TextPalette', 'sgb_SetPal', '_EditorInvertCursor'],  # ROM0 (theme.asm); SGB_JUMP's client path is resident
@@ -63,7 +68,7 @@ ASM = {
     '_ThemeWidth': ['StyledWidth'], 'StyledWidth': [],  # ROM0: the theme's looks and the fonts' widths
     'sgb_SetPal': ['sgb_PacketTransfer'], 'sgb_PacketTransfer': [], '_EditorInvertCursor': [],
     # ScrollRows -> Layout: ROM0 renderer and row-table helpers only
-    '_RenderSetMapRow': [], '_RenderStage': [], '_tb_ScrollRows': [],
+    '_RenderSetMapRow': [], '_RenderStage': ['RenderWindowRows'], '_tb_ScrollRows': [],
     '_tb_Read': [],  # ROM0 text buffer readers
     '_FileLoadFile': ['_fs_LoadFile'],  # BANKED_C stub (ROM0)
     '_FileViewRead': ['_fs_ViewRead'],  # BANKED_C stub (ROM0)

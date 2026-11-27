@@ -19,6 +19,7 @@
 #include "../ui/dialogs.h"
 #include "../ui/render.h"
 #include "../ui/screen.h"
+#include "../ui/scrollbar.h"
 #include "../ui/text.h"
 #include "../ui/icons.h"
 #include "../modules/runtime.h"
@@ -96,6 +97,16 @@ static void ScrollList(const char* path, unsigned int first, unsigned char down)
 }
 
 // Keep the folder in the header and gamepad actions beside the footer clock.
+// the scroll bar (src/ui/scrollbar.h): the top row's entry, of the last top that fills the list
+static void ListScrollBar(void) {
+  ScrollBarWord(first, list_count > LIST_ROWS ? list_count - LIST_ROWS : 0);
+}
+
+// KEY_SCROLL: the list from where the scroll bar was let go, returns its top row's entry
+static unsigned int ListScrollTo(void) {
+  return first = ScrollToWord();
+}
+
 static void ListBars(const char* path) {
   char text[MAX_ROW_STRIDE];
   PutPath(text, path, 30);
@@ -340,9 +351,10 @@ unsigned char Browse(void) {
       view = action - ACTION_OPEN;
       action = 0;
     }
-    else while (!(key = MenuKey()));
+    else do ListScrollBar(); while (!(key = MenuKey()));
     kind = list_count ? RowKind(row) : KIND_FILE;
     if (key >= KEY_MOUSE_ROW) selected = first + (unsigned char)(key - KEY_MOUSE_ROW);
+    else if (key == KEY_SCROLL) selected = ListScrollTo() + row; // the selection on the same screen row
     else if (key == KEY_UP && selected) --selected;
     else if (key == KEY_DOWN && selected + 1 < list_count) ++selected;
     else if (key == KEY_PAGE_UP) selected = selected > LIST_ROWS ? selected - LIST_ROWS : 0;

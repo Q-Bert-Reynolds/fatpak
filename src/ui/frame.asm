@@ -5,5 +5,6 @@ _WaitFrame::
   call gbdk_WaitVBL
   call UpdateInput
   call SGBAttrFlush;(after the mouse driver's ACK, which it waits for)
+  call ScrollBarFrame;(after the mouse driver's report)
   jp _FooterTick
 

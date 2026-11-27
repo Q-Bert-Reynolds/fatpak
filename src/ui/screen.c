@@ -21,12 +21,12 @@ static unsigned char IsOSKBlock(unsigned char block) {
 // sets each screen row's block, tile_buffer row and font. Text rows show BG map rows from ring_top
 // (scrolled with SCY), drawn into the blocks left by the bars and the on screen keyboard, in a ring
 // starting at ring_pos. The rows below and above them (bars, keyboard) keep their own blocks in
-// window map rows, so they stay put while the text scrolls. Stages SCY and LCDC (RenderStage),
-// applied at line 144
+// window map rows (RenderStage lays them out: src/ui/scrollbar.asm's RenderWindowRows), so they stay put
+// while the text scrolls. Stages SCY and LCDC (RenderStage), applied at line 144
 // On GBC the ring has a spare block (18) for the row scrolling in or out (see src/ui/render.asm)
 // Text row 0 keeps its block, so rows that keep theirs aren't drawn again
 void Layout(void) {
-  unsigned char row, line, block, map_row, i = 0, win_row = BG_MAP_ROWS, osk = screen_rows - (bars << 1) - tb_rows;
+  unsigned char row, line, block, map_row, i = 0, osk = screen_rows - (bars << 1) - tb_rows;
   unsigned char length = tb_rows + render_gbc, first = ring_blocks[ring_pos];
   if (screen_rows == TB_ROWS) for (block = 0; block < screen_rows + render_gbc; ++block) {
     if (bars && (block == HEADER_BLOCK || block == STATUS_BLOCK)) continue;
@@ -47,7 +47,7 @@ void Layout(void) {
       render_row_fonts[row] = font;
     }
     else {
-      map_row = win_row++;
+      map_row = BG_MAP_ROWS; // (RenderStage's)
       if (bars && (!row || row == screen_rows - 1)) {
         block = row ? STATUS_BLOCK : HEADER_BLOCK;
         line = row ? STATUS_LINE : HEADER_LINE;
@@ -61,7 +61,7 @@ void Layout(void) {
     render_row_lines[row] = line;
     if (screen_rows == TB_ROWS) {
       render_row_blocks[row] = block;
-      if (map_blocks[map_row] != block || block_map_rows[block] != map_row) { // a block can still be listed in a map row it left
+      if (map_row < BG_MAP_ROWS && (map_blocks[map_row] != block || block_map_rows[block] != map_row)) { // a block can still be listed in a map row it left
         map_blocks[map_row] = block;
         RenderSetMapRow(map_row, block);
       }

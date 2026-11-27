@@ -34,6 +34,8 @@
     ["Driver", "unsigned int", "unsigned char command", 11],
     ["Overlay", "unsigned int", "unsigned char command", 12],
     ["Background", "unsigned char", "unsigned char mode, unsigned int scroll", 13],
-    ["Abort", "void", "unsigned char result", 14]
+    ["Abort", "void", "unsigned char result", 14],
+    ["ScrollBar", "void", "const unsigned long* range", 15],
+    ["ScrollTo", "void", "unsigned long* range", 15]
   ]
 }
