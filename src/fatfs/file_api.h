@@ -68,6 +68,8 @@ extern unsigned char doc_large; // a large file is open, the text buffer is a wi
 extern unsigned char lines_known, win_chunks;
 extern unsigned long doc_len, doc_pos, win_start, win_end, win_mark, win_lines, scan_pos, scan_target, scan_lines;
 extern unsigned int doc_back, win_mark_pos, win_kept[];
-extern unsigned char fs_crlf; // loaded file used CR LF, saving writes CR LF
+extern unsigned char fs_crlf; // FS_CRLF: loaded file used CR LF, saving writes CR LF; FS_RAW: it keeps its bytes (not UTF-8)
+#define FS_CRLF 1
+#define FS_RAW 2
 
 #endif

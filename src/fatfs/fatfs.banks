@@ -16,9 +16,9 @@ OMIT: f_getfree f_truncate
 14: DocMath fs_LoadLarge fs_LoadWindow fs_DocLineStart fs_ScanStep DocRead DocReadAll OneFilePiece fs_CommitWindow fs_SaveLarge disk_read BackupSnapshot
 13: f_unlink f_rename f_stat f_mkdir dir_remove fs_CloseLarge GameCheats
 15: SaveRamBlock SaveRamFile fs_BackupSave fs_GameOpen battery_types
-12: fs_GameCopy get_fattime ReadGameRTC WriteGameRTC BackupRegistry RegistrySum
+12: fs_GameCopy get_fattime ReadGameRTC WriteGameRTC BackupRegistry RegistrySum fs_Save
 4: SnapshotCopy SnapshotStore fs_Snapshot fs_LoadLanguage
-6: SnapshotFile GamePath fs_LoadFile
+6: SnapshotFile GamePath fs_LoadFile fs_LoadData
 7: fs_ViewOpen fs_ViewRead fs_ViewClose
 5: CheatApply
 

@@ -258,3 +258,137 @@ _CountLF::;de = data, bc = count, returns the line feeds in it in bc (two bytes 
   inc de
   jr .start
 END_PAGE
+
+; UTF-8 text (fatfs.c's fs_Load and fs_Save): the text buffer has one byte a character (Latin-1, the fonts'), a
+; file's UTF-8 two-byte sequences (U+0080 to U+00FF) are decoded on load and encoded again on save. A file with
+; other bytes of $80 and up (Latin-1, CP437, UTF-8 beyond U+00FF) keeps its bytes (FS_RAW). Each works on the
+; first count bytes of _buffer (FS_BUFFER_SIZE)
+DEF UTF8_PENDING EQU 1;a lead byte's continuation is next
+DEF UTF8_SEEN EQU 2;a two-byte sequence
+DEF UTF8_BAD EQU 4;a byte that isn't one: the file keeps its bytes
+SECTION "UTF-8", ROM0
+_Utf8Scan::;a = state (UTF8_*), de = count: the state after those bytes in a (UTF8_BAD at once)
+  ld hl, _buffer
+  ld c, a
+.loop
+  ld a, d
+  or a, e
+  jr z, .done
+  dec de
+  ld a, [hli]
+  bit 0, c;UTF8_PENDING
+  jr nz, .continuation
+  bit 7, a
+  jr z, .loop
+  cp a, $C2
+  jr c, .bad
+  cp a, $C4
+  jr nc, .bad
+  ld a, c
+  or a, UTF8_PENDING | UTF8_SEEN
+  ld c, a
+  jr .loop
+.continuation
+  and a, $C0
+  cp a, $80
+  jr nz, .bad
+  res 0, c
+  jr .loop
+.bad
+  ld a, c
+  or a, UTF8_BAD
+  ret
+.done
+  ld a, c
+  ret
+
+_Utf8Decode::;de = count (whole sequences, Utf8Scan's): decodes them in place, the new count in bc
+  ld hl, _buffer
+  ld b, h
+  ld c, l;the output
+.loop
+  ld a, d
+  or a, e
+  jr z, .done
+  dec de
+  ld a, [hli]
+  bit 7, a
+  jr z, .store
+  rrca;the lead's 2 bits are the character's top 2
+  rrca
+  and a, $C0
+  ld [bc], a
+  dec de
+  ld a, [hli]
+  and a, $3F
+  push hl
+  ld h, b
+  ld l, c
+  or a, [hl]
+  pop hl
+.store
+  ld [bc], a
+  inc bc
+  jr .loop
+.done
+  ld a, c
+  sub a, LOW(_buffer)
+  ld c, a
+  ld a, b
+  sbc a, HIGH(_buffer)
+  ld b, a
+  ret
+
+_Utf8Encode::;de = count (up to FS_BUFFER_SIZE / 2): encodes them in place, each of $80 and up as two bytes, the new count in bc
+  ld hl, _buffer
+  ld b, d
+  ld c, e
+  push de
+.count
+  ld a, d
+  or a, e
+  jr z, .counted
+  dec de
+  ld a, [hli]
+  bit 7, a
+  jr z, .count
+  inc bc
+  jr .count
+.counted
+  pop de
+  push bc
+  ld a, c
+  add a, LOW(_buffer)
+  ld c, a
+  ld a, b
+  adc a, HIGH(_buffer)
+  ld b, a;the output's end, hl the input's: from the end, so nothing is overwritten before it's read
+.copy
+  ld a, d
+  or a, e
+  jr z, .copied
+  dec de
+  dec hl
+  ld a, [hl]
+  bit 7, a
+  jr nz, .two
+  dec bc
+  ld [bc], a
+  jr .copy
+.two
+  push af
+  and a, $3F
+  or a, $80
+  dec bc
+  ld [bc], a
+  pop af
+  rlca
+  rlca
+  and a, 3
+  or a, $C0
+  dec bc
+  ld [bc], a
+  jr .copy
+.copied
+  pop bc
+  ret

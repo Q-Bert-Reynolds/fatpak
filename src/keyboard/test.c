@@ -27,10 +27,11 @@ void KeyboardTest(void) {
   EndFullScreen();
 }
 
+// menu: 1 SETTINGS > KEYBOARD, 0 the saved choice (boot, EXIT), 2 that quietly (an SGB's boot: its driver
+// in place of the built-in PS/2 one, which stays without KEYTEST.MOD)
 void KeyboardSetup(unsigned char menu) {
   unsigned char result;
-  ++menu;
-  module_context = (void*)(unsigned int)menu;
+  module_context = (void*)(unsigned int)((menu & 1) + 1);
   result = RunModule(keyboard_module, MODULE_KEYTEST);
-  if (result) ShowModuleError(result);
+  if (result && !(menu & 2)) ShowModuleError(result);
 }

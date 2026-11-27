@@ -38,7 +38,14 @@ DIR dir;
 FILINFO info;
 BYTE disk_ready;
 BYTE buffer[FS_BUFFER_SIZE];
-unsigned char fs_crlf; // last loaded file used CR LF line endings, saved files use them too
+unsigned char fs_crlf; // FS_CRLF: the last loaded file used CR LF line endings, saved files use them too; FS_RAW:
+// it keeps its bytes, not UTF-8 (fs_Load)
+extern BYTE Utf8Scan(BYTE state, UINT count); // src/fatfs/fatfs.asm: on buffer's first count bytes
+extern UINT Utf8Decode(UINT count);
+extern UINT Utf8Encode(UINT count);
+#define UTF8_PENDING 1
+#define UTF8_SEEN 2
+#define UTF8_BAD 4
 
 // memcpy, memset, memcmp and strchr are in src/fatfs/fatfs.asm
 #include "lib/runtime.c"
@@ -406,22 +413,41 @@ static FRESULT Open(const char* path, BYTE mode) {
   return result == FR_DISK_ERR ? f_open(&file, path, mode) : result;
 }
 
-// replaces the text buffer with the file, returns an FRESULT (FR_DENIED if it doesn't fit)
+// replaces the text buffer with the file, returns an FRESULT (FR_DENIED if it doesn't fit). UTF-8 (all its
+// bytes of $80 and up two-byte sequences, U+0080 to U+00FF) is read again, decoded: the text buffer's characters
+// are one byte (Latin-1). Other files keep their bytes (FS_RAW: Latin-1, CP437, UTF-8 beyond U+00FF)
 unsigned char fs_Load(const char* path) {
   UINT count;
+  BYTE state = 0, decode = 0, carry, more, lead;
   FRESULT result = Open(path, FA_READ);
   if (result) return result;
+again:
   tb_Clear();
   tb_cr = 0;
+  carry = 0; // a sequence's lead byte at a read's end, in buffer[0] for the next
   do {
-    result = f_read(&file, buffer, FS_BUFFER_SIZE, &count);
+    result = f_read(&file, buffer + carry, FS_BUFFER_SIZE - carry, &count);
     if (result) break;
+    more = count == FS_BUFFER_SIZE - carry;
+    if (decode) {
+      count += carry;
+      lead = buffer[count - 1];
+      carry = count && lead >= 0xC0;
+      count = Utf8Decode(count - carry);
+    }
+    else if (!(state & UTF8_BAD)) state = Utf8Scan(state, count);
     if (!tb_Append(buffer, count)) {
       result = FR_DENIED;
       break;
     }
-  } while (count == FS_BUFFER_SIZE);
-  fs_crlf = tb_cr;
+    if (carry) buffer[0] = lead;
+  } while (more);
+  if (!result && !decode && (state & (UTF8_SEEN | UTF8_PENDING | UTF8_BAD)) == UTF8_SEEN &&
+      !(result = f_lseek(&file, 0))) {
+    decode = 1;
+    goto again;
+  }
+  fs_crlf = tb_cr | (state & (UTF8_PENDING | UTF8_BAD) ? FS_RAW : 0);
   f_close(&file);
   return result;
 }
@@ -1190,7 +1216,7 @@ unsigned char fs_LoadLarge(const char* path) {
     fs_CloseLarge();
     tb_Clear();
   }
-  fs_crlf = tb_cr;
+  fs_crlf = tb_cr | FS_RAW; // (a large file keeps its bytes)
   return result;
 }
 
@@ -1775,7 +1801,7 @@ unsigned char fs_SaveLarge(const char* path) __naked {
 .added:
     ld bc, 512
     ld a, [_fs_crlf]
-    or a, a
+    and a, FS_CRLF
     jr z, .counted
     ld b, 1                 ;// 256: each line feed gets a CR
     ld a, b
@@ -2764,13 +2790,17 @@ unsigned char fs_LoadSwap(unsigned char settings) {
   return result;
 }
 
-// writes the text buffer to the file, with CR LF line endings if fs_crlf is set, returns an FRESULT
+// writes the text buffer to the file, with CR LF line endings (FS_CRLF), its characters of $80 and up UTF-8
+// unless the file keeps its bytes (FS_RAW), returns an FRESULT
 unsigned char fs_Save(const char* path) {
   UINT size, written;
+  BYTE raw = fs_crlf & FS_RAW;
+  UINT chunk = raw ? FS_BUFFER_SIZE : FS_BUFFER_SIZE / 2; // (room for UTF-8's two bytes a character)
   FRESULT result = Open(path, FA_WRITE | FA_CREATE_ALWAYS);
   if (result) return result;
   tb_read_pos = 0;
-  while ((size = fs_crlf ? tb_ReadLines(buffer, FS_BUFFER_SIZE) : tb_Read(buffer, FS_BUFFER_SIZE))) {
+  while ((size = fs_crlf & FS_CRLF ? tb_ReadLines(buffer, chunk) : tb_Read(buffer, chunk))) {
+    if (!raw) size = Utf8Encode(size);
     if ((result = f_write(&file, buffer, size, &written))) break;
     if (written != size) {
       result = FR_DENIED; // disk full

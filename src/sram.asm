@@ -37,8 +37,8 @@ _SettingsSaveSwap::
 
 SettingsSignature: DB "SET8";SET7 is SET8 without hidden files;SET6 is SET7 without the font;SET1 had the font, SET2 is SET3 without the theme, SET3 is SET4 without the language, SET5 is SET6 without the resolution
 
-SettingsFlags:;the on/off settings (SettingsLoad keeps them 0 or 1)
-  DW _tb_nowrap, _bars_on, _fs_crlf, _modified, _font_tiles, _show_hidden, 0
+SettingsFlags:;the on/off settings (SettingsLoad keeps them 0 or 1; _fs_crlf is FS_CRLF and FS_RAW)
+  DW _tb_nowrap, _bars_on, _modified, _font_tiles, _show_hidden, 0
 
 MACRO SETTING ;\1 = C variable, \2 = size
   DW \1

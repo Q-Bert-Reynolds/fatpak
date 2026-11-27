@@ -444,6 +444,11 @@ draw every style in it plainly, 8 px each (no heading, bold, italic or code-span
 still draws bold and italic mono from the VWF's styled fonts (`StyleFonts`: a frozen frontend
 golden depends on it) until it maps character tiles itself. File names are code page 850 (FatFs `FF_CODE_PAGE` 850, `FF_LFN_UNICODE` 0: every Latin-1
 letter, one byte each); `charset.c` converts them to and from the UI's Latin-1.
+Text is one byte a character too (Latin-1). `fs_Load` decodes a UTF-8 file (every byte of `$80` and up in a
+two-byte sequence for U+0080-U+00FF, lead `$C2`/`$C3`: checked while it loads, then read again decoded), and
+`fs_Save` encodes characters of `$80` and up as UTF-8, so new files are UTF-8. Any other file (Latin-1, CP437,
+UTF-8 beyond U+00FF, a cut sequence) keeps its bytes: `fs_crlf`'s `FS_RAW`, beside `FS_CRLF`. Large documents
+keep theirs. The helpers (`Utf8Scan`, `Utf8Decode`, `Utf8Encode`) are ROM0 asm in `src/fatfs/fatfs.asm`.
 HIDDEN FILES (saved, `SET8`, `show_hidden` in WRAMX) is HIDE or SHOW: SHOW lists dotfiles and files
 with the hidden attribute (`NextEntry`); system files stay out either way.
 RESOLUTION (saved, `SET6`) lists only what works: in the SGB's BIOS mode 160x144 (no takeover at

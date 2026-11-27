@@ -120,7 +120,40 @@ static void Sessions(const char* image,const char* symbols,const char* data,bool
     delete core;
     printf("%s cold-start open, modified, closed, last-folder, missing-folder and large-file sessions passed\n",color?"CGB":"DMG");
 }
+// UTF-8 (FileLoad/FileSave): two-byte sequences (U+0080-U+00FF) decoded to the text buffer's one byte and encoded
+// again, also across a read's 512 bytes; Latin-1 and UTF-8 beyond U+00FF keep their bytes (FS_RAW); CR LF kept
+static void Utf8(const char* image,const char* symbols,const char* data) {
+    char folder[]="/tmp/fatpak-utf8-XXXXXX";Check(mkdtemp(folder),"UTF-8 SD");
+    std::string root(folder);mkdir((root+"/GBCSYS").c_str(),0700);Write(root+"/GBCSYS/EDITOR.DAT",Read(data));
+    auto bytes=[](const std::string& s){return std::vector<u8>(s.begin(),s.end());};
+    std::string split(511,'x');split+="\xC3\xA9 end\n";
+    const struct {const char* name;std::string text;unsigned at;u8 want,flags;} cases[]={
+        {"utf8.txt","caf\xC3\xA9 \xC2\xBF?\n",3,0xE9,0},{"latin.txt","caf\xE9\n",3,0xE9,2},
+        {"emoji.txt","a\xF0\x9F\x98\x80" "b\n",1,0xF0,2},{"crlf.txt","\xC3\xB1o\r\n",0,0xF1,1},
+        {"split.txt",split,511,0xE9,0},{"cut.txt","ab\xC3",2,0xC3,2}};
+    for(const auto& c:cases)Write(root+"/"+c.name,bytes(c.text));
+    GearboyCore core;core.Init();core.SetEverdriveFolder(folder);Check(core.LoadROM(image,false),"UTF-8 OS");Frames(core,600);
+    auto syms=Symbols(symbols);auto m=core.GetMemory();unsigned path=syms.at("tile_buffer");
+    for(const auto& c:cases){
+        Text(m,path,std::string("/")+c.name);
+        Check(Call(core,syms.at("_FileLoad"),path)==0,"load");
+        u8 got=Call(core,syms.at("_tb_GetChar"),c.at);
+        if(got!=c.want || m->Read(syms.at("_fs_crlf"))!=c.flags)fprintf(stderr,"%s: char %02x flags %u\n",c.name,got,m->Read(syms.at("_fs_crlf")));
+        Check(got==c.want,"UTF-8 decoded to one byte a character, other files' bytes kept");
+        Check(m->Read(syms.at("_fs_crlf"))==c.flags,"UTF-8, raw (FS_RAW) and CR LF (FS_CRLF) remembered");
+        Text(m,path,std::string("/out-")+c.name);
+        Check(Call(core,syms.at("_FileSave"),path)==0,"save");
+        Check(Read(root+"/out-"+c.name)==bytes(c.text),"saved byte for byte as loaded");
+    }
+    // a new file (fs_crlf 0) with a Latin-1 character: saved as UTF-8
+    Call(core,syms.at("_tb_Clear"));m->Write(syms.at("_fs_crlf"),0);
+    Check(Call(core,syms.at("_tb_Insert"),0,0xE9),"type a Latin-1 character");
+    Text(m,path,"/new.txt");Check(Call(core,syms.at("_FileSave"),path)==0,"save a new file");
+    Check(Read(root+"/new.txt")==bytes("\xC3\xA9"),"a new file's characters saved as UTF-8");
+    printf("UTF-8 load/save, Latin-1 and UTF-8 beyond U+00FF kept, CR LF and split sequences passed\n");
+}
 int main(int argc,char** argv) {
     Check(argc==4,"usage: test GBCOS.BIN GBCOS.sym EDITOR.DAT");
+    Utf8(argv[1],argv[2],argv[3]);
     Sessions(argv[1],argv[2],argv[3],false);Sessions(argv[1],argv[2],argv[3],true);
 }

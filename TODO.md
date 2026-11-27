@@ -7,7 +7,7 @@
 - DMG row draw spends ~18K cycles waiting on 40 HBlanks: interleave glyph drawing with the waits, or buffer tiles and stagger VRAM writes.
 - Page up/down redraws every row (~0.9M cycles); page up also rescans 17 rows from PSRAM.
 - Tabs draw as one space.
-- Encodings: decode UTF-8 in text (é shows as two Latin-1 chars), plus CP437/CP1252.
+- Encodings: UTF-8 text is decoded and saved as UTF-8 (2026-11-26, files that fit the text buffer). Left: large documents (they keep their bytes, so UTF-8 shows as two Latin-1 chars there), CP437/CP1252, and a way to show which encoding a file has or change it.
 - `tb_Load` scans up to 64 KB at boot when the gap is at the end (~0.9 s DMG); tighten the loop. Profile large gap moves.
 - DMG smooth scroll (shelved): no spare block for the partial row. Blank-tile half-step idea pops visibly and SGB attributes are 8 px anyway.
 
