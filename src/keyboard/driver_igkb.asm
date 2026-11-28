@@ -8,6 +8,7 @@ IGKBProcess::
   ld a, [kb_type]
   cp KB_TYPE_IGKB
   ret c
+IF !DEF(SNES_MOUSE_DRIVER) ; (SGBIGKB.DRV: the SNES mouse, not the legacy protocol)
   cp KB_TYPE_MOUSE
   jr nz, .read
   ld a, [igkb_ready]
@@ -30,6 +31,7 @@ IGKBProcess::
   ld [igkb_tick+1], a
 .mouseFrame
   call IGKBMouseFrame
+ENDC
 .read
   ldh a, [rSC]
   bit 7, a
@@ -65,15 +67,19 @@ IGKBProcess::
   ld b, a
   ld hl, kb_interrupt_count
   inc [hl]
+IF !DEF(SNES_MOUSE_DRIVER)
   ld a, [kb_type]
   cp KB_TYPE_MOUSE
   jr z, .mouse
+ENDC
   ld a, b
   call IGKBHandleCode
+IF !DEF(SNES_MOUSE_DRIVER)
   jr .budget
 .mouse
   ld a, b
   call IGKBMouseByte
+ENDC
 .budget
   ld hl, igkb_budget
   dec [hl]

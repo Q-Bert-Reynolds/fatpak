@@ -158,7 +158,7 @@ DW PS2HandleCharacter;PS2_KEY_LEFT_SQUARE_BRACKET EQU $54
 DW PS2HandleCharacter;PS2_KEY_EQUALS EQU $55
 DW PS2HandleError;$56
 DW PS2HandleError;$57
-DW PS2HandleCapsLock;PS2_KEY_CAPS_LOCK EQU $58
+DW PS2HandleIgnore;PS2_KEY_CAPS_LOCK EQU $58
 DW PS2HandleShift;PS2_KEY_SHIFT_RIGHT EQU $59
 DW PS2HandleEnter;PS2_KEY_ENTER EQU $5A
 DW PS2HandleCharacter;PS2_KEY_RIGHT_SQUARE_BRACKET EQU $5B
@@ -191,14 +191,14 @@ DW PS2HandleCharacter;PS2_KEY_KEYPAD_5 EQU $73
 DW PS2HandleCharacter;PS2_KEY_KEYPAD_6 EQU $74
 DW PS2HandleCharacter;PS2_KEY_KEYPAD_8 EQU $75
 DW PS2HandleEscape;PS2_KEY_ESC EQU $76
-DW PS2HandleNumLock;PS2_KEY_NUM_LOCK EQU $77
+DW PS2HandleIgnore;PS2_KEY_NUM_LOCK EQU $77
 DW PS2HandleFunctionKey;PS2_KEY_F11 EQU $78
 DW PS2HandleCharacter;PS2_KEY_KEYPAD_PLUS EQU $79
 DW PS2HandleCharacter;PS2_KEY_KEYPAD_3 EQU $7A
 DW PS2HandleCharacter;PS2_KEY_KEYPAD_MINUS EQU $7B
 DW PS2HandleCharacter;PS2_KEY_KEYPAD_ASTERISK EQU $7C
 DW PS2HandleCharacter;PS2_KEY_KEYPAD_9 EQU $7D
-DW PS2HandleScrollLock;PS2_KEY_SCROLL_LOCK EQU $7E
+DW PS2HandleIgnore;PS2_KEY_SCROLL_LOCK EQU $7E
 DW PS2HandleError;$7F
 
 DW PS2HandleError;$80
@@ -227,6 +227,6 @@ DW PS2HandleError;$78
 DW PS2HandleError;$79
 DW PS2HandlePageDown;PS2_KEY_PAGE_DOWN EQU $7A
 DW PS2HandleError;$7B
-DW PS2HandlePrintScreen; PS2_KEY_PRINT_SCREEN_SEND EQU $7C;Print screen presses 12, presses 7C, releases 7C, releases 12
+DW PS2HandleIgnore; PS2_KEY_PRINT_SCREEN_SEND EQU $7C;Print screen presses 12, presses 7C, releases 7C, releases 12
 DW PS2HandlePageUp;PS2_KEY_PAGE_UP EQU $7D
 ;any extended scan code values less than $7E will use this table

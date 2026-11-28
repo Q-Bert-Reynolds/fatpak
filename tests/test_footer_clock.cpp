@@ -31,6 +31,7 @@ static void Write(const std::string& path, const std::vector<u8>& bytes)
     file.write(reinterpret_cast<const char*>(bytes.data()), bytes.size());
     Check(file.good(), "write fixture");
 }
+static unsigned call_sp = 0xDFFE; // Call's stack: the OS's (WRAMX's top has OS variables, _screen_cells among them)
 static std::map<std::string, unsigned> Symbols(const char* path)
 {
     std::map<std::string, unsigned> result;
@@ -38,7 +39,9 @@ static std::map<std::string, unsigned> Symbols(const char* path)
     char line[512], name[256]; unsigned bank, address;
     while (fgets(line, sizeof(line), file))
         if (sscanf(line, "%x:%x %255s", &bank, &address, name) == 3) result[name] = address;
-    fclose(file); return result;
+    fclose(file);
+    if (result.count("stack_bottom")) call_sp = result["stack_bottom"] - 2;
+    return result;
 }
 static void Frames(GearboyCore& core, unsigned count)
 {
@@ -49,7 +52,7 @@ static unsigned call_bc, call_de; // a routine's BC and DE when it returned (a 3
 static unsigned Call(GearboyCore& core, unsigned address, unsigned argument = 0, u8 a = 0)
 {
     auto cpu = core.GetProcessor()->GetState(); auto memory = core.GetMemory();
-    cpu->SP->SetValue(0xDFFE); memory->Write(0xDFFE, 0xFF); memory->Write(0xDFFF, 0x7F);
+    cpu->SP->SetValue(call_sp); memory->Write(call_sp, 0xFF); memory->Write(call_sp + 1, 0x7F);
     cpu->DE->SetValue(argument); cpu->AF->SetValue(a << 8); cpu->PC->SetValue(address);
     for (unsigned i = 0; i < 80000000 && cpu->PC->GetValue() != 0x7FFF; ++i)
     {

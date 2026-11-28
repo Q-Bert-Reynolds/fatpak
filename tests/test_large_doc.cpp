@@ -90,7 +90,7 @@ struct Doc {
 // widths are 0 here: rows are lines); its bottom is the end (GoEnd), its top the start
 static void ScrollJumps(Doc& d) {
     Memory* m = d.memory;
-    call_sp = d.sym("stack_bottom"); // a window load goes deep: not over WRAMX's top, where scroll_range is
+    call_sp = d.sym("stack_bottom") - 2; // a window load goes deep: not over WRAMX's top, where scroll_range is
     auto jump = [&](unsigned fraction) {
         m->Write(d.sym("_tb_rows"), 16);
         m->Write(d.sym("_tb_row_starts") + 32, 1000 & 255); m->Write(d.sym("_tb_row_starts") + 33, 1000 >> 8); // 1000 bytes on screen

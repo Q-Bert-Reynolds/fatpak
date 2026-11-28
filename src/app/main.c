@@ -62,9 +62,9 @@ void AppMain(void) {
   UndoClear(modified);
   HideBox();
   SGBBegin();
-  // the SGB's driver (PS/2 and the SNES mouse) once fullscreen has taken over: the kernel reads the mouse there,
-  // no BIOS bridge to upload (at 160x144 it's uploaded now)
-  if (sys_info & SYS_INFO_SGB) KeyboardSetup(kb_driver == 1 || kb_driver == 4 ? 2 : 0);
+  // the SGB's drivers (the SNES mouse with the keyboard chosen, or none) once fullscreen has taken over: the
+  // kernel reads the mouse there, no BIOS bridge to upload (at 160x144 it's uploaded now)
+  if (sys_info & SYS_INFO_SGB) KeyboardSetup(2);
   if (session_open) Refresh();
   else { // replace the loading view with the browser
     ClearScreen();

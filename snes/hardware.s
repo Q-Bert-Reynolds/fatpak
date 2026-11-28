@@ -156,12 +156,13 @@ _Capture:
 .i16
  sep #$20
 .a8
- lda f:$004212
- and #$80
+ ; a new frame since the last call: the NMI's count, not VBlank's flag ($4212 bit 7), which a VBlank spent
+ ; entirely without a call (PresentCursor's OAM, the pointer's window) missed, and with it that frame's mouse
+ ; motion (the next automatic read latches the mouse again)
+ lda f:$7E0000+_hw_frames
  cmp $1000
  beq @joy
  sta $1000
- beq @joy
  rep #$20
 .a16
  inc _tick
@@ -180,7 +181,7 @@ _Capture:
  lda f:$002137
  lda f:$00213F
  lda f:$00213D
- cmp #225
+ cmp #223 ; (a frame whose VBlank was missed samples in the next one's lines: done before line 225's read)
  bcc @sample
  cmp #229
  bcc @row

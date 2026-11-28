@@ -7,7 +7,7 @@
 ; calls FarPointer in VBlank: the arrow (OBJ tile 2, palette 2: black outline, white) as OAM entry 1.
 .setcpu "65816"
 .include "protocol.inc"
-.export MouseRead, FarPointer
+.export MouseRead, FarPointer, HdmaMap
 .export MouseX, MouseY ; (tests/sgb/mouse.lua)
 .import _text_mode, _cursor_dirty, _queue, _qhead, _qcount, _active_event, _hw_frames
 
@@ -28,6 +28,8 @@ Changed: .byte 0
 EventType: .byte 0
 EventA: .byte 0
 New: .byte 0
+HdmaMap: .byte 0 ; the HDMA channels map.s has on ($420C is write-only): FarPointer adds its own
+Window: .res 3 * 12 ; HDMA 5's table: window 1's left and right a line at a time (FarPointer)
 
 .a8
 .i16
@@ -258,7 +260,9 @@ FarPointer:
  pha
  plb
  lda Shown
- beq @hidden
+ bne @shown
+ jmp @hidden
+@shown:
  rep #$10
 .i16
  lda #$80
@@ -301,10 +305,92 @@ FarPointer:
  sta f:$002104
  lda #$34 ; priority 3, palette 2
  sta f:$002104
-@hidden:
+ ; 256x224's BG3 (menus, boxes, the OSK) is in front of every OBJ (mode 1 with its priority bit): window 1
+ ; takes it away under the arrow's pixels, a line at a time (HDMA 5), so the pointer shows over it
+ lda _text_mode
+ beq @window
+ jmp @hidden ; (512x448's text has no BG3)
+@window:
+ ldx #0
+ lda MouseY
+@above: ; the lines above the arrow, 127 at most an entry
+ beq @arrow
+ cmp #128
+ bcc @last
+ sbc #127
+ pha
+ lda #127
+ jsr Unmasked
+ pla
+ bra @above
+@last:
+ jsr Unmasked
+@arrow:
+ ldy #0
+@line:
+ lda #1
+ sta Window, x
+ lda MouseX
+ sta Window + 1, x
+ clc
+ adc Widths, y
+ bcc @right
+ lda #$FF
+@right:
+ sta Window + 2, x
+ inx
+ inx
+ inx
+ iny
+ cpy #8
+ bne @line
+ lda #1
+ jsr Unmasked
+ stz Window, x ; the end
+ lda #$01 ; HDMA 5: two registers once a line, $2126 and $2127
+ sta f:$004350
+ lda #$26
+ sta f:$004351
+ lda #$7E
+ sta f:$004354
+ rep #$20
+.a16
+ lda #Window
+ sta f:$004352
+ sep #$20
+.a8
+ lda #$02 ; BG3 in window 1
+ sta f:$002124
+ lda #$04 ; masked on the main screen
+ sta f:$00212E
+ lda HdmaMap
+ ora #$20
+ sta f:$00420C
  plb
  plp
  rtl
+@hidden:
+ lda #0
+ sta f:$00212E
+ lda HdmaMap
+ sta f:$00420C
+ plb
+ plp
+ rtl
+
+; A = lines without the window (left 255, right 0: no pixels) at Window + X, X past it
+Unmasked:
+ sta Window, x
+ lda #$FF
+ sta Window + 1, x
+ stz Window + 2, x
+ inx
+ inx
+ inx
+ rts
+
+; the arrow's pixels on each line, less one (Arrow below)
+Widths: .byte 0, 1, 2, 3, 4, 5, 3, 1
 
 ; 8x8, 4bpp: plane 0 the outline (colour 1), plane 1 the fill (colour 2); hot spot at the top left
 Arrow:

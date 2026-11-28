@@ -2,19 +2,25 @@ IF !DEF(SYS_INFO_SGBFS)
 DEF SYS_INFO_SGBFS EQU %00000100 ; (src/gbdk.asm's: fullscreen terminal active)
 ENDC
 DEF SNES_MOUSE_DRIVER EQU 1 ; (driver_mouse.asm without the iGKB packet parser)
-; The SGB's driver: a PS/2 keyboard (PS2KeyboardInterrupt takes its bytes under KB_TYPE_SNES_MOUSE too) and the
-; SNES mouse in port 2. The mouse: four SGB input bytes, BIOS pad 1, commit/buttons, absolute X, absolute Y.
-; Read commit twice around the coordinates, and always leave pad 1 selected.
+; The SGB's drivers: the SNES mouse in port 2, whatever the keyboard. SGBMOUSE.DRV: a PS/2 keyboard
+; (KB_TYPE_SNES_MOUSE: PS2KeyboardInterrupt takes its bytes then too) or none (KB_TYPE_SNES_ONLY); SGBIGKB.DRV
+; (SNES_IGKB_DRIVER): the iGKB (KB_TYPE_SNES_IGKB). The mouse: four SGB input bytes, BIOS pad 1, commit/buttons,
+; absolute X, absolute Y. Read commit twice around the coordinates, and always leave pad 1 selected.
 INCLUDE "src/keyboard/ps2_keys.asm"
 SNESMouseProcess:
   ld a, [kb_type]
   cp KB_TYPE_SNES_MOUSE
-  ret nz
+  ret c
+IF DEF(SNES_IGKB_DRIVER)
+  call IGKBProcess ; (its own type check: KB_TYPE_SNES_IGKB reads keys)
+ELSE
+  jr nz, .mouse ; (KB_TYPE_SNES_ONLY: no keyboard)
   ld a, [kb_mode]
   and a
   jr z, .mouse ; (KB_MODE_NONE: no keys)
   call ProcessPS2KeyCodes
   call KBRepeatHeldKey
+ENDC
 .mouse
   ld a, [igkb_ready]
   and a
@@ -105,5 +111,9 @@ SNESMouseAck:
   DS 10
 INCLUDE "src/sgb/mouse_input.asm"
 
+IF DEF(SNES_IGKB_DRIVER)
+INCLUDE "src/keyboard/driver_igkb.asm" ; (driver_mouse.asm too)
+ELSE
 INCLUDE "src/keyboard/driver_mouse.asm"
 INCLUDE "src/keyboard/driver_ps2.asm"
+ENDC

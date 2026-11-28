@@ -20,5 +20,5 @@ printf '{}\n' > "$work/config/MesenCE/settings.json"
 cd "$work"
 XDG_CONFIG_HOME="$work/config" dotnet "${MESEN_DLL:-$root/../MesenCE/bin/linux-x64/Release/Mesen.dll}" --testRunner --timeout=600 \
  --Debug.ScriptWindow.AllowIoOsAccess=true --Gameboy.Model=SuperGameboy --Gameboy.UseSgb2=false \
- --Snes.Port1.Type=SnesController --Snes.Port2.Type=SnesMouse "$root/tests/sgb/mouse.lua" "$work/config/MesenCE/kernel.gb" >mesen.log 2>&1 || { cat config/MesenCE/result.txt; grep -v 'SGB Command' mesen.log | tail -10; exit 1; }
+ --Snes.Port1.Type=SnesController --Snes.Port2.Type=SnesMouse ${MESEN_EXTRA:-} "$root/tests/sgb/mouse.lua" "$work/config/MesenCE/kernel.gb" >mesen.log 2>&1 || { cat config/MesenCE/result.txt; grep -v 'SGB Command' mesen.log | tail -10; exit 1; }
 cat config/MesenCE/result.txt

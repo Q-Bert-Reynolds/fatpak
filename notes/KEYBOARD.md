@@ -1,7 +1,7 @@
 # Keyboard and mouse drivers
 
 SETTINGS > KEYBOARD is available in both the editor and browser. Select
-NONE, PS/2 KEYBOARD or iGKB USB; on an SGB, PS/2 KEYBOARD is the SGB's driver (PS/2 and the SNES mouse, below). TEST opens the packet diagnostic screen. The single iGKB option represents the adapter;
+NONE, PS/2 KEYBOARD or iGKB USB; on an SGB each comes with the SNES mouse (below). TEST opens the packet diagnostic screen. The single iGKB option represents the adapter;
 mouse packet decoding awaits hardware capture. A saved mouse-only selection (3)
 loads this same driver. The selection takes effect immediately and is stored with the settings (SET6, with SET2–SET5 migration).
 Small documents also save the setting to EDITOR.SWP before the menu returns.
@@ -33,6 +33,12 @@ hit testing. Navigation waits for each queued event to be consumed before
 confirming an action, including clicks several rows from the current selection.
 Mouse reports are processed in bursts of three bytes so a complete report can
 be handled in one frame.
+
+PS/2 decoding (`src/keyboard/ps2_handlers.asm`): every byte's handler returns through the code that clears the
+E0/F0 flags, those the extended checks jump to directly too. The keyboard's fake Shift codes around the grey keys
+(E0 12 and E0 59, with E0 F0 before them while Shift or Num Lock is on) and Print Screen, Menu and the locks do
+nothing. Before, E0 12 left the extended flag set, so the next F0 12 (the left Shift let go) read as Print
+Screen and Shift stayed down; the right Shift's 59 took another path, which is why only the left one stuck.
 
 ## Wire formats
 
@@ -103,11 +109,17 @@ Gearboy's `make -C tests igkb` checks queue behavior and keyboard encoding.
 
 ## SNES mouse (Super Game Boy)
 
-Connect a gamepad to SNES port 1 and the mouse to port 2. On an SGB the PS/2 choice (the default) loads
-SGBMOUSE.DRV, the SGB's driver (type 4): the PS/2 keyboard and the SNES mouse together (in fullscreen the SNES
+Connect a gamepad to SNES port 1 and the mouse to port 2. On an SGB every keyboard choice comes with the mouse:
+PS/2 (the default) loads SGBMOUSE.DRV as type 4 (PS/2 and the mouse), NONE loads it as type 5 (the mouse
+alone: PS/2 bytes are ignored), iGKB loads SGBIGKB.DRV, type 6 (the iGKB and the mouse; without the file, at
+boot, IGKB.DRV alone). All three are the mouse (in fullscreen the SNES
 kernel reads the mouse and the driver takes its events, notes/SGB.md "SNES mouse in fullscreen"; at 160x144 the
 BIOS bridge below). Boot loads it after the fullscreen takeover, so a fullscreen boot uploads no bridge; without
-the file the built-in PS/2 driver stays. Elsewhere a saved type 4 loads PS/2. The gamepad continues working.
+the file the built-in PS/2 driver stays. Elsewhere a saved 4, 5 or 6 loads its keyboard (PS/2, none, iGKB).
+Every P1 read on an SGB at 160x144 first rotates the ICD2 back to controller 1 (`SGBInputSync`, reading
+the ID a few times after each select: right after the write it can still read the last group's $F), with or
+without a bridge: the bridge's upload starts four-controller mode before its driver is in, and the mouse's
+bytes read as pad 1 then came out as Start and Select (the menu and the OSK opening). The gamepad continues working.
 TEST shows the keyboard's bytes (the mouse's reports aren't kept). At 160x144 coordinates cover the GB
 viewport (160 by 144 pixels).
 The pointer remains hidden until motion or a button transition, then uses the
@@ -129,6 +141,14 @@ there: the editor's top row and cursor at that place (a large document's window 
 bottom is Ctrl+End), the browser's list with the selection on the same screen row, HEXVIEW's rows. Views
 claim the bar every frame they wait for keys (`ScrollBar`, `ModScrollBar`), so menus, dialogs and other
 screens hide it.
+
+In fullscreen the kernel (snes/mouse.s) draws the pointer as OAM entry 1. At 256x224 the overlay (menus, boxes,
+the OSK) is BG3 in mode 1 with BG3's priority bit, in front of every OBJ, so FarPointer also points window 1 at
+the arrow's pixels a line at a time (HDMA 5: `Window`, `HdmaMap` keeps map.s's channels in $420C) and masks BG3
+there on the main screen. Capture now spots a new frame by the NMI's count instead of VBlank's flag: a VBlank
+spent without a Capture call (PresentCursor's OAM rewrite and the window's table) skipped that frame's sample,
+and the mouse's motion with it (tests/sgb/mouse.lua failed with Mesen's all-ones RAM; MESEN_EXTRA passes Mesen
+options to tests/run_sgb_mouse.sh).
 
 `src/sgb/mouse.s` is assembled with cc65's ca65/ld65. SGBMOUSE.DRV includes
 both the GB driver and CRC-covered DATA_SND packets uploading the SNES code to

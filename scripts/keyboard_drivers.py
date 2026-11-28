@@ -52,6 +52,11 @@ ENDL
     (work/'snes.asm').write_text(assembly)
     subprocess.run(['rgbasm', '-o', str(work/'snes.o'), str(work/'snes.asm')], cwd=ROOT, check=True)
     subprocess.run(['rgblink', '-o', str(work/'snes.bin'), str(work/'snes.o')], cwd=ROOT, check=True)
+    assembly = prelude.replace('DRIVER_PROCESS', 'SNESMouseProcess').replace('INCLUDE DRIVER_SOURCE',
+        'DEF SNES_IGKB_DRIVER EQU 1\nINCLUDE "src/keyboard/driver_snes_mouse.asm"') # the iGKB and the SNES mouse
+    (work/'sgbigkb.asm').write_text(assembly)
+    subprocess.run(['rgbasm', '-o', str(work/'sgbigkb.o'), str(work/'sgbigkb.asm')], cwd=ROOT, check=True)
+    subprocess.run(['rgblink', '-o', str(work/'sgbigkb.bin'), str(work/'sgbigkb.o')], cwd=ROOT, check=True)
     packets = [bytes([0xb9, 1]) + bytes(14)] # freeze the SGB picture during bootstrap
     snes = (work/'mouse.bin').read_bytes()
     for offset in range(0, len(snes), 11):
@@ -61,12 +66,13 @@ ENDL
     assert len(packets) <= 64, 'SNES upload exceeds driver staging limit'
     (work/'mouse.packets').write_bytes(b''.join(packets))
     images = [('PS2', 1, (ROOT/'bin/GBCOS.BIN').read_bytes()[15*8192:15*8192+size]),
-              ('IGKB', 2, (work/'igkb.bin').read_bytes()[:size]), ('SGBMOUSE', 4, (work/'snes.bin').read_bytes()[:size])]
+              ('IGKB', 2, (work/'igkb.bin').read_bytes()[:size]), ('SGBMOUSE', 4, (work/'snes.bin').read_bytes()[:size]),
+              ('SGBIGKB', 6, (work/'sgbigkb.bin').read_bytes()[:size])]
     out = ROOT / 'bin/DRIVERS'
     out.mkdir(exist_ok=True)
     for name, kind, payload in images:
         assert len(payload) == size
-        count = len(packets) if kind == 4 else 0
+        count = len(packets) if kind >= 4 else 0 # the SGB's: the BIOS bridge's upload
         if count: payload = payload.ljust((size + 511) // 512 * 512,b'\0') + b''.join(packets) # (the packets after the slot's last block)
         header = struct.pack('<4sBBHHHH', b'FPKD', 1, kind, symbols['kb_type'], symbols['KeyboardDriverInit'],
                              binascii.crc_hqx(payload, 0xFFFF), size)

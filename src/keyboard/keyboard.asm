@@ -5,7 +5,9 @@ DEF KB_TYPE_NONE EQU 0
 DEF KB_TYPE_PS2  EQU 1
 DEF KB_TYPE_IGKB EQU 2
 DEF KB_TYPE_MOUSE EQU 3;legacy experimental mouse protocol, not a menu choice
-DEF KB_TYPE_SNES_MOUSE EQU 4
+DEF KB_TYPE_SNES_MOUSE EQU 4;the SGB's drivers, the SNES mouse in port 2 with: a PS/2 keyboard (SGBMOUSE.DRV),
+DEF KB_TYPE_SNES_ONLY EQU 5;no keyboard (SGBMOUSE.DRV too),
+DEF KB_TYPE_SNES_IGKB EQU 6;the iGKB (SGBIGKB.DRV)
 DEF KB_DRIVER_SIZE EQU $8C0;the SGB driver (PS/2 and the SNES mouse) is the biggest
 DEF KB_DRIVER_BLOCKS EQU (KB_DRIVER_SIZE + 511) / 512;ModDriver(block) copies one
 

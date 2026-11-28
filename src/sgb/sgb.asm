@@ -506,9 +506,11 @@ SNESPingPacket:
   DB $c9, 1
   DS 14
 
-SGBInputSync::
-  ld a, [kb_type]
-  cp KB_TYPE_SNES_MOUSE
+SGBInputSync::;controller 1 again, should the SNES mouse's BIOS bridge have the SGB reading 4: on any SGB at
+  ;160x144, as the bridge's upload starts it before its driver is in (that read the mouse as Start and Select)
+  ldh a, [sys_info]
+  and a, SYS_INFO_SGB | SYS_INFO_SGBFS
+  cp a, SYS_INFO_SGB
   ret nz
 INCLUDE "src/sgb/mouse_select.asm"
 

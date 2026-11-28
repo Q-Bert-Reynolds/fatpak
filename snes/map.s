@@ -19,7 +19,7 @@
 ; through ext.s's Far trampolines, and reads its own tables at $7E (PB is $7E here).
 .setcpu "65816"
 .export FarMapLayer, FarMapTiles, FarMapCells, FarMapColors, FarMapScroll, FarMapGlide, FarRegions, ui_rows
-.import FarWaitBlank, FarCapture, _raster, _shade
+.import FarWaitBlank, FarCapture, _raster, _shade, HdmaMap
 .import _map_mode, _map_src, _map_colors, _map_x, _map_y, _map_tx, _map_ty
 
 HIRES = $10 ; SGBFS_MAP_HIRES
@@ -103,6 +103,7 @@ MapLayer:
  sta f:$002107
  lda #0
  sta f:$00420C
+ sta f:$7E0000+HdmaMap ; (FarPointer's $420C)
  sta f:$00212D
  sta f:$002133
  sta f:$00210D
@@ -224,6 +225,7 @@ MapLayer:
  jsr Regions
  lda #$C0
  sta f:$00420C
+ sta f:$7E0000+HdmaMap
 @on:
  jsl $7F0000+FarWaitBlank
  lda #$0F

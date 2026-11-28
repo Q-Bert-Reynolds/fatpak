@@ -75,6 +75,15 @@ emu.addEventCallback(function(c)
   local oam={}
   for i=0,3 do oam[i]=emu.read(4+i,emu.memType.snesSpriteRam) end
   if oam[0]~=158 or oam[1]~=131 or oam[2]~=2 then finish(false,string.format('OAM entry 1: %d,%d tile %d',oam[0],oam[1],oam[2]));return end
+  if byte('_text_mode')==0 then -- 256x224: window 1 takes BG3 (menus) away under the arrow's pixels, HDMA 5's table
+   local want={127,255,0, 5,255,0}
+   for i,w in ipairs({0,1,2,3,4,5,3,1}) do want[#want+1]=1;want[#want+1]=158;want[#want+1]=158+w end
+   for _,v in ipairs({1,255,0, 0}) do want[#want+1]=v end
+   for i,v in ipairs(want) do
+    local got=emu.read(symbols['Window']+i-1,W)
+    if got~=v then finish(false,string.format('pointer window table byte %d: %d, not %d',i-1,got,v));return end
+   end
+  end
  end
  if t==140 then
   local cells=byte('_text_mode')~=0

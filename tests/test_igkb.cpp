@@ -84,7 +84,7 @@ struct Session {
         for (auto& file : beside) Write(root + "/" + file.first, std::vector<u8>(file.second.begin(), file.second.end()));
         mkdir((root + "/GBCSYS/DRIVERS").c_str(), 0700);
         std::string driver_bin = std::string(data).substr(0, std::string(data).find_last_of('/')) + "/DRIVERS/";
-        for (const char* driver : {"PS2.DRV", "IGKB.DRV", "SGBMOUSE.DRV"}) {
+        for (const char* driver : {"PS2.DRV", "IGKB.DRV", "SGBMOUSE.DRV", "SGBIGKB.DRV"}) {
             auto payload = Read(driver_bin + driver);
             if (!strcmp(driver,"IGKB.DRV") && bad_driver) payload[bad_driver == 1 ? 532 : 14] ^= 1;
             Write(root + "/GBCSYS/DRIVERS/" + driver, payload);
@@ -171,10 +171,10 @@ static void SelectMenu(Session& s, unsigned type) {
     if (s.memory->Read(s.syms.at("_render_box_rows"))!=count+2) fprintf(stderr,"box rows %u: %s\n",s.memory->Read(s.syms.at("_render_box_rows")),s.lines().c_str());
     Check(s.memory->Read(s.syms.at("_render_box_rows"))==count+2,"keyboard submenu has the drivers and TEST");
     unsigned selected=s.memory->Read(s.syms.at("_kb_driver"));
-    if (selected == 4) selected=1;
-    unsigned target=type==4 ? 1 : type;
+    const unsigned choice[]={0,1,2,2,1,0,2}; // the menu's line of each type (an SGB's: the SNES mouse with it)
+    selected=choice[selected]; unsigned target=choice[type];
     for (unsigned i=0;i<((target+count-selected)%count);++i) s.pad(Down_Key);
-    if(type==4) {
+    if(type>=4) {
         s.core.KeyPressed(A_Key); Frames(s.core,4); s.core.KeyReleased(A_Key);
         unsigned frozen=0, ticks=0;
         for(unsigned n=0;n<700;++n) {
@@ -201,7 +201,7 @@ static void Select(Session& s,unsigned type) {
 }
 static unsigned Byte(Session& s, const char* name) { return s.memory->Read(s.syms.at(name)); }
 static void Mouse(Session& s, unsigned x, unsigned y, unsigned buttons, unsigned frames=8) {
-    if (Byte(s,"_kb_type")==4) {
+    if (Byte(s,"_kb_type")>=4) {
         unsigned flags=((Byte(s,"igkb_packet")+8)&0x78)|(buttons<<1)|1;
         const unsigned bytes[]={flags,x,y};
         for (unsigned p=1;p<4;++p) {
@@ -316,8 +316,18 @@ static void MouseUI(const char* image, const char* symbols, const char* data, bo
         GearboyCore cold; cold.Init(); cold.SetForceSGB(true); cold.SetEverdriveFolder(s.root.c_str());
         Check(cold.LoadROM(image,false),"cold SGB OS"); Frames(cold,1400);
         Check(cold.GetMemory()->Read(s.syms.at("_kb_type"))==4 && cold.GetMemory()->Read(s.syms.at("_kb_driver"))==4,"cold SGB boot restores the saved SNES driver");
-        Select(s,0);
-        Check(Byte(s,"_kb_type")==0,"KEYBOARD > NONE stops the SGB's driver");
+        Select(s,5);
+        Check(Byte(s,"_kb_type")==5,"KEYBOARD > NONE on an SGB keeps the SNES mouse (type 5)");
+        s.core.QueuePS2KeyboardScanCode(0x1C); Frames(s.core,60);
+        Check(Byte(s,"kb_event_write")==Byte(s,"kb_event_read"),"no PS/2 keys without a keyboard");
+        Mouse(s,40,40,0,40);
+        Check(Byte(s,"_mouse_x")==40 && Byte(s,"_mouse_y")==40,"the SNES mouse works with KEYBOARD > NONE");
+        s.core.SetIGKBMode(1); Select(s,6);
+        Mouse(s,60,48,0,40);
+        Check(Byte(s,"_mouse_x")==60 && Byte(s,"_mouse_y")==48,"the SNES mouse works with the iGKB (SGBIGKB.DRV, type 6)");
+        unsigned before=Byte(s,"_kb_interrupt_count");
+        s.core.QueueIGKBKey(4,false); Frames(s.core,80);
+        Check(Byte(s,"_kb_interrupt_count")!=before,"SGBIGKB.DRV reads the iGKB's bytes");
     }
     printf("%s pointer tile/timeout, editor click/drag, menu hover/actions/dismissal and browser clicks passed\n",snes?"SGB mailbox":color?"CGB":"DMG"); fflush(stdout);
 }
@@ -477,6 +487,12 @@ int main(int argc,char** argv) {
         s.core.QueuePS2KeyboardScanCode(0x1C); Frames(s.core,100);
         if(s.word("_cursor")!=insert+1) fprintf(stderr,"PS2 cursor%u expected%u type%u SC%02x bytes%u row%s\n",s.word("_cursor"),insert+1,s.memory->Read(s.syms.at("_kb_type")),s.memory->Read(0xFF02),s.memory->Read(s.syms.at("_kb_interrupt_count")),s.row(0).c_str());
         Check(s.word("_cursor")==insert+1,"PS/2 works after swapping back from USB");
+        // Shift + an arrow: the keyboard's fake Shift codes around it (E0 F0 12 before, E0 12 after) are ignored,
+        // the arrow selects, and the real Shift's release (F0 12) still releases it: lowercase again
+        for (u8 code : {0x12, 0xE0,0xF0,0x12, 0xE0,0x74, 0xE0,0xF0,0x74, 0xE0,0x12, 0xF0,0x12}) s.core.QueuePS2KeyboardScanCode(code);
+        Frames(s.core,100);
+        Check(s.memory->Read(s.syms.at("_selecting")) && s.word("_cursor")==insert+2,"PS/2 Shift + Right selects past the fake Shift codes");
+        Check(!(s.memory->Read(s.syms.at("kb_modifiers")) & 0x40),"PS/2 Shift released after an arrow's fake Shift codes");
         s.core.SetIGKBMode(1); Select(s,2);
         GearboyCore cold; cold.Init(); cold.SetEverdriveFolder(s.root.c_str()); cold.SetIGKBMode(1);
         Check(cold.LoadROM(argv[1],!color),"cold boot selected driver"); Frames(cold,1000);

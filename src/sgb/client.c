@@ -80,6 +80,6 @@ unsigned char SGBLeave(unsigned char setup) {
   tb_rows = screen_rows - (bars << 1);
   Layout(); // (the caller lays the editor's rows out again, the browser its own)
   // the keyboard as at boot (the SGB's driver: its BIOS bridge again), not for a game (the bridge only to stop it)
-  if (setup) KeyboardSetup(kb_driver == 1 || kb_driver == 4 ? 2 : 0);
+  if (setup) KeyboardSetup(2);
   return 1;
 }

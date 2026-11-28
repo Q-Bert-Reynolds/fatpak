@@ -16,8 +16,9 @@ PS2HandleKeycode::;a = scan code
 
   ld b, 0
   ld c, a;scan code
+  ld hl, .clearFlags;every handler returns there, those jumped to straight from the extended checks too
+  push hl;(E0 12 left the extended flag set, so the next F0 12 was Print Screen and left Shift stuck)
   ld hl, PS2JumpTable
- 
   ld a, [kb_flags]
   and a, KB_FLAG_EXTENDED
   jr z, .lookupAddress;if not extended, lookup
@@ -30,12 +31,14 @@ PS2HandleKeycode::;a = scan code
   jp z, PS2HandleAlt
   cp a, PS2_KEY_CTRL_RIGHT           ;$14
   jp z, PS2HandleCtrl
-  cp a, PS2_KEY_PRINT_SCREEN_INIT    ;$12
-  jp z, PS2HandlePrintScreen
+  cp a, PS2_KEY_PRINT_SCREEN_INIT    ;$12: also the fake Shift around grey keys while Shift or Num Lock is on
+  ret z
+  cp a, PS2_KEY_SHIFT_RIGHT          ;$59: the right Shift's fake Shift
+  ret z
   cp a, PS2_KEY_SUPER_RIGHT          ;$27
   jp z, PS2HandleSuper
   cp a, PS2_KEY_MENUS                ;$2F
-  jp z, PS2HandleMenus
+  ret z
   cp a, PS2_KEY_KEYPAD_SLASH         ;$4A ;same as non-extended
   jr z, .lookupAddress
   cp a, PS2_KEY_KEYPAD_ENTER         ;$5A ;same as non-extended 
@@ -54,8 +57,6 @@ PS2HandleKeycode::;a = scan code
   ld h, a;upper byte of jump address
   ld l, b;hl = keycode jump address
   ld a, c;scan code
-  ld bc, .clearFlags
-  push bc
   jp hl
 .clearFlags
   xor a
@@ -192,6 +193,9 @@ PS2HandleCharacter:;a = scan code
   ld a, [kb_modifiers]
   and a, KB_MOD_SHIFT
   jr z, .unshifted
+  ld a, c
+  cp a, $60;the keypad: the shifted map stops before it
+  jr nc, .unshifted
 .shifted
   ld hl, PS2toASCIIShiftedKeymap
 .unshifted
@@ -199,28 +203,9 @@ PS2HandleCharacter:;a = scan code
   ld a, [hl];ASCII value
   jp KBHandleCharacter
 
-;TODO: toggle lock bits in kb_modifiers
-;NOTE: not possible to change keyboard lights
-PS2HandleCapsLock:
-  ld a, [kb_flags]
-  and a, KB_FLAG_RELEASE
-  ret nz;if release flag set, return early
-  ;if previous keycode is not caps lock, toggle caps lock in kb_modifiers
+;Caps, Num and Scroll Lock and Print Screen do nothing (the GB can't set the keyboard's lights)
+PS2HandleIgnore:
   ret
-
-PS2HandleScrollLock:
-  ld a, [kb_flags]
-  and a, KB_FLAG_RELEASE
-  ret nz;if release flag set, return early
-  ;if previous keycode is not scroll lock, toggle caps lock in kb_modifiers
-  ret
-
-PS2HandleNumLock:
-  ld a, [kb_flags]
-  and a, KB_FLAG_RELEASE
-  ret nz;if release flag set, return early
-  ;if previous keycode is not num lock, toggle caps lock in kb_modifiers
-  ret 
 
 PS2HandleBackspace:
   ld a, [kb_flags]
@@ -320,18 +305,6 @@ PS2HandlePageDown:
 PS2HandlePageUp:
   ld a, KEY_PAGE_UP
   jp KBHandleEditorKey
-
-PS2HandlePrintScreen:
-  ld a, [kb_flags]
-  and a, KB_FLAG_RELEASE
-  ret nz;if release flag set, return early
-  ret
-
-PS2HandleMenus:
-  ld a, [kb_flags]
-  and a, KB_FLAG_RELEASE
-  ret nz;if release flag set, return early
-  ret
 
 ;sets z if release flag was already zero
 ;otherwise, sets release flag to 0
