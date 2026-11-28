@@ -248,7 +248,7 @@ static void ROMTransferTest(const char* image, const char* symbols)
         Check(!(memory->Read(0xBD06) & 1) && !(memory->Read(0xBD01) & 4), "disable streaming/auto-read on every return");
         Check(memory->Read(0xBD02) == 0 && memory->Read(0xBD03) == 1, "restore editor PSRAM window on success/error");
         if (mode >= 2) {
-            Check(result == 1, "command/token/header failure returns disk error");
+            Check(result == (mode == 5 ? 2u : 1u), "command/token failure returns disk error (1), a header mismatch 2");
             if (mode != 5) Check(!word("_game_block"), "failed transfer does not advance copy progress");
         }
         else {

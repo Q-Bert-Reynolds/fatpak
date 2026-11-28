@@ -120,6 +120,7 @@ def pages_and_models():
     add(wire.SGBFS_CMD_LAYOUT,bytes([0,28,0,0]))
     commands+=raster
     add(wire.SGBFS_CMD_CURSOR,bytes([0,0,0]))
+    add(wire.SGBFS_CMD_SCROLLBAR,bytes([8,200,100])) # (drawn only with the mouse's pointer: tests/sgb/mouse.lua)
     flush()
     return pages,out
 
@@ -281,6 +282,7 @@ def apply(m,op,b):
     elif op==wire.SGBFS_CMD_OSK:m.layer,m.key=b[0],b[1]
     elif op==wire.SGBFS_CMD_BUSY:m.busy=b[0]
     elif op==wire.SGBFS_CMD_PROGRESS:m.progress=struct.unpack('<II',b)
+    elif op==wire.SGBFS_CMD_SCROLLBAR:m.scroll_bar=tuple(b)
     elif op==wire.SGBFS_CMD_PALETTE:
         for i in range(b[1]):m.palette[b[0]+i]=struct.unpack_from('<H',b,2+2*i)[0]
     elif op in (wire.SGBFS_CMD_HELLO,wire.SGBFS_CMD_RESET):m.__init__()

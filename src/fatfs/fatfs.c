@@ -2221,7 +2221,7 @@ unsigned char fs_GameCopy(void) {
     check = memcmp(WINDOW + 0x134, game_header, sizeof(game_header)) != 0;
   }
   SetWindowBlock(TB_PSRAM_HIGH << 8);
-  if (check) return FR_DISK_ERR;
+  if (check) return FR_INT_ERR; // (SD ERROR 2: the copy's header isn't the file's, apart from a failed read's 1)
   if (game_block != game_blocks && (game_clst = get_fat(&file.obj, next)) < 2) return FR_INT_ERR;
   return FR_OK;
 }

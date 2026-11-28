@@ -1,4 +1,4 @@
-;The scroll bar at 160x144 (GB, SGB and GBC; not the SGB's fullscreen modes): while the mouse pointer shows,
+;The scroll bar at 160x144 (GB, SGB and GBC) and in the SGB's fullscreen modes: while the mouse pointer shows,
 ;the text rows' right 4 pixels show its track and a sprite its thumb. The window shows the track: on every
 ;line then, WX at the track (SCROLL_WX) on the text rows and the screen's left on the bars', so its line
 ;counter follows the screen and each window map row is its screen row (RenderWindowRows; without the bar
@@ -8,6 +8,9 @@
 ;a menu, a dialog or another screen hides it. A press on the track grabs the thumb, which follows the
 ;pointer until it's let go (the mouse drivers' reports are the bar's meanwhile: ScrollBarHit), then
 ;KEY_SCROLL is queued and the view goes there (ScrollTo): one redraw, never one while it's dragged.
+;In fullscreen (256x224 and 512x448) the SNES draws it: the fullscreen client sends SCROLLBAR (the track's top
+;line, its lines, the thumb's top: scroll_top) and the kernel shows it while its pointer does; the GB's window,
+;tiles and sprites are the transport's, and a row is 8 lines (4 in 512x448's text) as the mouse's y has them.
 ;
 ;C functions (src/ui/scrollbar.h)
 ;   ScrollBar                   de = {position, the largest} (unsigned longs): the bar this frame, none for a
@@ -26,6 +29,7 @@ DEF SCROLL_THUMB_X EQU SCRN_X - 6;the tile's left: its pixels 0-5 drawn, over th
 DEF SCROLL_THUMB_TOP EQU 0;the thumb's first line in its tile
 DEF SCROLL_THUMB_LINES EQU 5
 DEF SCROLL_HIT_X EQU SCROLL_THUMB_X;presses from the thumb's left edge rightwards are the bar's
+DEF SCROLL_FULL_HIT_X EQU 256 - 6;and fullscreen's (the kernel's thumb, snes/mouse.s)
 DEF SCROLL_CLAIM_FRAMES EQU 16;a view's claim lasts this many frames (HEXVIEW's loop takes 2 or 3, a large document's line count a sector)
 DEF SCROLL_TRACK_SLOT EQU $FE;a window row's tracking (map_blocks) when it shows the track, not a block
 DEF WIN_TRACK EQU 1;render_events: the window at the track (WX), with LCDCF_WINON (RenderLCDInterrupt)
@@ -44,6 +48,9 @@ scroll_grab: DB;where in the thumb it's held (lines from its top)
 scroll_drag_at: DB;the held thumb's top, lines from the track's
 scroll_target: DB;the fraction (0-255) the thumb was let go at
 
+SECTION "Scroll bar HRAM", HRAM;(WRAMX is full)
+scroll_top:: DB;the thumb's top line as last placed (fullscreen: the client's SCROLLBAR)
+
 SECTION "Scroll bar", ROM0
 
 ;C: _WaitFrame, each frame: the bar shown or hidden, its thumb placed, a drag followed and let go
@@ -59,6 +66,8 @@ ScrollBarFrame::
   ld [scroll_shown], a
   ld [scroll_drag], a
   ld [oam_buffer + SCROLL_OAM], a
+  call ScrollFull
+  ret nz
   jp _RenderStage;the window over the bars only, its rows packed
 .wanted
   and a
@@ -67,6 +76,8 @@ ScrollBarFrame::
   ret nz
   ld a, 1
   ld [scroll_shown], a
+  call ScrollFull
+  jr nz, .shown
   call ScrollTiles
   call _RenderStage;the window on every line, its rows at the screen's
 .shown
@@ -131,6 +142,7 @@ ScrollBarFrame::
 .thumb
   call ScrollThumb
 .sprite;a = the thumb's top line
+  ld [scroll_top], a;(fullscreen: the GB's sprites are off, the client sends it)
   ld hl, oam_buffer + SCROLL_OAM
   add a, OAM_Y_OFS - SCROLL_THUMB_TOP
   ld [hli], a
@@ -142,16 +154,25 @@ ScrollBarFrame::
   ret
 
 ;nz if the bar shows: a view claimed it lately with somewhere to scroll, the pointer shows (or the thumb is
-;held), on the GB's 160x144 screen without a box over it or a module's background
+;held), on the GB's 160x144 screen without a box over it or a module's background; in fullscreen without
+;a box, the OSK or a map, the kernel showing it only with its pointer
 ScrollWanted:
+  call ScrollFull
+  jr z, .gb
+  ldh a, [fs_map]
+  ld hl, _osk_shown
+  or a, [hl]
+  jr .layout
+.gb
   ld a, [_screen_rows]
   cp a, TB_ROWS
   jr nz, .no
+  ldh a, [render_background]
+.layout
+  and a
+  jr nz, .no
   ld a, [_render_box_top]
   inc a
-  jr nz, .no
-  ldh a, [render_background]
-  and a
   jr nz, .no
   ld a, [scroll_claim]
   ld b, a
@@ -165,6 +186,8 @@ ScrollWanted:
   ld a, [scroll_drag]
   and a
   ret nz
+  call ScrollFull
+  ret nz
   ld a, [oam_buffer + 8];the pointer's sprite (src/keyboard/driver_mouse.asm), 0 when it's hidden
   and a
   ret
@@ -172,8 +195,20 @@ ScrollWanted:
   xor a
   ret
 
-;z if no layout is staged and (GBC) the text isn't scrolling: the bar's window changes only then
+;nz in the SGB's fullscreen modes, affects a
+ScrollFull:
+  ldh a, [sys_info]
+  and a, SYS_INFO_SGBFS
+  ret
+
+;z if no layout is staged and (GBC) the text isn't scrolling: the bar's window changes only then (always
+;in fullscreen, which has no window)
 ScrollIdle:
+  call ScrollFull
+  jr z, .gb
+  xor a
+  ret
+.gb
   ld a, [_render_pending]
   and a
   ret nz
@@ -183,19 +218,24 @@ ScrollIdle:
   cp a, b
   ret
 
-;b = the track's top line, c = how far the thumb's top moves (the track's lines less the thumb's), affects a
-ScrollTrack:
+;b = the track's top line, c = how far the thumb's top moves (the track's lines less the thumb's), affects a,
+;hl (the fullscreen client's too)
+ScrollTrack::
   ld a, [_render_text_top]
-  add a, a
-  add a, a
-  add a, a
+  call ScrollLines
   ld b, a
   ld a, [_tb_rows]
-  add a, a
-  add a, a
-  add a, a
+  call ScrollLines
   sub a, SCROLL_THUMB_LINES
   ld c, a
+  ret
+ScrollLines:;a = rows: their lines, 8 a row (4 in 512x448's text: MouseRow's)
+  add a, a
+  add a, a
+  ld hl, _screen_cells
+  bit 0, [hl]
+  ret nz
+  add a, a
   ret
 
 ;b, c = ScrollTrack's: returns a = the thumb's top line at scroll_pos, keeps bc
@@ -223,8 +263,14 @@ ScrollBarHit::
   ret z
   bit 0, c
   ret z
+  call ScrollFull
+  ld a, SCROLL_HIT_X
+  jr z, .left
+  ld a, SCROLL_FULL_HIT_X
+.left
+  ld e, a
   ld a, [_mouse_x]
-  cp a, SCROLL_HIT_X
+  cp a, e
   ccf
   ret nc
   push bc

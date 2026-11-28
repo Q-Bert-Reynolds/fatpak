@@ -166,6 +166,19 @@ int main(int n,char** v){
     printf("after 60 Downs: cursor row %u, row 1 '%s', row 54 '%s'\n",model.cursorRow,Chars(model.rows[1]).c_str(),Chars(model.rows[54]).c_str());
     Check(Chars(model.rows[54]).find("line 61 ")==0 && Chars(model.rows[1]).find("line 8 ")==0,"scrolled: lines 8-61");
     Check(h->WritePPM("build/sgb/text-editor.ppm"),"editor screenshot");
+    { // the scroll bar (SCROLLBAR, the kernel draws it with its pointer): the track over the text rows' 54 rows of 4
+      // lines, the thumb near its top at line 8; a press on the track's foot grabs the thumb, letting go scrolls there
+      wait(60,[&]{return model.barLines!=0;});
+      printf("scroll bar: top %u lines %u thumb %u\n",model.barTop,model.barLines,model.barThumb);
+      Check(model.barTop==4 && model.barLines==216 && model.barThumb>4 && model.barThumb<40,"SCROLLBAR: the track by the text, the thumb near its top");
+      Check(h->Inject(2,uint8_t(54|1<<6),252),"press on the track");Frames(core,30);
+      printf("held: thumb %u drag %u\n",model.barThumb,m->Read(syms.at("scroll_drag")));
+      Check(m->Read(syms.at("scroll_drag")) && model.barThumb>200,"the thumb held, at the press");
+      Check(h->Inject(4,54,252),"let go");
+      wait(1500,[&]{return Chars(model.rows[1]).find("line 6")==0;});
+      printf("let go: row 1 '%s', thumb %u\n",Chars(model.rows[1]).c_str(),model.barThumb);
+      Check(!m->Read(syms.at("scroll_drag")) && Chars(model.rows[1]).find("line 6")==0,"let go at the foot: the file's end in view");
+}
     pad(8,4);key(0x82);key(10); // FILE > CLOSE: the browser again
     wait(1500,[&]{return selected().find_first_not_of(' ')!=std::string::npos;});
 

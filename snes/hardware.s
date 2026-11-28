@@ -7,7 +7,7 @@
 .export _PresentRasterRow, _PresentPalette, _PresentCursor, _SetScroll, _PublishMailbox
 .import _SharedInit
 .import BiosSave, BiosFlag, _bios_ok, _bios_sum
-.import MouseRead, FarPointer, __RES_LOAD__, __RES_RUN__, __RES_SIZE__
+.import MouseRead, FarPointer, FarHide, __RES_LOAD__, __RES_RUN__, __RES_SIZE__
 .ifdef SHARED_RENDER
 .error "the resident part (mouse.s) runs in shared.s's WRAM ($7E:A000)"
 .endif
@@ -681,23 +681,7 @@ _PresentCursor:
  lda #0
  sta f:$002102
  sta f:$002103
- ldx #0
-@hide:
- lda #0
- sta f:$002104
- lda #$F0
- sta f:$002104
- lda #0
- sta f:$002104
- sta f:$002104
- inx
- cpx #128
- bne @hide
- ldx #32
-@high:
- sta f:$002104
- dex
- bne @high
+ jsl $7E0000+FarHide ; every OAM entry hidden and small, by DMA (mouse.s): VBlank is short
  lda #0
  sta f:$002102
  sta f:$002103

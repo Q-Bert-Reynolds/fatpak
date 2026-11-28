@@ -4,12 +4,13 @@
 ; same space), and its events at the input queue's tail as the protocol has them: DOWN or UP when buttons change,
 ; DRAG with a button held, MOVE without; motion coalesced into the tail event of the same kind and buttons.
 ; A = (buttons << SGBFS_MOUSE_BUTTON_SHIFT) | row (y / 8, or y / 4 in TEXT 1's 56 rows), B = x. PresentCursor
-; calls FarPointer in VBlank: the arrow (OBJ tile 2, palette 2: black outline, white) as OAM entry 1.
+; calls FarPointer in VBlank: the arrow (OBJ tile 2, palette 2: black outline, white) as OAM entry 1, and with it
+; the view's scroll bar (SCROLLBAR, kernel.c's scroll_bar): its thumb as entry 2, its track as entries 3 on.
 .setcpu "65816"
 .include "protocol.inc"
-.export MouseRead, FarPointer, HdmaMap
+.export MouseRead, FarPointer, FarHide, HdmaMap
 .export MouseX, MouseY ; (tests/sgb/mouse.lua)
-.import _text_mode, _cursor_dirty, _queue, _qhead, _qcount, _active_event, _hw_frames
+.import _scroll_bar, _text_mode, _cursor_dirty, _queue, _qhead, _qcount, _active_event, _hw_frames
 
 QUEUE_MASK = SGBFS_INPUT_QUEUE - 1
 RESERVE = 4 ; (kernel.c's PAD_QUEUE_RESERVE: room kept for pad releases)
@@ -30,6 +31,8 @@ EventA: .byte 0
 New: .byte 0
 HdmaMap: .byte 0 ; the HDMA channels map.s has on ($420C is write-only): FarPointer adds its own
 Window: .res 3 * 12 ; HDMA 5's table: window 1's left and right a line at a time (FarPointer)
+BarY: .byte 0 ; (Bar's) the next track OBJ's top line
+BarLeft: .byte 0 ; and the track's lines from there
 
 .a8
 .i16
@@ -251,6 +254,32 @@ Entry:
 .a8
  rts
 
+; From PresentCursor (A8, I8, in VBlank, the OAM address 0): the whole OAM hidden (y 240) and small, x below 256, by
+; DMA (channel 1, as PresentPalette's): a CPU loop's 640 writes took a dozen lines of VBlank, the bar's sprites none
+FarHide:
+ lda #$00 ; one register, $2104
+ sta f:$004310
+ lda #$04
+ sta f:$004311
+ lda #$7E
+ sta f:$004314
+ rep #$20
+.a16
+ lda #Hidden
+ sta f:$004312
+ lda #544
+ sta f:$004315
+ sep #$20
+.a8
+ lda #2
+ sta f:$00420B
+ rtl
+Hidden:
+ .repeat 128
+ .byte 0, $F0, 0, 0
+ .endrepeat
+ .res 32, 0
+
 ; From PresentCursor (A8, I8, DBR $7E, in VBlank, after it rewrote the OAM): the pointer, if shown
 .i8
 FarPointer:
@@ -305,6 +334,10 @@ FarPointer:
  sta f:$002104
  lda #$34 ; priority 3, palette 2
  sta f:$002104
+ lda _scroll_bar + 1
+ beq @bar
+ jsr Bar
+@bar:
  ; 256x224's BG3 (menus, boxes, the OSK) is in front of every OBJ (mode 1 with its priority bit): window 1
  ; takes it away under the arrow's pixels, a line at a time (HDMA 5), so the pointer shows over it
  lda _text_mode
@@ -377,6 +410,116 @@ FarPointer:
  plb
  plp
  rtl
+
+; (A8, I16, DBR $7E, the OAM address at entry 2) the scroll bar at the screen's right edge, as the GB's at 160x144
+; (src/ui/scrollbar.asm): the thumb (OBJ tile 3, the pointer's palette) 6 pixels wide over the track's 2 pixel line
+; (palette 0's colour 1, the cursor's). The track is 32x32 OBJs whose first column alone is on screen (tiles 4,
+; 20, 36 and 52), 32 lines apart, the last ending at the track's end: 7 at most, not 28 8x8 ones (VBlank is short)
+Bar:
+ lda #$01 ; the tiles by DMA (channel 1, as PresentPalette's): VMAIN is the pointer's
+ sta f:$004310
+ lda #$18
+ sta f:$004311
+ lda #$7E
+ sta f:$004314
+ ldx #0
+@tile:
+ rep #$20
+.a16
+ lda BarVram, x
+ sta f:$002116
+ lda BarSource, x
+ sta f:$004312
+ lda #32
+ sta f:$004315
+ sep #$20
+.a8
+ lda #2
+ sta f:$00420B
+ inx
+ inx
+ cpx #10
+ bne @tile
+ lda #256 - 6 ; the thumb
+ sta f:$002104
+ lda _scroll_bar + 2
+ dec a
+ sta f:$002104
+ lda #3
+ sta f:$002104
+ lda #$34
+ sta f:$002104
+ ldy #0 ; the track's OBJs
+ lda _scroll_bar
+ sta BarY
+ lda _scroll_bar + 1
+ sta BarLeft
+@track:
+ lda #256 - 4
+ sta f:$002104
+ lda BarLeft
+ cmp #32
+ lda BarY
+ bcs @y
+ cpy #0
+ beq @y
+ clc ; the last: 32 lines up from the end
+ adc BarLeft
+ sec
+ sbc #32
+@y:
+ dec a
+ sta f:$002104
+ lda #4
+ sta f:$002104
+ lda #$30 ; priority 3, palette 0
+ sta f:$002104
+ iny
+ lda BarY
+ clc
+ adc #32
+ sta BarY
+ lda BarLeft
+ sec
+ sbc #32
+ sta BarLeft
+ beq @high
+ bcs @track
+@high: ; their size bits (large) in the high table, every other entry small as PresentCursor left it
+ lda #0
+ sta f:$002102
+ lda #1
+ sta f:$002103
+ lda High0, y
+ sta f:$002104
+ lda High1, y
+ sta f:$002104
+ lda High2, y
+ sta f:$002104
+ rts
+
+; by the track's OBJ count (entries 3 on): the high table's bytes for entries 0-3, 4-7 and 8-11
+High0: .byte 0, $80, $80, $80, $80, $80, $80, $80
+High1: .byte 0, 0, $02, $0A, $2A, $AA, $AA, $AA
+High2: .byte 0, 0, 0, 0, 0, 0, $02, $0A
+BarVram: .word $6030, $6040, $6140, $6240, $6340 ; OBJ tiles 3, 4, 20, 36, 52
+BarSource: .word Thumb, Track, Track, Track, Track
+
+; 4bpp. The thumb: the GB's (the UI font's tile 10), its colours 3 and 1 black (1), 2 white (2)
+Thumb:
+ .byte %11111100, %00000000
+ .byte %10000100, %01111000
+ .byte %01111000, %10000100
+ .byte %10000100, %01111000
+ .byte %11111100, %00000000
+ .res 6, 0
+ .res 16, 0
+; the track's line: pixels 1 and 2 of the 4 on screen, colour 1
+Track:
+ .repeat 8
+ .byte %01100000, 0
+ .endrepeat
+ .res 16, 0
 
 ; A = lines without the window (left 255, right 0: no pixels) at Window + X, X past it
 Unmasked:

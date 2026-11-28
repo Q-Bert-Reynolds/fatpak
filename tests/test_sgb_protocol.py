@@ -21,7 +21,7 @@ class Protocol(unittest.TestCase):
 
     def test_generated_consumers_and_real_assemblers(self):
         p.generate(check=True)
-        self.assertEqual(len(p.COMMANDS), 24)
+        self.assertEqual(len(p.COMMANDS), 25)
         self.assertEqual(len(p.EVENTS), 19)
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
@@ -56,6 +56,7 @@ class Protocol(unittest.TestCase):
             'MAP_COLORS': bytes([7,1])+struct.pack('<4H',0x7fff,0x1234,0,0x0421),
             'MAP_CELLS': bytes([127,63,1,2,128,7,0,0]), 'MAP_SCROLL': struct.pack('<HH',1023,511),
             'CODE': bytes([1])+struct.pack('<H',p.SGBFS_CODE_SIZE-2)+b'\x6b\x60', 'TEXT': b'\0',
+            'SCROLLBAR': bytes([8,200,100]),
         }
         return [row]+[p.command(getattr(p,'SGBFS_CMD_'+name), body) for name, body in bodies.items()]
 

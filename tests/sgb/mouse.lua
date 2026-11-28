@@ -75,6 +75,18 @@ emu.addEventCallback(function(c)
   local oam={}
   for i=0,3 do oam[i]=emu.read(4+i,emu.memType.snesSpriteRam) end
   if oam[0]~=158 or oam[1]~=131 or oam[2]~=2 then finish(false,string.format('OAM entry 1: %d,%d tile %d',oam[0],oam[1],oam[2]));return end
+  -- the session's SCROLLBAR (track lines 8-207, thumb at 100) with the pointer: the thumb as entry 2, the track
+  -- as 7 32x32 entries 32 lines apart, the last ending at the track's end (y written a line up), large in the high table
+  local bar={{250,99,3,0x34},{252,7,4,0x30},{252,39,4,0x30},{252,71,4,0x30},{252,103,4,0x30},{252,135,4,0x30},
+   {252,167,4,0x30},{252,175,4,0x30},{0,0xF0,0,0}}
+  for e,w in ipairs(bar) do for i=1,4 do
+   local v=emu.read((e+1)*4+i-1,emu.memType.snesSpriteRam)
+   if v~=w[i] then finish(false,string.format('scroll bar OAM entry %d byte %d: %d, not %d',e+1,i-1,v,w[i]));return end
+  end end
+  for i,w in ipairs({0x80,0xAA,0x0A,0}) do
+   local v=emu.read(0x1FF+i,emu.memType.snesSpriteRam)
+   if v~=w then finish(false,string.format('OAM high table byte %d: %02X, not %02X',i-1,v,w));return end
+  end
   if byte('_text_mode')==0 then -- 256x224: window 1 takes BG3 (menus) away under the arrow's pixels, HDMA 5's table
    local want={127,255,0, 5,255,0}
    for i,w in ipairs({0,1,2,3,4,5,3,1}) do want[#want+1]=1;want[#want+1]=158;want[#want+1]=158+w end
@@ -102,7 +114,7 @@ emu.addEventCallback(function(c)
    local e=merged[i]
    if e.type~=w[1] or (e.a>>6)~=w[2] or (e.a&63)~=w[3] or e.b~=w[4] then finish(false,'events '..table.concat(got,' '));return end
   end
-  finish(true,string.format('SNES mouse: MOVE, DOWN, DRAG, UP, a right click, %d mailbox events, row %d (%s), pointer OAM entry 1',
+  finish(true,string.format('SNES mouse: MOVE, DOWN, DRAG, UP, a right click, %d mailbox events, row %d (%s), pointer OAM entry 1, scroll bar OAM entries 2-9',
    #events,row(132),cells and '512x448 text' or '256x224'))
  end
 end,emu.eventType.endFrame)

@@ -157,6 +157,9 @@ def validate_command(opcode, body, text=0):
         require(n == 8, 'PROGRESS length')
         loaded, total = struct.unpack('<II', body)
         require(loaded <= total, 'PROGRESS range')
+    elif name == 'SCROLLBAR':
+        require(n == 3 and (not body[1] or (body[0] + body[1] <= SGBFS_HEIGHT and
+                body[0] <= body[2] <= body[0] + body[1] - 5)), 'SCROLLBAR')
     elif name == 'LAUNCH':
         require(body == bytes((SGBFS_LAUNCH_RESET_REQUIRED,)), 'LAUNCH mode')
     elif name == 'MAP':

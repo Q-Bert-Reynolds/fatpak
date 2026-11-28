@@ -249,6 +249,7 @@ have a one-pixel glyph inset and occupy up to 248 px.
 | MAP_SCROLL | `x:u16` (0–1023), `y:u16` (0–511): the map's top left pixel (256x224 keeps `x & 511`, `y & 255`) |
 | CODE | `last` (0/1), `offset:u16`, then 1–1024 bytes of the kernel extension (within `$2400`); ignored with a map open or in TEXT 1 |
 | TEXT | `mode`: 0 the 256x224 raster text, 1 512x448 character tiles (needs the extension, no map open) |
+| SCROLLBAR | `top, lines, thumb`: the view's scroll bar in 256x224 lines (either text mode), `lines` 0 for none, else `top + lines <= 224` and the thumb's 5 lines within the track; drawn at the right edge only while the kernel's mouse pointer shows (`snes/mouse.s`) |
 | EXIT | no body, alone in its page, only if HELLO offered `SGBFS_FEATURE_BIOS` (8) and the extension is loaded: back to the BIOS (see "Returning to the BIOS: EXIT") |
 
 ROW flag bit 0 means styled text; other bits are zero. An attribute contains
@@ -703,8 +704,8 @@ the high-resolution modes remain future work.
 click opens) and OSK keys. Left drag selects, and dragging past the top or bottom
 edge auto-scrolls. Right click opens the menu at the pointer (a context menu with
 cut/copy/paste comes later). Sensitivity cycles with right+left click on the top
-bar (the mouse's 3 hardware speeds). A future option: a scrollbar on the overlay
-fed by `LinesBefore`.
+bar (the mouse's 3 hardware speeds). The view's scroll bar: the SCROLLBAR command
+(notes/KEYBOARD.md).
 
 PS/2 requires the SGB2 link port.
 
@@ -1070,6 +1071,10 @@ upload/JUMP.
 ## Hardware integration checklist (Phase 7)
 
 Fullscreen writes a bounded binary flight recorder to `/GBCSYS/SGB.LOG`.
+It is recorded in the first 16 KiB of SGBBOOT's PSRAM copy of SGB.DAT, and stops short of the overlay
+page's block (`_overlay_request`), which the extension follows. With the kernel both are about 95 blocks in;
+the Gearboy tests' `hello.bin` puts them at block 8, where a long session's log used to overwrite the
+extension's length word, so a later CODE upload stopped early and TEXT 1 was refused (2026-11-27).
 After upload/HELLO, it replaces the previous log before the first page wait.
 Until the first ordinary input callback, a page timeout saves the log
 immediately (with the records before it); the ordinary flush can't run while

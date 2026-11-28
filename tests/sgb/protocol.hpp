@@ -48,6 +48,7 @@ constexpr std::uint32_t SGBFS_CMD_MAP_SCROLL = 21;
 constexpr std::uint32_t SGBFS_CMD_CODE = 22;
 constexpr std::uint32_t SGBFS_CMD_TEXT = 23;
 constexpr std::uint32_t SGBFS_CMD_EXIT = 24;
+constexpr std::uint32_t SGBFS_CMD_SCROLLBAR = 25;
 constexpr std::uint32_t SGBFS_EVENT_KEY = 1;
 constexpr std::uint32_t SGBFS_EVENT_MOUSE_DOWN = 2;
 constexpr std::uint32_t SGBFS_EVENT_MOUSE_DRAG = 3;

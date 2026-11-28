@@ -56,6 +56,10 @@ DEF SGBFS_CMD_TEXT EQU $17 ; mode 0/1
 ; BIOS's state (snes/bios.s) and returns to it, the ICD2 back to one player: the GB knows the BIOS is back when its
 ; joypad reads stop cycling players. Nothing of the kernel's survives; JUMP again to come back
 DEF SGBFS_CMD_EXIT EQU $18
+; The view's scroll bar while the pointer shows (src/ui/scrollbar.asm): the track's top line (0-223, 256x224
+; lines in either text mode), its lines (0 hides it; top + lines <= 224) and the thumb's top line (within the
+; track, its 5 lines too). The kernel draws it at the screen's right edge only while its mouse pointer shows
+DEF SGBFS_CMD_SCROLLBAR EQU $19
 DEF SGBFS_EVENT_KEY EQU $01
 DEF SGBFS_EVENT_MOUSE_DOWN EQU $02
 DEF SGBFS_EVENT_MOUSE_DRAG EQU $03

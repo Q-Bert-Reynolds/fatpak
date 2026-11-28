@@ -1959,6 +1959,7 @@ FsUI:
   pop af
   call FsByte
 .progress
+  call FsScrollBar
   ld hl, fs_progress_loaded
   ld de, fs_progress_sent
   ld b, 4
@@ -2095,8 +2096,19 @@ FsLog:
   and a
   jp z, .done
   ldh a, [fs_log_size+1]
-  cp $3F ; 16 KiB (32 staging blocks; the extension's bytes are far past them)
+  cp $3F ; 16 KiB (32 staging blocks; with the kernel the overlay page and extension are far past them)
   jp nc, .done
+  ld a, [_overlay_request] ; and short of the overlay page's block (SGBBOOT's copy, the extension after it: a
+  sub LOW(SGB_FILE_BLOCK)  ; small SNES program puts them in those 32, as the tests' hello.bin does), a record's
+  cp 32                    ; 256 bytes to spare
+  jr nc, .room
+  add a
+  dec a
+  ld e, a
+  ldh a, [fs_log_size+1]
+  cp e
+  jp nc, .done
+.room
   call FsLogWindow
   push bc
   ld a, d
@@ -2418,4 +2430,49 @@ FsStyledRuns:
 .styledPadding
   inc hl
   ret
+
+; SCROLLBAR when the view's bar (src/ui/scrollbar.asm's ScrollBarFrame) changed: the track's top line and its
+; lines (0 without the bar), the thumb's top line
+FsScrollBar:
+  ld bc, 0
+  ld e, c
+  ld a, [scroll_shown]
+  and a
+  jr z, .state
+  call ScrollTrack ; B = the track's top, C = the thumb's travel
+  ld a, c
+  add 5 ; (the thumb's lines: SCROLL_THUMB_LINES)
+  ld c, a
+  ld a, [scroll_top]
+  ld e, a
+.state
+  ld hl, fs_bar_sent
+  ldh a, [fs_force]
+  and a
+  jr nz, .send
+  ld a, [hli]
+  cp b
+  jr nz, .send
+  ld a, [hli]
+  cp c
+  jr nz, .send
+  ld a, [hl]
+  cp e
+  ret z
+.send
+  ld hl, fs_bar_sent
+  ld a, b
+  ld [hli], a
+  ld a, c
+  ld [hli], a
+  ld [hl], e
+  ld a, SGBFS_CMD_SCROLLBAR
+  ld bc, 3
+  call FsTLV
+  ldh a, [fs_bar_sent]
+  call FsByte
+  ldh a, [fs_bar_sent+1]
+  call FsByte
+  ldh a, [fs_bar_sent+2]
+  jp FsByte
 ASSERT @ <= _RenderOverlayEnd, "styled rows exceed audited renderer interval"

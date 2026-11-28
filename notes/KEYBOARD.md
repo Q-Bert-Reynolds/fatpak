@@ -129,8 +129,8 @@ click (or drag) selects from the cursor (the editor keeps the anchor at the curs
 while nothing is selected). Browser clicks select the target row directly; double-click and
 right-click actions wait for that selection to be drawn.
 
-While the pointer shows, the editor, the browser and HEXVIEW show a scroll bar at 160x144 (all models; not
-the SGB's fullscreen modes), unless everything is on screen: a 4 pixel track over the text rows' right edge
+While the pointer shows, the editor, the browser and HEXVIEW show a scroll bar at 160x144 (all models) and in
+the SGB's fullscreen modes, unless everything is on screen: a 4 pixel track over the text rows' right edge
 and a thumb (the font's tile 10, a sprite). The window draws the track: on every line then, at the screen's
 left on the bars and at the track (WX 163) on the text rows, so its rows are the screen's
 (`src/ui/scrollbar.asm`; the bars' window rows are packed otherwise). A press from the thumb's left edge
@@ -141,6 +141,17 @@ there: the editor's top row and cursor at that place (a large document's window 
 bottom is Ctrl+End), the browser's list with the selection on the same screen row, HEXVIEW's rows. Views
 claim the bar every frame they wait for keys (`ScrollBar`, `ModScrollBar`), so menus, dialogs and other
 screens hide it.
+
+In fullscreen (256x224 and 512x448) the SNES draws the bar: `ScrollBarFrame` keeps the same state without
+the GB's window, tiles or sprites (the LCD is the transport), and the fullscreen client sends `SCROLLBAR`
+when it changes (the track's top line and lines in 256x224's lines, 8 a row or 4 in 512x448's text, and the
+thumb's top line; 0 lines without it). The kernel keeps the three bytes and `FarPointer` (`snes/mouse.s`)
+draws them with its pointer, and only while the pointer shows: the thumb as OAM entry 2 at x 250, the track
+as entries 3 on, 32x32 OBJs at x 252 whose first tile column alone is on screen (7 at most), their tiles by
+DMA. Presses from x 250 rightwards on the text rows are the bar's; the box, the OSK and a module's map hide
+it. VBlank is short: `PresentCursor` now hides the whole OAM with one DMA (`FarHide`, the resident part's
+544-byte table) instead of 640 CPU writes, which took a dozen lines and pushed the bar's last writes past
+VBlank's end (lost in Mesen).
 
 In fullscreen the kernel (snes/mouse.s) draws the pointer as OAM entry 1. At 256x224 the overlay (menus, boxes,
 the OSK) is BG3 in mode 1 with BG3's priority bit, in front of every OBJ, so FarPointer also points window 1 at

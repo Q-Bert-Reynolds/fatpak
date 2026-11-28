@@ -236,6 +236,7 @@ u8 status_valid;
 u16 status_frame;
 u8 palette_dirty;
 u8 cursor_dirty;
+u8 scroll_bar[3]; /* SCROLLBAR's: the track's top line, its lines (0 none), the thumb's top (mouse.s draws it) */
 u8 scan_row;
 u8 scroll_target;
 u8 scroll_current = SCROLL_ORIGIN;
@@ -862,6 +863,15 @@ static u8 commands(const u8 *p, u16 n, u8 apply) {
           text_rows = SGBFS_ROWS;
           ring_offset = 0;
           SetScroll(SCROLL_ORIGIN);
+        }
+        break;
+      case SGBFS_CMD_SCROLLBAR:
+        if (len != 3) {
+          return 0;
+        }
+        if (apply) {
+          memcpy(scroll_bar, b, 3);
+          cursor_dirty = 1;
         }
         break;
       default:
