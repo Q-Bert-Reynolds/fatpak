@@ -47,9 +47,9 @@ scroll_drag: DB;1 while the thumb is held
 scroll_grab: DB;where in the thumb it's held (lines from its top)
 scroll_drag_at: DB;the held thumb's top, lines from the track's
 scroll_target: DB;the fraction (0-255) the thumb was let go at
-
-SECTION "Scroll bar HRAM", HRAM;(WRAMX is full)
 scroll_top:: DB;the thumb's top line as last placed (fullscreen: the client's SCROLLBAR)
+fs_bar_sent:: DS 3;the fullscreen client's SCROLLBAR as last sent: the track's top line, its lines (0: none), the
+                  ;thumb's top (not in HRAM: its top is written by something unknown, TODO.md)
 
 SECTION "Scroll bar", ROM0
 

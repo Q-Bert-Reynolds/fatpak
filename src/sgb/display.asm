@@ -2469,10 +2469,10 @@ FsScrollBar:
   ld a, SGBFS_CMD_SCROLLBAR
   ld bc, 3
   call FsTLV
-  ldh a, [fs_bar_sent]
+  ld a, [fs_bar_sent]
   call FsByte
-  ldh a, [fs_bar_sent+1]
+  ld a, [fs_bar_sent+1]
   call FsByte
-  ldh a, [fs_bar_sent+2]
+  ld a, [fs_bar_sent+2]
   jp FsByte
 ASSERT @ <= _RenderOverlayEnd, "styled rows exceed audited renderer interval"
